@@ -8,31 +8,38 @@ import { updateTheme } from '../../actions/statusPage';
 import { FormLoader } from '../basic/Loader';
 
 export class Themes extends Component {
-  constructor(props) {
-    super(props)
-    this.state = {
-      type: props.data.theme,
+    constructor(props) {
+        super(props);
+        this.state = {
+            type: props.data.theme,
+        };
     }
-  }
 
-  changeBox = (e, value) => {
-    this.setState({ type: value })
-  }
-  submitForm = (value) => {
-      const { statusPageId, projectId } = this.props.data
-      const data = {
-          ...value, statusPageId
-      }
-    this.props.updateTheme(projectId, data)
-  }
+    changeBox = (e, value) => {
+        this.setState({ type: value });
+    };
+    submitForm = value => {
+        const { statusPageId, projectId } = this.props.data;
+        const data = {
+            ...value,
+            statusPageId,
+        };
+        this.props.updateTheme(projectId, data);
+    };
 
     render() {
-      const { handleSubmit, statusPage } = this.props;
-      const requesting = statusPage.theme.requesting;
-      const error = statusPage.theme.error;
+        const { handleSubmit, statusPage } = this.props;
+        const requesting = statusPage.theme.requesting;
+        const error = statusPage.theme.error;
         const themes = [
-            { value: 'New Theme', label: 'test', description: 'test' },
-            { value: 'Custom Theme', label: 'test', description: 'test' },
+            {
+                value: 'Clean Theme',
+                screenshot: '/dashboard/assets/img/clean.png',
+            },
+            {
+                value: 'Classic Theme',
+                screenshot: '/dashboard/assets/img/classic.png',
+            },
         ];
         return (
             <form onSubmit={handleSubmit(this.submitForm)}>
@@ -52,7 +59,9 @@ export class Themes extends Component {
                                     </span>
                                     <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                         <span>
-                                            By default, Custom theme is selected. Select the preferred theme you want to be displayed.
+                                            By default, Custom theme is
+                                            selected. Select the preferred theme
+                                            you want to be displayed.
                                         </span>
                                     </span>
                                 </div>
@@ -63,70 +72,91 @@ export class Themes extends Component {
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <fieldset className="bs-Fieldset">
                                         <div className="bs-Fieldset-rows theme-list-3c">
-                                        <div className="price-list-3c rm-auto Margin-all--16">
-                                            {themes.map((theme, i) => {
-                                                return (
-                                                    <label
-                                                        key={i}
-                                                        htmlFor={`type_${theme.value}`}
-                                                        style={{
-                                                            cursor: 'pointer',
-                                                        }}
-                                                    >
-                                                        <div
-                                                            className={`radio-field monitor-type-item Box-background--white`}
+                                            <div className="price-list-3c rm-auto Margin-all--16">
+                                                {themes.map((theme, i) => {
+                                                    return (
+                                                        <label
+                                                            key={i}
+                                                            htmlFor={`type_${theme.value}`}
                                                             style={{
-                                                                border: `1px solid ${
-                                                                  this
-                                                                      .state
-                                                                      .type ===
-                                                                  theme.value
-                                                                      ? 'black'
-                                                                      : 'rgba(0,0,0,0.2)'
-                                                              }`,
+                                                                cursor:
+                                                                    'pointer',
                                                             }}
                                                         >
-                                                            <div className="radioButtonStyle">
-                                                                <Field
-                                                                    required={
-                                                                        true
-                                                                    }
-                                                                    component="input"
-                                                                    type="radio"
-                                                                    data-testId={`type_${theme.value}`}
-                                                                    id={`type_${theme.value}`}
-                                                                    name={`theme`}
-                                                                    className="Margin-left--4 Margin-top--4"
-                                                                    validate={
-                                                                        ValidateField.select
-                                                                    }
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    onChange={(
-                                                                        e,
-                                                                        v
-                                                                    ) => {
-                                                                        this.changeBox(
+                                                            <div
+                                                                className={`radio-field monitor-type-item Box-background--white`}
+                                                                style={{
+                                                                    border: `1px solid ${
+                                                                        this
+                                                                            .state
+                                                                            .type ===
+                                                                        theme.value
+                                                                            ? 'black'
+                                                                            : 'rgba(0,0,0,0.2)'
+                                                                    }`,
+                                                                }}
+                                                            >
+                                                                <div className="radioButtonStyle">
+                                                                    <Field
+                                                                        required={
+                                                                            true
+                                                                        }
+                                                                        component="input"
+                                                                        type="radio"
+                                                                        data-testId={`type_${theme.value}`}
+                                                                        id={`type_${theme.value}`}
+                                                                        name={`theme`}
+                                                                        className="Margin-left--4 Margin-top--4"
+                                                                        validate={
+                                                                            ValidateField.select
+                                                                        }
+                                                                        disabled={
+                                                                            requesting
+                                                                        }
+                                                                        onChange={(
                                                                             e,
                                                                             v
-                                                                        );
-                                                                    }}
-                                                                    value={
-                                                                        theme.value
-                                                                    }
-                                                                />
-                                                            </div>
-                                                            <div className="themelabel">
-                                                                <div style={{fontWeight: this.state.type === theme.value ? '600': '400'}}>
-                                                                  {theme.value}
+                                                                        ) => {
+                                                                            this.changeBox(
+                                                                                e,
+                                                                                v
+                                                                            );
+                                                                        }}
+                                                                        value={
+                                                                            theme.value
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                                <div className="themelabel">
+                                                                    <div
+                                                                        style={{
+                                                                            fontWeight:
+                                                                                this
+                                                                                    .state
+                                                                                    .type ===
+                                                                                theme.value
+                                                                                    ? '600'
+                                                                                    : '400',
+                                                                        }}
+                                                                    >
+                                                                        {
+                                                                            theme.value
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bs-screenshot">
+                                                                    <img
+                                                                        alt="theme"
+                                                                        src={
+                                                                            theme.screenshot
+                                                                        }
+                                                                    />
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
                                     </fieldset>
                                 </div>
@@ -165,25 +195,25 @@ const ThemesForm = new reduxForm({
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            updateTheme
+            updateTheme,
         },
         dispatch
     );
 
 Themes.propTypes = {
-  statusPage: PropTypes.object.isRequired,
-  handleSubmit: PropTypes.func.isRequired,
-  data: PropTypes.object.isRequired,
-  updateTheme: PropTypes.func.isRequired,
-  initialValues: PropTypes.shape({ theme: PropTypes.string }),
-}
+    statusPage: PropTypes.object.isRequired,
+    handleSubmit: PropTypes.func.isRequired,
+    data: PropTypes.object.isRequired,
+    updateTheme: PropTypes.func.isRequired,
+    initialValues: PropTypes.shape({ theme: PropTypes.string }),
+};
 
 const mapStateToProps = (state, ownProps) => {
-    const { theme } = ownProps.data
+    const { theme } = ownProps.data;
     return {
         statusPage: state.statusPage,
-        initialValues: { theme }
-    }
-}
+        initialValues: { theme },
+    };
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ThemesForm);
