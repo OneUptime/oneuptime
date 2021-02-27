@@ -254,6 +254,9 @@ class MonitorInfo extends Component {
         this.scrollWrapper = createRef();
         this.scrollContent = createRef();
         this.resizeHandler = this.resizeHandler.bind(this);
+        this.state = {
+            windowSize: window.innerWidth,
+        };
     }
 
     componentDidMount() {
@@ -272,6 +275,11 @@ class MonitorInfo extends Component {
 
         this.resizeHandler();
         window.addEventListener('resize', debounce(this.resizeHandler, 100));
+        window.addEventListener('resize', () => {
+            this.setState({
+                windowSize: window.innerWidth,
+            });
+        });
     }
 
     componentDidUpdate(prevProps) {
@@ -293,6 +301,11 @@ class MonitorInfo extends Component {
 
     componentWillUnmount() {
         window.removeEventListener('resize', debounce(this.resizeHandler, 100));
+        window.removeEventListener('resize', () => {
+            this.setState({
+                windowSize: window.innerWidth,
+            });
+        });
     }
 
     resizeHandler() {
@@ -311,7 +324,12 @@ class MonitorInfo extends Component {
         setTimeout(() => {
             // adjust width
             scrollWrapper.style.width = `${container.clientWidth}px`;
-            scrollContent.style.width = 'max-content';
+            if (!this.props.theme) {
+                scrollContent.style.width = 'max-content';
+            } else {
+                scrollContent.style.display = 'flex';
+                scrollContent.style.justifyContent = 'space-between';
+            }
 
             // scroll to end of chart
             scrollWrapper.scrollLeft =
@@ -331,7 +349,20 @@ class MonitorInfo extends Component {
             isGroupedByMonitorCategory,
         } = this.props;
         const now = Date.now();
-        const range = 90;
+        let range = !this.props.theme && 90;
+
+        if (this.props.theme) {
+            const { windowSize } = this.state;
+            if (windowSize <= 600) {
+                range = 30;
+            }
+            if (windowSize > 600 && windowSize < 1000) {
+                range = 60;
+            }
+            if (windowSize >= 1000) {
+                range = 90;
+            }
+        }
 
         let monitorData = monitorState.filter(a => a._id === monitor._id);
         monitorData =
@@ -365,6 +396,9 @@ class MonitorInfo extends Component {
                         time={timeBlock[i]}
                         key={i}
                         id={i}
+                        theme={this.props.theme}
+                        windowSize={this.state.windowSize}
+                        range={range}
                     />
                 );
             }
@@ -433,34 +467,40 @@ class MonitorInfo extends Component {
                                     {monitor.name}
                                 </span>
                                 <br />
-                                <div
-                                    style={{
-                                        color: '#8898aa',
-                                        textDecoration: 'none',
-                                        paddingLeft: '0px',
-                                        fontSize: '12px',
-                                        width: '300px',
-                                        wordWrap: 'break-word',
-                                    }}
-                                >
-                                    {selectedCharts.description}
-                                </div>
+                                <ShouldRender if={!this.props.theme}>
+                                    <div
+                                        style={{
+                                            color: '#8898aa',
+                                            textDecoration: 'none',
+                                            paddingLeft: '0px',
+                                            fontSize: '12px',
+                                            width: '300px',
+                                            wordWrap: 'break-word',
+                                        }}
+                                    >
+                                        {selectedCharts.description}
+                                    </div>
+                                </ShouldRender>
                             </div>
                         </div>
                     </div>
-                    <div>
-                        <span className="percentage" style={primaryText}>
-                            <em>{uptime}%</em> uptime for the last{' '}
-                            {upDays > range ? range : upDays} day
-                            {upDays > 1 ? 's' : ''}
-                        </span>
-                    </div>
+                    <ShouldRender if={!this.props.theme}>
+                        <div>
+                            <span className="percentage" style={primaryText}>
+                                <em>{uptime}%</em> uptime for the last{' '}
+                                {upDays > range ? range : upDays} day
+                                {upDays > 1 ? 's' : ''}
+                            </span>
+                        </div>
+                    </ShouldRender>
                 </div>
                 {selectedCharts.uptime && (
                     <div
                         ref={this.scrollWrapper}
                         className="block-chart"
-                        style={{ overflowX: 'scroll' }}
+                        style={{
+                            overflowX: this.props.theme ? 'none' : 'scroll',
+                        }}
                     >
                         <div
                             ref={this.scrollContent}
@@ -470,6 +510,15 @@ class MonitorInfo extends Component {
                         </div>
                     </div>
                 )}
+                <ShouldRender if={this.props.theme}>
+                    <div className="alerts_days">
+                        <div>{range} days ago</div>
+                        <div className="spacer"></div>
+                        <div>{uptime}% uptime</div>
+                        <div className="spacer"></div>
+                        <div>Today</div>
+                    </div>
+                </ShouldRender>
             </div>
         );
     }
@@ -508,6 +557,7 @@ MonitorInfo.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     isGroupedByMonitorCategory: PropTypes.bool,
+    theme: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInfo);
