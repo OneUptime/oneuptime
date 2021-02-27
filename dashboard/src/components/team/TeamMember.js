@@ -22,11 +22,15 @@ import { history } from '../../store';
 import '@trendmicro/react-dropdown/dist/react-dropdown.css';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import ConfirmChangeRoleModal from '../modals/ConfirmChangeRole';
 
 export class TeamMember extends Component {
     constructor(props) {
         super(props);
-        this.state = { removeUserModalId: uuidv4() };
+        this.state = {
+            removeUserModalId: uuidv4(),
+            ConfirmationDialogId: uuidv4(),
+        };
         this.removeTeamMember = this.removeTeamMember.bind(this);
         this.updateTeamMemberRole = this.updateTeamMemberRole.bind(this);
     }
@@ -212,16 +216,38 @@ export class TeamMember extends Component {
                                         <ShouldRender if={loggedInUserIsOwner}>
                                             <MenuItem
                                                 title="Owner"
-                                                onClick={handleSubmit(values =>
-                                                    this.updateTeamMemberRole(
-                                                        {
-                                                            ...values,
-                                                            role: this.props
-                                                                .role,
-                                                            userId: userId,
-                                                        },
-                                                        'Owner'
-                                                    )
+                                                onClick={handleSubmit(
+                                                    values => {
+                                                        this.props.openModal({
+                                                            id: this.state
+                                                                .ConfirmationDialogId,
+                                                            content: DataPathHoC(
+                                                                ConfirmChangeRoleModal,
+                                                                {
+                                                                    ConfirmationDialogId: this
+                                                                        .state
+                                                                        .ConfirmationDialogId,
+                                                                    name:
+                                                                        this
+                                                                            .props
+                                                                            .name ??
+                                                                        this
+                                                                            .props
+                                                                            .email,
+                                                                    values,
+                                                                    role: this
+                                                                        .props
+                                                                        .role,
+                                                                    userId: userId,
+                                                                    newRole:
+                                                                        'Owner',
+                                                                    updating,
+                                                                    updateTeamMemberRole: this
+                                                                        .updateTeamMemberRole,
+                                                                }
+                                                            ),
+                                                        });
+                                                    }
                                                 )}
                                             >
                                                 Owner
