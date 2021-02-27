@@ -18,47 +18,52 @@ const UserService = require('../services/userService');
 
 router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
     try {
-        const data = req.body;
-        if (!data.user) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'User Name is required.',
-            });
-        }
+        let data = req.body;
+        if (!data.internalSmtp) {
+            if (!data.user) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'User Name is required.',
+                });
+            }
 
-        if (!data.pass) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Password is required.',
-            });
-        }
+            if (!data.pass) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Password is required.',
+                });
+            }
 
-        if (!data.host) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'host is required.',
-            });
-        }
+            if (!data.host) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'host is required.',
+                });
+            }
 
-        if (!data.port) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'port is required.',
-            });
-        }
+            if (!data.port) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'port is required.',
+                });
+            }
 
-        if (!data.name) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'name is required.',
-            });
-        }
+            if (!data.name) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'name is required.',
+                });
+            }
 
-        if (!data.from) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'from is required.',
-            });
+            if (!data.from) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'from is required.',
+                });
+            }
+        } else {
+            const internalData = await MailService.getSmtpSettings();
+            data = { ...data, ...internalData };
         }
         let response = await MailService.testSmtpConfig(data);
         response = { message: 'Email sent successfully' };

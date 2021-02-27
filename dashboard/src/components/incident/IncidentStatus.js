@@ -37,7 +37,7 @@ export class IncidentStatus extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            editIncidentModalId: uuid.v4(),
+            // editIncidentModalId: uuid.v4(), unused due to code re-implementation
             messageModalId: uuid.v4(),
             viewJsonModalId: uuid.v4(),
             resolveLoad: false,
@@ -2422,8 +2422,10 @@ const mapDispatchToProps = dispatch => {
 };
 
 IncidentStatus.propTypes = {
+    handleSubmit: PropTypes.func.isRequired,
     resolveIncident: PropTypes.func.isRequired,
     acknowledgeIncident: PropTypes.func.isRequired,
+    updateIncident: PropTypes.func.isRequired,
     closeIncident: PropTypes.func,
     closeincident: PropTypes.object,
     requesting: PropTypes.bool,
@@ -2434,6 +2436,7 @@ IncidentStatus.propTypes = {
     count: PropTypes.number,
     openModal: PropTypes.func.isRequired,
     projectId: PropTypes.string,
+    description: PropTypes.string,
     componentId: PropTypes.string,
     route: PropTypes.string,
     incidentRequest: PropTypes.object.isRequired,

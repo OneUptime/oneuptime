@@ -5,7 +5,7 @@ ARG PORT=25
 #set language enviroments
 ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
     TIMEZONE="America/New_York" \
-    LOGLEVEL=warn \
+    LOGLEVEL=info \
     DATADIR=/data \
     HEADER="Haraka Server at Your Service" \
     SMTP_PORT=${PORT}

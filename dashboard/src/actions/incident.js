@@ -35,7 +35,6 @@ export const resetProjectIncidents = () => {
 export function getProjectIncidents(projectId, skip, limit) {
     skip = parseInt(skip);
     limit = parseInt(limit);
-    console.log(skip, limit);
 
     return function(dispatch) {
         let promise = null;
