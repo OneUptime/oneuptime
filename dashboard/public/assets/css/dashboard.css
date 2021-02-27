@@ -34703,6 +34703,20 @@ span.CodeMirror-selectedtext {
   border: none;
 }
 
+.bs-screenshot {
+  flex: 1;
+  height: 200px;
+  width: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.bs-screenshot img {
+  width: 80%;
+  height: 100%;
+}
+
 @media only screen and (max-width: 768px) {
   .status-page-btn-action-col {
     float: none!important;
@@ -35232,6 +35246,7 @@ padding-left:20px
   display: flex;
   justify-content: center;
   align-items: center;
+  height: 200px;
 }
 @media (max-width: 768px) {
   .bs-thread-container {
