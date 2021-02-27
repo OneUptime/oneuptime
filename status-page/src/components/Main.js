@@ -383,9 +383,11 @@ class Main extends Component {
             webhookNotification ||
             emailNotification;
 
+        const availableMonitors = this.props.statusData.monitors;
+
         return (
             <>
-                {theme === 'New Theme' ? (
+                {theme === 'Clean Theme' ? (
                     <>
                         <div className="new-theme">
                             {this.props.statusData &&
@@ -425,225 +427,34 @@ class Main extends Component {
                                         Fyipe's Status Page
                                     </a>
                                 </div>
-                                <button
-                                    className="subscribe_btn"
-                                    onClick={() =>
-                                        this.props.openSubscribeMenu()
-                                    }
-                                >
-                                    subscribe to updates
-                                </button>
-                            </div>
-                            <div className="new-main-container">
-                                <div className="sy-op">
-                                    All Systems Operational
-                                </div>
-                                <div className="op-div border-top">
-                                    <div className="op-info">
-                                        <div className="collecion_item">
-                                            Data Collection & Storage
-                                        </div>
-                                        <div class="tooltip">
-                                            <span className="ques_mark">?</span>
-                                            <span class="tooltiptext tooltip1">
-                                                Receiving and storing log data
-                                                from the customer internally
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div>Operational</div>
-                                </div>
-                                <div className="op-div">
-                                    <div className="op-info">
-                                        <div className="collecion_item">
-                                            Indexing Data
-                                        </div>
-                                        <div class="tooltip">
-                                            <span className="ques_mark">?</span>
-                                            <span class="tooltiptext tooltip2">
-                                                indexing log data in our search
-                                                engine
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div>Operational</div>
-                                </div>
-                                <div className="op-div">
-                                    <div className="op-info">
-                                        <div className="collecion_item">
-                                            Website Availability
-                                        </div>
-                                        <div class="tooltip">
-                                            <span className="ques_mark">?</span>
-                                            <span class="tooltiptext tooltip3">
-                                                The Web interface you use to
-                                                view log data
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div>Operational</div>
-                                </div>
-                                <div className="op-div">
-                                    <div className="op-info">
-                                        <div className="collecion_item">
-                                            Search Availability
-                                        </div>
-                                        <div class="tooltip">
-                                            <span className="ques_mark">?</span>
-                                            <span class="tooltiptext tooltip4">
-                                                The search engine is returning
-                                                results to display in the web
-                                                interface or API
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div>Operational</div>
-                                </div>
-                                <div className="op-div another-div">
-                                    <div className="display-flex">
-                                        <div>Alerts</div>
-                                        <div>Operational</div>
-                                    </div>
-                                    <div className="line-chart">
-                                        <div
-                                            className="uptime-graphs box-inner"
-                                            style={
-                                                isGroupedByMonitorCategory
-                                                    ? { paddingBottom: 0 }
-                                                    : { paddingBottom: 35 }
-                                            }
-                                        >
-                                            {isGroupedByMonitorCategory ? (
-                                                this.groupedMonitors()
-                                            ) : this.props.statusData &&
-                                              this.props.statusData
-                                                  .monitorsData !== undefined &&
-                                              this.props.statusData.monitorsData
-                                                  .length > 0 ? (
-                                                this.props.monitors
-                                                    .filter(monitor =>
-                                                        this.props.statusData.monitorsData.some(
-                                                            m =>
-                                                                m._id ===
-                                                                monitor.monitor
-                                                        )
-                                                    )
-                                                    .map((monitor, i) => (
-                                                        <>
-                                                            <MonitorInfo
-                                                                monitor={
-                                                                    this.props.statusData.monitorsData.filter(
-                                                                        m =>
-                                                                            m._id ===
-                                                                            monitor.monitor
-                                                                    )[0]
-                                                                }
-                                                                selectedCharts={
-                                                                    monitor
-                                                                }
-                                                                key={`uptime-${i}`}
-                                                                id={`monitor${i}`}
-                                                                isGroupedByMonitorCategory={
-                                                                    isGroupedByMonitorCategory
-                                                                }
-                                                            />
-                                                            <LineChartsContainer
-                                                                monitor={
-                                                                    this.props.statusData.monitorsData.filter(
-                                                                        m =>
-                                                                            m._id ===
-                                                                            monitor.monitor
-                                                                    )[0]
-                                                                }
-                                                                selectedCharts={
-                                                                    monitor
-                                                                }
-                                                                key={`line-charts-${i}`}
-                                                            />
-                                                            {i <
-                                                                this.props
-                                                                    .statusData
-                                                                    .monitorsData
-                                                                    .length -
-                                                                    1 && (
-                                                                <div
-                                                                    style={{
-                                                                        margin:
-                                                                            '30px 0px',
-                                                                        backgroundColor:
-                                                                            '#e8e8e8',
-                                                                        height:
-                                                                            '1px',
-                                                                    }}
-                                                                />
-                                                            )}
-                                                        </>
-                                                    ))
-                                            ) : (
-                                                <NoMonitor />
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="op-div">
-                                    <div className="op-info">
-                                        <div className="collecion_item">
-                                            API
-                                        </div>
-                                        <div class="tooltip">
-                                            <span className="ques_mark">?</span>
-                                            <span class="tooltiptext tooltip5">
-                                                Search API's
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div>Operational</div>
-                                </div>
-                                <div className="op-div">
-                                    <div className="op-info">
-                                        <div className="collecion_item">
-                                            S3 Ingestion
-                                        </div>
-                                        <div class="tooltip">
-                                            <span className="ques_mark">?</span>
-                                            <span class="tooltiptext tooltip6">
-                                                This is the status of the S3
-                                                ingestion service to get the
-                                                logs
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div>Operational</div>
-                                </div>
-                                <div className="op-div">
-                                    <div className="op-info">
-                                        <div className="collecion_item">
-                                            New Account Signup
-                                        </div>
-                                        <div class="tooltip">
-                                            <span className="ques_mark">?</span>
-                                            <span class="tooltiptext tooltip7">
-                                                New customers can create
-                                                accounts
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div>Operational</div>
-                                </div>
-                            </div>
-                            <div className="new-theme-incident">
-                                <div className="font-largest">
-                                    Past Incidents
-                                </div>
                                 <ShouldRender
                                     if={
-                                        this.props.statusData &&
-                                        this.props.statusData.projectId &&
-                                        this.props.statusData._id &&
-                                        !this.props.statusData
-                                            .moveIncidentToTheTop
+                                        this.props.isSubscriberEnabled ===
+                                            true && showSubscriberOption
                                     }
                                 >
+                                    <button
+                                        className="subscribe_btn"
+                                        onClick={() =>
+                                            this.props.openSubscribeMenu()
+                                        }
+                                    >
+                                        subscribe to updates
+                                    </button>
+                                </ShouldRender>
+                            </div>
+                            <ShouldRender
+                                if={
+                                    this.props.statusData &&
+                                    this.props.statusData.projectId &&
+                                    this.props.statusData._id &&
+                                    this.props.statusData.moveIncidentToTheTop
+                                }
+                            >
+                                <div className="new-theme-incident matop-40">
+                                    <div className="font-largest">
+                                        Past Incidents
+                                    </div>
                                     <NotesMain
                                         projectId={
                                             this.props.statusData.projectId._id
@@ -651,8 +462,185 @@ class Main extends Component {
                                         statusPageId={this.props.statusData._id}
                                         theme={theme}
                                     />
+                                </div>
+                            </ShouldRender>
+                            <div className="new-main-container">
+                                <div className="sy-op">
+                                    All Systems Operational
+                                </div>
+                                <ShouldRender
+                                    if={
+                                        availableMonitors &&
+                                        availableMonitors.length > 0
+                                    }
+                                >
+                                    <ShouldRender
+                                        if={
+                                            availableMonitors &&
+                                            availableMonitors.length > 0
+                                        }
+                                    >
+                                        {availableMonitors.map(
+                                            (monitor, index) => (
+                                                <div
+                                                    className="op-div border-top"
+                                                    key={index}
+                                                >
+                                                    <div className="op-info">
+                                                        <div className="collecion_item">
+                                                            {
+                                                                monitor.monitor
+                                                                    .name
+                                                            }
+                                                        </div>
+                                                        <div class="tooltip">
+                                                            <ShouldRender
+                                                                if={
+                                                                    monitor.description
+                                                                }
+                                                            >
+                                                                <span className="ques_mark">
+                                                                    ?
+                                                                </span>
+                                                                <span class="tooltiptext tooltip1">
+                                                                    {
+                                                                        monitor.description
+                                                                    }
+                                                                </span>
+                                                            </ShouldRender>
+                                                        </div>
+                                                    </div>
+                                                    <div>Operational</div>
+                                                </div>
+                                            )
+                                        )}
+                                    </ShouldRender>
+                                    <div className="op-div another-div">
+                                        <div className="display-flex">
+                                            <div>Alerts</div>
+                                            <div>Operational</div>
+                                        </div>
+                                        <div className="line-chart">
+                                            <div
+                                                className="uptime-graphs box-inner"
+                                                style={
+                                                    isGroupedByMonitorCategory
+                                                        ? { paddingBottom: 0 }
+                                                        : { paddingBottom: 35 }
+                                                }
+                                            >
+                                                {isGroupedByMonitorCategory ? (
+                                                    this.groupedMonitors()
+                                                ) : this.props.statusData &&
+                                                  this.props.statusData
+                                                      .monitorsData !==
+                                                      undefined &&
+                                                  this.props.statusData
+                                                      .monitorsData.length >
+                                                      0 ? (
+                                                    this.props.monitors
+                                                        .filter(monitor =>
+                                                            this.props.statusData.monitorsData.some(
+                                                                m =>
+                                                                    m._id ===
+                                                                    monitor
+                                                                        .monitor
+                                                                        ._id
+                                                            )
+                                                        )
+                                                        .map((monitor, i) => (
+                                                            <>
+                                                                <MonitorInfo
+                                                                    monitor={
+                                                                        this.props.statusData.monitorsData.filter(
+                                                                            m =>
+                                                                                m._id ===
+                                                                                monitor
+                                                                                    .monitor
+                                                                                    ._id
+                                                                        )[0]
+                                                                    }
+                                                                    selectedCharts={
+                                                                        monitor
+                                                                    }
+                                                                    key={`uptime-${i}`}
+                                                                    id={`monitor${i}`}
+                                                                    isGroupedByMonitorCategory={
+                                                                        isGroupedByMonitorCategory
+                                                                    }
+                                                                    theme={
+                                                                        'clean'
+                                                                    }
+                                                                />
+                                                                <LineChartsContainer
+                                                                    monitor={
+                                                                        this.props.statusData.monitorsData.filter(
+                                                                            m =>
+                                                                                m._id ===
+                                                                                monitor
+                                                                                    .monitor
+                                                                                    ._id
+                                                                        )[0]
+                                                                    }
+                                                                    selectedCharts={
+                                                                        monitor
+                                                                    }
+                                                                    key={`line-charts-${i}`}
+                                                                />
+                                                                {i <
+                                                                    this.props
+                                                                        .statusData
+                                                                        .monitorsData
+                                                                        .length -
+                                                                        1 && (
+                                                                    <div
+                                                                        style={{
+                                                                            margin:
+                                                                                '30px 0px',
+                                                                            backgroundColor:
+                                                                                '#e8e8e8',
+                                                                            height:
+                                                                                '1px',
+                                                                        }}
+                                                                    />
+                                                                )}
+                                                            </>
+                                                        ))
+                                                ) : (
+                                                    <NoMonitor />
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ShouldRender>
+                                <ShouldRender if={availableMonitors.length < 1}>
+                                    <div className="bs-no-monitor">
+                                        No monitors added yet. Please, add a
+                                        monitor.
+                                    </div>
                                 </ShouldRender>
                             </div>
+                            <ShouldRender
+                                if={
+                                    this.props.statusData &&
+                                    this.props.statusData.projectId &&
+                                    this.props.statusData._id &&
+                                    !this.props.statusData.moveIncidentToTheTop
+                                }
+                            >
+                                <div className="new-theme-incident">
+                                    <div className="font-largest">
+                                        Past Incidents
+                                    </div>
+                                    <NotesMain
+                                        projectId={
+                                            this.props.statusData.projectId._id
+                                        }
+                                        statusPageId={this.props.statusData._id}
+                                        theme={theme}
+                                    />
+                                </div>
+                            </ShouldRender>
                             <div className="powered">
                                 <p>
                                     <a
@@ -953,7 +941,9 @@ class Main extends Component {
                                                             this.props.statusData.monitorsData.some(
                                                                 m =>
                                                                     m._id ===
-                                                                    monitor.monitor
+                                                                    monitor
+                                                                        .monitor
+                                                                        ._id
                                                             )
                                                         )
                                                         .map((monitor, i) => (
@@ -963,7 +953,9 @@ class Main extends Component {
                                                                         this.props.statusData.monitorsData.filter(
                                                                             m =>
                                                                                 m._id ===
-                                                                                monitor.monitor
+                                                                                monitor
+                                                                                    .monitor
+                                                                                    ._id
                                                                         )[0]
                                                                     }
                                                                     selectedCharts={
@@ -980,7 +972,9 @@ class Main extends Component {
                                                                         this.props.statusData.monitorsData.filter(
                                                                             m =>
                                                                                 m._id ===
-                                                                                monitor.monitor
+                                                                                monitor
+                                                                                    .monitor
+                                                                                    ._id
                                                                         )[0]
                                                                     }
                                                                     selectedCharts={
@@ -1255,6 +1249,7 @@ const mapStateToProps = state => ({
     requestingEvents: state.status.events.requesting,
     statusPage: state.status.statusPage,
     subscribed: state.subscribe.subscribeMenu,
+    isSubscriberEnabled: state.status.statusPage.isSubscriberEnabled,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -1287,6 +1282,7 @@ Main.propTypes = {
     openSubscribeMenu: PropTypes.func,
     statusPage: PropTypes.object,
     subscribed: PropTypes.bool,
+    isSubscriberEnabled: PropTypes.bool.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);
