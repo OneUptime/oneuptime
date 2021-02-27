@@ -91,6 +91,11 @@ router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
             { projectId, _id: statusPageId },
             { theme }
         );
+        const updatedStatusPage = await StatusPageService.getStatusPage(
+            { _id: statusPageId },
+            req.user.id
+        );
+        await RealTimeService.statusPageEdit(updatedStatusPage);
         return sendItemResponse(req, res, statusPage);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -695,6 +700,7 @@ router.get(
                     }
                 }
                 result = formatNotes(updatedNotes);
+                result = checkDuplicateDates(result);
             } else {
                 result = notes;
             }
@@ -1050,6 +1056,7 @@ router.get(
 
 const formatNotes = (data = []) => {
     const resultData = [];
+    const numberToDisplay = checkDuplicateDates(data, true);
 
     if (
         data[0] &&
@@ -1090,7 +1097,7 @@ const formatNotes = (data = []) => {
     }
 
     const prev_date = new Date(prev_obj.createdAt).getDate();
-    const fields_left = 15 - resultData.length;
+    const fields_left = numberToDisplay - resultData.length;
 
     for (let i = 0; i < fields_left; i++) {
         const time = new Date().setDate(prev_date - i - 1);
@@ -1104,5 +1111,33 @@ const formatNotes = (data = []) => {
 
     return resultData;
 };
+
+function checkDuplicateDates(items, bool) {
+    const track = {};
+
+    const result = [];
+
+    for (let item of items) {
+        const date = String(item.createdAt).slice(0, 10);
+
+        if (!track[date]) {
+            item.style = true;
+            track[date] = date;
+        } else {
+            item.style = false;
+        }
+
+        result.push(item);
+    }
+    if (!bool) {
+        return result;
+    } else {
+        let trueCount, falseCount;
+        const specificNumberToDisplay = 15;
+        trueCount = result.filter(num => num.style).length;
+        falseCount = result.filter(num => !num.style).length;
+        return specificNumberToDisplay + falseCount;
+    }
+}
 
 module.exports = router;
