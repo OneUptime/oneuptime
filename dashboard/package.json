@@ -55,7 +55,7 @@
         "react-ga": "^2.5.3",
         "react-google-charts": "^3.0.15",
         "react-hover-observer": "^2.1.0",
-        "react-json-view": "1.19.1",
+        "react-json-view": "^1.21.1",
         "react-markdown": "^4.3.1",
         "react-phone-input-2": "^2.13.8",
         "react-redux": "^5.0.7",
@@ -82,9 +82,9 @@
         "socket.io-client": "^2.3.0",
         "to-pascal-case": "^1.0.0",
         "universal-cookie": "^4.0.0",
-        "workbox-build": "^4.3.1",
         "uuid": "^8.3.2",
-        "valid-url": "^1.0.9"
+        "valid-url": "^1.0.9",
+        "workbox-build": "^4.3.1"
     },
     "scripts": {
         "lint": "eslint .",
