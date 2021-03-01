@@ -143,6 +143,27 @@ class NotesMain extends Component {
             webhookNotification ||
             emailNotification;
 
+        const checkDuplicateDates = items => {
+            const track = {};
+
+            const result = [];
+
+            for (let item of items) {
+                const date = String(item.createdAt).slice(0, 10);
+
+                if (!track[date]) {
+                    item.style = true;
+                    track[date] = date;
+                } else {
+                    item.style = false;
+                }
+
+                result.push(item);
+            }
+
+            return result;
+        };
+
         const formatMsg = data => {
             let result = data.reduce(function(r, a) {
                 r[a.incident_state] = r[a.incident_state] || [];
@@ -158,7 +179,7 @@ class NotesMain extends Component {
             this.props.theme === 'Clean Theme' &&
             this.props.noteData.notes.length > countNum &&
             !this.props.noteData.notes[1].idNumber &&
-                !this.props.noteData.notes[1].style
+            !this.props.noteData.notes[1].style
         ) {
             this.props.noteData.notes.splice(1, 1);
             incidentNoteData.notes = this.props.noteData.notes;
@@ -166,7 +187,7 @@ class NotesMain extends Component {
 
         if (this.props.theme === 'Clean Theme') {
             return incidentNoteData && incidentNoteData.notes.length > 1 ? (
-                incidentNoteData.notes.map((note, i) => {
+                checkDuplicateDates(incidentNoteData.notes).map((note, i) => {
                     return (
                         <div className="incident-object" key={i}>
                             <ShouldRender if={note.style}>

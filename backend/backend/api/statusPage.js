@@ -688,7 +688,7 @@ router.get(
                 if (notes.length > 0) {
                     for (const note of notes) {
                         const statusPageNote = await StatusPageService.getIncidentNotes(
-                            { incidentId: note._id, type: 'investigation' },
+                            { incidentId: note._id, postOnStatusPage: true },
                             skip,
                             limit
                         );
