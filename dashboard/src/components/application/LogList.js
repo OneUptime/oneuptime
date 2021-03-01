@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import moment from 'moment';
 import { openModal, closeModal } from '../../actions/modal';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import ViewJsonLogs from '../modals/ViewJsonLogs';
 import DataPathHoC from '../DataPathHoC';
 import { bindActionCreators } from 'redux';
@@ -21,7 +21,7 @@ const socket = io.connect(API_URL.replace('/api', ''), {
 class LogList extends Component {
     constructor(props) {
         super(props);
-        this.state = { viewJsonModalId: uuid.v4() };
+        this.state = { viewJsonModalId: uuidv4() };
     }
     prevClicked = (skip, limit) => {
         const { handleNavigationButtonClick } = this.props;

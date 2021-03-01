@@ -14,7 +14,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import projectTeamMemberNotification from './projectTeamMemberNotification.js';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS, Validate } from '../../config';
@@ -40,8 +40,8 @@ export class FormModal extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            notificationModalId: uuid.v4(),
-            messageModalId: uuid.v4(),
+            notificationModalId: uuidv4(),
+            messageModalId: uuidv4(),
         };
     }
 

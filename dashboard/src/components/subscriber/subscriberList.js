@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import countryTelephoneCode from 'country-telephone-code';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader2 } from '../basic/Loader';
@@ -18,7 +18,7 @@ export class SubscriberList extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            deleteSubscriberModalId: uuid.v4(),
+            deleteSubscriberModalId: uuidv4(),
         };
     }
 
