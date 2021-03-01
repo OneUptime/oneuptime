@@ -497,7 +497,7 @@ class Main extends Component {
                                                                     .name
                                                             }
                                                         </div>
-                                                        <div class="tooltip">
+                                                        <div className="tooltip">
                                                             <ShouldRender
                                                                 if={
                                                                     monitor.description
@@ -506,7 +506,7 @@ class Main extends Component {
                                                                 <span className="ques_mark">
                                                                     ?
                                                                 </span>
-                                                                <span class="tooltiptext tooltip1">
+                                                                <span className="tooltiptext tooltip1">
                                                                     {
                                                                         monitor.description
                                                                     }
