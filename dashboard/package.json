@@ -55,7 +55,7 @@
         "react-ga": "^2.5.3",
         "react-google-charts": "^3.0.15",
         "react-hover-observer": "^2.1.0",
-        "react-json-view": "1.19.1",
+        "react-json-view": "^1.21.1",
         "react-markdown": "^4.3.1",
         "react-phone-input-2": "^2.13.8",
         "react-redux": "^5.0.7",
