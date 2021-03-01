@@ -31,6 +31,14 @@ module.exports = {
                         res.body.pipe(dest);
                         // at this point, writing to the specified file is complete
                         res.body.on('end', async () => {
+                            console.log(
+                                '****** config path *********',
+                                configPath
+                            );
+                            console.log(
+                                '********* monitor name *******',
+                                monitor.name
+                            );
                             const [
                                 podOutput,
                                 jobOutput,
@@ -324,6 +332,10 @@ function loadPodOutput(configPath, namespace) {
     return new Promise(resolve => {
         let podOutput = '';
         const podCommand = `kubectl get pods -o json --kubeconfig ${configPath} --namespace ${namespace}`;
+        console.log(
+            '******** is file available *********',
+            fs.existsSync(configPath)
+        );
 
         const podCommandOutput = spawn(podCommand, {
             cwd: process.cwd(),
@@ -347,6 +359,10 @@ function loadJobOutput(configPath, namespace) {
     return new Promise(resolve => {
         let jobOutput = '';
         const jobCommand = `kubectl get jobs -o json --kubeconfig ${configPath} --namespace ${namespace}`;
+        console.log(
+            '******** is file available *********',
+            fs.existsSync(configPath)
+        );
 
         const jobCommandOutput = spawn(jobCommand, {
             cwd: process.cwd(),
@@ -370,6 +386,10 @@ function loadServiceOutput(configPath, namespace) {
     return new Promise(resolve => {
         let serviceOutput = '';
         const serviceCommand = `kubectl get services -o json --kubeconfig ${configPath} --namespace ${namespace}`;
+        console.log(
+            '******** is file available *********',
+            fs.existsSync(configPath)
+        );
 
         const serviceCommandOutput = spawn(serviceCommand, {
             cwd: process.cwd(),
@@ -393,6 +413,10 @@ function loadDeploymentOutput(configPath, namespace) {
     return new Promise(resolve => {
         let deploymentOutput = '';
         const deploymentCommand = `kubectl get deployments -o json --kubeconfig ${configPath} --namespace ${namespace}`;
+        console.log(
+            '******** is file available *********',
+            fs.existsSync(configPath)
+        );
 
         const deploymentCommandOutput = spawn(deploymentCommand, {
             cwd: process.cwd(),
@@ -416,6 +440,10 @@ function loadStatefulsetOutput(configPath, namespace) {
     return new Promise(resolve => {
         let statefulsetOutput = '';
         const statefulsetCommand = `kubectl get statefulsets -o json --kubeconfig ${configPath} --namespace ${namespace}`;
+        console.log(
+            '******** is file available *********',
+            fs.existsSync(configPath)
+        );
 
         const statefulsetCommandOutput = spawn(statefulsetCommand, {
             cwd: process.cwd(),
