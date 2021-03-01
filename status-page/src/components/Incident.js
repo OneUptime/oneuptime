@@ -65,11 +65,7 @@ class Incident extends Component {
         if (statusData && statusData._id) {
             fetchLastIncidentTimeline(statusData.projectId._id, incidentId);
             fetchIncident(statusData.projectId._id, incidentId);
-            fetchIncidentNotes(
-                statusData.projectId._id,
-                incidentId,
-                true
-            );
+            fetchIncidentNotes(statusData.projectId._id, incidentId, true);
         }
     }
 
@@ -86,11 +82,7 @@ class Incident extends Component {
         if (prevProps.statusData._id !== statusData._id) {
             fetchLastIncidentTimeline(statusData.projectId._id, incidentId);
             fetchIncident(statusData.projectId._id, incidentId);
-            fetchIncidentNotes(
-                statusData.projectId._id,
-                incidentId,
-                true
-            );
+            fetchIncidentNotes(statusData.projectId._id, incidentId, true);
         }
     }
 
@@ -103,12 +95,7 @@ class Incident extends Component {
         } = this.props;
         const { incidentId } = params;
 
-        moreIncidentNotes(
-            statusData.projectId._id,
-            incidentId,
-            true,
-            skip + 1
-        );
+        moreIncidentNotes(statusData.projectId._id, incidentId, true, skip + 1);
     }
 
     handleIncidentStatus = () => {
