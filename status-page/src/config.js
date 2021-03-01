@@ -16,7 +16,7 @@ export function env(value) {
 
 let protocol = window.location.protocol;
 if (env('STATUSPAGE_PROTOCOL')) {
-    protocol = env('STATUSPAGE_PROTOCOL');
+    protocol = env('STATUSPAGE_PROTOCOL') || 'https:';
 }
 
 if (
