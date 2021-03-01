@@ -49,12 +49,13 @@ class FyipeTracker
         $this->setApiUrl($apiUrl);
         $this->errorTrackerKey = $errorTrackerKey;
         $this->setUpOptions($options);
+        $this->utilObj = new Util();
         $this->setEventId();
         $this->listenerObj = new FyipeListener(
             $this->getEventId(),
             $this->options
         ); // Initialize Listener for timeline
-        $this->utilObj = new Util();
+       
 
         // initialize exception handler listener
         set_exception_handler('setUpExceptionHandlerListener');
