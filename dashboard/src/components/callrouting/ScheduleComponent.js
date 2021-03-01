@@ -7,6 +7,8 @@ import { RenderField } from '../basic/RenderField';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { ValidateField } from '../../config';
+import { UploadFile } from '../basic/UploadFile';
+import { FormLoader2 } from '../basic/Loader';
 
 export class ScheduleComponent extends Component {
     render() {
@@ -19,9 +21,268 @@ export class ScheduleComponent extends Component {
             backup,
             changeBackupButton,
             disabled,
+            uploadIntroAudioState,
+            uploadBackupIntroAudioState,
+            removeIntroAudioState,
+            removeBackupIntroAudioState,
+            changefile,
+            removeIntroAudio,
+            changeBackupFile,
         } = this.props;
+        const introAudioLoading =
+            (uploadIntroAudioState &&
+                uploadIntroAudioState.requesting &&
+                uploadIntroAudioState.callRoutingId === data.callRoutingId) ||
+            (removeIntroAudioState &&
+                removeIntroAudioState.requesting &&
+                removeIntroAudioState.callRoutingId === data.callRoutingId);
+        const backupIntroAudioLoading =
+            (uploadBackupIntroAudioState &&
+                uploadBackupIntroAudioState.requesting &&
+                uploadBackupIntroAudioState.callRoutingId ===
+                    data.callRoutingId) ||
+            (removeBackupIntroAudioState &&
+                removeBackupIntroAudioState.requesting &&
+                removeBackupIntroAudioState.callRoutingId ===
+                    data.callRoutingId);
         return (
             <Fragment>
+                <ShouldRender if={stateData.showAdvance}>
+                    <fieldset className="Margin-bottom--16">
+                        <div className="bs-Fieldset-rows">
+                            <div
+                                className="bs-Fieldset-row"
+                                style={{ padding: 0 }}
+                            >
+                                <label
+                                    className="bs-Fieldset-label Text-align--left"
+                                    htmlFor="introtext"
+                                    style={{
+                                        flexBasis: '20%',
+                                    }}
+                                >
+                                    <span>
+                                        {backup ? 'Backup ' : ''}Intro Text
+                                    </span>
+                                </label>
+                                <div
+                                    className="bs-Fieldset-fields"
+                                    style={{
+                                        flexBasis: '80%',
+                                        maxWidth: '80%',
+                                    }}
+                                >
+                                    <div
+                                        className="bs-Fieldset-field"
+                                        style={{
+                                            width: '70%',
+                                        }}
+                                    >
+                                        <Field
+                                            component={RenderField}
+                                            name={`${
+                                                backup ? 'backup_' : ''
+                                            }introtext`}
+                                            type="input"
+                                            placeholder="Hello Customer"
+                                            id={`${
+                                                backup ? 'backup_' : ''
+                                            }introtext`}
+                                            disabled={disabled}
+                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                            style={{
+                                                width: '100%',
+                                                padding: '3px 5px',
+                                            }}
+                                            autoFocus={false}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+                    <fieldset className="Margin-bottom--16">
+                        <div className="bs-Fieldset-rows">
+                            <div
+                                className="bs-Fieldset-row"
+                                style={{
+                                    padding: 0,
+                                }}
+                            >
+                                <label
+                                    className="bs-Fieldset-label Text-align--left"
+                                    style={{
+                                        flexBasis: '20%',
+                                    }}
+                                >
+                                    {backup ? 'Backup ' : ''}Intro Audio
+                                </label>
+                                <div className="bs-Fieldset-fields">
+                                    <div
+                                        className="Box-root Flex-flex Flex-alignItems--center"
+                                        style={{
+                                            flexWrap: 'wrap',
+                                        }}
+                                    >
+                                        <div>
+                                            <label
+                                                className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                type="button"
+                                            >
+                                                <ShouldRender
+                                                    if={
+                                                        (!backup &&
+                                                            !stateData.fileUploaded) ||
+                                                        (backup &&
+                                                            !stateData.backupFileUploaded)
+                                                    }
+                                                >
+                                                    <span className="bs-Button--icon bs-Button--new"></span>
+                                                    <span>
+                                                        Upload{' '}
+                                                        {backup
+                                                            ? 'Backup '
+                                                            : ''}
+                                                        Intro Audio
+                                                    </span>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={
+                                                        (!backup &&
+                                                            stateData.fileUploaded) ||
+                                                        (backup &&
+                                                            stateData.backupFileUploaded)
+                                                    }
+                                                >
+                                                    <span className="bs-Button--icon bs-Button--edit"></span>
+                                                    <span>
+                                                        Change{' '}
+                                                        {backup
+                                                            ? 'Backup '
+                                                            : ''}
+                                                        Intro Audio
+                                                    </span>
+                                                </ShouldRender>
+                                                <div className="bs-FileUploadButton-inputWrap">
+                                                    <Field
+                                                        className="bs-FileUploadButton-input"
+                                                        component={UploadFile}
+                                                        name={`${
+                                                            backup
+                                                                ? 'backup_'
+                                                                : ''
+                                                        }introAudio`}
+                                                        id={`${
+                                                            backup
+                                                                ? 'backup_'
+                                                                : ''
+                                                        }introAudio`}
+                                                        accept="audio/mp3"
+                                                        disabled={disabled}
+                                                        onChange={
+                                                            backup
+                                                                ? changeBackupFile
+                                                                : changefile
+                                                        }
+                                                        fileInputKey={''}
+                                                    />
+                                                </div>
+                                            </label>
+                                        </div>
+                                        <ShouldRender
+                                            if={
+                                                (!backup &&
+                                                    stateData.fileUploaded) ||
+                                                (backup &&
+                                                    stateData.backupFileUploaded)
+                                            }
+                                        >
+                                            <div
+                                                className="bs-Fieldset-fields"
+                                                style={{
+                                                    padding: '0',
+                                                }}
+                                            >
+                                                <button
+                                                    className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                    type="button"
+                                                    onClick={() =>
+                                                        removeIntroAudio(backup)
+                                                    }
+                                                    disabled={disabled}
+                                                    style={{
+                                                        margin: '10px 10px 0 0',
+                                                    }}
+                                                >
+                                                    {(!backup &&
+                                                        !introAudioLoading) ||
+                                                    (backup &&
+                                                        !backupIntroAudioLoading) ? (
+                                                        <>
+                                                            <span className="bs-Button--icon bs-Button--delete"></span>
+                                                            <span>
+                                                                Remove{' '}
+                                                                {backup
+                                                                    ? 'Backup '
+                                                                    : ''}
+                                                                Intro Audio
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <FormLoader2 />
+                                                    )}
+                                                </button>
+                                            </div>
+                                            <div
+                                                className="bs-Fieldset-fields"
+                                                style={{
+                                                    padding: '0',
+                                                }}
+                                            >
+                                                <label className="bs-Fieldset-explanation">
+                                                    <span>
+                                                        {backup
+                                                            ? stateData.backupFileName
+                                                            : stateData.fileName}
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        </ShouldRender>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+                </ShouldRender>
+                <fieldset style={{ paddingTop: 0 }}>
+                    <div className="bs-Fieldset-rows">
+                        <div className="bs-Fieldset-row" style={{ padding: 0 }}>
+                            <label
+                                className="bs-Fieldset-label Text-align--left"
+                                style={{
+                                    flexBasis: '20%',
+                                }}
+                            ></label>
+                            <div
+                                className="bs-Fieldset-fields"
+                                style={{
+                                    flexBasis: '80%',
+                                    maxWidth: '80%',
+                                }}
+                            >
+                                <div
+                                    className="bs-Fieldset-field"
+                                    style={{
+                                        width: '100%',
+                                        fontWeight: 500,
+                                    }}
+                                >
+                                    Who to forward call to
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
                 <fieldset>
                     <div className="bs-Fieldset-rows">
                         <div className="bs-Fieldset-row" style={{ padding: 0 }}>
@@ -441,26 +702,60 @@ const mapDispatchToProps = dispatch => {
 function mapStateToProps(state) {
     return {
         currentProject: state.project.currentProject,
+        uploadIntroAudioState: state.callRouting.uploadIntroAudioState,
+        uploadBackupIntroAudioState:
+            state.callRouting.uploadBackupIntroAudioState,
+        removeIntroAudioState: state.callRouting.removeIntroAudioState,
+        removeBackupIntroAudioState:
+            state.callRouting.removeBackupIntroAudioState,
     };
 }
 
 ScheduleComponent.propTypes = {
     backup: PropTypes.any,
     changeBackupButton: PropTypes.any,
+    changeBackupFile: PropTypes.any,
     changeButton: PropTypes.any,
+    changefile: PropTypes.any,
     data: PropTypes.shape({
+        callRoutingId: PropTypes.any,
         number: PropTypes.any,
     }),
     disabled: PropTypes.any,
+    introAudioState: PropTypes.shape({
+        requesting: PropTypes.any,
+    }),
+    removeBackupIntroAudioState: PropTypes.shape({
+        callRoutingId: PropTypes.any,
+        requesting: PropTypes.any,
+    }),
+    removeIntroAudio: PropTypes.func,
+    removeIntroAudioState: PropTypes.shape({
+        callRoutingId: PropTypes.any,
+        requesting: PropTypes.any,
+    }),
     schedules: PropTypes.shape({
         map: PropTypes.func,
     }),
     stateData: PropTypes.shape({
+        backupFileName: PropTypes.any,
+        backupFileUploaded: PropTypes.any,
         currentBackupButton: PropTypes.string,
         currentButton: PropTypes.string,
+        fileName: PropTypes.any,
+        fileUploaded: PropTypes.any,
+        showAdvance: PropTypes.any,
     }),
     teamMembers: PropTypes.shape({
         map: PropTypes.func,
+    }),
+    uploadBackupIntroAudioState: PropTypes.shape({
+        callRoutingId: PropTypes.any,
+        requesting: PropTypes.any,
+    }),
+    uploadIntroAudioState: PropTypes.shape({
+        callRoutingId: PropTypes.any,
+        requesting: PropTypes.any,
     }),
 };
 

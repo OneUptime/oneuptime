@@ -3,7 +3,10 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { openModal, closeModal } from '../../actions/modal';
-import { removeNumbers } from '../../actions/callRouting';
+import {
+    removeNumbers,
+    getCallRoutingNumbers,
+} from '../../actions/callRouting';
 import ConfirmNumberDeleteModal from './ConfirmNumberDeleteModal';
 import AddScheduleModal from './AddScheduleModal';
 import { Spinner, FormLoader } from '../basic/Loader';
@@ -15,6 +18,24 @@ export class RoutingNumberList extends Component {
         const { currentProject, removeNumbers } = this.props;
         removeNumbers(currentProject._id, callRoutingId);
     };
+
+    nextClicked = () => {
+        const { currentProject, callRoutingNumbers } = this.props;
+        this.props.getCallRoutingNumbers(
+            currentProject._id,
+            parseInt(callRoutingNumbers.skip) + 10,
+            10
+        );
+    };
+    prevClicked = () => {
+        const { currentProject, callRoutingNumbers } = this.props;
+        this.props.getCallRoutingNumbers(
+            currentProject._id,
+            parseInt(callRoutingNumbers.skip) - 10,
+            10
+        );
+    };
+
     getName = number => {
         const { teamMembers, schedules } = this.props;
         const type =
@@ -56,12 +77,22 @@ export class RoutingNumberList extends Component {
         } = this.props;
         const _this = this;
         const isRequesting = allNumbers && allNumbers.requesting;
-        const count =
-            callRoutingNumbers && callRoutingNumbers.length
-                ? callRoutingNumbers.length
-                : 0;
-        const canNext = false;
-        const canPrev = false;
+        const count = callRoutingNumbers.count && callRoutingNumbers.count;
+
+        let canNext =
+            callRoutingNumbers.count &&
+            callRoutingNumbers.count >
+                callRoutingNumbers.skip + callRoutingNumbers.limit
+                ? true
+                : false;
+        let canPrev =
+            callRoutingNumbers && callRoutingNumbers.skip <= 0 ? false : true;
+        if (isRequesting) {
+            canNext = false;
+            canPrev = false;
+        }
+
+        const numberOfPages = Math.ceil(parseInt(count) / 10);
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -128,9 +159,9 @@ export class RoutingNumberList extends Component {
                         </thead>
                         <tbody className="Table-body">
                             {!isRequesting &&
-                            callRoutingNumbers &&
-                            callRoutingNumbers.length > 0 ? (
-                                callRoutingNumbers.map((number, i) => {
+                            callRoutingNumbers.numbers &&
+                            callRoutingNumbers.numbers.length > 0 ? (
+                                callRoutingNumbers.numbers.map((number, i) => {
                                     const { result } = _this.getName(number);
                                     return (
                                         <tr
@@ -371,8 +402,7 @@ export class RoutingNumberList extends Component {
                         padding: '0 10px',
                     }}
                 >
-                    {!callRoutingNumbers ||
-                    (callRoutingNumbers && !callRoutingNumbers.length)
+                    {!callRoutingNumbers || count === 0
                         ? 'You have not added any phone numbers yet'
                         : null}
                 </div>
@@ -381,10 +411,14 @@ export class RoutingNumberList extends Component {
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {count
-                                        ? count +
-                                          (count > 1 ? ' Numbers' : ' Number')
-                                        : '0 Numbers'}
+                                    {numberOfPages > 0
+                                        ? `Page ${callRoutingNumbers.skip / 10 +
+                                              1} of ${numberOfPages} (${count} Number${
+                                              count === 1 ? '' : 's'
+                                          })`
+                                        : `${count} Number${
+                                              count === 1 ? '' : 's'
+                                          }`}
                                 </span>
                             </span>
                         </span>
@@ -437,7 +471,7 @@ export class RoutingNumberList extends Component {
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { openModal, closeModal, removeNumbers },
+        { openModal, closeModal, removeNumbers, getCallRoutingNumbers },
         dispatch
     );
 };
@@ -449,7 +483,7 @@ function mapStateToProps(state) {
     const project = state.project.currentProject;
     const numbers =
         state.callRouting.allNumbers && state.callRouting.allNumbers.numbers
-            ? state.callRouting.allNumbers.numbers
+            ? state.callRouting.allNumbers
             : [];
     return {
         currentProject: project,
@@ -467,13 +501,7 @@ RoutingNumberList.propTypes = {
     allNumbers: PropTypes.shape({
         requesting: PropTypes.any,
     }),
-    callRoutingNumbers: PropTypes.shape({
-        length: PropTypes.number,
-        map: PropTypes.func,
-        phoneNumber: PropTypes.shape({
-            length: PropTypes.any,
-        }),
-    }),
+    callRoutingNumbers: PropTypes.object,
     currentProject: PropTypes.shape({
         _id: PropTypes.any,
     }),
@@ -488,6 +516,7 @@ RoutingNumberList.propTypes = {
     teamMembers: PropTypes.shape({
         find: PropTypes.func,
     }),
+    getCallRoutingNumbers: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(RoutingNumberList);

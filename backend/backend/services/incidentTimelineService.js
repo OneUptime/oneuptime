@@ -104,7 +104,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('createdById', 'name')
-                .populate({path: 'probeId', select: 'probeName probeImage'});
+                .populate({ path: 'probeId', select: 'probeName probeImage' });
 
             return incidentTimelines;
         } catch (error) {
