@@ -264,9 +264,7 @@ class CreateIncident extends Component {
                                                                     ]}
                                                                     onChange={(
                                                                         event,
-                                                                        newValue,
-                                                                        previousValue,
-                                                                        name
+                                                                        newValue
                                                                     ) => {
                                                                         this.setState(
                                                                             {

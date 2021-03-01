@@ -145,7 +145,6 @@ class ErrorEventStackTrace extends Component {
                                                     {frame.fileName}
                                                     {'  '}
                                                 </span>
-                                                
                                                 {'  '}
                                                 in{' '}
                                                 <span className="Text-fontWeight--bold">
