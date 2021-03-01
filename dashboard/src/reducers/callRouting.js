@@ -6,6 +6,9 @@ const initialState = {
         error: null,
         success: false,
         numbers: [],
+        count: null,
+        limit: 10,
+        skip: null,
     },
     teamMembersAndSchedules: {
         requesting: false,
@@ -75,7 +78,10 @@ export default function card(state = initialState, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    numbers: action.payload,
+                    numbers: action.payload.numbers,
+                    skip: action.payload.skip,
+                    limit: action.payload.limit,
+                    count: action.payload.count,
                 },
             });
 
