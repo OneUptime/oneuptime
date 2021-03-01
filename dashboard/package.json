@@ -82,6 +82,7 @@
         "socket.io-client": "^2.3.0",
         "to-pascal-case": "^1.0.0",
         "universal-cookie": "^4.0.0",
+        "uuid": "^8.3.2",
         "valid-url": "^1.0.9"
     },
     "scripts": {
