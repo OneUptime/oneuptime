@@ -18,10 +18,10 @@ module.exports = {
                 _id: incidentMessage._id,
             });
 
-            if(incidentMessage.postOnStatusPage) {
+            if (incidentMessage.postOnStatusPage) {
                 await RealTimeService.addIncidentNote(incidentMessage);
             }
-            
+
             return incidentMessage;
         } catch (error) {
             ErrorService.log('incidentMessageService.create', error);

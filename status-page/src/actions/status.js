@@ -844,7 +844,12 @@ export function moreIncidentNotesFailure(error) {
     };
 }
 
-export function moreIncidentNotes(projectId, incidentId, postOnStatusPage, skip) {
+export function moreIncidentNotes(
+    projectId,
+    incidentId,
+    postOnStatusPage,
+    skip
+) {
     return async function(dispatch) {
         try {
             dispatch(moreIncidentNotesRequest());
