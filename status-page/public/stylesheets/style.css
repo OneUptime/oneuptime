@@ -1467,6 +1467,57 @@ margin-left:10px;
   opacity: 1;
 }
 
+.tooltip .tooltiptext-chart {
+  visibility: hidden;
+  color: #333 !important;
+  position: absolute;
+  left: 50%;
+  margin-left: -150px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 12px;
+  box-shadow: 0 3px 6px rgb(0 0 0 / 15%);
+  border: 1px solid rgba(0,0,0,0.2);
+  background-color: white;
+  border-radius: 3px;
+  width: 300px;
+  padding: 25px !important;
+  z-index: 2;
+  box-sizing: border-box;
+}
+
+.tooltip .resize-style {
+  overflow: visible !important;
+}
+
+.tooltip .tooltiptext-chart::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -5px;
+  margin-top: 20px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent black transparent;
+}
+
+.tooltip:hover .tooltiptext-chart {
+  visibility: visible;
+  opacity: 1;
+}
+
+.tooltiptext-chart > div {
+  color: #333 !important;
+  font-size: 14px;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif !important;
+}
+
+.tooltiptext-chart > div:nth-child(2) {
+  margin-top: 10px;
+  opacity: 0.5;
+}
+
 .op-info {
   display: flex;
 }
