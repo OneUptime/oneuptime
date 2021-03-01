@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import PropTypes from 'prop-types';
 import { openModal, closeModal } from '../../actions/modal';
 import { deleteApplicationLog } from '../../actions/applicationLog';
@@ -15,7 +15,7 @@ import DeleteApplicationLog from '../modals/DeleteApplicationLog';
 class ApplicationLogViewDeleteBox extends Component {
     constructor(props) {
         super(props);
-        this.state = { deleteModalId: uuid.v4() };
+        this.state = { deleteModalId: uuidv4() };
     }
     deleteApplicationLog = () => {
         const applicationLog = this.props.applicationLog;

@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import moment from 'moment';
 import SubProjectForm from './SubProjectForm';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import RemoveSubProject from '../modals/RemoveSubProject';
@@ -17,7 +17,7 @@ import isSubProjectViewer from '../../utils/isSubProjectViewer';
 export class SubProjectTable extends Component {
     constructor(props) {
         super(props);
-        this.state = { subProjectModalId: uuid.v4() };
+        this.state = { subProjectModalId: uuidv4() };
     }
 
     handleRevealAPIKey = userId => {

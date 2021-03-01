@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import { closeModal, openModal } from '../../actions/modal';
@@ -17,7 +17,7 @@ import ConfirmationDialog from './ConfirmationDialog';
 class SubProjectApiKey extends Component {
     state = {
         hidden: true,
-        confirmationModalId: uuid.v4(),
+        confirmationModalId: uuidv4(),
         oldApiKey: '',
     };
 

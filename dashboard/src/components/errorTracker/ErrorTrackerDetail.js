@@ -17,7 +17,7 @@ import ErrorTrackerHeader from './ErrorTrackerHeader';
 import ErrorTrackerDetailView from './ErrorTrackerDetailView';
 import { history } from '../../store';
 import { openModal, closeModal } from '../../actions/modal';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import ShouldRender from '../basic/ShouldRender';
 import NewErrorTracker from './NewErrorTracker';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
@@ -36,8 +36,8 @@ class ErrorTrackerDetail extends Component {
         super(props);
         this.props = props;
         this.state = {
-            deleteModalId: uuid.v4(),
-            trackerKeyModalId: uuid.v4(),
+            deleteModalId: uuidv4(),
+            trackerKeyModalId: uuidv4(),
             filters: null,
         };
     }
