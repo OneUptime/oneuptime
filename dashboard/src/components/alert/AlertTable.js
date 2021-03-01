@@ -363,9 +363,9 @@ TD7.propTypes = {
 
 function TD8({ text }) {
     const incidentStatusColor = {
-        identified: 'green',
+        identified: 'red',
         acknowledged: 'yellow',
-        resolved: 'red',
+        resolved: 'green',
     };
     const isIncidentStatus = Object.keys(incidentStatusColor).includes(text);
 

@@ -550,8 +550,8 @@ MonitorSla.propTypes = {
     activeSla: PropTypes.string,
     monitors: PropTypes.array,
     page: PropTypes.number,
-    paginatePrev: PropTypes.func,
-    paginateNext: PropTypes.func,
+    // paginatePrev: PropTypes.func, imported and dispatched but not used in the code
+    // paginateNext: PropTypes.func, imported and dispatched but not used in the code
 };
 
 const mapDispatchToProps = dispatch =>

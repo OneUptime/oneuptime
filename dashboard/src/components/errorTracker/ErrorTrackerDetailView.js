@@ -516,7 +516,7 @@ ErrorTrackerDetailView.propTypes = {
     slug: PropTypes.string,
     componentId: PropTypes.string,
     handleNavigationButtonClick: PropTypes.string,
-    ignoreErrorEvent: PropTypes.string,
+    ignoreErrorEvent: PropTypes.func,
     resolveErrorEvent: PropTypes.string,
     openModal: PropTypes.func,
     updateErrorEventMember: PropTypes.func,

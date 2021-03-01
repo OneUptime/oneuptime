@@ -18,7 +18,6 @@ import Dashboard from '../components/Dashboard';
 import IncidentStatus from '../components/incident/IncidentStatus';
 import IncidentAlert from '../components/incident/IncidentAlert';
 import SubscriberAlert from '../components/subscriber/subscriberAlert';
-import IncidentInvestigation from '../components/incident/IncidentInvestigation';
 import IncidentInternal from '../components/incident/IncidentInternal';
 import PropTypes from 'prop-types';
 import IncidentDeleteBox from '../components/incident/IncidentDeleteBox';
@@ -31,7 +30,6 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
-import IncidentStatusPages from '../components/incident/incidentStatusPages';
 import { fetchDefaultCommunicationSla } from '../actions/incidentCommunicationSla';
 import secondsToHms from '../utils/secondsToHms';
 
@@ -380,13 +378,6 @@ class Incident extends React.Component {
                                     Alert Logs
                                 </Tab>
                                 <Tab
-                                    className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
-                                    }
-                                >
-                                    Status Page Notes
-                                </Tab>
-                                <Tab
                                     id="tab-advance"
                                     className={
                                         'custom-tab custom-tab-6 bs-custom-incident-tab'
@@ -527,14 +518,6 @@ class Incident extends React.Component {
                                     previous={this.previousSubscribers}
                                     incident={this.props.incident}
                                     page={this.state.subscribeAlertPage}
-                                />
-                            </Fade>
-                        </TabPanel>
-                        <TabPanel>
-                            <Fade>
-                                <IncidentStatusPages />
-                                <IncidentInvestigation
-                                    incident={this.props.incident}
                                 />
                             </Fade>
                         </TabPanel>

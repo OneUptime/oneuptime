@@ -68,7 +68,7 @@ class Incident extends Component {
             fetchIncidentNotes(
                 statusData.projectId._id,
                 incidentId,
-                'investigation'
+                true
             );
         }
     }
@@ -89,7 +89,7 @@ class Incident extends Component {
             fetchIncidentNotes(
                 statusData.projectId._id,
                 incidentId,
-                'investigation'
+                true
             );
         }
     }
@@ -106,7 +106,7 @@ class Incident extends Component {
         moreIncidentNotes(
             statusData.projectId._id,
             incidentId,
-            'investigation',
+            true,
             skip + 1
         );
     }

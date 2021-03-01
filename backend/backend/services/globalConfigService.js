@@ -1,6 +1,14 @@
 module.exports = {
     create: async function({ name, value }) {
         try {
+            if (name === 'smtp' && value.internalSmtp && !value.backupSmtp) {
+                value = {
+                    internalSmtp: true,
+                    backupSmtp: false,
+                    'email-enabled': true,
+                };
+            }
+
             if (name === 'twilio' && value['authentication-token']) {
                 const iv = Crypto.randomBytes(16);
                 value['authentication-token'] = await EncryptDecrypt.encrypt(
@@ -31,7 +39,12 @@ module.exports = {
                 );
                 delete globalConfig.value['iv'];
             }
-            if (globalConfig.name === 'smtp') {
+            if (
+                globalConfig.name === 'smtp' &&
+                (!globalConfig.value.internalSmtp ||
+                    (globalConfig.value.internalSmtp &&
+                        globalConfig.value.backupSmtp))
+            ) {
                 globalConfig.value['password'] = await EncryptDecrypt.decrypt(
                     globalConfig.value['password'],
                     globalConfig.value['iv']
@@ -50,6 +63,18 @@ module.exports = {
         try {
             if (!query) {
                 query = {};
+            }
+
+            if (
+                query.name === 'smtp' &&
+                data.value.internalSmtp &&
+                !data.value.backupSmtp
+            ) {
+                data.value = {
+                    internalSmtp: true,
+                    backupSmtp: false,
+                    'email-enabled': true,
+                };
             }
 
             if (
@@ -96,7 +121,12 @@ module.exports = {
                     globalConfig.value['iv'].buffer
                 );
                 delete globalConfig.value['iv'];
-            } else if (globalConfig.name === 'smtp') {
+            } else if (
+                globalConfig.name === 'smtp' &&
+                (!globalConfig.value.internalSmtp ||
+                    (globalConfig.value.internalSmtp &&
+                        globalConfig.value.backupSmtp))
+            ) {
                 globalConfig.value['password'] = await EncryptDecrypt.decrypt(
                     globalConfig.value['password'],
                     globalConfig.value['iv'].buffer
@@ -155,7 +185,12 @@ module.exports = {
                         globalConfig.value['iv'].buffer
                     );
                     delete globalConfig.value['iv'];
-                } else if (globalConfig.name === 'smtp') {
+                } else if (
+                    globalConfig.name === 'smtp' &&
+                    (!globalConfig.value.internalSmtp ||
+                        (globalConfig.value.internalSmtp &&
+                            globalConfig.value.backupSmtp))
+                ) {
                     globalConfig.value[
                         'password'
                     ] = await EncryptDecrypt.decrypt(
@@ -189,7 +224,13 @@ module.exports = {
                     globalConfig.value['iv'].buffer
                 );
                 delete globalConfig.value['iv'];
-            } else if (globalConfig && globalConfig.name === 'smtp') {
+            } else if (
+                globalConfig &&
+                globalConfig.name === 'smtp' &&
+                (!globalConfig.value.internalSmtp ||
+                    (globalConfig.value.internalSmtp &&
+                        globalConfig.value.backupSmtp))
+            ) {
                 globalConfig.value['password'] = await EncryptDecrypt.decrypt(
                     globalConfig.value['password'],
                     globalConfig.value['iv'].buffer

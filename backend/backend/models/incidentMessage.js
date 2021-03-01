@@ -28,6 +28,7 @@ const incidentMessageSchema = new Schema({
     },
 
     deletedById: { type: String, ref: 'User', index: true },
+    postOnStatusPage: { type: Boolean, default: false },
 });
 
 incidentMessageSchema.virtual('incident', {

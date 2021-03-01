@@ -11,15 +11,6 @@ class ErrorEventStackTrace extends Component {
             currentFrameIndex: 0,
         };
     }
-    openExternalFile = (frame, host) => {
-        const url = frame.fileName.startsWith('http')
-            ? frame.fileName
-            : host
-            ? host.value + frame.fileName
-            : frame.fileName;
-        const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
-        if (newWindow) newWindow.opener = null;
-    };
     setFrameToDisplay = index => {
         // if current frame is not the same as the index, set it as the current frame
         // if current frame is the same, remove it to produce the toggle effect
@@ -68,10 +59,6 @@ class ErrorEventStackTrace extends Component {
     render() {
         const { errorEvent } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
-        // get the host from the tags, this value is always set if the SDK is used from the client side for now.
-        const host = errorEventDetails
-            ? errorEventDetails.tags.filter(tag => tag.key === 'url')[0]
-            : null;
         return (
             <ShouldRender
                 if={
@@ -158,20 +145,7 @@ class ErrorEventStackTrace extends Component {
                                                     {frame.fileName}
                                                     {'  '}
                                                 </span>
-                                                <img
-                                                    src="/dashboard/assets/img/external.svg"
-                                                    alt=""
-                                                    style={{
-                                                        height: '12px',
-                                                        width: '12px',
-                                                    }}
-                                                    onClick={() =>
-                                                        this.openExternalFile(
-                                                            frame,
-                                                            host
-                                                        )
-                                                    }
-                                                />
+                                                
                                                 {'  '}
                                                 in{' '}
                                                 <span className="Text-fontWeight--bold">

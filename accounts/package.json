@@ -30,7 +30,7 @@
         "react-reveal": "^1.2.2",
         "react-router-dom": "^4.2.2",
         "react-router-redux": "^4.0.8",
-        "react-scripts": "^4.0.1",
+        "react-scripts": "^4.0.3",
         "react-stripe-elements": "^1.6.0",
         "redux": "^3.7.2",
         "redux-form": "^7.3.0",

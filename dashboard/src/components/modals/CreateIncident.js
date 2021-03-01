@@ -720,6 +720,9 @@ CreateIncident.propTypes = {
     incidentBasicSettings: PropTypes.object.isRequired,
     fetchCustomFields: PropTypes.func,
     customFields: PropTypes.array,
+    componentId: PropTypes.string,
+    components: PropTypes.array,
+    monitorsList: PropTypes.array,
 };
 
 const formName = 'CreateNewIncident';
