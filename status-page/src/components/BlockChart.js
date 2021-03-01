@@ -164,7 +164,7 @@ class BlockChart extends Component {
 
         const dateId = title.replace(/, | /g, '');
         const extra = ' resize-style';
-        let style, classes;
+        let style, classes, content;
         if (this.props.theme) {
             style = {
                 outline: 'none',
@@ -183,16 +183,38 @@ class BlockChart extends Component {
             };
             classes = bar;
         }
-        return (
-            <div
-                id={`block${this.props.monitorId}${dateId}`}
-                className={classes}
-                style={style}
-                title={`${title}
-                ${title1}`}
-                onClick={() => this.requestday(need, this.props.time.date)}
-            ></div>
-        );
+
+        if (this.props.theme) {
+            content = (
+                <div className='tooltip'>
+                    <div
+                        id={`block${this.props.monitorId}${dateId}`}
+                        className={classes}
+                        style={style}
+                        onClick={() =>
+                            this.requestday(need, this.props.time.date)
+                        }
+                    ></div>
+                    <div className="tooltiptext-chart">
+                        <div>{title}</div>
+                        <div>{title1}</div>
+                    </div>
+                </div>
+            );
+        } else {
+            content = (
+                <div
+                    id={`block${this.props.monitorId}${dateId}`}
+                    className={classes}
+                    style={style}
+                    title={`${title}
+                    ${title1}`}
+                    onClick={() => this.requestday(need, this.props.time.date)}
+                ></div>
+            );
+        }
+
+        return <>{content}</>;
     }
 }
 
