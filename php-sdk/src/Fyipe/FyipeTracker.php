@@ -34,6 +34,7 @@ class FyipeTracker
     private $listenerObj;
     private $utilObj;
     private $event;
+    private $options = [];
 
     /**
      * FyipeTracker constructor.
@@ -86,7 +87,7 @@ class FyipeTracker
     }
     private function setEventId()
     {
-        $this->eventId = UUID::v4();
+        $this->eventId = $this->utilObj->v4();
     }
     private function getEventId()
     {
@@ -263,8 +264,6 @@ class FyipeTracker
     private function clear($newEventId) {
         // clear tags
         $this->tags = [];
-        // clear extras
-        $this->extras = [];
         // clear fingerprint
         $this->fingerprint = [];
         // clear timeline
