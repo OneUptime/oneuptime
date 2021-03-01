@@ -500,6 +500,7 @@ class MonitorInfo extends Component {
                         className="block-chart"
                         style={{
                             overflowX: this.props.theme ? 'none' : 'scroll',
+                            overflow: this.props.theme ? 'visible' : 'scroll',
                         }}
                     >
                         <div
