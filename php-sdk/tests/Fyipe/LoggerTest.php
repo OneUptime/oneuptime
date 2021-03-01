@@ -86,7 +86,7 @@ class LoggerTest extends TestCase
     {
         $logger = new Fyipe\FyipeLogger($this->apiUrl, static::$applicationLog->_id, '');
         $response = $logger->log('test content');
-        $this->assertEquals("Application Log Key is ", $response->message);
+        $this->assertEquals("Application Log Key is required.", $response->message);
     }
     public function test_content_is_required()
     {
