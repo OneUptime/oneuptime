@@ -7,7 +7,7 @@
 namespace Fyipe;
 
 use stdClass;
-use Util\UUID;
+use Fyipe\UUID;
 
 class FyipeTracker
 {

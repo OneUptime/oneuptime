@@ -4,7 +4,7 @@
  * @author bunday
  */
 
-namespace Util;
+namespace Fyipe;
 
 class UUID {
     public static function v4() {
