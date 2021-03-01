@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { connect } from 'react-redux';
 import MessageBox from '../modals/MessageBox';
 import { openModal } from '../../actions/modal';
@@ -106,7 +106,7 @@ class IncidentPrioritiesListClass extends React.Component {
                                                             )
                                                                 this.props.openModal(
                                                                     {
-                                                                        id: uuid.v4(),
+                                                                        id: uuidv4(),
                                                                         content: MessageBox,
                                                                         title:
                                                                             'Warning',

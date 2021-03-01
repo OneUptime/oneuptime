@@ -12,13 +12,13 @@ import moment from 'moment';
 import { StripeProvider, injectStripe, Elements } from 'react-stripe-elements';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS, env } from '../../config';
 
 class NotificationMenu extends Component {
     state = {
-        MessageBoxId: uuid.v4(),
+        MessageBoxId: uuidv4(),
     };
 
     markAllAsRead(projectId) {

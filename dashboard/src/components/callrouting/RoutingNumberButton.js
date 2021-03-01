@@ -5,14 +5,14 @@ import { bindActionCreators } from 'redux';
 import { openModal, closeModal } from '../../actions/modal';
 import RoutingNumberModal from './RoutingNumberModal';
 import DataPathHoC from '../DataPathHoC';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 class RoutingNumberButton extends React.Component {
     constructor(props) {
         super(props);
         this.props = props;
         this.state = {
-            addNumberModalId: uuid.v4(),
+            addNumberModalId: uuidv4(),
         };
     }
 

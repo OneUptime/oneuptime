@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import QuickTipBox from '../basic/QuickTipBox';
 import FeatureList from '../basic/FeatureList';
 import { tutorials } from '../../config';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import RenderIfOwnerOrAdmin from '../basic/RenderIfOwnerOrAdmin';
 import ShouldRender from '../basic/ShouldRender';
 
@@ -13,7 +13,7 @@ const getDescription = type => {
 const renderFeatures = features => {
     if (features) {
         return features.map(feature => (
-            <FeatureList key={uuid.v4()} content={feature} />
+            <FeatureList key={uuidv4()} content={feature} />
         ));
     }
     return null;

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { editMonitor, fetchLighthouseLogs } from '../../actions/monitor';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader, Spinner } from '../basic/Loader';
@@ -17,7 +17,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
         super(props);
         this.props = props;
         this.state = {
-            addSiteUrlModalId: uuid.v4(),
+            addSiteUrlModalId: uuidv4(),
             siteValue: { value: '', label: 'All Site URLs' },
         };
     }
