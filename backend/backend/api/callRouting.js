@@ -7,6 +7,7 @@
 const express = require('express');
 const { fetchPhoneNumbers } = require('../services/twilioService');
 const CallRoutingService = require('../services/callRoutingService');
+const FileService = require('../services/fileService');
 const { isAuthorized } = require('../middlewares/authorization');
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -170,65 +171,55 @@ router.put('/:projectId/:callRoutingId', getUser, isUserAdmin, async function(
 ) {
     try {
         const { callRoutingId } = req.params;
-        const upload = multer({
-            storage,
-        }).fields([
-            {
-                name: 'introAudio',
-                maxCount: 1,
-            },
-        ]);
-        upload(req, res, async function(error) {
-            const data = req.body;
-            if (error) {
-                return sendErrorResponse(req, res, error);
-            }
-            const routingSchema = {};
-            routingSchema.type = data.type;
-            routingSchema.showAdvance = data.showAdvance;
-            if (data.type && data.type === 'TeamMember') {
-                routingSchema.id = data.teamMemberId;
-            } else if (data.type && data.type === 'Schedule') {
-                routingSchema.id = data.scheduleId;
-            } else if (data.type && data.type === 'PhoneNumber') {
-                routingSchema.phoneNumber = data.phoneNumber;
-            }
-            if (data.showAdvance) {
-                routingSchema.backup_type = data.backup_type;
-                if (
-                    req.files &&
-                    req.files.introAudio &&
-                    req.files.introAudio[0].filename
-                ) {
-                    routingSchema.introAudio = req.files.introAudio[0].filename;
-                    routingSchema.introAudioName =
-                        req.files.introAudio[0].originalname;
-                }
-                routingSchema.introtext = data.introtext;
-                if (data.backup_type && data.backup_type === 'TeamMember') {
-                    routingSchema.backup_id = data.backup_teamMemberId;
-                } else if (
-                    data.backup_type &&
-                    data.backup_type === 'Schedule'
-                ) {
-                    routingSchema.backup_id = data.backup_scheduleId;
-                } else if (
-                    data.backup_type &&
-                    data.backup_type === 'PhoneNumber'
-                ) {
-                    routingSchema.backup_phoneNumber = data.backup_phoneNumber;
-                }
-            }
-            const CallRouting = await CallRoutingService.updateOneBy(
-                { _id: callRoutingId },
-                { routingSchema }
-            );
-            return sendItemResponse(req, res, CallRouting);
-        });
+        const data = req.body;
+        data.callRoutingId = callRoutingId;
+        const CallRouting = await CallRoutingService.updateRoutingSchema(data);
+        return sendItemResponse(req, res, CallRouting);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
+
+router.put(
+    '/:projectId/:callRoutingId/:audioFieldName',
+    getUser,
+    isUserAdmin,
+    async function(req, res) {
+        try {
+            const { audioFieldName, callRoutingId } = req.params;
+            const upload = multer({
+                storage,
+            }).fields([
+                {
+                    name: audioFieldName,
+                    maxCount: 1,
+                },
+            ]);
+            upload(req, res, async function(error) {
+                if (error) {
+                    return sendErrorResponse(req, res, error);
+                }
+                const data = {};
+                data.audioFieldName = audioFieldName;
+                data.callRoutingId = callRoutingId;
+                if (
+                    req.files &&
+                    req.files[audioFieldName] &&
+                    req.files[audioFieldName][0].filename
+                ) {
+                    data.file = req.files[audioFieldName][0].filename;
+                    data.fileName = req.files[audioFieldName][0].originalname;
+                }
+                const CallRouting = await CallRoutingService.updateRoutingSchemaAudio(
+                    data
+                );
+                return sendItemResponse(req, res, CallRouting);
+            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 router.delete(
     '/:projectId/:callRoutingId',
@@ -264,7 +255,7 @@ router.delete(
     isUserAdmin,
     async function(req, res) {
         try {
-            const { callRoutingId } = req.params;
+            const { callRoutingId, backup } = req.body;
             if (!callRoutingId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -275,8 +266,17 @@ router.delete(
                 _id: callRoutingId,
             });
             routingSchema = routingSchema.routingSchema;
-            routingSchema.introAudio = null;
-            routingSchema.introAudioName = '';
+            const query = {};
+            if (backup) {
+                query.filename = routingSchema.backup_introAudio;
+                routingSchema.backup_introAudio = null;
+                routingSchema.backup_introAudioName = '';
+            } else {
+                query.filename = routingSchema.introAudio;
+                routingSchema.introAudio = null;
+                routingSchema.introAudioName = '';
+            }
+            await FileService.deleteOneBy(query);
             const data = await CallRoutingService.updateOneBy(
                 { _id: callRoutingId },
                 { routingSchema }
