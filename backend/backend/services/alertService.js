@@ -158,7 +158,6 @@ module.exports = {
 
     sendRealTimeUpdate: async function({ incidentId, projectId }) {
         const _this = this;
-        let result;
         let incidentMessages = await IncidentMessageService.findBy({
             incidentId,
             type: 'internal',
@@ -183,7 +182,7 @@ module.exports = {
         const timelineAlerts = [
             ...timeline,
             ...alerts,
-            ...incidentMessages
+            ...incidentMessages,
         ].sort((a, b) => {
             return b.createdAt - a.createdAt;
         });
@@ -202,7 +201,7 @@ module.exports = {
                 a.status !== 'internal notes updated'
         );
         filteredMsg = await Services.rearrangeDuty(filteredMsg);
-        result = {
+        const result = {
             data: filteredMsg,
             incidentId,
             projectId,
