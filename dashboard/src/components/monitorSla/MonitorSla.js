@@ -582,7 +582,6 @@ const mapStateToProps = (state, ownProps) => {
         monitorSlas: state.monitorSla.monitorSlas.slas,
         activeSla: state.monitorSla.activeSla,
         monitors,
-        page: state.monitorSla.page,
     };
 };
 
