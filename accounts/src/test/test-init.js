@@ -90,6 +90,7 @@ module.exports = {
 
         await Promise.all([
             // page.waitForSelector('div#success-step'),
+            page.waitForTimeout(10000),
             page.click('button[type=submit]'),
             page.waitForNavigation(),
         ]);
