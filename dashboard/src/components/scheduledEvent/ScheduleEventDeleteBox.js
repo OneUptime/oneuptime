@@ -3,7 +3,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { openModal } from '../../actions/modal';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import DeleteSchedule from '../modals/DeleteSchedule';
 import DataPathHoC from '../DataPathHoC';
 import { FormLoader } from '../basic/Loader';
@@ -12,7 +12,7 @@ import PropTypes from 'prop-types';
 class ScheduleEventDeleteBox extends Component {
     constructor(props) {
         super(props);
-        this.state = { deleteModalId: uuid.v4() };
+        this.state = { deleteModalId: uuidv4() };
     }
     deleteScheduleEvent = () => {
         alert('im to delete');
