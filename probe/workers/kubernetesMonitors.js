@@ -2,7 +2,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const Path = require('path');
 const fetch = require('node-fetch');
-const uuidv1 = require('uuid/v1');
+const { v4: uuidv4 } = require('uuid');
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const { serverUrl } = require('../utils/config');
@@ -18,7 +18,7 @@ module.exports = {
                 monitor.kubernetesConfig
             ) {
                 const configurationFile = monitor.kubernetesConfig;
-                const updatedConfigName = `${uuidv1()}${configurationFile}`;
+                const updatedConfigName = `${uuidv4()}${configurationFile}`;
                 const configPath = Path.resolve(
                     process.cwd(),
                     updatedConfigName
