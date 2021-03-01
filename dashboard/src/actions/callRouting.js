@@ -162,6 +162,84 @@ export function resetAddCallRoutingNumber() {
     };
 }
 
+export function uploadCallRoutingAudio(
+    projectId,
+    callRoutingId,
+    values,
+    audioFieldName
+) {
+    return function(dispatch) {
+        const promise = putApi(
+            `callRouting/${projectId}/${callRoutingId}/${audioFieldName}`,
+            values
+        );
+        dispatch(uploadCallRoutingAudioRequest(callRoutingId, audioFieldName));
+
+        promise.then(
+            function(data) {
+                dispatch(
+                    uploadCallRoutingAudioSuccess(
+                        callRoutingId,
+                        audioFieldName,
+                        data.data
+                    )
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data) {
+                    error = error.response.data;
+                }
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    uploadCallRoutingAudioFailure(
+                        errors(error),
+                        callRoutingId,
+                        audioFieldName
+                    )
+                );
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function uploadCallRoutingAudioSuccess(
+    callRoutingId,
+    audioFieldName,
+    data
+) {
+    return {
+        type: types.UPLOAD_CALL_ROUTING_AUDIO_SUCCESS,
+        payload: { callRoutingId, audioFieldName, data },
+    };
+}
+
+export function uploadCallRoutingAudioRequest(callRoutingId, audioFieldName) {
+    return {
+        type: types.UPLOAD_CALL_ROUTING_AUDIO_REQUEST,
+        payload: { callRoutingId, audioFieldName },
+    };
+}
+
+export function uploadCallRoutingAudioFailure(
+    error,
+    callRoutingId,
+    audioFieldName
+) {
+    return {
+        type: types.UPLOAD_CALL_ROUTING_AUDIO_FAILURE,
+        payload: { callRoutingId, audioFieldName, error },
+    };
+}
+
 export function addCallRoutingSchedule(projectId, callRoutingId, values) {
     return function(dispatch) {
         const promise = putApi(
@@ -384,19 +462,20 @@ export function getCallRoutingLogsReset() {
     };
 }
 
-export function removeIntroAudio(projectId, callRoutingId) {
+export function removeIntroAudio(projectId, callRoutingId, backup) {
     return function(dispatch) {
         const promise = deleteApi(
             `callRouting/${projectId}/${callRoutingId}/removeAudio`,
             {
                 callRoutingId,
+                backup,
             }
         );
-        dispatch(removeIntroAudioRequest(callRoutingId));
+        dispatch(removeIntroAudioRequest(callRoutingId, backup));
 
         promise.then(
             function(numbers) {
-                dispatch(removeIntroAudioSuccess(numbers.data));
+                dispatch(removeIntroAudioSuccess(numbers.data, backup));
             },
             function(error) {
                 if (error && error.response && error.response.data)
@@ -409,7 +488,7 @@ export function removeIntroAudio(projectId, callRoutingId) {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(removeIntroAudioFailure(errors(error)));
+                dispatch(removeIntroAudioFailure(errors(error), backup));
             }
         );
 
@@ -417,23 +496,44 @@ export function removeIntroAudio(projectId, callRoutingId) {
     };
 }
 
-export function removeIntroAudioSuccess(numbers) {
-    return {
-        type: types.REMOVE_INTRO_AUDIO_SUCCESS,
-        payload: numbers,
-    };
+export function removeIntroAudioSuccess(numbers, backup) {
+    if (backup) {
+        return {
+            type: types.REMOVE_BACKUP_INTRO_AUDIO_SUCCESS,
+            payload: numbers,
+        };
+    } else {
+        return {
+            type: types.REMOVE_INTRO_AUDIO_SUCCESS,
+            payload: numbers,
+        };
+    }
 }
 
-export function removeIntroAudioRequest(callRoutingId) {
-    return {
-        type: types.REMOVE_INTRO_AUDIO_REQUEST,
-        payload: callRoutingId,
-    };
+export function removeIntroAudioRequest(callRoutingId, backup) {
+    if (backup) {
+        return {
+            type: types.REMOVE_BACKUP_INTRO_AUDIO_REQUEST,
+            payload: callRoutingId,
+        };
+    } else {
+        return {
+            type: types.REMOVE_INTRO_AUDIO_REQUEST,
+            payload: callRoutingId,
+        };
+    }
 }
 
-export function removeIntroAudioFailure(error) {
-    return {
-        type: types.REMOVE_INTRO_AUDIO_FAILURE,
-        payload: error,
-    };
+export function removeIntroAudioFailure(error, backup) {
+    if (backup) {
+        return {
+            type: types.REMOVE_BACKUP_INTRO_AUDIO_FAILURE,
+            payload: error,
+        };
+    } else {
+        return {
+            type: types.REMOVE_INTRO_AUDIO_FAILURE,
+            payload: error,
+        };
+    }
 }

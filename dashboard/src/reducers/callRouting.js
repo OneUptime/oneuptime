@@ -47,10 +47,29 @@ const initialState = {
         limit: 10,
         skip: null,
     },
-    introAudioState: {
+    uploadIntroAudioState: {
         requesting: false,
         error: null,
         success: false,
+        callRoutingId: '',
+    },
+    uploadBackupIntroAudioState: {
+        requesting: false,
+        error: null,
+        success: false,
+        callRoutingId: '',
+    },
+    removeIntroAudioState: {
+        requesting: false,
+        error: null,
+        success: false,
+        callRoutingId: '',
+    },
+    removeBackupIntroAudioState: {
+        requesting: false,
+        error: null,
+        success: false,
+        callRoutingId: '',
     },
 };
 
@@ -306,6 +325,137 @@ export default function card(state = initialState, action) {
                 },
             });
 
+        case types.UPLOAD_CALL_ROUTING_AUDIO_REQUEST:
+            if (
+                action.payload &&
+                action.payload.audioFieldName &&
+                action.payload.audioFieldName === 'introAudio'
+            ) {
+                return Object.assign({}, state, {
+                    ...state,
+                    uploadIntroAudioState: {
+                        ...state.uploadIntroAudioState,
+                        requesting: true,
+                        error: null,
+                        success: false,
+                        callRoutingId: action.payload.callRoutingId,
+                    },
+                });
+            } else if (
+                action.payload &&
+                action.payload.audioFieldName &&
+                action.payload.audioFieldName === 'backup_introAudio'
+            ) {
+                return Object.assign({}, state, {
+                    ...state,
+                    uploadBackupIntroAudioState: {
+                        ...state.uploadBackupIntroAudioState,
+                        requesting: true,
+                        error: null,
+                        success: false,
+                        callRoutingId: action.payload.callRoutingId,
+                    },
+                });
+            } else {
+                return Object.assign({}, state, {});
+            }
+
+        case types.UPLOAD_CALL_ROUTING_AUDIO_SUCCESS:
+            if (
+                action.payload &&
+                action.payload.audioFieldName &&
+                action.payload.audioFieldName === 'introAudio'
+            ) {
+                return Object.assign({}, state, {
+                    ...state,
+                    uploadIntroAudioState: {
+                        ...state.uploadIntroAudioState,
+                        requesting: false,
+                        error: null,
+                        success: true,
+                        callRoutingId: '',
+                    },
+                    allNumbers: {
+                        ...state.allNumbers,
+                        numbers: state.allNumbers.numbers.map(n => {
+                            if (
+                                String(n._id) ===
+                                String(action.payload.data._id)
+                            ) {
+                                return action.payload.data;
+                            } else {
+                                return n;
+                            }
+                        }),
+                    },
+                });
+            } else if (
+                action.payload &&
+                action.payload.audioFieldName &&
+                action.payload.audioFieldName === 'backup_introAudio'
+            ) {
+                return Object.assign({}, state, {
+                    ...state,
+                    uploadBackupIntroAudioState: {
+                        ...state.uploadBackupIntroAudioState,
+                        requesting: false,
+                        error: null,
+                        success: true,
+                        callRoutingId: '',
+                    },
+                    allNumbers: {
+                        ...state.allNumbers,
+                        numbers: state.allNumbers.numbers.map(n => {
+                            if (
+                                String(n._id) ===
+                                String(action.payload.data._id)
+                            ) {
+                                return action.payload.data;
+                            } else {
+                                return n;
+                            }
+                        }),
+                    },
+                });
+            } else {
+                return Object.assign({}, state, {});
+            }
+
+        case types.UPLOAD_CALL_ROUTING_AUDIO_FAILURE:
+            if (
+                action.payload &&
+                action.payload.audioFieldName &&
+                action.payload.audioFieldName === 'introAudio'
+            ) {
+                return Object.assign({}, state, {
+                    ...state,
+                    uploadIntroAudioState: {
+                        ...state.uploadIntroAudioState,
+                        requesting: false,
+                        error: action.payload.error,
+                        success: false,
+                        callRoutingId: action.payload.callRoutingId,
+                    },
+                });
+            } else if (
+                action.payload &&
+                action.payload.audioFieldName &&
+                action.payload.audioFieldName === 'backup_introAudio'
+            ) {
+                return Object.assign({}, state, {
+                    ...state,
+                    uploadBackupIntroAudioState: {
+                        ...state.uploadBackupIntroAudioState,
+                        requesting: false,
+                        error: action.payload.error,
+                        success: false,
+                        callRoutingId: action.payload.callRoutingId,
+                    },
+                });
+            } else {
+                return Object.assign({}, state, {});
+            }
+
         case types.REMOVE_INTRO_AUDIO_REQUEST:
             return Object.assign({}, state, {
                 ...state,
@@ -343,6 +493,49 @@ export default function card(state = initialState, action) {
                 ...state,
                 introAudioState: {
                     ...state.introAudioState,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case types.REMOVE_BACKUP_INTRO_AUDIO_REQUEST:
+            return Object.assign({}, state, {
+                ...state,
+                backupIntroAudioState: {
+                    ...state.backupIntroAudioState,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case types.REMOVE_BACKUP_INTRO_AUDIO_SUCCESS:
+            return Object.assign({}, state, {
+                ...state,
+                backupIntroAudioState: {
+                    ...state.backupIntroAudioState,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                allNumbers: {
+                    ...state.allNumbers,
+                    numbers: state.allNumbers.numbers.map(n => {
+                        if (String(n._id) === String(action.payload._id)) {
+                            return action.payload;
+                        } else {
+                            return n;
+                        }
+                    }),
+                },
+            });
+
+        case types.REMOVE_BACKUP_INTRO_AUDIO_FAILURE:
+            return Object.assign({}, state, {
+                ...state,
+                backupIntroAudioState: {
+                    ...state.backupIntroAudioState,
                     requesting: false,
                     error: action.payload,
                     success: false,
