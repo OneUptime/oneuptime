@@ -317,11 +317,14 @@ module.exports = {
                     }
                 }
 
-                //Prevent  Update if User is still in trial period
-                let trial_end_date = new Date(subscription.trial_end * 1000);
+                //Prevent Update if User is still in trial period
+                let trial_end_date =
+                    subscription.trial_end && subscription.trial_end != null
+                        ? new Date(subscription.trial_end * 1000)
+                        : false;
                 let today_date = new Date();
 
-                if (trial_end_date < today_date) {
+                if (trial_end_date && trial_end_date < today_date) {
                     subscription = await stripe.subscriptions.update(
                         subscriptionId,
                         { items: items }
