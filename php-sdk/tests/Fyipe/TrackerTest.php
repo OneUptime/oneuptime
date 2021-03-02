@@ -118,4 +118,38 @@ class TrackerTest extends TestCase
         $this->assertCount(2, $timeline); // two timeline events
         $this->assertEquals($timeline[0]->eventId, $timeline[1]->eventId); // their eventId is the same, till there is an error sent to the server
     }
+    public function test_should_ensure_max_timline_cant_be_set_as_a_negative_number() {
+        $options = new stdClass();
+        $options->maxTimeline = -5;
+
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, $this->customTimeline->type);
+        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, 'error');
+        $timeline = $tracker->getTimeline();
+        $this->assertCount(2, $timeline);  // two timeline events
+    }
+    public function test_should_ensure_new_timeline_event_after_max_timeline_are_discarded() {
+        $options = new stdClass();
+        $options->maxTimeline = 2;
+
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, [$options]);
+
+        $customTimeline2 = new stdClass();
+        $customTimeline2->category = 'logout';
+        $customTimeline2->type = 'success';
+        $content = new stdClass();
+        $content->message = 'test-content';
+        $customTimeline2->content = $content;
+
+        // add 3 timelinee events
+        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, $this->customTimeline->type);
+        $tracker->addToTimeline($customTimeline2->category, $customTimeline2->content, $customTimeline2->type);
+        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, 'debug');
+
+        $timeline = $tracker->getTimeline();
+        
+        $this->assertEquals(sizeof($timeline), $options->maxTimeline);
+        $this->assertEquals($timeline[0]->type, $this->customTimeline->type);
+        $this->assertEquals($timeline[1]->category, $customTimeline2->category);
+    }
 }
