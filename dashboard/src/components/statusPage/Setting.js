@@ -169,6 +169,10 @@ export class Setting extends Component {
                     if (window.location.href.indexOf('localhost') <= -1) {
                         thisObj.context.mixpanel.track('Domain verification');
                     }
+
+                    this.props.closeModal({
+                        id: this.state.deleteDomainModalId,
+                    });
                 });
             },
             content: VerifyDomainModal,
@@ -206,6 +210,10 @@ export class Setting extends Component {
                     if (window.location.href.indexOf('localhost') <= -1) {
                         thisObj.context.mixpanel.track('Delete domain');
                     }
+
+                    this.props.closeModal({
+                        id: this.state.deleteDomainModalId,
+                    });
                 });
             },
             content: DeleteDomainModal,
