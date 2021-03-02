@@ -753,6 +753,7 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
 ) {
     let date = req.query.date;
     date = new Date(date);
+    const theme = req.query.theme;
     const start = new Date(
         date.getFullYear(),
         date.getMonth(),
@@ -785,7 +786,25 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
             skip,
             limit
         );
-        const notes = response.investigationNotes;
+        let notes = response.investigationNotes;
+        if (theme) {
+            const updatedNotes = [];
+            if (notes.length > 0) {
+                for (const note of notes) {
+                    const statusPageNote = await StatusPageService.getIncidentNotes(
+                        { incidentId: note._id, postOnStatusPage: true },
+                        skip,
+                        0
+                    );
+
+                    updatedNotes.push({
+                        ...note._doc,
+                        message: statusPageNote.message,
+                    });
+                }
+                notes = updatedNotes;
+            }
+        }
         const count = response.count;
         return sendListResponse(req, res, notes, count);
     } catch (error) {
@@ -801,6 +820,7 @@ router.get(
         const statusPageId = req.params.statusPageId;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 5;
+        const theme = req.query.theme;
         try {
             // Call the StatusPageService.
             const response = await StatusPageService.getEvents(
@@ -808,8 +828,27 @@ router.get(
                 skip,
                 limit
             );
-            const events = response.events;
+            let events = response.events;
             const count = response.count;
+            if ((theme && typeof theme === 'boolean') || theme === 'true') {
+                const updatedEvents = [];
+                if (events.length > 0) {
+                    for (const event of events) {
+                        const statusPageEvent = await StatusPageService.getEventNotes(
+                            {
+                                scheduledEventId: event._id,
+                                type: 'investigation',
+                            }
+                        );
+                        updatedEvents.push({
+                            ...event,
+                            notes: statusPageEvent.notes,
+                        });
+                    }
+                }
+                events = formatNotes(updatedEvents);
+                events = checkDuplicateDates(events);
+            }
             return sendListResponse(req, res, events, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -870,6 +909,7 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
 
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 5;
+    const theme = req.query.theme;
 
     const currentDate = moment().format();
     const query = {
@@ -889,8 +929,23 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
             skip,
             limit
         );
-        const events = response.scheduledEvents;
+        let events = response.scheduledEvents;
         const count = response.count;
+        if ((theme && typeof theme === 'boolean') || theme === 'true') {
+            const updatedEvents = [];
+            if (events.length > 0) {
+                for (const event of events) {
+                    const statusPageEvent = await StatusPageService.getEventNotes(
+                        { scheduledEventId: event._id, type: 'investigation' }
+                    );
+                    updatedEvents.push({
+                        ...event,
+                        notes: statusPageEvent.notes,
+                    });
+                }
+                events = updatedEvents;
+            }
+        }
         return sendListResponse(req, res, events, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
