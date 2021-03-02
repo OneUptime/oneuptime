@@ -299,6 +299,56 @@ export function paginate(type) {
         type === 'prev' && dispatch(paginatePrev());
     };
 }
+
+//Add Balance to a project
+export const updateBalance = (
+    projectId,
+    rechargeBalanceAmount
+) => async dispatch => {
+    dispatch(updateProjectBalanceRequest());
+
+    try {
+        const response = await putApi(`project/${projectId}/updateBalance`, {
+            rechargeBalanceAmount,
+        });
+        const data = response.data;
+        dispatch(updateProjectBalanceSuccess(data));
+        return response;
+    } catch (error) {
+        let errorMsg;
+        if (error && error.response && error.response.data)
+            errorMsg = error.response.data;
+        if (error && error.data) {
+            errorMsg = error.data;
+        }
+        if (error && error.message) {
+            errorMsg = error.message;
+        } else {
+            errorMsg = 'Network Error';
+        }
+        dispatch(updateProjectBalanceError(errors(errorMsg)));
+    }
+};
+
+export function updateProjectBalanceRequest() {
+    return {
+        type: types.PROJECT_BALANCE_UPDATE_REQUEST,
+    };
+}
+
+export function updateProjectBalanceSuccess(project) {
+    return {
+        type: types.PROJECT_BALANCE_UPDATE_SUCCESS,
+        payload: project,
+    };
+}
+
+export function updateProjectBalanceError(error) {
+    return {
+        type: types.PROJECT_BALANCE_UPDATE_FAILURE,
+        payload: error,
+    };
+}
 // Calls the API to delete user from project
 export function teamDelete(projectId, teamMemberId) {
     return function(dispatch) {

@@ -5,21 +5,12 @@ import { reduxForm, Field, reset } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
 import { Validate } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
-import {
-    addBalance,
-    getProjects,
-    updateProjectBalance,
-} from '../../actions/project';
+import { updateBalance } from '../../actions/project';
 import { RenderField } from '../basic/RenderField';
 import PropTypes from 'prop-types';
-import { StripeProvider, injectStripe, Elements } from 'react-stripe-elements';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
-import { v4 as uuidv4 } from 'uuid';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS, env, User } from '../../config';
-import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
-import Unauthorised from '../modals/Unauthorised';
+import uuid from 'uuid';
 import ConfirmBalanceTopUp from '../modals/ConfirmBalanceTopUp';
 import DataPathHoC from '../DataPathHoC';
 
@@ -37,78 +28,42 @@ function validate(value) {
     return errors;
 }
 
-export class CustomerBalance extends Component {
+class ProjectBalance extends Component {
     state = {
-        MessageBoxId: uuidv4(),
-        createTopUpModalId: uuidv4(),
+        MessageBoxId: uuid.v4(),
+        createTopUpModalId: uuid.v4(),
     };
-
-    componentDidMount() {
-        // fetch the project
-        getProjects();
-    }
-
     submitForm = values => {
-        const { projectId, openModal, currentProject } = this.props;
-        const userId = User.getUserId();
+        const { openModal } = this.props;
 
-        if (isOwnerOrAdmin(userId, currentProject)) {
-            const { createTopUpModalId } = this.state;
-            const { rechargeBalanceAmount } = values;
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent(
-                    'EVENT: DASHBOARD > PROJECT > BILLING > ADD BALANCE',
-                    values
-                );
-            }
-
-            if (rechargeBalanceAmount) {
-                openModal({
-                    id: createTopUpModalId,
-                    onClose: () => '',
-                    onConfirm: () => this.sendPayment(values),
-                    content: DataPathHoC(ConfirmBalanceTopUp, {
-                        amount: values.rechargeBalanceAmount,
-                        isRequesting: this.props.isRequesting,
-                    }),
-                });
-            }
-        } else {
+        const { createTopUpModalId } = this.state;
+        const { rechargeBalanceAmount } = values;
+        if (rechargeBalanceAmount) {
             openModal({
-                id: projectId,
-                content: Unauthorised,
+                id: createTopUpModalId,
+                onClose: () => '',
+                onConfirm: () => this.updateProjectBalance(values),
+                content: DataPathHoC(ConfirmBalanceTopUp, {
+                    amount: values.rechargeBalanceAmount,
+                    isRequesting: this.props.isRequesting,
+                }),
             });
         }
     };
-    sendPayment = values => {
-        const {
-            addBalance,
-            projectId,
-            openModal,
-            balance,
-            getProjects,
-        } = this.props;
+    updateProjectBalance = values => {
+        const { updateBalance, projectId, openModal } = this.props;
         const { MessageBoxId } = this.state;
-        return addBalance(projectId, values)
+        return updateBalance(projectId, values.rechargeBalanceAmount)
             .then(response => {
-                const { status, amount_received } = response.data;
-                const { paymentIntent } = this.props;
-
-                if (status === 'succeeded') {
-                    const creditedBalance = amount_received / 100;
-                    getProjects();
-
-                    openModal({
-                        id: MessageBoxId,
-                        content: MessageBox,
-                        title: 'Message',
-                        message: `Transaction successful, your balance is now ${(
-                            balance + creditedBalance
-                        ).toFixed(2)}$`,
-                    });
-                } else {
-                    this.handlePaymentIntent(paymentIntent.client_secret);
-                }
+                const { balance } = response.data;
+                openModal({
+                    id: MessageBoxId,
+                    content: MessageBox,
+                    title: 'Message',
+                    message: `Transaction successful, your balance is now ${balance.toFixed(
+                        2
+                    )}$`,
+                });
             })
             .catch(err => {
                 openModal({
@@ -117,51 +72,6 @@ export class CustomerBalance extends Component {
                     title: 'Message',
                     message: err.message,
                 });
-            });
-    };
-    handlePaymentIntent = paymentIntentClientSecret => {
-        const {
-            stripe,
-            openModal,
-            getProjects,
-            balance,
-            updateProjectBalance,
-            projectId,
-        } = this.props;
-        const { MessageBoxId } = this.state;
-        stripe
-            .handleCardPayment(paymentIntentClientSecret)
-            .then(async result => {
-                if (
-                    result.paymentIntent &&
-                    result.paymentIntent.status === 'succeeded'
-                ) {
-                    const creditedBalance = result.paymentIntent.amount / 100;
-
-                    // update the project balance at this point
-                    await updateProjectBalance({
-                        projectId,
-                        intentId: result.paymentIntent.id,
-                    }).then(function() {
-                        openModal({
-                            id: MessageBoxId,
-                            content: MessageBox,
-                            title: 'Message',
-                            message: `Transaction successful, your balance is now ${(
-                                balance + creditedBalance
-                            ).toFixed(2)}$`,
-                        });
-                        getProjects();
-                    });
-                } else {
-                    openModal({
-                        id: MessageBoxId,
-                        content: MessageBox,
-                        title: 'Message',
-                        message:
-                            'Transaction failed, try again later or use a different card.',
-                    });
-                }
             });
     };
 
@@ -176,9 +86,7 @@ export class CustomerBalance extends Component {
                                 <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                                     <div className="Box-root">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            <span>
-                                                Alerts: Current Account Balance
-                                            </span>
+                                            <span>Project Balance</span>
                                         </span>
                                         <p>
                                             <span>
@@ -330,9 +238,7 @@ export class CustomerBalance extends Component {
                                                         !this.props.isRequesting
                                                     }
                                                 >
-                                                    <span>
-                                                        Recharge Account
-                                                    </span>
+                                                    <span>Add Balance</span>
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={this.props.isRequesting}
@@ -352,63 +258,29 @@ export class CustomerBalance extends Component {
     }
 }
 
-CustomerBalance.displayName = 'CustomerBalance';
+ProjectBalance.displayName = 'ProjectBalance';
 
-CustomerBalance.propTypes = {
-    addBalance: PropTypes.func.isRequired,
+ProjectBalance.propTypes = {
+    updateBalance: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     projectId: PropTypes.string,
     balance: PropTypes.number,
     openModal: PropTypes.func,
-    paymentIntent: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
-    stripe: PropTypes.object,
-    getProjects: PropTypes.func,
-    currentProject: PropTypes.object,
-    updateProjectBalance: PropTypes.func,
 };
 
 const formName = 'CustomerBalance' + Math.floor(Math.random() * 10 + 1);
 
 const onSubmitSuccess = (result, dispatch) => dispatch(reset(formName));
 
-const CustomerBalanceForm = new reduxForm({
+const ProjectBalanceForm = new reduxForm({
     form: formName,
     enableReinitialize: true,
     validate,
     onSubmitSuccess,
-})(CustomerBalance);
+})(ProjectBalance);
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { addBalance, getProjects, openModal, updateProjectBalance },
-        dispatch
-    );
+    bindActionCreators({ openModal, updateBalance }, dispatch);
 
-const mapStateToProps = state => ({
-    project:
-        state.project.currentProject !== null && state.project.currentProject,
-    balance:
-        state.project.currentProject && state.project.currentProject.balance,
-    projectId: state.project.currentProject && state.project.currentProject._id,
-    isRequesting: state.project.addBalance.requesting,
-    paymentIntent: state.project.addBalance.pi,
-    currentProject: state.project.currentProject,
-});
-
-const CustomerBalanceFormStripe = injectStripe(
-    connect(mapStateToProps, mapDispatchToProps)(CustomerBalanceForm)
-);
-
-export default class CustomerBalanceWithCheckout extends Component {
-    render() {
-        return (
-            <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')}>
-                <Elements>
-                    <CustomerBalanceFormStripe />
-                </Elements>
-            </StripeProvider>
-        );
-    }
-}
-CustomerBalanceWithCheckout.displayName = 'CustomerBalanceWithCheckout';
+export default connect(null, mapDispatchToProps)(ProjectBalanceForm);

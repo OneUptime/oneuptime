@@ -28,9 +28,9 @@
         "systeminformation": "^5.5.0"
     },
     "optionalDependencies": {
-        "node-linux": "^0.1.12",
+        "node-linux": "^0.1.7",
         "node-mac": "^1.0.1",
-        "node-windows": "^1.0.0-beta.5",
+        "node-windows": "^0.1.4",
         "osx-temperature-sensor": "^1.0.7"
     },
     "keywords": [

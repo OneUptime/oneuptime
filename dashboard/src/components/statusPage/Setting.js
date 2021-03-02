@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { reduxForm, Field, SubmissionError } from 'redux-form';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import {
     updateStatusPageSetting,
     updateStatusPageSettingRequest,
@@ -45,8 +45,8 @@ function validate(_values) {
 
 export class Setting extends Component {
     state = {
-        verifyModalId: uuid.v4(),
-        deleteDomainModalId: uuid.v4(),
+        verifyModalId: uuidv4(),
+        deleteDomainModalId: uuidv4(),
         fields: [],
     };
 

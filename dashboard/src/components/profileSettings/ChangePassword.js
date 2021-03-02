@@ -15,7 +15,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 //Client side validation
 function validate(values) {
@@ -34,7 +34,7 @@ function validate(values) {
 
 export class ChangePasswordSetting extends Component {
     state = {
-        MessageBoxId: uuid.v4(),
+        MessageBoxId: uuidv4(),
     };
 
     constructor(props) {

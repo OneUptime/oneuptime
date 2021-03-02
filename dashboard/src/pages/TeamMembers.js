@@ -10,7 +10,7 @@ import {
 } from '../actions/team';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import TeamMemberProjectBox from '../components/team/TeamMemberProjectBox';
 import PropTypes from 'prop-types';
@@ -146,7 +146,7 @@ const LoadedTeam = props => {
         projectTeamMembers && projectTeamMembers.teamMembers ? (
             <RenderIfUserInSubProject
                 subProjectId={currentProjectId}
-                key={() => uuid.v4()}
+                key={() => uuidv4()}
             >
                 <div className="bs-BIM">
                     <div className="Box-root Margin-bottom--12">
@@ -218,7 +218,7 @@ LoadedTeam.propTypes = {
 class TeamApp extends Component {
     constructor(props) {
         super(props);
-        this.state = { inviteModalId: uuid.v4() };
+        this.state = { inviteModalId: uuidv4() };
     }
 
     getTableHeaders() {
