@@ -316,10 +316,17 @@ module.exports = {
                         items.push(item);
                     }
                 }
-                subscription = await stripe.subscriptions.update(
-                    subscriptionId,
-                    { items: items }
-                );
+
+                //Prevent  Update if User is still in trial period
+                let trial_end_date = new Date(subscription.trial_end * 1000);
+                let today_date = new Date();
+
+                if (trial_end_date < today_date) {
+                    subscription = await stripe.subscriptions.update(
+                        subscriptionId,
+                        { items: items }
+                    );
+                }
 
                 return subscription.id;
             }
