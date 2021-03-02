@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import IncidentList from '../incident/IncidentList';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import {
     editMonitorSwitch,
     selectedProbe,
@@ -35,7 +35,7 @@ export class MonitorDetail extends Component {
         super(props);
         this.props = props;
         this.state = {
-            createIncidentModalId: uuid.v4(),
+            createIncidentModalId: uuidv4(),
             startDate: moment().subtract(30, 'd'),
             endDate: moment(),
             now: Date.now(),
@@ -624,7 +624,7 @@ export class MonitorDetail extends Component {
                     <MonitorChart
                         start={startDate}
                         end={endDate}
-                        key={uuid.v4()}
+                        key={uuidv4()}
                         monitor={monitor}
                         data={logs}
                         statuses={statuses}
@@ -643,7 +643,7 @@ export class MonitorDetail extends Component {
                                     <MonitorChart
                                         start={startDate}
                                         end={endDate}
-                                        key={uuid.v4()}
+                                        key={uuidv4()}
                                         monitor={monitor}
                                         data={logs}
                                         statuses={statuses}
@@ -722,7 +722,7 @@ export class MonitorDetail extends Component {
                                 <MonitorChart
                                     start={startDate}
                                     end={endDate}
-                                    key={uuid.v4()}
+                                    key={uuidv4()}
                                     monitor={monitor}
                                     data={logs}
                                     statuses={statuses}

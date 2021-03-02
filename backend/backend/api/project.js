@@ -286,6 +286,38 @@ router.put(
     }
 );
 
+// Description: updating a project balance by admin.
+// Params:
+// Param 1: req.headers-> {token}; req.params-> {projectId};
+// Returns: 200; 400: Error.
+router.put(
+    '/:projectId/updateBalance',
+    getUser,
+    isUserMasterAdmin,
+    async function(req, res) {
+        try {
+            const projectId = req.params.projectId;
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'ProjectId must be present.',
+                });
+            }
+            let { rechargeBalanceAmount } = req.body;
+            if (typeof rechargeBalanceAmount === 'string') {
+                rechargeBalanceAmount = parseFloat(rechargeBalanceAmount);
+            }
+            const project = await ProjectService.updateOneBy(
+                { _id: projectId },
+                { balance: rechargeBalanceAmount }
+            );
+            return sendItemResponse(req, res, project);
+        } catch (error) {
+            sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 router.put(
     '/:projectId/alertOptions',
     getUser,

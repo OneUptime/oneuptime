@@ -15,7 +15,7 @@ import {
 } from '../actions/incident';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import IncidentProjectBox from '../components/incident/IncidentProjectBox';
 import Badge from '../components/common/Badge';
@@ -33,7 +33,7 @@ class IncidentLog extends React.Component {
     constructor(props) {
         super(props);
         this.props = props;
-        this.state = { createIncidentModalId: uuid.v4(), page: {} };
+        this.state = { createIncidentModalId: uuidv4(), page: {} };
     }
 
     componentDidMount() {
@@ -214,7 +214,7 @@ class IncidentLog extends React.Component {
             projectIncident && projectIncident.incidents ? (
                 <RenderIfUserInSubProject
                     subProjectId={projectIncident._id}
-                    key={() => uuid.v4()}
+                    key={() => uuidv4()}
                 >
                     <div className="bs-BIM">
                         <div className="Box-root Margin-bottom--12">

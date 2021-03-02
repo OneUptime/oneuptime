@@ -14,7 +14,7 @@ import ShouldRender from '../basic/ShouldRender';
 import CRITERIA_TYPES from '../../constants/CRITERIA_TYPES';
 import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import ScheduleInput from '../schedule/ScheduleInput';
 import { ValidateField } from '../../config';
 
@@ -73,7 +73,7 @@ export class ResponseComponent extends Component {
      * @memberof ResponseComponent
      */
     handleAddCriterion(type) {
-        this.props.addCriterion({ type, id: uuid.v4() });
+        this.props.addCriterion({ type, id: uuidv4() });
     }
 
     render() {

@@ -2,7 +2,7 @@ import React, { Fragment, useState } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { PricingPlan, IS_SAAS_SERVICE } from '../../config';
 import PricingPlanModal from './PricingPlanModal';
 import { openModal } from '../../actions/modal';
@@ -19,7 +19,7 @@ const PricingPlanComponent = ({
     disabled = false,
 }) => {
     let category;
-    const [pricingPlanModalId] = useState(uuid.v4()); // initialise modal ID
+    const [pricingPlanModalId] = useState(uuidv4()); // initialise modal ID
     const isEnterprise =
         currentProject &&
         (currentProject.stripePlanId === 'enterprise' ? true : false);

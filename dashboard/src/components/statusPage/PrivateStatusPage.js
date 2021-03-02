@@ -13,7 +13,7 @@ import {
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import SubscriberAdvanceOptions from '../modals/SubscriberAdvanceOptions';
@@ -26,7 +26,7 @@ export class PrivateStatusPage extends Component {
         super(props);
         this.props = props;
         this.state = {
-            subscriberAdvanceOptionModalId: uuid.v4(),
+            subscriberAdvanceOptionModalId: uuidv4(),
             showMoreOptions: false,
         };
     }

@@ -1,4 +1,4 @@
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -16,7 +16,7 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 export class MonitorViewDisableBox extends Component {
     constructor(props) {
         super(props);
-        this.state = { disableModalId: uuid.v4() };
+        this.state = { disableModalId: uuidv4() };
     }
 
     disableMonitor = async () => {

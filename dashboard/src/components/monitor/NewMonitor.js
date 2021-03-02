@@ -3,7 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { isEqual } from 'lodash';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import {
     reduxForm,
     Field,
@@ -77,7 +77,7 @@ class NewMonitor extends Component {
 
             showAllMonitors: false,
             type: props.edit ? props.editMonitorProp.type : props.type,
-            httpRequestLink: `${API_URL}/incomingHttpRequest/${uuid.v4()}`,
+            httpRequestLink: `${API_URL}/incomingHttpRequest/${uuidv4()}`,
             mode: props.edit ? props.editMonitorProp.mode : props.mode,
             authentication: props.edit
                 ? props.editMonitorProp.authentication
@@ -114,7 +114,7 @@ class NewMonitor extends Component {
         const link =
             editMonitorProp && editMonitorProp.data
                 ? editMonitorProp.data.link
-                : `${API_URL}/incomingHttpRequest/${uuid.v4()}`;
+                : `${API_URL}/incomingHttpRequest/${uuidv4()}`;
         //load call schedules/duties
         if (projectMember) {
             this.props.fetchMonitorSlas(this.props.currentProject._id);
@@ -132,7 +132,7 @@ class NewMonitor extends Component {
         const link =
             editMonitorProp && editMonitorProp.data
                 ? editMonitorProp.data.link
-                : `${API_URL}/incomingHttpRequest/${uuid.v4()}`;
+                : `${API_URL}/incomingHttpRequest/${uuidv4()}`;
         if (
             monitor.newMonitor.error ===
             "You can't add any more monitors. Please upgrade plan."
@@ -164,7 +164,7 @@ class NewMonitor extends Component {
                 // add a default criterion as a down criterion
                 const defaultDownCriterion = {
                     type: CRITERIA_TYPES.DOWN.type,
-                    id: uuid.v4(),
+                    id: uuidv4(),
                     default: true,
                     name: CRITERIA_TYPES.DOWN.name,
                 };
@@ -179,7 +179,7 @@ class NewMonitor extends Component {
                         ) {
                             // do nothing
                         } else {
-                            const id = uuid.v4();
+                            const id = uuidv4();
 
                             const newCriterion = {
                                 id,
@@ -2667,7 +2667,7 @@ class NewMonitor extends Component {
                                                                                         {
                                                                                             type:
                                                                                                 criterionType.type,
-                                                                                            id: uuid.v4(),
+                                                                                            id: uuidv4(),
                                                                                         }
                                                                                     );
                                                                                 }}

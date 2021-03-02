@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { openModal, closeModal } from '../../actions/modal';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
@@ -15,7 +15,7 @@ class ErrorTrackerViewDeleteBox extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            deleteModalId: uuid.v4(),
+            deleteModalId: uuidv4(),
         };
     }
     deleteErrorTracker = () => {

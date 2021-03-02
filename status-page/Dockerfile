@@ -22,6 +22,8 @@ RUN npm install -g eslint
 # Bundle app source
 COPY . /usr/src/app
 
+RUN npm run build
+
 # Expose ports.
 #   - 3006: Fyipe Status Page
 EXPOSE 3006
