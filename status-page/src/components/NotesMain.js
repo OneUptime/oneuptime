@@ -298,7 +298,22 @@ class NotesMain extends Component {
                 })
             ) : (
                 <div className="no_monitor">
-                    A monitor is required to view incident logs
+                    <ShouldRender
+                        if={
+                            this.props.individualnote &&
+                            this.props.individualnote
+                        }
+                    >
+                        <div className="date-big bs-color-b">
+                            {moment(
+                                this.props.individualnote &&
+                                    this.props.individualnote.date
+                            ).format('LL')}
+                        </div>
+                    </ShouldRender>
+                    {typeof this.props.notesmessage === 'string'
+                        ? this.props.notesmessage
+                        : 'A monitor is required to view incident logs'}
                 </div>
             );
         } else {
