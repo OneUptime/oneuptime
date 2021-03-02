@@ -1388,14 +1388,14 @@ margin-left:10px;
 }
 
 .op-div {
-  display: flex;
-  justify-content: space-between;
+  /* display: flex;
+  justify-content: space-between; */
   padding: 20px;
   border-bottom-width: 1px;
   border-left-width: 1px !important;
   border-right-width: 1px;
   border-top-width: 0px;
-  padding: 1.1rem 1.25rem 1rem;
+  /* padding: 1.1rem 1.25rem 1rem; */
   border-style: solid;
   border-color: #dfe1df;
 }
@@ -1490,6 +1490,10 @@ margin-left:10px;
   overflow: visible !important;
 }
 
+.resize-style {
+  z-index: 200000;
+}
+
 .tooltip .tooltiptext-chart::after {
   content: "";
   position: absolute;
@@ -1520,6 +1524,15 @@ margin-left:10px;
 
 .op-info {
   display: flex;
+}
+
+.op-disp {
+  display: flex;
+  justify-content: space-between;
+}
+
+.ma-t-20 {
+  margin-top: 20px;
 }
 
 .ques_mark {
@@ -1592,6 +1605,7 @@ margin-left:10px;
 .incident_desc {
   margin-bottom: 10px;
   color: rgba(0,0,0,0.6);
+  margin-top: 6px;
 }
 
 .items_dis {
@@ -1619,8 +1633,9 @@ margin-left:10px;
 
 .alerts_days {
   display: flex;
-  color: #aaaaaa;
+  color: #aaaaaa !important;
   opacity: 0.5;
+  margin-top: 8px;;
 }
 
 .spacer {
@@ -1629,6 +1644,10 @@ margin-left:10px;
   height: 1px;
   background: #aaaaaa;
   opacity: 0.3;
+}
+
+.bs-color-b {
+  color: #333 !important;
 }
 
 .bs-no-monitor {
@@ -1640,6 +1659,10 @@ margin-left:10px;
 
 .bs-no-report {
   color: #8898aa;
+}
+
+.bs-resource {
+  margin: 12px 0px;
 }
 
 @media screen and (max-width: 650px) {
