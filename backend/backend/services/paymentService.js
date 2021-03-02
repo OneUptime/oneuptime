@@ -317,11 +317,11 @@ module.exports = {
                     }
                 }
 
-                //Prevent Update if User is still in trial period
+                //Prevent update if user is still in trial period
                 let trial_end_date =
                     subscription.trial_end && subscription.trial_end != null
                         ? new Date(subscription.trial_end * 1000)
-                        : false;
+                        : new Date(1611667044); //set trail_end_date to past date
                 let today_date = new Date();
 
                 if (trial_end_date && trial_end_date < today_date) {
