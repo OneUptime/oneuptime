@@ -368,8 +368,8 @@ export default (state = INITIAL_STATE, action) => {
 
         case 'ADD_INCIDENT_NOTE': {
             let addToIncident = false;
-            let notes = [...state.incidentNotes.notes],
-                noteData = state.notes.notes,
+            let notes = [...state.incidentNotes.notes];
+            const noteData = state.notes.notes,
                 result = [];
             const check = noteData.find(
                 note =>

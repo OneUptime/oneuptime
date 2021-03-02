@@ -186,7 +186,7 @@ class BlockChart extends Component {
 
         if (this.props.theme) {
             content = (
-                <div className='tooltip'>
+                <div className="tooltip">
                     <div
                         id={`block${this.props.monitorId}${dateId}`}
                         className={classes}
@@ -243,8 +243,6 @@ BlockChart.propTypes = {
     monitorId: PropTypes.any,
     showIncidentCard: PropTypes.func,
     theme: PropTypes.string,
-    windowSize: PropTypes.object,
-    range: PropTypes.number,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(BlockChart);

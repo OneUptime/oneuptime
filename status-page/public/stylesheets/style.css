@@ -1638,6 +1638,10 @@ margin-left:10px;
   border-radius: 4px;
 }
 
+.bs-no-report {
+  color: #8898aa;
+}
+
 @media screen and (max-width: 650px) {
   .innernew {
     width: 90%;

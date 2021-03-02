@@ -428,7 +428,7 @@ class Main extends Component {
                                         target="_blank"
                                         rel="noopener noreferrer"
                                     >
-                                        Fyipe's Status Page
+                                        Fyipe&#39;s Status Page
                                     </a>
                                 </div>
                                 <ShouldRender

@@ -148,7 +148,7 @@ class NotesMain extends Component {
 
             const result = [];
 
-            for (let item of items) {
+            for (const item of items) {
                 const date = String(item.createdAt).slice(0, 10);
 
                 if (!track[date]) {
@@ -165,7 +165,7 @@ class NotesMain extends Component {
         };
 
         const formatMsg = data => {
-            let result = data.reduce(function(r, a) {
+            const result = data.reduce(function(r, a) {
                 r[a.incident_state] = r[a.incident_state] || [];
                 r[a.incident_state].push(a);
                 return r;
@@ -174,7 +174,7 @@ class NotesMain extends Component {
             return result;
         };
 
-        let incidentNoteData = this.props.noteData;
+        const incidentNoteData = this.props.noteData;
         if (
             this.props.theme === 'Clean Theme' &&
             this.props.noteData.notes.length > countNum &&
@@ -211,9 +211,12 @@ class NotesMain extends Component {
                                         note.message.length > 0 &&
                                         Object.keys(
                                             formatMsg(note.message)
-                                        ).map(key => {
+                                        ).map((key, index) => {
                                             return (
-                                                <div className="new-mb-12">
+                                                <div
+                                                    className="new-mb-12"
+                                                    key={index}
+                                                >
                                                     <div className="items_dis">
                                                         <div className="incident-info">
                                                             <span className="list_k">
@@ -286,7 +289,9 @@ class NotesMain extends Component {
                                         })}
                                 </>
                             ) : (
-                                <div>No incident reported</div>
+                                <div className="bs-no-report">
+                                    No incident reported
+                                </div>
                             )}
                         </div>
                     );
@@ -671,6 +676,7 @@ NotesMain.propTypes = {
     fetchingIncidentTimelines: PropTypes.bool,
     showIncidentCard: PropTypes.func,
     showIncidentCardState: PropTypes.bool,
+    theme: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NotesMain);

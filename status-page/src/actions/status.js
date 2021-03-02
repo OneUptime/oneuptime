@@ -72,9 +72,9 @@ export const statusPageNoteSuccess = data => {
 export const newThemeIncidentNote = data => {
     return {
         type: types.NEW_THEME_NOTES_SUCCESS,
-        payload: data
-    }
-}
+        payload: data,
+    };
+};
 
 export const statusPageNoteRequest = () => {
     return {
@@ -125,7 +125,7 @@ export const getStatusPageNote = (projectId, statusPageId, skip, limit) => {
         promise.then(
             Data => {
                 dispatch(statusPageNoteSuccess(Data.data));
-                dispatch(newThemeIncidentNote(Data.data))
+                dispatch(newThemeIncidentNote(Data.data));
                 dispatch(individualNoteDisable());
             },
             error => {
