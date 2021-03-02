@@ -160,6 +160,11 @@ router.put(
                                 statusPageId
                             )
                         );
+                    } else {
+                        return sendErrorResponse(req, res, {
+                            message: `This domain ${domain.domain} is already associated with another project`,
+                            code: 400,
+                        });
                     }
                 }
                 return sendItemResponse(
@@ -175,8 +180,7 @@ router.put(
 
                 if (doesDomainBelongToProject) {
                     return sendErrorResponse(req, res, {
-                        message:
-                            'This domain is already associated with another project',
+                        message: `This domain ${subDomain} is already associated with another project`,
                         code: 400,
                     });
                 }
