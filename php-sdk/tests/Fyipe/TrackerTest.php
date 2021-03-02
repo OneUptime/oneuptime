@@ -110,4 +110,12 @@ class TrackerTest extends TestCase
         $this->assertIsString($timeline[0]->eventId);
         $this->assertIsNumeric($timeline[0]->timestamp);
     }
+    public function test_should_ensure_different_timeline_event_have_the_same_eventId() {
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, $this->customTimeline->type);
+        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, 'error');
+        $timeline = $tracker->getTimeline();
+        $this->assertCount(2, $timeline); // two timeline events
+        $this->assertEquals($timeline[0]->eventId, $timeline[1]->eventId); // their eventId is the same, till there is an error sent to the server
+    }
 }
