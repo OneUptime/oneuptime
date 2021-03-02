@@ -19,13 +19,15 @@ class BlockChart extends Component {
 
     requestday = (need, date) => {
         this.props.showIncidentCard(false);
+        const theme = this.props.theme ? true : false;
         if (need) {
             this.props.getStatusPageIndividualNote(
                 this.props.statusData.projectId._id,
                 this.props.monitorId,
                 date,
                 this.props.monitorName,
-                need
+                need,
+                theme
             );
         } else {
             if (this.props.time && this.props.time.emptytime) {
@@ -48,7 +50,8 @@ class BlockChart extends Component {
             this.props.statusData.projectId._id,
             this.props.monitorId,
             date,
-            this.props.monitorName
+            this.props.monitorName,
+            theme
         );
     };
 
