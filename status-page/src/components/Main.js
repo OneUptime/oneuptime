@@ -22,6 +22,7 @@ import LineChartsContainer from './LineChartsContainer';
 import AffectedResources from './basic/AffectedResources';
 import SubscribeBox from './Subscribe/SubscribeBox';
 import { openSubscribeMenu } from '../actions/subscribe';
+import NewThemeEvent from './NewThemeEvent';
 
 const greenBackground = {
     display: 'inline-block',
@@ -88,7 +89,9 @@ class Main extends Component {
         ) {
             this.props.getScheduledEvent(
                 this.props.statusData.projectId._id,
-                this.props.statusData._id
+                this.props.statusData._id,
+                0,
+                this.props.statusData.theme === 'Clean Theme' ? true : false
             );
         }
     }
@@ -478,142 +481,58 @@ class Main extends Component {
                                         availableMonitors.length > 0
                                     }
                                 >
-                                    <ShouldRender
-                                        if={
-                                            availableMonitors &&
-                                            availableMonitors.length > 0
-                                        }
-                                    >
-                                        {availableMonitors.map(
-                                            (monitor, index) => (
-                                                <div
-                                                    className="op-div border-top"
-                                                    key={index}
-                                                >
-                                                    <div className="op-info">
-                                                        <div className="collecion_item">
-                                                            {
+                                    <div className="line-chart">
+                                        <div
+                                            className="uptime-graphs"
+                                            style={
+                                                isGroupedByMonitorCategory
+                                                    ? { paddingBottom: 0 }
+                                                    : { paddingBottom: 35 }
+                                            }
+                                        >
+                                            {isGroupedByMonitorCategory ? (
+                                                this.groupedMonitors()
+                                            ) : this.props.statusData &&
+                                              this.props.statusData
+                                                  .monitorsData !== undefined &&
+                                              this.props.statusData.monitorsData
+                                                  .length > 0 ? (
+                                                this.props.monitors
+                                                    .filter(monitor =>
+                                                        this.props.statusData.monitorsData.some(
+                                                            m =>
+                                                                m._id ===
                                                                 monitor.monitor
-                                                                    .name
-                                                            }
-                                                        </div>
-                                                        <div className="tooltip">
-                                                            <ShouldRender
-                                                                if={
-                                                                    monitor.description
-                                                                }
-                                                            >
-                                                                <span className="ques_mark">
-                                                                    ?
-                                                                </span>
-                                                                <span className="tooltiptext tooltip1">
-                                                                    {
-                                                                        monitor.description
-                                                                    }
-                                                                </span>
-                                                            </ShouldRender>
-                                                        </div>
-                                                    </div>
-                                                    <div>Operational</div>
-                                                </div>
-                                            )
-                                        )}
-                                    </ShouldRender>
-                                    <div className="op-div another-div">
-                                        <div className="display-flex">
-                                            <div>Alerts</div>
-                                            <div>Operational</div>
-                                        </div>
-                                        <div className="line-chart">
-                                            <div
-                                                className="uptime-graphs box-inner"
-                                                style={
-                                                    isGroupedByMonitorCategory
-                                                        ? { paddingBottom: 0 }
-                                                        : { paddingBottom: 35 }
-                                                }
-                                            >
-                                                {isGroupedByMonitorCategory ? (
-                                                    this.groupedMonitors()
-                                                ) : this.props.statusData &&
-                                                  this.props.statusData
-                                                      .monitorsData !==
-                                                      undefined &&
-                                                  this.props.statusData
-                                                      .monitorsData.length >
-                                                      0 ? (
-                                                    this.props.monitors
-                                                        .filter(monitor =>
-                                                            this.props.statusData.monitorsData.some(
-                                                                m =>
-                                                                    m._id ===
-                                                                    monitor
-                                                                        .monitor
-                                                                        ._id
-                                                            )
+                                                                    ._id
                                                         )
-                                                        .map((monitor, i) => (
-                                                            <>
-                                                                <MonitorInfo
-                                                                    monitor={
-                                                                        this.props.statusData.monitorsData.filter(
-                                                                            m =>
-                                                                                m._id ===
-                                                                                monitor
-                                                                                    .monitor
-                                                                                    ._id
-                                                                        )[0]
-                                                                    }
-                                                                    selectedCharts={
-                                                                        monitor
-                                                                    }
-                                                                    key={`uptime-${i}`}
-                                                                    id={`monitor${i}`}
-                                                                    isGroupedByMonitorCategory={
-                                                                        isGroupedByMonitorCategory
-                                                                    }
-                                                                    theme={
-                                                                        'clean'
-                                                                    }
-                                                                />
-                                                                <LineChartsContainer
-                                                                    monitor={
-                                                                        this.props.statusData.monitorsData.filter(
-                                                                            m =>
-                                                                                m._id ===
-                                                                                monitor
-                                                                                    .monitor
-                                                                                    ._id
-                                                                        )[0]
-                                                                    }
-                                                                    selectedCharts={
-                                                                        monitor
-                                                                    }
-                                                                    key={`line-charts-${i}`}
-                                                                />
-                                                                {i <
-                                                                    this.props
-                                                                        .statusData
-                                                                        .monitorsData
-                                                                        .length -
-                                                                        1 && (
-                                                                    <div
-                                                                        style={{
-                                                                            margin:
-                                                                                '30px 0px',
-                                                                            backgroundColor:
-                                                                                '#e8e8e8',
-                                                                            height:
-                                                                                '1px',
-                                                                        }}
-                                                                    />
-                                                                )}
-                                                            </>
-                                                        ))
-                                                ) : (
-                                                    <NoMonitor />
-                                                )}
-                                            </div>
+                                                    )
+                                                    .map((monitor, i) => (
+                                                        <>
+                                                            <MonitorInfo
+                                                                monitor={
+                                                                    this.props.statusData.monitorsData.filter(
+                                                                        m =>
+                                                                            m._id ===
+                                                                            monitor
+                                                                                .monitor
+                                                                                ._id
+                                                                    )[0]
+                                                                }
+                                                                selectedCharts={
+                                                                    monitor
+                                                                }
+                                                                key={`uptime-${i}`}
+                                                                id={`monitor${i}`}
+                                                                isGroupedByMonitorCategory={
+                                                                    isGroupedByMonitorCategory
+                                                                }
+                                                                theme={'clean'}
+                                                            />
+                                                        </>
+                                                    ))
+                                            ) : (
+                                                <NoMonitor />
+                                            )}
                                         </div>
                                     </div>
                                 </ShouldRender>
@@ -645,6 +564,17 @@ class Main extends Component {
                                     />
                                 </div>
                             </ShouldRender>
+                            <div className="new-theme-incident">
+                                <div className="font-largest">
+                                    Scheduled Events
+                                </div>
+                                <NewThemeEvent
+                                    projectId={
+                                        this.props.statusData.projectId._id
+                                    }
+                                    statusPageId={this.props.statusData._id}
+                                />
+                            </div>
                             <div className="powered">
                                 <p>
                                     <a
