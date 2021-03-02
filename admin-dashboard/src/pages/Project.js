@@ -16,6 +16,7 @@ import AdminNotes from '../components/adminNote/AdminNotes';
 import { addProjectNote, fetchProject, paginate } from '../actions/project';
 import { IS_SAAS_SERVICE } from '../config';
 import { fetchProjectTeam } from '../actions/project';
+import ProjectBalance from '../components/project/ProjectBalance';
 
 class Project extends Component {
     componentDidMount() {
@@ -127,6 +128,21 @@ class Project extends Component {
                                                                 10
                                                             ? true
                                                             : false
+                                                    }
+                                                />
+                                            </div>
+                                            <div className="Box-root Margin-bottom--12">
+                                                <ProjectBalance
+                                                    balance={
+                                                        this.props.project &&
+                                                        this.props.project
+                                                            .balance
+                                                    }
+                                                    projectId={
+                                                        this.props
+                                                            .currentProject &&
+                                                        this.props
+                                                            .currentProject._id
                                                     }
                                                 />
                                             </div>

@@ -57,6 +57,9 @@ import {
     USER_UPDATE_ROLE_FAILURE,
     PAGINATE_USERS_NEXT,
     PAGINATE_USERS_PREV,
+    PROJECT_BALANCE_UPDATE_REQUEST,
+    PROJECT_BALANCE_UPDATE_SUCCESS,
+    PROJECT_BALANCE_UPDATE_FAILURE,
 } from '../constants/project';
 
 const INITIAL_STATE = {
@@ -139,6 +142,11 @@ const INITIAL_STATE = {
         updating: [],
     },
     createUser: {
+        error: null,
+        requesting: false,
+        success: false,
+    },
+    updateBalance: {
         error: null,
         requesting: false,
         success: false,
@@ -310,6 +318,41 @@ export default function project(state = INITIAL_STATE, action) {
                     },
                 },
             });
+        //updating project balance
+        case PROJECT_BALANCE_UPDATE_REQUEST:
+            return {
+                ...state,
+                updateBalance: {
+                    ...state.updateBalance,
+                    error: null,
+                    requesting: true,
+                    success: false,
+                },
+            };
+        case PROJECT_BALANCE_UPDATE_SUCCESS:
+            return {
+                ...state,
+                updateBalance: {
+                    ...state.updateBalance,
+                    error: null,
+                    requesting: false,
+                    success: true,
+                },
+                project: {
+                    ...state.project,
+                    project: action.payload,
+                },
+            };
+        case PROJECT_BALANCE_UPDATE_FAILURE:
+            return {
+                ...state,
+                updateBalance: {
+                    ...state.updateBalance,
+                    error: action.payload,
+                    requesting: false,
+                    success: false,
+                },
+            };
         case USER_UPDATE_ROLE_FAILURE:
             return {
                 ...state,
