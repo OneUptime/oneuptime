@@ -225,34 +225,55 @@ class TrackerTest extends TestCase
     //     $this->assertEquals($tagE->key, $availableTags[0]->key);
     //     $this->assertEquals($tagE->value, $availableTags[0]->value); // latest value for that tag location
     // }
-    public function test_should_create_fingerprint_as_message_for_error_capture_without_any_fingerprint() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+    // public function test_should_create_fingerprint_as_message_for_error_capture_without_any_fingerprint() {
+    //     $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
 
-        $errorMessage = 'Uncaught Exception';
-        $tracker->captureMessage($errorMessage);
-        $event = $tracker->getCurrentEvent();
-        $this->assertEquals($event->fingerprint[0], $errorMessage);
-    }
-    public function test_should_use_defined_fingerprint_array_for_error_capture_with_fingerprint() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+    //     $errorMessage = 'Uncaught Exception';
+    //     $tracker->captureMessage($errorMessage);
+    //     $event = $tracker->getCurrentEvent();
+    //     $this->assertEquals($event->fingerprint[0], $errorMessage);
+    // }
+    // public function test_should_use_defined_fingerprint_array_for_error_capture_with_fingerprint() {
+    //     $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
 
         
-        $fingerprints = ['custom', 'errors'];
-        $tracker->setFingerPrint($fingerprints);
-        $errorMessage = 'Uncaught Exception';
-        $tracker->captureMessage($errorMessage);
-        $event = $tracker->getCurrentEvent();
-        $this->assertEquals($event->fingerprint[0], $fingerprints[0]);
-        $this->assertEquals($event->fingerprint[1], $fingerprints[1]);
-    }
-    public function test_should_use_defined_fingerprint_string_for_error_capture_with_fingerprint() {
+    //     $fingerprints = ['custom', 'errors'];
+    //     $tracker->setFingerPrint($fingerprints);
+    //     $errorMessage = 'Uncaught Exception';
+    //     $tracker->captureMessage($errorMessage);
+    //     $event = $tracker->getCurrentEvent();
+    //     $this->assertEquals($event->fingerprint[0], $fingerprints[0]);
+    //     $this->assertEquals($event->fingerprint[1], $fingerprints[1]);
+    // }
+    // public function test_should_use_defined_fingerprint_string_for_error_capture_with_fingerprint() {
+    //     $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+
+    //     $fingerprint = 'custom-fingerprint';
+    //     $tracker->setFingerPrint($fingerprint);
+    //     $errorMessage = 'Uncaught Exception';
+    //     $tracker->captureMessage($errorMessage);
+    //     $event = $tracker->getCurrentEvent();
+    //     $this->assertEquals($event->fingerprint[0], $fingerprint);
+    // }
+    public function test_should_create_an_event_ready_for_the_server() {
         $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
 
-        $fingerprint = 'custom-fingerprint';
-        $tracker->setFingerPrint($fingerprint);
-        $errorMessage = 'Uncaught Exception';
+        $errorMessage = 'This is a test';
         $tracker->captureMessage($errorMessage);
         $event = $tracker->getCurrentEvent();
-        $this->assertEquals($event->fingerprint[0], $fingerprint);
+        $this->assertEquals($event->type, 'message');
+        $this->assertEquals($event->exception->message, $errorMessage);
+    }
+    public function test_should_create_an_event_ready_for_the_server_while_having_the_timeline_with_same_event_id() {
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, $this->customTimeline->type);
+        
+        $errorMessage = 'This is a test';
+        $tracker->captureMessage($errorMessage);
+        $event = $tracker->getCurrentEvent();
+
+        $this->assertCount(1, $event->timeline);
+        $this->assertEquals($event->eventId, $event->timeline[0]->eventId);
+        $this->assertEquals($event->exception->message, $errorMessage);
     }
 }
