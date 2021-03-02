@@ -27,6 +27,8 @@ yarn.lock
 Untitled-1
 *.local.sh
 *.local.yaml
+run
+stop
 
 nohup.out*
 
