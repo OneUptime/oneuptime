@@ -152,78 +152,107 @@ class TrackerTest extends TestCase
     //     $this->assertEquals($timeline[0]->type, $this->customTimeline->type);
     //     $this->assertEquals($timeline[1]->category, $customTimeline2->category);
     // }
-    public function test_should_add_tags() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
-        $tag = new stdClass();
-        $tag->key = 'location';
-        $tag->value = 'Ontario';
-        $tracker->setTag($tag->key, $tag->value);
+    // public function test_should_add_tags() {
+    //     $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+    //     $tag = new stdClass();
+    //     $tag->key = 'location';
+    //     $tag->value = 'Ontario';
+    //     $tracker->setTag($tag->key, $tag->value);
         
-        $availableTags = $tracker->getTags();
-        $this->assertIsArray($availableTags);
-        $this->assertCount(1, $availableTags);
-        $this->assertEquals($tag->key, $availableTags[0]->key);
-    }
-    public function test_should_add_multiple_tags() {
+    //     $availableTags = $tracker->getTags();
+    //     $this->assertIsArray($availableTags);
+    //     $this->assertCount(1, $availableTags);
+    //     $this->assertEquals($tag->key, $availableTags[0]->key);
+    // }
+    // public function test_should_add_multiple_tags() {
         
+    //     $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+    //     $tags = [];
+    //     $tag = new stdClass();
+    //     $tag->key = 'location';
+    //     $tag->value = 'Ontario';
+    //     array_push($tags, $tag);
+
+    //     $tagB = new stdClass();
+    //     $tagB->key = 'city';
+    //     $tagB->value = 'Houston';
+    //     array_push($tags, $tagB);
+
+    //     $tagC = new stdClass();
+    //     $tagC->key = 'device';
+    //     $tagC->value = 'iPhone';
+    //     array_push($tags, $tagC);
+
+    //     $tracker->setTags($tags);
+
+    //     $availableTags = $tracker->getTags();
+    //     $this->assertIsArray($availableTags);
+    //     $this->assertCount(sizeof($tags), $availableTags);
+    // }
+    // public function test_should_overwrite_existing_keys_to_avoid_duplicate_tags() {
+    //     $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+    //     $tags = [];
+    //     $tag = new stdClass();
+    //     $tag->key = 'location';
+    //     $tag->value = 'Ontario';
+    //     array_push($tags, $tag);
+
+    //     $tagB = new stdClass();
+    //     $tagB->key = 'city';
+    //     $tagB->value = 'Houston';
+    //     array_push($tags, $tagB);
+
+    //     $tagC = new stdClass();
+    //     $tagC->key = 'location';
+    //     $tagC->value = 'Paris';
+    //     array_push($tags, $tagC);
+
+    //     $tagD = new stdClass();
+    //     $tagD->key = 'device';
+    //     $tagD->value = 'iPhone';
+    //     array_push($tags, $tagD);
+
+    //     $tagE = new stdClass();
+    //     $tagE->key = 'location';
+    //     $tagE->value = 'London';
+    //     array_push($tags, $tagE);
+
+    //     $tracker->setTags($tags);
+
+    //     $availableTags = $tracker->getTags();
+    //     $this->assertIsArray($availableTags);
+    //     $this->assertCount(3, $availableTags); // only 3 unique tags
+    //     $this->assertEquals($tagE->key, $availableTags[0]->key);
+    //     $this->assertEquals($tagE->value, $availableTags[0]->value); // latest value for that tag location
+    // }
+    public function test_should_create_fingerprint_as_message_for_error_capture_without_any_fingerprint() {
         $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
-        $tags = [];
-        $tag = new stdClass();
-        $tag->key = 'location';
-        $tag->value = 'Ontario';
-        array_push($tags, $tag);
 
-        $tagB = new stdClass();
-        $tagB->key = 'city';
-        $tagB->value = 'Houston';
-        array_push($tags, $tagB);
-
-        $tagC = new stdClass();
-        $tagC->key = 'device';
-        $tagC->value = 'iPhone';
-        array_push($tags, $tagC);
-
-        $tracker->setTags($tags);
-
-        $availableTags = $tracker->getTags();
-        $this->assertIsArray($availableTags);
-        $this->assertCount(sizeof($tags), $availableTags);
+        $errorMessage = 'Uncaught Exception';
+        $tracker->captureMessage($errorMessage);
+        $event = $tracker->getCurrentEvent();
+        $this->assertEquals($event->fingerprint[0], $errorMessage);
     }
-    public function test_should_overwrite_existing_keys_to_avoid_duplicate_tags() {
+    public function test_should_use_defined_fingerprint_array_for_error_capture_with_fingerprint() {
         $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
-        $tags = [];
-        $tag = new stdClass();
-        $tag->key = 'location';
-        $tag->value = 'Ontario';
-        array_push($tags, $tag);
 
-        $tagB = new stdClass();
-        $tagB->key = 'city';
-        $tagB->value = 'Houston';
-        array_push($tags, $tagB);
+        
+        $fingerprints = ['custom', 'errors'];
+        $tracker->setFingerPrint($fingerprints);
+        $errorMessage = 'Uncaught Exception';
+        $tracker->captureMessage($errorMessage);
+        $event = $tracker->getCurrentEvent();
+        $this->assertEquals($event->fingerprint[0], $fingerprints[0]);
+        $this->assertEquals($event->fingerprint[1], $fingerprints[1]);
+    }
+    public function test_should_use_defined_fingerprint_string_for_error_capture_with_fingerprint() {
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
 
-        $tagC = new stdClass();
-        $tagC->key = 'location';
-        $tagC->value = 'Paris';
-        array_push($tags, $tagC);
-
-        $tagD = new stdClass();
-        $tagD->key = 'device';
-        $tagD->value = 'iPhone';
-        array_push($tags, $tagD);
-
-        $tagE = new stdClass();
-        $tagE->key = 'location';
-        $tagE->value = 'London';
-        array_push($tags, $tagE);
-
-        $tracker->setTags($tags);
-
-        $availableTags = $tracker->getTags();
-        $this->assertIsArray($availableTags);
-        $this->assertCount(3, $availableTags); // only 3 unique tags
-        $this->assertEquals($tagE->key, $availableTags[0]->key);
-        $this->assertEquals($tagE->value, $availableTags[0]->value); // latest value for that tag location
-
+        $fingerprint = 'custom-fingerprint';
+        $tracker->setFingerPrint($fingerprint);
+        $errorMessage = 'Uncaught Exception';
+        $tracker->captureMessage($errorMessage);
+        $event = $tracker->getCurrentEvent();
+        $this->assertEquals($event->fingerprint[0], $fingerprint);
     }
 }
