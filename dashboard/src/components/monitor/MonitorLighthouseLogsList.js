@@ -8,7 +8,7 @@ import { ListLoader, Spinner } from '../basic/Loader';
 import { deleteSiteUrl } from '../../actions/monitor';
 import DeleteSiteUrl from '../modals/DeleteSiteUrl';
 import moment from 'moment';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 
 export class MonitorLighthouseLogsList extends Component {
@@ -17,7 +17,7 @@ export class MonitorLighthouseLogsList extends Component {
         super(props);
         this.props = props;
         this.state = {
-            deleteSiteUrlModalId: uuid.v4(),
+            deleteSiteUrlModalId: uuidv4(),
         };
     }
 

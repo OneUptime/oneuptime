@@ -45,7 +45,7 @@ class StatusPage extends Component {
     async componentDidMount() {
         if (!this.props.statusPage.status._id) {
             const projectId = history.location.pathname
-                .split('project/')[1]
+                .split('sub-project/')[1]
                 .split('/')[0];
             const statusPageId = history.location.pathname
                 .split('status-page/')[1]

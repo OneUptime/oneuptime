@@ -1,4 +1,4 @@
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -21,7 +21,7 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 class StatusPagesTable extends Component {
     constructor(props) {
         super(props);
-        this.state = { statusPageModalId: uuid.v4() };
+        this.state = { statusPageModalId: uuidv4() };
     }
 
     componentDidMount() {
@@ -189,7 +189,7 @@ class StatusPagesTable extends Component {
             projectStatusPage && projectStatusPage.statusPages ? (
                 <RenderIfUserInSubProject
                     subProjectId={projectStatusPage._id}
-                    key={() => uuid.v4()}
+                    key={() => uuidv4()}
                 >
                     <div id="statusPageTable" className="bs-BIM">
                         <div className="Box-root Margin-bottom--12">

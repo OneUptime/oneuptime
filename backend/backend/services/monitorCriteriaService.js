@@ -362,7 +362,7 @@ const MonitorCriteriaService = {
             kubernetes: {
                 up_1000: [
                     {
-                        match: 'any',
+                        match: 'all',
                         responseType: 'desiredDeployment',
                         filter: 'equalTo',
                         field1: 'readyDeployment',

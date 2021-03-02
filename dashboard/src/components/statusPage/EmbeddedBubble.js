@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import ShouldRender from '../basic/ShouldRender';
 import {
     resetStatusBubbleId,
@@ -109,8 +109,8 @@ export class EmbeddedBubble extends Component {
         this.state = {
             showMoreOptions: false,
             copied: false,
-            resetModalId: uuid.v4(),
-            resetCssModalId: uuid.v4(),
+            resetModalId: uuidv4(),
+            resetCssModalId: uuidv4(),
         };
     }
     submitForm = values => {
