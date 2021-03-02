@@ -72,16 +72,18 @@ class FyipeTracker
     private function setUpOptions($options)
     {
         foreach ($options as $option) {
+            $key = key($option);
+            $value = $option->$key;
             // proceed with current key if it is not in the config keys
-            if (in_array($option['key'], $this->configKeys)) {
+            if (in_array($key, $this->configKeys)) {
                 // set max timeline properly after checking conditions
                 if (
-                    $option['key'] == 'maxTimeline' &&
-                    ($option['value'] > $this->MAX_ITEMS_ALLOWED_IN_STACK || $option['value'] < 1)
+                    $key == 'maxTimeline' &&
+                    ($value > $this->MAX_ITEMS_ALLOWED_IN_STACK || $value < 1)
                 ) {
-                    $this->options['key'] = $this->MAX_ITEMS_ALLOWED_IN_STACK;
+                    $this->options[$key] = $this->MAX_ITEMS_ALLOWED_IN_STACK;
                 } else {
-                    $this->options['key'] = $options['value'];
+                    $this->options[$key] = $value;
                 }
             }
         }
