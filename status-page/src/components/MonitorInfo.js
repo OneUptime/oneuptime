@@ -436,91 +436,162 @@ class MonitorInfo extends Component {
         }
 
         return (
-            <div
-                className="uptime-graph-section dashboard-uptime-graph"
-                id={this.props.id}
-                ref={this.container}
-            >
-                <div className="uptime-graph-header">
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <ShouldRender if={isGroupedByMonitorCategory}>
+            <>
+                <ShouldRender if={this.props.theme}>
+                    <div className="op-div border-top">
+                        <div className="op-disp">
+                            <div className="op-info">
+                                <div className="collecion_item">
+                                    <span style={status}></span>
+                                    <span
+                                        className="uptime-stat-name"
+                                        style={{
+                                            paddingRight: '0px',
+                                            ...subheading,
+                                        }}
+                                    >
+                                        {monitor.name}
+                                    </span>
+                                </div>
+                                <div className="tooltip">
+                                    <ShouldRender
+                                        if={selectedCharts.description}
+                                    >
+                                        <span className="ques_mark">?</span>
+                                        <span className="tooltiptext tooltip1">
+                                            {selectedCharts.description}
+                                        </span>
+                                    </ShouldRender>
+                                </div>
+                            </div>
+                            <div>Operational</div>
+                        </div>
+                        <ShouldRender if={selectedCharts.uptime}>
                             <div
-                                id={`monitorCategory_${monitor.name}`}
-                                style={monitorCategoryStyle}
+                                className="uptime-graph-section dashboard-uptime-graph ma-t-20"
+                                id={this.props.id}
+                                ref={this.container}
                             >
-                                <span>
-                                    {resourceCategory
-                                        ? resourceCategory.name
-                                        : 'Uncategorized'}
-                                </span>
+                                {selectedCharts.uptime && (
+                                    <div
+                                        ref={this.scrollWrapper}
+                                        className="block-chart"
+                                        style={{
+                                            overflowX: this.props.theme
+                                                ? 'none'
+                                                : 'scroll',
+                                            overflow: this.props.theme
+                                                ? 'visible'
+                                                : 'scroll',
+                                        }}
+                                    >
+                                        <div
+                                            ref={this.scrollContent}
+                                            className="scroll-content"
+                                        >
+                                            {block}
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="alerts_days">
+                                    <div>{range} days ago</div>
+                                    <div className="spacer"></div>
+                                    <div>{uptime}% uptime</div>
+                                    <div className="spacer"></div>
+                                    <div>Today</div>
+                                </div>
                             </div>
                         </ShouldRender>
-                        <div style={{ display: 'flex' }}>
-                            <div>
-                                <span style={status}></span>
+                    </div>
+                </ShouldRender>
+
+                <ShouldRender if={!this.props.theme}>
+                    <div
+                        className="uptime-graph-section dashboard-uptime-graph"
+                        id={this.props.id}
+                        ref={this.container}
+                    >
+                        <div className="uptime-graph-header">
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                }}
+                            >
+                                <ShouldRender if={isGroupedByMonitorCategory}>
+                                    <div
+                                        id={`monitorCategory_${monitor.name}`}
+                                        style={monitorCategoryStyle}
+                                    >
+                                        <span>
+                                            {resourceCategory
+                                                ? resourceCategory.name
+                                                : 'Uncategorized'}
+                                        </span>
+                                    </div>
+                                </ShouldRender>
+                                <div style={{ display: 'flex' }}>
+                                    <div>
+                                        <span style={status}></span>
+                                    </div>
+                                    <div>
+                                        <span
+                                            className="uptime-stat-name"
+                                            style={subheading}
+                                        >
+                                            {monitor.name}
+                                        </span>
+                                        <br />
+                                        <div
+                                            style={{
+                                                color: '#8898aa',
+                                                textDecoration: 'none',
+                                                paddingLeft: '0px',
+                                                fontSize: '12px',
+                                                width: '300px',
+                                                wordWrap: 'break-word',
+                                            }}
+                                        >
+                                            {selectedCharts.description}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <span
-                                    className="uptime-stat-name"
-                                    style={subheading}
+                                    className="percentage"
+                                    style={primaryText}
                                 >
-                                    {monitor.name}
+                                    <em>{uptime}%</em> uptime for the last{' '}
+                                    {upDays > range ? range : upDays} day
+                                    {upDays > 1 ? 's' : ''}
                                 </span>
-                                <br />
-                                <ShouldRender if={!this.props.theme}>
-                                    <div
-                                        style={{
-                                            color: '#8898aa',
-                                            textDecoration: 'none',
-                                            paddingLeft: '0px',
-                                            fontSize: '12px',
-                                            width: '300px',
-                                            wordWrap: 'break-word',
-                                        }}
-                                    >
-                                        {selectedCharts.description}
-                                    </div>
-                                </ShouldRender>
                             </div>
                         </div>
-                    </div>
-                    <ShouldRender if={!this.props.theme}>
-                        <div>
-                            <span className="percentage" style={primaryText}>
-                                <em>{uptime}%</em> uptime for the last{' '}
-                                {upDays > range ? range : upDays} day
-                                {upDays > 1 ? 's' : ''}
-                            </span>
-                        </div>
-                    </ShouldRender>
-                </div>
-                {selectedCharts.uptime && (
-                    <div
-                        ref={this.scrollWrapper}
-                        className="block-chart"
-                        style={{
-                            overflowX: this.props.theme ? 'none' : 'scroll',
-                            overflow: this.props.theme ? 'visible' : 'scroll',
-                        }}
-                    >
-                        <div
-                            ref={this.scrollContent}
-                            className="scroll-content"
-                        >
-                            {block}
-                        </div>
-                    </div>
-                )}
-                <ShouldRender if={this.props.theme}>
-                    <div className="alerts_days">
-                        <div>{range} days ago</div>
-                        <div className="spacer"></div>
-                        <div>{uptime}% uptime</div>
-                        <div className="spacer"></div>
-                        <div>Today</div>
+                        {selectedCharts.uptime && (
+                            <div
+                                ref={this.scrollWrapper}
+                                className="block-chart"
+                                style={{
+                                    overflowX: this.props.theme
+                                        ? 'none'
+                                        : 'scroll',
+                                    overflow: this.props.theme
+                                        ? 'visible'
+                                        : 'scroll',
+                                }}
+                            >
+                                <div
+                                    ref={this.scrollContent}
+                                    className="scroll-content"
+                                >
+                                    {block}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </ShouldRender>
-            </div>
+            </>
         );
     }
 }
