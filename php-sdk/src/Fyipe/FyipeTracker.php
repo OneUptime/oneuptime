@@ -126,11 +126,11 @@ class FyipeTracker
         }
         foreach ($tags as $element) {
             if (!is_null($element->key) && !is_null($element->value)) {
-                $this->setTag($element->key, $element->key);
+                $this->setTag($element->key, $element->value);
             }
         }
     }
-    private function getTags()
+    public function getTags()
     {
         return $this->tags;
     }
