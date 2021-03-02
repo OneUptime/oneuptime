@@ -324,7 +324,7 @@ module.exports = {
                         : new Date(1611667044); //set trail_end_date to past date
                 let today_date = new Date();
 
-                if (trial_end_date && trial_end_date < today_date) {
+                if (trial_end_date < today_date) {
                     subscription = await stripe.subscriptions.update(
                         subscriptionId,
                         { items: items }
