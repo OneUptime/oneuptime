@@ -58,10 +58,10 @@ class FyipeTracker
        
 
         // initialize exception handler listener
-        set_exception_handler('setUpExceptionHandlerListener');
+        set_exception_handler(array('self','setUpExceptionHandlerListener'));
 
         // initializa error handler listener
-        set_error_handler("setUpErrorHandler");
+        set_error_handler(array('self','setUpErrorHandler'));
     }
 
     private function setApiUrl(String $apiUrl): void
