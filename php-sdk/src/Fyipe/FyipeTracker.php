@@ -30,7 +30,7 @@ class FyipeTracker
     private $MAX_ITEMS_ALLOWED_IN_STACK = 100;
     private $eventId;
     private $tags = [];
-    private $fingerprint;
+    private $fingerprint = [];
     private $listenerObj;
     private $utilObj;
     private $event;
@@ -255,8 +255,13 @@ class FyipeTracker
             return $exception;
         }
     }
+    public function getCurrentEvent() {
+        return $this->event;
+    }
     private function getSDKDetails() {
-        $content = file_get_contents('../../composer.json');
+        // get the full directory path, then strip away src/Fyipe before concatenating
+        $filePath = substr(__DIR__, 0, strlen(__DIR__) - 9) ."composer.json";
+        $content = file_get_contents($filePath);
         $content = json_decode($content,true);
 
         $sdkDetail = new stdClass();
