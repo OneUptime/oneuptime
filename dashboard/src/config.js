@@ -1036,7 +1036,7 @@ export const getMonitorStatus = (incidents, logs, type) => {
             ? log.status
             : type === 'server monitor'
             ? 'No Data'
-            : 'online';
+            : 'loading';
     return statusCompare || 'online';
 };
 
