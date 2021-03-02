@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { reduxForm, Field, formValueSelector } from 'redux-form';
 import {
     createComponent,
@@ -34,7 +34,7 @@ class NewComponent extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            upgradeModalId: uuid.v4(),
+            upgradeModalId: uuidv4(),
         };
     }
 

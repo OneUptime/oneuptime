@@ -13,7 +13,7 @@ import { RenderLinks } from '../basic/RenderLinks';
 import { Validate } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import CreateFooterLink from '../modals/FooterLink';
 import { openModal, closeModal } from '../../actions/modal';
@@ -54,9 +54,9 @@ function validate(values) {
 
 export class Links extends Component {
     state = {
-        createFooterLinkModalId: uuid.v4(),
-        MessageBoxId: uuid.v4(),
-        removeFooterLinkModalId: uuid.v4(),
+        createFooterLinkModalId: uuidv4(),
+        MessageBoxId: uuidv4(),
+        removeFooterLinkModalId: uuidv4(),
     };
 
     submitForm = values => {

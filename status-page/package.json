@@ -33,7 +33,8 @@
         "serve": "^11.3.2",
         "socket.io-client": "^2.3.0",
         "stripe": "^6.36.0",
-        "valid-url": "^1.0.9"
+        "valid-url": "^1.0.9",
+        "webpack": "^5.24.2"
     },
     "devDependencies": {
         "@storybook/react": "^6.1.20",
@@ -42,7 +43,7 @@
         "jest-localstorage-mock": "^2.3.0"
     },
     "scripts": {
-        "start": "npm run build && node index.js",
+        "start": "node index.js",
         "build": "react-scripts build",
         "dev": "set PORT=3006 && react-scripts start",
         "test": "mocha --exit ./src/test/statusPage.test.js",
