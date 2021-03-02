@@ -16,6 +16,8 @@ class TrackerTest extends TestCase
     private $header = [];
     private static $ready = false;
 
+    private $customTimeline;
+
     protected function setUp(): void
     {
         if (static::$ready) {
@@ -79,15 +81,25 @@ class TrackerTest extends TestCase
         } catch (Exception $e) {
             dd("Couldnt create an error tracker to run a test, Error occured: ".$e->getMessage());
         }
+
+        // set up custom timeline object
+        $this->customTimeline = new stdClass();
+        $this->customTimeline->category = 'cart';
+        $this->customTimeline->type = 'info';
+        $content = new stdClass();
+        $content->message = 'test-content';
+        $this->customTimeline->content = $content;
+
         static::$ready = true;
     }
 
     public function test_should_take_in_custom_timeline_event()
     {
         $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
-        $tracker->addToTimeline('test', 'content', 'info');
+        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, $this->customTimeline->type);
         $timeline = $tracker->getTimeline();
         $this->assertIsArray($timeline);
         $this->assertCount(1, $timeline);
+        $this->assertEquals($this->customTimeline->category, $timeline[0]->category);
     }
 }
