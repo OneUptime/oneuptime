@@ -25,7 +25,7 @@ class FyipeTimelineManager
             return; // It discards new timline update once maximum is reached
         }
         // add time to it
-        $item->timestamp = date("Y-m-d");
+        $item->timestamp = time();
         // add a new item to the stack
         array_push($this->timeLineStack, $item);
         return true;

@@ -102,4 +102,12 @@ class TrackerTest extends TestCase
         $this->assertCount(1, $timeline);
         $this->assertEquals($this->customTimeline->category, $timeline[0]->category);
     }
+    public function test_should_ensure_timeline_event_contains_eventId_and_timestamp()
+    {
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, $this->customTimeline->type);
+        $timeline = $tracker->getTimeline();
+        $this->assertIsString($timeline[0]->eventId);
+        $this->assertIsNumeric($timeline[0]->timestamp);
+    }
 }
