@@ -1191,10 +1191,10 @@ function checkDuplicateDates(items, bool) {
     if (!bool) {
         return result;
     } else {
-        let trueCount;
+        //let trueCount;
         const specificNumberToDisplay = 15;
-        trueCount = result.filter(num => num.style).length;
-        const falseCount = result.filter(num => !num.style).length;
+        //trueCount = result.filter(num => num.style).length;  // trueCount assigned but never used
+        const falseCount = result.filter(num => !num.style).length; // falseCount is never reassigned
         return specificNumberToDisplay + falseCount;
     }
 }
