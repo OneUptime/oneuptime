@@ -301,30 +301,30 @@ module.exports = {
                 ErrorService.log('paymentService.changeSeats', error);
                 throw error;
             } else {
-                for (let i = 0; i < subscription.items.data.length; i++) {
-                    plan = await Plans.getPlanById(
-                        subscription.items.data[i].plan.id
-                    );
-
-                    if (plan) {
-                        const item = {
-                            plan: plan.planId,
-                            id: subscription.items.data[i].id,
-                            quantity: seats,
-                        };
-
-                        items.push(item);
-                    }
-                }
-
+                let today_date = new Date();
                 //Prevent update if user is still in trial period
                 let trial_end_date =
                     subscription.trial_end && subscription.trial_end != null
                         ? new Date(subscription.trial_end * 1000)
-                        : new Date(1611667044); //set trail_end_date to past date
-                let today_date = new Date();
+                        : today_date; //set trail_end_date to current date
 
-                if (trial_end_date < today_date) {
+                if (trial_end_date <= today_date) {
+                    for (let i = 0; i < subscription.items.data.length; i++) {
+                        plan = await Plans.getPlanById(
+                            subscription.items.data[i].plan.id
+                        );
+
+                        if (plan) {
+                            const item = {
+                                plan: plan.planId,
+                                id: subscription.items.data[i].id,
+                                quantity: seats,
+                            };
+
+                            items.push(item);
+                        }
+                    }
+
                     subscription = await stripe.subscriptions.update(
                         subscriptionId,
                         { items: items }
