@@ -83,6 +83,25 @@ router.put(
     }
 );
 
+router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
+    const { projectId } = req.params;
+    const { theme, statusPageId } = req.body;
+    try {
+        const statusPage = await StatusPageService.updateOneBy(
+            { projectId, _id: statusPageId },
+            { theme }
+        );
+        const updatedStatusPage = await StatusPageService.getStatusPage(
+            { _id: statusPageId },
+            req.user.id
+        );
+        await RealTimeService.statusPageEdit(updatedStatusPage);
+        return sendItemResponse(req, res, statusPage);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 // Route Description: Creates a domain and domainVerificationToken
 // req.params -> {projectId, statusPageId}; req.body -> {domain}
 // Returns: response updated status page, error message
@@ -655,6 +674,7 @@ router.get(
     checkUser,
     ipWhitelist,
     async function(req, res) {
+        let result;
         const statusPageId = req.params.statusPageId;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 5;
@@ -667,7 +687,28 @@ router.get(
             );
             const notes = response.notes;
             const count = response.count;
-            return sendListResponse(req, res, notes, count);
+            const updatedNotes = [];
+            if (parseInt(limit) === 15) {
+                if (notes.length > 0) {
+                    for (const note of notes) {
+                        const statusPageNote = await StatusPageService.getIncidentNotes(
+                            { incidentId: note._id, postOnStatusPage: true },
+                            skip,
+                            limit
+                        );
+
+                        updatedNotes.push({
+                            ...note._doc,
+                            message: statusPageNote.message,
+                        });
+                    }
+                }
+                result = formatNotes(updatedNotes);
+                result = checkDuplicateDates(result);
+            } else {
+                result = notes;
+            }
+            return sendListResponse(req, res, result, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -716,6 +757,7 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
 ) {
     let date = req.query.date;
     date = new Date(date);
+    const theme = req.query.theme;
     const start = new Date(
         date.getFullYear(),
         date.getMonth(),
@@ -748,7 +790,25 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
             skip,
             limit
         );
-        const notes = response.investigationNotes;
+        let notes = response.investigationNotes;
+        if (theme) {
+            const updatedNotes = [];
+            if (notes.length > 0) {
+                for (const note of notes) {
+                    const statusPageNote = await StatusPageService.getIncidentNotes(
+                        { incidentId: note._id, postOnStatusPage: true },
+                        skip,
+                        0
+                    );
+
+                    updatedNotes.push({
+                        ...note._doc,
+                        message: statusPageNote.message,
+                    });
+                }
+                notes = updatedNotes;
+            }
+        }
         const count = response.count;
         return sendListResponse(req, res, notes, count);
     } catch (error) {
@@ -764,6 +824,7 @@ router.get(
         const statusPageId = req.params.statusPageId;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 5;
+        const theme = req.query.theme;
         try {
             // Call the StatusPageService.
             const response = await StatusPageService.getEvents(
@@ -771,8 +832,27 @@ router.get(
                 skip,
                 limit
             );
-            const events = response.events;
+            let events = response.events;
             const count = response.count;
+            if ((theme && typeof theme === 'boolean') || theme === 'true') {
+                const updatedEvents = [];
+                if (events.length > 0) {
+                    for (const event of events) {
+                        const statusPageEvent = await StatusPageService.getEventNotes(
+                            {
+                                scheduledEventId: event._id,
+                                type: 'investigation',
+                            }
+                        );
+                        updatedEvents.push({
+                            ...event,
+                            notes: statusPageEvent.notes,
+                        });
+                    }
+                }
+                events = formatNotes(updatedEvents);
+                events = checkDuplicateDates(events);
+            }
             return sendListResponse(req, res, events, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -833,6 +913,7 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
 
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 5;
+    const theme = req.query.theme;
 
     const currentDate = moment().format();
     const query = {
@@ -852,8 +933,23 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
             skip,
             limit
         );
-        const events = response.scheduledEvents;
+        let events = response.scheduledEvents;
         const count = response.count;
+        if ((theme && typeof theme === 'boolean') || theme === 'true') {
+            const updatedEvents = [];
+            if (events.length > 0) {
+                for (const event of events) {
+                    const statusPageEvent = await StatusPageService.getEventNotes(
+                        { scheduledEventId: event._id, type: 'investigation' }
+                    );
+                    updatedEvents.push({
+                        ...event,
+                        notes: statusPageEvent.notes,
+                    });
+                }
+                events = updatedEvents;
+            }
+        }
         return sendListResponse(req, res, events, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -1016,5 +1112,91 @@ router.get(
         }
     }
 );
+
+const formatNotes = (data = []) => {
+    const resultData = [];
+    const numberToDisplay = checkDuplicateDates(data, true);
+
+    if (
+        data[0] &&
+        !(
+            moment(data[0].createdAt).format('YYYY-MM-DD') ===
+            moment().format('YYYY-MM-DD')
+        )
+    ) {
+        data.unshift({ createdAt: new Date().toISOString() });
+    }
+
+    if (!data[0]) data[0] = { createdAt: new Date().toISOString() };
+
+    let prev_obj = data[0];
+
+    for (let i = 1; i < data.length + 1; i++) {
+        resultData.push(prev_obj);
+
+        const current_obj = data[i];
+        if (!current_obj) break;
+
+        const prev_date = new Date(prev_obj.createdAt).getDate();
+        const curr_date = new Date(current_obj.createdAt).getDate();
+
+        const diff = prev_date - curr_date - 1;
+
+        if (diff > 0) {
+            for (let i = 0; i < diff; i++) {
+                const time = new Date().setDate(prev_date - i - 1);
+                const created_date = new Date(time).toISOString();
+
+                const new_obj = { createdAt: created_date };
+                resultData.push(new_obj);
+            }
+        }
+
+        prev_obj = current_obj;
+    }
+
+    const prev_date = new Date(prev_obj.createdAt).getDate();
+    const fields_left = numberToDisplay - resultData.length;
+
+    for (let i = 0; i < fields_left; i++) {
+        const time = new Date().setDate(prev_date - i - 1);
+        const created_date = new Date(time).toISOString();
+
+        const new_obj = { createdAt: created_date };
+        resultData.push(new_obj);
+
+        prev_obj = new_obj;
+    }
+
+    return resultData;
+};
+
+function checkDuplicateDates(items, bool) {
+    const track = {};
+
+    const result = [];
+
+    for (let item of items) {
+        const date = String(item.createdAt).slice(0, 10);
+
+        if (!track[date]) {
+            item.style = true;
+            track[date] = date;
+        } else {
+            item.style = false;
+        }
+
+        result.push(item);
+    }
+    if (!bool) {
+        return result;
+    } else {
+        let trueCount, falseCount;
+        const specificNumberToDisplay = 15;
+        trueCount = result.filter(num => num.style).length;
+        falseCount = result.filter(num => !num.style).length;
+        return specificNumberToDisplay + falseCount;
+    }
+}
 
 module.exports = router;

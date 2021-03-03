@@ -34703,6 +34703,20 @@ span.CodeMirror-selectedtext {
   border: none;
 }
 
+.bs-screenshot {
+  flex: 1;
+  height: 200px;
+  width: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.bs-screenshot img {
+  width: 80%;
+  height: 100%;
+}
+
 @media only screen and (max-width: 768px) {
   .status-page-btn-action-col {
     float: none!important;
@@ -35224,6 +35238,16 @@ padding-left:20px
     opacity: 0.5;
     width: 10px;
 }
+.rm-auto {
+  grid-template-columns: auto auto !important;
+}
+.themelabel {
+  padding: 5%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
 @media (max-width: 768px) {
   .bs-thread-container {
     margin-top: 20px
@@ -35293,6 +35317,13 @@ padding-left:20px
 @media (max-width: 930px) {
   .bs-incident-notes-content {
     display: block;
+  }
+}
+
+@media (min-width: 1200px) {
+  .theme-list-3c {
+    width: 80%;
+    margin: auto;
   }
 }
 

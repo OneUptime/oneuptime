@@ -487,9 +487,13 @@ class Incident extends Component {
                                                                     'justify',
                                                             }}
                                                         >
-                                                            <Markdown>
-                                                                {note.content}
-                                                            </Markdown>
+                                                            {note.content && (
+                                                                <Markdown>
+                                                                    {
+                                                                        note.content
+                                                                    }
+                                                                </Markdown>
+                                                            )}
                                                         </span>
                                                         <span
                                                             style={{

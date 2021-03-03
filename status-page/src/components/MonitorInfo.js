@@ -254,6 +254,9 @@ class MonitorInfo extends Component {
         this.scrollWrapper = createRef();
         this.scrollContent = createRef();
         this.resizeHandler = this.resizeHandler.bind(this);
+        this.state = {
+            windowSize: window.innerWidth,
+        };
     }
 
     componentDidMount() {
@@ -272,6 +275,11 @@ class MonitorInfo extends Component {
 
         this.resizeHandler();
         window.addEventListener('resize', debounce(this.resizeHandler, 100));
+        window.addEventListener('resize', () => {
+            this.setState({
+                windowSize: window.innerWidth,
+            });
+        });
     }
 
     componentDidUpdate(prevProps) {
@@ -293,6 +301,11 @@ class MonitorInfo extends Component {
 
     componentWillUnmount() {
         window.removeEventListener('resize', debounce(this.resizeHandler, 100));
+        window.removeEventListener('resize', () => {
+            this.setState({
+                windowSize: window.innerWidth,
+            });
+        });
     }
 
     resizeHandler() {
@@ -311,7 +324,12 @@ class MonitorInfo extends Component {
         setTimeout(() => {
             // adjust width
             scrollWrapper.style.width = `${container.clientWidth}px`;
-            scrollContent.style.width = 'max-content';
+            if (!this.props.theme) {
+                scrollContent.style.width = 'max-content';
+            } else {
+                scrollContent.style.display = 'flex';
+                scrollContent.style.justifyContent = 'space-between';
+            }
 
             // scroll to end of chart
             scrollWrapper.scrollLeft =
@@ -331,7 +349,20 @@ class MonitorInfo extends Component {
             isGroupedByMonitorCategory,
         } = this.props;
         const now = Date.now();
-        const range = 90;
+        let range = !this.props.theme && 90;
+
+        if (this.props.theme) {
+            const { windowSize } = this.state;
+            if (windowSize <= 600) {
+                range = 30;
+            }
+            if (windowSize > 600 && windowSize < 1000) {
+                range = 60;
+            }
+            if (windowSize >= 1000) {
+                range = 90;
+            }
+        }
 
         let monitorData = monitorState.filter(a => a._id === monitor._id);
         monitorData =
@@ -365,6 +396,9 @@ class MonitorInfo extends Component {
                         time={timeBlock[i]}
                         key={i}
                         id={i}
+                        theme={this.props.theme}
+                        windowSize={this.state.windowSize}
+                        range={range}
                     />
                 );
             }
@@ -402,75 +436,162 @@ class MonitorInfo extends Component {
         }
 
         return (
-            <div
-                className="uptime-graph-section dashboard-uptime-graph"
-                id={this.props.id}
-                ref={this.container}
-            >
-                <div className="uptime-graph-header">
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <ShouldRender if={isGroupedByMonitorCategory}>
+            <>
+                <ShouldRender if={this.props.theme}>
+                    <div className="op-div border-top">
+                        <div className="op-disp">
+                            <div className="op-info">
+                                <div className="collecion_item">
+                                    <span style={status}></span>
+                                    <span
+                                        className="uptime-stat-name"
+                                        style={{
+                                            paddingRight: '0px',
+                                            ...subheading,
+                                        }}
+                                    >
+                                        {monitor.name}
+                                    </span>
+                                </div>
+                                <div className="tooltip">
+                                    <ShouldRender
+                                        if={selectedCharts.description}
+                                    >
+                                        <span className="ques_mark">?</span>
+                                        <span className="tooltiptext tooltip1">
+                                            {selectedCharts.description}
+                                        </span>
+                                    </ShouldRender>
+                                </div>
+                            </div>
+                            <div>Operational</div>
+                        </div>
+                        <ShouldRender if={selectedCharts.uptime}>
                             <div
-                                id={`monitorCategory_${monitor.name}`}
-                                style={monitorCategoryStyle}
+                                className="uptime-graph-section dashboard-uptime-graph ma-t-20"
+                                id={this.props.id}
+                                ref={this.container}
                             >
-                                <span>
-                                    {resourceCategory
-                                        ? resourceCategory.name
-                                        : 'Uncategorized'}
-                                </span>
+                                {selectedCharts.uptime && (
+                                    <div
+                                        ref={this.scrollWrapper}
+                                        className="block-chart"
+                                        style={{
+                                            overflowX: this.props.theme
+                                                ? 'none'
+                                                : 'scroll',
+                                            overflow: this.props.theme
+                                                ? 'visible'
+                                                : 'scroll',
+                                        }}
+                                    >
+                                        <div
+                                            ref={this.scrollContent}
+                                            className="scroll-content"
+                                        >
+                                            {block}
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="alerts_days">
+                                    <div>{range} days ago</div>
+                                    <div className="spacer"></div>
+                                    <div>{uptime}% uptime</div>
+                                    <div className="spacer"></div>
+                                    <div>Today</div>
+                                </div>
                             </div>
                         </ShouldRender>
-                        <div style={{ display: 'flex' }}>
-                            <div>
-                                <span style={status}></span>
+                    </div>
+                </ShouldRender>
+
+                <ShouldRender if={!this.props.theme}>
+                    <div
+                        className="uptime-graph-section dashboard-uptime-graph"
+                        id={this.props.id}
+                        ref={this.container}
+                    >
+                        <div className="uptime-graph-header">
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                }}
+                            >
+                                <ShouldRender if={isGroupedByMonitorCategory}>
+                                    <div
+                                        id={`monitorCategory_${monitor.name}`}
+                                        style={monitorCategoryStyle}
+                                    >
+                                        <span>
+                                            {resourceCategory
+                                                ? resourceCategory.name
+                                                : 'Uncategorized'}
+                                        </span>
+                                    </div>
+                                </ShouldRender>
+                                <div style={{ display: 'flex' }}>
+                                    <div>
+                                        <span style={status}></span>
+                                    </div>
+                                    <div>
+                                        <span
+                                            className="uptime-stat-name"
+                                            style={subheading}
+                                        >
+                                            {monitor.name}
+                                        </span>
+                                        <br />
+                                        <div
+                                            style={{
+                                                color: '#8898aa',
+                                                textDecoration: 'none',
+                                                paddingLeft: '0px',
+                                                fontSize: '12px',
+                                                width: '300px',
+                                                wordWrap: 'break-word',
+                                            }}
+                                        >
+                                            {selectedCharts.description}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <span
-                                    className="uptime-stat-name"
-                                    style={subheading}
+                                    className="percentage"
+                                    style={primaryText}
                                 >
-                                    {monitor.name}
+                                    <em>{uptime}%</em> uptime for the last{' '}
+                                    {upDays > range ? range : upDays} day
+                                    {upDays > 1 ? 's' : ''}
                                 </span>
-                                <br />
-                                <div
-                                    style={{
-                                        color: '#8898aa',
-                                        textDecoration: 'none',
-                                        paddingLeft: '0px',
-                                        fontSize: '12px',
-                                        width: '300px',
-                                        wordWrap: 'break-word',
-                                    }}
-                                >
-                                    {selectedCharts.description}
-                                </div>
                             </div>
                         </div>
+                        {selectedCharts.uptime && (
+                            <div
+                                ref={this.scrollWrapper}
+                                className="block-chart"
+                                style={{
+                                    overflowX: this.props.theme
+                                        ? 'none'
+                                        : 'scroll',
+                                    overflow: this.props.theme
+                                        ? 'visible'
+                                        : 'scroll',
+                                }}
+                            >
+                                <div
+                                    ref={this.scrollContent}
+                                    className="scroll-content"
+                                >
+                                    {block}
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    <div>
-                        <span className="percentage" style={primaryText}>
-                            <em>{uptime}%</em> uptime for the last{' '}
-                            {upDays > range ? range : upDays} day
-                            {upDays > 1 ? 's' : ''}
-                        </span>
-                    </div>
-                </div>
-                {selectedCharts.uptime && (
-                    <div
-                        ref={this.scrollWrapper}
-                        className="block-chart"
-                        style={{ overflowX: 'scroll' }}
-                    >
-                        <div
-                            ref={this.scrollContent}
-                            className="scroll-content"
-                        >
-                            {block}
-                        </div>
-                    </div>
-                )}
-            </div>
+                </ShouldRender>
+            </>
         );
     }
 }
@@ -508,6 +629,7 @@ MonitorInfo.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     isGroupedByMonitorCategory: PropTypes.bool,
+    theme: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInfo);

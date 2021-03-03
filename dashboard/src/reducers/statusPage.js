@@ -19,6 +19,9 @@ import {
     UPDATE_STATUSPAGE_BRANDING_SUCCESS,
     UPDATE_STATUSPAGE_BRANDING_FAILURE,
     UPDATE_STATUSPAGE_BRANDING_RESET,
+    UPDATE_STATUSPAGE_THEME_REQUEST,
+    UPDATE_STATUSPAGE_THEME_SUCCESS,
+    UPDATE_STATUSPAGE_THEME_FAILURE,
     UPDATE_STATUSPAGE_NAME_FAILURE,
     UPDATE_STATUSPAGE_NAME_REQUEST,
     UPDATE_STATUSPAGE_NAME_RESET,
@@ -221,6 +224,11 @@ const INITIAL_STATE = {
         success: false,
         error: null,
     },
+    theme: {
+        requesting: false,
+        success: false,
+        error: null,
+    }
 };
 
 export default function statusPage(state = INITIAL_STATE, action) {
@@ -690,6 +698,36 @@ export default function statusPage(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 ...INITIAL_STATE,
             });
+
+        // update theme
+        case UPDATE_STATUSPAGE_THEME_REQUEST:
+            return Object.assign({}, state, {
+                theme: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                }
+            })
+        
+        case UPDATE_STATUSPAGE_THEME_SUCCESS:
+            status = action.payload
+            return Object.assign({}, state, {
+                theme: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                status,
+            })
+
+        case UPDATE_STATUSPAGE_THEME_FAILURE:
+            return Object.assign({}, state, {
+                theme: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                }
+            })
 
         // update status page name
         case UPDATE_STATUSPAGE_NAME_REQUEST:
