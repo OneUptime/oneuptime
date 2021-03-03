@@ -8,6 +8,7 @@ import { ListLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
 import AuditLogsJsonViewModal from './AuditLogsJsonViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import ShouldRender from '../basic/ShouldRender';
 
 export class AuditLogsList extends Component {
     constructor(props) {
@@ -56,8 +57,8 @@ export class AuditLogsList extends Component {
 
         let canNext =
             this.props.auditLogs &&
-            this.props.auditLogs.count &&
-            this.props.auditLogs.count >
+                this.props.auditLogs.count &&
+                this.props.auditLogs.count >
                 this.props.auditLogs.skip + this.props.auditLogs.limit
                 ? true
                 : false;
@@ -146,126 +147,126 @@ export class AuditLogsList extends Component {
                                     </tr>
                                 </Fragment>
                             ) : this.props.auditLogs &&
-                              this.props.auditLogs.auditLogs &&
-                              this.props.auditLogs.auditLogs.length > 0 ? (
-                                this.props.auditLogs.auditLogs.map(auditLog => {
-                                    return (
-                                        <tr
-                                            key={auditLog._id}
-                                            className="Table-row db-ListViewItem bs-ActionsParent"
-                                        >
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <div className="Box-root Margin-right--16">
-                                                            <span>
-                                                                {auditLog.projectId
-                                                                    ? auditLog
-                                                                          .projectId
-                                                                          .name
-                                                                    : 'N/A'}
+                                this.props.auditLogs.auditLogs &&
+                                this.props.auditLogs.auditLogs.length > 0 ? (
+                                        this.props.auditLogs.auditLogs.map(auditLog => {
+                                            return (
+                                                <tr
+                                                    key={auditLog._id}
+                                                    className="Table-row db-ListViewItem bs-ActionsParent"
+                                                >
+                                                    <td
+                                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                        style={{ height: '1px' }}
+                                                    >
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <div className="Box-root Margin-right--16">
+                                                                    <span>
+                                                                        {auditLog.projectId
+                                                                            ? auditLog
+                                                                                .projectId
+                                                                                .name
+                                                                            : 'N/A'}
+                                                                    </span>
+                                                                </div>
                                                             </span>
                                                         </div>
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root">
-                                                                <span>
-                                                                    {auditLog.userId
-                                                                        ? auditLog
-                                                                              .userId
-                                                                              .name
-                                                                        : 'N/A'}
-                                                                </span>
-                                                            </div>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Flex-flex">
-                                                                <span>
-                                                                    {auditLog.request &&
-                                                                    auditLog
-                                                                        .request
-                                                                        .apiSection
-                                                                        ? auditLog
-                                                                              .request
-                                                                              .apiSection
-                                                                        : ''}
-                                                                </span>
-                                                            </div>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            <td
-                                                className="Table-cell Table-cell--align--center Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root">
-                                                                <span>
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            this.props.openModal(
-                                                                                {
-                                                                                    id: uuid.v4(),
-                                                                                    onConfirm: () => {
-                                                                                        return Promise.resolve();
-                                                                                    },
-                                                                                    content: props => (
-                                                                                        <AuditLogsJsonViewModal
-                                                                                            {...props}
-                                                                                            reqLog={
-                                                                                                auditLog.request
-                                                                                            }
-                                                                                            resLog={
-                                                                                                auditLog.response
-                                                                                            }
-                                                                                        />
-                                                                                    ),
-                                                                                }
-                                                                            );
-                                                                        }}
-                                                                        id="view"
-                                                                        className="bs-Button"
-                                                                    >
+                                                    </td>
+                                                    <td
+                                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
+                                                        style={{ height: '1px' }}
+                                                    >
+                                                        <div className="db-ListViewItem-link">
+                                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <div className="Box-root">
                                                                         <span>
-                                                                            View
+                                                                            {auditLog.userId
+                                                                                ? auditLog
+                                                                                    .userId
+                                                                                    .name
+                                                                                : 'N/A'}
                                                                         </span>
-                                                                    </button>
+                                                                    </div>
                                                                 </span>
                                                             </div>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            ) : (
-                                <tr></tr>
-                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td
+                                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
+                                                        style={{ height: '1px' }}
+                                                    >
+                                                        <div className="db-ListViewItem-link">
+                                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <div className="Box-root Flex-flex">
+                                                                        <span>
+                                                                            {auditLog.request &&
+                                                                                auditLog
+                                                                                    .request
+                                                                                    .apiSection
+                                                                                ? auditLog
+                                                                                    .request
+                                                                                    .apiSection
+                                                                                : ''}
+                                                                        </span>
+                                                                    </div>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+
+                                                    <td
+                                                        className="Table-cell Table-cell--align--center Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                        style={{ height: '1px' }}
+                                                    >
+                                                        <div className="db-ListViewItem-link">
+                                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <div className="Box-root">
+                                                                        <span>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    this.props.openModal(
+                                                                                        {
+                                                                                            id: uuid.v4(),
+                                                                                            onConfirm: () => {
+                                                                                                return Promise.resolve();
+                                                                                            },
+                                                                                            content: props => (
+                                                                                                <AuditLogsJsonViewModal
+                                                                                                    {...props}
+                                                                                                    reqLog={
+                                                                                                        auditLog.request
+                                                                                                    }
+                                                                                                    resLog={
+                                                                                                        auditLog.response
+                                                                                                    }
+                                                                                                />
+                                                                                            ),
+                                                                                        }
+                                                                                    );
+                                                                                }}
+                                                                                id="view"
+                                                                                className="bs-Button"
+                                                                            >
+                                                                                <span>
+                                                                                    View
+                                                                        </span>
+                                                                            </button>
+                                                                        </span>
+                                                                    </div>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr></tr>
+                                    )}
                         </tbody>
                     </table>
                 </div>
@@ -274,10 +275,10 @@ export class AuditLogsList extends Component {
                     style={{ textAlign: 'center', marginTop: '10px' }}
                 >
                     {this.props.auditLogs &&
-                    (!this.props.auditLogs.auditLogs ||
-                        !this.props.auditLogs.auditLogs.length) &&
-                    !this.props.requesting &&
-                    !this.props.auditLogs.error
+                        (!this.props.auditLogs.auditLogs ||
+                            !this.props.auditLogs.auditLogs.length) &&
+                        !this.props.requesting &&
+                        !this.props.auditLogs.error
                         ? "We don't have any logs yet"
                         : null}
                     {this.props.auditLogs && this.props.auditLogs.error
@@ -292,19 +293,9 @@ export class AuditLogsList extends Component {
                                     id="log-count"
                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                 >
-                                    {this.props.auditLogs &&
-                                    this.props.auditLogs.count
-                                        ? `Page ${
-                                              this.props.page
-                                          } of ${numberOfPages} (${this.props
-                                              .auditLogs &&
-                                              this.props.auditLogs.count} Log${
-                                              this.props.auditLogs &&
-                                              this.props.auditLogs.count === 1
-                                                  ? ''
-                                                  : 's'
-                                          })`
-                                        : null}
+                                    <ShouldRender if={this.props.auditLogs && this.props.auditLogs.count}>
+                                        Page {this.props.page} of {numberOfPages} (<span id="audit-log-count">{this.props.auditLogs.count}</span> Log<ShouldRender if={this.props.auditLogs.count > 0}>s</ShouldRender>)
+                                        </ShouldRender>
                                 </span>
                             </span>
                         </span>
