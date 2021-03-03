@@ -89,12 +89,12 @@ describe('Twilio Settings API', () => {
                 await page.click('input[name=authentication-token]');
                 await page.type(
                     'input[name=authentication-token]',
-                    process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN
+                    '79a35156d9967f0f6d8cc0761ef7d48d'
                 );
                 await page.click('input[name=phone]');
                 await page.type(
                     'input[name=phone]',
-                    process.env.TEST_TWILIO_PHONE
+                    '+15005550006'
                 );
 
                 await page.click('input[name=alert-limit]');
@@ -138,12 +138,12 @@ describe('Twilio Settings API', () => {
                 await page.click('input[name=account-sid]');
                 await page.type(
                     'input[name=account-sid]',
-                    process.env.TEST_TWILIO_ACCOUNT_SID
+                    'AC4b957669470069d68cd5a09d7f91d7c6'
                 );
                 await page.click('input[name=authentication-token]');
                 await page.type(
                     'input[name=authentication-token]',
-                    process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN
+                    '79a35156d9967f0f6d8cc0761ef7d48d'
                 );
                 await page.click('input[name=phone]');
                 await page.type('input[name=phone]', '+123');
@@ -194,17 +194,17 @@ describe('Twilio Settings API', () => {
                 await page.click('input[name=account-sid]');
                 await page.type(
                     'input[name=account-sid]',
-                    process.env.TEST_TWILIO_ACCOUNT_SID
+                    'AC4b957669470069d68cd5a09d7f91d7c6'
                 );
                 await page.click('input[name=authentication-token]');
                 await page.type(
                     'input[name=authentication-token]',
-                    process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN
+                    '79a35156d9967f0f6d8cc0761ef7d48d'
                 );
                 await page.click('input[name=phone]');
                 await page.type(
                     'input[name=phone]',
-                    process.env.TEST_TWILIO_PHONE
+                    '+15005550006'
                 );
 
                 await page.click('input[name=alert-limit]');
@@ -223,7 +223,7 @@ describe('Twilio Settings API', () => {
                     e => e.value
                 );
 
-                expect(value).toEqual(process.env.TEST_TWILIO_ACCOUNT_SID);
+                expect(value).toEqual('AC4b957669470069d68cd5a09d7f91d7c6');
             });
             done();
         },

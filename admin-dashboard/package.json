@@ -77,7 +77,7 @@
         ],
         "testMatch": [
             "<rootDir>/src/test/**/*.test.js",
-            "<rootDir>/src/test/**/Settings.test.enterprise.js"
+            "<rootDir>/src/test/**/TwilioSettings.test.enterprise.js"
         ]
     },
     "browserslist": {
