@@ -106,7 +106,12 @@ class ResourceTabularList extends Component {
                         );
                     }
                 }
-                if (monitorStatus === 'loading') {
+                if (
+                    typeof this.props.monitorLogsRequest[
+                        componentResource._id
+                    ] === 'undefined' ||
+                    this.props.monitorLogsRequest[componentResource._id]
+                ) {
                     indicator = <ListLoader />;
                 } else {
                     indicator = (
@@ -510,6 +515,7 @@ function mapStateToProps(state, props) {
         monitors,
         probes: state.probe.probes.data,
         activeProbe: state.monitor.activeProbe,
+        monitorLogsRequest: state.monitor.monitorLogsRequest,
     };
 }
 
@@ -525,6 +531,7 @@ ResourceTabularList.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    monitorLogsRequest: PropTypes.object,
 };
 
 ResourceTabularList.defaultProps = {

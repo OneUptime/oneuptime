@@ -1024,7 +1024,6 @@ function compareStatus(incident, log) {
 export const getMonitorStatus = (incidents, logs, type) => {
     const incident = incidents && incidents.length > 0 ? incidents[0] : null;
     const log = logs && logs.length > 0 ? logs[0] : null;
-
     const statusCompare =
         incident && log
             ? compareStatus(incident, log)
@@ -1036,7 +1035,7 @@ export const getMonitorStatus = (incidents, logs, type) => {
             ? log.status
             : type === 'server monitor'
             ? 'No Data'
-            : 'loading';
+            : 'online';
     return statusCompare || 'online';
 };
 
