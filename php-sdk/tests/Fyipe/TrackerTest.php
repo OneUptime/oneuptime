@@ -16,7 +16,7 @@ class TrackerTest extends TestCase
     private $header = [];
     private static $ready = false;
 
-    private $customTimeline;
+    private static $customTimeline;
 
     protected function setUp(): void
     {
@@ -50,7 +50,7 @@ class TrackerTest extends TestCase
         $user->planId = 'plan_GoWIYiX2L8hwzx';
         $user->companyRole = $this->faker->jobTitle;
         $user->companyPhoneNumber = $this->faker->phoneNumber;
-        $user->reference = 'Gitbuh';
+        $user->reference = 'Github';
 
         sleep(30);
         $client = new \GuzzleHttp\Client(['base_uri' => $this->apiUrl]);
@@ -83,12 +83,12 @@ class TrackerTest extends TestCase
         }
 
         // set up custom timeline object
-        $this->customTimeline = new stdClass();
-        $this->customTimeline->category = 'cart';
-        $this->customTimeline->type = 'info';
+        static::$customTimeline = new stdClass();
+        static::$customTimeline->category = 'cart';
+        static::$customTimeline->type = 'info';
         $content = new stdClass();
         $content->message = 'test-content';
-        $this->customTimeline->content = $content;
+        static::$customTimeline->content = $content;
 
         static::$ready = true;
     }
@@ -96,24 +96,24 @@ class TrackerTest extends TestCase
     public function test_should_take_in_custom_timeline_event()
     {
         $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
-        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, $this->customTimeline->type);
+        $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
         $timeline = $tracker->getTimeline();
         $this->assertIsArray($timeline);
         $this->assertCount(1, $timeline);
-        $this->assertEquals($this->customTimeline->category, $timeline[0]->category);
+        $this->assertEquals(static::$customTimeline->category, $timeline[0]->category);
     }
     public function test_should_ensure_timeline_event_contains_eventId_and_timestamp()
     {
         $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
-        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, $this->customTimeline->type);
+        $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
         $timeline = $tracker->getTimeline();
         $this->assertIsString($timeline[0]->eventId);
         $this->assertIsNumeric($timeline[0]->timestamp);
     }
     public function test_should_ensure_different_timeline_event_have_the_same_eventId() {
         $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
-        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, $this->customTimeline->type);
-        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, 'error');
+        $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
+        $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, 'error');
         $timeline = $tracker->getTimeline();
         $this->assertCount(2, $timeline); // two timeline events
         $this->assertEquals($timeline[0]->eventId, $timeline[1]->eventId); // their eventId is the same, till there is an error sent to the server
@@ -123,8 +123,8 @@ class TrackerTest extends TestCase
         $options->maxTimeline = -5;
 
         $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, [$options]);
-        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, $this->customTimeline->type);
-        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, 'error');
+        $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
+        $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, 'error');
         $timeline = $tracker->getTimeline();
         $this->assertCount(2, $timeline);  // two timeline events
     }
@@ -142,14 +142,14 @@ class TrackerTest extends TestCase
         $customTimeline2->content = $content;
 
         // add 3 timelinee events
-        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, $this->customTimeline->type);
+        $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
         $tracker->addToTimeline($customTimeline2->category, $customTimeline2->content, $customTimeline2->type);
-        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, 'debug');
+        $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, 'debug');
 
         $timeline = $tracker->getTimeline();
         
         $this->assertEquals(sizeof($timeline), $options->maxTimeline);
-        $this->assertEquals($timeline[0]->type, $this->customTimeline->type);
+        $this->assertEquals($timeline[0]->type, static::$customTimeline->type);
         $this->assertEquals($timeline[1]->category, $customTimeline2->category);
     }
     public function test_should_add_tags() {
@@ -266,7 +266,7 @@ class TrackerTest extends TestCase
     }
     public function test_should_create_an_event_ready_for_the_server_while_having_the_timeline_with_same_event_id() {
         $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
-        $tracker->addToTimeline($this->customTimeline->category, $this->customTimeline->content, $this->customTimeline->type);
+        $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
         
         $errorMessage = 'This is a test';
         $tracker->captureMessage($errorMessage);

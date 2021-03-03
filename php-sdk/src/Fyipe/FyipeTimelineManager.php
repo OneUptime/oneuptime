@@ -9,7 +9,7 @@ namespace Fyipe;
 
 class FyipeTimelineManager
 {
-    private $options;
+    private $options=[];
     private $timeLineStack = [];
 
     /**
