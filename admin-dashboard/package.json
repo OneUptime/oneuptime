@@ -77,7 +77,7 @@
         ],
         "testMatch": [
             "<rootDir>/src/test/**/*.test.js",
-            "<rootDir>/src/test/**/AuditLog.test.enterprise.js"
+            "<rootDir>/src/test/**/*.test.enterprise.js"
         ]
     },
     "browserslist": {
