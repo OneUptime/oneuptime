@@ -48,11 +48,7 @@ const SmtpTestModal = ({
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
                                                 <div className="Margin-bottom--20 Margin-top--20">
-                                                    <div
-                                                        style={{
-                                                            paddingTop: 3,
-                                                        }}
-                                                    >
+                                                    <div>
                                                         <Field
                                                             className="db-BusinessSettings-input-wide TextInput bs-TextInput"
                                                             type="text"
@@ -64,6 +60,110 @@ const SmtpTestModal = ({
                                                             }
                                                             disabled={testing}
                                                         />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                        <fieldset
+                                            style={{
+                                                paddingBottom: 15,
+                                                paddingTop: 0,
+                                            }}
+                                        >
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div className="bs-Fieldset-field">
+                                                            <label
+                                                                className="bs-Radio"
+                                                                htmlFor="internalSmtpBtn"
+                                                            >
+                                                                <Field
+                                                                    component="input"
+                                                                    type="radio"
+                                                                    name="smtpToUse"
+                                                                    className="bs-Radio-source"
+                                                                    id="internalSmtpBtn"
+                                                                    value="internalSmtp"
+                                                                    style={{
+                                                                        width: 0,
+                                                                        border:
+                                                                            'none',
+                                                                    }}
+                                                                />
+                                                                <span className="bs-Radio-button"></span>
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        paddingLeft:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    <span>
+                                                                        Test
+                                                                        with
+                                                                        internal
+                                                                        SMTP
+                                                                        server
+                                                                    </span>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                        <fieldset
+                                            style={{
+                                                paddingBottom: 15,
+                                                paddingTop: 0,
+                                            }}
+                                        >
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div className="bs-Fieldset-field">
+                                                            <label
+                                                                className="bs-Radio"
+                                                                htmlFor="customSmtpBtn"
+                                                            >
+                                                                <Field
+                                                                    component="input"
+                                                                    type="radio"
+                                                                    name="smtpToUse"
+                                                                    className="bs-Radio-source"
+                                                                    id="customSmtpBtn"
+                                                                    value="customSmtp"
+                                                                    style={{
+                                                                        width: 0,
+                                                                        border:
+                                                                            'none',
+                                                                    }}
+                                                                />
+                                                                <span className="bs-Radio-button"></span>
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        paddingLeft:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    <span>
+                                                                        Test
+                                                                        with
+                                                                        custom
+                                                                        SMTP
+                                                                        server
+                                                                    </span>
+                                                                </div>
+                                                            </label>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

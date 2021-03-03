@@ -31,6 +31,10 @@ spec:
                     {{- end }}
                     - name: NODE_ENV
                       value: 'production'
+                    {{- if .Values.backendProtocol }}
+                    - name: BACKEND_PROTOCOL
+                      value: {{ .Values.backendProtocol }}
+                    {{- end }}
                   ports:
                       - containerPort: {{ .Values.host.statusPagePort }}
                         hostPort: {{ .Values.host.statusPagePort }}

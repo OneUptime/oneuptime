@@ -38,7 +38,7 @@ const _this = {
             name,
             secure,
             internalSmtp,
-            backupSmtp,
+            customSmtp,
             backupConfig;
         const smtpDb = await EmailSmtpService.findOneBy({
             projectId,
@@ -67,7 +67,7 @@ const _this = {
             name = globalSettings.name;
             secure = globalSettings.secure;
             internalSmtp = globalSettings.internalSmtp;
-            backupSmtp = globalSettings.backupSmtp;
+            customSmtp = globalSettings.customSmtp;
             backupConfig = globalSettings.backupConfig;
         }
 
@@ -80,7 +80,7 @@ const _this = {
             name,
             secure,
             internalSmtp,
-            backupSmtp,
+            customSmtp,
             backupConfig,
         };
     },
@@ -176,7 +176,7 @@ const _this = {
             document &&
             document.value &&
             document.value.internalSmtp &&
-            document.value.backupSmtp
+            document.value.customSmtp
         ) {
             return {
                 user: process.env.SMTP_USER,
@@ -187,7 +187,7 @@ const _this = {
                 name: process.env.SMTP_NAME,
                 'email-enabled': document.value['email-enabled'],
                 internalSmtp: document.value.internalSmtp,
-                backupSmtp: document.value.backupSmtp,
+                customSmtp: document.value.customSmtp,
                 backupConfig: {
                     user: document.value.email,
                     pass: document.value.password,
@@ -295,7 +295,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = {
@@ -415,7 +415,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = {
@@ -533,7 +533,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = {
@@ -669,7 +669,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = {
@@ -808,7 +808,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = {
@@ -924,7 +924,7 @@ const _this = {
                     if (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
-                            accountMail.backupSmtp &&
+                            accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
                             accountMail = { ...accountMail.backupConfig };
@@ -1057,7 +1057,7 @@ const _this = {
                         if (error.code === 'ECONNECTION') {
                             if (
                                 accountMail.internalSmtp &&
-                                accountMail.backupSmtp &&
+                                accountMail.customSmtp &&
                                 !isEmpty(accountMail.backupConfig)
                             ) {
                                 accountMail = { ...accountMail.backupConfig };
@@ -1183,7 +1183,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -1297,7 +1297,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -1418,7 +1418,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -1539,7 +1539,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -1659,7 +1659,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -1780,7 +1780,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -1898,7 +1898,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -2019,7 +2019,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -2140,7 +2140,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -2264,7 +2264,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -2452,7 +2452,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -2646,7 +2646,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         smtpSettings.internalSmtp &&
-                        smtpSettings.backupSmtp &&
+                        smtpSettings.customSmtp &&
                         !isEmpty(smtpSettings.backupConfig)
                     ) {
                         smtpSettings = { ...smtpSettings.backupConfig };
@@ -2819,7 +2819,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -2986,7 +2986,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -3178,7 +3178,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         smtpSettings.internalSmtp &&
-                        smtpSettings.backupSmtp &&
+                        smtpSettings.customSmtp &&
                         !isEmpty(smtpSettings.backupConfig)
                     ) {
                         smtpSettings = { ...smtpSettings.backupConfig };
@@ -3346,7 +3346,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         smtpSettings.internalSmtp &&
-                        smtpSettings.backupSmtp &&
+                        smtpSettings.customSmtp &&
                         !isEmpty(smtpSettings.backupConfig)
                     ) {
                         smtpSettings = { ...smtpSettings.backupConfig };
@@ -3519,7 +3519,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         smtpSettings.internalSmtp &&
-                        smtpSettings.backupSmtp &&
+                        smtpSettings.customSmtp &&
                         !isEmpty(smtpSettings.backupConfig)
                     ) {
                         smtpSettings = { ...smtpSettings.backupConfig };
@@ -3637,68 +3637,15 @@ const _this = {
                 });
                 return;
             }
-            let info = {};
-            try {
-                info = await privateMailer.sendMail(mailOptions);
-
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        data.internalSmtp &&
-                        data.backupSmtp &&
-                        !isEmpty(data.backupConfig)
-                    ) {
-                        data = { ...data, ...data.backupConfig };
-                        const privateMailer = await _this.createMailer(data);
-                        mailOptions = {
-                            from: `"${data.name}" <${data.from}>`,
-                            to: data.email,
-                            subject: 'Email Smtp Settings Test',
-                            template: 'smtp_test',
-                            context: {
-                                homeURL: global.homeHost,
-                                ...data,
-                            },
-                        };
-                        EmailBody = await _this.getEmailBody(mailOptions);
-                        if (!privateMailer) {
-                            await EmailStatusService.create({
-                                from: mailOptions.from,
-                                to: mailOptions.to,
-                                subject: mailOptions.subject,
-                                template: mailOptions.template,
-                                status: 'Email not enabled.',
-                                content: EmailBody,
-                                error: 'Email not enabled.',
-                            });
-                            return;
-                        }
-
-                        info = await privateMailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                        });
-                    } else {
-                        throw error;
-                    }
-                } else {
-                    throw error;
-                }
-            }
+            const info = await privateMailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success',
+                content: EmailBody,
+            });
 
             return info;
         } catch (error) {
@@ -3806,7 +3753,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -3923,7 +3870,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -4036,7 +3983,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -4155,7 +4102,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -4278,7 +4225,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -4424,7 +4371,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         smtpSettings.internalSmtp &&
-                        smtpSettings.backupSmtp &&
+                        smtpSettings.customSmtp &&
                         !isEmpty(smtpSettings.backupConfig)
                     ) {
                         smtpSettings = { ...smtpSettings.backupConfig };
@@ -4564,7 +4511,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         smtpSettings.internalSmtp &&
-                        smtpSettings.backupSmtp &&
+                        smtpSettings.customSmtp &&
                         !isEmpty(smtpSettings.backupConfig)
                     ) {
                         smtpSettings = { ...smtpSettings.backupConfig };
@@ -4696,7 +4643,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
@@ -4828,7 +4775,7 @@ const _this = {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
                         accountMail = { ...accountMail.backupConfig };
