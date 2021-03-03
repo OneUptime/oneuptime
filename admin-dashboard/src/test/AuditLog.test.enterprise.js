@@ -49,8 +49,8 @@ describe('Audit Logs', () => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#probes');
                 await page.click('#probes');
-                await page.waitForSelector("#logs");
-                await page.click("#logs");
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
                 await page.waitForSelector('#deleteLog');
@@ -77,8 +77,8 @@ describe('Audit Logs', () => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#probes');
                 await page.click('#probes');
-                await page.waitForSelector("#logs");
-                await page.click("#logs");
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
                 await page.waitForSelector('#deleteLog');
@@ -104,8 +104,8 @@ describe('Audit Logs', () => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#probes');
                 await page.click('#probes');
-                await page.waitForSelector("#logs");
-                await page.click("#logs");
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
                 await page.waitForSelector('#deleteLog');
@@ -114,8 +114,8 @@ describe('Audit Logs', () => {
                 await page.click('#confirmDelete');
                 await page.waitForSelector('#probes');
                 await page.click('#probes');
-                await page.waitForSelector("#logs");
-                await page.click("#logs");
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
 
@@ -137,8 +137,8 @@ describe('Audit Logs', () => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#probes');
                 await page.click('#probes');
-                await page.waitForSelector("#logs");
-                await page.click("#logs");
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
                 await page.waitForSelector('#searchAuditLog');
@@ -163,8 +163,8 @@ describe('Audit Logs', () => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#probes');
                 await page.click('#probes');
-                await page.waitForSelector("#logs");
-                await page.click("#logs");
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
                 await page.waitForSelector('#searchAuditLog');
@@ -187,30 +187,32 @@ describe('Audit Logs', () => {
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
-                await page.waitForSelector("#logs");
-                await page.click("#logs");
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
 
                 // count currently available logs
                 let logCount = await page.waitForSelector(`#audit-log-count`);
                 logCount = await logCount.getProperty('innerText');
-                logCount = await logCount.jsonValue();           
+                logCount = await logCount.jsonValue();
                 logCount = Number(logCount);
                 // goto other pages
                 await page.waitForSelector('#probes');
                 await page.click('#probes');
 
                 // come back to logs page
-                await page.waitForSelector("#logs");
-                await page.click("#logs");
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
 
                 await page.waitForTimeout(5000);
 
                 // get the new log count
-                let newLogCount = await page.waitForSelector(`#audit-log-count`);
+                let newLogCount = await page.waitForSelector(
+                    `#audit-log-count`
+                );
                 newLogCount = await newLogCount.getProperty('innerText');
                 newLogCount = await newLogCount.jsonValue();
                 newLogCount = Number(newLogCount);
@@ -225,8 +227,8 @@ describe('Audit Logs', () => {
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
-                await page.waitForSelector("#logs");
-                await page.click("#logs");
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
 
@@ -250,8 +252,8 @@ describe('Audit Logs', () => {
                 await page.waitForTimeout(5000);
 
                 // go back to audit logs page
-                await page.waitForSelector("#logs");
-                await page.click("#logs");
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
 
@@ -271,8 +273,8 @@ describe('Audit Logs', () => {
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
-                await page.waitForSelector("#logs");
-                await page.click("#logs");
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
 
@@ -285,7 +287,7 @@ describe('Audit Logs', () => {
                 // count currently available logs
                 let logCount = await page.waitForSelector(`#audit-log-count`);
                 logCount = await logCount.getProperty('innerText');
-                logCount = await logCount.jsonValue();                            
+                logCount = await logCount.jsonValue();
                 logCount = Number(logCount);
 
                 // goto other pages
@@ -293,17 +295,19 @@ describe('Audit Logs', () => {
                 await page.click('#probes');
 
                 // come back to logs page
-                await page.waitForSelector("#logs");
-                await page.click("#logs");
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
 
                 await page.waitForTimeout(5000);
 
                 // validate that the number doesnt change
-                let newLogCount = await page.waitForSelector(`#audit-log-count`);
+                let newLogCount = await page.waitForSelector(
+                    `#audit-log-count`
+                );
                 newLogCount = await newLogCount.getProperty('innerText');
-                newLogCount = await newLogCount.jsonValue();              
+                newLogCount = await newLogCount.jsonValue();
                 newLogCount = Number(newLogCount);
 
                 expect(logCount).toEqual(newLogCount);
@@ -316,15 +320,15 @@ describe('Audit Logs', () => {
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
-                await page.waitForSelector("#logs");
-                await page.click("#logs");
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
 
                 // count number of logs
                 let logCount = await page.waitForSelector(`#audit-log-count`);
                 logCount = await logCount.getProperty('innerText');
-                logCount = await logCount.jsonValue();             
+                logCount = await logCount.jsonValue();
                 logCount = Number(logCount);
 
                 // look for the alert panel
@@ -349,17 +353,19 @@ describe('Audit Logs', () => {
                 await page.waitForTimeout(5000);
 
                 // go back to audit logs
-                await page.waitForSelector("#logs");
-                await page.click("#logs");
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
 
                 await page.waitForTimeout(5000);
 
                 // count new number of logs
-                let newLogCount = await page.waitForSelector(`#audit-log-count`);
+                let newLogCount = await page.waitForSelector(
+                    `#audit-log-count`
+                );
                 newLogCount = await newLogCount.getProperty('innerText');
-                newLogCount = await newLogCount.jsonValue();           
+                newLogCount = await newLogCount.jsonValue();
                 newLogCount = Number(newLogCount);
 
                 // expect it to be greater now

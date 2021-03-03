@@ -228,7 +228,7 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
         error: null,
-    }
+    },
 };
 
 export default function statusPage(state = INITIAL_STATE, action) {
@@ -706,11 +706,11 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: true,
                     error: null,
                     success: false,
-                }
-            })
-        
+                },
+            });
+
         case UPDATE_STATUSPAGE_THEME_SUCCESS:
-            status = action.payload
+            status = action.payload;
             return Object.assign({}, state, {
                 theme: {
                     requesting: false,
@@ -718,7 +718,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     success: true,
                 },
                 status,
-            })
+            });
 
         case UPDATE_STATUSPAGE_THEME_FAILURE:
             return Object.assign({}, state, {
@@ -726,8 +726,8 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                }
-            })
+                },
+            });
 
         // update status page name
         case UPDATE_STATUSPAGE_NAME_REQUEST:
