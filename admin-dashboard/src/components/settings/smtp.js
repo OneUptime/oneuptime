@@ -387,6 +387,9 @@ export class Component extends React.Component {
                                                     );
                                                 })}
                                             {smtpForm.values &&
+                                                smtpForm.values[
+                                                    'email-enabled'
+                                                ] &&
                                                 smtpForm.values.customSmtp &&
                                                 fields.map(field => (
                                                     <div
