@@ -1176,7 +1176,7 @@ function checkDuplicateDates(items, bool) {
 
     const result = [];
 
-    for (let item of items) {
+    for (const item of items) {
         const date = String(item.createdAt).slice(0, 10);
 
         if (!track[date]) {
@@ -1191,10 +1191,10 @@ function checkDuplicateDates(items, bool) {
     if (!bool) {
         return result;
     } else {
-        let trueCount, falseCount;
+        //let trueCount;
         const specificNumberToDisplay = 15;
-        trueCount = result.filter(num => num.style).length;
-        falseCount = result.filter(num => !num.style).length;
+        //trueCount = result.filter(num => num.style).length;  // trueCount assigned but never used
+        const falseCount = result.filter(num => !num.style).length; // falseCount is never reassigned
         return specificNumberToDisplay + falseCount;
     }
 }
