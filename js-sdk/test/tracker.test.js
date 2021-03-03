@@ -400,3 +400,17 @@ describe('Capture Exception', function() {
         expect(newEvent.tags).to.have.lengthOf(2); // the default and custom tag
     });
 });
+describe('SDK Version', function() {
+    it('should contain version number and sdk name in captured message', function() {
+        const tracker = new FyipeTracker(
+            API_URL,
+            errorTracker._id,
+            errorTracker.key
+        );
+        const errorMessage = 'Uncaught Exception';
+        tracker.captureMessage(errorMessage);
+        const event = tracker.getCurrentEvent();
+        expect(event.sdk.name).to.be.a('string');
+        expect(event.sdk.version).to.match(/(([0-9])+\.([0-9])+\.([0-9])+)/); // confirm that the versiion follows the patter XX.XX.XX where X is a non negative integer
+    });
+});
