@@ -1,3 +1,4 @@
+{{- if .Values.haraka.domain -}}
 ############-----HARAKA----#############################
 apiVersion: apps/v1
 kind: Deployment
@@ -61,3 +62,4 @@ spec:
     type: ClusterIP
 ---
 ##########################################################
+{{- end -}}
