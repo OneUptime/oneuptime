@@ -167,7 +167,7 @@ const smtpOptions = [
                 <span className="TogglerBtn-slider round"></span>
             </label>
         ),
-        explanation: 'Will also serve as backup SMTP server',
+        explanation: 'Custom SMTP will also serve as backup SMTP server',
     },
 ];
 
