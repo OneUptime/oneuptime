@@ -193,10 +193,9 @@ describe('Audit Logs', () => {
                 await page.click('#auditLogs');
 
                 // count currently available logs
-                let logCount = await page.waitForSelector(`#log-count`);
+                let logCount = await page.waitForSelector(`#audit-log-count`);
                 logCount = await logCount.getProperty('innerText');
-                logCount = await logCount.jsonValue();  // E.g [Page 1 of 72 (714 Logs)]
-                logCount = logCount.split(' ')[4].replace("(","");            
+                logCount = await logCount.jsonValue();           
                 logCount = Number(logCount);
                 // goto other pages
                 await page.waitForSelector('#probes');
@@ -211,10 +210,9 @@ describe('Audit Logs', () => {
                 await page.waitForTimeout(5000);
 
                 // get the new log count
-                let newLogCount = await page.waitForSelector(`#log-count`);
+                let newLogCount = await page.waitForSelector(`#audit-log-count`);
                 newLogCount = await newLogCount.getProperty('innerText');
                 newLogCount = await newLogCount.jsonValue();
-                newLogCount = newLogCount.split(' ')[4].replace("(","");
                 newLogCount = Number(newLogCount);
                 // validate that the number has change
                 expect(newLogCount).toBeGreaterThan(logCount);
@@ -285,10 +283,9 @@ describe('Audit Logs', () => {
                 expect(alertPanelElement).toBeDefined();
 
                 // count currently available logs
-                let logCount = await page.waitForSelector(`#log-count`);
+                let logCount = await page.waitForSelector(`#audit-log-count`);
                 logCount = await logCount.getProperty('innerText');
-                logCount = await logCount.jsonValue();
-                logCount = logCount.split(' ')[4].replace("(","");                
+                logCount = await logCount.jsonValue();                            
                 logCount = Number(logCount);
 
                 // goto other pages
@@ -304,10 +301,9 @@ describe('Audit Logs', () => {
                 await page.waitForTimeout(5000);
 
                 // validate that the number doesnt change
-                let newLogCount = await page.waitForSelector(`#log-count`);
+                let newLogCount = await page.waitForSelector(`#audit-log-count`);
                 newLogCount = await newLogCount.getProperty('innerText');
-                newLogCount = await newLogCount.jsonValue();
-                newLogCount = newLogCount.split(' ')[4].replace("(","");                
+                newLogCount = await newLogCount.jsonValue();              
                 newLogCount = Number(newLogCount);
 
                 expect(logCount).toEqual(newLogCount);
@@ -326,10 +322,9 @@ describe('Audit Logs', () => {
                 await page.click('#auditLogs');
 
                 // count number of logs
-                let logCount = await page.waitForSelector(`#log-count`);
+                let logCount = await page.waitForSelector(`#audit-log-count`);
                 logCount = await logCount.getProperty('innerText');
-                logCount = await logCount.jsonValue();
-                logCount = logCount.split(' ')[4].replace("(","");                
+                logCount = await logCount.jsonValue();             
                 logCount = Number(logCount);
 
                 // look for the alert panel
@@ -362,10 +357,9 @@ describe('Audit Logs', () => {
                 await page.waitForTimeout(5000);
 
                 // count new number of logs
-                let newLogCount = await page.waitForSelector(`#log-count`);
+                let newLogCount = await page.waitForSelector(`#audit-log-count`);
                 newLogCount = await newLogCount.getProperty('innerText');
-                newLogCount = await newLogCount.jsonValue();
-                newLogCount = newLogCount.split(' ')[4].replace("(","");                
+                newLogCount = await newLogCount.jsonValue();           
                 newLogCount = Number(newLogCount);
 
                 // expect it to be greater now
