@@ -39,7 +39,7 @@ then
 fi
 
 if [[ ! -n $DOMAIN ]]; then
-    DOMAIN=fyipe.com
+    DOMAIN=test.com
 fi
 
 if [[ ! -n $DKIM_PRIVATE_KEY ]]; then
