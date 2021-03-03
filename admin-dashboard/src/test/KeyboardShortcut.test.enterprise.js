@@ -86,8 +86,8 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
-                await page.waitForSelector("#logs");
-                await page.click("#logs");
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
                 await page.waitForSelector('#auditLogs', { visible: true });
                 await page.keyboard.press('f');
                 await page.keyboard.press('a');
