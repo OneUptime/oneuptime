@@ -16,7 +16,7 @@ export function env(value) {
 
 let protocol = window.location.protocol;
 if (env('BACKEND_PROTOCOL')) {
-    protocol = env('BACKEND_PROTOCOL');
+    protocol = env('BACKEND_PROTOCOL')+":";
 }
 
 if (
