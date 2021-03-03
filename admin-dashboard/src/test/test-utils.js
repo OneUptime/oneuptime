@@ -16,7 +16,7 @@ const puppeteerLaunchConfig = {
         '--disable-web-security',
         '--disable-features=IsolateOrigins,site-per-process', // fix issue with cross origin policy
     ],
-    headless: true,
+    headless: false,
 };
 
 function generateWrongEmail() {
