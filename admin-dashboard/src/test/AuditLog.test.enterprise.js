@@ -195,8 +195,8 @@ describe('Audit Logs', () => {
                 // count currently available logs
                 let logCount = await page.waitForSelector(`#log-count`);
                 logCount = await logCount.getProperty('innerText');        
-                logCount = await logCount.jsonValue();
-                logCount = logCount.split(' ')[4].replace("(","");                
+                logCount = await logCount.jsonValue();  // E.g [Page 1 of 72 (714 Logs)]
+                logCount = logCount.split(' ')[4].replace("(","");            
                 logCount = Number(logCount);
                 // goto other pages
                 await page.waitForSelector('#probes');
