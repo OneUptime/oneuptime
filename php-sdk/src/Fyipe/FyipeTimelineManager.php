@@ -17,9 +17,12 @@ class FyipeTimelineManager
      * @param array $options
      */
     public function __construct($options){
+        var_dump($options);
         $this->options = $options;
+        var_dump($this->options);
     }
     private function addItemToTimeline($item) {
+        var_dump($this->options);
         // get the size of the stack
         if (sizeof($this->timeLineStack) === $this->options['maxTimeline']) {
             return; // It discards new timline update once maximum is reached
