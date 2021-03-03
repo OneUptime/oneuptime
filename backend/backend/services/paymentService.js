@@ -301,12 +301,13 @@ module.exports = {
                 ErrorService.log('paymentService.changeSeats', error);
                 throw error;
             } else {
-                let today_date = new Date();
                 //Prevent update if user is still in trial period
+
+                let today_date = new Date();
                 let trial_end_date =
                     subscription.trial_end && subscription.trial_end != null
                         ? new Date(subscription.trial_end * 1000)
-                        : today_date; //set trail_end_date to current date
+                        : today_date;
 
                 if (trial_end_date <= today_date) {
                     for (let i = 0; i < subscription.items.data.length; i++) {
