@@ -479,6 +479,7 @@ module.exports = {
                     createdById: userId,
                     type: 'investigation',
                     incident_state: 'Acknowledged',
+                    post_statuspage: true
                 });
 
                 const downtimestring = IncidentUtilitiy.calculateHumanReadableDownTime(
@@ -641,6 +642,7 @@ module.exports = {
                 createdById: userId,
                 type: 'investigation',
                 incident_state: 'Resolved',
+                post_statuspage: true
             });
 
             await IncidentTimelineService.create({

@@ -39,7 +39,7 @@ then
 fi
 
 if [[ ! -n $DOMAIN ]]; then
-    export DOMAIN=fyipe.com
+    DOMAIN=test.com
 fi
 
 if [[ ! -n $DKIM_PRIVATE_KEY ]]; then
@@ -52,7 +52,7 @@ if [[ ! -n $DKIM_PRIVATE_KEY ]]; then
     echo "DKIM DNS TXT Record"
     echo "DNS Selector: fyipe._domainkey"
     echo "DNS Value: v=DKIM1;p=$(grep -v '^-' public | tr -d '\n')"
-    export DKIM_PRIVATE_KEY=$(cat private | base64)
+    DKIM_PRIVATE_KEY=$(cat private | base64)
 fi
 
 if [[ ! -n $TLS_KEY ]] && [[ ! -n $TLS_CERT ]]; then
@@ -60,8 +60,8 @@ if [[ ! -n $TLS_KEY ]] && [[ ! -n $TLS_CERT ]]; then
     echo "Setup tls_cert and tls_key"
     openssl req -x509 -nodes -days 2190 -newkey rsa:2048 -keyout tls_key.pem -out tls_cert.pem -subj "/C=US/ST=Massachusetts/L=Boston/O=Hackerbay/CN=$DOMAIN"
     # Encode your tls to base64 and export it
-    export TLS_KEY=$(cat tls_key.pem | base64)
-    export TLS_CERT=$(cat tls_cert.pem | base64)
+    TLS_KEY=$(cat tls_key.pem | base64)
+    TLS_CERT=$(cat tls_cert.pem | base64)
 fi
 
 #Install Docker and setup registry and insecure access to it.

@@ -13,9 +13,9 @@ html, body {
   margin: 0;
   padding: 0;
 }
-html {
+/* html {
   background: #eef2f6;
-}
+} */
 body {
   font-family: "Camphor W04", sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -101,6 +101,10 @@ div.block-chart::-webkit-scrollbar {
 
     /* DEFAULT IS GREEN */
     background: #6CDB56;
+  }
+
+  .resize-style:hover {
+    background-color: #366aa2 !important;
   }
 
     div.block-chart div.bar:hover {
@@ -1266,6 +1270,399 @@ margin-left:10px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+}
+
+.logo_section {
+  width: 100%;
+  max-width: 850px;
+  margin: 30px auto 30px auto;
+}
+
+.new-theme {
+  background-color: white;
+  min-height: 100vh;
+  max-height: fit-content;
+}
+
+.banner-container {
+  width: 100%;
+  max-width: 850px;
+  height: 250px;
+  margin: auto;
+}
+
+.new-main-container {
+  width: 90%;
+  max-width: 850px;
+  margin: auto;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+  font-size: 16px;
+  margin-bottom: 70px;
+}
+
+.sy-op {
+  background-color: #49c3b1;
+  font-weight: 500;
+  border: 1px solid rgba(0,0,0,0.1);
+  text-shadow: 0 1px 0 rgb(0 0 0 / 10%);
+  margin-bottom: 70px;
+  margin-top: 70px;
+  color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 5px;
+  font-size: 18px;
+}
+
+.new-theme-incident {
+  margin-top: 70px;
+  width: 90%;
+  max-width: 850px;
+  margin: auto;
+  margin-bottom: 70px;
+}
+
+.font-largest {
+  font-weight: 500;
+  font-size: 1.75rem;
+  line-height: 2.3625rem;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.incident-object {
+  margin: 30px 0px;
+}
+
+.date-big {
+  font-weight: 500;
+  border-style: solid;
+  border-top-width: 0;
+  border-right-width: 0;
+  border-left-width: 0;
+  border-bottom-width: 1px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  padding-top: 8px;
+  border-color: #dfe1df;
+  font-weight: 500;
+  font-size: 18px;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.border-width-90 {
+  width: 90%;
+  margin: 0px auto 30px auto;
+  border: 1px solid #dfe1df;
+}
+
+.alerting-deplay {
+  color: #ff3d00;
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 10px;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.new-mb-12 {
+  margin-bottom: 12px;
+}
+
+.incident-info {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.incident-brief {
+  color: #333333;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.incident-date {
+  margin-top: 4px;
+}
+
+.incident-date > span {
+  color: #AAAAAA;
+  font-size: 0.875rem;
+}
+
+.op-div {
+  /* display: flex;
+  justify-content: space-between; */
+  padding: 20px;
+  border-bottom-width: 1px;
+  border-left-width: 1px !important;
+  border-right-width: 1px;
+  border-top-width: 0px;
+  /* padding: 1.1rem 1.25rem 1rem; */
+  border-style: solid;
+  border-color: #dfe1df;
+}
+
+.another-div {
+  flex-direction: column;
+}
+
+.line-chart {
+  color: black !important;
+}
+
+.display-flex {
+  display: flex;
+  justify-content: space-between;
+}
+
+.border-top {
+  border-top-width: 1px;
+}
+
+.op-div div:nth-child(1) {
+  font-weight: 500;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.op-div div:nth-child(2) {
+  color: #49c3b1;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 2px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -60px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 12px;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.tooltip .tooltiptext::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+
+.tooltip .tooltiptext-chart {
+  visibility: hidden;
+  color: #333 !important;
+  position: absolute;
+  left: 50%;
+  margin-left: -150px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 12px;
+  box-shadow: 0 3px 6px rgb(0 0 0 / 15%);
+  border: 1px solid rgba(0,0,0,0.2);
+  background-color: white;
+  border-radius: 3px;
+  width: 300px;
+  padding: 25px !important;
+  z-index: 2;
+  box-sizing: border-box;
+}
+
+.tooltip .resize-style {
+  overflow: visible !important;
+}
+
+.resize-style {
+  z-index: 200000;
+}
+
+.tooltip .tooltiptext-chart::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -5px;
+  margin-top: 20px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent black transparent;
+}
+
+.tooltip:hover .tooltiptext-chart {
+  visibility: visible;
+  opacity: 1;
+}
+
+.tooltiptext-chart > div {
+  color: #333 !important;
+  font-size: 14px;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif !important;
+}
+
+.tooltiptext-chart > div:nth-child(2) {
+  margin-top: 10px;
+  opacity: 0.5;
+}
+
+.op-info {
+  display: flex;
+}
+
+.op-disp {
+  display: flex;
+  justify-content: space-between;
+}
+
+.ma-t-20 {
+  margin-top: 20px;
+}
+
+.ques_mark {
+  border: 1px solid #dfe1df;
+  font-size: 12px;
+  color: #000;
+  padding: 1px 5px;
+  border-radius: 50%;
+  cursor: default;
+}
+
+.collecion_item {
+  margin-right: 15px;
+}
+
+.powered {
+  width: 90%;
+  max-width: 850px;
+  margin: auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.subscribe_box {
+  display: flex;
+  background-color: rgba(0,0,0,1);
+  color: #fff;
+  padding: 20px;
+  justify-content: space-between;
+  margin: auto;
+  width: 100%;
+  max-width: 850px;
+  box-sizing: border-box;
+}
+
+.subscribe_btn {
+  background-color: #00bce7;
+  text-transform: uppercase;
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+  border-color: #555 transparent transparent transparent;
+  padding: 8px 12px 7px;
+  font-size: 11px;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 10%);
+  letter-spacing: 2px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.subscribe_btn:focus {
+  outline: none;
+  border: none;
+}
+
+.subscribe_box div a {
+  border-color: #555 transparent transparent transparent;
+  color: #fff;
+  font-size: 20px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.no_monitor {
+  margin-top: 20px;
+  font-size: 16px;
+  color: #8898aa;
+}
+
+.incident_desc {
+  margin-bottom: 10px;
+  color: rgba(0,0,0,0.6);
+  margin-top: 6px;
+}
+
+.items_dis {
+  display: flex;
+}
+
+.list_items {
+  display: flex;
+  flex-direction: column;
+  margin-left: 6px;
+  margin-top: 3px;
+}
+
+.list_k {
+  margin-right: 6px;
+}
+
+.big_dot {
+  margin-right: 3px;
+}
+
+.matop-40 {
+  margin-top: 40px;
+}
+
+.alerts_days {
+  display: flex;
+  color: #aaaaaa !important;
+  opacity: 0.5;
+  margin-top: 8px;;
+}
+
+.spacer {
+  flex: 1;
+  margin: 0.75rem 1rem 0 1rem;
+  height: 1px;
+  background: #aaaaaa;
+  opacity: 0.3;
+}
+
+.bs-color-b {
+  color: #333 !important;
+}
+
+.bs-no-monitor {
+  border: 1px solid #8898aa;
+  padding: 40px 20px;
+  color: #8898aa;
+  border-radius: 4px;
+}
+
+.bs-no-report {
+  color: #8898aa;
+}
+
+.bs-resource {
+  margin: 12px 0px;
 }
 
 @media screen and (max-width: 650px) {
