@@ -18,7 +18,7 @@ class ErrorTracker {
         captureCodeSnippet: true,
     };
     #MAX_ITEMS_ALLOWED_IN_STACK = 100;
-    #configKeys = ['baseUrl', 'maxTimeline'];
+    #configKeys = ['baseUrl'];
     #event;
     #errorTrackerId;
     #errorTrackerKey;
@@ -61,11 +61,14 @@ class ErrorTracker {
                 // if key is in allowed options keys
                 if (this.#options[key]) {
                     // set max timeline properly after checking conditions
-                    if (
-                        key === 'maxTimeline' &&
-                        (value > this.#MAX_ITEMS_ALLOWED_IN_STACK || value < 1)
-                    ) {
-                        this.#options[key] = this.#MAX_ITEMS_ALLOWED_IN_STACK;
+                    if (key === 'maxTimeline') {
+                        const allowedValue =
+                            value > this.#MAX_ITEMS_ALLOWED_IN_STACK ||
+                            value < 1
+                                ? this.#MAX_ITEMS_ALLOWED_IN_STACK
+                                : value;
+
+                        this.#options[key] = allowedValue;
                     } else if (key === 'captureCodeSnippet') {
                         const isBoolean = typeof value === 'boolean'; // check if the passed value is a boolean
                         // set boolean value if boolean or set default `true` if annything other than boolean is passed
