@@ -477,10 +477,7 @@ module.exports = {
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        await this.selectByText('#type', 'device', page);
-        await page.waitForSelector('#deviceId');
-        await page.click('#deviceId');
-        await page.type('#deviceId', utils.generateRandomString());
+        //Please add a new monitor type here. IOT Device Monitor has been removed.
         await page.click('button[type=submit]');
         await page.waitForSelector(`#monitor-title-${monitorName}`, {
             visible: true,

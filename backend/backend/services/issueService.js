@@ -127,8 +127,49 @@ module.exports = {
             throw error;
         }
     },
+    deleteBy: async function(query, userId, componentId) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const issue = await IssueModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        deletedById: userId,
+                    },
+                },
+                { new: true }
+            ).populate('deletedById', 'name');
+            if (issue) {
+                const component = ComponentService.findOneBy({
+                    _id: componentId,
+                });
+                await NotificationService.create(
+                    component.projectId,
+                    `An Issue under Error Tracker ${issue.errorTrackerId.name} was deleted under the component ${component.name} by ${issue.deletedById.name}`,
+                    issue.deletedById._id,
+                    'errorTrackerIssueaddremove'
+                );
+                await RealTimeService.sendErrorTrackerIssueDelete(issue);
+                return issue;
+            } else {
+                return null;
+            }
+        } catch (error) {
+            ErrorService.log('issueService.deleteBy', error);
+            throw error;
+        }
+    },
 };
 
 const IssueModel = require('../models/issue');
 const ErrorService = require('./errorService');
 const sha256 = require('crypto-js/sha256');
+const ComponentService = require('./componentService');
+const RealTimeService = require('./realTimeService');
+const NotificationService = require('./notificationService');

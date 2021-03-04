@@ -2,9 +2,13 @@ import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/callRouting';
 import errors from '../errors';
 
-export function getCallRoutingNumbers(projectId) {
+export function getCallRoutingNumbers(projectId, skip, limit) {
+    if (!skip) skip = 0;
+    if (!limit) limit = 10;
     return function(dispatch) {
-        const promise = getApi(`callRouting/${projectId}`);
+        const promise = getApi(
+            `callRouting/${projectId}?skip=${skip}&limit=${limit}`
+        );
         dispatch(getCallRoutingNumbersRequest());
 
         promise.then(
@@ -159,6 +163,84 @@ export function addCallRoutingNumberFailure(error) {
 export function resetAddCallRoutingNumber() {
     return {
         type: types.ADD_CALL_ROUTING_NUMBER_RESET,
+    };
+}
+
+export function uploadCallRoutingAudio(
+    projectId,
+    callRoutingId,
+    values,
+    audioFieldName
+) {
+    return function(dispatch) {
+        const promise = putApi(
+            `callRouting/${projectId}/${callRoutingId}/${audioFieldName}`,
+            values
+        );
+        dispatch(uploadCallRoutingAudioRequest(callRoutingId, audioFieldName));
+
+        promise.then(
+            function(data) {
+                dispatch(
+                    uploadCallRoutingAudioSuccess(
+                        callRoutingId,
+                        audioFieldName,
+                        data.data
+                    )
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data) {
+                    error = error.response.data;
+                }
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    uploadCallRoutingAudioFailure(
+                        errors(error),
+                        callRoutingId,
+                        audioFieldName
+                    )
+                );
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function uploadCallRoutingAudioSuccess(
+    callRoutingId,
+    audioFieldName,
+    data
+) {
+    return {
+        type: types.UPLOAD_CALL_ROUTING_AUDIO_SUCCESS,
+        payload: { callRoutingId, audioFieldName, data },
+    };
+}
+
+export function uploadCallRoutingAudioRequest(callRoutingId, audioFieldName) {
+    return {
+        type: types.UPLOAD_CALL_ROUTING_AUDIO_REQUEST,
+        payload: { callRoutingId, audioFieldName },
+    };
+}
+
+export function uploadCallRoutingAudioFailure(
+    error,
+    callRoutingId,
+    audioFieldName
+) {
+    return {
+        type: types.UPLOAD_CALL_ROUTING_AUDIO_FAILURE,
+        payload: { callRoutingId, audioFieldName, error },
     };
 }
 
@@ -319,4 +401,143 @@ export function removeNumbersFailure(error) {
         type: types.REMOVE_NUMBERS_FAILURE,
         payload: error,
     };
+}
+
+export function getCallRoutingLogs(projectId, skip, limit) {
+    return function(dispatch) {
+        const promise = getApi(
+            `callRouting/${projectId}/logs?skip=${skip}&limit=${limit}`
+        );
+        dispatch(getCallRoutingLogsRequest());
+
+        promise.then(
+            function(logs) {
+                dispatch(
+                    getCallRoutingLogsSuccess({
+                        logs: logs.data,
+                        count: logs.data.length,
+                        skip,
+                        limit,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(getCallRoutingLogsFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function getCallRoutingLogsSuccess(logs) {
+    return {
+        type: types.GET_CALL_ROUTING_LOGS_SUCCESS,
+        payload: logs,
+    };
+}
+
+export function getCallRoutingLogsRequest() {
+    return {
+        type: types.GET_CALL_ROUTING_LOGS_REQUEST,
+    };
+}
+
+export function getCallRoutingLogsFailure(error) {
+    return {
+        type: types.GET_CALL_ROUTING_LOGS_FAILURE,
+        payload: error,
+    };
+}
+
+export function getCallRoutingLogsReset() {
+    return {
+        type: types.GET_CALL_ROUTING_LOGS_RESET,
+    };
+}
+
+export function removeIntroAudio(projectId, callRoutingId, backup) {
+    return function(dispatch) {
+        const promise = deleteApi(
+            `callRouting/${projectId}/${callRoutingId}/removeAudio`,
+            {
+                callRoutingId,
+                backup,
+            }
+        );
+        dispatch(removeIntroAudioRequest(callRoutingId, backup));
+
+        promise.then(
+            function(numbers) {
+                dispatch(removeIntroAudioSuccess(numbers.data, backup));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(removeIntroAudioFailure(errors(error), backup));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function removeIntroAudioSuccess(numbers, backup) {
+    if (backup) {
+        return {
+            type: types.REMOVE_BACKUP_INTRO_AUDIO_SUCCESS,
+            payload: numbers,
+        };
+    } else {
+        return {
+            type: types.REMOVE_INTRO_AUDIO_SUCCESS,
+            payload: numbers,
+        };
+    }
+}
+
+export function removeIntroAudioRequest(callRoutingId, backup) {
+    if (backup) {
+        return {
+            type: types.REMOVE_BACKUP_INTRO_AUDIO_REQUEST,
+            payload: callRoutingId,
+        };
+    } else {
+        return {
+            type: types.REMOVE_INTRO_AUDIO_REQUEST,
+            payload: callRoutingId,
+        };
+    }
+}
+
+export function removeIntroAudioFailure(error, backup) {
+    if (backup) {
+        return {
+            type: types.REMOVE_BACKUP_INTRO_AUDIO_FAILURE,
+            payload: error,
+        };
+    } else {
+        return {
+            type: types.REMOVE_INTRO_AUDIO_FAILURE,
+            payload: error,
+        };
+    }
 }

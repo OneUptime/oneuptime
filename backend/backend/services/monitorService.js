@@ -96,15 +96,15 @@ module.exports = {
                         monitor.data = {};
                         monitor.data.description =
                             data.data.description || null;
-                    } else if (data.type === 'device') {
-                        monitor.data = {};
-                        monitor.data.deviceId = data.data.deviceId;
                     } else if (data.type === 'script') {
                         monitor.data = {};
                         monitor.data.script = data.data.script;
                     } else if (data.type === 'incomingHttpRequest') {
                         monitor.data = {};
                         monitor.data.link = data.data.link;
+                    } else if (data.type === 'ip') {
+                        monitor.data = {};
+                        monitor.data.IPAddress = data.data.IPAddress;
                     }
                     if (resourceCategory) {
                         monitor.resourceCategory = data.resourceCategory;
@@ -120,12 +120,20 @@ module.exports = {
                         data.type === 'api' ||
                         data.type === 'server-monitor' ||
                         data.type === 'script' ||
-                        data.type === 'incomingHttpRequest'
+                        data.type === 'incomingHttpRequest' ||
+                        data.type === 'kubernetes' ||
+                        data.type === 'ip'
                     ) {
                         monitor.criteria = _.isEmpty(data.criteria)
                             ? MonitorCriteriaService.create(data.type)
                             : data.criteria;
                     }
+
+                    if (data.type === 'kubernetes') {
+                        monitor.kubernetesConfig = data.kubernetesConfig;
+                        monitor.kubernetesNamespace = data.kubernetesNamespace;
+                    }
+
                     if (data.type === 'api') {
                         if (data.method && data.method.length)
                             monitor.method = data.method;
@@ -498,9 +506,10 @@ module.exports = {
                                         type: {
                                             $in: [
                                                 'url',
-                                                'device',
                                                 'api',
                                                 'incomingHttpRequest',
+                                                'kubernetes',
+                                                'ip',
                                             ],
                                         },
                                     },

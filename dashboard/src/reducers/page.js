@@ -2,12 +2,14 @@ import {
     PAGE_LOAD_REQUEST,
     PAGE_LOAD_SUCCESS,
     PAGE_LOAD_RESET,
+    TOGGLE_PROJECT_SETTINGS_MORE,
 } from '../constants/page';
 
 const initialState = {
     requesting: false,
     title: '',
     sidenavopen: false,
+    toggleProjectSettingsMore: false,
 };
 
 export default (state = initialState, action) => {
@@ -38,6 +40,10 @@ export default (state = initialState, action) => {
         case 'CLOSE_SIDENAV':
             return Object.assign({}, state, {
                 sidenavopen: false,
+            });
+        case TOGGLE_PROJECT_SETTINGS_MORE:
+            return Object.assign({}, state, {
+                toggleProjectSettingsMore: action.payload,
             });
 
         default:

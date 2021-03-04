@@ -931,9 +931,7 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators({ change, alertOptionsUpdate, openModal }, dispatch);
 
 const mapStateToProps = state => ({
-    projectId:
-        state.project.currentProject !== null &&
-        state.project.currentProject._id,
+    projectId: state.project.currentProject && state.project.currentProject._id,
     project: state.project.currentProject,
     initialValues: {
         alertEnable: state.project.currentProject.alertEnable,

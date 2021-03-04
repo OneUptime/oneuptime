@@ -52,6 +52,9 @@ class NewIncidentMessage extends Component {
     submitForm = values => {
         const thisObj = this;
         const postObj = {};
+        if (values.post_statuspage) {
+            postObj.post_statuspage = values['post_statuspage'];
+        }
         postObj.content = values[`content`];
         postObj.incident_state =
             values[`incident_state`] === 'others'
@@ -285,6 +288,52 @@ class NewIncidentMessage extends Component {
                                                         </div>
                                                     </div>
                                                 </div>
+                                                <ShouldRender if={!edit}>
+                                                    <div
+                                                        className="bs-Fieldset-row bs-post"
+                                                        style={{
+                                                            paddingTop: '0px',
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label bs-Fieldset-row Checkbox"
+                                                            style={{
+                                                                padding: '0px',
+                                                                marginBottom:
+                                                                    '15px',
+                                                            }}
+                                                        >
+                                                            <Field
+                                                                component="input"
+                                                                type="checkbox"
+                                                                name={`post_statuspage`}
+                                                                data-test="RetrySettings-failedPaymentsCheckbox"
+                                                                className="Checkbox-source"
+                                                            />
+                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                <div className="Checkbox-target Box-root">
+                                                                    <div className="Checkbox-color Box-root"></div>
+                                                                </div>
+                                                            </div>
+                                                            <div
+                                                                className="Checkbox-label Box-root"
+                                                                style={{
+                                                                    width:
+                                                                        '160px',
+                                                                }}
+                                                            >
+                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <span>
+                                                                        Post
+                                                                        this on
+                                                                        Status
+                                                                        Page
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </ShouldRender>
                                             </fieldset>
                                         </div>
                                     </div>

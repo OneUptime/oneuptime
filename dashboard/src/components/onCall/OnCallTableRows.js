@@ -5,9 +5,8 @@ import { OnCallTableBody } from './OnCallData';
 import { history } from '../../store';
 
 function Row(props) {
-    const { projectId } = props.match.params;
     const { subProjectId } = props;
-    const path = `/dashboard/project/${projectId}/sub-project/${subProjectId}/schedule/${props.id}`;
+    const path = `/dashboard/project/${props.slug}/sub-project/${subProjectId}/schedule/${props.id}`;
     return (
         <tr
             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink scheduleListItem"
@@ -42,10 +41,10 @@ Row.displayName = 'OnCallTableRow';
 Row.propTypes = {
     name: PropTypes.string.isRequired,
     users: PropTypes.string,
-    match: PropTypes.object.isRequired,
     id: PropTypes.string.isRequired,
     monitors: PropTypes.string,
     subProjectId: PropTypes.string,
+    slug: PropTypes.string,
     bottonTitle: PropTypes.string,
 };
 
@@ -95,6 +94,7 @@ function OnCallTableRows({
     match,
     subProjectId,
     bottonTitle,
+    slug,
 }) {
     return schedules.length > 0
         ? schedules.map((schedule, index) => {
@@ -111,6 +111,7 @@ function OnCallTableRows({
                       match={match}
                       subProjectId={subProjectId}
                       bottonTitle={bottonTitle}
+                      slug={slug}
                   />
               );
           })

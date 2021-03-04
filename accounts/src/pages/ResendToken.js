@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Field, reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
 import { Validate } from '../config';
-import { FlatLoader } from '../components/basic/Loader';
+import { ButtonSpinner } from '../components/basic/Loader';
 import { resendToken } from '../actions/resendToken';
 import { bindActionCreators } from 'redux';
 import { RenderField } from '../components/basic/RenderField';
@@ -135,7 +135,7 @@ export class ResendTokenForm extends Component {
                                                 )}
                                                 {this.props.resendTokenState
                                                     .requesting && (
-                                                    <FlatLoader />
+                                                    <ButtonSpinner />
                                                 )}
                                             </button>
                                         </p>{' '}

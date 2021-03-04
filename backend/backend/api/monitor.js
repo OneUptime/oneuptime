@@ -98,17 +98,18 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
         if (
             data.type !== 'url' &&
-            data.type !== 'device' &&
             data.type !== 'manual' &&
             data.type !== 'api' &&
             data.type !== 'server-monitor' &&
             data.type !== 'script' &&
-            data.type !== 'incomingHttpRequest'
+            data.type !== 'incomingHttpRequest' &&
+            data.type !== 'kubernetes' &&
+            data.type !== 'ip'
         ) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message:
-                    'Monitor type should be url, manual, device or script.',
+                    'Monitor type should be url, manual, device, script, api, server-monitor, incomingHttpRequest, kubernetes or ip.',
             });
         }
         if (!data.data) {
@@ -191,27 +192,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             }
         }
 
-        if (data.type === 'device') {
-            if (data.type === 'deviceId' && !data.data.deviceId) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message:
-                        'Monitor data should have a `url` property of type string.',
-                });
-            }
-
-            if (
-                data.type === 'deviceId' &&
-                typeof data.data.deviceId !== 'string'
-            ) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message:
-                        'Monitor data should have a `Device ID` property of type string.',
-                });
-            }
-        }
-
         if (data.type === 'server-monitor') {
             if (
                 data.agentlessConfig &&
@@ -226,12 +206,31 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             }
         }
 
+        if (
+            data.type === 'kubernetes' &&
+            (!data.kubernetesConfig || !data.kubernetesConfig.trim())
+        ) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor should have a configuration file',
+            });
+        }
+
         if (data.type === 'script') {
             if (!data.data.script) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message:
                         'Monitor data should have a `script` property of type string.',
+                });
+            }
+        }
+        if (data.type === 'ip') {
+            if (!data.data.IPAddress) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'Monitor data should have a `IPAddress` property of type string.',
                 });
             }
         }
@@ -284,6 +283,35 @@ router.post('/:projectId/identityFile', async function(req, res) {
                 identityFile = req.files.identityFile[0].filename;
             }
             return sendItemResponse(req, res, { identityFile });
+        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/:projectId/configurationFile', async function(req, res) {
+    try {
+        const upload = multer({
+            storage,
+        }).fields([
+            {
+                name: 'configurationFile',
+                maxCount: 1,
+            },
+        ]);
+        upload(req, res, async function(error) {
+            let configurationFile;
+            if (error) {
+                return sendErrorResponse(req, res, error);
+            }
+            if (
+                req.files &&
+                req.files.configurationFile &&
+                req.files.configurationFile[0].filename
+            ) {
+                configurationFile = req.files.configurationFile[0].filename;
+            }
+            return sendItemResponse(req, res, { configurationFile });
         });
     } catch (error) {
         return sendErrorResponse(req, res, error);

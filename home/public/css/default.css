@@ -367,11 +367,6 @@ width:100%
     line-height:28px;
     color:#000000
 }
-.arrow::after{
-    font: normal 16px fyipeIcons;
-    content: '\279E';
-    padding-left: 1px;
-}
 
 .font16{
     font-size:17px !important;

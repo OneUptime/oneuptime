@@ -10,6 +10,8 @@ import MessageBox from '../components/MessageBox';
 import { identify, setUserId, logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS, DISABLE_SIGNUP } from '../config';
 import { history } from '../store';
+import { resendTokenReset, resendToken } from '../actions/resendToken';
+import { ButtonSpinner } from '../components/basic/Loader';
 
 class LoginPage extends React.Component {
     constructor(props) {
@@ -66,18 +68,47 @@ class LoginPage extends React.Component {
                         <div>
                             <MessageBox
                                 title="Your email is not verified."
-                                //eslint-disable-next-line
-                                message={`An email is on its way to you with new verification link. Please don't forget to check spam.`}
+                                message={`${
+                                    this.props.resendTokenRequest.requesting
+                                        ? 'Resending verification link...'
+                                        : "An email is on its way to you with new verification link. Please don't forget to check spam."
+                                }`}
                             >
                                 <div className="below-box">
-                                    <p>
-                                        Click{' '}
-                                        <Link to="/accounts/user-verify/resend">
-                                            here
-                                        </Link>{' '}
-                                        to resend verification link to your
-                                        email.
-                                    </p>
+                                    {this.props.resendTokenRequest
+                                        .requesting ? (
+                                        <ButtonSpinner color="black" />
+                                    ) : (
+                                        <p>
+                                            Click{' '}
+                                            <span
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    fontWeight: 'bold',
+                                                    textDecoration: 'underline',
+                                                }}
+                                                onClick={() => {
+                                                    if (
+                                                        login.user &&
+                                                        login.user.email
+                                                    ) {
+                                                        this.props.resendToken(
+                                                            login.user
+                                                        );
+                                                    } else {
+                                                        this.props.resendTokenReset();
+                                                        history.push(
+                                                            '/accounts/user-verify/resend'
+                                                        );
+                                                    }
+                                                }}
+                                            >
+                                                here
+                                            </span>{' '}
+                                            to resend verification link to your
+                                            email.
+                                        </p>
+                                    )}
                                 </div>
                             </MessageBox>
                         </div>
@@ -137,11 +168,15 @@ const mapStateToProps = state => {
         masterAdminExists: state.login.masterAdmin.exists,
         requestingMasterAdmin: state.login.masterAdmin.requesting,
         loginMethod: state.login.loginMethod,
+        resendTokenRequest: state.resendToken,
     };
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ loginUser, loginUserSso, loginError }, dispatch);
+    bindActionCreators(
+        { loginUser, loginUserSso, loginError, resendTokenReset, resendToken },
+        dispatch
+    );
 
 LoginPage.propTypes = {
     loginUser: PropTypes.func.isRequired,
@@ -153,6 +188,9 @@ LoginPage.propTypes = {
     location: PropTypes.object,
     masterAdminExists: PropTypes.bool,
     requestingMasterAdmin: PropTypes.bool,
+    resendToken: PropTypes.func,
+    resendTokenRequest: PropTypes.object,
+    resendTokenReset: PropTypes.func,
 };
 
 LoginPage.displayName = 'LoginPage';

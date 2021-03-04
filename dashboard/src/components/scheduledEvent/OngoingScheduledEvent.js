@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import { withRouter } from 'react-router-dom';
 import AffectedResources from '../basic/AffectedResources';
 
-const OngoingScheduledEvent = ({ event, monitorList, history, projectId }) => {
+const OngoingScheduledEvent = ({ event, monitorList, history, slug }) => {
     let monitorState = [];
     monitorList.forEach(list => {
         if (
@@ -22,7 +22,7 @@ const OngoingScheduledEvent = ({ event, monitorList, history, projectId }) => {
             key={event._id}
             onClick={() => {
                 history.push(
-                    `/dashboard/project/${projectId}/scheduledEvents/${event._id}`
+                    `/dashboard/project/${slug}/scheduledEvents/${event._id}`
                 );
             }}
         >
@@ -70,7 +70,7 @@ OngoingScheduledEvent.propTypes = {
     event: PropTypes.object,
     monitorList: PropTypes.array,
     history: PropTypes.object,
-    projectId: PropTypes.string,
+    slug: PropTypes.string,
 };
 
 export default withRouter(OngoingScheduledEvent);

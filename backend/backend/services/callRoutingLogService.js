@@ -16,7 +16,7 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('callRoutingId');
+                .populate('userId');
             return callRoutingLog;
         } catch (error) {
             ErrorService.log('callRoutingLogService.findBy', error);
@@ -30,8 +30,8 @@ module.exports = {
             callRoutingLogModel.callRoutingId = data.callRoutingId;
             callRoutingLogModel.calledFrom = data.calledFrom;
             callRoutingLogModel.calledTo = data.calledTo;
-            callRoutingLogModel.userId = data.userId;
-            callRoutingLogModel.scheduleId = data.scheduleId;
+            callRoutingLogModel.callSid = data.callSid;
+            callRoutingLogModel.dialTo = data.dialTo;
 
             const logs = await callRoutingLogModel.save();
             return logs;
@@ -89,9 +89,9 @@ module.exports = {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
-            const logs = await CallRoutingLogModel.findOne(query).sort([
-                ['createdAt', -1],
-            ]);
+            const logs = await CallRoutingLogModel.findOne(query)
+                .sort([['createdAt', -1]])
+                .populate('userId');
             return logs;
         } catch (error) {
             ErrorService.log('callRoutingLogService.findOneBy', error);

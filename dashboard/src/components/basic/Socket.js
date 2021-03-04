@@ -31,6 +31,7 @@ import {
     resolvescheduledevent,
     slacountdown,
     updateAlllighthouselogbysocket,
+    updateTimelineBySocket,
 } from '../../actions/socket';
 import DataPathHoC from '../DataPathHoC';
 import {
@@ -99,6 +100,9 @@ class SocketApp extends Component {
                 );
                 socket.removeListener(
                     `addIncidentNote-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `incidentTimeline-${this.props.project._id}`
                 );
                 socket.removeListener(
                     `createMonitor-${this.props.project._id}`
@@ -591,6 +595,11 @@ class SocketApp extends Component {
             ) {
                 thisObj.props.addIncidentNote(data);
             });
+            socket.on(`incidentTimeline-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.updateTimelineBySocket(data);
+            });
             socket.on(`createMonitor-${this.props.project._id}`, function(
                 data
             ) {
@@ -673,6 +682,7 @@ const mapDispatchToProps = dispatch =>
             openModal,
             closeModal,
             addIncidentNote,
+            updateTimelineBySocket,
             createMonitor,
             createScheduledEventSuccess,
             updateScheduledEventSuccess,

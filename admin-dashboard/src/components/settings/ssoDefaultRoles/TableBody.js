@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import TableRow from './TableRow';
 import TableEmptyRow from './TableEmptyRow';
 
@@ -13,5 +14,11 @@ const TableBody = ({ ssoDefaultRoles }) => (
         )}
     </tbody>
 );
+
+TableBody.displayName = 'TableBody';
+
+TableBody.propTypes = {
+    ssoDefaultRoles: PropTypes.string,
+};
 
 export default TableBody;

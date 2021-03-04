@@ -128,11 +128,67 @@ describe('Team API With SubProjects', () => {
                     `#count_${data.projectName}`,
                     elem => elem.textContent
                 );
-                expect(memberCount).toEqual('2 Team Members');
+                expect(memberCount).toEqual('Page 1 of 1 (2 Team Members)');
             }
         );
         done();
     }, 200000);
+
+    test('should not allow project owner to add other project owners', async () => {
+        return await cluster.execute(
+            { email, password, projectName, isParentUser: true },
+            async ({ page, data }) => {
+                const user = {
+                    email: data.email,
+                    password: data.password,
+                };
+                await page.goto(utils.DASHBOARD_URL);
+
+                await init.loginUser(user, page);
+                await init.switchProject(data.projectName, page);
+
+                const role = 'Owner';
+
+                await page.waitForSelector('#teamMembers');
+                await page.click('#teamMembers');
+                await page.waitForSelector(`#btn_${data.projectName}`);
+                await page.click(`#btn_${data.projectName}`);
+                await page.waitForSelector(`#frm_${data.projectName}`);
+                const elementHandle = await page.$(
+                    `#${role}_${data.projectName}`
+                );
+                expect(elementHandle).toEqual(null);
+            }
+        );
+    });
+
+    test('should not allow administrator to add project owners', async () => {
+        return await cluster.execute(
+            { anotherEmail, anotherPassword, projectName, isParentUser: true },
+            async ({ page, data }) => {
+                const user = {
+                    email: data.anotherEmail,
+                    password: data.anotherPassword,
+                };
+                await page.goto(utils.DASHBOARD_URL);
+
+                await init.loginUser(user, page);
+                await init.switchProject(data.projectName, page);
+
+                const role = 'Owner';
+
+                await page.waitForSelector('#teamMembers');
+                await page.click('#teamMembers');
+                await page.waitForSelector(`#btn_${data.projectName}`);
+                await page.click(`#btn_${data.projectName}`);
+                await page.waitForSelector(`#frm_${data.projectName}`);
+                const elementHandle = await page.$(
+                    `#${role}_${data.projectName}`
+                );
+                expect(elementHandle).toEqual(null);
+            }
+        );
+    });
 
     test('should add a new user to sub-project (role -> `Member`)', async done => {
         await cluster.execute(
@@ -180,7 +236,7 @@ describe('Team API With SubProjects', () => {
                     `#count_${data.subProjectName}`,
                     elem => elem.textContent
                 );
-                expect(memberCount).toEqual('3 Team Members');
+                expect(memberCount).toEqual('Page 1 of 1 (3 Team Members)');
             }
         );
         done();
@@ -255,7 +311,7 @@ describe('Team API With SubProjects', () => {
                         `#count_${data.projectName}`,
                         elem => elem.textContent
                     );
-                    expect(memberCount).toEqual('1 Team Member');
+                    expect(memberCount).toEqual('Page 1 of 1 (1 Team Member)');
                 }
             );
             done();

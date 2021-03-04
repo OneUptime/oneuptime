@@ -38,6 +38,7 @@ const TeamMemberProjectBox = props => {
         };
     });
 
+    const numberOfPages = Math.ceil(parseInt(props.teamMembers.count) / 10);
     return (
         <div className="Box-root">
             <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
@@ -222,10 +223,23 @@ const TeamMemberProjectBox = props => {
                         !props.team.teamUpdateRole.error
                     }
                 >
-                    <div className="bs-Tail-copy">
+                    <div className="bs-Tail-copy Text-fontWeight--medium">
                         <span id={`count_${props.subProjectName}`}>
-                            {props.teamMembers.count} Team Member
-                            {props.teamMembers.count > 1 ? 's' : ''}
+                            {numberOfPages > 0
+                                ? `Page ${
+                                      !props.team.pages[props.teamMembers._id]
+                                          ? 1
+                                          : props.team.pages[
+                                                props.teamMembers._id
+                                            ]
+                                  } of ${numberOfPages} (${
+                                      props.teamMembers.count
+                                  } Team Member${
+                                      props.teamMembers.count === 1 ? '' : 's'
+                                  })`
+                                : `${props.teamMembers.count} Team Member${
+                                      props.teamMembers.count === 1 ? '' : 's'
+                                  }`}
                         </span>
                     </div>
                 </ShouldRender>

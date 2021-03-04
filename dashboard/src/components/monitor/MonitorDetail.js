@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import IncidentList from '../incident/IncidentList';
-import {v4 as uuidv4} from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import {
     editMonitorSwitch,
     selectedProbe,
@@ -17,7 +17,6 @@ import moment from 'moment';
 import { FormLoader } from '../basic/Loader';
 import CreateManualIncident from '../modals/CreateManualIncident';
 import ShouldRender from '../basic/ShouldRender';
-import MonitorUrl from '../modals/MonitorUrl';
 import DisabledMessage from '../modals/DisabledMessage';
 import DataPathHoC from '../DataPathHoC';
 import Badge from '../common/Badge';
@@ -46,14 +45,33 @@ export class MonitorDetail extends Component {
     }
 
     componentDidMount() {
+        const { fetchMonitorLogs, monitor } = this.props;
+        const { startDate, endDate } = this.state;
+
+        fetchMonitorLogs(
+            monitor.projectId._id || monitor.projectId,
+            monitor._id,
+            startDate,
+            endDate
+        );
         this.setLastAlive();
     }
 
     componentDidUpdate(prevProps) {
+        const { fetchMonitorLogs, monitor } = this.props;
+        const { startDate, endDate } = this.state;
+
         if (prevProps.probes !== this.props.probes) {
             if (this.state.nowHandler) {
                 clearTimeout(this.state.nowHandler);
             }
+
+            fetchMonitorLogs(
+                monitor.projectId._id || monitor.projectId,
+                monitor._id,
+                startDate,
+                endDate
+            );
 
             this.setLastAlive();
         }
@@ -101,14 +119,22 @@ export class MonitorDetail extends Component {
     };
 
     prevClicked = () => {
-        this.props.fetchMonitorsIncidents(
-            this.props.monitor.projectId._id,
-            this.props.monitor._id,
-            this.props.monitor.skip
-                ? parseInt(this.props.monitor.skip, 10) - 3
-                : 3,
-            3
-        );
+        this.props
+            .fetchMonitorsIncidents(
+                this.props.monitor.projectId._id,
+                this.props.monitor._id,
+                this.props.monitor.skip
+                    ? parseInt(this.props.monitor.skip, 10) - 3
+                    : 3,
+                3
+            )
+            .then(() => {
+                this.setState({
+                    [this.props.monitor._id]:
+                        this.state[this.props.monitor._id] - 1,
+                });
+            });
+
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > PREVIOUS INCIDENT CLICKED',
@@ -116,22 +142,36 @@ export class MonitorDetail extends Component {
                     ProjectId: this.props.monitor.projectId._id,
                     monitorId: this.props.monitor._id,
                     skip: this.props.monitor.skip
-                        ? parseInt(this.props.monitor.skip, 10) - 3
-                        : 3,
+                        ? parseInt(this.props.monitor.skip, 10) - 10
+                        : 10,
                 }
             );
         }
     };
 
     nextClicked = () => {
-        this.props.fetchMonitorsIncidents(
-            this.props.monitor.projectId._id,
-            this.props.monitor._id,
-            this.props.monitor.skip
-                ? parseInt(this.props.monitor.skip, 10) + 3
-                : 3,
-            3
-        );
+        this.props
+            .fetchMonitorsIncidents(
+                this.props.monitor.projectId._id,
+                this.props.monitor._id,
+                this.props.monitor.skip
+                    ? parseInt(this.props.monitor.skip, 10) + 3
+                    : 3,
+                3
+            )
+            .then(() => {
+                const numberOfPage = Math.ceil(
+                    parseInt(this.props.monitor && this.props.monitor.count) / 3
+                );
+                this.setState({
+                    [this.props.monitor._id]: this.state[this.props.monitor._id]
+                        ? this.state[this.props.monitor._id] < numberOfPage
+                            ? this.state[this.props.monitor._id] + 1
+                            : numberOfPage
+                        : 2,
+                });
+            });
+
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEXT INCIDENT CLICKED',
@@ -139,7 +179,7 @@ export class MonitorDetail extends Component {
                     ProjectId: this.props.monitor.projectId._id,
                     monitorId: this.props.monitor._id,
                     skip: this.props.monitor.skip
-                        ? parseInt(this.props.monitor.skip, 10) + 3
+                        ? parseInt(this.props.monitor.skip, 3) + 3
                         : 3,
                 }
             );
@@ -201,6 +241,9 @@ export class MonitorDetail extends Component {
             activeIncident,
             componentId,
         } = this.props;
+        const numberOfPage = Math.ceil(
+            parseInt(this.props.monitor && this.props.monitor.count) / 3
+        );
         const probe =
             monitor && probes && probes.length > 0
                 ? probes[probes.length < 2 ? 0 : activeProbe]
@@ -230,7 +273,7 @@ export class MonitorDetail extends Component {
                 : monitor && monitor.data && monitor.data.link
                 ? monitor.data.link
                 : null;
-        const probeUrl = `/dashboard/project/${monitor.projectId._id}/settings/probe`;
+        const probeUrl = `/dashboard/project/${currentProject.slug}/settings/probe`;
 
         monitor.error = null;
         if (
@@ -250,9 +293,6 @@ export class MonitorDetail extends Component {
         switch (monitor.type) {
             case 'manual':
                 badgeColor = 'red';
-                break;
-            case 'device':
-                badgeColor = 'green';
                 break;
             default:
                 badgeColor = 'blue';
@@ -323,7 +363,8 @@ export class MonitorDetail extends Component {
                                     <ShouldRender if={monitor && monitor.type}>
                                         {monitor.type === 'url' ||
                                         monitor.type === 'api' ||
-                                        monitor.type === 'script' ? (
+                                        monitor.type === 'script' ||
+                                        monitor.type === 'ip' ? (
                                             <ShouldRender
                                                 if={
                                                     probes && !probes.length > 0
@@ -464,24 +505,6 @@ export class MonitorDetail extends Component {
                             />
                         </div>
                         <div>
-                            {monitor.type === 'device' && (
-                                <button
-                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye"
-                                    type="button"
-                                    onClick={() =>
-                                        this.props.openModal({
-                                            id: monitor._id,
-                                            onClose: () => '',
-                                            content: DataPathHoC(
-                                                MonitorUrl,
-                                                monitor
-                                            ),
-                                        })
-                                    }
-                                >
-                                    <span>Show URL</span>
-                                </button>
-                            )}
                             <button
                                 className={
                                     creating && activeIncident === monitor._id
@@ -536,7 +559,7 @@ export class MonitorDetail extends Component {
                                 onClick={() => {
                                     history.push(
                                         '/dashboard/project/' +
-                                            currentProject._id +
+                                            currentProject.slug +
                                             '/' +
                                             componentId +
                                             '/monitoring/' +
@@ -553,7 +576,6 @@ export class MonitorDetail extends Component {
                     <ShouldRender
                         if={
                             monitor.type !== 'manual' &&
-                            monitor.type !== 'device' &&
                             !(
                                 !monitor.agentlessConfig &&
                                 monitor.type === 'server-monitor'
@@ -613,7 +635,8 @@ export class MonitorDetail extends Component {
                 {monitor && monitor.type ? (
                     monitor.type === 'url' ||
                     monitor.type === 'api' ||
-                    monitor.type === 'script' ? (
+                    monitor.type === 'script' ||
+                    monitor.type === 'ip' ? (
                         <div>
                             <ShouldRender if={probes && probes.length > 0}>
                                 {monitor && probes && probes.length < 2 ? (
@@ -668,6 +691,19 @@ export class MonitorDetail extends Component {
                                                         }
                                                         nextClicked={
                                                             this.nextClicked
+                                                        }
+                                                        page={
+                                                            this.state[
+                                                                monitor._id
+                                                            ]
+                                                                ? this.state[
+                                                                      monitor
+                                                                          ._id
+                                                                  ]
+                                                                : 1
+                                                        }
+                                                        numberOfPage={
+                                                            numberOfPage
                                                         }
                                                     />
                                                 </div>
@@ -730,6 +766,14 @@ export class MonitorDetail extends Component {
                                                     nextClicked={
                                                         this.nextClicked
                                                     }
+                                                    page={
+                                                        this.state[monitor._id]
+                                                            ? this.state[
+                                                                  monitor._id
+                                                              ]
+                                                            : 1
+                                                    }
+                                                    numberOfPage={numberOfPage}
                                                 />
                                             </div>
                                         </div>

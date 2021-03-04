@@ -112,10 +112,10 @@ describe('SMS/Calls Incident Alerts', function() {
             payload: {
                 componentId,
                 projectId,
-                type: 'device',
+                type: null, //Please add a new monitor type here. IOT Device Monitor has been removed.
                 name: 'test monitor ',
-                data: { deviceId: 'abcdef' },
-                deviceId: 'abcdef',
+                data: null,
+                deviceId: null,
                 criteria: {},
             },
         });

@@ -17,6 +17,29 @@
             amplitude.getInstance().logEvent('PAGE VIEW: HOME > PRODUCT > WEBSITE MONITORING');
         }
     </script>
+    <script>
+        function onClickFunc() {
+            let playButton = document.getElementById("playButton");
+            let gif = document.getElementById("uptime-monitoring-gif");
+            let videoDiv= document.getElementById("videoDiv");
+            let video= document.getElementById("video");
+            playButton.style.display = "none";
+            gif.style.display="none";
+            videoDiv.style.display="block";
+            video.src += "?autoplay=1";
+        }
+        function mouseOverFunc()
+        {
+            let playButton = document.getElementById("playButton");
+            playButton.src="/img/play-button-black.svg";
+            playButton.style.cursor="pointer";
+        }
+        function mouseOutFunc()
+        {
+            let playButton = document.getElementById("playButton");
+            playButton.src="/img/play-button-grey.svg";
+        }
+    </script>
 </head>
 
 <body>
@@ -42,9 +65,13 @@
 
             </section>
 
-            <div class="gif-container">
+                <div class="gif-container">
                 <img src="/img/animated-gif/uptime-monitoring.gif" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;width: 100%;" />
-            </div>
+                  <img class="play" id="playButton" onmouseout="mouseOutFunc()"onmouseover="mouseOverFunc()"onclick="onClickFunc()" src="/img/play-button-grey.svg"/>
+                  <div id="videoDiv" class="videoClass">
+                    <iframe id="video" width="850" height="500" src="https://www.youtube.com/embed/C1WcqtlG0AM" rel="0" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                  </div>
+                </div>
 
             <% include ./cta-buttons %>
 
@@ -88,6 +115,9 @@
                 <% include ./cta-buttons %>
 
                 <% include ./customer-section %>
+                <div class="sectionBorderTop">
+                    <% include ./comparision-chart %>
+                </div>
 
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
                     <h2 class="header">Deep Website Scans</h2>

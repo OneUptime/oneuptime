@@ -168,12 +168,13 @@ module.exports = {
             await page.type('input[name=password]', '1234567890');
             await page.click('input[name=confirmPassword]');
             await page.type('input[name=confirmPassword]', '1234567890');
-            await page.click('button[type=submit]');
-
-            await page.waitForSelector('#users', {
-                visible: true,
-                timeout: 100000,
-            });
+            await Promise.all([
+                page.click('button[type=submit]'),
+                page.waitForSelector('#users', {
+                    visible: true,
+                    timeout: 100000,
+                }),
+            ]);
         } else {
             await this.loginEnterpriseUser(masterAdmin, page);
         }

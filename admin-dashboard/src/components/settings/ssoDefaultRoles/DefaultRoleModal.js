@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { RenderSelect } from '../../basic/RenderSelect';
 import { reduxForm, Field } from 'redux-form';
 import { connect } from 'react-redux';
@@ -126,7 +127,7 @@ const Form = ({
                                                         id={field.key}
                                                         placeholder={
                                                             field.placeholder
-                                                        }                            
+                                                        }
                                                         component={
                                                             field.component
                                                         }
@@ -204,6 +205,19 @@ const ReduxConnectedForm = reduxForm({
     enableReinitialize: true,
     validate,
 })(Form);
+
+Form.displayName = 'Form';
+
+Form.propTypes = {
+    formTitle: PropTypes.string,
+    onSubmit: PropTypes.func,
+    ssos: PropTypes.string,
+    projects: PropTypes.string,
+    errorMessage: PropTypes.string,
+    handleSubmit: PropTypes.func,
+    fetchSsoDefaultRoles: PropTypes.func,
+    closeThisDialog: PropTypes.func.isRequired,
+};
 
 export const CreateDefaultRoleModal = connect(
     state => ({

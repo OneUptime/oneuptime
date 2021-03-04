@@ -170,6 +170,7 @@ const IncidentProjectBox = props => {
                                         content: DataPathHoC(CreateIncident, {
                                             subProjectId:
                                                 props.subProjectIncident._id,
+                                            componentId: props.componentId,
                                         }),
                                     })
                                 }
@@ -202,6 +203,7 @@ const IncidentProjectBox = props => {
                     nextClicked={props.nextClicked}
                     filteredIncidents={filteredIncidents}
                     isFiltered={isFiltered}
+                    page={props.page}
                 />
             </div>
         </div>
@@ -223,6 +225,7 @@ IncidentProjectBox.propTypes = {
     subProjects: PropTypes.array,
     allProjectLength: PropTypes.number,
     modalList: PropTypes.array,
+    page: PropTypes.number,
 };
 
 export default IncidentProjectBox;

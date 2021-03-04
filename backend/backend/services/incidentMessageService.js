@@ -8,6 +8,7 @@ module.exports = {
             incidentMessage.createdById = data.createdById;
             incidentMessage.type = data.type;
             incidentMessage.incident_state = data.incident_state;
+            incidentMessage.postOnStatusPage = data.post_statuspage;
 
             incidentMessage = await incidentMessage.save();
 
@@ -17,7 +18,10 @@ module.exports = {
                 _id: incidentMessage._id,
             });
 
-            await RealTimeService.addIncidentNote(incidentMessage);
+            if (incidentMessage.postOnStatusPage) {
+                await RealTimeService.addIncidentNote(incidentMessage);
+            }
+
             return incidentMessage;
         } catch (error) {
             ErrorService.log('incidentMessageService.create', error);

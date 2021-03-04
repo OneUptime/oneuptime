@@ -6,6 +6,9 @@ const initialState = {
         error: null,
         success: false,
         numbers: [],
+        count: null,
+        limit: 10,
+        skip: null,
     },
     teamMembersAndSchedules: {
         requesting: false,
@@ -38,6 +41,39 @@ const initialState = {
         success: false,
         numbers: [],
     },
+    callRoutingLogs: {
+        requesting: false,
+        error: null,
+        success: false,
+        logs: [],
+        count: null,
+        limit: 10,
+        skip: null,
+    },
+    uploadIntroAudioState: {
+        requesting: false,
+        error: null,
+        success: false,
+        callRoutingId: '',
+    },
+    uploadBackupIntroAudioState: {
+        requesting: false,
+        error: null,
+        success: false,
+        callRoutingId: '',
+    },
+    removeIntroAudioState: {
+        requesting: false,
+        error: null,
+        success: false,
+        callRoutingId: '',
+    },
+    removeBackupIntroAudioState: {
+        requesting: false,
+        error: null,
+        success: false,
+        callRoutingId: '',
+    },
 };
 
 export default function card(state = initialState, action) {
@@ -61,7 +97,10 @@ export default function card(state = initialState, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    numbers: action.payload,
+                    numbers: action.payload.numbers,
+                    skip: action.payload.skip,
+                    limit: action.payload.limit,
+                    count: action.payload.count,
                 },
             });
 
@@ -290,6 +329,266 @@ export default function card(state = initialState, action) {
                     success: false,
                     error: action.payload,
                 },
+            });
+
+        case types.UPLOAD_CALL_ROUTING_AUDIO_REQUEST:
+            if (
+                action.payload &&
+                action.payload.audioFieldName &&
+                action.payload.audioFieldName === 'introAudio'
+            ) {
+                return Object.assign({}, state, {
+                    ...state,
+                    uploadIntroAudioState: {
+                        ...state.uploadIntroAudioState,
+                        requesting: true,
+                        error: null,
+                        success: false,
+                        callRoutingId: action.payload.callRoutingId,
+                    },
+                });
+            } else if (
+                action.payload &&
+                action.payload.audioFieldName &&
+                action.payload.audioFieldName === 'backup_introAudio'
+            ) {
+                return Object.assign({}, state, {
+                    ...state,
+                    uploadBackupIntroAudioState: {
+                        ...state.uploadBackupIntroAudioState,
+                        requesting: true,
+                        error: null,
+                        success: false,
+                        callRoutingId: action.payload.callRoutingId,
+                    },
+                });
+            } else {
+                return Object.assign({}, state, {});
+            }
+
+        case types.UPLOAD_CALL_ROUTING_AUDIO_SUCCESS:
+            if (
+                action.payload &&
+                action.payload.audioFieldName &&
+                action.payload.audioFieldName === 'introAudio'
+            ) {
+                return Object.assign({}, state, {
+                    ...state,
+                    uploadIntroAudioState: {
+                        ...state.uploadIntroAudioState,
+                        requesting: false,
+                        error: null,
+                        success: true,
+                        callRoutingId: '',
+                    },
+                    allNumbers: {
+                        ...state.allNumbers,
+                        numbers: state.allNumbers.numbers.map(n => {
+                            if (
+                                String(n._id) ===
+                                String(action.payload.data._id)
+                            ) {
+                                return action.payload.data;
+                            } else {
+                                return n;
+                            }
+                        }),
+                    },
+                });
+            } else if (
+                action.payload &&
+                action.payload.audioFieldName &&
+                action.payload.audioFieldName === 'backup_introAudio'
+            ) {
+                return Object.assign({}, state, {
+                    ...state,
+                    uploadBackupIntroAudioState: {
+                        ...state.uploadBackupIntroAudioState,
+                        requesting: false,
+                        error: null,
+                        success: true,
+                        callRoutingId: '',
+                    },
+                    allNumbers: {
+                        ...state.allNumbers,
+                        numbers: state.allNumbers.numbers.map(n => {
+                            if (
+                                String(n._id) ===
+                                String(action.payload.data._id)
+                            ) {
+                                return action.payload.data;
+                            } else {
+                                return n;
+                            }
+                        }),
+                    },
+                });
+            } else {
+                return Object.assign({}, state, {});
+            }
+
+        case types.UPLOAD_CALL_ROUTING_AUDIO_FAILURE:
+            if (
+                action.payload &&
+                action.payload.audioFieldName &&
+                action.payload.audioFieldName === 'introAudio'
+            ) {
+                return Object.assign({}, state, {
+                    ...state,
+                    uploadIntroAudioState: {
+                        ...state.uploadIntroAudioState,
+                        requesting: false,
+                        error: action.payload.error,
+                        success: false,
+                        callRoutingId: action.payload.callRoutingId,
+                    },
+                });
+            } else if (
+                action.payload &&
+                action.payload.audioFieldName &&
+                action.payload.audioFieldName === 'backup_introAudio'
+            ) {
+                return Object.assign({}, state, {
+                    ...state,
+                    uploadBackupIntroAudioState: {
+                        ...state.uploadBackupIntroAudioState,
+                        requesting: false,
+                        error: action.payload.error,
+                        success: false,
+                        callRoutingId: action.payload.callRoutingId,
+                    },
+                });
+            } else {
+                return Object.assign({}, state, {});
+            }
+
+        case types.REMOVE_INTRO_AUDIO_REQUEST:
+            return Object.assign({}, state, {
+                ...state,
+                introAudioState: {
+                    ...state.introAudioState,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case types.REMOVE_INTRO_AUDIO_SUCCESS:
+            return Object.assign({}, state, {
+                ...state,
+                introAudioState: {
+                    ...state.introAudioState,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                allNumbers: {
+                    ...state.allNumbers,
+                    numbers: state.allNumbers.numbers.map(n => {
+                        if (String(n._id) === String(action.payload._id)) {
+                            return action.payload;
+                        } else {
+                            return n;
+                        }
+                    }),
+                },
+            });
+
+        case types.REMOVE_INTRO_AUDIO_FAILURE:
+            return Object.assign({}, state, {
+                ...state,
+                introAudioState: {
+                    ...state.introAudioState,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case types.REMOVE_BACKUP_INTRO_AUDIO_REQUEST:
+            return Object.assign({}, state, {
+                ...state,
+                backupIntroAudioState: {
+                    ...state.backupIntroAudioState,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case types.REMOVE_BACKUP_INTRO_AUDIO_SUCCESS:
+            return Object.assign({}, state, {
+                ...state,
+                backupIntroAudioState: {
+                    ...state.backupIntroAudioState,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                allNumbers: {
+                    ...state.allNumbers,
+                    numbers: state.allNumbers.numbers.map(n => {
+                        if (String(n._id) === String(action.payload._id)) {
+                            return action.payload;
+                        } else {
+                            return n;
+                        }
+                    }),
+                },
+            });
+
+        case types.REMOVE_BACKUP_INTRO_AUDIO_FAILURE:
+            return Object.assign({}, state, {
+                ...state,
+                backupIntroAudioState: {
+                    ...state.backupIntroAudioState,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case types.GET_CALL_ROUTING_LOGS_REQUEST:
+            return Object.assign({}, state, {
+                ...state,
+                callRoutingLogs: {
+                    ...state.callRoutingLogs,
+                    error: null,
+                    success: false,
+                    requesting: true,
+                },
+            });
+
+        case types.GET_CALL_ROUTING_LOGS_SUCCESS:
+            return Object.assign({}, state, {
+                ...state,
+                callRoutingLogs: {
+                    ...state.callRoutingLogs,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    logs: action.payload.logs,
+                    count: action.payload.count,
+                    limit: action.payload.limit,
+                    skip: action.payload.skip,
+                },
+            });
+
+        case types.GET_CALL_ROUTING_LOGS_FAILURE:
+            return Object.assign({}, state, {
+                ...state,
+                callRoutingLogs: {
+                    ...state.callRoutingLogs,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case types.GET_CALL_ROUTING_LOGS_RESET:
+            return Object.assign({}, state, {
+                ...state,
+                callRoutingLogs: initialState.callRoutingLogs,
             });
 
         default:

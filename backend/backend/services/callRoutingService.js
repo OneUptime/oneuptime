@@ -155,20 +155,14 @@ module.exports = {
 
     reserveNumber: async function(data, projectId) {
         try {
-            const confirmBuy = await TwilioService.buyPhoneNumber(
-                data.projectId,
-                data.phoneNumber
-            );
+            let confirmBuy = null;
             const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
                 projectId
             );
-            if (
-                IS_SAAS_SERVICE &&
-                !hasCustomTwilioSettings &&
-                confirmBuy &&
-                confirmBuy.sid
-            ) {
-                const project = ProjectService.findOneBy({ _id: projectId });
+            if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                const project = await ProjectService.findOneBy({
+                    _id: projectId,
+                });
                 let owner = project.users.filter(user => user.role === 'Owner');
                 owner = owner && owner.length ? owner[0] : owner;
                 const user = await UserService.findOneBy({ _id: owner.userId });
@@ -189,8 +183,23 @@ module.exports = {
                     ErrorService.log('callRoutingService.reserveNumber', error);
                     throw error;
                 }
+                if (
+                    data &&
+                    data.stripeSubscriptionId &&
+                    data.stripeSubscriptionId.length
+                ) {
+                    confirmBuy = await TwilioService.buyPhoneNumber(
+                        data.projectId,
+                        data.phoneNumber
+                    );
+                }
+            } else {
+                confirmBuy = await TwilioService.buyPhoneNumber(
+                    data.projectId,
+                    data.phoneNumber
+                );
             }
-            data.sid = confirmBuy.sid;
+            data.sid = confirmBuy && confirmBuy.sid ? confirmBuy.sid : null;
             const CallRouting = await this.create(data);
             return CallRouting;
         } catch (error) {
@@ -218,7 +227,7 @@ module.exports = {
                     return {
                         forwardingNumber: null,
                         error:
-                            'Active team have not added their phone numbers yet',
+                            'Active team have not added their phone number yet',
                         userId: user && user._id ? user._id : null,
                     };
                 }
@@ -290,7 +299,7 @@ module.exports = {
                         return {
                             forwardingNumber: null,
                             error:
-                                'Active team have not added their phone numbers yet',
+                                'Active team have not added their phone number yet',
                             userId: user && user._id ? user._id : null,
                         };
                     }
@@ -308,58 +317,425 @@ module.exports = {
         }
     },
 
-    getCallResponse: async function(data, fromNumber, to) {
+    chargeRoutedCall: async function(projectId, body) {
         try {
+            const callSid = body['CallSid'];
+            const callStatus = body['CallStatus'] || null;
+            const callDetails = await TwilioService.getCallDetails(
+                projectId,
+                callSid
+            );
+            if (callDetails && callDetails.price) {
+                const duration = callDetails.duration;
+                let price = callDetails.price;
+                if (price && price.includes('-')) {
+                    price = price.replace('-', '');
+                }
+                price = price * 10;
+                const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
+                    projectId
+                );
+                if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                    const project = await ProjectService.findOneBy({
+                        _id: projectId,
+                    });
+                    let owner = project.users.filter(
+                        user => user.role === 'Owner'
+                    );
+                    owner = owner && owner.length ? owner[0] : owner;
+                    await PaymentService.chargeAlert(
+                        owner.userId,
+                        projectId,
+                        price
+                    );
+                }
+                const callRoutingLog = await CallRoutingLogService.findOneBy({
+                    callSid,
+                });
+                if (callRoutingLog && callRoutingLog.callSid) {
+                    let dialTo =
+                        callRoutingLog.dialTo && callRoutingLog.dialTo.length
+                            ? callRoutingLog.dialTo
+                            : [];
+                    dialTo = dialTo.map(dt => {
+                        if (dt.callSid !== callSid) {
+                            dt.status =
+                                callStatus && callStatus.length
+                                    ? callStatus
+                                    : dt.status;
+                        }
+                        return dt;
+                    });
+                    await CallRoutingLogService.updateOneBy(
+                        { _id: callRoutingLog._id },
+                        { price, duration, dialTo }
+                    );
+                } else {
+                    await CallRoutingLogService.updateOneBy(
+                        { callSid: callSid },
+                        { price, duration }
+                    );
+                }
+            }
+            return 'Customer has been successfully charged for the call.';
+        } catch (error) {
+            ErrorService.log('callRoutingService.chargeRoutedCall', error);
+            throw error;
+        }
+    },
+
+    getCallResponse: async function(data, to, body, backup) {
+        try {
+            const fromNumber = body['From'];
+            const callSid = body['CallSid'];
+            const dialCallSid = body['DialCallSid'] || null;
+            const callStatus = body['CallStatus'] || null;
+            const dialCallStatus = body['DialCallStatus'] || null;
+
+            const project = await ProjectService.findOneBy({
+                _id: data.projectId,
+            });
+            const balance = project.balance;
+            const customThresholdAmount = project.alertOptions
+                ? project.alertOptions.minimumBalance
+                : null;
+            const isBalanceMoreThanMinimum = balance > 10;
+            const isBalanceMoreThanCustomThresholdAmount = customThresholdAmount
+                ? balance > customThresholdAmount
+                : null;
+            const hasEnoughBalance = isBalanceMoreThanCustomThresholdAmount
+                ? isBalanceMoreThanCustomThresholdAmount &&
+                  isBalanceMoreThanMinimum
+                : isBalanceMoreThanMinimum;
+
+            if (!hasEnoughBalance) {
+                response.reject();
+                return response;
+            }
+
+            const routingSchema =
+                data && data.routingSchema && data.routingSchema.type
+                    ? data.routingSchema
+                    : {};
             let memberId = null;
             const response = new twilio.twiml.VoiceResponse();
+            let forwardingNumber, error, userId, scheduleId;
 
+            const {
+                type,
+                id,
+                phonenumber,
+                backup_type,
+                backup_id,
+                backup_phonenumber,
+                introAudio,
+                introtext,
+                backup_introAudio,
+                backup_introtext,
+                callDropText,
+                showAdvance,
+            } = routingSchema;
+
+            if (!backup && showAdvance && introtext && introtext.length) {
+                response.say(introtext);
+            }
             if (
-                data &&
-                data.routingSchema &&
-                data.routingSchema.type &&
-                data.routingSchema.type.length &&
-                data.routingSchema.id &&
-                data.routingSchema.id.length
+                backup &&
+                showAdvance &&
+                backup_introtext &&
+                backup_introtext.length
             ) {
-                const {
-                    forwardingNumber,
-                    error,
-                    userId,
-                } = await this.findTeamMember(
-                    data.routingSchema.type,
-                    data.routingSchema.id
-                );
-                if (userId) {
-                    memberId = userId;
+                response.say(backup_introtext);
+            }
+            if (!backup && showAdvance && introAudio && introAudio.length) {
+                response.play(`${global.apiHost}/file/${introAudio}`);
+            }
+            if (
+                backup &&
+                showAdvance &&
+                backup_introAudio &&
+                backup_introAudio.length
+            ) {
+                response.play(`${global.apiHost}/file/${backup_introAudio}`);
+            }
+
+            if (type && !backup) {
+                if (id && id.length && type !== 'PhoneNumber') {
+                    const result = await this.findTeamMember(type, id);
+                    forwardingNumber = result.forwardingNumber;
+                    error = result.error;
+                    userId = result.userId;
+                    scheduleId = type === 'Schedule' ? id : null;
+                    if (userId) {
+                        memberId = userId;
+                    }
+                } else if (
+                    type === 'PhoneNumber' &&
+                    phonenumber &&
+                    phonenumber.length
+                ) {
+                    forwardingNumber = phonenumber;
+                    error = null;
+                    userId = null;
                 }
-                if (forwardingNumber && (!error || (error && error.length))) {
-                    response.dial(forwardingNumber);
-                } else if (!forwardingNumber && error && error.length) {
-                    response.say(error);
+            } else if (backup_type && backup) {
+                if (
+                    backup_id &&
+                    backup_id.length &&
+                    backup_type !== 'PhoneNumber'
+                ) {
+                    const result = await this.findTeamMember(
+                        backup_type,
+                        backup_id
+                    );
+                    forwardingNumber = result.forwardingNumber;
+                    error = result.error;
+                    userId = result.userId;
+                    scheduleId = backup_type === 'Schedule' ? backup_id : null;
+                    if (userId) {
+                        memberId = userId;
+                    }
+                } else if (
+                    backup_type === 'PhoneNumber' &&
+                    backup_phonenumber &&
+                    backup_phonenumber.length
+                ) {
+                    forwardingNumber = backup_phonenumber;
+                    error = null;
+                    userId = null;
                 }
             } else {
-                response.say('Sorry could not find anyone on duty');
+                if (showAdvance && callDropText && callDropText.length) {
+                    response.say(callDropText);
+                } else {
+                    response.say('Sorry could not find anyone on duty');
+                }
             }
-            if (data && data._id) {
+            if (
+                !forwardingNumber ||
+                (forwardingNumber && !forwardingNumber.length)
+            ) {
+                if (showAdvance && callDropText && callDropText.length) {
+                    response.say(callDropText);
+                } else {
+                    response.say('Sorry could not find anyone on duty');
+                }
+            }
+            if (
+                forwardingNumber &&
+                (!error || (error && error.length <= 0)) &&
+                !backup
+            ) {
+                response.dial(
+                    {
+                        action: `${global.apiHost}/callRouting/routeBackupCall`,
+                    },
+                    forwardingNumber
+                );
+            } else if (
+                forwardingNumber &&
+                (!error || (error && error.length <= 0)) &&
+                backup
+            ) {
+                response.dial(forwardingNumber);
+            } else if (!forwardingNumber && error && error.length) {
+                response.say(error);
+            }
+            const callRoutingLog = await CallRoutingLogService.findOneBy({
+                callSid,
+            });
+            if (callRoutingLog && callRoutingLog.callSid) {
+                let dialTo =
+                    callRoutingLog.dialTo && callRoutingLog.dialTo.length
+                        ? callRoutingLog.dialTo
+                        : [];
+                dialTo = dialTo.map(dt => {
+                    dt.callSid =
+                        dialCallSid && dialCallSid.length
+                            ? dialCallSid
+                            : callSid;
+                    dt.status =
+                        dialCallStatus && dialCallStatus.length
+                            ? dialCallStatus
+                            : callStatus;
+                    return dt;
+                });
+                dialTo.push({
+                    callSid: callSid,
+                    userId: memberId,
+                    scheduleId: scheduleId,
+                    phoneNumber: phonenumber,
+                    status: callStatus,
+                });
+                await CallRoutingLogService.updateOneBy(
+                    { _id: callRoutingLog._id },
+                    { dialTo }
+                );
+            } else if (data && data._id) {
                 await CallRoutingLogService.create({
                     callRoutingId: data && data._id ? data._id : null,
                     calledFrom: fromNumber,
                     calledTo: to,
-                    userId: memberId,
-                    scheduleId:
-                        data &&
-                        data.routingSchema &&
-                        data.routingSchema.type &&
-                        data.routingSchema.id &&
-                        data.routingSchema.type === 'Schedule'
-                            ? data.routingSchema.id
-                            : '',
+                    dialTo: [
+                        {
+                            callSid: callSid,
+                            userId: memberId,
+                            scheduleId: scheduleId,
+                            phoneNumber: phonenumber,
+                            status: callStatus ? callStatus : null,
+                        },
+                    ],
+                    callSid: callSid,
                 });
             }
             response.say('Goodbye');
             return response;
         } catch (error) {
             ErrorService.log('callRoutingService.getCallResponse', error);
+            throw error;
+        }
+    },
+
+    updateRoutingSchema: async function(data) {
+        try {
+            const currentCallRouting = await this.findOneBy({
+                _id: data.callRoutingId,
+            });
+            const routingSchema =
+                currentCallRouting && currentCallRouting.routingSchema
+                    ? currentCallRouting.routingSchema
+                    : {};
+            const showAdvance =
+                Object.keys(data).indexOf('showAdvance') > -1
+                    ? data.showAdvance
+                    : 'null';
+
+            if (showAdvance !== 'null') {
+                routingSchema.showAdvance = data.showAdvance;
+                routingSchema.type = data.type;
+                if (data.type && data.type === 'TeamMember') {
+                    routingSchema.id = data.teamMemberId;
+                } else if (data.type && data.type === 'Schedule') {
+                    routingSchema.id = data.scheduleId;
+                } else if (data.type && data.type === 'PhoneNumber') {
+                    routingSchema.phoneNumber = data.phoneNumber;
+                }
+                if (showAdvance) {
+                    routingSchema.backup_type = data.backup_type;
+                    routingSchema.introtext = data.introtext;
+                    routingSchema.backup_introtext = data.backup_introtext;
+                    routingSchema.callDropText = data.callDropText;
+                    if (data.backup_type && data.backup_type === 'TeamMember') {
+                        routingSchema.backup_id = data.backup_teamMemberId;
+                    } else if (
+                        data.backup_type &&
+                        data.backup_type === 'Schedule'
+                    ) {
+                        routingSchema.backup_id = data.backup_scheduleId;
+                    } else if (
+                        data.backup_type &&
+                        data.backup_type === 'PhoneNumber'
+                    ) {
+                        routingSchema.backup_phoneNumber =
+                            data.backup_phoneNumber;
+                    }
+                }
+            }
+            const CallRouting = await this.updateOneBy(
+                { _id: data.callRoutingId },
+                { routingSchema }
+            );
+
+            return CallRouting;
+        } catch (error) {
+            ErrorService.log('callRoutingService.updateRoutingSchema', error);
+            throw error;
+        }
+    },
+
+    updateRoutingSchemaAudio: async function(data) {
+        try {
+            const currentCallRouting = await this.findOneBy({
+                _id: data.callRoutingId,
+            });
+            const routingSchema =
+                currentCallRouting && currentCallRouting.routingSchema
+                    ? currentCallRouting.routingSchema
+                    : {};
+            const currentIntroAudio =
+                routingSchema &&
+                routingSchema.introAudio &&
+                routingSchema.introAudio.length
+                    ? routingSchema.introAudio
+                    : null;
+            const currentBackupIntroAudio =
+                routingSchema &&
+                routingSchema.backup_introAudio &&
+                routingSchema.backup_introAudio.length
+                    ? routingSchema.backup_introAudio
+                    : null;
+
+            if (data.audioFieldName && data.audioFieldName === 'introAudio') {
+                if (currentIntroAudio) {
+                    await FileService.deleteOneBy({
+                        filename: currentIntroAudio,
+                    });
+                }
+                if (data.file && data.file.length) {
+                    routingSchema.introAudio = data.file;
+                }
+                if (data.fileName && data.fileName.length) {
+                    routingSchema.introAudioName = data.fileName;
+                }
+            } else if (
+                data.audioFieldName &&
+                data.audioFieldName === 'backup_introAudio'
+            ) {
+                if (currentBackupIntroAudio) {
+                    await FileService.deleteOneBy({
+                        filename: currentBackupIntroAudio,
+                    });
+                }
+                if (data.file && data.file.length) {
+                    routingSchema.backup_introAudio = data.file;
+                }
+                if (data.fileName && data.fileName.length) {
+                    routingSchema.backup_introAudioName = data.fileName;
+                }
+            }
+            const CallRouting = await this.updateOneBy(
+                { _id: data.callRoutingId },
+                { routingSchema }
+            );
+
+            return CallRouting;
+        } catch (error) {
+            ErrorService.log(
+                'callRoutingService.updateRoutingSchemaAudio',
+                error
+            );
+            throw error;
+        }
+    },
+
+    getCallRoutingLogs: async function(projectId) {
+        try {
+            let logs = [];
+            const callRouting = await this.findBy({ projectId });
+            if (callRouting && callRouting.length) {
+                for (let i = 0; i < callRouting.length; i++) {
+                    const callRoutingId = callRouting[i]._id;
+                    const callLogs = await CallRoutingLogService.findBy({
+                        callRoutingId,
+                    });
+                    if (callLogs && callLogs.length) {
+                        logs = logs.concat(callLogs);
+                    }
+                }
+            }
+            return logs;
+        } catch (error) {
+            ErrorService.log('callRoutingService.getCallRoutingLogs', error);
             throw error;
         }
     },
@@ -387,3 +763,4 @@ const twilio = require('twilio');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const ErrorService = require('./errorService');
 const ProjectService = require('./projectService');
+const FileService = require('./fileService');

@@ -111,6 +111,7 @@ export class DashboardApp extends Component {
             notification: {
                 notifications: { notifications },
             },
+            switchToProjectViewerNav,
         } = this.props;
         const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';
@@ -137,6 +138,8 @@ export class DashboardApp extends Component {
                         route="/"
                         name={projectName}
                         projectId={projectId}
+                        slug={currentProject ? currentProject.slug : null}
+                        switchToProjectViewerNav={switchToProjectViewerNav}
                     />
                 )}
                 <CreateProjectModal />
@@ -337,7 +340,10 @@ export class DashboardApp extends Component {
                         incidentNotifications.length > 0
                     }
                 >
-                    <IncidentCreated notifications={incidentNotifications} />
+                    <IncidentCreated
+                        notifications={incidentNotifications}
+                        slug={currentProject ? currentProject.slug : null}
+                    />
                 </ShouldRender>
             </Fragment>
         );
@@ -363,6 +369,7 @@ DashboardApp.propTypes = {
     showDeleteBtn: PropTypes.bool,
     close: PropTypes.func,
     name: PropTypes.string,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 const mapStateToProps = state => ({
@@ -373,6 +380,7 @@ const mapStateToProps = state => ({
         state.modal.modals && state.modal.modals.length > 0
             ? state.modal.modals[state.modal.modals.length - 1]
             : '',
+    switchToProjectViewerNav: state.project.switchToProjectViewerNav,
 });
 
 const mapDispatchToProps = dispatch =>

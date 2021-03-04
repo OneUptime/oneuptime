@@ -24,7 +24,7 @@ class ResourceTabularList extends Component {
     }
     generateUrlLink(componentResource) {
         const { currentProject, componentId } = this.props;
-        const baseUrl = `/dashboard/project/${currentProject._id}/${componentId}/`;
+        const baseUrl = `/dashboard/project/${currentProject.slug}/${componentId}/`;
         let route = '';
         switch (componentResource.type) {
             case 'website monitor':
@@ -34,6 +34,8 @@ class ResourceTabularList extends Component {
             case 'server monitor':
             case 'script monitor':
             case 'incomingHttpRequest monitor':
+            case 'kubernetes monitor':
+            case 'IP monitor':
                 route = 'monitoring';
                 break;
             case 'application security':
@@ -71,6 +73,8 @@ class ResourceTabularList extends Component {
             case 'server monitor':
             case 'script monitor':
             case 'incomingHttpRequest monitor':
+            case 'kubernetes monitor':
+            case 'IP monitor':
                 // get monitor status
                 monitor = monitors.filter(
                     monitor => monitor._id === componentResource._id
@@ -349,9 +353,20 @@ class ResourceTabularList extends Component {
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Margin-right--16 Flex-flex Flex-direction--row">
+                                                            <div
+                                                                className={`Box-root ${
+                                                                    componentResource.type ===
+                                                                    'error tracker'
+                                                                        ? ''
+                                                                        : 'Margin-right--16 '
+                                                                } Flex-flex Flex-direction--row`}
+                                                            >
                                                                 <span
                                                                     className={`Badge-text Text-fontWeight--bold Text-lineHeight--16 Text-typeface--capitalize`}
+                                                                    style={{
+                                                                        whiteSpace:
+                                                                            'normal',
+                                                                    }}
                                                                 >
                                                                     {this.generateResourceStatus(
                                                                         componentResource
@@ -379,6 +394,9 @@ class ResourceTabularList extends Component {
                                                                     : componentResource.type ===
                                                                       'incomingHttpRequest monitor'
                                                                     ? 'incoming Http Request Monitor'
+                                                                    : componentResource.type ===
+                                                                      'ip'
+                                                                    ? ' IP Monitor'
                                                                     : componentResource.type}
                                                             </span>
                                                         </div>

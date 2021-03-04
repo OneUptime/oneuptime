@@ -179,8 +179,9 @@ const mapDispatchToProps = dispatch =>
 LicenseSetting.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     confirmLicense: PropTypes.func.isRequired,
-    initialValues: PropTypes.object,
-    license: PropTypes.object
+    //initialValues: PropTypes.object, declared but unused
+    license: PropTypes.object,
+    confirm: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(LicenseSettingForm);

@@ -12,6 +12,7 @@ import SubProjectApiKey from '../modals/SubProjectApiKey';
 import { User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
+import isSubProjectViewer from '../../utils/isSubProjectViewer';
 
 export class SubProjectTable extends Component {
     constructor(props) {
@@ -21,7 +22,8 @@ export class SubProjectTable extends Component {
 
     handleRevealAPIKey = userId => {
         const { openModal, subProject, currentProject } = this.props;
-        isOwnerOrAdmin(userId, currentProject)
+        isOwnerOrAdmin(userId, currentProject) &&
+        !isSubProjectViewer(userId, subProject)
             ? openModal({
                   id: this.state.subProjectModalId,
                   content: DataPathHoC(SubProjectApiKey, {
@@ -38,7 +40,8 @@ export class SubProjectTable extends Component {
 
     handleEdit = userId => {
         const { openModal, subProject, currentProject } = this.props;
-        isOwnerOrAdmin(userId, currentProject)
+        isOwnerOrAdmin(userId, currentProject) &&
+        !isSubProjectViewer(userId, subProject)
             ? openModal({
                   id: this.state.subProjectModalId,
                   content: DataPathHoC(SubProjectForm, {
@@ -56,7 +59,8 @@ export class SubProjectTable extends Component {
 
     handleRemove = userId => {
         const { openModal, subProject, currentProject } = this.props;
-        isOwnerOrAdmin(userId, currentProject)
+        isOwnerOrAdmin(userId, currentProject) &&
+        !isSubProjectViewer(userId, subProject)
             ? openModal({
                   id: this.state.subProjectModalId,
                   content: DataPathHoC(RemoveSubProject, {

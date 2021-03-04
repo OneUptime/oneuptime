@@ -41,6 +41,7 @@ export class IncidentAlert extends Component {
             canNext = false;
             canPrev = false;
         }
+        const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
         return (
             <div className="db-RadarRulesLists-page">
                 <div className="Box-root Margin-bottom--12">
@@ -114,11 +115,27 @@ export class IncidentAlert extends Component {
                                             <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                 <span>
                                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        {this.props.count} Alert
-                                                        {this.props.alerts
-                                                            .length === 1
-                                                            ? ''
-                                                            : 's'}
+                                                        {numberOfPages > 0
+                                                            ? `Page ${
+                                                                  this.props
+                                                                      .page
+                                                              } of ${numberOfPages} 
+                                                        (${
+                                                            this.props.count
+                                                        } Alert${
+                                                                  this.props
+                                                                      .alerts
+                                                                      .length ===
+                                                                  1
+                                                                      ? ''
+                                                                      : 's'
+                                                              })`
+                                                            : this.props.count +
+                                                              ' Alert' +
+                                                              (this.props.alerts
+                                                                  .length === 1
+                                                                  ? ''
+                                                                  : 's')}
                                                     </span>
                                                 </span>
                                             </span>
@@ -224,6 +241,7 @@ const mapStateToProps = state => {
 };
 
 IncidentAlert.propTypes = {
+    page: PropTypes.number,
     previous: PropTypes.func.isRequired,
     isRequesting: PropTypes.bool,
     alerts: PropTypes.array,

@@ -22,6 +22,7 @@ import { history } from '../../store';
 import '@trendmicro/react-dropdown/dist/react-dropdown.css';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import HasProjectOwner from '../basic/HasProjectOwner';
 
 export class TeamMember extends Component {
     constructor(props) {
@@ -209,21 +210,32 @@ export class TeamMember extends Component {
                                     )}
 
                                     <Dropdown.Menu>
-                                        <MenuItem
-                                            title="Owner"
-                                            onClick={handleSubmit(values =>
-                                                this.updateTeamMemberRole(
-                                                    {
-                                                        ...values,
-                                                        role: this.props.role,
-                                                        userId: userId,
-                                                    },
-                                                    'Owner'
+                                        <ShouldRender
+                                            if={
+                                                !HasProjectOwner(
+                                                    this.props.currentProject,
+                                                    this.props.subProjectId,
+                                                    this.props.subProjects
                                                 )
-                                            )}
+                                            }
                                         >
-                                            Owner
-                                        </MenuItem>
+                                            <MenuItem
+                                                title="Owner"
+                                                onClick={handleSubmit(values =>
+                                                    this.updateTeamMemberRole(
+                                                        {
+                                                            ...values,
+                                                            role: this.props
+                                                                .role,
+                                                            userId: userId,
+                                                        },
+                                                        'Owner'
+                                                    )
+                                                )}
+                                            >
+                                                Owner
+                                            </MenuItem>
+                                        </ShouldRender>
                                         <MenuItem
                                             title="Administrator"
                                             onClick={handleSubmit(values =>
@@ -335,6 +347,8 @@ TeamMember.propTypes = {
     teamUpdateRole: PropTypes.func.isRequired,
     updating: PropTypes.oneOf([null, false, true]),
     userId: PropTypes.string.isRequired,
+    currentProject: PropTypes.object,
+    subProjects: PropTypes.array,
 };
 
 const TeamMemberForm = reduxForm({
@@ -365,6 +379,7 @@ function mapStateToProps(state, props) {
             id => id === props.userId
         ),
         currentProject: state.project.currentProject,
+        subProjects: state.subProject.subProjects.subProjects,
     };
 }
 

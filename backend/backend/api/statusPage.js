@@ -479,10 +479,10 @@ router.get(
     isAuthorized,
     getSubProjects,
     async function(req, res) {
-        const subProjectIds = req.user.subProjects
-            ? req.user.subProjects.map(project => project._id)
-            : null;
         try {
+            const subProjectIds = req.user.subProjects
+                ? req.user.subProjects.map(project => project._id)
+                : null;
             const statusPages = await StatusPageService.getSubProjectStatusPages(
                 subProjectIds
             );
@@ -692,10 +692,10 @@ router.get('/:projectId/:incidentId/incidentNotes', checkUser, async function(
 ) {
     try {
         const { incidentId } = req.params;
-        const { skip, limit, type } = req.query;
+        const { skip, limit, postOnStatusPage } = req.query;
 
         const response = await StatusPageService.getIncidentNotes(
-            { incidentId, type },
+            { incidentId, postOnStatusPage },
             skip,
             limit
         );

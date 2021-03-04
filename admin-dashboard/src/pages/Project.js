@@ -22,12 +22,16 @@ class Project extends Component {
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Project page Loaded');
         }
-        this.props.fetchProjectTeam(this.props.match.params.projectId);
+        this.props.fetchProjectTeam(
+            this.props.currentProject && this.props.currentProject._id
+        );
     }
 
     ready = async () => {
         const { fetchProject } = this.props;
-        await fetchProject(this.props.match.params.projectId);
+        await fetchProject(
+            this.props.currentProject && this.props.currentProject._id
+        );
     };
 
     render() {
@@ -76,8 +80,10 @@ class Project extends Component {
                                                             .team
                                                     }
                                                     projectId={
-                                                        this.props.match.params
-                                                            .projectId
+                                                        this.props
+                                                            .currentProject &&
+                                                        this.props
+                                                            .currentProject._id
                                                     }
                                                     pages={
                                                         this.props
@@ -85,7 +91,7 @@ class Project extends Component {
                                                         this.props.projectUsers
                                                             .page
                                                     }
-                                                    membersPerPage={20}
+                                                    membersPerPage={10}
                                                     count={
                                                         this.props
                                                             .projectUsers &&
@@ -93,6 +99,12 @@ class Project extends Component {
                                                             .team &&
                                                         this.props.projectUsers
                                                             .team.count
+                                                    }
+                                                    page={
+                                                        this.props
+                                                            .projectUsers &&
+                                                        this.props.projectUsers
+                                                            .page
                                                     }
                                                     canPaginateBackward={
                                                         this.props
@@ -112,7 +124,7 @@ class Project extends Component {
                                                             this.props
                                                                 .projectUsers
                                                                 .page *
-                                                                20
+                                                                10
                                                             ? true
                                                             : false
                                                     }
@@ -207,11 +219,15 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
     const project = state.project.project.project || {};
     const projectUsers = state.project.projectTeam;
+    const currentProject = state.project.projects.projects.find(el => {
+        return el.slug === props.match.params.slug;
+    });
     return {
         project,
+        currentProject,
         projectUsers,
         adminNote: state.adminNote,
         initialValues: { adminNotes: project.adminNotes || [] },
@@ -225,7 +241,7 @@ Project.contextTypes = {
 Project.propTypes = {
     addProjectNote: PropTypes.func.isRequired,
     initialValues: PropTypes.object,
-    match: PropTypes.object.isRequired,
+    currentProject: PropTypes.object.isRequired,
     fetchProject: PropTypes.func.isRequired,
     project: PropTypes.object.isRequired,
     fetchProjectTeam: PropTypes.func.isRequired,

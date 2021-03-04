@@ -23,6 +23,7 @@ export class MonitorLogsList extends Component {
         let limit = monitorLogs && monitorLogs.limit ? monitorLogs.limit : null;
         const count =
             monitorLogs && monitorLogs.count ? monitorLogs.count : null;
+        const numberOfPages = Math.ceil(parseInt(count) / 10);
         if (skip && typeof skip === 'string') {
             skip = parseInt(skip, 10);
         }
@@ -193,7 +194,9 @@ export class MonitorLogsList extends Component {
                                             if={
                                                 this.props.monitorType &&
                                                 this.props.monitorType !==
-                                                    'incomingHttpRequest'
+                                                    'incomingHttpRequest' &&
+                                                this.props.monitorType !==
+                                                    'kubernetes'
                                             }
                                         >
                                             <td
@@ -731,7 +734,10 @@ export class MonitorLogsList extends Component {
                                                                 .monitorType &&
                                                             this.props
                                                                 .monitorType !==
-                                                                'incomingHttpRequest'
+                                                                'incomingHttpRequest' &&
+                                                            this.props
+                                                                .monitorType !==
+                                                                'kubernetes'
                                                         }
                                                     >
                                                         <td
@@ -934,7 +940,18 @@ export class MonitorLogsList extends Component {
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {count
+                                    {numberOfPages > 0
+                                        ? `Page ${
+                                              this.props.page
+                                          } of ${numberOfPages} (${
+                                              count
+                                                  ? count +
+                                                    (count > 1
+                                                        ? ' Logs'
+                                                        : ' Log')
+                                                  : '0 Logs'
+                                          })`
+                                        : count
                                         ? count + (count > 1 ? ' Logs' : ' Log')
                                         : '0 Logs'}
                                 </span>
@@ -1027,6 +1044,7 @@ MonitorLogsList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     openModal: PropTypes.func,
     prevClicked: PropTypes.func.isRequired,
+    page: PropTypes.number,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorLogsList);

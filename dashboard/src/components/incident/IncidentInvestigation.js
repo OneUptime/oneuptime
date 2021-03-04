@@ -20,6 +20,7 @@ export class IncidentInvestigation extends Component {
             createMessageModalId: uuidv4(),
             editMessageModalId: uuidv4(),
             deleteMessageModalId: uuidv4(),
+            page: 1,
         };
     }
     olderInvestigationMessage = () => {
@@ -30,6 +31,9 @@ export class IncidentInvestigation extends Component {
                 parseInt(this.props.incidentMessages.limit, 10),
             parseInt(this.props.incidentMessages.limit, 10)
         );
+        this.setState({
+            page: this.state.page - 1,
+        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > OLDER INVESTIGATION MESSAGES CLICKED',
@@ -49,6 +53,9 @@ export class IncidentInvestigation extends Component {
                 parseInt(this.props.incidentMessages.limit, 10),
             parseInt(this.props.incidentMessages.limit, 10)
         );
+        this.setState({
+            page: this.state.page + 1,
+        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > NEWER INVESTIGATION MESSAGES CLICKED',
@@ -90,6 +97,9 @@ export class IncidentInvestigation extends Component {
             editMessageModalId,
             deleteMessageModalId,
         } = this.state;
+        const numberOfPages = Math.ceil(
+            parseInt(incidentMessages && incidentMessages.count) / 10
+        );
         if (incidentMessages) {
             count = incidentMessages.count;
             skip = incidentMessages.skip;
@@ -124,7 +134,7 @@ export class IncidentInvestigation extends Component {
                         title="Status Page"
                         description="Tell your customer what went wrong. This will be visible to your customers."
                         incidentMessages={incidentMessages}
-                        count={count}
+                        count={incidentMessages && incidentMessages.count}
                         canPrev={canPrev}
                         canNext={canNext}
                         requesting={requesting}
@@ -138,6 +148,9 @@ export class IncidentInvestigation extends Component {
                         editMessageModalId={editMessageModalId}
                         deleteMessageModalId={deleteMessageModalId}
                         deleteIncidentMessage={this.deleteInvestigationMessage}
+                        numberOfPages={numberOfPages}
+                        page={this.state.page}
+                        slug={this.props.currentProject.slug}
                     />
                 </div>
             </div>

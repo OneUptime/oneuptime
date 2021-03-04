@@ -29,5 +29,6 @@ const monitorLogByWeekSchema = new Schema({
     maxStorageUsed: Number,
     maxMainTemp: Number,
     sslCertificate: Object,
+    kubernetesLog: Object,
 });
 module.exports = mongoose.model('MonitorLogByWeek', monitorLogByWeekSchema);

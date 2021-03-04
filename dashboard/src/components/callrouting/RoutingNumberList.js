@@ -3,7 +3,10 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { openModal, closeModal } from '../../actions/modal';
-import { removeNumbers } from '../../actions/callRouting';
+import {
+    removeNumbers,
+    getCallRoutingNumbers,
+} from '../../actions/callRouting';
 import ConfirmNumberDeleteModal from './ConfirmNumberDeleteModal';
 import AddScheduleModal from './AddScheduleModal';
 import { Spinner, FormLoader } from '../basic/Loader';
@@ -15,6 +18,24 @@ export class RoutingNumberList extends Component {
         const { currentProject, removeNumbers } = this.props;
         removeNumbers(currentProject._id, callRoutingId);
     };
+
+    nextClicked = () => {
+        const { currentProject, callRoutingNumbers } = this.props;
+        this.props.getCallRoutingNumbers(
+            currentProject._id,
+            parseInt(callRoutingNumbers.skip) + 10,
+            10
+        );
+    };
+    prevClicked = () => {
+        const { currentProject, callRoutingNumbers } = this.props;
+        this.props.getCallRoutingNumbers(
+            currentProject._id,
+            parseInt(callRoutingNumbers.skip) - 10,
+            10
+        );
+    };
+
     getName = number => {
         const { teamMembers, schedules } = this.props;
         const type =
@@ -36,18 +57,16 @@ export class RoutingNumberList extends Component {
             if (teamMember && teamMember.name && teamMember.name.length) {
                 return {
                     result: `${teamMember.name} (Team Member)`,
-                    edit: true,
                 };
-            } else return { result: 'No scheduled added yet', edit: false };
+            } else return { result: 'No scheduled added yet' };
         } else if (type && type === 'Schedule' && id) {
             const schedule = schedules.find(s => s._id === id);
             if (schedule && schedule.name && schedule.name.length) {
                 return {
                     result: `${schedule.name} (On-Call Duty)`,
-                    edit: true,
                 };
-            } else return { result: 'No scheduled added yet', edit: false };
-        } else return { result: 'No scheduled added yet', edit: false };
+            } else return { result: 'No scheduled added yet' };
+        } else return { result: 'No scheduled added yet' };
     };
     render() {
         const {
@@ -58,12 +77,22 @@ export class RoutingNumberList extends Component {
         } = this.props;
         const _this = this;
         const isRequesting = allNumbers && allNumbers.requesting;
-        const count =
-            callRoutingNumbers && callRoutingNumbers.length
-                ? callRoutingNumbers.length
-                : 0;
-        const canNext = false;
-        const canPrev = false;
+        const count = callRoutingNumbers.count && callRoutingNumbers.count;
+
+        let canNext =
+            callRoutingNumbers.count &&
+            callRoutingNumbers.count >
+                callRoutingNumbers.skip + callRoutingNumbers.limit
+                ? true
+                : false;
+        let canPrev =
+            callRoutingNumbers && callRoutingNumbers.skip <= 0 ? false : true;
+        if (isRequesting) {
+            canNext = false;
+            canPrev = false;
+        }
+
+        const numberOfPages = Math.ceil(parseInt(count) / 10);
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -97,6 +126,16 @@ export class RoutingNumberList extends Component {
                                     </div>
                                 </td>
                                 <td
+                                    id="overflow"
+                                    type="action"
+                                    className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                    </div>
+                                </td>
+                                <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
                                 >
@@ -120,12 +159,10 @@ export class RoutingNumberList extends Component {
                         </thead>
                         <tbody className="Table-body">
                             {!isRequesting &&
-                            callRoutingNumbers &&
-                            callRoutingNumbers.length > 0 ? (
-                                callRoutingNumbers.map((number, i) => {
-                                    const { result, edit } = _this.getName(
-                                        number
-                                    );
+                            callRoutingNumbers.numbers &&
+                            callRoutingNumbers.numbers.length > 0 ? (
+                                callRoutingNumbers.numbers.map((number, i) => {
+                                    const { result } = _this.getName(number);
                                     return (
                                         <tr
                                             id={`routing_number_${number._id}_${i}`}
@@ -169,6 +206,13 @@ export class RoutingNumberList extends Component {
                                                 </div>
                                             </td>
                                             <td
+                                                className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{
+                                                    height: '1px',
+                                                    minWidth: '210px',
+                                                }}
+                                            ></td>
+                                            <td
                                                 className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                 style={{
                                                     height: '1px',
@@ -181,58 +225,6 @@ export class RoutingNumberList extends Component {
                                                                 <div className="Box-root Flex-flex">
                                                                     <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                         <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                            <button
-                                                                                title="removeNumber"
-                                                                                id={`remove_number_${number._id}`}
-                                                                                disabled={
-                                                                                    removeNumber &&
-                                                                                    removeNumber.requesting &&
-                                                                                    removeNumber.requesting ===
-                                                                                        number._id
-                                                                                }
-                                                                                onClick={() =>
-                                                                                    openModal(
-                                                                                        {
-                                                                                            id: number,
-                                                                                            onClose: () =>
-                                                                                                '',
-                                                                                            onConfirm: () =>
-                                                                                                this.removeNumber(
-                                                                                                    number._id
-                                                                                                ),
-                                                                                            content: ConfirmNumberDeleteModal,
-                                                                                        }
-                                                                                    )
-                                                                                }
-                                                                                className="bs-Button bs-DeprecatedButton"
-                                                                                type="button"
-                                                                            >
-                                                                                <ShouldRender
-                                                                                    if={
-                                                                                        removeNumber &&
-                                                                                        removeNumber.requesting &&
-                                                                                        removeNumber.requesting ===
-                                                                                            number._id
-                                                                                    }
-                                                                                >
-                                                                                    <FormLoader />
-                                                                                </ShouldRender>
-                                                                                <ShouldRender
-                                                                                    if={
-                                                                                        !(
-                                                                                            removeNumber &&
-                                                                                            removeNumber.requesting &&
-                                                                                            removeNumber.requesting ===
-                                                                                                number._id
-                                                                                        )
-                                                                                    }
-                                                                                >
-                                                                                    <span>
-                                                                                        Remove
-                                                                                        Number
-                                                                                    </span>
-                                                                                </ShouldRender>
-                                                                            </button>
                                                                             <button
                                                                                 title="addSchedule"
                                                                                 id={`add_schedule_${number._id}`}
@@ -262,20 +254,73 @@ export class RoutingNumberList extends Component {
                                                                                         }
                                                                                     )
                                                                                 }
-                                                                                className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                                                                className="bs-Button bs-DeprecatedButton"
                                                                                 type="button"
                                                                             >
-                                                                                {edit ? (
+                                                                                <span>
+                                                                                    Edit
+                                                                                    Call
+                                                                                    Routing
+                                                                                </span>
+                                                                            </button>
+                                                                            <button
+                                                                                title="removeNumber"
+                                                                                id={`remove_number_${number._id}`}
+                                                                                disabled={
+                                                                                    removeNumber &&
+                                                                                    removeNumber.requesting &&
+                                                                                    removeNumber.requesting ===
+                                                                                        number._id
+                                                                                }
+                                                                                onClick={() =>
+                                                                                    openModal(
+                                                                                        {
+                                                                                            id: number,
+                                                                                            onClose: () =>
+                                                                                                '',
+                                                                                            onConfirm: () =>
+                                                                                                this.removeNumber(
+                                                                                                    number._id
+                                                                                                ),
+                                                                                            content: ConfirmNumberDeleteModal,
+                                                                                        }
+                                                                                    )
+                                                                                }
+                                                                                className={
+                                                                                    removeNumber &&
+                                                                                    removeNumber.requesting &&
+                                                                                    removeNumber.requesting ===
+                                                                                        number._id
+                                                                                        ? 'bs-Button bs-Button--blue'
+                                                                                        : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete Margin-left--8'
+                                                                                }
+                                                                                type="button"
+                                                                            >
+                                                                                <ShouldRender
+                                                                                    if={
+                                                                                        removeNumber &&
+                                                                                        removeNumber.requesting &&
+                                                                                        removeNumber.requesting ===
+                                                                                            number._id
+                                                                                    }
+                                                                                >
+                                                                                    <FormLoader />
+                                                                                </ShouldRender>
+                                                                                <ShouldRender
+                                                                                    if={
+                                                                                        !(
+                                                                                            removeNumber &&
+                                                                                            removeNumber.requesting &&
+                                                                                            removeNumber.requesting ===
+                                                                                                number._id
+                                                                                        )
+                                                                                    }
+                                                                                >
                                                                                     <span>
-                                                                                        Edit
-                                                                                        Schedule
+                                                                                        Release
+                                                                                        Number
                                                                                     </span>
-                                                                                ) : (
-                                                                                    <span>
-                                                                                        Add
-                                                                                        Schedule
-                                                                                    </span>
-                                                                                )}
+                                                                                </ShouldRender>
                                                                             </button>
                                                                         </div>
                                                                     </div>
@@ -357,8 +402,7 @@ export class RoutingNumberList extends Component {
                         padding: '0 10px',
                     }}
                 >
-                    {!callRoutingNumbers ||
-                    (callRoutingNumbers && !callRoutingNumbers.length)
+                    {!callRoutingNumbers || count === 0
                         ? 'You have not added any phone numbers yet'
                         : null}
                 </div>
@@ -367,10 +411,14 @@ export class RoutingNumberList extends Component {
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {count
-                                        ? count +
-                                          (count > 1 ? ' Numbers' : ' Number')
-                                        : '0 Numbers'}
+                                    {numberOfPages > 0
+                                        ? `Page ${callRoutingNumbers.skip / 10 +
+                                              1} of ${numberOfPages} (${count} Number${
+                                              count === 1 ? '' : 's'
+                                          })`
+                                        : `${count} Number${
+                                              count === 1 ? '' : 's'
+                                          }`}
                                 </span>
                             </span>
                         </span>
@@ -423,7 +471,7 @@ export class RoutingNumberList extends Component {
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { openModal, closeModal, removeNumbers },
+        { openModal, closeModal, removeNumbers, getCallRoutingNumbers },
         dispatch
     );
 };
@@ -435,7 +483,7 @@ function mapStateToProps(state) {
     const project = state.project.currentProject;
     const numbers =
         state.callRouting.allNumbers && state.callRouting.allNumbers.numbers
-            ? state.callRouting.allNumbers.numbers
+            ? state.callRouting.allNumbers
             : [];
     return {
         currentProject: project,
@@ -453,13 +501,7 @@ RoutingNumberList.propTypes = {
     allNumbers: PropTypes.shape({
         requesting: PropTypes.any,
     }),
-    callRoutingNumbers: PropTypes.shape({
-        length: PropTypes.number,
-        map: PropTypes.func,
-        phoneNumber: PropTypes.shape({
-            length: PropTypes.any,
-        }),
-    }),
+    callRoutingNumbers: PropTypes.object,
     currentProject: PropTypes.shape({
         _id: PropTypes.any,
     }),
@@ -474,6 +516,7 @@ RoutingNumberList.propTypes = {
     teamMembers: PropTypes.shape({
         find: PropTypes.func,
     }),
+    getCallRoutingNumbers: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(RoutingNumberList);

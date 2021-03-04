@@ -186,8 +186,7 @@ const AddSiteUrlForm = reduxForm({
 const mapStateToProps = state => {
     return {
         projectId:
-            state.project.currentProject !== null &&
-            state.project.currentProject._id,
+            state.project.currentProject && state.project.currentProject._id,
         AddSiteUrlModalId: state.modal.modals[0].id,
         editMonitor: state.monitor.editMonitor,
     };

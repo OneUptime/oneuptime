@@ -13,6 +13,7 @@ class Probe extends React.Component {
     constructor(props) {
         super(props);
         this.props = props;
+        this.state = { page: 1 };
     }
 
     ready = () => {
@@ -27,6 +28,7 @@ class Probe extends React.Component {
                 : 10,
             10
         );
+        this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
     nextClicked = () => {
@@ -37,6 +39,7 @@ class Probe extends React.Component {
                 : 10,
             10
         );
+        this.setState({ page: this.state.page + 1 });
     };
 
     render() {
@@ -107,6 +110,7 @@ class Probe extends React.Component {
                                                         nextClicked={
                                                             this.nextClicked
                                                         }
+                                                        page={this.state.page}
                                                     />
                                                 </div>
                                             </div>

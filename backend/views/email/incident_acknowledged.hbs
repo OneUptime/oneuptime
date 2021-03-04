@@ -501,12 +501,18 @@
                                             <span><code>{{method}} <a href={{monitorUrl}} target="_blank"><u>{{monitorUrl}}</u></a></code></span><br>{{/if}}
                                             <strong>Started at:</strong> <span><span
                                                 style="white-space:nowrap">{{incidentTime}}</span></span><br>
+                                            <strong>Acknowledged by:</strong> <span><span
+                                                style="white-space:nowrap">{{acknowledgedBy}}</span></span><br>
                                             <strong>Acknowledged at:</strong> <span><span
                                                 style="white-space:nowrap">{{acknowledgeTime}}</span></span><br>
                                             <strong>Length:</strong> <span><span
                                                 style="white-space:nowrap">{{length}}</span></span><br>
-                                            <strong>Cause:</strong> <span>{{reason}}</span>
-                                            {{#if criterionName}}
+                                            <strong>Cause:</strong><br/>
+                                                {{#each reason}}                                                                                               
+                                                  <span><span
+                                                style="white-space:nowrap">{{this}}</span></span><br/>      
+                                                {{/each}}
+                                                {{#if criterionName}}
                                             <strong>Criterion:</strong> <span>{{criterionName}}</span>
                                             {{/if}}
                                         </td>

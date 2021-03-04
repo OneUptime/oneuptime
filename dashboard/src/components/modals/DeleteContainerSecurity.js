@@ -42,7 +42,7 @@ class DeleteContainerSecurity extends Component {
 
         deleteContainerSecurity(data).then(() => {
             history.push(
-                `/dashboard/project/${data.projectId}/${data.componentId}/security/container`
+                `/dashboard/project/${this.props.slug}/${data.componentId}/security/container`
             );
 
             if (!deleteContainerError) {
@@ -172,6 +172,7 @@ DeleteContainerSecurity.propTypes = {
     closeModal: PropTypes.func,
     deleteContainerSecurity: PropTypes.func,
     modalId: PropTypes.string,
+    slug: PropTypes.string,
     propArr: PropTypes.array,
 };
 
@@ -180,6 +181,7 @@ const mapStateToProps = state => {
         isRequesting: state.security.deleteContainer.requesting,
         deleteContainerError: state.security.deleteContainer.error,
         modalId: state.modal.modals[0].id,
+        slug: state.project.currentProject && state.project.currentProject.slug,
     };
 };
 

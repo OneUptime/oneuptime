@@ -209,3 +209,13 @@ export function slacountdown({ incident, countDown }) {
         });
     };
 }
+
+// Update Timeline
+export function updateTimelineBySocket(data) {
+    return function(dispatch) {
+        dispatch({
+            type: 'FETCH_INCIDENT_MESSAGES_SUCCESS',
+            payload: data,
+        });
+    };
+}

@@ -14,10 +14,20 @@ const callRoutingLogSchema = new Schema({
     },
 
     deletedById: { type: String, ref: 'User', index: true },
+    callSid: String,
+    price: String,
     calledFrom: String,
     calledTo: String,
-    userId: { type: String, ref: 'User', index: true }, // user that call was forwarded to
-    scheduleId: { type: String, ref: 'Schedule', index: true }, // scheduleId || ''
+    duration: String,
+    dialTo: [
+        {
+            callSid: String,
+            userId: { type: String, ref: 'User', index: true }, // user that call was forwarded to
+            scheduleId: { type: String, ref: 'Schedule', index: true }, // scheduleId || ''
+            phoneNumber: String, // phone number that call was forwarded to
+            status: String, // completed/in progress/...
+        },
+    ],
 });
 
 module.exports = mongoose.model('CallRoutingLog', callRoutingLogSchema);

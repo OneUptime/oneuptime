@@ -42,7 +42,9 @@ export class DeleteScheduleBox extends Component {
                         );
                     }
                     this.props.fetchUserSchedule(projectId, userId);
-                    history.push(`/dashboard/project/${projectId}/on-call`);
+                    history.push(
+                        `/dashboard/project/${this.props.slug}/on-call`
+                    );
                 });
             },
             content: DeleteScheduleModal,
@@ -107,7 +109,7 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, props) => {
-    const { scheduleId, projectId, subProjectId, userId } = props.match.params;
+    const { scheduleId, subProjectId, userId } = props.match.params;
 
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {
@@ -125,9 +127,11 @@ const mapStateToProps = (state, props) => {
 
     return {
         scheduleName,
-        projectId,
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
         subProjectId,
         scheduleId,
+        slug: state.project.currentProject && state.project.currentProject.slug,
         userId,
         isRequesting: state.schedule.deleteSchedule.requesting,
     };
@@ -136,6 +140,7 @@ const mapStateToProps = (state, props) => {
 DeleteScheduleBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     history: PropTypes.object.isRequired,
+    slug: PropTypes.string,
     subProjectId: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),

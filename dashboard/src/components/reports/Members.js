@@ -19,6 +19,7 @@ class MembersList extends Component {
             members: [],
             skip: 0,
             limit: 10,
+            page: 1,
         };
         this.handleNext = this.handleNext.bind(this);
         this.handlePrevious = this.handlePrevious.bind(this);
@@ -82,6 +83,7 @@ class MembersList extends Component {
         getActiveMembers(currentProject, startDate, endDate, skip, 10);
         this.setState({
             skip,
+            page: this.state.page + 1,
         });
     }
 
@@ -97,16 +99,16 @@ class MembersList extends Component {
         getActiveMembers(currentProject, startDate, endDate, skip, 10);
         this.setState({
             skip,
+            page: this.state.page === 1 ? 1 : this.state.page - 1,
         });
     }
 
     render() {
-        let canNext =
+        const count =
             this.props.activeMembers &&
-            this.props.activeMembers.count &&
-            this.props.activeMembers.count > this.state.skip + this.state.limit
-                ? true
-                : false;
+            this.props.activeMembers.members &&
+            this.props.activeMembers.members.length;
+        let canNext = count > this.state.skip + this.state.limit ? true : false;
         let canPrev =
             this.props.activeMembers && this.state.skip <= 0 ? false : true;
 
@@ -118,6 +120,7 @@ class MembersList extends Component {
             canNext = false;
             canPrev = false;
         }
+        const numberOfPages = Math.ceil(parseInt(count) / 10);
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -358,13 +361,12 @@ class MembersList extends Component {
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {this.props.activeMembers &&
-                                    this.props.activeMembers.count
-                                        ? this.props.activeMembers.count +
-                                          (this.props.activeMembers &&
-                                          this.props.activeMembers.count > 1
-                                              ? ' Members'
-                                              : ' Member')
+                                    {numberOfPages > 0
+                                        ? `Page ${
+                                              this.state.page
+                                          } of ${numberOfPages} (${count} Member${
+                                              count === 1 ? '' : 's'
+                                          })`
                                         : null}
                                 </span>
                             </span>

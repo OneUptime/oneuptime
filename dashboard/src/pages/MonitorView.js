@@ -86,7 +86,7 @@ class MonitorView extends React.Component {
                 );
                 this.props.fetchLighthouseLogs(subProjectId, monitor._id, 0, 5); //0 -> skip, 10-> limit.
             }
-            this.props.fetchMonitorsIncidents(subProjectId, monitor._id, 0, 5); //0 -> skip, 5-> limit.
+            this.props.fetchMonitorsIncidents(subProjectId, monitor._id, 0, 10); //0 -> skip, 5-> limit.
             this.props.fetchMonitorsSubscribers(
                 subProjectId,
                 monitor._id,
@@ -168,11 +168,10 @@ class MonitorView extends React.Component {
             monitorSlas,
             scheduleWarning,
             monitorId,
-            projectId,
             history,
             defaultSchedule,
         } = this.props;
-        const redirectTo = `/dashboard/project/${projectId}/on-call`;
+        const redirectTo = `/dashboard/project/${this.props.slug}/on-call`;
         let scheduleAlert;
         if (
             scheduleWarning.includes(monitorId) === false &&
@@ -447,7 +446,10 @@ class MonitorView extends React.Component {
                                                             .type === 'url' ||
                                                             this.props.monitor
                                                                 .type ===
-                                                                'api') &&
+                                                                'api' ||
+                                                            this.props.monitor
+                                                                .type ===
+                                                                'ip') &&
                                                             !this.props
                                                                 .probeList
                                                                 .requesting) ||
@@ -457,7 +459,11 @@ class MonitorView extends React.Component {
                                                                 this.props
                                                                     .monitor
                                                                     .type !==
-                                                                    'api')) ? (
+                                                                    'api' &&
+                                                                this.props
+                                                                    .monitor
+                                                                    .type !==
+                                                                    'ip')) ? (
                                                             <Fragment>
                                                                 <TabPanel>
                                                                     <Fade>
@@ -603,7 +609,17 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         .type ===
-                                                                                        'incomingHttpRequest')
+                                                                                        'incomingHttpRequest' ||
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type ===
+                                                                                        'kubernetes' ||
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type ===
+                                                                                        'ip')
                                                                             }
                                                                         >
                                                                             <div className="Box-root Margin-bottom--12">
@@ -769,7 +785,7 @@ class MonitorView extends React.Component {
 
 const mapStateToProps = (state, props) => {
     const scheduleWarning = [];
-    const { projectId, componentId, monitorId } = props.match.params;
+    const { componentId, monitorId } = props.match.params;
     const schedules = state.schedule.schedules;
 
     state.schedule.subProjectSchedules.forEach(item => {
@@ -812,6 +828,8 @@ const mapStateToProps = (state, props) => {
         initialValues[`url_${monitor._id}`] = monitor.data && monitor.data.url;
         initialValues[`deviceId_${monitor._id}`] =
             monitor.data && monitor.data.deviceId;
+        initialValues[`ip_${monitor._id}`] =
+            monitor.data && monitor.data.IPAddress;
         initialValues[`description_${monitor._id}`] =
             monitor.data && monitor.data.description;
         initialValues[`subProject_${monitor._id}`] = monitor.projectId._id;
@@ -839,12 +857,20 @@ const mapStateToProps = (state, props) => {
         if (monitor.monitorSla && monitor.monitorSla._id) {
             initialValues.monitorSla = monitor.monitorSla._id;
         }
+        if (monitor.type === 'kubernetes') {
+            initialValues[`configurationFile_${monitor._id}`] =
+                monitor.kubernetesConfig;
+            initialValues[`kubernetesNamespace_${monitor._id}`] =
+                monitor.kubernetesNamespace || 'default';
+        }
         if (
             monitor.type === 'url' ||
             monitor.type === 'api' ||
             monitor.type === 'server-monitor' ||
             monitor.type === 'incomingHttpRequest' ||
-            monitor.type === 'script'
+            monitor.type === 'script' ||
+            monitor.type === 'kubernetes' ||
+            monitor.type === 'ip'
         ) {
             // collect all criteria
             if (monitor.criteria) {
@@ -950,8 +976,10 @@ const mapStateToProps = (state, props) => {
     return {
         defaultSchedule,
         scheduleWarning,
-        projectId,
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
         monitorId,
+        slug: state.project.currentProject && state.project.currentProject.slug,
         componentId,
         monitor,
         edit: state.monitor.monitorsList.editMode ? true : false,
@@ -988,6 +1016,7 @@ const mapDispatchToProps = dispatch => {
 
 MonitorView.propTypes = {
     projectId: PropTypes.string,
+    slug: PropTypes.string,
     monitorId: PropTypes.string,
     componentId: PropTypes.string,
     monitor: PropTypes.object,

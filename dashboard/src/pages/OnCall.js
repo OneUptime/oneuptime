@@ -64,6 +64,7 @@ export class OnCall extends Component {
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             10
         );
+        this.setState({ [subProjectId]: this.state[subProjectId] - 1 });
         paginate('prev');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: CALL SCHEDULE > PREVIOUS PAGE');
@@ -74,6 +75,11 @@ export class OnCall extends Component {
         const { fetchProjectSchedule, paginate } = this.props;
 
         fetchProjectSchedule(subProjectId, skip + limit, 10);
+        this.setState({
+            [subProjectId]: !this.state[subProjectId]
+                ? 2
+                : this.state[subProjectId] + 1,
+        });
         paginate('next');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: CALL SCHEDULE > NEXT PAGE');
@@ -81,11 +87,11 @@ export class OnCall extends Component {
     };
 
     createSchedule = subProjectId => {
-        const { createSchedule, currentProjectId, history } = this.props;
+        const { createSchedule, history } = this.props;
 
         createSchedule(subProjectId, { name: 'Unnamed' }).then(({ data }) => {
             history.push(
-                `/dashboard/project/${currentProjectId}/sub-project/${subProjectId}/schedule/${data[0]._id}`
+                `/dashboard/project/${this.props.currentProject.slug}/sub-project/${subProjectId}/schedule/${data[0]._id}`
             );
         });
 
@@ -188,6 +194,7 @@ export class OnCall extends Component {
                                             subProjectSchedules.length
                                         }
                                         modalList={this.props.modalList}
+                                        page={this.state[subProject._id]}
                                     />
                                 </div>
                             </div>
@@ -224,7 +231,7 @@ export class OnCall extends Component {
         projectSchedule =
             projectSchedule && projectSchedule.schedules ? (
                 <RenderIfUserInSubProject
-                    subProjectId={currentProject._id}
+                    subProjectId={currentProject && currentProject._id}
                     key={() => uuidv4()}
                 >
                     <div className="bs-BIM">
@@ -236,7 +243,9 @@ export class OnCall extends Component {
                                     </div>
                                 </ShouldRender>
                                 <ScheduleProjectBox
-                                    projectId={currentProject._id}
+                                    projectId={
+                                        currentProject && currentProject._id
+                                    }
                                     currentProject={currentProject}
                                     schedules={schedules}
                                     isRequesting={isRequesting}
@@ -245,7 +254,9 @@ export class OnCall extends Component {
                                     limit={limit}
                                     numberOfSchedules={numberOfSchedules}
                                     subProjectSchedule={projectSchedule}
-                                    subProjectName={currentProject.name}
+                                    subProjectName={
+                                        currentProject && currentProject.name
+                                    }
                                     scheduleModalId={this.state.scheduleModalId}
                                     openModal={this.props.openModal}
                                     subProject={currentProject}
@@ -258,6 +269,11 @@ export class OnCall extends Component {
                                         subProjectSchedules.length
                                     }
                                     modalList={this.props.modalList}
+                                    page={
+                                        this.state[
+                                            currentProject && currentProject._id
+                                        ]
+                                    }
                                 />
                             </div>
                         </div>
@@ -317,8 +333,7 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-const mapStateToProps = (state, props) => {
-    const { projectId } = props.match.params;
+const mapStateToProps = state => {
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
@@ -330,7 +345,8 @@ const mapStateToProps = (state, props) => {
         subProjectNames.map(name =>
             subProjects.find(subProject => subProject.name === name)
         );
-
+    const projectId =
+        state.project.currentProject && state.project.currentProject._id;
     const currentProjectId = projectId;
     const schedules = state.schedule.subProjectSchedules;
 

@@ -37,3 +37,10 @@ export function closeSideNav() {
         type: 'CLOSE_SIDENAV',
     };
 }
+
+export function toggleProjectSettingsMore(payload) {
+    return {
+        type: types.TOGGLE_PROJECT_SETTINGS_MORE,
+        payload,
+    };
+}

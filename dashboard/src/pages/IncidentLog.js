@@ -10,6 +10,8 @@ import {
     resetIncidents,
     getIncidents,
     getProjectIncidents,
+    getComponentIncidents,
+    getProjectComponentIncidents,
 } from '../actions/incident';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import PropTypes from 'prop-types';
@@ -31,7 +33,7 @@ class IncidentLog extends React.Component {
     constructor(props) {
         super(props);
         this.props = props;
-        this.state = { createIncidentModalId: uuidv4() };
+        this.state = { createIncidentModalId: uuidv4(), page: {} };
     }
 
     componentDidMount() {
@@ -41,17 +43,46 @@ class IncidentLog extends React.Component {
     }
 
     ready = () => {
-        this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
+        const { componentId } = this.props;
+        if (componentId) {
+            this.props.getComponentIncidents(
+                this.props.currentProject._id,
+                componentId
+            );
+        } else {
+            this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
+        }
+
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
         this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
     };
 
     prevClicked = (projectId, skip, limit) => {
-        this.props.getProjectIncidents(
-            projectId,
-            (skip || 0) > (limit || 10) ? skip - limit : 0,
-            10
-        );
+        const { componentId } = this.props;
+        if (componentId) {
+            this.props.getProjectComponentIncidents(
+                projectId,
+                componentId,
+                (skip || 0) > (limit || 10) ? skip - limit : 0,
+                10
+            );
+        } else {
+            this.props.getProjectIncidents(
+                projectId,
+                (skip || 0) > (limit || 10) ? skip - limit : 0,
+                10
+            );
+        }
+
+        const newPageState = Object.assign({}, this.state.page, {
+            [projectId]:
+                this.state.page[projectId] === 1
+                    ? 1
+                    : this.state.page[projectId] - 1,
+        });
+        this.setState({
+            page: newPageState,
+        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT LOG > PREVIOUS BUTTON CLICKED'
@@ -60,7 +91,25 @@ class IncidentLog extends React.Component {
     };
 
     nextClicked = (projectId, skip, limit) => {
-        this.props.getProjectIncidents(projectId, skip + limit, 10);
+        const { componentId } = this.props;
+        if (componentId) {
+            this.props.getProjectComponentIncidents(
+                projectId,
+                componentId,
+                skip + limit,
+                10
+            );
+        } else {
+            this.props.getProjectIncidents(projectId, skip + limit, 10);
+        }
+        const newPageState = Object.assign({}, this.state.page, {
+            [projectId]: !this.state.page[projectId]
+                ? 2
+                : this.state.page[projectId] + 1,
+        });
+        this.setState({
+            page: newPageState,
+        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT LOG > NEXT BUTTON CLICKED'
@@ -129,6 +178,15 @@ class IncidentLog extends React.Component {
                                             subProjectIncidents.length
                                         }
                                         modalList={this.props.modalList}
+                                        page={
+                                            !this.state.page[
+                                                subProjectIncident._id
+                                            ]
+                                                ? 1
+                                                : this.state.page[
+                                                      subProjectIncident._id
+                                                  ]
+                                        }
                                     />
                                 </div>
                             </div>
@@ -183,6 +241,13 @@ class IncidentLog extends React.Component {
                                         subProjectIncidents.length
                                     }
                                     modalList={this.props.modalList}
+                                    page={
+                                        !this.state.page[projectIncident._id]
+                                            ? 1
+                                            : this.state.page[
+                                                  projectIncident._id
+                                              ]
+                                    }
                                 />
                             </div>
                         </div>
@@ -235,7 +300,9 @@ class IncidentLog extends React.Component {
 }
 
 const mapStateToProps = (state, props) => {
-    const { componentId, projectId } = props.match.params;
+    const { componentId } = props.match.params;
+    const projectId =
+        state.project.currentProject && state.project.currentProject._id;
     let subProjects = state.subProject.subProjects.subProjects;
     let component;
     state.component.componentList.components.forEach(item => {
@@ -279,6 +346,7 @@ const mapStateToProps = (state, props) => {
         tutorialStat,
         component,
         modalList: state.modal.modals,
+        projectId,
     };
 };
 
@@ -295,6 +363,8 @@ const mapDispatchToProps = dispatch => {
             closeModal,
             fetchIncidentPriorities,
             fetchBasicIncidentSettings,
+            getComponentIncidents,
+            getProjectComponentIncidents,
         },
         dispatch
     );
@@ -325,6 +395,8 @@ IncidentLog.propTypes = {
     fetchIncidentPriorities: PropTypes.func.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
     modalList: PropTypes.array,
+    getComponentIncidents: PropTypes.func,
+    getProjectComponentIncidents: PropTypes.func,
 };
 
 IncidentLog.displayName = 'IncidentLog';

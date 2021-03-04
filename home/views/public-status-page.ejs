@@ -20,6 +20,29 @@
             amplitude.getInstance().logEvent('PAGE VIEW: HOME > PRODUCT > PUBLIC STATUS PAGE');
         }
     </script>
+    <script>
+        function onClickFunc() {
+            let playButton = document.getElementById("playButton");
+            let gif = document.getElementById("uptime-monitoring-gif");
+            let videoDiv= document.getElementById("videoDiv");
+            let video= document.getElementById("video");
+            playButton.style.display = "none";
+            gif.style.display="none";
+            videoDiv.style.display="block";
+            video.src += "?autoplay=1";
+        }
+        function mouseOverFunc()
+        {
+            let playButton = document.getElementById("playButton");
+            playButton.src="/img/play-button-black.svg";
+            playButton.style.cursor="pointer";
+        }
+        function mouseOutFunc()
+        {
+            let playButton = document.getElementById("playButton");
+            playButton.src="/img/play-button-grey.svg";
+        }
+    </script>
 </head>
 
 <body>
@@ -66,8 +89,12 @@
 
             </section>
 
-            <div style="display:flex; justify-content:center; margin-bottom:30px;margin-top:30px;">
+            <div class="gif-container">
                 <img src="/img/animated-gif/status-page.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
+                  <img class="play" id="playButton" onmouseout="mouseOutFunc()"onmouseover="mouseOverFunc()"onclick="onClickFunc()" src="/img/play-button-grey.svg"/>
+                    <div id="videoDiv" class="videoClass">
+                    <iframe id="video" width="850" height="500" src="https://www.youtube.com/embed/IKyUf5CT36I" rel="0" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                    </div>
             </div>
 
             <% include ./cta-buttons %>
@@ -117,6 +144,9 @@
                 <% include ./cta-buttons %>
 
                 <% include ./customer-section %>
+                <div class="sectionBorderTop">
+                    <% include ./comparision-chart %>
+                </div>
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
                     <h2 class="header">Unlimited Subscribers</h2>
                     <p class="common-BodyText"> Have any number of your customers subscribe to your status page, get alerts when services are down or degraded. </p>

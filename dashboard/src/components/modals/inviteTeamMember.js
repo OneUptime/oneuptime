@@ -21,6 +21,7 @@ import { SHOULD_LOG_ANALYTICS, Validate } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 import MessageBox from './MessageBox';
 import formatEmails from '../../utils/formatEmails';
+import HasProjectOwner from '../basic/HasProjectOwner';
 
 function validate(values) {
     const errors = {};
@@ -161,7 +162,16 @@ export class FormModal extends Component {
             >
                 <div className="bs-BIM db-InviteSetting">
                     <div className="bs-Modal bs-Modal--large">
-                        <ClickOutside onClickOutside={closeThisDialog}>
+                        <ClickOutside
+                            onClickOutside={e => {
+                                if (
+                                    e.target.className ===
+                                    'bs-BIM db-InviteSetting'
+                                ) {
+                                    closeThisDialog();
+                                }
+                            }}
+                        >
                             <form
                                 id={`frm_${data.subProjectName}`}
                                 lpformnum="2"
@@ -172,7 +182,7 @@ export class FormModal extends Component {
                                         <div className="db-InviteSetting-header">
                                             <h2>
                                                 <span>
-                                                    Invite new team members
+                                                    Invite new team member
                                                 </span>
                                             </h2>
                                             <p className="db-InviteSetting-headerDescription">
@@ -387,10 +397,13 @@ export class FormModal extends Component {
                                             </div>
                                             <ShouldRender
                                                 if={
-                                                    this.props.data
-                                                        .subProjectId ===
-                                                    this.props.currentProject
-                                                        ._id
+                                                    !HasProjectOwner(
+                                                        this.props
+                                                            .currentProject,
+                                                        this.props.data
+                                                            .subProjectId,
+                                                        this.props.subProjects
+                                                    )
                                                 }
                                             >
                                                 <div className="db-RoleRadioList-row">

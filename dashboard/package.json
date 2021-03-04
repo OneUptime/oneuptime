@@ -55,14 +55,14 @@
         "react-ga": "^2.5.3",
         "react-google-charts": "^3.0.15",
         "react-hover-observer": "^2.1.0",
-        "react-json-view": "1.19.1",
+        "react-json-view": "^1.21.1",
         "react-markdown": "^4.3.1",
         "react-phone-input-2": "^2.13.8",
         "react-redux": "^5.0.7",
         "react-reveal": "^1.2.2",
         "react-router-dom": "^4.2.2",
         "react-router-redux": "^4.0.8",
-        "react-scripts": "^3.4.4",
+        "react-scripts": "^4.0.3",
         "react-select": "^3.0.8",
         "react-simple-code-editor": "^0.11.0",
         "react-slick": "^0.27.9",
@@ -75,6 +75,7 @@
         "redux-form": "^7.3.0",
         "redux-logger": "^3.0.6",
         "redux-thunk": "^2.2.0",
+        "rxjs": "^6.6.6",
         "sane-email-validation": "^1.1.0",
         "should": "^13.2.3",
         "slick-carousel": "^1.8.1",
@@ -82,7 +83,8 @@
         "to-pascal-case": "^1.0.0",
         "universal-cookie": "^4.0.0",
         "uuid": "^8.3.2",
-        "valid-url": "^1.0.9"
+        "valid-url": "^1.0.9",
+        "workbox-build": "^4.3.1"
     },
     "scripts": {
         "lint": "eslint .",
@@ -108,8 +110,7 @@
         "jest-localstorage-mock": "^2.2.0",
         "npm-force-resolutions": "0.0.3",
         "redux-mock-store": "^1.5.3",
-        "should": "^13.2.3",
-        "workbox-build": "^4.3.1"
+        "should": "^13.2.3"
     },
     "jest": {
         "collectCoverageFrom": [

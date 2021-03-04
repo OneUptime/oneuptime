@@ -17,6 +17,10 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 
 class AlertLog extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {};
+    }
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > ALERT LOG');
@@ -33,6 +37,7 @@ class AlertLog extends Component {
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             10
         );
+        this.setState({ [projectId]: this.state[projectId] - 1 });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > ALERT LOG > PREVIOUS BUTTON CLICKED'
@@ -42,6 +47,9 @@ class AlertLog extends Component {
 
     nextClicked = (projectId, skip, limit) => {
         this.props.fetchProjectAlert(projectId, skip + limit, 10);
+        this.setState({
+            [projectId]: !this.state[projectId] ? 2 : this.state[projectId] + 1,
+        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > ALERT LOG > NEXT BUTTON CLICKED'
@@ -131,6 +139,7 @@ class AlertLog extends Component {
                                         canPrev={canPrev}
                                         isRequesting={isRequesting}
                                         error={error}
+                                        pages={this.state[currentProject._id]}
                                     />
                                 </div>
                             </div>
@@ -209,6 +218,7 @@ class AlertLog extends Component {
                                     isRequesting={isRequesting}
                                     error={error}
                                     subProjects={subProjects}
+                                    pages={this.state[currentProject._id]}
                                 />
                             </div>
                         </div>
