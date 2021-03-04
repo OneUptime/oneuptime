@@ -7,9 +7,14 @@
 namespace Fyipe;
 
 use stdClass;
-
 class Util
 {
+    private $CONTENT_CACHE;
+    
+    public function __construct()
+    {
+        $this->CONTENT_CACHE = new \LRUCache\LRUCache(100);
+    }
     public function getErrorType()
     {
         $types = new stdClass;
@@ -87,6 +92,32 @@ class Util
     
       return $obj;
     }
+    private function getErrorCodeSnippet($errorObj) {
+        $frames = $errorObj->stacktrace ? $errorObj->stacktrace->frames : [];
+        for ($i = 0; $i < sizeof($frames); $i++) {
+            $fileName = $frames[$i]->fileName;
+            // check what it starts with
+            $fileName = $this->formatFileName($fileName);
+
+            // try to get the file from the cache
+            $cache = $this->CONTENT_CACHE->get($fileName);
+            // if we get a hit for the file
+            if (isset($cache)) {
+                // and the content is not null
+                if (!is_null($cache)) {
+                    $frames[$i]->sourceFile = $cache;
+                }
+            } else {
+                // try to read the file content and save to cache
+                $currentContent =  $this->readFileFromSource($fileName);
+                if (!is_null($currentContent)) {
+                    $frames[$i]->sourceFile = $currentContent;
+                }
+            }
+        }
+        array_map("updateFrameContent", $frames);
+    }
+    
     public static function v4() {
         return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
     
@@ -108,5 +139,5 @@ class Util
           // 48 bits for "node"
           mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
         );
-      }
+    }
 }
