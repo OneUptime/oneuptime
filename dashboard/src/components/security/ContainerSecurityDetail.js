@@ -59,6 +59,7 @@ class ContainerSecurityDetail extends Component {
             projectId,
             componentId,
             containerSecurityId,
+            containerSecuritySlug,
             isRequesting,
             getContainerError,
             containerSecurityLog,
@@ -123,6 +124,7 @@ class ContainerSecurityDetail extends Component {
                         projectId={projectId}
                         componentId={componentId}
                         containerSecurityId={containerSecurityId}
+                        containerSecuritySlug={containerSecuritySlug}
                         isRequesting={isRequesting}
                         containerSecurity={containerSecurity}
                     />
@@ -150,6 +152,7 @@ class ContainerSecurityDetail extends Component {
                         projectId={projectId}
                         componentId={componentId}
                         containerSecurityId={containerSecurityId}
+                        containerSecuritySlug={containerSecuritySlug}
                     />
                 </ShouldRender>
                 <ShouldRender
@@ -176,6 +179,7 @@ ContainerSecurityDetail.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
     containerSecurityId: PropTypes.string,
+    containerSecuritySlug:PropTypes.string,
     containerSecurity: PropTypes.object,
     isRequesting: PropTypes.bool,
     getContainerError: PropTypes.oneOfType([
@@ -220,8 +224,11 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, ownProps) => {
-    const { componentId, containerSecurityId } = ownProps.match.params;
-
+    const { componentId, containerSecuritySlug } = ownProps.match.params;
+    const currentContainerSecurity = state.security.containerSecurities && state.security.containerSecurities.find(el => {
+         return el.slug === containerSecuritySlug;
+     });
+     const containerSecurityId= currentContainerSecurity && currentContainerSecurity._id;
     const components = [];
     // filter to get the actual component
     state.component.componentList.components.map(item =>
@@ -238,6 +245,7 @@ const mapStateToProps = (state, ownProps) => {
             state.project.currentProject && state.project.currentProject._id,
         componentId,
         containerSecurityId,
+        containerSecuritySlug,
         containerSecurity: state.security.containerSecurity,
         isRequesting: state.security.getContainer.requesting,
         getContainerError: state.security.getContainer.error,

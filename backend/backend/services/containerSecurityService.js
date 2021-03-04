@@ -1,6 +1,8 @@
 const ContainerSecurityModel = require('../models/containerSecurity');
 const ErrorService = require('./errorService');
 const moment = require('moment');
+const generate = require('nanoid/generate');
+const slugify = require('slugify');
 const { decrypt } = require('../config/encryptDecrypt');
 const ContainerSecurityLogService = require('./containerSecurityLogService');
 const DockerCredentialService = require('./dockerCredentialService');
@@ -50,7 +52,10 @@ module.exports = {
             if (!resourceCategory) {
                 delete data.resourceCategory;
             }
-
+            let name = data.name;
+            name = slugify(name);
+            name = `${name}-${generate('1234567890', 8)}`;
+            data.slug = name.toLowerCase();
             const containerSecurity = await ContainerSecurityModel.create(data);
             return containerSecurity;
         } catch (error) {
@@ -110,7 +115,10 @@ module.exports = {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
-
+            let name = data.name;
+            name = slugify(name);
+            name = `${name}-${generate('1234567890', 8)}`;
+            data.slug = name.toLowerCase();
             let containerSecurity = await ContainerSecurityModel.findOneAndUpdate(
                 query,
                 {

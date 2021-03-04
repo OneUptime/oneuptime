@@ -26,6 +26,7 @@ const SecurityInfo = ({
     scanApplicationSecurity,
     scanningApplication,
     containerSecurityId,
+    containerSecuritySlug,
     containerSecurityLog,
     scanContainerSecurity,
     scanningContainer,
@@ -51,7 +52,7 @@ const SecurityInfo = ({
     };
 
     const more = () => {
-        const securitySlug = containerSecurityId || applicationSecuritySlug; 
+        const securitySlug = containerSecuritySlug || applicationSecuritySlug; 
 
         type =
             (type === 'container' && 'container') ||

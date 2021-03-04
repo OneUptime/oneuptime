@@ -68,7 +68,7 @@ class Container extends Component {
 
         socket.on(`createContainerSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${this.props.slug}/${componentId}/security/container/${data._id}`
+                `/dashboard/project/${this.props.slug}/${componentId}/security/container/${data.slug}`
             );
         });
 
@@ -147,9 +147,13 @@ class Container extends Component {
                                                                         containerSecurityId={
                                                                             containerSecurity._id
                                                                         }
+                                                                        containerSecuritySlug={
+                                                                            containerSecurity.slug
+                                                                        }
                                                                         projectId={
                                                                             projectId
                                                                         }
+
                                                                         componentId={
                                                                             componentId
                                                                         }

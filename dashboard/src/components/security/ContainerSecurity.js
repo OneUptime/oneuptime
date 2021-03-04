@@ -6,6 +6,7 @@ import SecurityInfo from './SecurityInfo';
 const ContainerSecurity = ({
     name,
     containerSecurityId,
+    containerSecuritySlug,
     projectId,
     componentId,
     containerSecurityLogs,
@@ -32,6 +33,7 @@ const ContainerSecurity = ({
                     projectId={projectId}
                     componentId={componentId}
                     containerSecurityId={containerSecurityId}
+                    containerSecuritySlu={containerSecuritySlug}
                     type="container"
                     containerSecurityLog={securityLog}
                 />
@@ -45,6 +47,7 @@ ContainerSecurity.displayName = 'Container Security';
 ContainerSecurity.propTypes = {
     name: PropTypes.string,
     containerSecurityId: PropTypes.string,
+    containerSecuritySlug: PropTypes.string,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
     containerSecurityLogs: PropTypes.array,

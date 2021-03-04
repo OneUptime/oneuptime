@@ -209,7 +209,7 @@ export const groups = [
                     {
                         title: 'Container Detail',
                         path:
-                            '/dashboard/project/:slug/:componentId/security/container/:containerSecurityId',
+                            '/dashboard/project/:slug/:componentId/security/container/:containerSecuritySlug',
                         icon: 'docker',
                         visible: true,
                         subRoute: [],
