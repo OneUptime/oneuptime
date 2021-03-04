@@ -53,6 +53,9 @@ class ResourceTabularList extends Component {
             default:
                 break;
         }
+        if(route === 'monitoring')
+        return `${baseUrl}${route}/${componentResource.slug}`;
+        else
         return `${baseUrl}${route}/${componentResource._id}`;
     }
     generateResourceStatus(componentResource) {

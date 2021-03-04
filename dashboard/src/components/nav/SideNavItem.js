@@ -50,7 +50,7 @@ export class SidebarNavItem extends Component {
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
-            .replace(':monitorId', match.params.monitorId)
+            .replace(':monitor', match.params.monitorSlug)
             .replace(':applicationLogId', match.params.applicationLogId)
             .replace(':errorTrackerId', match.params.errorTrackerId);
     };
@@ -65,7 +65,7 @@ export class SidebarNavItem extends Component {
             .replace(/:issueId/, match.params.issueId)
             .replace(/:scheduleId/, match.params.scheduleId)
             .replace(/:incidentId/, match.params.incidentId)
-            .replace(/:monitorId/, match.params.monitorId);
+            .replace(/:monitorSlug/, match.params.monitorSlug);
         const projectSettingsSubRoutes =
             subRoute.title === 'Monitor' ||
             subRoute.title === 'Incident Settings' ||
@@ -108,7 +108,7 @@ export class SidebarNavItem extends Component {
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
-            .replace(':monitorId', match.params.monitorId)
+            .replace(':monitorSlug', match.params.monitorSlug)
             .replace(':applicationLogId', match.params.applicationLogId)
             .replace(':errorTrackerId', match.params.errorTrackerId);
         const isLinkActive =
@@ -163,7 +163,7 @@ export class SidebarNavItem extends Component {
             newPath = newPath.replace(/:issueId/, match.params.issueId);
             newPath = newPath.replace(/:scheduleId/, match.params.scheduleId);
             newPath = newPath.replace(/:incidentId/, match.params.incidentId);
-            newPath = newPath.replace(/:monitorId/, match.params.monitorId);
+            newPath = newPath.replace(/:monitorSlug/, match.params.monitorSlug);
             newPath = newPath.replace(/:componentId/, match.params.componentId);
             newPath = newPath.replace(
                 /:applicationLogId/,
