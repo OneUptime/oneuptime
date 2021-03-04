@@ -31,9 +31,9 @@ describe('Reset Password API', () => {
 
     it('Should reset password successfully', async () => {
         await init.registerUser(user, page);
-        await page.waitForSelector('#profile-menu',{visible: true});
+        await page.waitForSelector('#profile-menu', { visible: true });
         await page.click('#profile-menu');
-        await page.waitForSelector('#logout-button',{visible: true});
+        await page.waitForSelector('#logout-button', { visible: true });
         await Promise.all([
             page.click('#logout-button'),
             page.waitForNavigation({ waitUntil: 'networkidle2' }),
