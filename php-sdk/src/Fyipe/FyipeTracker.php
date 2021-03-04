@@ -26,7 +26,7 @@ class FyipeTracker
      */
     private $errorTrackerKey;
 
-    private $configKeys = ['baseUrl', 'maxTimeline'];
+    private $configKeys = ['baseUrl'];
     private $MAX_ITEMS_ALLOWED_IN_STACK = 100;
     private $eventId;
     private $tags = [];
@@ -34,7 +34,9 @@ class FyipeTracker
     private $listenerObj;
     private $utilObj;
     private $event;
-    private $options = [];
+    private $options = [
+        'maxTimeline' => 5
+    ];
 
     /**
      * FyipeTracker constructor.
@@ -55,13 +57,13 @@ class FyipeTracker
             $this->getEventId(),
             $this->options
         ); // Initialize Listener for timeline
-       
+
 
         // initialize exception handler listener
-        set_exception_handler(array('self','setUpExceptionHandlerListener'));
+        set_exception_handler(array('self', 'setUpExceptionHandlerListener'));
 
         // initializa error handler listener
-        set_error_handler(array('self','setUpErrorHandler'));
+        set_error_handler(array('self', 'setUpErrorHandler'));
     }
 
     private function setApiUrl(String $apiUrl): void
@@ -75,15 +77,18 @@ class FyipeTracker
             $key = key($option);
             $value = $option->$key;
             // proceed with current key if it is not in the config keys
-            if (in_array($key, $this->configKeys)) {
-                // set max timeline properly after checking conditions
-                if (
-                    $key == 'maxTimeline' &&
-                    ($value > $this->MAX_ITEMS_ALLOWED_IN_STACK || $value < 1)
-                ) {
-                    $this->options[$key] = $this->MAX_ITEMS_ALLOWED_IN_STACK;
-                } else {
-                    $this->options[$key] = $value;
+            if (!in_array($key, $this->configKeys)) {
+                // if key is allowed in options
+                if (isset($this->options[$key])) {
+                    // set max timeline properly after checking conditions
+                    if (
+                        $key == 'maxTimeline' &&
+                        ($value > $this->MAX_ITEMS_ALLOWED_IN_STACK || $value < 1)
+                    ) {
+                        $this->options[$key] = $this->MAX_ITEMS_ALLOWED_IN_STACK;
+                    } else {
+                        $this->options[$key] = $value;
+                    }
                 }
             }
         }
@@ -165,7 +170,8 @@ class FyipeTracker
 
         $this->manageErrorObject($errorObj);
     }
-    public function captureMessage($message) {
+    public function captureMessage($message)
+    {
         // set the a handled tag
         $this->setTag('handled', 'true');
         $messageObj = new stdClass();
@@ -175,7 +181,8 @@ class FyipeTracker
         // send to the server
         return $this->sendErrorEventToServer();
     }
-    public function captureException($exception) {
+    public function captureException($exception)
+    {
         // construct the error object
         $exceptionObj = $this->utilObj->getExceptionStackTrace($exception);
 
@@ -202,7 +209,8 @@ class FyipeTracker
         // send to the server
         return $this->sendErrorEventToServer();
     }
-    public function prepareErrorObject($type, $errorStackTrace) {
+    public function prepareErrorObject($type, $errorStackTrace)
+    {
         // get current timeline
         $timeline = $this->getTimeline();
         // TODO get device location and details
@@ -222,17 +230,20 @@ class FyipeTracker
         $this->event->errorTrackerKey = $this->errorTrackerKey;
         $this->event->sdk = $this->getSDKDetails();
     }
-    public function addToTimeline($category, $content, $type) {
+    public function addToTimeline($category, $content, $type)
+    {
         $timelineObj =  new stdClass();
         $timelineObj->category = $category;
         $timelineObj->data = $content;
         $timelineObj->type = $type;
         $this->listenerObj->logCustomTimelineEvent($timelineObj);
     }
-    public function getTimeline() {
+    public function getTimeline()
+    {
         return $this->listenerObj->getTimeline();
     }
-    private function sendErrorEventToServer() {
+    private function sendErrorEventToServer()
+    {
         $response = $this->makeApiRequest($this->event);
         // generate a new event Id
         $this->setEventId();
@@ -255,21 +266,24 @@ class FyipeTracker
             return $exception;
         }
     }
-    public function getCurrentEvent() {
+    public function getCurrentEvent()
+    {
         return $this->event;
     }
-    private function getSDKDetails() {
+    private function getSDKDetails()
+    {
         // get the full directory path, then strip away src/Fyipe before concatenating
-        $filePath = substr(__DIR__, 0, strlen(__DIR__) - 9) ."composer.json";
+        $filePath = substr(__DIR__, 0, strlen(__DIR__) - 9) . "composer.json";
         $content = file_get_contents($filePath);
-        $content = json_decode($content,true);
+        $content = json_decode($content, true);
 
         $sdkDetail = new stdClass();
         $sdkDetail->name = $content['name'];
         $sdkDetail->version = $content['version'];
         return $sdkDetail;
     }
-    private function clear($newEventId) {
+    private function clear($newEventId)
+    {
         // clear tags
         $this->tags = [];
         // clear fingerprint
