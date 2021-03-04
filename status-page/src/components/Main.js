@@ -393,9 +393,21 @@ class Main extends Component {
                 {theme === 'Clean Theme' ? (
                     <>
                         <div className="new-theme">
-                            {this.props.statusData &&
-                            this.props.statusData.logoPath ? (
-                                <div className="logo_section">
+                            {headerHTML ? (
+                                <React.Fragment>
+                                    <style>{sanitizedCSS}</style>
+                                    <div className="logo_section">
+                                        <div
+                                            id="customHeaderHTML"
+                                            dangerouslySetInnerHTML={{
+                                                __html: headerHTML,
+                                            }}
+                                        />
+                                    </div>
+                                </React.Fragment>
+                            ) : this.props.statusData &&
+                              this.props.statusData.logoPath ? (
+                                <div className="logo_section pad-left">
                                     <span>
                                         <img
                                             src={`${API_URL}/file/${this.props.statusData.logoPath}`}
@@ -613,17 +625,14 @@ class Main extends Component {
                                     />
                                 </div>
                             </ShouldRender>
+
                             <div className="powered">
-                                <p>
-                                    <a
-                                        href="https://fyipe.com"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={secondaryText}
-                                    >
-                                        Powered by Fyipe
-                                    </a>
-                                </p>
+                                <FooterCard
+                                    footerHTML={footerHTML}
+                                    statusData={this.props.statusData}
+                                    primaryText={primaryText}
+                                    secondaryText={secondaryText}
+                                />
                             </div>
                         </div>
                         <ShouldRender
@@ -1016,83 +1025,12 @@ class Main extends Component {
                                         />
                                     </ShouldRender>
                                 </ShouldRender>
-                                {footerHTML ? (
-                                    <div
-                                        id="customFooterHTML"
-                                        dangerouslySetInnerHTML={{
-                                            __html: footerHTML,
-                                        }}
-                                    />
-                                ) : (
-                                    <div id="footer">
-                                        <ul>
-                                            <ShouldRender
-                                                if={
-                                                    this.props.statusData &&
-                                                    this.props.statusData
-                                                        .copyright
-                                                }
-                                            >
-                                                <li>
-                                                    {' '}
-                                                    <span style={primaryText}>
-                                                        &copy;
-                                                    </span>{' '}
-                                                    {this.props.statusData &&
-                                                    this.props.statusData
-                                                        .copyright ? (
-                                                        <span
-                                                            style={primaryText}
-                                                        >
-                                                            {
-                                                                this.props
-                                                                    .statusData
-                                                                    .copyright
-                                                            }
-                                                        </span>
-                                                    ) : (
-                                                        ''
-                                                    )}
-                                                </li>
-                                            </ShouldRender>
-                                            <ShouldRender
-                                                if={
-                                                    this.props.statusData &&
-                                                    this.props.statusData
-                                                        .links &&
-                                                    this.props.statusData.links
-                                                        .length
-                                                }
-                                            >
-                                                {this.props.statusData &&
-                                                    this.props.statusData
-                                                        .links &&
-                                                    this.props.statusData.links.map(
-                                                        (link, i) => (
-                                                            <Footer
-                                                                link={link}
-                                                                key={i}
-                                                                textColor={
-                                                                    secondaryText
-                                                                }
-                                                            />
-                                                        )
-                                                    )}
-                                            </ShouldRender>
-                                        </ul>
-
-                                        <p>
-                                            <a
-                                                href="https://fyipe.com"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                style={secondaryText}
-                                            >
-                                                Powered by Fyipe
-                                            </a>
-                                        </p>
-                                    </div>
-                                )}
+                                <FooterCard
+                                    footerHTML={footerHTML}
+                                    statusData={this.props.statusData}
+                                    primaryText={primaryText}
+                                    secondaryText={secondaryText}
+                                />
                             </div>
                         ) : (
                             ''
@@ -1304,4 +1242,74 @@ Probes.propTypes = {
     heading: PropTypes.object.isRequired,
     now: PropTypes.object.isRequired,
     selectbutton: PropTypes.func,
+};
+
+const FooterCard = ({ footerHTML, statusData, primaryText, secondaryText }) => {
+    return (
+        <>
+            {footerHTML ? (
+                <div
+                    id="customFooterHTML"
+                    dangerouslySetInnerHTML={{
+                        __html: footerHTML,
+                    }}
+                />
+            ) : (
+                <div id="footer">
+                    <ul>
+                        <ShouldRender if={statusData && statusData.copyright}>
+                            <li>
+                                {' '}
+                                <span style={primaryText}>&copy;</span>{' '}
+                                {statusData && statusData.copyright ? (
+                                    <span style={primaryText}>
+                                        {statusData.copyright}
+                                    </span>
+                                ) : (
+                                    ''
+                                )}
+                            </li>
+                        </ShouldRender>
+                        <ShouldRender
+                            if={
+                                statusData &&
+                                statusData.links &&
+                                statusData.links.length
+                            }
+                        >
+                            {statusData &&
+                                statusData.links &&
+                                statusData.links.map((link, i) => (
+                                    <Footer
+                                        link={link}
+                                        key={i}
+                                        textColor={secondaryText}
+                                    />
+                                ))}
+                        </ShouldRender>
+                    </ul>
+
+                    <p>
+                        <a
+                            href="https://fyipe.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={secondaryText}
+                        >
+                            Powered by Fyipe
+                        </a>
+                    </p>
+                </div>
+            )}
+        </>
+    );
+};
+
+FooterCard.displayName = 'FooterCard';
+
+FooterCard.propTypes = {
+    footerHTML: PropTypes.string,
+    statusData: PropTypes.object,
+    primaryText: PropTypes.object,
+    secondaryText: PropTypes.object,
 };
