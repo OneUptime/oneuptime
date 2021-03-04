@@ -133,6 +133,32 @@ class Util
         $this->CONTENT_CACHE.set($fileName, $content);
         return $content;
     }
+    private function updateFrameContent($frame){
+        $lines = $frame->sourceFile ? explode("\n", $frame->sourceFile ) : [];
+        $localFrame = $this->addCodeSnippetToFrame($lines, $frame);
+        $frame = $localFrame;
+        return $frame;
+    }
+    private function addCodeSnippetToFrame($lines, $frame, $linesOfContext = 5){
+        if (sizeof($lines) < 1) return;
+        $lineNumber = $frame->lineNumber || 0;
+        $maxLines = sizeof($lines);
+        $sourceLine = max(min($maxLines, $lineNumber - 1), 0);
+        // attach the line before the error
+        $frame->linesBeforeError = array_slice($lines, max(0, $sourceLine - $linesOfContext), $sourceLine);
+        // attach the line after the error
+        $frame->linesAfterError = array_slice(
+            $lines,
+            min($sourceLine + 1, $maxLines),
+            $sourceLine + 1 + $linesOfContext
+        );
+        // attach the error line
+        $frame->errorLine = $lines[min($maxLines - 1, $sourceLine)];
+
+        // remove the source file
+        unset($frame->sourceFile);
+        return $frame;
+    }
    
     public static function v4() {
         return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
