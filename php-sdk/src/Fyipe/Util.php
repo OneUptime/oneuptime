@@ -130,7 +130,7 @@ class Util
         $content = file_get_contents($fileName);
         $content = json_decode($content, true);
 
-        $this->CONTENT_CACHE.set($fileName, $content);
+        $this->CONTENT_CACHE->put($fileName, $content);
         return $content;
     }
     private function updateFrameContent($frame){
