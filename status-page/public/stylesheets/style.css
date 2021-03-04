@@ -1665,6 +1665,10 @@ margin-left:10px;
   margin: 12px 0px;
 }
 
+.bs-probes {
+  margin-bottom: 20px;
+}
+
 @media screen and (max-width: 650px) {
   .innernew {
     width: 90%;
