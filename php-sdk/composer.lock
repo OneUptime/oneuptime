@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9c559fdea0ce5fb054a408ad7e6baaf7",
+    "content-hash": "be4a5ba909ff0e9aae5a9d36f12a9d22",
     "packages": [
         {
             "name": "fzaninotto/faker",
@@ -261,6 +261,59 @@
                 "source": "https://github.com/guzzle/psr7/tree/1.7.0"
             },
             "time": "2020-09-30T07:37:11+00:00"
+        },
+        {
+            "name": "lrucache/lrucache",
+            "version": "v0.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/rogeriopvl/php-lrucache.git",
+                "reference": "0a1d303f50894900fd847d8e6131b8f7bf728d39"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/rogeriopvl/php-lrucache/zipball/0a1d303f50894900fd847d8e6131b8f7bf728d39",
+                "reference": "0a1d303f50894900fd847d8e6131b8f7bf728d39",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.0"
+            },
+            "require-dev": {
+                "phpunit/php-code-coverage": "1.2.*@stable",
+                "phpunit/phpunit": "3.7@stable",
+                "phpunit/phpunit-mock-objects": "1.2.*@stable"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "LRUCache": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Rogério Vicente",
+                    "email": "rogeriopvl@gmail.com",
+                    "homepage": "http://rogeriopvl.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "PHP LRU Cache implementation",
+            "homepage": "https://github.com/rogeriopvl/php-lrucache",
+            "keywords": [
+                "cache",
+                "lru",
+                "php"
+            ],
+            "support": {
+                "issues": "https://github.com/rogeriopvl/php-lrucache/issues",
+                "source": "https://github.com/rogeriopvl/php-lrucache/tree/master"
+            },
+            "time": "2014-12-07T21:28:25+00:00"
         },
         {
             "name": "psr/http-message",
