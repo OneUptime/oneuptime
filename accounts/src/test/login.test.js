@@ -72,13 +72,7 @@ describe('Login API', () => {
 
     it('Should login valid User', async () => {
         await init.registerUser(user, page);
-        await page.waitForSelector('#profile-menu', { visible: true });
-        await page.click('#profile-menu');
-        await page.waitForSelector('#logout-button', { visible: true });
-        await Promise.all([
-            page.click('#logout-button'),
-            page.waitForNavigation({ waitUntil: 'networkidle2' }),
-        ]);
+        await init.logoutUser(page);
         await init.loginUser(user, page);
 
         await page.waitForSelector('#components', { visible: true });
