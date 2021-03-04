@@ -4,6 +4,7 @@ const app = express();
 
 app.get(['/env.js', '/status-page/env.js'], function(req, res) {
     let REACT_APP_FYIPE_HOST = null;
+    let REACT_APP_BACKEND_PROTOCOL = null;
     if (!process.env.FYIPE_HOST) {
         if (req.host.includes('localhost')) {
             REACT_APP_FYIPE_HOST = 'http://' + req.host;
@@ -17,8 +18,11 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
         }
     }
 
+    REACT_APP_BACKEND_PROTOCOL = process.env.BACKEND_PROTOCOL;
+
     const env = {
         REACT_APP_FYIPE_HOST,
+        REACT_APP_BACKEND_PROTOCOL
     };
 
     res.contentType('application/javascript');
