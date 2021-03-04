@@ -849,9 +849,9 @@ router.get(
                             notes: statusPageEvent.notes,
                         });
                     }
+                    events = formatNotes(updatedEvents);
+                    events = checkDuplicateDates(events);
                 }
-                events = formatNotes(updatedEvents);
-                events = checkDuplicateDates(events);
             }
             return sendListResponse(req, res, events, count);
         } catch (error) {
