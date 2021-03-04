@@ -153,6 +153,8 @@ module.exports = {
                                 data.incidentResolved,
                             'notificationOptions.incidentAcknowledged':
                                 data.incidentAcknowledged,
+                            'notificationOptions.incidentNoteAdded':
+                                data.incidentNoteAdded,
                         },
                     },
                     { new: true }

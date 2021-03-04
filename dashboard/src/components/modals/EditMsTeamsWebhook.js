@@ -56,6 +56,9 @@ class EditWebHook extends React.Component {
         postObj.incidentAcknowledged = values.incidentAcknowledged
             ? values.incidentAcknowledged
             : false;
+        postObj.incidentNoteAdded = values.incidentNoteAdded
+            ? values.incidentNoteAdded
+            : false;
 
         updateMsTeams(currentProject._id, data._id, postObj).then(() => {
             if (this.props.newMsTeams && !this.props.newMsTeams.error) {
@@ -437,6 +440,68 @@ class EditWebHook extends React.Component {
                                                 </div>
                                             </div>
                                         </fieldset>
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="monitorId"
+                                                    >
+                                                        <span></span>
+                                                    </label>
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            paddingTop: '6px',
+                                                        }}
+                                                    >
+                                                        <div className="bs-Fieldset-field">
+                                                            <label
+                                                                className="Checkbox"
+                                                                style={{
+                                                                    marginRight:
+                                                                        '12px',
+                                                                }}
+                                                            >
+                                                                <Field
+                                                                    component="input"
+                                                                    type="checkbox"
+                                                                    name="incidentNoteAdded"
+                                                                    className="Checkbox-source"
+                                                                    id="incidentNoteAdded"
+                                                                />
+                                                                <div className="Checkbox-box Box-root Margin-right--2">
+                                                                    <div className="Checkbox-target Box-root">
+                                                                        <div className="Checkbox-color Box-root"></div>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        paddingLeft:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    <label>
+                                                                        <span>
+                                                                            Ping
+                                                                            when
+                                                                            incident
+                                                                            note
+                                                                            is
+                                                                            Added
+                                                                        </span>
+                                                                    </label>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
                                     </div>
                                 </div>
                                 <div className="bs-Modal-footer">
@@ -569,6 +634,7 @@ const mapStateToProps = (state, props) => {
             incidentResolved: props.data.notificationOptions.incidentResolved,
             incidentAcknowledged:
                 props.data.notificationOptions.incidentAcknowledged,
+            incidentNoteAdded: props.data.notificationOptions.incidentNoteAdded,
         },
     };
 };

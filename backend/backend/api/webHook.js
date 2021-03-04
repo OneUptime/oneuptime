@@ -23,6 +23,7 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
         const incidentCreated = body.incidentCreated;
         const incidentResolved = body.incidentResolved;
         const incidentAcknowledged = body.incidentAcknowledged;
+        const incidentNoteAdded = body.incidentNoteAdded;
         const integrationType = body.type;
 
         if (!projectId) {
@@ -71,6 +72,7 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
             incidentCreated,
             incidentAcknowledged,
             incidentResolved,
+            incidentNoteAdded,
         };
 
         const webhook = await IntegrationService.create(
