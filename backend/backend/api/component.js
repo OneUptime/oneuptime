@@ -394,6 +394,7 @@ router.get(
                         createdAt: elem.createdAt,
                         icon: 'security',
                         securityLog,
+                        slug: elem.slug,
                     };
                     // add it to the total resources
                     totalResources.push(newElement);

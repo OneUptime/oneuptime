@@ -58,6 +58,7 @@ class ApplicationSecurityDetail extends Component {
             projectId,
             componentId,
             applicationSecurityId,
+            applicationSecuritySlug,
             isRequesting,
             getApplicationError,
             gettingSecurityLog,
@@ -122,6 +123,7 @@ class ApplicationSecurityDetail extends Component {
                         projectId={projectId}
                         componentId={componentId}
                         applicationSecurityId={applicationSecurityId}
+                        applicationSecuritySlug={applicationSecuritySlug}
                         isRequesting={isRequesting}
                         applicationSecurity={applicationSecurity}
                     />
@@ -149,6 +151,7 @@ class ApplicationSecurityDetail extends Component {
                         projectId={projectId}
                         componentId={componentId}
                         applicationSecurityId={applicationSecurityId}
+                        applicationSecuritySlug={applicationSecuritySlug}
                     />
                 </ShouldRender>
                 <ShouldRender
@@ -177,6 +180,7 @@ ApplicationSecurityDetail.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
     applicationSecurityId: PropTypes.string,
+    applicationSecuritySlug: PropTypes.string,
     applicationSecurity: PropTypes.object,
     isRequesting: PropTypes.bool,
     getApplicationError: PropTypes.oneOfType([
@@ -221,8 +225,11 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, ownProps) => {
-    const { componentId, applicationSecurityId } = ownProps.match.params;
-
+    const { componentId, applicationSecuritySlug } = ownProps.match.params;
+     const currentApplicationSecurity = state.security.applicationSecurities && state.security.applicationSecurities.find(el => {
+         return el.slug === applicationSecuritySlug;
+     });
+     const applicationSecurityId= currentApplicationSecurity && currentApplicationSecurity._id;
     const components = [];
     // filter to get the actual component
     state.component.componentList.components.map(item =>
@@ -239,6 +246,7 @@ const mapStateToProps = (state, ownProps) => {
             state.project.currentProject && state.project.currentProject._id,
         componentId,
         applicationSecurityId,
+        applicationSecuritySlug,
         applicationSecurity: state.security.applicationSecurity,
         isRequesting: state.security.getApplication.requesting,
         getApplicationError: state.security.getApplication.error,

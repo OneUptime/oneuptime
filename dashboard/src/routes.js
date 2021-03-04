@@ -233,7 +233,7 @@ export const groups = [
                     {
                         title: 'Application Detail',
                         path:
-                            '/dashboard/project/:slug/:componentId/security/application/:applicationSecurityId',
+                            '/dashboard/project/:slug/:componentId/security/application/:applicationSecuritySlug',
                         icon: 'info',
                         visible: true,
                         component: ApplicationDetail,
