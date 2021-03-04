@@ -151,7 +151,7 @@ describe('Registration API', () => {
 
     it('Should register User with valid details', async () => {
         await init.registerUser(user, page);
-        await page.waitFor(5000);
+        await page.waitForTimeout(5000);
         await page.waitForSelector('#titleText');
         const innerText = await page.$eval(
             '#titleText',

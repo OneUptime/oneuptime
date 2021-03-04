@@ -149,6 +149,10 @@ module.exports = {
                     if (data.type === 'url') {
                         monitor.siteUrls = [monitor.data.url];
                     }
+                    let name = data.name;
+                    name = slugify(name);
+                    name = `${name}-${generate('1234567890', 8)}`;
+                    monitor.slug = name.toLowerCase();
                     const savedMonitor = await monitor.save();
                     monitor = await _this.findOneBy({ _id: savedMonitor._id });
                     if (data.type === 'manual') {
@@ -184,6 +188,10 @@ module.exports = {
 
             await this.updateMonitorSlaStat(query);
             if (data) {
+                let name = data.name;
+                name = slugify(name);
+                name = `${name}-${generate('1234567890', 8)}`;
+                data.slug = name.toLowerCase();
                 await MonitorModel.findOneAndUpdate(
                     query,
                     { $set: data },
@@ -1359,6 +1367,8 @@ const NotificationService = require('./notificationService');
 const ProjectService = require('./projectService');
 const PaymentService = require('./paymentService');
 const IncidentService = require('./incidentService');
+const generate = require('nanoid/generate');
+const slugify = require('slugify');
 const AlertService = require('./alertService');
 const StatusPageService = require('./statusPageService');
 const ScheduleService = require('./scheduleService');

@@ -24,6 +24,7 @@ const schema = new Schema({
 
     deletedById: { type: String, ref: 'User', index: true },
     replyTo: String,
+    smtpServer: String, // which can be internal, smtp.gmail.com, etc
 });
 
 module.exports = mongoose.model('EmailSent', schema);
