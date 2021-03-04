@@ -22,7 +22,7 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
 
     const env = {
         REACT_APP_FYIPE_HOST,
-        REACT_APP_BACKEND_PROTOCOL
+        REACT_APP_BACKEND_PROTOCOL,
     };
 
     res.contentType('application/javascript');
