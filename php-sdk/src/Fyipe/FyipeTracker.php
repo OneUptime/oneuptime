@@ -35,7 +35,8 @@ class FyipeTracker
     private $utilObj;
     private $event;
     private $options = [
-        'maxTimeline' => 5
+        'maxTimeline' => 5,
+        'captureCodeSnippet' => true,
     ];
 
     /**
@@ -91,7 +92,10 @@ class FyipeTracker
                                 ? $this->MAX_ITEMS_ALLOWED_IN_STACK
                                 : $value;
                         $this->options[$key] = $allowedValue;
-                    } else {
+                    } else if ($key === 'captureCodeSnippet') {
+                        // set boolean value if boolean or set default `true` if annything other than boolean is passed
+                        $this->options[$key] = is_bool($value) ? $value : true;
+                    }  else {
                         $this->options[$key] = $value;
                     }
                 }
