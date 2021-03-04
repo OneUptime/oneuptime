@@ -15,8 +15,8 @@ export function env(value) {
 }
 
 let protocol = window.location.protocol;
-if (env('FYIPE_HOST') && env('FYIPE_HOST').includes('fyipe.com')) {
-    protocol = 'https:';
+if (env('BACKEND_PROTOCOL')) {
+    protocol = env('BACKEND_PROTOCOL') + ':';
 }
 
 if (

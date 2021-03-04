@@ -364,7 +364,8 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = state => {
+    // removal of unused props
     const component = state.component;
     let subProjects = state.subProject.subProjects.subProjects;
     let monitors = [];

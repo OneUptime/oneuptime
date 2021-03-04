@@ -69,6 +69,13 @@ export const statusPageNoteSuccess = data => {
     };
 };
 
+export const newThemeIncidentNote = data => {
+    return {
+        type: types.NEW_THEME_NOTES_SUCCESS,
+        payload: data,
+    };
+};
+
 export const statusPageNoteRequest = () => {
     return {
         type: types.STATUSPAGE_NOTES_REQUEST,
@@ -107,10 +114,10 @@ export const individualNoteDisable = () => {
 };
 
 // Calls the API to get notes
-export const getStatusPageNote = (projectId, statusPageId, skip) => {
+export const getStatusPageNote = (projectId, statusPageId, skip, limit) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageId}/notes?skip=${skip}`
+            `statusPage/${projectId}/${statusPageId}/notes?skip=${skip}&limit=${limit}`
         );
 
         dispatch(statusPageNoteRequest());
@@ -118,6 +125,7 @@ export const getStatusPageNote = (projectId, statusPageId, skip) => {
         promise.then(
             Data => {
                 dispatch(statusPageNoteSuccess(Data.data));
+                dispatch(newThemeIncidentNote(Data.data));
                 dispatch(individualNoteDisable());
             },
             error => {
@@ -143,11 +151,12 @@ export const getStatusPageIndividualNote = (
     monitorId,
     date,
     name,
-    need
+    need,
+    theme
 ) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${monitorId}/individualnotes?date=${date}&need=${need}`
+            `statusPage/${projectId}/${monitorId}/individualnotes?date=${date}&need=${need}&theme=${theme}`
         );
 
         dispatch(statusPageNoteRequest());
@@ -211,10 +220,10 @@ export const scheduledEventReset = () => {
 };
 
 // Calls the API to get events
-export const getScheduledEvent = (projectId, statusPageId, skip) => {
+export const getScheduledEvent = (projectId, statusPageId, skip, theme) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageId}/events?skip=${skip}`
+            `statusPage/${projectId}/${statusPageId}/events?skip=${skip}&theme=${theme}`
         );
 
         dispatch(scheduledEventRequest());
@@ -255,10 +264,10 @@ export const individualEventsFailure = error => ({
     payload: error,
 });
 
-export const getIndividualEvent = (projectId, monitorId, date, name) => {
+export const getIndividualEvent = (projectId, monitorId, date, name, theme) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${monitorId}/individualevents?date=${date}`
+            `statusPage/${projectId}/${monitorId}/individualevents?date=${date}&theme=${theme}`
         );
 
         dispatch(individualEventsRequest());
@@ -844,7 +853,12 @@ export function moreIncidentNotesFailure(error) {
     };
 }
 
-export function moreIncidentNotes(projectId, incidentId, postOnStatusPage, skip) {
+export function moreIncidentNotes(
+    projectId,
+    incidentId,
+    postOnStatusPage,
+    skip
+) {
     return async function(dispatch) {
         try {
             dispatch(moreIncidentNotesRequest());

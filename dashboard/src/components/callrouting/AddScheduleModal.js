@@ -7,6 +7,7 @@ import ClickOutside from 'react-click-outside';
 import {
     addCallRoutingSchedule,
     removeIntroAudio,
+    uploadCallRoutingAudio,
 } from '../../actions/callRouting';
 import { RenderField } from '../basic/RenderField';
 import { FormLoader } from '../basic/Loader';
@@ -16,7 +17,6 @@ import PropTypes from 'prop-types';
 import { openModal, closeModal } from '../../actions/modal';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { UploadFile } from '../basic/UploadFile';
 
 export class AddScheduleModal extends Component {
     constructor(props) {
@@ -27,6 +27,9 @@ export class AddScheduleModal extends Component {
             showAdvance: this.props.initialValues.showAdvance || false,
             fileName: this.props.initialValues.fileName || '',
             fileUploaded: this.props.initialValues.fileUploaded || false,
+            backupFileName: this.props.initialValues.backupFileName || '',
+            backupFileUploaded:
+                this.props.initialValues.backupFileUploaded || false,
         };
     }
 
@@ -38,59 +41,85 @@ export class AddScheduleModal extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    submitForm = values => {
+    submitForm = async values => {
         const {
             closeThisDialog,
             data,
             currentProject,
             addCallRoutingSchedule,
+            uploadCallRoutingAudio,
         } = this.props;
-        const postObj = new FormData();
-        postObj.append('showAdvance', this.state.showAdvance);
-        if (values.type && values.type.length) {
-            postObj.append('type', values.type);
+        if (values.introAudio && values.introAudio !== 'null') {
+            const postAudio = new FormData();
+            if (values.introAudio && typeof values.introAudio !== 'object') {
+                postAudio.append('introAudio', values.introAudio);
+            } else {
+                postAudio.append(
+                    'introAudio',
+                    values.introAudio[0],
+                    values.introAudio[0].name
+                );
+            }
+            await uploadCallRoutingAudio(
+                currentProject._id,
+                data.callRoutingId,
+                postAudio,
+                'introAudio'
+            );
         }
+
+        if (values.backup_introAudio && values.backup_introAudio !== 'null') {
+            const backupPostAudio = new FormData();
+            if (
+                values.backup_introAudio &&
+                typeof values.backup_introAudio !== 'object'
+            ) {
+                backupPostAudio.append(
+                    'backup_introAudio',
+                    values.backup_introAudio
+                );
+            } else {
+                backupPostAudio.append(
+                    'backup_introAudio',
+                    values.backup_introAudio[0],
+                    values.backup_introAudio[0].name
+                );
+            }
+            await uploadCallRoutingAudio(
+                currentProject._id,
+                data.callRoutingId,
+                backupPostAudio,
+                'backup_introAudio'
+            );
+        }
+
+        const postObj = {};
+        postObj.showAdvance = this.state.showAdvance;
+        postObj.type = values.type || '';
         if (values.type && values.type === 'TeamMember') {
-            postObj.append('teamMemberId', values.teamMembers);
+            postObj.teamMemberId = values.teamMembers;
         } else if (values.type && values.type === 'Schedule') {
-            postObj.append('scheduleId', values.schedules);
+            postObj.scheduleId = values.schedules;
         } else if (values.type && values.type === 'PhoneNumber') {
-            postObj.append('phoneNumber', values.PhoneNumber);
+            postObj.phoneNumber = values.PhoneNumber;
         }
         if (this.state.showAdvance) {
-            if (values.introAudio && values.introAudio !== 'null') {
-                if (
-                    values.introAudio &&
-                    typeof values.introAudio !== 'object'
-                ) {
-                    postObj.append('introAudio', values.introAudio);
-                } else {
-                    postObj.append(
-                        'introAudio',
-                        values.introAudio[0],
-                        values.introAudio[0].name
-                    );
-                }
-            }
-            postObj.append('introtext', values.introtext);
-            if (values.backup_type && values.backup_type.length) {
-                postObj.append('backup_type', values.backup_type);
-            }
+            postObj.callDropText = values.callDropText;
+            postObj.introtext = values.introtext;
+            postObj.backup_introtext = values.backup_introtext;
+            postObj.backup_type = values.backup_type;
             if (values.backup_type && values.backup_type === 'TeamMember') {
-                postObj.append(
-                    'backup_teamMemberId',
-                    values.backup_teamMembers
-                );
+                postObj.backup_teamMemberId = values.backup_teamMembers;
             } else if (
                 values.backup_type &&
                 values.backup_type === 'Schedule'
             ) {
-                postObj.append('backup_scheduleId', values.backup_schedules);
+                postObj.backup_scheduleId = values.backup_schedules;
             } else if (
                 values.backup_type &&
                 values.backup_type === 'PhoneNumber'
             ) {
-                postObj.append('backup_phoneNumber', values.backup_PhoneNumber);
+                postObj.backup_phoneNumber = values.backup_PhoneNumber;
             }
         }
         addCallRoutingSchedule(
@@ -118,17 +147,32 @@ export class AddScheduleModal extends Component {
         const fileName = file.name;
         this.setState({ fileName: fileName, fileUploaded: true });
     };
-    removeIntroAudio = e => {
+    removeIntroAudio = backup => {
         const _this = this;
         const { currentProject, data, removeIntroAudio } = this.props;
-        removeIntroAudio(currentProject._id, data.callRoutingId).then(
+        removeIntroAudio(currentProject._id, data.callRoutingId, backup).then(
             function() {
-                _this.setState({ fileName: '', fileUploaded: false });
+                if (backup) {
+                    _this.setState({
+                        backupFileName: '',
+                        backupFileUploaded: false,
+                    });
+                    return;
+                } else {
+                    _this.setState({ fileName: '', fileUploaded: false });
+                    return;
+                }
             },
             function() {
                 //do nothing.
             }
         );
+    };
+    changeBackupFile = e => {
+        e.preventDefault();
+        const file = e.target.files[0];
+        const fileName = file.name;
+        this.setState({ backupFileName: fileName, backupFileUploaded: true });
     };
     toggleShowAdvance = e => {
         this.setState({ showAdvance: e.target.checked });
@@ -161,13 +205,46 @@ export class AddScheduleModal extends Component {
             addCallRoutingSchedules,
             teamMembers,
             schedules,
-            introAudioState,
+            uploadIntroAudioState,
+            uploadBackupIntroAudioState,
+            removeIntroAudioState,
+            removeBackupIntroAudioState,
         } = this.props;
+        const introAudioLoading =
+            (uploadIntroAudioState &&
+                uploadIntroAudioState.requesting &&
+                uploadIntroAudioState.callRoutingId === data.callRoutingId) ||
+            (removeIntroAudioState &&
+                removeIntroAudioState.requesting &&
+                removeIntroAudioState.callRoutingId === data.callRoutingId);
+        const backupIntroAudioLoading =
+            (uploadBackupIntroAudioState &&
+                uploadBackupIntroAudioState.requesting &&
+                uploadBackupIntroAudioState.callRoutingId ===
+                    data.callRoutingId) ||
+            (removeBackupIntroAudioState &&
+                removeBackupIntroAudioState.requesting &&
+                removeBackupIntroAudioState.callRoutingId ===
+                    data.callRoutingId);
         const disabled =
-            (introAudioState && introAudioState.requesting) ||
+            introAudioLoading ||
+            backupIntroAudioLoading ||
             (addCallRoutingSchedules && addCallRoutingSchedules.requesting);
         const error =
-            (introAudioState && introAudioState.error) ||
+            (uploadIntroAudioState &&
+                uploadIntroAudioState.error &&
+                uploadIntroAudioState.callRoutingId === data.callRoutingId) ||
+            (removeIntroAudioState &&
+                removeIntroAudioState.error &&
+                removeIntroAudioState.callRoutingId === data.callRoutingId) ||
+            (uploadBackupIntroAudioState &&
+                uploadBackupIntroAudioState.error &&
+                uploadBackupIntroAudioState.callRoutingId ===
+                    data.callRoutingId) ||
+            (removeBackupIntroAudioState &&
+                removeBackupIntroAudioState.error &&
+                removeBackupIntroAudioState.callRoutingId ===
+                    data.callRoutingId) ||
             (addCallRoutingSchedules && addCallRoutingSchedules.error);
         return (
             <div
@@ -247,7 +324,7 @@ export class AddScheduleModal extends Component {
                                                             }}
                                                         >
                                                             <span>
-                                                                Intro Text
+                                                                Call Drop Text
                                                             </span>
                                                         </label>
                                                         <div
@@ -269,10 +346,10 @@ export class AddScheduleModal extends Component {
                                                                     component={
                                                                         RenderField
                                                                     }
-                                                                    name="introtext"
+                                                                    name="callDropText"
                                                                     type="input"
-                                                                    placeholder="Hello Customer"
-                                                                    id="introtext"
+                                                                    placeholder="Sorry could not find anyone on duty"
+                                                                    id="callDropText"
                                                                     disabled={
                                                                         disabled
                                                                     }
@@ -284,196 +361,26 @@ export class AddScheduleModal extends Component {
                                                                             '3px 5px',
                                                                     }}
                                                                     autoFocus={
-                                                                        true
+                                                                        false
                                                                     }
                                                                 />
                                                             </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </fieldset>
-                                            <fieldset className="Margin-bottom--16">
-                                                <div className="bs-Fieldset-rows">
-                                                    <div
-                                                        className="bs-Fieldset-row"
-                                                        style={{
-                                                            padding: 0,
-                                                        }}
-                                                    >
-                                                        <label
-                                                            className="bs-Fieldset-label Text-align--left"
-                                                            style={{
-                                                                flexBasis:
-                                                                    '20%',
-                                                            }}
-                                                        >
-                                                            Intro Audio
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <div
-                                                                className="Box-root Flex-flex Flex-alignItems--center"
-                                                                style={{
-                                                                    flexWrap:
-                                                                        'wrap',
-                                                                }}
-                                                            >
-                                                                <div>
-                                                                    <label
-                                                                        className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
-                                                                        type="button"
-                                                                    >
-                                                                        <ShouldRender
-                                                                            if={
-                                                                                !this
-                                                                                    .state
-                                                                                    .fileUploaded
-                                                                            }
-                                                                        >
-                                                                            <span className="bs-Button--icon bs-Button--new"></span>
-                                                                            <span>
-                                                                                Upload
-                                                                                Intro
-                                                                                Audio
-                                                                            </span>
-                                                                        </ShouldRender>
-                                                                        <ShouldRender
-                                                                            if={
-                                                                                this
-                                                                                    .state
-                                                                                    .fileUploaded
-                                                                            }
-                                                                        >
-                                                                            <span className="bs-Button--icon bs-Button--edit"></span>
-                                                                            <span>
-                                                                                Change
-                                                                                Intro
-                                                                                Audio
-                                                                            </span>
-                                                                        </ShouldRender>
-                                                                        <div className="bs-FileUploadButton-inputWrap">
-                                                                            <Field
-                                                                                className="bs-FileUploadButton-input"
-                                                                                component={
-                                                                                    UploadFile
-                                                                                }
-                                                                                name="introAudio"
-                                                                                id="introAudio"
-                                                                                accept="audio/mp3"
-                                                                                disabled={
-                                                                                    disabled
-                                                                                }
-                                                                                onChange={
-                                                                                    this
-                                                                                        .changefile
-                                                                                }
-                                                                                fileInputKey={
-                                                                                    ''
-                                                                                }
-                                                                            />
-                                                                        </div>
-                                                                    </label>
-                                                                </div>
-                                                                <ShouldRender
-                                                                    if={
-                                                                        this
-                                                                            .state
-                                                                            .fileUploaded
-                                                                    }
-                                                                >
-                                                                    <div
-                                                                        className="bs-Fieldset-fields"
-                                                                        style={{
-                                                                            padding:
-                                                                                '0',
-                                                                        }}
-                                                                    >
-                                                                        <button
-                                                                            className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
-                                                                            type="button"
-                                                                            onClick={
-                                                                                this
-                                                                                    .removeIntroAudio
-                                                                            }
-                                                                            disabled={
-                                                                                disabled
-                                                                            }
-                                                                            style={{
-                                                                                margin:
-                                                                                    '10px 10px 0 0',
-                                                                            }}
-                                                                        >
-                                                                            {!introAudioState.requesting && (
-                                                                                <>
-                                                                                    <span className="bs-Button--icon bs-Button--delete"></span>
-                                                                                    <span>
-                                                                                        Remove
-                                                                                        Intro
-                                                                                        Audio
-                                                                                    </span>
-                                                                                </>
-                                                                            )}
-                                                                            {introAudioState.requesting && (
-                                                                                <FormLoader />
-                                                                            )}
-                                                                        </button>
-                                                                    </div>
-                                                                    <div
-                                                                        className="bs-Fieldset-fields"
-                                                                        style={{
-                                                                            padding:
-                                                                                '0',
-                                                                        }}
-                                                                    >
-                                                                        <label className="bs-Fieldset-explanation">
-                                                                            <span>
-                                                                                {
-                                                                                    this
-                                                                                        .state
-                                                                                        .fileName
-                                                                                }
-                                                                            </span>
-                                                                        </label>
-                                                                    </div>
-                                                                </ShouldRender>
-                                                            </div>
+                                                            <label className="bs-Fieldset-explanation">
+                                                                <span>
+                                                                    Message for
+                                                                    the caller
+                                                                    if there is
+                                                                    no one
+                                                                    available to
+                                                                    take the
+                                                                    call.
+                                                                </span>
+                                                            </label>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </fieldset>
                                         </ShouldRender>
-                                        <fieldset style={{ paddingTop: 0 }}>
-                                            <div className="bs-Fieldset-rows">
-                                                <div
-                                                    className="bs-Fieldset-row"
-                                                    style={{ padding: 0 }}
-                                                >
-                                                    <label
-                                                        className="bs-Fieldset-label Text-align--left"
-                                                        style={{
-                                                            flexBasis: '20%',
-                                                        }}
-                                                    ></label>
-                                                    <div
-                                                        className="bs-Fieldset-fields"
-                                                        style={{
-                                                            flexBasis: '80%',
-                                                            maxWidth: '80%',
-                                                        }}
-                                                    >
-                                                        <div
-                                                            className="bs-Fieldset-field"
-                                                            style={{
-                                                                width: '100%',
-                                                                fontWeight: 500,
-                                                            }}
-                                                        >
-                                                            Who to forward call
-                                                            to
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </fieldset>
                                         <ScheduleComponent
                                             teamMembers={teamMembers}
                                             schedules={schedules}
@@ -485,50 +392,17 @@ export class AddScheduleModal extends Component {
                                             changeBackupButton={
                                                 this.changeBackupButton
                                             }
+                                            changefile={this.changefile}
+                                            removeIntroAudio={
+                                                this.removeIntroAudio
+                                            }
+                                            changeBackupFile={
+                                                this.changeBackupFile
+                                            }
                                         />
                                         <ShouldRender
                                             if={this.state.showAdvance}
                                         >
-                                            <fieldset style={{ paddingTop: 0 }}>
-                                                <div className="bs-Fieldset-rows">
-                                                    <div
-                                                        className="bs-Fieldset-row"
-                                                        style={{
-                                                            paddingBottom:
-                                                                '0px',
-                                                            paddingLeft: '10px',
-                                                        }}
-                                                    >
-                                                        <label
-                                                            className="bs-Fieldset-label Text-align--left"
-                                                            style={{
-                                                                flexBasis:
-                                                                    '20%',
-                                                            }}
-                                                        ></label>
-                                                        <div
-                                                            className="bs-Fieldset-fields"
-                                                            style={{
-                                                                flexBasis:
-                                                                    '80%',
-                                                                maxWidth: '80%',
-                                                            }}
-                                                        >
-                                                            <div
-                                                                className="bs-Fieldset-field"
-                                                                style={{
-                                                                    width:
-                                                                        '100%',
-                                                                    fontWeight: 500,
-                                                                }}
-                                                            >
-                                                                Who to forward
-                                                                call to
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </fieldset>
                                             <ScheduleComponent
                                                 teamMembers={teamMembers}
                                                 schedules={schedules}
@@ -539,6 +413,13 @@ export class AddScheduleModal extends Component {
                                                 disabled={disabled}
                                                 changeBackupButton={
                                                     this.changeBackupButton
+                                                }
+                                                changefile={this.changefile}
+                                                removeIntroAudio={
+                                                    this.removeIntroAudio
+                                                }
+                                                changeBackupFile={
+                                                    this.changeBackupFile
                                                 }
                                             />
                                         </ShouldRender>
@@ -586,7 +467,7 @@ export class AddScheduleModal extends Component {
                                             disabled={disabled}
                                             type="submit"
                                         >
-                                            {!addCallRoutingSchedules.requesting && (
+                                            {!disabled && (
                                                 <>
                                                     <span>ADD</span>
                                                     <span className="create-btn__keycode">
@@ -594,9 +475,7 @@ export class AddScheduleModal extends Component {
                                                     </span>
                                                 </>
                                             )}
-                                            {addCallRoutingSchedules.requesting && (
-                                                <FormLoader />
-                                            )}
+                                            {disabled && <FormLoader />}
                                         </button>
                                     </div>
                                 </div>
@@ -624,6 +503,7 @@ const mapDispatchToProps = dispatch => {
             openModal,
             closeModal,
             removeIntroAudio,
+            uploadCallRoutingAudio,
         },
         dispatch
     );
@@ -694,6 +574,14 @@ function mapStateToProps(state, props) {
             ? routingSchema.introAudioName
             : '';
     const fileUploaded = fileName && fileName.length ? true : false;
+    const backupFileName =
+        routingSchema &&
+        routingSchema.backup_introAudioName &&
+        routingSchema.backup_introAudioName.length
+            ? routingSchema.backup_introAudioName
+            : '';
+    const backupFileUploaded =
+        backupFileName && backupFileName.length ? true : false;
     const initialValues =
         type && id
             ? {
@@ -718,24 +606,22 @@ function mapStateToProps(state, props) {
                           : '',
                   fileName: fileName,
                   fileUploaded: fileUploaded,
+                  backupFileName: backupFileName,
+                  backupFileUploaded: backupFileUploaded,
                   introtext:
                       routingSchema && routingSchema.introtext
                           ? routingSchema.introtext
                           : '',
+                  backup_introtext:
+                      routingSchema && routingSchema.backup_introtext
+                          ? routingSchema.backup_introtext
+                          : '',
+                  callDropText:
+                      routingSchema && routingSchema.callDropText
+                          ? routingSchema.callDropText
+                          : '',
               }
-            : {
-                  type: '',
-                  teamMembers: '',
-                  schedules: '',
-                  phoneNumber: '',
-                  backup_type: '',
-                  backup_teamMembers: '',
-                  backup_schedules: '',
-                  backup_PhoneNumber: '',
-                  fileName: '',
-                  fileUploaded: false,
-                  introtext: '',
-              };
+            : {};
     return {
         team: state.team,
         teamMembers,
@@ -745,7 +631,12 @@ function mapStateToProps(state, props) {
         addCallRoutingSchedules: state.callRouting.addCallRoutingSchedule,
         currentProject: state.project.currentProject,
         subProjects: state.subProject.subProjects.subProjects,
-        introAudioState: state.callRouting.introAudioState,
+        uploadIntroAudioState: state.callRouting.uploadIntroAudioState,
+        uploadBackupIntroAudioState:
+            state.callRouting.uploadBackupIntroAudioState,
+        removeIntroAudioState: state.callRouting.removeIntroAudioState,
+        removeBackupIntroAudioState:
+            state.callRouting.removeBackupIntroAudioState,
     };
 }
 
@@ -760,6 +651,8 @@ AddScheduleModal.propTypes = {
     data: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     initialValues: PropTypes.shape({
+        backupFileName: PropTypes.string,
+        backupFileUploaded: PropTypes.bool,
         backup_type: PropTypes.string,
         fileName: PropTypes.string,
         fileUploaded: PropTypes.bool,
@@ -770,12 +663,33 @@ AddScheduleModal.propTypes = {
         error: PropTypes.any,
         requesting: PropTypes.any,
     }),
+    removeBackupIntroAudioState: PropTypes.shape({
+        callRoutingId: PropTypes.any,
+        error: PropTypes.any,
+        requesting: PropTypes.any,
+    }),
     removeIntroAudio: PropTypes.func,
+    removeIntroAudioState: PropTypes.shape({
+        callRoutingId: PropTypes.any,
+        error: PropTypes.any,
+        requesting: PropTypes.any,
+    }),
     schedules: PropTypes.shape({
         map: PropTypes.func,
     }),
     teamMembers: PropTypes.shape({
         map: PropTypes.func,
+    }),
+    uploadBackupIntroAudioState: PropTypes.shape({
+        callRoutingId: PropTypes.any,
+        error: PropTypes.any,
+        requesting: PropTypes.any,
+    }),
+    uploadCallRoutingAudio: PropTypes.func,
+    uploadIntroAudioState: PropTypes.shape({
+        callRoutingId: PropTypes.any,
+        error: PropTypes.any,
+        requesting: PropTypes.any,
     }),
 };
 

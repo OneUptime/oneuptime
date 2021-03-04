@@ -13,7 +13,7 @@ import { changeProjectRoles } from '../../actions/project';
 import { TeamListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import RemoveTeamUserModal from '../modals/RemoveTeamUserModal.js';
 import { openModal, closeModal } from '../../actions/modal';
@@ -27,7 +27,7 @@ import HasProjectOwner from '../basic/HasProjectOwner';
 export class TeamMember extends Component {
     constructor(props) {
         super(props);
-        this.state = { removeUserModalId: uuid.v4() };
+        this.state = { removeUserModalId: uuidv4() };
         this.removeTeamMember = this.removeTeamMember.bind(this);
         this.updateTeamMemberRole = this.updateTeamMemberRole.bind(this);
     }

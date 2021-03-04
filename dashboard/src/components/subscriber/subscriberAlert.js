@@ -277,6 +277,7 @@ SubscriberAlert.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    page: PropTypes.number,
 };
 
 export default withRouter(

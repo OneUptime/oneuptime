@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -37,9 +37,9 @@ export class IncidentStatus extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            editIncidentModalId: uuid.v4(),
-            messageModalId: uuid.v4(),
-            viewJsonModalId: uuid.v4(),
+            // editIncidentModalId: uuidv4(), unused due to code re-implementation
+            messageModalId: uuidv4(),
+            viewJsonModalId: uuidv4(),
             resolveLoad: false,
             value: undefined,
             stats: false,
@@ -147,9 +147,9 @@ export class IncidentStatus extends Component {
                 });
             });
     };
-    acknowledge = setLoading => {
+    acknowledge = async setLoading => {
         const userId = User.getUserId();
-        this.props
+        await this.props
             .acknowledgeIncident(
                 this.props.incident.projectId,
                 this.props.incident._id,
@@ -158,11 +158,13 @@ export class IncidentStatus extends Component {
             )
             .then(() => {
                 this.setState({ resolveLoad: false });
-                setLoading(false);
                 this.props.markAsRead(
                     this.props.incident.projectId,
                     this.props.incident.notificationId
                 );
+                if (setLoading) {
+                    setLoading(false);
+                }
                 this.props.getIncidentTimeline(
                     this.props.currentProject._id,
                     this.props.incident._id,
@@ -182,9 +184,9 @@ export class IncidentStatus extends Component {
         }
     };
 
-    resolve = setLoading => {
+    resolve = async setLoading => {
         const userId = User.getUserId();
-        this.props
+        await this.props
             .resolveIncident(
                 this.props.incident.projectId,
                 this.props.incident._id,
@@ -193,7 +195,9 @@ export class IncidentStatus extends Component {
             )
             .then(() => {
                 this.setState({ resolveLoad: false, value: '', stats: false });
-                setLoading(false);
+                if (setLoading) {
+                    setLoading(false);
+                }
                 this.props.markAsRead(
                     this.props.incident.projectId,
                     this.props.incident.notificationId
@@ -2422,8 +2426,10 @@ const mapDispatchToProps = dispatch => {
 };
 
 IncidentStatus.propTypes = {
+    handleSubmit: PropTypes.func.isRequired,
     resolveIncident: PropTypes.func.isRequired,
     acknowledgeIncident: PropTypes.func.isRequired,
+    updateIncident: PropTypes.func.isRequired,
     closeIncident: PropTypes.func,
     closeincident: PropTypes.object,
     requesting: PropTypes.bool,
@@ -2434,6 +2440,7 @@ IncidentStatus.propTypes = {
     count: PropTypes.number,
     openModal: PropTypes.func.isRequired,
     projectId: PropTypes.string,
+    description: PropTypes.string,
     componentId: PropTypes.string,
     route: PropTypes.string,
     incidentRequest: PropTypes.object.isRequired,

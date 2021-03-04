@@ -241,6 +241,7 @@ const mapStateToProps = state => {
 };
 
 IncidentAlert.propTypes = {
+    page: PropTypes.number,
     previous: PropTypes.func.isRequired,
     isRequesting: PropTypes.bool,
     alerts: PropTypes.array,

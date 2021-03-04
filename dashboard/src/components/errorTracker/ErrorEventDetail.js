@@ -16,7 +16,7 @@ import { connect } from 'react-redux';
 import Notification from '../basic/Notification';
 import ShouldRender from '../basic/ShouldRender';
 import ErrorTrackerIssueTimeline from './ErrorTrackerIssueTimeline';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
 import DeleteErrorTrackerIssue from '../modals/DeleteErrorTrackerIssue';
@@ -27,7 +27,7 @@ class ErrorEventDetail extends Component {
         super(props);
         this.props = props;
         this.state = {
-            deleteModalId: uuid.v4(),
+            deleteModalId: uuidv4(),
         };
     }
     ignoreErrorEvent = (issueId, unIgnore = false) => {

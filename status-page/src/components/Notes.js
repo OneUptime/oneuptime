@@ -150,7 +150,7 @@ class Notes extends Component {
                                     className="ongoing__affectedmonitor--content"
                                     style={{ color: 'rgba(0, 0, 0, 0.5)' }}
                                 >
-                                    {note.monitorId.name}
+                                    {note.monitorId && note.monitorId.name}
                                 </span>
                             </div>
                             <div
