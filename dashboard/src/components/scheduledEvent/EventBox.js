@@ -3,7 +3,7 @@ import { bindActionCreators } from 'redux';
 import Fade from 'react-reveal/Fade';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal } from '../../actions/modal';
@@ -21,7 +21,7 @@ class EventBox extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            createScheduledEventModalId: uuid.v4(),
+            createScheduledEventModalId: uuidv4(),
         };
         this.limit = 10;
     }

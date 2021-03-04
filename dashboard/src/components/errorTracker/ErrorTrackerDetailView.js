@@ -5,7 +5,7 @@ import { ListLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 import DataPathHoC from '../DataPathHoC';
 import ConfirmErrorTrackerIssueAction from '../modals/ConfirmErrorTrackerIssueAction';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import ErrorEventIssueMember from '../modals/ErrorEventIssueMember';
 import ShouldRender from '../basic/ShouldRender';
 import AlertPanel from '../basic/AlertPanel';
@@ -16,8 +16,8 @@ class ErrorTrackerDetailView extends Component {
         this.props = props;
         this.state = {
             selectedErrorEvents: [],
-            ignoreModalId: uuid.v4(),
-            memberModalId: uuid.v4(),
+            ignoreModalId: uuidv4(),
+            memberModalId: uuidv4(),
         };
     }
     selectErrorEvent = errorEventId => {

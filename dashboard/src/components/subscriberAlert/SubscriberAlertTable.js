@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal } from '../../actions/modal';
 import AlertDetails from '../modals/AlertDetails';
 import countryTelephoneCode from 'country-telephone-code';
@@ -322,7 +322,7 @@ class SubscriberAlertTableRowsClass extends React.Component {
                       className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
                       onClick={() =>
                           this.props.openModal({
-                              id: uuid.v4(),
+                              id: uuidv4(),
                               content: DataPathHoC(AlertDetails, {
                                   monitor: monitor ? monitor.name : 'Unknown',
                                   subscriber: alert.subscriberId

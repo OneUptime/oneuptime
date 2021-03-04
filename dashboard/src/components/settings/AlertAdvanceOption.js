@@ -10,7 +10,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import { StripeProvider, injectStripe, Elements } from 'react-stripe-elements';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { env } from '../../config';
 import PricingPlan from '../basic/PricingPlan';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
@@ -21,7 +21,7 @@ import { FormLoader } from '../basic/Loader';
 
 export class AlertAdvanceOption extends Component {
     state = {
-        MessageBoxId: uuid.v4(),
+        MessageBoxId: uuidv4(),
     };
 
     submitForm = value => {

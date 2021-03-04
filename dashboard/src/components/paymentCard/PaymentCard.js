@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { openModal } from '../../actions/modal';
@@ -17,8 +17,8 @@ class PaymentCard extends Component {
         super(props);
         this.props = props;
         this.state = {
-            createCardModalId: uuid.v4(),
-            confirmCardDeleteModalId: uuid.v4(),
+            createCardModalId: uuidv4(),
+            confirmCardDeleteModalId: uuidv4(),
         };
     }
 

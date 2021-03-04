@@ -11,7 +11,7 @@ import {
     paginate,
 } from '../actions/schedule';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import Badge from '../components/common/Badge';
 import ScheduleProjectBox from '../components/schedule/ScheduleProjectBox';
@@ -25,7 +25,7 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 export class OnCall extends Component {
     constructor(props) {
         super(props);
-        this.state = { scheduleModalId: uuid.v4() };
+        this.state = { scheduleModalId: uuidv4() };
     }
 
     ready() {
@@ -225,7 +225,7 @@ export class OnCall extends Component {
             projectSchedule && projectSchedule.schedules ? (
                 <RenderIfUserInSubProject
                     subProjectId={currentProject._id}
-                    key={() => uuid.v4()}
+                    key={() => uuidv4()}
                 >
                     <div className="bs-BIM">
                         <div className="Box-root Margin-bottom--12">

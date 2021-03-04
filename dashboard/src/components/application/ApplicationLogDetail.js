@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { history } from '../../store';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from 'amplitude-js';
 import { bindActionCreators } from 'redux';
@@ -27,8 +27,8 @@ class ApplicationLogDetail extends Component {
         this.props = props;
         this.state = {
             deleting: false,
-            deleteModalId: uuid.v4(),
-            openApplicationLogKeyModalId: uuid.v4(),
+            deleteModalId: uuidv4(),
+            openApplicationLogKeyModalId: uuidv4(),
             filter: '',
             currentDate: moment(),
             logType: { value: '', label: 'All Logs' },

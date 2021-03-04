@@ -15,7 +15,7 @@ import PropTypes from 'prop-types';
 import { StripeProvider, injectStripe, Elements } from 'react-stripe-elements';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS, env, User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
@@ -39,8 +39,8 @@ function validate(value) {
 
 export class CustomerBalance extends Component {
     state = {
-        MessageBoxId: uuid.v4(),
-        createTopUpModalId: uuid.v4(),
+        MessageBoxId: uuidv4(),
+        createTopUpModalId: uuidv4(),
     };
 
     componentDidMount() {

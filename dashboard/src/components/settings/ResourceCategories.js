@@ -13,16 +13,16 @@ import RemoveResourceCategory from '../modals/RemoveResourceCategory';
 import EditResourceCategory from '../modals/EditResourceCategory';
 import { openModal, closeModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
 
 export class ResourceCategories extends Component {
     state = {
-        CreateResourceCategoryModalId: uuid.v4(),
-        EditResourceCategoryModalId: uuid.v4(),
-        removeResourceCategoryModalId: uuid.v4(),
+        CreateResourceCategoryModalId: uuidv4(),
+        EditResourceCategoryModalId: uuidv4(),
+        removeResourceCategoryModalId: uuidv4(),
     };
 
     componentDidMount() {

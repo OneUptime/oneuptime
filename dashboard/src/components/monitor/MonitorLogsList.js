@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import ViewJsonLogs from '../modals/ViewJsonLogs';
@@ -15,7 +15,7 @@ import ShouldRender from '../../components/basic/ShouldRender';
 export class MonitorLogsList extends Component {
     constructor(props) {
         super(props);
-        this.state = { viewJsonModalId: uuid.v4() };
+        this.state = { viewJsonModalId: uuidv4() };
     }
     render() {
         const { monitorLogs } = this.props;

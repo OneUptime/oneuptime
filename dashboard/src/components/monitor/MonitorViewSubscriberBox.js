@@ -9,7 +9,7 @@ import CreateSubscriber from '../../components/modals/CreateSubscriber';
 import DataPathHoC from '../DataPathHoC';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { exportCSV } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import { logEvent } from '../../analytics';
@@ -21,8 +21,8 @@ export class MonitorViewSubscriberBox extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            createSubscriberModalId: uuid.v4(),
-            uploadSubscriberModalId: uuid.v4(),
+            createSubscriberModalId: uuidv4(),
+            uploadSubscriberModalId: uuidv4(),
         };
     }
 

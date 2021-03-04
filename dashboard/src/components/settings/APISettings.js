@@ -1,4 +1,4 @@
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
@@ -19,7 +19,7 @@ export class APISettings extends Component {
 
         this.state = {
             hidden: true,
-            resetModalId: uuid.v4(),
+            resetModalId: uuidv4(),
         };
     }
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { deleteSlackLink } from '../../actions/slack';
@@ -13,7 +13,7 @@ class SlackTeamItem extends React.Component {
         super(props);
 
         this.state = {
-            deleteModalId: uuid.v4(),
+            deleteModalId: uuidv4(),
         };
     }
 

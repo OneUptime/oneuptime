@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -31,9 +31,9 @@ export class IncidentStatus extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            editIncidentModalId: uuid.v4(),
-            messageModalId: uuid.v4(),
-            viewJsonModalId: uuid.v4(),
+            editIncidentModalId: uuidv4(),
+            messageModalId: uuidv4(),
+            viewJsonModalId: uuidv4(),
             resolveLoad: false,
             value: undefined,
             stats: false,

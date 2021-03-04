@@ -7,7 +7,7 @@ import { fetchMonitorsIncidents } from '../../actions/monitor';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import { createNewIncident } from '../../actions/incident';
 import CreateManualIncident from '../modals/CreateManualIncident';
@@ -19,7 +19,7 @@ export class MonitorViewIncidentBox extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            createIncidentModalId: uuid.v4(),
+            createIncidentModalId: uuidv4(),
             filteredIncidents: [],
             isFiltered: false,
             filterOption: 'Filter By',

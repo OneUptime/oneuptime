@@ -14,13 +14,13 @@ import { logEvent } from '../analytics';
 import { IS_SAAS_SERVICE } from '../config';
 import { history } from '../store';
 import DataPathHoC from '../components/DataPathHoC';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 class ComponentSettingsAdvanced extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            deleteComponentModalId: uuid.v4(),
+            deleteComponentModalId: uuidv4(),
         };
     }
 

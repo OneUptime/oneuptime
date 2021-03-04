@@ -3,7 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import MonitorChart from './MonitorChart';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import MonitorTitle from './MonitorTitle';
 import ProbeBar from './ProbeBar';
 import moment from 'moment';
@@ -35,10 +35,10 @@ export class MonitorViewHeader extends Component {
         super(props);
         this.props = props;
         this.state = {
-            deleteModalId: uuid.v4(),
+            deleteModalId: uuidv4(),
             startDate: moment().subtract(30, 'd'),
             endDate: moment(),
-            createIncidentModalId: uuid.v4(),
+            createIncidentModalId: uuidv4(),
         };
 
         this.deleteMonitor = this.deleteMonitor.bind(this);
@@ -385,7 +385,7 @@ export class MonitorViewHeader extends Component {
                         <MonitorChart
                             start={startDate}
                             end={endDate}
-                            key={uuid.v4()}
+                            key={uuidv4()}
                             monitor={monitor}
                             data={logs}
                             statuses={statuses}
@@ -397,7 +397,7 @@ export class MonitorViewHeader extends Component {
                         <MonitorChart
                             start={startDate}
                             end={endDate}
-                            key={uuid.v4()}
+                            key={uuidv4()}
                             monitor={monitor}
                             data={logs}
                             statuses={statuses}

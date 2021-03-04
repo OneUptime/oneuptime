@@ -3,7 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { isEqual } from 'lodash';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import {
     reduxForm,
     Field,
@@ -73,7 +73,7 @@ class NewMonitor extends Component {
 
             showAllMonitors: false,
             type: props.edit ? props.editMonitorProp.type : props.type,
-            httpRequestLink: `${API_URL}/incomingHttpRequest/${uuid.v4()}`,
+            httpRequestLink: `${API_URL}/incomingHttpRequest/${uuidv4()}`,
             mode: props.edit ? props.editMonitorProp.mode : props.mode,
             authentication: props.edit
                 ? props.editMonitorProp.authentication
@@ -128,7 +128,7 @@ class NewMonitor extends Component {
                 // add a default criterion as a down criterion
                 const defaultDownCriterion = {
                     type: CRITERIA_TYPES.DOWN.type,
-                    id: uuid.v4(),
+                    id: uuidv4(),
                     default: true,
                     name: CRITERIA_TYPES.DOWN.name,
                 };
@@ -137,7 +137,7 @@ class NewMonitor extends Component {
 
                 [CRITERIA_TYPES.UP, CRITERIA_TYPES.DEGRADED].forEach(
                     criterion => {
-                        const id = uuid.v4();
+                        const id = uuidv4();
 
                         const newCriterion = {
                             id,
@@ -2402,7 +2402,7 @@ class NewMonitor extends Component {
                                                                                         {
                                                                                             type:
                                                                                                 criterionType.type,
-                                                                                            id: uuid.v4(),
+                                                                                            id: uuidv4(),
                                                                                         }
                                                                                     )
                                                                                 }

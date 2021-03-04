@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import ProbeStatus from './ProbeStatus';
 import { openModal, closeModal } from '../../actions/modal';
@@ -13,7 +13,7 @@ import DataPathHoC from '../DataPathHoC';
 export class ProbeList extends Component {
     constructor(props) {
         super(props);
-        this.state = { ProbeDetailModalId: uuid.v4() };
+        this.state = { ProbeDetailModalId: uuidv4() };
     }
 
     render() {

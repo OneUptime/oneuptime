@@ -14,7 +14,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { setRevealVariable } from '../../actions/smsTemplates';
 import { openModal, closeModal } from '../../actions/modal';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import ResetSmsTemplate from '../modals/ResetSmsTemplate';
 
@@ -45,7 +45,7 @@ export class SmsTemplatesFormBox extends Component {
         super(props);
         this.props = props;
         this.state = {
-            openSmsTemplateResetModalId: uuid.v4(),
+            openSmsTemplateResetModalId: uuidv4(),
         };
     }
     resetTemplate = id => {

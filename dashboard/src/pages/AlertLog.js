@@ -10,7 +10,7 @@ import AlertProjectBox from '../components/alert/AlertProjectBox';
 import Badge from '../components/common/Badge';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import ShouldRender from '../components/basic/ShouldRender';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -188,7 +188,7 @@ class AlertLog extends Component {
             projectAlert && projectAlert.alerts ? (
                 <RenderIfUserInSubProject
                     subProjectId={projectAlert._id}
-                    key={() => uuid.v4()}
+                    key={() => uuidv4()}
                 >
                     <div className="bs-BIM">
                         <div className="Box-root Margin-bottom--12">
