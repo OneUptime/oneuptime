@@ -354,4 +354,13 @@ class TrackerTest extends TestCase
         $this->assertCount(1, $newEvent->timeline);
         $this->assertCount(2, $newEvent->tags);// the default and custom tag
     }
+    public function test_should_contain_version_number_and_sdk_name_in_captured_message() {
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $errorMessage = 'Error Found';
+        $tracker->captureMessage($errorMessage);
+        $event = $tracker->getCurrentEvent();
+
+        $this->assertIsString($event->sdk->name);
+        $this->assertRegExp('/(([0-9])+\.([0-9])+\.([0-9])+)/', $event->sdk->version ); // confirm that the versiion follows the patter XX.XX.XX where X is a non negative integer
+    }
 }
