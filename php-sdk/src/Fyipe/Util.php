@@ -117,7 +117,23 @@ class Util
         }
         array_map("updateFrameContent", $frames);
     }
-    
+    private function formatFileName($fileName) {
+        $fileIndicator = 'file://';
+        $localFileName = $fileName;
+        if (strpos($fileName, $fileIndicator) > -1) {
+            // check for index of file then trim the file part by skiping it and starting with the leading /
+            $localFileName = substr($fileName, strpos($fileName, $fileIndicator) + strlen($fileIndicator));
+        }
+        return $localFileName;
+    }
+    private function readFileFromSource($fileName) {
+        $content = file_get_contents($fileName);
+        $content = json_decode($content, true);
+
+        $this->CONTENT_CACHE.set($fileName, $content);
+        return $content;
+    }
+   
     public static function v4() {
         return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
     
