@@ -8,6 +8,7 @@ import { ListLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
 import AuditLogsJsonViewModal from './AuditLogsJsonViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import ShouldRender from '../basic/ShouldRender';
 
 export class AuditLogsList extends Component {
     constructor(props) {
@@ -292,19 +293,25 @@ export class AuditLogsList extends Component {
                                     id="log-count"
                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                 >
-                                    {this.props.auditLogs &&
-                                    this.props.auditLogs.count
-                                        ? `Page ${
-                                              this.props.page
-                                          } of ${numberOfPages} (${this.props
-                                              .auditLogs &&
-                                              this.props.auditLogs.count} Log${
-                                              this.props.auditLogs &&
-                                              this.props.auditLogs.count === 1
-                                                  ? ''
-                                                  : 's'
-                                          })`
-                                        : null}
+                                    <ShouldRender
+                                        if={
+                                            this.props.auditLogs &&
+                                            this.props.auditLogs.count
+                                        }
+                                    >
+                                        Page {this.props.page} of{' '}
+                                        {numberOfPages} (
+                                        <span id="audit-log-count">
+                                            {this.props.auditLogs.count}
+                                        </span>{' '}
+                                        Log
+                                        <ShouldRender
+                                            if={this.props.auditLogs.count > 0}
+                                        >
+                                            s
+                                        </ShouldRender>
+                                        )
+                                    </ShouldRender>
                                 </span>
                             </span>
                         </span>

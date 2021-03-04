@@ -107,6 +107,7 @@ const INITIAL_STATE = {
     fetchMonitorsIncidentRequest: false,
     activeProbe: 0,
     fetchMonitorLogsRequest: false,
+    monitorLogsRequest: {},
     fetchMonitorStatusesRequest: false,
     fetchLighthouseLogsRequest: false,
     fetchMonitorCriteriaRequest: false,
@@ -529,6 +530,9 @@ export default function monitor(state = INITIAL_STATE, action) {
         case FETCH_MONITOR_LOGS_REQUEST:
             return Object.assign({}, state, {
                 fetchMonitorLogsRequest: true,
+                monitorLogsRequest: {
+                    [action.payload]: true,
+                },
             });
 
         case FETCH_MONITOR_LOGS_SUCCESS:
@@ -558,6 +562,10 @@ export default function monitor(state = INITIAL_STATE, action) {
                     }),
                 },
                 fetchMonitorLogsRequest: false,
+                monitorLogsRequest: {
+                    ...state.monitorLogsRequest,
+                    [action.payload.monitorId]: false,
+                },
             });
 
         case FETCH_MONITOR_LOGS_FAILURE:

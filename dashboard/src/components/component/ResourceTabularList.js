@@ -106,15 +106,24 @@ class ResourceTabularList extends Component {
                         );
                     }
                 }
+                if (
+                    typeof this.props.monitorLogsRequest[
+                        componentResource._id
+                    ] === 'undefined' ||
+                    this.props.monitorLogsRequest[componentResource._id]
+                ) {
+                    indicator = <ListLoader />;
+                } else {
+                    indicator = (
+                        <StatusIndicator
+                            status={monitorStatus}
+                            resourceName={componentResource.name}
+                            monitorName={monitor && monitor.name}
+                        />
+                    );
+                    statusDescription = monitorStatus;
+                }
 
-                indicator = (
-                    <StatusIndicator
-                        status={monitorStatus}
-                        resourceName={componentResource.name}
-                        monitorName={monitor && monitor.name}
-                    />
-                );
-                statusDescription = monitorStatus;
                 break;
             case 'application security':
                 // get application security status
@@ -506,6 +515,7 @@ function mapStateToProps(state, props) {
         monitors,
         probes: state.probe.probes.data,
         activeProbe: state.monitor.activeProbe,
+        monitorLogsRequest: state.monitor.monitorLogsRequest,
     };
 }
 
@@ -521,6 +531,7 @@ ResourceTabularList.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    monitorLogsRequest: PropTypes.object,
 };
 
 ResourceTabularList.defaultProps = {

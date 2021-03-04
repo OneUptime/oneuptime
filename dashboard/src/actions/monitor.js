@@ -644,7 +644,7 @@ export function fetchMonitorLogs(projectId, monitorId, startDate, endDate) {
             `monitor/${projectId}/monitorLog/${monitorId}`,
             { startDate, endDate }
         );
-        dispatch(fetchMonitorLogsRequest());
+        dispatch(fetchMonitorLogsRequest(monitorId));
         dispatch(updateDateRange(startDate, endDate));
 
         promise.then(
@@ -684,9 +684,10 @@ export function updateDateRange(startDate, endDate) {
     };
 }
 
-export function fetchMonitorLogsRequest() {
+export function fetchMonitorLogsRequest(payload) {
     return {
         type: types.FETCH_MONITOR_LOGS_REQUEST,
+        payload,
     };
 }
 
