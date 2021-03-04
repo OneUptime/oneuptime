@@ -85,7 +85,12 @@ class FyipeTracker
                         $key == 'maxTimeline' &&
                         ($value > $this->MAX_ITEMS_ALLOWED_IN_STACK || $value < 1)
                     ) {
-                        $this->options[$key] = $this->MAX_ITEMS_ALLOWED_IN_STACK;
+                        $allowedValue =
+                            $value > $this->MAX_ITEMS_ALLOWED_IN_STACK||
+                            $value < 1
+                                ? $this->MAX_ITEMS_ALLOWED_IN_STACK
+                                : $value;
+                        $this->options[$key] = $allowedValue;
                     } else {
                         $this->options[$key] = $value;
                     }
