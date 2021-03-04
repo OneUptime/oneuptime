@@ -80,7 +80,7 @@ export const groups = [
                     {
                         title: 'Monitor View',
                         path:
-                            '/dashboard/project/:slug/:componentId/monitoring/:monitorId',
+                            '/dashboard/project/:slug/:componentId/monitoring/:monitorSlug',
                         icon: 'monitor',
                         visible: true,
                         subRoutes: [],
@@ -92,7 +92,7 @@ export const groups = [
                     {
                         title: 'Website Issues',
                         path:
-                            '/dashboard/project/:slug/:componentId/monitoring/:monitorId/issues/:issueId',
+                            '/dashboard/project/:slug/:componentId/monitoring/:monitorSlug/issues/:issueId',
                         icon: 'info',
                         visible: true,
                         subRoutes: [],

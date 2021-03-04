@@ -184,7 +184,7 @@ export class MonitorTabularList extends Component {
                                                         '/' +
                                                         this.props.componentId +
                                                         '/monitoring/' +
-                                                        monitor._id
+                                                        monitor.slug
                                                 );
                                             }}
                                         >
