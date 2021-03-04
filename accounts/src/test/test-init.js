@@ -91,7 +91,7 @@ module.exports = {
         await Promise.all([
             // page.waitForSelector('div#success-step'),
             page.click('button[type=submit]'),
-            page.waitForTimeout(20000),
+            page.waitForNavigation(),
         ]);
     },
     loginUser: async function(
