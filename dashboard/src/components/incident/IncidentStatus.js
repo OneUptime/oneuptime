@@ -147,9 +147,9 @@ export class IncidentStatus extends Component {
                 });
             });
     };
-    acknowledge = setLoading => {
+    acknowledge = async setLoading => {
         const userId = User.getUserId();
-        this.props
+        await this.props
             .acknowledgeIncident(
                 this.props.incident.projectId,
                 this.props.incident._id,
@@ -158,11 +158,13 @@ export class IncidentStatus extends Component {
             )
             .then(() => {
                 this.setState({ resolveLoad: false });
-                setLoading(false);
                 this.props.markAsRead(
                     this.props.incident.projectId,
                     this.props.incident.notificationId
                 );
+                if (setLoading) {
+                    setLoading(false);
+                }
                 this.props.getIncidentTimeline(
                     this.props.currentProject._id,
                     this.props.incident._id,
@@ -182,9 +184,9 @@ export class IncidentStatus extends Component {
         }
     };
 
-    resolve = setLoading => {
+    resolve = async setLoading => {
         const userId = User.getUserId();
-        this.props
+        await this.props
             .resolveIncident(
                 this.props.incident.projectId,
                 this.props.incident._id,
@@ -193,7 +195,9 @@ export class IncidentStatus extends Component {
             )
             .then(() => {
                 this.setState({ resolveLoad: false, value: '', stats: false });
-                setLoading(false);
+                if (setLoading) {
+                    setLoading(false);
+                }
                 this.props.markAsRead(
                     this.props.incident.projectId,
                     this.props.incident.notificationId

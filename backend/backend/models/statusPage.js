@@ -106,5 +106,6 @@ const statusSchema = new Schema({
     },
 
     deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    theme: { type: String },
 });
 module.exports = mongoose.model('StatusPage', statusSchema);

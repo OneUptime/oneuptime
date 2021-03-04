@@ -156,8 +156,8 @@ nginx-ingress-controller:
   ##################################################################################
 
 haraka:
-  user: "user@fyipe.com"
-  password: "fyipe"
+  user: 
+  password:
   domain:
   dkimPrivateKey:
   tlsCert:
@@ -204,3 +204,6 @@ encryptionKey: ThisEncryptionKeyLengthIs32Size.
 # If you disable sign up, then you need to specify 
 # fyipe.admin.email and fyipe.admin.password values for the admin account. 
 disableSignup: false
+
+# What protocol is backend running on. Takes in values like 'http:' or 'https:'
+backendProtocol: 
