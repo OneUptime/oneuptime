@@ -67,8 +67,8 @@ class Util
     
       $frames = [];
       $obj = new stdClass();
-      $obj->type = get_class($exception);
-      $obj->message = $exception->getMessage();
+      $obj->type = is_string($exception) ? $exception : get_class($exception);
+      $obj->message =  is_string($exception) ? $exception : $exception->getMessage();
       $obj->lineNumber = $exception->getLine();
     
       for ($cursor = 0; $cursor < sizeof($exception->getTrace()); $cursor++) {
