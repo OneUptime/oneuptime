@@ -1276,6 +1276,11 @@ margin-left:10px;
   width: 100%;
   max-width: 850px;
   margin: 30px auto 30px auto;
+  box-sizing: border-box;
+}
+
+.pad-left {
+  padding-left: 40px;
 }
 
 .new-theme {
@@ -1552,8 +1557,6 @@ margin-left:10px;
   width: 90%;
   max-width: 850px;
   margin: auto;
-  display: flex;
-  justify-content: flex-end;
 }
 
 .subscribe_box {
