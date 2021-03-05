@@ -49,7 +49,7 @@ class ErrorTrackerDetail extends Component {
                 '/' +
                 componentId +
                 '/error-trackers/' +
-                errorTracker._id
+                errorTracker.slug
         );
     };
     resetErrorTrackerKey = () => {

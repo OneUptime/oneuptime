@@ -32,8 +32,8 @@ class ErrorEventView extends Component {
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
-        const errorTrackerId = this.props.match.params.errorTrackerId
-            ? this.props.match.params.errorTrackerId
+        const errorTrackerId = this.props.errorTracker
+            ? this.props.errorTracker._id
             : null;
         const errorEventId = this.props.match.params.errorEventId
             ? this.props.match.params.errorEventId
@@ -71,7 +71,7 @@ class ErrorEventView extends Component {
                 '/' +
                 component._id +
                 '/error-trackers/' +
-                errorTracker[0]._id +
+                errorTracker[0].slug +
                 '/events/' +
                 errorEventId
         );
@@ -127,6 +127,9 @@ class ErrorEventView extends Component {
                                 errorTrackerId={
                                     errorTracker[0] && errorTracker[0]._id
                                 }
+                                errorTrackerSlug={
+                                    errorTracker[0] && errorTracker[0].slug
+                                }
                                 navigationLink={this.navigationLink}
                             />
                         </div>
@@ -149,7 +152,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 const mapStateToProps = (state, ownProps) => {
-    const { componentId, errorTrackerId, errorEventId } = ownProps.match.params;
+    const { componentId, errorTrackerSlug, errorEventId } = ownProps.match.params;
     const currentErrorEvent = state.errorTracker.currentErrorEvent;
     const currentErrorEventId =
         currentErrorEvent !== errorEventId ? errorEventId : currentErrorEvent;
@@ -163,7 +166,7 @@ const mapStateToProps = (state, ownProps) => {
         });
     });
     const errorTracker = state.errorTracker.errorTrackersList.errorTrackers.filter(
-        errorTracker => errorTracker._id === errorTrackerId
+        errorTracker => errorTracker.slug === errorTrackerSlug
     );
     let errorEvent = {};
     const errorEvents = state.errorTracker.errorEvents;

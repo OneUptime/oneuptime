@@ -458,6 +458,7 @@ router.get(
                         createdAt: errorTracker.createdAt,
                         icon: 'errorTracking',
                         status: errorStatus,
+                        slug: errorTracker.slug
                     };
                     // add it to the total resources
                     totalResources.push(newElement);

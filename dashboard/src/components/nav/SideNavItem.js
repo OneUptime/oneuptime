@@ -52,7 +52,7 @@ export class SidebarNavItem extends Component {
             .replace(':componentId', match.params.componentId)
             .replace(':monitor', match.params.monitorSlug)
             .replace(':applicationLogSlug', match.params.applicationLogSlug)
-            .replace(':errorTrackerId', match.params.errorTrackerId);
+            .replace(':errorTrackerSlug', match.params.errorTrackerSlug);
     };
     handleShowMore = () => {
         this.props.toggleProjectSettingsMore(!this.props.toggleMoreBtn);
@@ -110,7 +110,7 @@ export class SidebarNavItem extends Component {
             .replace(':componentId', match.params.componentId)
             .replace(':monitorSlug', match.params.monitorSlug)
             .replace(':applicationLogSlug', match.params.applicationLogSlug)
-            .replace(':errorTrackerId', match.params.errorTrackerId);
+            .replace(':errorTrackerSlug', match.params.errorTrackerSlug);
         const isLinkActive =
             location.pathname === path ||
             (location.pathname.match(
@@ -170,8 +170,8 @@ export class SidebarNavItem extends Component {
                 match.params.applicationLogSlug
             );
             newPath = newPath.replace(
-                /:errorTrackerId/,
-                match.params.errorTrackerId
+                /:errorTrackerSlug/,
+                match.params.errorTrackerSlug
             );
 
             const response =
