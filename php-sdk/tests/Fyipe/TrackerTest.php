@@ -363,4 +363,58 @@ class TrackerTest extends TestCase
         $this->assertIsString($event->sdk->name);
         $this->assertRegExp('/(([0-9])+\.([0-9])+\.([0-9])+)/', $event->sdk->version ); // confirm that the versiion follows the patter XX.XX.XX where X is a non negative integer
     }
+    public function test_should_add_code_capture_to_stack_trace_when_flag_is_passed_in_options() {
+        $options = new stdClass();
+        $options->captureCodeSnippet = true;
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, [$options]);
+
+        $errorMessageObj = 'Object Error Found';
+        $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
+        $event = $tracker->captureException(new Error($errorMessageObj));
+        $incidentFrame = $event->content->stacktrace->frames[0];
+        $this->assertObjectHasAttribute('linesBeforeError', $incidentFrame);
+        $this->assertObjectHasAttribute('linesAfterError', $incidentFrame);
+        $this->assertObjectHasAttribute('errorLine', $incidentFrame);
+    }
+    public function test_should_add_code_capture_and_confirm_data_type_of_fields_added_to_frame() {
+        $options = new stdClass();
+        $options->captureCodeSnippet = true;
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, [$options]);
+
+        $errorMessageObj = 'Object Error Found';
+        $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
+        $event = $tracker->captureException(new Error($errorMessageObj));
+        $incidentFrame = $event->content->stacktrace->frames[0];
+
+        $this->assertIsString($incidentFrame->errorLine);
+        $this->assertIsArray($incidentFrame->linesBeforeError);
+        $this->assertIsArray($incidentFrame->linesAfterError);
+    }
+    public function test_should_not_add_code_capture_to_stack_trace_when_flag_is_passed_in_options() {
+        $options = new stdClass();
+        $options->captureCodeSnippet = false;
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, [$options]);
+
+        $errorMessageObj = 'Object Error Found';
+        $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
+        $event = $tracker->captureException(new Error($errorMessageObj));
+        $incidentFrame = $event->content->stacktrace->frames[0];
+
+        $this->assertObjectNotHasAttribute('linesBeforeError', $incidentFrame);
+        $this->assertObjectNotHasAttribute('linesAfterError', $incidentFrame);
+        $this->assertObjectNotHasAttribute('errorLine', $incidentFrame);
+    }
+    public function test_should_add_code_capture_to_stack_trace_by_default_when_unwanted_flag_is_passed_in_options() {
+        $options = new stdClass();
+        $options->captureCodeSnippet = "hello"; // sdk expects a true or false but it defaults to true if wrong value is sent
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, [$options]);
+
+        $errorMessageObj = 'Object Error Found';
+        $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
+        $event = $tracker->captureException(new Error($errorMessageObj));
+        $incidentFrame = $event->content->stacktrace->frames[0];
+        $this->assertObjectHasAttribute('linesBeforeError', $incidentFrame);
+        $this->assertObjectHasAttribute('linesAfterError', $incidentFrame);
+        $this->assertObjectHasAttribute('errorLine', $incidentFrame);
+    }
 }
