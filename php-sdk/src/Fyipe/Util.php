@@ -11,10 +11,12 @@ use stdClass;
 class Util
 {
     private $CONTENT_CACHE;
+    private $options;
 
-    public function __construct()
+    public function __construct($options)
     {
         $this->CONTENT_CACHE = new \LRUCache\LRUCache(100);
+        $this->options = $options;
     }
     public function getErrorType()
     {
@@ -91,8 +93,10 @@ class Util
         $stacktrace->frames = $frames;
         $obj->stacktrace = $stacktrace;
 
-        // TODO run only if user agreed to use this feature
-        $this->getErrorCodeSnippet($obj);
+        // run only if user agreed to use this feature
+        if($this->options['captureCodeSnippet']) {
+            $obj = $this->getErrorCodeSnippet($obj);
+        }
         return $obj;
     }
     private function getErrorCodeSnippet($errorObj)
