@@ -31,6 +31,7 @@ describe('Reset Password API', () => {
 
     it('Should reset password successfully', async () => {
         await init.registerUser(user, page);
+        await init.logoutUser(page);
         await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
             waitUntil: 'networkidle2',
         });

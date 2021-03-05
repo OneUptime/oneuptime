@@ -763,7 +763,7 @@ export class IncidentStatus extends Component {
                                                                             .props
                                                                             .incident
                                                                             .monitorId
-                                                                            ._id
+                                                                            .slug
                                                                     }
                                                                     id="backToMonitorView"
                                                                 >

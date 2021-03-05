@@ -72,6 +72,7 @@ const monitorSchema = new Schema({
         index: true,
     },
     name: String,
+    slug:String,
     data: Object, //can be URL, IP address, or anything that depends on the type.
     createdById: { type: String, ref: 'User', index: true }, //userId.
     type: {
