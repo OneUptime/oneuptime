@@ -52,7 +52,7 @@ class FyipeTracker
         $this->setApiUrl($apiUrl);
         $this->errorTrackerKey = $errorTrackerKey;
         $this->setUpOptions($options);
-        $this->utilObj = new Util();
+        $this->utilObj = new Util($this->options);
         $this->setEventId();
         $this->listenerObj = new FyipeListener(
             $this->getEventId(),

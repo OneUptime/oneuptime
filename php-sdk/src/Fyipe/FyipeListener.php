@@ -24,7 +24,7 @@ class FyipeListener
         // start the timeline manager
         $this->timelineObj = new FyipeTimelineManager($options);
         $this->currentEventId = $eventId;
-        $this->utilObj = new Util();
+        $this->utilObj = new Util($options);
     }
     public function logErrorEvent($content) {
 
