@@ -138,7 +138,7 @@ export const groups = [
                     {
                         title: 'Log Container View',
                         path:
-                            '/dashboard/project/:slug/:componentId/application-logs/:applicationLogId',
+                            '/dashboard/project/:slug/:componentId/application-logs/:applicationLogSlug',
                         icon: 'radar',
                         visible: true,
                         subRoutes: [],

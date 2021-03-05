@@ -427,6 +427,7 @@ router.get(
                         createdAt: elem.createdAt,
                         icon: 'appLog',
                         status: logStatus,
+                        slug: elem.slug,
                     };
                     // add it to the total resources
                     totalResources.push(newElement);

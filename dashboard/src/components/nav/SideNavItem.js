@@ -51,7 +51,7 @@ export class SidebarNavItem extends Component {
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitor', match.params.monitorSlug)
-            .replace(':applicationLogId', match.params.applicationLogId)
+            .replace(':applicationLogSlug', match.params.applicationLogSlug)
             .replace(':errorTrackerId', match.params.errorTrackerId);
     };
     handleShowMore = () => {
@@ -109,7 +109,7 @@ export class SidebarNavItem extends Component {
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitorSlug', match.params.monitorSlug)
-            .replace(':applicationLogId', match.params.applicationLogId)
+            .replace(':applicationLogSlug', match.params.applicationLogSlug)
             .replace(':errorTrackerId', match.params.errorTrackerId);
         const isLinkActive =
             location.pathname === path ||
@@ -166,8 +166,8 @@ export class SidebarNavItem extends Component {
             newPath = newPath.replace(/:monitorSlug/, match.params.monitorSlug);
             newPath = newPath.replace(/:componentId/, match.params.componentId);
             newPath = newPath.replace(
-                /:applicationLogId/,
-                match.params.applicationLogId
+                /:applicationLogSlug/,
+                match.params.applicationLogSlug
             );
             newPath = newPath.replace(
                 /:errorTrackerId/,
@@ -190,11 +190,11 @@ export class SidebarNavItem extends Component {
                       ) &&
                           link.title === 'Application') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/application\/([0-9]|[a-z])*/
+                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/application\/([A-Za-z0-9-]+)*/
                       ) &&
                           link.title === 'Application Detail') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/container\/([0-9]|[a-z])*/
+                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/container\/([A-Za-z0-9-]+)*/
                       ) &&
                           link.title === 'Container Detail') ||
                       (location.pathname.match(

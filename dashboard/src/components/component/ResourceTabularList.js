@@ -53,7 +53,7 @@ class ResourceTabularList extends Component {
             default:
                 break;
         }
-        if(route === 'monitoring' || route === 'security/application' || route === 'security/container')
+        if(route === 'monitoring' || route === 'security/application' || route === 'security/container' || route === 'application-logs')
             return `${baseUrl}${route}/${componentResource.slug}`;
         else
             return `${baseUrl}${route}/${componentResource._id}`;
