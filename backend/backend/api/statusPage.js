@@ -1176,7 +1176,7 @@ function checkDuplicateDates(items, bool) {
 
     const result = [];
 
-    for (let item of items) {
+    for (const item of items) {
         const date = String(item.createdAt).slice(0, 10);
 
         if (!track[date]) {
