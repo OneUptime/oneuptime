@@ -13,6 +13,8 @@
     "dependencies": {
         "bcrypt": "^5.0.0",
         "mongodb": "^3.5.2",
+        "nanoid": "^1.3.0",
+        "slugify": "^1.4.7",
         "uuid": "^8.3.2"
     },
     "devDependencies": {

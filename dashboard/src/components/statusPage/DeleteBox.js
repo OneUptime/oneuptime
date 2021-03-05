@@ -103,7 +103,7 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators({ deleteStatusPage, openModal, closeModal }, dispatch);
 
 const mapStateToProps = (state, props) => {
-    const { scheduleId, projectId } = props.match.params;
+    const { scheduleId } = props.match.params;
 
     //  const status = state.statusPage.statusPages.find(
     //   statusPage => statusPage._id === scheduleId
@@ -113,7 +113,8 @@ const mapStateToProps = (state, props) => {
 
     return {
         // scheduleName,
-        projectId,
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
         slug: state.project.currentProject && state.project.currentProject.slug,
         scheduleId,
         isRequesting:
