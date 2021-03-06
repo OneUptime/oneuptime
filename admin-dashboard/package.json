@@ -52,7 +52,7 @@
         "enterprise-test": "jest --forceExit --runInBand ./src/test/*.test.enterprise.js",
         "start": "node index.js",
         "audit": "npm audit --audit-level=low",
-        "preinstall": "npx npm-force-resolutions",
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,loadable-components,js-uuid,acorn,@beam-australia/react-env'"
     },
     "devDependencies": {
@@ -65,6 +65,9 @@
         "jest-localstorage-mock": "^2.2.0",
         "npm-force-resolutions": "0.0.3",
         "should": "^13.2.3"
+    },
+    "resolutions": {
+
     },
     "jest": {
         "collectCoverageFrom": [

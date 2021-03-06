@@ -580,543 +580,564 @@ module.exports = {
             if (incomingRequest && incomingRequest.createIncident) {
                 const incidentResponse = [],
                     monitorsWithIncident = [];
-                for (const filter of filters) {
-                    data.incidentType = incomingRequest.incidentType;
-                    data.incidentPriority = incomingRequest.incidentPriority;
-                    data.title = incomingRequest.incidentTitle;
-                    data.description = incomingRequest.incidentDescription;
-                    data.customFields = incomingRequest.customFields;
-                    data.createdByIncomingHttpRequest = incomingRequest._id;
 
-                    data.reason = [
-                        `Created by: ${incomingRequest.name}`,
-                        `Reason: This incident was created by an incoming HTTP request`,
-                    ];
+                data.incidentType = incomingRequest.incidentType;
+                data.incidentPriority = incomingRequest.incidentPriority;
+                data.title = incomingRequest.incidentTitle;
+                data.description = incomingRequest.incidentDescription;
+                data.customFields = incomingRequest.customFields;
+                data.createdByIncomingHttpRequest = incomingRequest._id;
 
-                    if (
-                        data.title &&
-                        data.title.trim() &&
-                        data.description &&
-                        data.description.trim() &&
+                data.reason = [
+                    `Created by: ${incomingRequest.name}`,
+                    `Reason: This incident was created by an incoming HTTP request`,
+                ];
+
+                if (
+                    data.title &&
+                    data.title.trim() &&
+                    data.description &&
+                    data.description.trim() &&
+                    data.incidentPriority
+                ) {
+                    data.manuallyCreated = true;
+
+                    // handle template variables
+                    titleTemplate = Handlebars.compile(data.title);
+                    descriptionTemplate = Handlebars.compile(data.description);
+                }
+
+                if (data.customFields && data.customFields.length > 0) {
+                    customFieldTemplates = data.customFields.map(field => ({
+                        ...field,
+                        fieldValue: Handlebars.compile(
+                            String(field.fieldValue)
+                        ),
+                    }));
+                }
+
+                if (data.incidentType) {
+                    incidentTypeTemplate = Handlebars.compile(
+                        data.incidentType
+                    );
+                }
+                if (data.incidentPriority) {
+                    incidentPriorityTemplate = Handlebars.compile(
                         data.incidentPriority
-                    ) {
-                        data.manuallyCreated = true;
+                    );
+                }
 
-                        // handle template variables
-                        titleTemplate = Handlebars.compile(data.title);
-                        descriptionTemplate = Handlebars.compile(
-                            data.description
-                        );
-                    }
+                if (!filters || filters.length === 0) {
+                    if (incomingRequest.isDefault) {
+                        const monitors = await MonitorService.findBy({
+                            projectId: data.projectId,
+                        });
+                        for (const monitor of monitors) {
+                            const dataConfig = {
+                                monitorName: monitor.name,
+                                projectName: monitor.projectId.name,
+                                componentName: monitor.componentId.name,
+                                request: data.request,
+                            };
 
-                    if (data.customFields && data.customFields.length > 0) {
-                        customFieldTemplates = data.customFields.map(field => ({
-                            ...field,
-                            fieldValue: Handlebars.compile(
-                                String(field.fieldValue)
-                            ),
-                        }));
-                    }
-
-                    if (data.incidentType) {
-                        incidentTypeTemplate = Handlebars.compile(
-                            data.incidentType
-                        );
-                    }
-                    if (data.incidentPriority) {
-                        incidentPriorityTemplate = Handlebars.compile(
-                            data.incidentPriority
-                        );
-                    }
-                    if (filter.filterText) {
-                        const dataConfig = {
-                            request: data.request,
-                        };
-                        filterTextTemplate = Handlebars.compile(
-                            filter.filterText
-                        );
-                        filterTextTemplate = filterTextTemplate(dataConfig);
-                    }
-
-                    const filterCriteria = filter.filterCriteria,
-                        filterCondition = filter.filterCondition,
-                        filterText = filterTextTemplate;
-
-                    if (
-                        filterCriteria &&
-                        filterCondition &&
-                        ((!isNaN(filterText) && parseFloat(filterText) >= 0) ||
-                            (filterText && filterText.trim()))
-                    ) {
-                        if (incomingRequest.isDefault) {
-                            let monitors = [];
-                            if (filterCondition === 'equalTo') {
-                                monitors = await MonitorService.findBy({
-                                    projectId: data.projectId,
-                                    'customFields.fieldName': filterCriteria,
-                                    'customFields.fieldValue': filterText,
-                                });
-                            } else if (filterCondition === 'notEqualTo') {
-                                monitors = await MonitorService.findBy({
-                                    projectId: data.projectId,
-                                    'customFields.fieldName': filterCriteria,
-                                    'customFields.fieldValue': {
-                                        $ne: filterText,
-                                    },
-                                });
-                            } else if (!isNaN(parseFloat(filterText))) {
-                                // handle the case when filterText is a number
-                                // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
-                                if (filterCondition === 'lessThan') {
-                                    monitors = await MonitorService.findBy({
-                                        projectId: data.projectId,
-                                        'customFields.fieldName': filterCriteria,
-                                        'customFields.fieldValue': {
-                                            $lt: filterText,
-                                        },
-                                    });
-                                } else if (filterCondition === 'greaterThan') {
-                                    monitors = await MonitorService.findBy({
-                                        projectId: data.projectId,
-                                        'customFields.fieldName': filterCriteria,
-                                        'customFields.fieldValue': {
-                                            $gt: filterText,
-                                        },
-                                    });
-                                } else if (
-                                    filterCondition === 'lessThanOrEqualTo'
-                                ) {
-                                    monitors = await MonitorService.findBy({
-                                        projectId: data.projectId,
-                                        'customFields.fieldName': filterCriteria,
-                                        'customFields.fieldValue': {
-                                            $lte: filterText,
-                                        },
-                                    });
-                                } else if (
-                                    filterCondition === 'greaterThanOrEqualTo'
-                                ) {
-                                    monitors = await MonitorService.findBy({
-                                        projectId: data.projectId,
-                                        'customFields.fieldName': filterCriteria,
-                                        'customFields.fieldValue': {
-                                            $gte: filterText,
-                                        },
-                                    });
-                                }
+                            if (titleTemplate) {
+                                data.title = titleTemplate(dataConfig);
                             }
-
-                            for (const monitor of monitors) {
-                                const dataConfig = {
-                                    monitorName: monitor.name,
-                                    projectName: monitor.projectId.name,
-                                    componentName: monitor.componentId.name,
-                                    request: data.request,
-                                };
-
-                                if (titleTemplate) {
-                                    data.title = titleTemplate(dataConfig);
-                                }
-                                if (descriptionTemplate) {
-                                    data.description = descriptionTemplate(
-                                        dataConfig
-                                    );
-                                }
-                                if (incidentTypeTemplate) {
-                                    const incidentType = incidentTypeTemplate(
-                                        dataConfig
-                                    );
-                                    data.incidentType = [
-                                        'offline',
-                                        'online',
-                                        'degraded',
-                                    ].includes(incidentType)
-                                        ? incidentType
-                                        : 'offline';
-                                }
-                                if (incidentPriorityTemplate) {
-                                    const incidentPriority = incidentPriorityTemplate(
-                                        dataConfig
-                                    );
-                                    const priorityObj = {};
-                                    incidentPriorities.forEach(
-                                        priority =>
-                                            (priorityObj[priority.name] =
-                                                priority._id)
-                                    );
-                                    data.incidentPriority =
-                                        priorityObj[incidentPriority] ||
-                                        incidentSettings.incidentPriority;
-                                }
-                                if (
-                                    customFieldTemplates &&
-                                    customFieldTemplates.length > 0
-                                ) {
-                                    data.customFields = customFieldTemplates.map(
-                                        field => ({
-                                            ...field,
-                                            fieldValue: field.fieldValue(
-                                                dataConfig
-                                            ),
-                                        })
-                                    );
-                                }
-
-                                data.monitorId = monitor._id;
-                                if (filterMatch === 'any') {
-                                    if (
-                                        !monitorsWithIncident.includes(
-                                            String(monitor._id)
-                                        )
-                                    ) {
-                                        const incident = await IncidentService.create(
-                                            data
-                                        );
-                                        incidentResponse.push(incident);
-                                        monitorsWithIncident.push(
-                                            String(monitor._id)
-                                        );
-                                    }
-                                } else {
-                                    const incident = await IncidentService.create(
-                                        data
-                                    );
-                                    incidentResponse.push(incident);
-                                }
+                            if (descriptionTemplate) {
+                                data.description = descriptionTemplate(
+                                    dataConfig
+                                );
                             }
-                        } else {
-                            // grab the monitor from monitorId {_id, name, customFields}
-                            let monitors = incomingRequest.monitors
-                                .map(monitor => monitor.monitorId)
-                                .filter(monitor => !monitor.deleted);
-                            if (filterCondition === 'equalTo') {
-                                const matchedMonitor = [];
-                                monitors.forEach(monitor => {
-                                    let added = false;
-                                    monitor.customFields.forEach(field => {
-                                        if (
-                                            field.fieldName ===
-                                                filterCriteria &&
-                                            field.fieldValue === filterText &&
-                                            !added
-                                        ) {
-                                            matchedMonitor.push(monitor);
-                                            added = true;
-                                        }
-                                    });
-                                });
-                                monitors = matchedMonitor;
-                            } else if (filterCondition === 'notEqualTo') {
-                                const matchedMonitor = [];
-                                monitors.forEach(monitor => {
-                                    let added = false;
-                                    monitor.customFields.forEach(field => {
-                                        if (
-                                            field.fieldName ===
-                                                filterCriteria &&
-                                            field.fieldValue !== filterText &&
-                                            !added
-                                        ) {
-                                            matchedMonitor.push(monitor);
-                                            added = true;
-                                        }
-                                    });
-                                });
-                                monitors = matchedMonitor;
-                            } else if (!isNaN(filterText)) {
-                                // handle the case when filterText is a number
-                                // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
-                                if (filterCondition === 'lessThan') {
-                                    const matchedMonitor = [];
-                                    monitors.forEach(monitor => {
-                                        let added = false;
-                                        monitor.customFields.forEach(field => {
-                                            if (
-                                                field.fieldName ===
-                                                    filterCriteria &&
-                                                field.fieldValue < filterText &&
-                                                !added
-                                            ) {
-                                                matchedMonitor.push(monitor);
-                                                added = true;
-                                            }
-                                        });
-                                    });
-                                    monitors = matchedMonitor;
-                                } else if (filterCondition === 'greaterThan') {
-                                    const matchedMonitor = [];
-                                    monitors.forEach(monitor => {
-                                        let added = false;
-                                        monitor.customFields.forEach(field => {
-                                            if (
-                                                field.fieldName ===
-                                                    filterCriteria &&
-                                                field.fieldValue > filterText &&
-                                                !added
-                                            ) {
-                                                matchedMonitor.push(monitor);
-                                                added = true;
-                                            }
-                                        });
-                                    });
-                                    monitors = matchedMonitor;
-                                } else if (
-                                    filterCondition === 'lessThanOrEqualTo'
-                                ) {
-                                    const matchedMonitor = [];
-                                    monitors.forEach(monitor => {
-                                        let added = false;
-                                        monitor.customFields.forEach(field => {
-                                            if (
-                                                field.fieldName ===
-                                                    filterCriteria &&
-                                                field.fieldValue <=
-                                                    filterText &&
-                                                !added
-                                            ) {
-                                                matchedMonitor.push(monitor);
-                                                added = true;
-                                            }
-                                        });
-                                    });
-                                    monitors = matchedMonitor;
-                                } else if (
-                                    filterCondition === 'greaterThanOrEqualTo'
-                                ) {
-                                    const matchedMonitor = [];
-                                    monitors.forEach(monitor => {
-                                        let added = false;
-                                        monitor.customFields.forEach(field => {
-                                            if (
-                                                field.fieldName ===
-                                                    filterCriteria &&
-                                                field.fieldValue >=
-                                                    filterText &&
-                                                !added
-                                            ) {
-                                                matchedMonitor.push(monitor);
-                                                added = true;
-                                            }
-                                        });
-                                    });
-                                    monitors = matchedMonitor;
-                                }
+                            if (incidentTypeTemplate) {
+                                const incidentType = incidentTypeTemplate(
+                                    dataConfig
+                                );
+                                data.incidentType = [
+                                    'offline',
+                                    'online',
+                                    'degraded',
+                                ].includes(incidentType)
+                                    ? incidentType
+                                    : 'offline';
                             }
-
-                            for (const monitor of monitors) {
-                                const dataConfig = {
-                                    monitorName: monitor.name,
-                                    componentName: monitor.componentId.name,
-                                    projectName: incomingRequest.projectId.name,
-                                    request: data.request,
-                                };
-                                if (titleTemplate) {
-                                    data.title = titleTemplate(dataConfig);
-                                }
-                                if (descriptionTemplate) {
-                                    data.description = descriptionTemplate(
-                                        dataConfig
-                                    );
-                                }
-                                if (
-                                    customFieldTemplates &&
-                                    customFieldTemplates.length > 0
-                                ) {
-                                    data.customFields = customFieldTemplates.map(
-                                        field => ({
-                                            ...field,
-                                            fieldValue: field.fieldValue(
-                                                dataConfig
-                                            ),
-                                        })
-                                    );
-                                }
-
-                                data.monitorId = monitor._id;
-                                if (filterMatch === 'any') {
-                                    if (
-                                        !monitorsWithIncident.includes(
-                                            String(monitor._id)
-                                        )
-                                    ) {
-                                        const incident = await IncidentService.create(
-                                            data
-                                        );
-                                        incidentResponse.push(incident);
-                                        monitorsWithIncident.push(
-                                            String(monitor._id)
-                                        );
-                                    }
-                                } else {
-                                    const incident = await IncidentService.create(
-                                        data
-                                    );
-                                    incidentResponse.push(incident);
-                                }
+                            if (incidentPriorityTemplate) {
+                                const incidentPriority = incidentPriorityTemplate(
+                                    dataConfig
+                                );
+                                const priorityObj = {};
+                                incidentPriorities.forEach(
+                                    priority =>
+                                        (priorityObj[priority.name] =
+                                            priority._id)
+                                );
+                                data.incidentPriority =
+                                    priorityObj[incidentPriority] ||
+                                    incidentSettings.incidentPriority;
+                            }
+                            if (
+                                customFieldTemplates &&
+                                customFieldTemplates.length > 0
+                            ) {
+                                data.customFields = customFieldTemplates.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: field.fieldValue(
+                                            dataConfig
+                                        ),
+                                    })
+                                );
+                            }
+                            data.monitorId = monitor._id;
+                            if (
+                                !monitorsWithIncident.includes(
+                                    String(monitor._id)
+                                )
+                            ) {
+                                const incident = await IncidentService.create(
+                                    data
+                                );
+                                incidentResponse.push(incident);
+                                monitorsWithIncident.push(String(monitor._id));
                             }
                         }
                     } else {
-                        if (incomingRequest.isDefault) {
-                            const monitors = await MonitorService.findBy({
-                                projectId: data.projectId,
-                            });
-                            for (const monitor of monitors) {
-                                const dataConfig = {
-                                    monitorName: monitor.name,
-                                    projectName: monitor.projectId.name,
-                                    componentName: monitor.componentId.name,
-                                    request: data.request,
-                                };
-
-                                if (titleTemplate) {
-                                    data.title = titleTemplate(dataConfig);
-                                }
-                                if (descriptionTemplate) {
-                                    data.description = descriptionTemplate(
-                                        dataConfig
-                                    );
-                                }
-                                if (incidentTypeTemplate) {
-                                    const incidentType = incidentTypeTemplate(
-                                        dataConfig
-                                    );
-                                    data.incidentType = [
-                                        'offline',
-                                        'online',
-                                        'degraded',
-                                    ].includes(incidentType)
-                                        ? incidentType
-                                        : 'offline';
-                                }
-                                if (incidentPriorityTemplate) {
-                                    const incidentPriority = incidentPriorityTemplate(
-                                        dataConfig
-                                    );
-                                    const priorityObj = {};
-                                    incidentPriorities.forEach(
-                                        priority =>
-                                            (priorityObj[priority.name] =
-                                                priority._id)
-                                    );
-                                    data.incidentPriority =
-                                        priorityObj[incidentPriority] ||
-                                        incidentSettings.incidentPriority;
-                                }
-                                if (
-                                    customFieldTemplates &&
-                                    customFieldTemplates.length > 0
-                                ) {
-                                    data.customFields = customFieldTemplates.map(
-                                        field => ({
-                                            ...field,
-                                            fieldValue: field.fieldValue(
-                                                dataConfig
-                                            ),
-                                        })
-                                    );
-                                }
-                                data.monitorId = monitor._id;
-                                if (filterMatch === 'any') {
-                                    if (
-                                        !monitorsWithIncident.includes(
-                                            String(monitor._id)
-                                        )
-                                    ) {
-                                        const incident = await IncidentService.create(
-                                            data
-                                        );
-                                        incidentResponse.push(incident);
-                                        monitorsWithIncident.push(
-                                            String(monitor._id)
-                                        );
-                                    }
-                                } else {
-                                    const incident = await IncidentService.create(
-                                        data
-                                    );
-                                    incidentResponse.push(incident);
-                                }
+                        // grab the monitor from monitorId {_id, name}
+                        const monitors = incomingRequest.monitors
+                            .map(monitor => monitor.monitorId)
+                            .filter(monitor => !monitor.deleted);
+                        for (const monitor of monitors) {
+                            const dataConfig = {
+                                monitorName: monitor.name,
+                                componentName: monitor.componentId.name,
+                                projectName: incomingRequest.projectId.name,
+                                request: data.request,
+                            };
+                            if (titleTemplate) {
+                                data.title = titleTemplate(dataConfig);
                             }
-                        } else {
-                            // grab the monitor from monitorId {_id, name}
-                            const monitors = incomingRequest.monitors
-                                .map(monitor => monitor.monitorId)
-                                .filter(monitor => !monitor.deleted);
-                            for (const monitor of monitors) {
-                                const dataConfig = {
-                                    monitorName: monitor.name,
-                                    componentName: monitor.componentId.name,
-                                    projectName: incomingRequest.projectId.name,
-                                    request: data.request,
-                                };
-                                if (titleTemplate) {
-                                    data.title = titleTemplate(dataConfig);
-                                }
-                                if (descriptionTemplate) {
-                                    data.description = descriptionTemplate(
-                                        dataConfig
-                                    );
-                                }
-                                if (incidentTypeTemplate) {
-                                    const incidentType = incidentTypeTemplate(
-                                        dataConfig
-                                    );
-                                    data.incidentType = [
-                                        'offline',
-                                        'online',
-                                        'degraded',
-                                    ].includes(incidentType)
-                                        ? incidentType
-                                        : 'offline';
-                                }
-                                if (incidentPriorityTemplate) {
-                                    const incidentPriority = incidentPriorityTemplate(
-                                        dataConfig
-                                    );
-                                    const priorityObj = {};
-                                    incidentPriorities.forEach(
-                                        priority =>
-                                            (priorityObj[priority.name] =
-                                                priority._id)
-                                    );
-                                    data.incidentPriority =
-                                        priorityObj[incidentPriority] ||
-                                        incidentSettings.incidentPriority;
-                                }
-                                if (
-                                    customFieldTemplates &&
-                                    customFieldTemplates.length > 0
-                                ) {
-                                    data.customFields = customFieldTemplates.map(
-                                        field => ({
-                                            ...field,
-                                            fieldValue: field.fieldValue(
-                                                dataConfig
-                                            ),
-                                        })
-                                    );
-                                }
+                            if (descriptionTemplate) {
+                                data.description = descriptionTemplate(
+                                    dataConfig
+                                );
+                            }
+                            if (incidentTypeTemplate) {
+                                const incidentType = incidentTypeTemplate(
+                                    dataConfig
+                                );
+                                data.incidentType = [
+                                    'offline',
+                                    'online',
+                                    'degraded',
+                                ].includes(incidentType)
+                                    ? incidentType
+                                    : 'offline';
+                            }
+                            if (incidentPriorityTemplate) {
+                                const incidentPriority = incidentPriorityTemplate(
+                                    dataConfig
+                                );
+                                const priorityObj = {};
+                                incidentPriorities.forEach(
+                                    priority =>
+                                        (priorityObj[priority.name] =
+                                            priority._id)
+                                );
+                                data.incidentPriority =
+                                    priorityObj[incidentPriority] ||
+                                    incidentSettings.incidentPriority;
+                            }
+                            if (
+                                customFieldTemplates &&
+                                customFieldTemplates.length > 0
+                            ) {
+                                data.customFields = customFieldTemplates.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: field.fieldValue(
+                                            dataConfig
+                                        ),
+                                    })
+                                );
+                            }
 
-                                data.monitorId = monitor._id;
-                                if (filterMatch === 'any') {
-                                    if (
-                                        !monitorsWithIncident.includes(
-                                            String(monitor._id)
-                                        )
-                                    ) {
-                                        const incident = await IncidentService.create(
-                                            data
-                                        );
-                                        incidentResponse.push(incident);
-                                        monitorsWithIncident.push(
-                                            String(monitor._id)
-                                        );
-                                    }
-                                } else {
+                            data.monitorId = monitor._id;
+                            if (filterMatch === 'any') {
+                                if (
+                                    !monitorsWithIncident.includes(
+                                        String(monitor._id)
+                                    )
+                                ) {
                                     const incident = await IncidentService.create(
                                         data
                                     );
                                     incidentResponse.push(incident);
+                                    monitorsWithIncident.push(
+                                        String(monitor._id)
+                                    );
+                                }
+                            } else {
+                                const incident = await IncidentService.create(
+                                    data
+                                );
+                                incidentResponse.push(incident);
+                            }
+                        }
+                    }
+                } else {
+                    for (const filter of filters) {
+                        if (filter.filterText) {
+                            const dataConfig = {
+                                request: data.request,
+                            };
+                            filterTextTemplate = Handlebars.compile(
+                                filter.filterText
+                            );
+                            filterTextTemplate = filterTextTemplate(dataConfig);
+                        }
+
+                        const filterCriteria = filter.filterCriteria,
+                            filterCondition = filter.filterCondition,
+                            filterText = filterTextTemplate;
+
+                        if (
+                            filterCriteria &&
+                            filterCondition &&
+                            ((!isNaN(filterText) &&
+                                parseFloat(filterText) >= 0) ||
+                                (filterText && filterText.trim()))
+                        ) {
+                            if (incomingRequest.isDefault) {
+                                let monitors = [];
+                                if (filterCondition === 'equalTo') {
+                                    monitors = await MonitorService.findBy({
+                                        projectId: data.projectId,
+                                        'customFields.fieldName': filterCriteria,
+                                        'customFields.fieldValue': filterText,
+                                    });
+                                } else if (filterCondition === 'notEqualTo') {
+                                    monitors = await MonitorService.findBy({
+                                        projectId: data.projectId,
+                                        'customFields.fieldName': filterCriteria,
+                                        'customFields.fieldValue': {
+                                            $ne: filterText,
+                                        },
+                                    });
+                                } else if (!isNaN(parseFloat(filterText))) {
+                                    // handle the case when filterText is a number
+                                    // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                                    if (filterCondition === 'lessThan') {
+                                        monitors = await MonitorService.findBy({
+                                            projectId: data.projectId,
+                                            'customFields.fieldName': filterCriteria,
+                                            'customFields.fieldValue': {
+                                                $lt: filterText,
+                                            },
+                                        });
+                                    } else if (
+                                        filterCondition === 'greaterThan'
+                                    ) {
+                                        monitors = await MonitorService.findBy({
+                                            projectId: data.projectId,
+                                            'customFields.fieldName': filterCriteria,
+                                            'customFields.fieldValue': {
+                                                $gt: filterText,
+                                            },
+                                        });
+                                    } else if (
+                                        filterCondition === 'lessThanOrEqualTo'
+                                    ) {
+                                        monitors = await MonitorService.findBy({
+                                            projectId: data.projectId,
+                                            'customFields.fieldName': filterCriteria,
+                                            'customFields.fieldValue': {
+                                                $lte: filterText,
+                                            },
+                                        });
+                                    } else if (
+                                        filterCondition ===
+                                        'greaterThanOrEqualTo'
+                                    ) {
+                                        monitors = await MonitorService.findBy({
+                                            projectId: data.projectId,
+                                            'customFields.fieldName': filterCriteria,
+                                            'customFields.fieldValue': {
+                                                $gte: filterText,
+                                            },
+                                        });
+                                    }
+                                }
+
+                                for (const monitor of monitors) {
+                                    const dataConfig = {
+                                        monitorName: monitor.name,
+                                        projectName: monitor.projectId.name,
+                                        componentName: monitor.componentId.name,
+                                        request: data.request,
+                                    };
+
+                                    if (titleTemplate) {
+                                        data.title = titleTemplate(dataConfig);
+                                    }
+                                    if (descriptionTemplate) {
+                                        data.description = descriptionTemplate(
+                                            dataConfig
+                                        );
+                                    }
+                                    if (incidentTypeTemplate) {
+                                        const incidentType = incidentTypeTemplate(
+                                            dataConfig
+                                        );
+                                        data.incidentType = [
+                                            'offline',
+                                            'online',
+                                            'degraded',
+                                        ].includes(incidentType)
+                                            ? incidentType
+                                            : 'offline';
+                                    }
+                                    if (incidentPriorityTemplate) {
+                                        const incidentPriority = incidentPriorityTemplate(
+                                            dataConfig
+                                        );
+                                        const priorityObj = {};
+                                        incidentPriorities.forEach(
+                                            priority =>
+                                                (priorityObj[priority.name] =
+                                                    priority._id)
+                                        );
+                                        data.incidentPriority =
+                                            priorityObj[incidentPriority] ||
+                                            incidentSettings.incidentPriority;
+                                    }
+                                    if (
+                                        customFieldTemplates &&
+                                        customFieldTemplates.length > 0
+                                    ) {
+                                        data.customFields = customFieldTemplates.map(
+                                            field => ({
+                                                ...field,
+                                                fieldValue: field.fieldValue(
+                                                    dataConfig
+                                                ),
+                                            })
+                                        );
+                                    }
+
+                                    data.monitorId = monitor._id;
+                                    if (filterMatch === 'any') {
+                                        if (
+                                            !monitorsWithIncident.includes(
+                                                String(monitor._id)
+                                            )
+                                        ) {
+                                            const incident = await IncidentService.create(
+                                                data
+                                            );
+                                            incidentResponse.push(incident);
+                                            monitorsWithIncident.push(
+                                                String(monitor._id)
+                                            );
+                                        }
+                                    } else {
+                                        const incident = await IncidentService.create(
+                                            data
+                                        );
+                                        incidentResponse.push(incident);
+                                    }
+                                }
+                            } else {
+                                // grab the monitor from monitorId {_id, name, customFields}
+                                let monitors = incomingRequest.monitors
+                                    .map(monitor => monitor.monitorId)
+                                    .filter(monitor => !monitor.deleted);
+                                if (filterCondition === 'equalTo') {
+                                    const matchedMonitor = [];
+                                    monitors.forEach(monitor => {
+                                        let added = false;
+                                        monitor.customFields.forEach(field => {
+                                            if (
+                                                field.fieldName ===
+                                                    filterCriteria &&
+                                                field.fieldValue ===
+                                                    filterText &&
+                                                !added
+                                            ) {
+                                                matchedMonitor.push(monitor);
+                                                added = true;
+                                            }
+                                        });
+                                    });
+                                    monitors = matchedMonitor;
+                                } else if (filterCondition === 'notEqualTo') {
+                                    const matchedMonitor = [];
+                                    monitors.forEach(monitor => {
+                                        let added = false;
+                                        monitor.customFields.forEach(field => {
+                                            if (
+                                                field.fieldName ===
+                                                    filterCriteria &&
+                                                field.fieldValue !==
+                                                    filterText &&
+                                                !added
+                                            ) {
+                                                matchedMonitor.push(monitor);
+                                                added = true;
+                                            }
+                                        });
+                                    });
+                                    monitors = matchedMonitor;
+                                } else if (!isNaN(filterText)) {
+                                    // handle the case when filterText is a number
+                                    // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                                    if (filterCondition === 'lessThan') {
+                                        const matchedMonitor = [];
+                                        monitors.forEach(monitor => {
+                                            let added = false;
+                                            monitor.customFields.forEach(
+                                                field => {
+                                                    if (
+                                                        field.fieldName ===
+                                                            filterCriteria &&
+                                                        field.fieldValue <
+                                                            filterText &&
+                                                        !added
+                                                    ) {
+                                                        matchedMonitor.push(
+                                                            monitor
+                                                        );
+                                                        added = true;
+                                                    }
+                                                }
+                                            );
+                                        });
+                                        monitors = matchedMonitor;
+                                    } else if (
+                                        filterCondition === 'greaterThan'
+                                    ) {
+                                        const matchedMonitor = [];
+                                        monitors.forEach(monitor => {
+                                            let added = false;
+                                            monitor.customFields.forEach(
+                                                field => {
+                                                    if (
+                                                        field.fieldName ===
+                                                            filterCriteria &&
+                                                        field.fieldValue >
+                                                            filterText &&
+                                                        !added
+                                                    ) {
+                                                        matchedMonitor.push(
+                                                            monitor
+                                                        );
+                                                        added = true;
+                                                    }
+                                                }
+                                            );
+                                        });
+                                        monitors = matchedMonitor;
+                                    } else if (
+                                        filterCondition === 'lessThanOrEqualTo'
+                                    ) {
+                                        const matchedMonitor = [];
+                                        monitors.forEach(monitor => {
+                                            let added = false;
+                                            monitor.customFields.forEach(
+                                                field => {
+                                                    if (
+                                                        field.fieldName ===
+                                                            filterCriteria &&
+                                                        field.fieldValue <=
+                                                            filterText &&
+                                                        !added
+                                                    ) {
+                                                        matchedMonitor.push(
+                                                            monitor
+                                                        );
+                                                        added = true;
+                                                    }
+                                                }
+                                            );
+                                        });
+                                        monitors = matchedMonitor;
+                                    } else if (
+                                        filterCondition ===
+                                        'greaterThanOrEqualTo'
+                                    ) {
+                                        const matchedMonitor = [];
+                                        monitors.forEach(monitor => {
+                                            let added = false;
+                                            monitor.customFields.forEach(
+                                                field => {
+                                                    if (
+                                                        field.fieldName ===
+                                                            filterCriteria &&
+                                                        field.fieldValue >=
+                                                            filterText &&
+                                                        !added
+                                                    ) {
+                                                        matchedMonitor.push(
+                                                            monitor
+                                                        );
+                                                        added = true;
+                                                    }
+                                                }
+                                            );
+                                        });
+                                        monitors = matchedMonitor;
+                                    }
+                                }
+
+                                for (const monitor of monitors) {
+                                    const dataConfig = {
+                                        monitorName: monitor.name,
+                                        componentName: monitor.componentId.name,
+                                        projectName:
+                                            incomingRequest.projectId.name,
+                                        request: data.request,
+                                    };
+                                    if (titleTemplate) {
+                                        data.title = titleTemplate(dataConfig);
+                                    }
+                                    if (descriptionTemplate) {
+                                        data.description = descriptionTemplate(
+                                            dataConfig
+                                        );
+                                    }
+                                    if (
+                                        customFieldTemplates &&
+                                        customFieldTemplates.length > 0
+                                    ) {
+                                        data.customFields = customFieldTemplates.map(
+                                            field => ({
+                                                ...field,
+                                                fieldValue: field.fieldValue(
+                                                    dataConfig
+                                                ),
+                                            })
+                                        );
+                                    }
+
+                                    data.monitorId = monitor._id;
+                                    if (filterMatch === 'any') {
+                                        if (
+                                            !monitorsWithIncident.includes(
+                                                String(monitor._id)
+                                            )
+                                        ) {
+                                            const incident = await IncidentService.create(
+                                                data
+                                            );
+                                            incidentResponse.push(incident);
+                                            monitorsWithIncident.push(
+                                                String(monitor._id)
+                                            );
+                                        }
+                                    } else {
+                                        const incident = await IncidentService.create(
+                                            data
+                                        );
+                                        incidentResponse.push(incident);
+                                    }
                                 }
                             }
                         }
@@ -1138,105 +1159,106 @@ module.exports = {
             ) {
                 const noteResponse = [],
                     incidentsWithNote = [];
-                for (const filter of filters) {
-                    data.incident_state = incomingRequest.incidentState;
-                    data.type = incomingRequest.updateIncidentNote
-                        ? 'investigation'
-                        : 'internal';
-                    data.content = incomingRequest.noteContent;
 
-                    if (filter.filterText) {
-                        const dataConfig = {
-                            request: data.request,
-                        };
-                        filterTextTemplate = Handlebars.compile(
-                            filter.filterText
-                        );
-                        filterTextTemplate = filterTextTemplate(dataConfig);
+                data.incident_state = incomingRequest.incidentState;
+                data.type = incomingRequest.updateIncidentNote
+                    ? 'investigation'
+                    : 'internal';
+                data.content = incomingRequest.noteContent;
+
+                if (!filters || filters.length === 0) {
+                    const incidents = await IncidentService.findBy({
+                        projectId: incomingRequest.projectId,
+                    });
+
+                    for (const incident of incidents) {
+                        data.incidentId = incident._id;
+                        if (filterMatch === 'any') {
+                            if (
+                                !incidentsWithNote.includes(
+                                    String(incident._id)
+                                )
+                            ) {
+                                await IncidentMessageService.create(data);
+                                noteResponse.push(incident);
+                                incidentsWithNote.push(String(incident._id));
+                            }
+                        } else {
+                            await IncidentMessageService.create(data);
+                            noteResponse.push(incident);
+                        }
                     }
-
-                    const filterCriteria = filter.filterCriteria,
-                        filterCondition = filter.filterCondition,
-                        filterText = filterTextTemplate;
-
-                    if (
-                        filterCriteria &&
-                        filterCondition &&
-                        ((!isNaN(filterText) && parseFloat(filterText) >= 0) ||
-                            (filterText && filterText.trim()))
-                    ) {
-                        if (
-                            filterCriteria &&
-                            filterCriteria === 'incidentId' &&
-                            filterText
-                        ) {
-                            data.incidentId = Number(filterText);
+                } else {
+                    for (const filter of filters) {
+                        if (filter.filterText) {
+                            const dataConfig = {
+                                request: data.request,
+                            };
+                            filterTextTemplate = Handlebars.compile(
+                                filter.filterText
+                            );
+                            filterTextTemplate = filterTextTemplate(dataConfig);
                         }
+
+                        const filterCriteria = filter.filterCriteria,
+                            filterCondition = filter.filterCondition,
+                            filterText = filterTextTemplate;
 
                         if (
                             filterCriteria &&
-                            filterCriteria !== 'incidentId' &&
-                            filterText
+                            filterCondition &&
+                            ((!isNaN(filterText) &&
+                                parseFloat(filterText) >= 0) ||
+                                (filterText && filterText.trim()))
                         ) {
-                            data.fieldName = filterCriteria;
-                            data.fieldValue = filterText;
-                        }
-
-                        let incidents;
-                        if (filterCondition === 'equalTo') {
                             if (
-                                data.incidentId &&
-                                filterCriteria === 'incidentId'
+                                filterCriteria &&
+                                filterCriteria === 'incidentId' &&
+                                filterText
                             ) {
-                                incidents = await IncidentService.findBy({
-                                    projectId: incomingRequest.projectId,
-                                    idNumber: data.incidentId,
-                                });
+                                data.incidentId = Number(filterText);
                             }
 
-                            if (data.fieldName && data.fieldValue) {
-                                incidents = await IncidentService.findBy({
-                                    projectId: incomingRequest.projectId,
-                                    'customFields.fieldName': data.fieldName,
-                                    'customFields.fieldValue': data.fieldValue,
-                                });
-                            }
-                        }
-
-                        if (filterCondition === 'notEqualTo') {
                             if (
-                                data.incidentId &&
-                                filterCriteria === 'incidentId'
+                                filterCriteria &&
+                                filterCriteria !== 'incidentId' &&
+                                filterText
                             ) {
-                                incidents = await IncidentService.findBy({
-                                    projectId: incomingRequest.projectId,
-                                    idNumber: { $ne: data.incidentId },
-                                });
+                                data.fieldName = filterCriteria;
+                                data.fieldValue = filterText;
                             }
 
-                            if (data.fieldName && data.fieldValue) {
-                                incidents = await IncidentService.findBy({
-                                    projectId: incomingRequest.projectId,
-                                    'customFields.fieldName': data.fieldName,
-                                    'customFields.fieldValue': {
-                                        $ne: data.fieldValue,
-                                    },
-                                });
+                            let incidents;
+                            if (filterCondition === 'equalTo') {
+                                if (
+                                    data.incidentId &&
+                                    filterCriteria === 'incidentId'
+                                ) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        idNumber: data.incidentId,
+                                    });
+                                }
+
+                                if (data.fieldName && data.fieldValue) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        'customFields.fieldName':
+                                            data.fieldName,
+                                        'customFields.fieldValue':
+                                            data.fieldValue,
+                                    });
+                                }
                             }
-                        }
 
-                        if (!isNaN(parseFloat(filterText))) {
-                            // handle the case when filterText is a number
-                            // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
-                            data.fieldValue = Number(filterText);
-                            if (filterCondition === 'lessThan') {
+                            if (filterCondition === 'notEqualTo') {
                                 if (
                                     data.incidentId &&
                                     filterCriteria === 'incidentId'
                                 ) {
                                     incidents = await IncidentService.findBy({
                                         projectId: incomingRequest.projectId,
-                                        idNumber: { $lt: data.incidentId },
+                                        idNumber: { $ne: data.incidentId },
                                     });
                                 }
 
@@ -1246,125 +1268,163 @@ module.exports = {
                                         'customFields.fieldName':
                                             data.fieldName,
                                         'customFields.fieldValue': {
-                                            $lt: data.fieldValue,
-                                        },
-                                    });
-                                }
-                            } else if (filterCondition === 'greaterThan') {
-                                if (
-                                    data.incidentId &&
-                                    filterCriteria === 'incidentId'
-                                ) {
-                                    incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        idNumber: { $gt: data.incidentId },
-                                    });
-                                }
-
-                                if (data.fieldName && data.fieldValue) {
-                                    incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        'customFields.fieldName':
-                                            data.fieldName,
-                                        'customFields.fieldValue': {
-                                            $gt: data.fieldValue,
-                                        },
-                                    });
-                                }
-                            } else if (
-                                filterCondition === 'lessThanOrEqualTo'
-                            ) {
-                                if (
-                                    data.incidentId &&
-                                    filterCriteria === 'incidentId'
-                                ) {
-                                    incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        idNumber: { $lte: data.incidentId },
-                                    });
-                                }
-
-                                if (data.fieldName && data.fieldValue) {
-                                    incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        'customFields.fieldName':
-                                            data.fieldName,
-                                        'customFields.fieldValue': {
-                                            $lte: data.fieldValue,
-                                        },
-                                    });
-                                }
-                            } else if (
-                                filterCondition === 'greaterThanOrEqualTo'
-                            ) {
-                                if (
-                                    data.incidentId &&
-                                    filterCriteria === 'incidentId'
-                                ) {
-                                    incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        idNumber: { $gte: data.incidentId },
-                                    });
-                                }
-
-                                if (data.fieldName && data.fieldValue) {
-                                    incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        'customFields.fieldName':
-                                            data.fieldName,
-                                        'customFields.fieldValue': {
-                                            $gte: data.fieldValue,
+                                            $ne: data.fieldValue,
                                         },
                                     });
                                 }
                             }
-                        }
 
-                        if (incidents && incidents.length > 0) {
-                            for (const incident of incidents) {
-                                data.incidentId = incident._id;
-                                if (filterMatch === 'any') {
+                            if (!isNaN(parseFloat(filterText))) {
+                                // handle the case when filterText is a number
+                                // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                                data.fieldValue = Number(filterText);
+                                if (filterCondition === 'lessThan') {
                                     if (
-                                        !incidentsWithNote.includes(
-                                            String(incident._id)
-                                        )
+                                        data.incidentId &&
+                                        filterCriteria === 'incidentId'
                                     ) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                idNumber: {
+                                                    $lt: data.incidentId,
+                                                },
+                                            }
+                                        );
+                                    }
+
+                                    if (data.fieldName && data.fieldValue) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                'customFields.fieldName':
+                                                    data.fieldName,
+                                                'customFields.fieldValue': {
+                                                    $lt: data.fieldValue,
+                                                },
+                                            }
+                                        );
+                                    }
+                                } else if (filterCondition === 'greaterThan') {
+                                    if (
+                                        data.incidentId &&
+                                        filterCriteria === 'incidentId'
+                                    ) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                idNumber: {
+                                                    $gt: data.incidentId,
+                                                },
+                                            }
+                                        );
+                                    }
+
+                                    if (data.fieldName && data.fieldValue) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                'customFields.fieldName':
+                                                    data.fieldName,
+                                                'customFields.fieldValue': {
+                                                    $gt: data.fieldValue,
+                                                },
+                                            }
+                                        );
+                                    }
+                                } else if (
+                                    filterCondition === 'lessThanOrEqualTo'
+                                ) {
+                                    if (
+                                        data.incidentId &&
+                                        filterCriteria === 'incidentId'
+                                    ) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                idNumber: {
+                                                    $lte: data.incidentId,
+                                                },
+                                            }
+                                        );
+                                    }
+
+                                    if (data.fieldName && data.fieldValue) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                'customFields.fieldName':
+                                                    data.fieldName,
+                                                'customFields.fieldValue': {
+                                                    $lte: data.fieldValue,
+                                                },
+                                            }
+                                        );
+                                    }
+                                } else if (
+                                    filterCondition === 'greaterThanOrEqualTo'
+                                ) {
+                                    if (
+                                        data.incidentId &&
+                                        filterCriteria === 'incidentId'
+                                    ) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                idNumber: {
+                                                    $gte: data.incidentId,
+                                                },
+                                            }
+                                        );
+                                    }
+
+                                    if (data.fieldName && data.fieldValue) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                'customFields.fieldName':
+                                                    data.fieldName,
+                                                'customFields.fieldValue': {
+                                                    $gte: data.fieldValue,
+                                                },
+                                            }
+                                        );
+                                    }
+                                }
+                            }
+
+                            if (incidents && incidents.length > 0) {
+                                for (const incident of incidents) {
+                                    data.incidentId = incident._id;
+                                    if (filterMatch === 'any') {
+                                        if (
+                                            !incidentsWithNote.includes(
+                                                String(incident._id)
+                                            )
+                                        ) {
+                                            await IncidentMessageService.create(
+                                                data
+                                            );
+                                            noteResponse.push(incident);
+                                            incidentsWithNote.push(
+                                                String(incident._id)
+                                            );
+                                        }
+                                    } else {
                                         await IncidentMessageService.create(
                                             data
                                         );
                                         noteResponse.push(incident);
-                                        incidentsWithNote.push(
-                                            String(incident._id)
-                                        );
                                     }
-                                } else {
-                                    await IncidentMessageService.create(data);
-                                    noteResponse.push(incident);
                                 }
-                            }
-                        }
-                    } else {
-                        const incidents = await IncidentService.findBy({
-                            projectId: incomingRequest.projectId,
-                        });
-
-                        for (const incident of incidents) {
-                            data.incidentId = incident._id;
-                            if (filterMatch === 'any') {
-                                if (
-                                    !incidentsWithNote.includes(
-                                        String(incident._id)
-                                    )
-                                ) {
-                                    await IncidentMessageService.create(data);
-                                    noteResponse.push(incident);
-                                    incidentsWithNote.push(
-                                        String(incident._id)
-                                    );
-                                }
-                            } else {
-                                await IncidentMessageService.create(data);
-                                noteResponse.push(incident);
                             }
                         }
                     }
@@ -1385,175 +1445,156 @@ module.exports = {
                     acknowledgeResponse = [],
                     resolvedIncidents = [],
                     acknowledgedIncidents = [];
-                for (const filter of filters) {
-                    if (filter.filterText) {
-                        const dataConfig = {
-                            request: data.request,
-                        };
-                        filterTextTemplate = Handlebars.compile(
-                            filter.filterText
-                        );
-                        filterTextTemplate = filterTextTemplate(dataConfig);
-                    }
 
-                    const filterCriteria = filter.filterCriteria,
-                        filterCondition = filter.filterCondition,
-                        filterText = filterTextTemplate;
+                let incidentQuery = {};
+                if (incomingRequest.resolveIncident) {
+                    incidentQuery = { resolvedAt: { $exists: false } };
+                }
+                if (incomingRequest.acknowledgeIncident) {
+                    incidentQuery = {
+                        acknowledgedAt: { $exists: false },
+                    };
+                }
 
-                    let incidentQuery = {};
-                    if (incomingRequest.resolveIncident) {
-                        incidentQuery = { resolvedAt: { $exists: false } };
-                    }
-                    if (incomingRequest.acknowledgeIncident) {
-                        incidentQuery = { acknowledgedAt: { $exists: false } };
-                    }
+                if (!filters || filters.length === 0) {
+                    const incidents = await IncidentService.findBy({
+                        projectId: incomingRequest.projectId,
+                        ...incidentQuery,
+                    });
 
-                    if (
-                        filterCriteria &&
-                        filterCondition &&
-                        ((!isNaN(filterText) && parseFloat(filterText) >= 0) ||
-                            (filterText && filterText.trim()))
-                    ) {
+                    for (const incident of incidents) {
+                        if (incomingRequest.acknowledgeIncident) {
+                            if (filterMatch === 'any') {
+                                if (
+                                    !acknowledgedIncidents.includes(
+                                        String(incident._id)
+                                    )
+                                ) {
+                                    const incidentData = await IncidentService.acknowledge(
+                                        incident._id,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        incomingRequest
+                                    );
+                                    acknowledgeResponse.push(incidentData);
+                                    acknowledgedIncidents.push(
+                                        String(incident._id)
+                                    );
+                                }
+                            } else {
+                                const incidentData = await IncidentService.acknowledge(
+                                    incident._id,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    incomingRequest
+                                );
+                                acknowledgeResponse.push(incidentData);
+                            }
+                        }
+                        if (incomingRequest.resolveIncident) {
+                            if (filterMatch === 'any') {
+                                if (
+                                    !resolvedIncidents.includes(
+                                        String(incident._id)
+                                    )
+                                ) {
+                                    const incidentData = await IncidentService.resolve(
+                                        incident._id,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        incomingRequest
+                                    );
+                                    resolveResponse.push(incidentData);
+                                    resolvedIncidents.push(
+                                        String(incident._id)
+                                    );
+                                }
+                            } else {
+                                const incidentData = await IncidentService.resolve(
+                                    incident._id,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    incomingRequest
+                                );
+                                resolveResponse.push(incidentData);
+                            }
+                        }
+                    }
+                } else {
+                    for (const filter of filters) {
+                        if (filter.filterText) {
+                            const dataConfig = {
+                                request: data.request,
+                            };
+                            filterTextTemplate = Handlebars.compile(
+                                filter.filterText
+                            );
+                            filterTextTemplate = filterTextTemplate(dataConfig);
+                        }
+
+                        const filterCriteria = filter.filterCriteria,
+                            filterCondition = filter.filterCondition,
+                            filterText = filterTextTemplate;
+
                         if (
                             filterCriteria &&
-                            filterCriteria === 'incidentId' &&
-                            filterText
+                            filterCondition &&
+                            ((!isNaN(filterText) &&
+                                parseFloat(filterText) >= 0) ||
+                                (filterText && filterText.trim()))
                         ) {
-                            data.incidentId = Number(filterText);
-                        }
-
-                        if (
-                            filterCriteria &&
-                            filterCriteria !== 'incidentId' &&
-                            filterText
-                        ) {
-                            data.fieldName = filterCriteria;
-                            data.fieldValue = filterText;
-                        }
-
-                        let incidents;
-                        if (filterCondition === 'equalTo') {
-                            if (data.incidentId) {
-                                incidents = await IncidentService.findBy({
-                                    projectId: incomingRequest.projectId,
-                                    idNumber: data.incidentId,
-                                    ...incidentQuery,
-                                });
-                            }
-
-                            if (data.fieldName && data.fieldValue) {
-                                incidents = await IncidentService.findBy({
-                                    projectId: incomingRequest.projectId,
-                                    'customFields.fieldName': data.fieldName,
-                                    'customFields.fieldValue': data.fieldValue,
-                                    ...incidentQuery,
-                                });
-                            }
-                        }
-
-                        if (filterCondition === 'notEqualTo') {
-                            if (data.incidentId) {
-                                incidents = await IncidentService.findBy({
-                                    projectId: incomingRequest.projectId,
-                                    idNumber: { $ne: data.incidentId },
-                                    ...incidentQuery,
-                                });
-                            }
-
-                            if (data.fieldName && data.fieldValue) {
-                                incidents = await IncidentService.findBy({
-                                    projectId: incomingRequest.projectId,
-                                    'customFields.fieldName': data.fieldName,
-                                    'customFields.fieldValue': {
-                                        $ne: data.fieldValue,
-                                    },
-                                    ...incidentQuery,
-                                });
-                            }
-                        }
-
-                        if (!isNaN(parseFloat(filterText))) {
-                            // handle the case when filterText is a number
-                            // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
-                            data.fieldValue = Number(filterText);
-                            if (filterCondition === 'lessThan') {
-                                if (
-                                    data.incidentId &&
-                                    filterCriteria === 'incidentId'
-                                ) {
-                                    incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        idNumber: { $lt: data.incidentId },
-                                        ...incidentQuery,
-                                    });
-                                }
-
-                                if (data.fieldName && data.fieldValue) {
-                                    incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        'customFields.fieldName':
-                                            data.fieldName,
-                                        'customFields.fieldValue': {
-                                            $lt: data.fieldValue,
-                                        },
-                                        ...incidentQuery,
-                                    });
-                                }
-                            } else if (filterCondition === 'greaterThan') {
-                                if (
-                                    data.incidentId &&
-                                    filterCriteria === 'incidentId'
-                                ) {
-                                    incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        idNumber: { $gt: data.incidentId },
-                                        ...incidentQuery,
-                                    });
-                                }
-
-                                if (data.fieldName && data.fieldValue) {
-                                    incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        'customFields.fieldName':
-                                            data.fieldName,
-                                        'customFields.fieldValue': {
-                                            $gt: data.fieldValue,
-                                        },
-                                        ...incidentQuery,
-                                    });
-                                }
-                            } else if (
-                                filterCondition === 'lessThanOrEqualTo'
+                            if (
+                                filterCriteria &&
+                                filterCriteria === 'incidentId' &&
+                                filterText
                             ) {
-                                if (
-                                    data.incidentId &&
-                                    filterCriteria === 'incidentId'
-                                ) {
-                                    incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        idNumber: { $lte: data.incidentId },
-                                        ...incidentQuery,
-                                    });
-                                }
+                                data.incidentId = Number(filterText);
+                            }
 
-                                if (data.fieldName && data.fieldValue) {
-                                    incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        'customFields.fieldName':
-                                            data.fieldName,
-                                        'customFields.fieldValue': {
-                                            $lte: data.fieldValue,
-                                        },
-                                        ...incidentQuery,
-                                    });
-                                }
-                            } else if (
-                                filterCondition === 'greaterThanOrEqualTo'
+                            if (
+                                filterCriteria &&
+                                filterCriteria !== 'incidentId' &&
+                                filterText
                             ) {
+                                data.fieldName = filterCriteria;
+                                data.fieldValue = filterText;
+                            }
+
+                            let incidents;
+                            if (filterCondition === 'equalTo') {
                                 if (data.incidentId) {
                                     incidents = await IncidentService.findBy({
                                         projectId: incomingRequest.projectId,
-                                        idNumber: { $gte: data.incidentId },
+                                        idNumber: data.incidentId,
+                                        ...incidentQuery,
+                                    });
+                                }
+
+                                if (data.fieldName && data.fieldValue) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        'customFields.fieldName':
+                                            data.fieldName,
+                                        'customFields.fieldValue':
+                                            data.fieldValue,
+                                        ...incidentQuery,
+                                    });
+                                }
+                            }
+
+                            if (filterCondition === 'notEqualTo') {
+                                if (data.incidentId) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        idNumber: { $ne: data.incidentId },
                                         ...incidentQuery,
                                     });
                                 }
@@ -1564,23 +1605,170 @@ module.exports = {
                                         'customFields.fieldName':
                                             data.fieldName,
                                         'customFields.fieldValue': {
-                                            $gte: data.fieldValue,
+                                            $ne: data.fieldValue,
                                         },
                                         ...incidentQuery,
                                     });
                                 }
                             }
-                        }
 
-                        if (incidents && incidents.length > 0) {
-                            for (const incident of incidents) {
-                                if (incomingRequest.acknowledgeIncident) {
-                                    if (filterMatch === 'any') {
-                                        if (
-                                            !acknowledgedIncidents.includes(
-                                                String(incident._id)
-                                            )
-                                        ) {
+                            if (!isNaN(parseFloat(filterText))) {
+                                // handle the case when filterText is a number
+                                // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                                data.fieldValue = Number(filterText);
+                                if (filterCondition === 'lessThan') {
+                                    if (
+                                        data.incidentId &&
+                                        filterCriteria === 'incidentId'
+                                    ) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                idNumber: {
+                                                    $lt: data.incidentId,
+                                                },
+                                                ...incidentQuery,
+                                            }
+                                        );
+                                    }
+
+                                    if (data.fieldName && data.fieldValue) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                'customFields.fieldName':
+                                                    data.fieldName,
+                                                'customFields.fieldValue': {
+                                                    $lt: data.fieldValue,
+                                                },
+                                                ...incidentQuery,
+                                            }
+                                        );
+                                    }
+                                } else if (filterCondition === 'greaterThan') {
+                                    if (
+                                        data.incidentId &&
+                                        filterCriteria === 'incidentId'
+                                    ) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                idNumber: {
+                                                    $gt: data.incidentId,
+                                                },
+                                                ...incidentQuery,
+                                            }
+                                        );
+                                    }
+
+                                    if (data.fieldName && data.fieldValue) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                'customFields.fieldName':
+                                                    data.fieldName,
+                                                'customFields.fieldValue': {
+                                                    $gt: data.fieldValue,
+                                                },
+                                                ...incidentQuery,
+                                            }
+                                        );
+                                    }
+                                } else if (
+                                    filterCondition === 'lessThanOrEqualTo'
+                                ) {
+                                    if (
+                                        data.incidentId &&
+                                        filterCriteria === 'incidentId'
+                                    ) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                idNumber: {
+                                                    $lte: data.incidentId,
+                                                },
+                                                ...incidentQuery,
+                                            }
+                                        );
+                                    }
+
+                                    if (data.fieldName && data.fieldValue) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                'customFields.fieldName':
+                                                    data.fieldName,
+                                                'customFields.fieldValue': {
+                                                    $lte: data.fieldValue,
+                                                },
+                                                ...incidentQuery,
+                                            }
+                                        );
+                                    }
+                                } else if (
+                                    filterCondition === 'greaterThanOrEqualTo'
+                                ) {
+                                    if (data.incidentId) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                idNumber: {
+                                                    $gte: data.incidentId,
+                                                },
+                                                ...incidentQuery,
+                                            }
+                                        );
+                                    }
+
+                                    if (data.fieldName && data.fieldValue) {
+                                        incidents = await IncidentService.findBy(
+                                            {
+                                                projectId:
+                                                    incomingRequest.projectId,
+                                                'customFields.fieldName':
+                                                    data.fieldName,
+                                                'customFields.fieldValue': {
+                                                    $gte: data.fieldValue,
+                                                },
+                                                ...incidentQuery,
+                                            }
+                                        );
+                                    }
+                                }
+                            }
+
+                            if (incidents && incidents.length > 0) {
+                                for (const incident of incidents) {
+                                    if (incomingRequest.acknowledgeIncident) {
+                                        if (filterMatch === 'any') {
+                                            if (
+                                                !acknowledgedIncidents.includes(
+                                                    String(incident._id)
+                                                )
+                                            ) {
+                                                const incidentData = await IncidentService.acknowledge(
+                                                    incident._id,
+                                                    null,
+                                                    null,
+                                                    null,
+                                                    null,
+                                                    incomingRequest
+                                                );
+                                                acknowledgeResponse.push(
+                                                    incidentData
+                                                );
+                                                acknowledgedIncidents.push(
+                                                    String(incident._id)
+                                                );
+                                            }
+                                        } else {
                                             const incidentData = await IncidentService.acknowledge(
                                                 incident._id,
                                                 null,
@@ -1592,29 +1780,31 @@ module.exports = {
                                             acknowledgeResponse.push(
                                                 incidentData
                                             );
-                                            acknowledgedIncidents.push(
-                                                String(incident._id)
-                                            );
                                         }
-                                    } else {
-                                        const incidentData = await IncidentService.acknowledge(
-                                            incident._id,
-                                            null,
-                                            null,
-                                            null,
-                                            null,
-                                            incomingRequest
-                                        );
-                                        acknowledgeResponse.push(incidentData);
                                     }
-                                }
-                                if (incomingRequest.resolveIncident) {
-                                    if (filterMatch === 'any') {
-                                        if (
-                                            !resolvedIncidents.includes(
-                                                String(incident._id)
-                                            )
-                                        ) {
+                                    if (incomingRequest.resolveIncident) {
+                                        if (filterMatch === 'any') {
+                                            if (
+                                                !resolvedIncidents.includes(
+                                                    String(incident._id)
+                                                )
+                                            ) {
+                                                const incidentData = await IncidentService.resolve(
+                                                    incident._id,
+                                                    null,
+                                                    null,
+                                                    null,
+                                                    null,
+                                                    incomingRequest
+                                                );
+                                                resolveResponse.push(
+                                                    incidentData
+                                                );
+                                                resolvedIncidents.push(
+                                                    String(incident._id)
+                                                );
+                                            }
+                                        } else {
                                             const incidentData = await IncidentService.resolve(
                                                 incident._id,
                                                 null,
@@ -1624,93 +1814,8 @@ module.exports = {
                                                 incomingRequest
                                             );
                                             resolveResponse.push(incidentData);
-                                            resolvedIncidents.push(
-                                                String(incident._id)
-                                            );
                                         }
-                                    } else {
-                                        const incidentData = await IncidentService.resolve(
-                                            incident._id,
-                                            null,
-                                            null,
-                                            null,
-                                            null,
-                                            incomingRequest
-                                        );
-                                        resolveResponse.push(incidentData);
                                     }
-                                }
-                            }
-                        }
-                    } else {
-                        const incidents = await IncidentService.findBy({
-                            projectId: incomingRequest.projectId,
-                            ...incidentQuery,
-                        });
-
-                        for (const incident of incidents) {
-                            if (incomingRequest.acknowledgeIncident) {
-                                if (filterMatch === 'any') {
-                                    if (
-                                        !acknowledgedIncidents.includes(
-                                            String(incident._id)
-                                        )
-                                    ) {
-                                        const incidentData = await IncidentService.acknowledge(
-                                            incident._id,
-                                            null,
-                                            null,
-                                            null,
-                                            null,
-                                            incomingRequest
-                                        );
-                                        acknowledgeResponse.push(incidentData);
-                                        acknowledgedIncidents.push(
-                                            String(incident._id)
-                                        );
-                                    }
-                                } else {
-                                    const incidentData = await IncidentService.acknowledge(
-                                        incident._id,
-                                        null,
-                                        null,
-                                        null,
-                                        null,
-                                        incomingRequest
-                                    );
-                                    acknowledgeResponse.push(incidentData);
-                                }
-                            }
-                            if (incomingRequest.resolveIncident) {
-                                if (filterMatch === 'any') {
-                                    if (
-                                        !resolvedIncidents.includes(
-                                            String(incident._id)
-                                        )
-                                    ) {
-                                        const incidentData = await IncidentService.resolve(
-                                            incident._id,
-                                            null,
-                                            null,
-                                            null,
-                                            null,
-                                            incomingRequest
-                                        );
-                                        resolveResponse.push(incidentData);
-                                        resolvedIncidents.push(
-                                            String(incident._id)
-                                        );
-                                    }
-                                } else {
-                                    const incidentData = await IncidentService.resolve(
-                                        incident._id,
-                                        null,
-                                        null,
-                                        null,
-                                        null,
-                                        incomingRequest
-                                    );
-                                    resolveResponse.push(incidentData);
                                 }
                             }
                         }

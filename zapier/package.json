@@ -7,6 +7,7 @@
     "license": "MIT",
     "main": "index.js",
     "scripts": {
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "test": "mocha --recursive",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*'"
@@ -15,6 +16,9 @@
         "node": "6.10.3",
         "npm": ">=3.10.10"
     },
+    "resolutions": {
+
+    },
     "dependencies": {
         "zapier-platform-core": "^10.1.2"
     },
@@ -22,6 +26,7 @@
         "babel-preset-react": "^6.24.1",
         "depcheck": "^0.9.2",
         "mocha": "^8.1.1",
-        "should": "11.2.1"
+        "should": "11.2.1",
+        "npm-force-resolutions": "0.0.3"
     }
 }

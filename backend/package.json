@@ -59,7 +59,7 @@
         "test": "cross-env NODE_ENV=development mocha --exit test/index.js",
         "enterprise-test": "cross-env NODE_ENV=development mocha --exit test/enterprise.js",
         "audit": "npm audit --audit-level=low",
-        "preinstall": "npx npm-force-resolutions",
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs'"
     },
     "devDependencies": {

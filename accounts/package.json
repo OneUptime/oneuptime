@@ -50,6 +50,7 @@
         "audit": "npm audit --audit-level=low",
         "light-house": "node lighthouse.js --web",
         "light-house-mobile": "node lighthouse.js --mobile",
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='browserslist,loadable-components,@beam-australia/react-env'"
     },
     "devDependencies": {
@@ -58,7 +59,11 @@
         "depcheck": "^0.9.2",
         "lighthouse": "^6.2.0",
         "ora": "^4.0.3",
+        "npm-force-resolutions": "0.0.3",
         "should": "^13.2.3"
+    },
+    "resolutions": {
+
     },
     "jest": {
         "collectCoverageFrom": [
