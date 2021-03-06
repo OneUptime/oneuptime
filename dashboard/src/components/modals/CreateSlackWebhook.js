@@ -477,8 +477,9 @@ class CreateSlack extends React.Component {
                                                                             Ping
                                                                             when
                                                                             incident
+                                                                            note
                                                                             is
-                                                                            Resolved
+                                                                            Added
                                                                         </span>
                                                                     </label>
                                                                 </div>

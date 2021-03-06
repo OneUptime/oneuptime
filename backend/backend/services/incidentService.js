@@ -840,6 +840,19 @@ module.exports = {
         }
     },
 
+    sendIncidentNoteAdded: async function(projectId, incident, data) {
+        try {
+            await SlackService.sendIncidentNoteNotification(
+                projectId,
+                incident,
+                data
+            );
+        } catch (error) {
+            ErrorService.log('incidentService.sendIncidentNoteAdded', error);
+            throw error;
+        }
+    },
+
     hardDeleteBy: async function(query) {
         try {
             await IncidentModel.deleteMany(query);
