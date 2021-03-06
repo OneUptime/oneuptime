@@ -4,7 +4,7 @@ const program = require('commander');
 program
     .name('fyipe')
     .version(version, '-v, --version')
-    .description('Fyipe SDK');
+    .description('Fyipe SDK cli');
 
 program.command('server-monitor [options]', 'Fyipe Monitoring shell', {
     executableFile: __dirname + '/server-monitor/bin/index',
