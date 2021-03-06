@@ -39,9 +39,7 @@
         "winston": "^2.4.0",
         "winston-slack-transport": "^2.0.0"
     },
-    "resolutions": {
-
-    },
+    "resolutions": {},
     "devDependencies": {
         "depcheck": "^0.9.2",
         "nodemon": "^2.0.4",

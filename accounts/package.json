@@ -58,13 +58,11 @@
         "commander": "^4.0.1",
         "depcheck": "^0.9.2",
         "lighthouse": "^6.2.0",
-        "ora": "^4.0.3",
         "npm-force-resolutions": "0.0.3",
+        "ora": "^4.0.3",
         "should": "^13.2.3"
     },
-    "resolutions": {
-
-    },
+    "resolutions": {},
     "jest": {
         "collectCoverageFrom": [
             "src/**/*.js",

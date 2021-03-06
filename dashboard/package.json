@@ -99,7 +99,6 @@
         "fix-lint": "eslint . --fix",
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'"
     },
-    
     "devDependencies": {
         "@jest/test-sequencer": "^26.0.1",
         "axios-mock-adapter": "^1.15.0",

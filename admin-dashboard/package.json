@@ -66,9 +66,7 @@
         "npm-force-resolutions": "0.0.3",
         "should": "^13.2.3"
     },
-    "resolutions": {
-
-    },
+    "resolutions": {},
     "jest": {
         "collectCoverageFrom": [
             "src/**/*.js",

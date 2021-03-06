@@ -23,9 +23,7 @@
         "minify": "^5.1.1",
         "try-to-catch": "^3.0.0"
     },
-    "resolutions": {
-
-    },
+    "resolutions": {},
     "devDependencies": {
         "chrome-launcher": "^0.13.1",
         "commander": "^4.0.1",
@@ -33,10 +31,9 @@
         "jest": "^26.2.2",
         "lighthouse": "^6.2.0",
         "nodemon": "^2.0.4",
+        "npm-force-resolutions": "0.0.3",
         "ora": "^4.0.3",
         "puppeteer": "^5.5.0",
-        "start-server-and-test": "^1.9.1",
-        "npm-force-resolutions": "0.0.3"
+        "start-server-and-test": "^1.9.1"
     }
-    
 }

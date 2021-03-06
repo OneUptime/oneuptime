@@ -25,9 +25,7 @@
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs'"
     },
-    "resolutions": {
-
-    },
+    "resolutions": {},
     "devDependencies": {
         "nodemon": "^2.0.4",
         "npm-force-resolutions": "0.0.3"

@@ -31,9 +31,7 @@
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,ejs,path,loadable-components,js-uuid,acorn,@beam-australia/react-env'"
     },
-    "resolutions": {
-
-    },
+    "resolutions": {},
     "devDependencies": {
         "depcheck": "^0.9.2",
         "nodemon": "^2.0.2",
