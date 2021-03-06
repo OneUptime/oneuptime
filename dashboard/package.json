@@ -97,7 +97,7 @@
         "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,browserslist,loadable-components,@beam-australia/react-env'",
         "audit": "npm audit --audit-level=low",
         "fix-lint": "eslint . --fix",
-        "preinstall": "npx npm-force-resolutions"
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'"
     },
     "devDependencies": {
         "@jest/test-sequencer": "^26.0.1",

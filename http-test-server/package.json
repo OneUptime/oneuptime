@@ -4,6 +4,7 @@
     "private": true,
     "main": "server.js",
     "scripts": {
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "start": "node server.js",
         "dev": "cross-env NODE_ENV=development nodemon server.js",
         "audit": "npm audit --audit-level=low",
@@ -24,9 +25,13 @@
         "puppeteer": "^5.5.0",
         "should": "^13.2.3"
     },
+    "resolutions": {
+
+    },
     "devDependencies": {
         "depcheck": "^0.9.2",
-        "nodemon": "^2.0.2"
+        "nodemon": "^2.0.2",
+        "npm-force-resolutions": "0.0.3"
     },
     "jest": {
         "collectCoverageFrom": [
