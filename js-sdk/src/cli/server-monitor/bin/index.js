@@ -22,6 +22,7 @@ const { API_URL, LOG_PATH } = require('../lib/config');
 const serverMonitor = require('../lib/api');
 
 program.version(version, '-v, --version').description('Fyipe Monitoring Shell');
+program.name('server-monitor');
 
 program
     .option(
