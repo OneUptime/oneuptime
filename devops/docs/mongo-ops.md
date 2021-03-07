@@ -4,39 +4,35 @@
 
 Admin mongodb username is: `root`
 
-## MongoDB Crashloop Backoff
+## MongoDB common issues.
+
+MongoDB has will give you a lot of issues like:
+
+#### MongoDB Crashloop Backoff
+
+#### MongoDB Replica Set IDs do not match
+
+This will delete all data
 
 If your mongodb crashloop backs off on Kubernetes, then...
 
-Important: Backup surving member.
+Important: Backup surving member. See backup section in this document for more info.
+
+Resolution: Delete all statefulset and start again.
 
 ```
-kubectl delete statefulset fi-mongodb-primary
-kubeclt delete pvc datadir-fi-mongodb-primary-0
+kubectl delete statefulset fi-mongodb-arbiter fi-mongodb-primary fi-mongodb-secondary
+kubectl delete svc fi-mongodb fi-mongodb-arbiter-headless fi-mongodb-headless
+kubectl delete pvc datadir-fi-mongodb-primary-0 datadir-fi-mongodb-secondary-0
 
-# IMPORTANT: ONLY use If staging
-sudo helm upgrade --reuse-values -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
+# If staging
+sudo helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
 
-# IMPORTANT: ONLY use If production
-sudo helm upgrade --reuse-values -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe
-
+# If production
+sudo helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe
 ```
 
-## MongoDB Replica Set IDs do not match
-
-```
-kubectl exec -it fi-mongodb-primary-0 mongo
-
-# In mongo shell
-use admin
-db.auth('root','root') # Use root username and password
-use local
-db.system.replset.find()
-db.system.replset.remove({})
-cfg = rs.conf()
-cfg.members = [cfg.members[0] , cfg.members[4] , cfg.members[7]]
-
-```
+Important: Restore. See restore section in this document for more info.
 
 ## Backup
 
@@ -166,4 +162,14 @@ db.auth("root", "<OLD-PASSWORD>")
 use fyipedb
 db.changeUserPassword("<USER-PASSWORD>", "<NEW-PASSWORD>")
 exit                                            # This is important.
+```
+
+## Set a member as master admin of Fyipe.
+
+```
+kubectl exec -it fi-mongodb-primary-0 mongo
+use fyipedb
+db.auth('fyipe','password')
+db.users.find({email: 'admin@fyipe.com',}) # Master admin user. Should be already signed up.
+db.users.update({email: 'admin@fyipe.com'}, {$set:{ role: 'master-admin'}}) # Update the user
 ```
