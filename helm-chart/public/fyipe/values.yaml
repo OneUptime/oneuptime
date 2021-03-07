@@ -134,8 +134,33 @@ mongodb:
   persistence:
     enabled: true
     mountPath: /bitnami/mongodb
-    size: 20Gi
+    size: 1000Gi
   useStatefulSet: true
+
+# mongodb: 
+#   architecture: replicaset
+#   image:
+#     registry: docker.io
+#     repository: bitnami/mongodb
+#     tag: latest
+#     pullPolicy: Always
+#   arbiter: 
+#     enabled: true
+#   auth: 
+#     enabled: true
+#     rootPassword: root
+#     username: fyipe
+#     password: password
+#     database: fyipedb
+#     replicaSetKey: mongodbfyipe
+#   replicaSetName: rs0
+#   replicaCount: 2
+#   replicaSetHostnames: true
+#   persistence:
+#     enabled: true
+#     mountPath: /bitnami/mongodb
+#     size: 20Gi
+#   useStatefulSet: true
 
 ## Service Configuration
 ## For minikube, set this to NodePort, elsewhere use LoadBalancer

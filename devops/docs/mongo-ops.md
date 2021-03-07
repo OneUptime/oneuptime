@@ -1,8 +1,42 @@
-# Operations Manual
+# Mongo Operations Manual
 
 ## Root Username
 
 Admin mongodb username is: `root`
+
+## MongoDB Crashloop Backoff
+
+If your mongodb crashloop backs off on Kubernetes, then...
+
+Important: Backup surving member.
+
+```
+kubectl delete statefulset fi-mongodb-primary
+kubeclt delete pvc datadir-fi-mongodb-primary-0
+
+# IMPORTANT: ONLY use If staging
+sudo helm upgrade --reuse-values -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
+
+# IMPORTANT: ONLY use If production
+sudo helm upgrade --reuse-values -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe
+
+```
+
+## MongoDB Replica Set IDs do not match
+
+```
+kubectl exec -it fi-mongodb-primary-0 mongo
+
+# In mongo shell
+use admin
+db.auth('root','root') # Use root username and password
+use local
+db.system.replset.find()
+db.system.replset.remove({})
+cfg = rs.conf()
+cfg.members = [cfg.members[0] , cfg.members[4] , cfg.members[7]]
+
+```
 
 ## Backup
 

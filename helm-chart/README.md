@@ -89,6 +89,10 @@ cd ./helm-chart/public
 
 # Run this command.
 helm dependency update fyipe
+
+# Go back to root.
+cd ..
+cd..
 ```
 
 ### Docker Images
