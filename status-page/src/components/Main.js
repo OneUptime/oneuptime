@@ -769,85 +769,97 @@ class Main extends Component {
                                                 </label>
                                             </div>
                                         </div>
-                                        <div className="btn-group">
-                                            {probes.map((probe, index) => (
-                                                <button
-                                                    onClick={() =>
-                                                        this.selectbutton(index)
-                                                    }
-                                                    style={{
-                                                        background:
-                                                            backgroundMain.background,
-                                                        borderColor:
-                                                            contentBackground.background,
-                                                    }}
-                                                    key={`probes-btn${index}`}
-                                                    id={`probes-btn${index}`}
-                                                    className={
-                                                        this.props
-                                                            .activeProbe ===
-                                                        index
-                                                            ? 'icon-container selected'
-                                                            : 'icon-container'
-                                                    }
-                                                >
-                                                    <span
-                                                        style={
-                                                            // If the page doesn't include any monitor or includes only manual monitors
-                                                            // The probe servers will be shown online
-                                                            this.props
-                                                                .monitorState
-                                                                .length === 0 ||
-                                                            this.props.monitorState.every(
-                                                                monitor =>
-                                                                    monitor.type ===
-                                                                    'manual'
+                                        <ShouldRender
+                                            if={
+                                                !this.props.statusData
+                                                    .hideProbeBar
+                                            }
+                                        >
+                                            <div className="btn-group">
+                                                {probes.map((probe, index) => (
+                                                    <button
+                                                        onClick={() =>
+                                                            this.selectbutton(
+                                                                index
                                                             )
-                                                                ? {
-                                                                      ...greenBackground,
-                                                                      backgroundColor:
-                                                                          uptimeColor.backgroundColor,
-                                                                  }
-                                                                : probe.lastAlive &&
-                                                                  moment(
-                                                                      this.state
-                                                                          .now
-                                                                  ).diff(
-                                                                      moment(
-                                                                          probe.lastAlive
-                                                                      ),
-                                                                      'seconds'
-                                                                  ) >= 300
-                                                                ? greyBackground
-                                                                : serviceStatus ===
-                                                                      'none' ||
-                                                                  serviceStatus ===
-                                                                      'some'
-                                                                ? {
-                                                                      ...redBackground,
-                                                                      backgroundColor:
-                                                                          downtimeColor.backgroundColor,
-                                                                  }
-                                                                : serviceStatus ===
-                                                                  'some-degraded'
-                                                                ? {
-                                                                      ...yellowBackground,
-                                                                      backgroundColor:
-                                                                          degradedColor.backgroundColor,
-                                                                  }
-                                                                : {
-                                                                      ...greenBackground,
-                                                                      backgroundColor:
-                                                                          uptimeColor.backgroundColor,
-                                                                  }
                                                         }
-                                                    ></span>
-                                                    <span style={heading}>
-                                                        {probe.probeName}
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
+                                                        style={{
+                                                            background:
+                                                                backgroundMain.background,
+                                                            borderColor:
+                                                                contentBackground.background,
+                                                        }}
+                                                        key={`probes-btn${index}`}
+                                                        id={`probes-btn${index}`}
+                                                        className={
+                                                            this.props
+                                                                .activeProbe ===
+                                                            index
+                                                                ? 'icon-container selected'
+                                                                : 'icon-container'
+                                                        }
+                                                    >
+                                                        <span
+                                                            style={
+                                                                // If the page doesn't include any monitor or includes only manual monitors
+                                                                // The probe servers will be shown online
+                                                                this.props
+                                                                    .monitorState
+                                                                    .length ===
+                                                                    0 ||
+                                                                this.props.monitorState.every(
+                                                                    monitor =>
+                                                                        monitor.type ===
+                                                                        'manual'
+                                                                )
+                                                                    ? {
+                                                                          ...greenBackground,
+                                                                          backgroundColor:
+                                                                              uptimeColor.backgroundColor,
+                                                                      }
+                                                                    : probe.lastAlive &&
+                                                                      moment(
+                                                                          this
+                                                                              .state
+                                                                              .now
+                                                                      ).diff(
+                                                                          moment(
+                                                                              probe.lastAlive
+                                                                          ),
+                                                                          'seconds'
+                                                                      ) >= 300
+                                                                    ? greyBackground
+                                                                    : serviceStatus ===
+                                                                          'none' ||
+                                                                      serviceStatus ===
+                                                                          'some'
+                                                                    ? {
+                                                                          ...redBackground,
+                                                                          backgroundColor:
+                                                                              downtimeColor.backgroundColor,
+                                                                      }
+                                                                    : serviceStatus ===
+                                                                      'some-degraded'
+                                                                    ? {
+                                                                          ...yellowBackground,
+                                                                          backgroundColor:
+                                                                              degradedColor.backgroundColor,
+                                                                      }
+                                                                    : {
+                                                                          ...greenBackground,
+                                                                          backgroundColor:
+                                                                              uptimeColor.backgroundColor,
+                                                                      }
+                                                            }
+                                                        ></span>
+                                                        <span style={heading}>
+                                                            {probe.probeName}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </ShouldRender>
+
                                         <div
                                             className="statistics"
                                             style={contentBackground}
