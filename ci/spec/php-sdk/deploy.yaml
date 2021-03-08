@@ -28,6 +28,7 @@ deploy_staging_php-sdk:
         refs:
             - master
             - hotfix-master
+            - feature-error-tracking
     environment:
         name: staging
 
