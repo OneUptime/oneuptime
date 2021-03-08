@@ -82,6 +82,7 @@ export class ProbeList extends Component {
             canNext = false;
             canPrev = false;
         }
+        const numberOfPages = Math.ceil(parseInt(probes.count) / 10);
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -426,10 +427,14 @@ export class ProbeList extends Component {
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {probes && probes.count
-                                        ? probes.count +
-                                          (probes && probes.count > 1
-                                              ? ' probes'
-                                              : ' Probe')
+                                        ? `Page ${
+                                              this.props.page
+                                          } of ${numberOfPages} (${probes &&
+                                              probes.count} Probe${
+                                              probes && probes.count === 1
+                                                  ? ''
+                                                  : 's'
+                                          })`
                                         : null}
                                 </span>
                             </span>
@@ -523,9 +528,9 @@ ProbeList.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     requesting: PropTypes.bool,
-    initialValues: {},
     updateRequesting: PropTypes.bool,
     updateProbe: PropTypes.func,
+    page: PropTypes.number,
 };
 
 const ProbeSettingsForm = reduxForm({

@@ -40,6 +40,8 @@ class RegisterPage extends React.Component {
     }
 
     render() {
+        const { register } = this.props;
+
         return (
             <div id="wrap" style={{ paddingTop: 0 }}>
                 {/* Header */}
@@ -51,7 +53,9 @@ class RegisterPage extends React.Component {
 
                 {/* REGISTRATION BOX */}
                 {this.props.register.success &&
-                !this.props.masterAdminExists ? (
+                !this.props.masterAdminExists &&
+                !register.user.cardRegistered &&
+                !register.user.token ? (
                     <MessageBox
                         title="Activate your Fyipe account"
                         message="An email is on its way to you with a verification link. Please don't forget to check spam. "

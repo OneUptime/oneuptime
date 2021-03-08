@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal } from '../../actions/modal';
 import AlertDetails from '../modals/AlertDetails';
 import countryTelephoneCode from 'country-telephone-code';
@@ -208,9 +208,10 @@ TD4.propTypes = {
 
 function TD5({ text }) {
     const incidentStatusColor = {
-        identified: 'green',
+        identified: 'red',
         acknowledged: 'yellow',
-        resolved: 'red',
+        resolved: 'green',
+        investigationNoteCreated: 'green',
     };
     const isIncidentStatus = Object.keys(incidentStatusColor).includes(text);
 
@@ -231,6 +232,16 @@ function TD5({ text }) {
                             >
                                 <span
                                     className={`Badge-text Text-color--${incidentStatusColor[text]} Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                >
+                                    {text}
+                                </span>
+                            </div>
+                        ) : text === 'Investigation note created' ? (
+                            <div
+                                className={`Badge Badge--color--${incidentStatusColor['investigationNoteCreated']} Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                            >
+                                <span
+                                    className={`Badge-text Text-color--${incidentStatusColor['investigationNoteCreated']} Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                 >
                                     {text}
                                 </span>
@@ -322,7 +333,7 @@ class SubscriberAlertTableRowsClass extends React.Component {
                       className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
                       onClick={() =>
                           this.props.openModal({
-                              id: uuid.v4(),
+                              id: uuidv4(),
                               content: DataPathHoC(AlertDetails, {
                                   monitor: monitor ? monitor.name : 'Unknown',
                                   subscriber: alert.subscriberId

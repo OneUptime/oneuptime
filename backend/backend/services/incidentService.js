@@ -479,6 +479,7 @@ module.exports = {
                     createdById: userId,
                     type: 'investigation',
                     incident_state: 'Acknowledged',
+                    post_statuspage: true,
                 });
 
                 const downtimestring = IncidentUtilitiy.calculateHumanReadableDownTime(
@@ -641,6 +642,7 @@ module.exports = {
                 createdById: userId,
                 type: 'investigation',
                 incident_state: 'Resolved',
+                post_statuspage: true,
             });
 
             await IncidentTimelineService.create({
@@ -718,6 +720,51 @@ module.exports = {
         return subProjectIncidents;
     },
 
+    getComponentIncidents: async function(subProjectIds, componentId) {
+        const _this = this;
+        const monitors = await MonitorService.findBy({
+            componentId: componentId,
+        });
+        const monitorIds = monitors.map(monitor => monitor._id);
+        const componentIncidents = await Promise.all(
+            subProjectIds.map(async id => {
+                const incidents = await _this.findBy(
+                    { projectId: id, monitorId: { $in: monitorIds } },
+                    10,
+                    0
+                );
+                const count = await _this.countBy({
+                    projectId: id,
+                    monitorId: { $in: monitorIds },
+                });
+                return { incidents, count, _id: id, skip: 0, limit: 10 };
+            })
+        );
+        return componentIncidents;
+    },
+
+    getProjectComponentIncidents: async function(
+        projectId,
+        componentId,
+        limit,
+        skip
+    ) {
+        const _this = this;
+        const monitors = await MonitorService.findBy({
+            componentId: componentId,
+        });
+        const monitorIds = monitors.map(monitor => monitor._id);
+        const incidents = await _this.findBy(
+            { projectId: projectId, monitorId: { $in: monitorIds } },
+            limit,
+            skip
+        );
+        const count = await _this.countBy({
+            projectId: projectId,
+            monitorId: { $in: monitorIds },
+        });
+        return { incidents, count, _id: projectId };
+    },
     sendIncidentResolvedNotification: async function(incident, name) {
         try {
             const _this = this;

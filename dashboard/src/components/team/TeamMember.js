@@ -13,7 +13,7 @@ import { changeProjectRoles } from '../../actions/project';
 import { TeamListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import RemoveTeamUserModal from '../modals/RemoveTeamUserModal.js';
 import { openModal, closeModal } from '../../actions/modal';
@@ -22,11 +22,15 @@ import { history } from '../../store';
 import '@trendmicro/react-dropdown/dist/react-dropdown.css';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import ConfirmChangeRoleModal from '../modals/ConfirmChangeRole';
 
 export class TeamMember extends Component {
     constructor(props) {
         super(props);
-        this.state = { removeUserModalId: uuid.v4() };
+        this.state = {
+            removeUserModalId: uuidv4(),
+            ConfirmationDialogId: uuidv4(),
+        };
         this.removeTeamMember = this.removeTeamMember.bind(this);
         this.updateTeamMemberRole = this.updateTeamMemberRole.bind(this);
     }
@@ -209,21 +213,46 @@ export class TeamMember extends Component {
                                     )}
 
                                     <Dropdown.Menu>
-                                        <MenuItem
-                                            title="Owner"
-                                            onClick={handleSubmit(values =>
-                                                this.updateTeamMemberRole(
-                                                    {
-                                                        ...values,
-                                                        role: this.props.role,
-                                                        userId: userId,
-                                                    },
-                                                    'Owner'
-                                                )
-                                            )}
-                                        >
-                                            Owner
-                                        </MenuItem>
+                                        <ShouldRender if={loggedInUserIsOwner}>
+                                            <MenuItem
+                                                title="Owner"
+                                                onClick={handleSubmit(
+                                                    values => {
+                                                        this.props.openModal({
+                                                            id: this.state
+                                                                .ConfirmationDialogId,
+                                                            content: DataPathHoC(
+                                                                ConfirmChangeRoleModal,
+                                                                {
+                                                                    ConfirmationDialogId: this
+                                                                        .state
+                                                                        .ConfirmationDialogId,
+                                                                    name:
+                                                                        this
+                                                                            .props
+                                                                            .name ??
+                                                                        this
+                                                                            .props
+                                                                            .email,
+                                                                    values,
+                                                                    role: this
+                                                                        .props
+                                                                        .role,
+                                                                    userId: userId,
+                                                                    newRole:
+                                                                        'Owner',
+                                                                    updating,
+                                                                    updateTeamMemberRole: this
+                                                                        .updateTeamMemberRole,
+                                                                }
+                                                            ),
+                                                        });
+                                                    }
+                                                )}
+                                            >
+                                                Owner
+                                            </MenuItem>
+                                        </ShouldRender>
                                         <MenuItem
                                             title="Administrator"
                                             onClick={handleSubmit(values =>
@@ -365,6 +394,7 @@ function mapStateToProps(state, props) {
             id => id === props.userId
         ),
         currentProject: state.project.currentProject,
+        subProjects: state.subProject.subProjects.subProjects,
     };
 }
 

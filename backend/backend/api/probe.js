@@ -136,7 +136,12 @@ router.get('/monitors', isAuthorizedProbe, async function(req, res) {
                 global.io.emit(`updateProbe-${projectId}`, probe);
             }
         }
-        return sendListResponse(req, res, monitors, monitors.length);
+        return sendListResponse(
+            req,
+            res,
+            JSON.stringify(monitors),
+            monitors.length
+        );
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -165,7 +170,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             serverData,
             type,
             retryCount,
+            kubernetesData,
         } = req.body;
+
         let status,
             log,
             reason,
@@ -179,7 +186,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             const probeId = req.probe && req.probe.id ? req.probe.id : null;
             log = await ProbeService.probeHttpRequest(newMonitor, probeId);
         } else {
-            if (type === 'api' || type === 'url' || type === 'ip') {
+            if (type === 'api' || type === 'url') {
                 const {
                     stat: validUp,
                     successReasons: upSuccessReasons,
@@ -252,6 +259,59 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                         ...degradedFailedReasons,
                         ...upFailedReasons,
                     ];
+                    if (monitor.criteria.down) {
+                        matchedCriterion = monitor.criteria.down.find(
+                            criterion => criterion.default === true
+                        );
+                    }
+                }
+                data.status = status;
+                data.reason = reason;
+            }
+            if (type === 'ip') {
+                const {
+                    stat: validUp,
+                    successReasons: upSuccessReasons,
+                    failedReasons: upFailedReasons,
+                    matchedCriterion: matchedUpCriterion,
+                } = await (monitor && monitor.criteria && monitor.criteria.up
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.up,
+                          res,
+                          resp,
+                          rawResp
+                      )
+                    : { stat: false, successReasons: [], failedReasons: [] });
+                const {
+                    stat: validDown,
+                    successReasons: downSuccessReasons,
+                    failedReasons: downFailedReasons,
+                    matchedCriterion: matchedDownCriterion,
+                } = await (monitor && monitor.criteria && monitor.criteria.down
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          [
+                              ...monitor.criteria.down.filter(
+                                  criterion => criterion.default !== true
+                              ),
+                          ],
+                          res,
+                          resp,
+                          rawResp
+                      )
+                    : { stat: false, successReasons: [], failedReasons: [] });
+                if (validUp) {
+                    status = 'online';
+                    reason = upSuccessReasons;
+                    matchedCriterion = matchedUpCriterion;
+                } else if (validDown) {
+                    matchedCriterion = matchedDownCriterion;
+                    status = 'offline';
+                    reason = [...downSuccessReasons, null, ...upFailedReasons];
+                } else {
+                    status = 'offline';
+                    reason = [...downFailedReasons, null, ...upFailedReasons];
                     if (monitor.criteria.down) {
                         matchedCriterion = monitor.criteria.down.find(
                             criterion => criterion.default === true
@@ -441,6 +501,88 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 data.reason = reason;
                 data.response = rawResp;
             }
+            if (type === 'kubernetes') {
+                data = { kubernetesData };
+
+                const {
+                    stat: validUp,
+                    successReasons: upSuccessReasons,
+                    failedReasons: upFailedReasons,
+                    matchedCriterion: matchedUpCriterion,
+                } = await (monitor && monitor.criteria && monitor.criteria.up
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.up,
+                          data.kubernetesData
+                      )
+                    : { stat: false, successReasons: [], failedReasons: [] });
+
+                const {
+                    stat: validDegraded,
+                    successReasons: degradedSuccessReasons,
+                    failedReasons: degradedFailedReasons,
+                    matchedCriterion: matchedDegradedCriterion,
+                } = await (monitor &&
+                monitor.criteria &&
+                monitor.criteria.degraded
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.degraded,
+                          data.kubernetesData
+                      )
+                    : { stat: false, successReasons: [], failedReasons: [] });
+
+                const {
+                    stat: validDown,
+                    successReasons: downSuccessReasons,
+                    failedReasons: downFailedReasons,
+                    matchedCriterion: matchedDownCriterion,
+                } = await (monitor && monitor.criteria && monitor.criteria.down
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          [
+                              ...monitor.criteria.down.filter(
+                                  criterion => criterion.default !== true
+                              ),
+                          ],
+                          data.kubernetesData
+                      )
+                    : { stat: false, successReasons: [], failedReasons: [] });
+
+                if (validUp) {
+                    data.status = 'online';
+                    data.reason = upSuccessReasons;
+                    matchedCriterion = matchedUpCriterion;
+                } else if (validDegraded) {
+                    data.status = 'degraded';
+                    data.reason = [
+                        ...degradedSuccessReasons,
+                        ...upFailedReasons,
+                    ];
+                    matchedCriterion = matchedDegradedCriterion;
+                } else if (validDown) {
+                    data.status = 'offline';
+                    data.reason = [
+                        ...downSuccessReasons,
+                        ...degradedFailedReasons,
+                        ...upFailedReasons,
+                    ];
+                    matchedCriterion = matchedDownCriterion;
+                } else {
+                    data.status = 'offline';
+                    data.reason = [
+                        ...downFailedReasons,
+                        ...degradedFailedReasons,
+                        ...upFailedReasons,
+                    ];
+                    if (monitor.criteria.down) {
+                        matchedCriterion = monitor.criteria.down.find(
+                            criterion => criterion.default === true
+                        );
+                    }
+                }
+            }
+
             data.matchedCriterion = matchedCriterion;
             // update monitor to save the last matched criterion
             await MonitorService.updateOneBy(

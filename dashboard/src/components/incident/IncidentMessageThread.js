@@ -11,6 +11,8 @@ import DataPathHoC from '../DataPathHoC';
 import Markdown from 'markdown-to-jsx';
 import DeleteIncidentMessage from '../modals/DeleteIncidentMessage';
 import { history } from '../../store';
+import { API_URL } from '../../config';
+
 export class IncidentMessageThread extends Component {
     render() {
         const {
@@ -31,7 +33,9 @@ export class IncidentMessageThread extends Component {
             deleteMessageModalId,
             deleteIncidentMessage,
             page,
-            numberOfPages
+            numberOfPages,
+            count,
+            slug,
         } = this.props;
         return (
             <div className="Box-root">
@@ -39,7 +43,9 @@ export class IncidentMessageThread extends Component {
                     <div className="Box-root">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                             <span>
-                                {title === 'Status Page' ? title : 'Timeline'}
+                                {title === 'Status Page'
+                                    ? title
+                                    : 'Incident Timeline'}
                             </span>
                         </span>
                         <p>
@@ -676,7 +682,9 @@ export class IncidentMessageThread extends Component {
                                                                             : incidentMessage.status ===
                                                                                   'resolved' ||
                                                                               incidentMessage.status ===
-                                                                                  'online'
+                                                                                  'online' ||
+                                                                              incidentMessage.status ===
+                                                                                  'investigation notes added'
                                                                             ? 'bs-note-resolved'
                                                                             : incidentMessage.status ===
                                                                                   'internal notes updated' ||
@@ -684,8 +692,6 @@ export class IncidentMessageThread extends Component {
                                                                                   'investigation notes updated'
                                                                             ? 'bs-note-updated'
                                                                             : incidentMessage.status ===
-                                                                                  'investigation notes added' ||
-                                                                              incidentMessage.status ===
                                                                                   'internal notes added' ||
                                                                               incidentMessage.status ===
                                                                                   'created'
@@ -727,6 +733,11 @@ export class IncidentMessageThread extends Component {
                                                                                     .createdById
                                                                                     .name
                                                                                     ? '/dashboard/assets/img/profile-user.svg'
+                                                                                    : incidentMessage.probeId &&
+                                                                                      incidentMessage
+                                                                                          .probeId
+                                                                                          .probeImage
+                                                                                    ? `${API_URL}/file/${incidentMessage.probeId.probeImage}`
                                                                                     : '/dashboard/assets/img/Fyipe.svg'
                                                                             }
                                                                             className="userIcon"
@@ -736,7 +747,13 @@ export class IncidentMessageThread extends Component {
                                                                                     '-5px',
                                                                             }}
                                                                         />
-                                                                        <span>
+                                                                        <span
+                                                                            style={{
+                                                                                fontWeight:
+                                                                                    incidentMessage.probeId &&
+                                                                                    '600',
+                                                                            }}
+                                                                        >
                                                                             {incidentMessage.createdById &&
                                                                             incidentMessage
                                                                                 .createdById
@@ -744,6 +761,13 @@ export class IncidentMessageThread extends Component {
                                                                                 ? incidentMessage
                                                                                       .createdById
                                                                                       .name
+                                                                                : incidentMessage.probeId &&
+                                                                                  incidentMessage
+                                                                                      .probeId
+                                                                                      .probeName
+                                                                                ? incidentMessage
+                                                                                      .probeId
+                                                                                      .probeName
                                                                                 : 'Fyipe'}
                                                                         </span>
                                                                     </div>
@@ -780,7 +804,9 @@ export class IncidentMessageThread extends Component {
                                                                                               (incidentMessage.status ===
                                                                                                   'resolved' ||
                                                                                                   incidentMessage.status ===
-                                                                                                      'online') ? (
+                                                                                                      'online' ||
+                                                                                                  incidentMessage.status ===
+                                                                                                      'investigation notes added') ? (
                                                                                                 <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                                     <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                                         <span>
@@ -810,9 +836,7 @@ export class IncidentMessageThread extends Component {
                                                                                               (incidentMessage.status ===
                                                                                                   'created' ||
                                                                                                   incidentMessage.status ===
-                                                                                                      'internal notes added' ||
-                                                                                                  incidentMessage.status ===
-                                                                                                      'investigation notes added') ? (
+                                                                                                      'internal notes added') ? (
                                                                                                 <div className="Badge Badge--color--blue Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                                     <span className="Badge-text Text-color--blue Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                                         <span>
@@ -1039,9 +1063,7 @@ export class IncidentMessageThread extends Component {
                                                                                     className="bs-duty-span"
                                                                                     onClick={() => {
                                                                                         history.push(
-                                                                                            `/dashboard/project/${
-                                                                                                incidentMessage.project
-                                                                                            }/sub-project/${incidentMessage.project &&
+                                                                                            `/dashboard/project/${slug}/sub-project/${incidentMessage.project &&
                                                                                                 incidentMessage.project}/schedule/${incidentMessage.schedule &&
                                                                                                 incidentMessage
                                                                                                     .schedule
@@ -1056,11 +1078,13 @@ export class IncidentMessageThread extends Component {
                                                                                     }{' '}
                                                                                 </span>
                                                                                 <span>
+                                                                                    call
+                                                                                    schedule
                                                                                     was
                                                                                     executed
                                                                                     for
                                                                                     this
-                                                                                    monitor
+                                                                                    incident
                                                                                 </span>
                                                                             </>
                                                                         ) : (
@@ -1121,13 +1145,15 @@ export class IncidentMessageThread extends Component {
                                                             <div
                                                                 className={`bs-incident-notes 
                                                                         ${
-                                                                            incidentMessage.eventType ===
+                                                                            (incidentMessage.eventType ===
                                                                                 'resolved' ||
-                                                                            incidentMessage.eventType ===
-                                                                                'identified'
+                                                                                incidentMessage.eventType ===
+                                                                                    'identified') &&
+                                                                            !incidentMessage.error
                                                                                 ? 'bs-note-resolved'
                                                                                 : incidentMessage.eventType ===
-                                                                                  'acknowledged'
+                                                                                      'acknowledged' &&
+                                                                                  !incidentMessage.error
                                                                                 ? 'bs-note-acknowleged'
                                                                                 : 'bs-note-offline'
                                                                         }`}
@@ -1207,10 +1233,6 @@ export class IncidentMessageThread extends Component {
                                                                             {
                                                                                 ' notified by '
                                                                             }
-                                                                            {incidentMessage.alertVia ===
-                                                                            'email'
-                                                                                ? 'an'
-                                                                                : 'a'}{' '}
                                                                             <span
                                                                                 style={{
                                                                                     fontSize:
@@ -1229,11 +1251,10 @@ export class IncidentMessageThread extends Component {
                                                                                 }
                                                                             </span>
                                                                             {
-                                                                                ' because an '
+                                                                                ' because '
                                                                             }
-                                                                            {incidentMessage.error
-                                                                                ? 'error ocurred'
-                                                                                : 'incident was '}
+                                                                            {!incidentMessage.error &&
+                                                                                'an incident was '}
                                                                             <span className="bs-in-style">
                                                                                 {!incidentMessage.error &&
                                                                                     (incidentMessage.eventType ===
@@ -1276,7 +1297,7 @@ export class IncidentMessageThread extends Component {
                                                                                                                     {incidentMessage.alertStatus ===
                                                                                                                     'Success'
                                                                                                                         ? incidentMessage.alertStatus
-                                                                                                                        : 'error'}
+                                                                                                                        : incidentMessage.errorMessage}
                                                                                                                 </span>
                                                                                                             </span>
                                                                                                         </div>
@@ -1356,27 +1377,13 @@ export class IncidentMessageThread extends Component {
                         <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {numberOfPages >0 ?
-                                   `Page ${page} of ${numberOfPages} (${
-                                    incidentMessages && incidentMessages.incidentMessages.length
-                                    ? incidentMessages.incidentMessages
-                                          .length +
-                                      (incidentMessages.incidentMessages
-                                          .length > 1
-                                          ? ' Messages'
-                                          : ' Message')
-                                    : '0 Messages'
-                                  })`
-                                  : 
-                                  incidentMessages && incidentMessages.incidentMessages.length
-                                        ? incidentMessages.incidentMessages
-                                              .length +
-                                          (incidentMessages.incidentMessages
-                                              .length > 1
-                                              ? ' Messages'
-                                              : ' Message')
-                                        : '0 Messages'
-                                }
+                                    {numberOfPages > 0
+                                        ? `Page ${page} of ${numberOfPages} (${count} Message${
+                                              count === 1 ? '' : 's'
+                                          })`
+                                        : `${count} Message${
+                                              count === 1 ? '' : 's'
+                                          }`}
                                 </span>
                             </span>
                         </div>
@@ -1438,6 +1445,7 @@ IncidentMessageThread.displayName = 'IncidentMessageThread';
 IncidentMessageThread.propTypes = {
     title: PropTypes.string,
     description: PropTypes.string,
+    slug: PropTypes.string,
     incident: PropTypes.object.isRequired,
     incidentMessages: PropTypes.object,
     canPrev: PropTypes.bool,
@@ -1452,6 +1460,9 @@ IncidentMessageThread.propTypes = {
     editMessageModalId: PropTypes.string,
     deleteMessageModalId: PropTypes.string,
     deleteIncidentMessage: PropTypes.func,
+    count: PropTypes.number,
+    numberOfPages: PropTypes.number,
+    page: PropTypes.number,
 };
 
 export default IncidentMessageThread;

@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../config';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
@@ -23,7 +23,7 @@ export class ExitProjectBox extends Component {
             dispatch,
         } = this.props;
         this.props.openModal({
-            id: uuid.v4(),
+            id: uuidv4(),
             onConfirm: () => {
                 return exitProject(projectId, userId).then(function() {
                     !nextProject && dispatch({ type: 'CLEAR_STORE' });
@@ -98,10 +98,10 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = state => {
     const userId = User.getUserId();
-
-    const { projectId } = props.match.params;
+    const projectId =
+        state.project.currentProject && state.project.currentProject._id;
 
     const { projects } = state.project.projects;
 

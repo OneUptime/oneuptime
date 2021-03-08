@@ -18,48 +18,65 @@ const UserService = require('../services/userService');
 
 router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
     try {
-        const data = req.body;
-        if (!data.user) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'User Name is required.',
-            });
+        let data = req.body;
+        if (data.smtpToUse === 'customSmtp') {
+            if (!data.user) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'User Name is required.',
+                });
+            }
+
+            if (!data.pass) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Password is required.',
+                });
+            }
+
+            if (!data.host) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'host is required.',
+                });
+            }
+
+            if (!data.port) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'port is required.',
+                });
+            }
+
+            if (!data.name) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'name is required.',
+                });
+            }
+
+            if (!data.from) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'from is required.',
+                });
+            }
+
+            data.internalSmtp = false;
+        } else if (data.smtpToUse === 'internalSmtp') {
+            data = {
+                ...data,
+                internalSmtp: true,
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASSWORD,
+                host: process.env.SMTP_SERVER,
+                port: process.env.SMTP_PORT,
+                from: process.env.SMTP_FROM,
+                name: process.env.SMTP_NAME,
+                secure: false,
+            };
         }
 
-        if (!data.pass) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Password is required.',
-            });
-        }
-
-        if (!data.host) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'host is required.',
-            });
-        }
-
-        if (!data.port) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'port is required.',
-            });
-        }
-
-        if (!data.name) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'name is required.',
-            });
-        }
-
-        if (!data.from) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'from is required.',
-            });
-        }
         let response = await MailService.testSmtpConfig(data);
         response = { message: 'Email sent successfully' };
         return sendItemResponse(req, res, response);

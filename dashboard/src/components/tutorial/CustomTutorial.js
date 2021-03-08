@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import QuickTipBox from '../basic/QuickTipBox';
 import FeatureList from '../basic/FeatureList';
 import { tutorials } from '../../config';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import RenderIfOwnerOrAdmin from '../basic/RenderIfOwnerOrAdmin';
 import ShouldRender from '../basic/ShouldRender';
 
@@ -13,7 +13,7 @@ const getDescription = type => {
 const renderFeatures = features => {
     if (features) {
         return features.map(feature => (
-            <FeatureList key={uuid.v4()} content={feature} />
+            <FeatureList key={uuidv4()} content={feature} />
         ));
     }
     return null;
@@ -23,6 +23,7 @@ const CustomTutorial = ({
     tutorialStat,
     monitors,
     currentProjectId,
+    slug,
     projectTeamMembers,
     hideActionButton,
 }) => (
@@ -54,7 +55,7 @@ const CustomTutorial = ({
                             </div>
                         </div>
                     }
-                    callToActionLink={`/dashboard/project/${currentProjectId}/components`}
+                    callToActionLink={`/dashboard/project/${slug}/components`}
                     callToAction="Create Component"
                     hideActionButton={hideActionButton}
                 />
@@ -84,7 +85,7 @@ const CustomTutorial = ({
                             </div>
                         </div>
                     }
-                    callToActionLink={`/dashboard/project/${currentProjectId}/components`}
+                    callToActionLink={`/dashboard/project/${slug}/components`}
                     callToAction="Create Monitor"
                     hideActionButton={hideActionButton}
                 />
@@ -124,7 +125,7 @@ const CustomTutorial = ({
                             </div>
                         </div>
                     }
-                    callToActionLink={`/dashboard/project/${currentProjectId}/team`}
+                    callToActionLink={`/dashboard/project/${slug}/team`}
                     callToAction="Invite Team Member"
                 />
             </ShouldRender>
@@ -139,6 +140,7 @@ CustomTutorial.propTypes = {
     tutorialStat: PropTypes.object,
     monitors: PropTypes.array,
     currentProjectId: PropTypes.string,
+    slug: PropTypes.string,
     projectTeamMembers: PropTypes.array,
     hideActionButton: PropTypes.bool,
 };

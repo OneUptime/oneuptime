@@ -147,6 +147,71 @@ export function resetFile() {
     };
 }
 
+export function uploadConfigurationFileRequest() {
+    return {
+        type: types.UPLOAD_CONFIGURATION_FILE_REQUEST,
+    };
+}
+
+export function logConfigFile(file) {
+    return dispatch =>
+        dispatch({
+            type: types.UPLOAD_CONFIGURATION_FILE_SUCCESS,
+            payload: file,
+        });
+}
+
+export function resetConfigFile() {
+    return dispatch =>
+        dispatch({
+            type: types.RESET_UPLOAD_CONFIGURATION_FILE,
+        });
+}
+
+export function setConfigInputKey(value) {
+    return {
+        type: types.SET_CONFIGURATION_FILE_INPUT_KEY,
+        payload: value,
+    };
+}
+
+export function uploadConfigurationFile(projectId, file) {
+    return function(dispatch) {
+        const data = new FormData();
+        if (file) {
+            data.append('configurationFile', file);
+
+            const promise = postApi(
+                `monitor/${projectId}/configurationFile`,
+                data
+            );
+            dispatch(uploadConfigurationFileRequest());
+            promise.then(
+                function(response) {
+                    const data = response.data;
+                    dispatch(logConfigFile(data.configurationFile));
+                    return data;
+                },
+                function(error) {
+                    if (error && error.response && error.response.data)
+                        error = error.response.data;
+                    if (error && error.data) {
+                        error = error.data;
+                    }
+                    if (error && error.message) {
+                        error = error.message;
+                    } else {
+                        error = 'Network Error';
+                    }
+                    dispatch(resetConfigFile());
+                }
+            );
+
+            return promise;
+        }
+    };
+}
+
 export function setFileInputKey(value) {
     return {
         type: 'SET_IDENTITY_FILE_INPUT_KEY',
@@ -579,7 +644,7 @@ export function fetchMonitorLogs(projectId, monitorId, startDate, endDate) {
             `monitor/${projectId}/monitorLog/${monitorId}`,
             { startDate, endDate }
         );
-        dispatch(fetchMonitorLogsRequest());
+        dispatch(fetchMonitorLogsRequest(monitorId));
         dispatch(updateDateRange(startDate, endDate));
 
         promise.then(
@@ -619,9 +684,10 @@ export function updateDateRange(startDate, endDate) {
     };
 }
 
-export function fetchMonitorLogsRequest() {
+export function fetchMonitorLogsRequest(payload) {
     return {
         type: types.FETCH_MONITOR_LOGS_REQUEST,
+        payload,
     };
 }
 
@@ -1022,16 +1088,28 @@ export function addSeatReset() {
     };
 }
 
-export function addArrayField(val) {
+export function addArrayField(val, insert) {
     return function(dispatch) {
         dispatch(change('NewMonitor', `${val}.field3`, true));
+        dispatch(change('NewMonitor', `${val}.criteria`, insert));
     };
 }
 
 export function removeArrayField(val) {
     return function(dispatch) {
         dispatch(change('NewMonitor', `${val}.field3`, false));
-        dispatch(autofill('NewMonitor', `${val}.collection`, undefined));
+        dispatch(autofill('NewMonitor', `${val}.criteria`, undefined));
+    };
+}
+
+export function updateCriteriaField(field, val, noCriteria) {
+    if (noCriteria) {
+        return function(dispatch) {
+            dispatch(change('NewMonitor', field, val));
+        };
+    }
+    return function(dispatch) {
+        dispatch(change('NewMonitor', `${field}.criteria`, val));
     };
 }
 

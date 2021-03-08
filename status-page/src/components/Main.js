@@ -20,6 +20,9 @@ import {
 import { getProbes } from '../actions/probe';
 import LineChartsContainer from './LineChartsContainer';
 import AffectedResources from './basic/AffectedResources';
+import SubscribeBox from './Subscribe/SubscribeBox';
+import { openSubscribeMenu } from '../actions/subscribe';
+import NewThemeEvent from './NewThemeEvent';
 
 const greenBackground = {
     display: 'inline-block',
@@ -86,7 +89,9 @@ class Main extends Component {
         ) {
             this.props.getScheduledEvent(
                 this.props.statusData.projectId._id,
-                this.props.statusData._id
+                this.props.statusData._id,
+                0,
+                this.props.statusData.theme === 'Clean Theme' ? true : false
             );
         }
     }
@@ -208,30 +213,30 @@ class Main extends Component {
                                     {this.props.monitors.some(
                                         m => monitor._id === m.monitor
                                     ) && (
-                                        <LineChartsContainer
-                                            monitor={monitor}
-                                            selectedCharts={
-                                                this.props.monitors.filter(
-                                                    m =>
-                                                        monitor._id ===
-                                                        m.monitor
-                                                )[0]
-                                            }
-                                        />
-                                    )}
+                                            <LineChartsContainer
+                                                monitor={monitor}
+                                                selectedCharts={
+                                                    this.props.monitors.filter(
+                                                        m =>
+                                                            monitor._id ===
+                                                            m.monitor
+                                                    )[0]
+                                                }
+                                            />
+                                        )}
                                     {i <
                                         this.props.statusData.monitorsData
                                             .length -
-                                            1 && (
-                                        <div
-                                            style={{
-                                                margin: '30px 0px',
-                                                backgroundColor:
-                                                    'rgb(232, 232, 232)',
-                                                height: '1px',
-                                            }}
-                                        />
-                                    )}
+                                        1 && (
+                                            <div
+                                                style={{
+                                                    margin: '30px 0px',
+                                                    backgroundColor:
+                                                        'rgb(232, 232, 232)',
+                                                    height: '1px',
+                                                }}
+                                            />
+                                        )}
                                 </>
                             );
                         })}
@@ -263,7 +268,12 @@ class Main extends Component {
     }
 
     render() {
-        const { headerHTML, footerHTML, customCSS } = this.props.statusData;
+        const {
+            headerHTML,
+            footerHTML,
+            customCSS,
+            theme,
+        } = this.props.statusData;
         const sanitizedCSS = customCSS ? customCSS.split('↵').join('') : '';
         const probes = this.props.probes;
         let view = false;
@@ -364,512 +374,726 @@ class Main extends Component {
             };
         }
 
-        return (
-            <div className="page-main-wrapper" style={backgroundMain}>
-                {this.props.statusData && this.props.statusData.bannerPath ? (
-                    <span>
-                        <img
-                            src={`${API_URL}/file/${this.props.statusData.bannerPath}`}
-                            alt=""
-                            className="banner"
-                        />
-                    </span>
-                ) : (
-                    ''
-                )}
-                {view ? (
-                    <div className="innernew">
-                        {this.props.events &&
-                            this.props.events.length > 0 &&
-                            this.props.statusData &&
-                            this.props.statusData._id &&
-                            this.props.events.map(event => (
-                                <div
-                                    className="content box box__yellow--dark"
-                                    style={{
-                                        margin: '40px 0px',
-                                        cursor: 'pointer',
-                                    }}
-                                    key={event._id}
-                                    onClick={() => {
-                                        this.props.history.push(
-                                            `/status-page/${this.props.statusData._id}/scheduledEvent/${event._id}`
-                                        );
-                                    }}
-                                >
-                                    <div className="box-inner ongoing__schedulebox">
-                                        <div
-                                            style={{
-                                                textTransform: 'uppercase',
-                                                fontSize: 11,
-                                                fontWeight: 900,
-                                            }}
-                                        >
-                                            Ongoing Scheduled Event
-                                        </div>
-                                        <div className="ongoing__scheduleitem">
-                                            <span>{event.name}</span>
-                                            <span>{event.description}</span>
-                                        </div>
-                                        <div className="ongoing__affectedmonitor">
-                                            <AffectedResources
-                                                event={event}
-                                                monitorState={
-                                                    this.props.monitorState
-                                                }
-                                            />
-                                        </div>
+        const {
+            enableRSSFeed,
+            smsNotification,
+            webhookNotification,
+            emailNotification,
+        } = this.props.statusPage;
+        const showSubscriberOption =
+            enableRSSFeed ||
+            smsNotification ||
+            webhookNotification ||
+            emailNotification;
 
-                                        <span
-                                            style={{
-                                                display: 'inline-block',
-                                                fontSize: 12,
-                                                marginTop: 5,
-                                            }}
-                                        >
-                                            {moment(event.startDate).format(
-                                                'MMMM Do YYYY, h:mm a'
-                                            )}
-                                            &nbsp;&nbsp;-&nbsp;&nbsp;
-                                            {moment(event.endDate).format(
-                                                'MMMM Do YYYY, h:mm a'
-                                            )}
-                                        </span>
-                                        <span className="sp__icon sp__icon--more"></span>
-                                    </div>
-                                </div>
-                            ))}
-                        <ShouldRender
-                            if={
-                                this.props.statusData &&
-                                this.props.statusData.projectId &&
-                                this.props.statusData._id &&
-                                this.props.statusData.moveIncidentToTheTop
-                            }
-                        >
-                            <NotesMain
-                                projectId={this.props.statusData.projectId._id}
-                                statusPageId={this.props.statusData._id}
-                            />
-                        </ShouldRender>
-                        <div
-                            className="content"
-                            style={{ position: 'relative', marginTop: 75 }}
-                        >
+        const availableMonitors = this.props.statusData.monitors;
+
+        return (
+            <>
+                {theme === 'Clean Theme' ? (
+                    <>
+                        <div className="new-theme">
                             {headerHTML ? (
                                 <React.Fragment>
                                     <style>{sanitizedCSS}</style>
-                                    <div
-                                        id="customHeaderHTML"
-                                        dangerouslySetInnerHTML={{
-                                            __html: headerHTML,
-                                        }}
-                                    />
-                                </React.Fragment>
-                            ) : (
-                                <div
-                                    style={{
-                                        position: 'absolute',
-                                        left: 30,
-                                        top: -25,
-                                    }}
-                                >
-                                    <div>
-                                        {this.props.statusData &&
-                                        this.props.statusData.logoPath ? (
-                                            <span>
-                                                <img
-                                                    src={`${API_URL}/file/${this.props.statusData.logoPath}`}
-                                                    alt=""
-                                                    className="logo"
-                                                />
-                                            </span>
-                                        ) : (
-                                            ''
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                            <div
-                                className="white box"
-                                style={contentBackground}
-                            >
-                                <div className="largestatus">
-                                    <span
-                                        className={status}
-                                        style={{
-                                            ...statusBackground,
-                                            width: '30px',
-                                            height: '30px',
-                                        }}
-                                    ></span>
-                                    <div className="title-wrapper">
-                                        <span className="title" style={heading}>
-                                            {statusMessage}
-                                        </span>
-                                        <label
-                                            className="status-time"
-                                            style={secondaryText}
-                                        >
-                                            As of{' '}
-                                            <span className="current-time">
-                                                {moment(new Date()).format(
-                                                    'LLLL'
-                                                )}
-                                            </span>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div className="btn-group">
-                                    {probes.map((probe, index) => (
-                                        <button
-                                            onClick={() =>
-                                                this.selectbutton(index)
-                                            }
-                                            style={{
-                                                background:
-                                                    backgroundMain.background,
-                                                borderColor:
-                                                    contentBackground.background,
+                                    <div className="logo_section">
+                                        <div
+                                            id="customHeaderHTML"
+                                            dangerouslySetInnerHTML={{
+                                                __html: headerHTML,
                                             }}
-                                            key={`probes-btn${index}`}
-                                            id={`probes-btn${index}`}
-                                            className={
-                                                this.props.activeProbe === index
-                                                    ? 'icon-container selected'
-                                                    : 'icon-container'
-                                            }
-                                        >
-                                            <span
-                                                style={
-                                                    // If the page doesn't include any monitor or includes only manual monitors
-                                                    // The probe servers will be shown online
-                                                    this.props.monitorState
-                                                        .length === 0 ||
-                                                    this.props.monitorState.every(
-                                                        monitor =>
-                                                            monitor.type ===
-                                                            'manual'
-                                                    )
-                                                        ? {
-                                                              ...greenBackground,
-                                                              backgroundColor:
-                                                                  uptimeColor.backgroundColor,
-                                                          }
-                                                        : probe.lastAlive &&
-                                                          moment(
-                                                              this.state.now
-                                                          ).diff(
-                                                              moment(
-                                                                  probe.lastAlive
-                                                              ),
-                                                              'seconds'
-                                                          ) >= 300
-                                                        ? greyBackground
-                                                        : serviceStatus ===
-                                                              'none' ||
-                                                          serviceStatus ===
-                                                              'some'
-                                                        ? {
-                                                              ...redBackground,
-                                                              backgroundColor:
-                                                                  downtimeColor.backgroundColor,
-                                                          }
-                                                        : serviceStatus ===
-                                                          'some-degraded'
-                                                        ? {
-                                                              ...yellowBackground,
-                                                              backgroundColor:
-                                                                  degradedColor.backgroundColor,
-                                                          }
-                                                        : {
-                                                              ...greenBackground,
-                                                              backgroundColor:
-                                                                  uptimeColor.backgroundColor,
-                                                          }
-                                                }
-                                            ></span>
-                                            <span style={heading}>
-                                                {probe.probeName}
-                                            </span>
-                                        </button>
-                                    ))}
-                                </div>
-                                <div
-                                    className="statistics"
-                                    style={contentBackground}
-                                >
-                                    <div className="inner-gradient"></div>
-                                    <div
-                                        className="uptime-graphs box-inner"
-                                        style={
-                                            isGroupedByMonitorCategory
-                                                ? { paddingBottom: 0 }
-                                                : { paddingBottom: 35 }
-                                        }
-                                    >
-                                        {isGroupedByMonitorCategory ? (
-                                            this.groupedMonitors()
-                                        ) : this.props.statusData &&
-                                          this.props.statusData.monitorsData !==
-                                              undefined &&
-                                          this.props.statusData.monitorsData
-                                              .length > 0 ? (
-                                            this.props.monitors
-                                                .filter(monitor =>
-                                                    this.props.statusData.monitorsData.some(
-                                                        m =>
-                                                            m._id ===
-                                                            monitor.monitor
-                                                    )
-                                                )
-                                                .map((monitor, i) => (
-                                                    <>
-                                                        <MonitorInfo
-                                                            monitor={
-                                                                this.props.statusData.monitorsData.filter(
-                                                                    m =>
-                                                                        m._id ===
-                                                                        monitor.monitor
-                                                                )[0]
-                                                            }
-                                                            selectedCharts={
-                                                                monitor
-                                                            }
-                                                            key={`uptime-${i}`}
-                                                            id={`monitor${i}`}
-                                                            isGroupedByMonitorCategory={
-                                                                isGroupedByMonitorCategory
-                                                            }
-                                                        />
-                                                        <LineChartsContainer
-                                                            monitor={
-                                                                this.props.statusData.monitorsData.filter(
-                                                                    m =>
-                                                                        m._id ===
-                                                                        monitor.monitor
-                                                                )[0]
-                                                            }
-                                                            selectedCharts={
-                                                                monitor
-                                                            }
-                                                            key={`line-charts-${i}`}
-                                                        />
-                                                        {i <
-                                                            this.props
-                                                                .statusData
-                                                                .monitorsData
-                                                                .length -
-                                                                1 && (
-                                                            <div
-                                                                style={{
-                                                                    margin:
-                                                                        '30px 0px',
-                                                                    backgroundColor:
-                                                                        '#e8e8e8',
-                                                                    height:
-                                                                        '1px',
-                                                                }}
-                                                            />
-                                                        )}
-                                                    </>
-                                                ))
-                                        ) : (
-                                            <NoMonitor />
-                                        )}
-                                    </div>
-                                    {this.props.statusData &&
-                                    this.props.statusData.monitorsData !==
-                                        undefined &&
-                                    this.props.statusData.monitorsData.length >
-                                        0 ? (
-                                        <UptimeLegend
-                                            background={contentBackground}
-                                            secondaryTextColor={secondaryText}
-                                            downtimeColor={downtimeColor}
-                                            uptimeColor={uptimeColor}
-                                            degradedColor={degradedColor}
-                                            disabledColor={disabledColor}
-                                            disabled={disabled}
                                         />
-                                    ) : (
-                                        ''
-                                    )}
+                                    </div>
+                                </React.Fragment>
+                            ) : this.props.statusData &&
+                                this.props.statusData.logoPath ? (
+                                <div className="logo_section pad-left">
+                                    <span>
+                                        <img
+                                            src={`${API_URL}/file/${this.props.statusData.logoPath}`}
+                                            alt=""
+                                            className="logo"
+                                        />
+                                    </span>
                                 </div>
-                            </div>
-                        </div>
-                        <Helmet>
-                            {this.props.statusData &&
-                            this.props.statusData.faviconPath ? (
-                                <link
-                                    rel="shortcut icon"
-                                    href={`${API_URL}/file/${this.props.statusData.faviconPath}`}
-                                />
                             ) : (
-                                <link rel="shortcut icon" href={faviconurl} />
+                                ''
                             )}
-                            <title>
-                                {this.props.statusData &&
-                                this.props.statusData.title
-                                    ? this.props.statusData.title
-                                    : 'Status page'}
-                            </title>
-                            <script
-                                src="/status-page/js/landing.base.js"
-                                type="text/javascript"
-                            ></script>
-                        </Helmet>
-                        <ShouldRender
-                            if={
-                                this.props.statusData &&
-                                this.props.statusData.projectId &&
-                                this.props.statusData._id &&
-                                !this.props.statusData.moveIncidentToTheTop
-                            }
-                        >
-                            <NotesMain
-                                projectId={this.props.statusData.projectId._id}
-                                statusPageId={this.props.statusData._id}
-                            />
-                        </ShouldRender>
-                        <ShouldRender
-                            if={
-                                this.props.statusData &&
-                                this.props.statusData.projectId &&
-                                this.props.statusData._id
-                            }
-                        >
-                            <ShouldRender
-                                if={this.props.statusData.showScheduledEvents}
-                            >
-                                <EventsMain
-                                    projectId={
-                                        this.props.statusData.projectId._id
-                                    }
-                                    statusPageId={this.props.statusData._id}
-                                />
-                            </ShouldRender>
-                        </ShouldRender>
-                        {footerHTML ? (
-                            <div
-                                id="customFooterHTML"
-                                dangerouslySetInnerHTML={{ __html: footerHTML }}
-                            />
-                        ) : (
-                            <div id="footer">
-                                <ul>
-                                    <ShouldRender
-                                        if={
-                                            this.props.statusData &&
-                                            this.props.statusData.copyright
-                                        }
-                                    >
-                                        <li>
-                                            {' '}
-                                            <span style={primaryText}>
-                                                &copy;
-                                            </span>{' '}
-                                            {this.props.statusData &&
-                                            this.props.statusData.copyright ? (
-                                                <span style={primaryText}>
-                                                    {
-                                                        this.props.statusData
-                                                            .copyright
-                                                    }
-                                                </span>
-                                            ) : (
-                                                ''
-                                            )}
-                                        </li>
-                                    </ShouldRender>
-                                    <ShouldRender
-                                        if={
-                                            this.props.statusData &&
-                                            this.props.statusData.links &&
-                                            this.props.statusData.links.length
-                                        }
-                                    >
-                                        {this.props.statusData &&
-                                            this.props.statusData.links &&
-                                            this.props.statusData.links.map(
-                                                (link, i) => (
-                                                    <Footer
-                                                        link={link}
-                                                        key={i}
-                                                        textColor={
-                                                            secondaryText
-                                                        }
-                                                    />
-                                                )
-                                            )}
-                                    </ShouldRender>
-                                </ul>
-
-                                <p>
+                            {this.props.statusData &&
+                                this.props.statusData.bannerPath ? (
+                                <div className="banner-container">
+                                    <div className="page-main-wrapper">
+                                        {/* Banner */}
+                                        <span>
+                                            <img
+                                                src={`${API_URL}/file/${this.props.statusData.bannerPath}`}
+                                                alt=""
+                                                className="banner"
+                                            />
+                                        </span>
+                                    </div>
+                                </div>
+                            ) : (
+                                ''
+                            )}
+                            <div className="subscribe_box">
+                                <div>
                                     <a
                                         href="https://fyipe.com"
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        style={secondaryText}
                                     >
-                                        Powered by Fyipe
+                                        <ShouldRender
+                                            if={this.props.statusData.title}
+                                        >
+                                            {this.props.statusData.title}
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={!this.props.statusData.title}
+                                        >
+                                            Status Page
+                                        </ShouldRender>
                                     </a>
-                                </p>
+                                </div>
+                                <ShouldRender
+                                    if={
+                                        this.props.isSubscriberEnabled ===
+                                        true && showSubscriberOption
+                                    }
+                                >
+                                    <button
+                                        className="subscribe_btn"
+                                        onClick={() =>
+                                            this.props.openSubscribeMenu()
+                                        }
+                                    >
+                                        subscribe to updates
+                                    </button>
+                                </ShouldRender>
                             </div>
-                        )}
-                    </div>
-                ) : (
-                    ''
-                )}
-
-                <ShouldRender
-                    if={
-                        this.props.status &&
-                        (this.props.status.requesting ||
-                            this.props.status.logs.some(
-                                log => log.requesting
-                            )) &&
-                        this.props.requestingEvents
-                    }
-                >
-                    <div
-                        id="app-loading"
-                        style={{
-                            position: 'fixed',
-                            top: '0',
-                            bottom: '0',
-                            left: '0',
-                            right: '0',
-                            backgroundColor: '#fdfdfd',
-                            zIndex: '999',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                        }}
-                    >
-                        <div style={{ transform: 'scale(2)' }}>
-                            <svg
-                                viewBox="0 0 24 24"
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="bs-Spinner-svg"
+                            <ShouldRender
+                                if={
+                                    this.props.statusData &&
+                                    this.props.statusData.projectId &&
+                                    this.props.statusData._id &&
+                                    this.props.statusData.moveIncidentToTheTop
+                                }
                             >
-                                <ellipse
-                                    cx="12"
-                                    cy="12"
-                                    rx="10"
-                                    ry="10"
-                                    className="bs-Spinner-ellipse"
-                                ></ellipse>
-                            </svg>
+                                <div className="new-theme-incident matop-40">
+                                    <div className="font-largest">
+                                        Past Incidents
+                                    </div>
+                                    <NotesMain
+                                        projectId={
+                                            this.props.statusData.projectId._id
+                                        }
+                                        statusPageId={this.props.statusData._id}
+                                        theme={theme}
+                                    />
+                                </div>
+                            </ShouldRender>
+                            <div className="new-main-container">
+                                <div className="sy-op">
+                                    All Systems Operational
+                                </div>
+                                <div className="bs-probes">
+                                    <Probes
+                                        probes={probes}
+                                        backgroundMain={backgroundMain}
+                                        contentBackground={contentBackground}
+                                        activeProbe={this.props.activeProbe}
+                                        monitorState={this.props.monitorState}
+                                        greenBackground={greenBackground}
+                                        uptimeColor={uptimeColor}
+                                        greyBackground={greyBackground}
+                                        serviceStatus={serviceStatus}
+                                        redBackground={redBackground}
+                                        downtimeColor={downtimeColor}
+                                        yellowBackground={yellowBackground}
+                                        degradedColor={degradedColor}
+                                        heading={heading}
+                                        now={this.state.now}
+                                        selectbutton={index =>
+                                            this.selectbutton(index)
+                                        }
+                                    />
+                                </div>
+                                <ShouldRender
+                                    if={
+                                        availableMonitors &&
+                                        availableMonitors.length > 0
+                                    }
+                                >
+                                    <div className="line-chart">
+                                        <div
+                                            className="uptime-graphs"
+                                            style={
+                                                isGroupedByMonitorCategory
+                                                    ? { paddingBottom: 0 }
+                                                    : { paddingBottom: 35 }
+                                            }
+                                        >
+                                            {isGroupedByMonitorCategory ? (
+                                                this.groupedMonitors()
+                                            ) : this.props.statusData &&
+                                                this.props.statusData
+                                                    .monitorsData !== undefined &&
+                                                this.props.statusData.monitorsData
+                                                    .length > 0 ? (
+                                                this.props.monitors
+                                                    .filter(monitor =>
+                                                        this.props.statusData.monitorsData.some(
+                                                            m =>
+                                                                m._id ===
+                                                                monitor.monitor
+                                                                    ._id
+                                                        )
+                                                    )
+                                                    .map((monitor, i) => (
+                                                        <>
+                                                            <MonitorInfo
+                                                                monitor={
+                                                                    this.props.statusData.monitorsData.filter(
+                                                                        m =>
+                                                                            m._id ===
+                                                                            monitor
+                                                                                .monitor
+                                                                                ._id
+                                                                    )[0]
+                                                                }
+                                                                selectedCharts={
+                                                                    monitor
+                                                                }
+                                                                key={`uptime-${i}`}
+                                                                id={`monitor${i}`}
+                                                                isGroupedByMonitorCategory={
+                                                                    isGroupedByMonitorCategory
+                                                                }
+                                                                theme={'clean'}
+                                                            />
+                                                        </>
+                                                    ))
+                                            ) : (
+                                                <NoMonitor />
+                                            )}
+                                        </div>
+                                    </div>
+                                </ShouldRender>
+                                <ShouldRender if={availableMonitors.length < 1}>
+                                    <div className="bs-no-monitor">
+                                        No monitors added yet. Please, add a
+                                        monitor.
+                                    </div>
+                                </ShouldRender>
+                            </div>
+                            <ShouldRender
+                                if={
+                                    this.props.statusData &&
+                                    this.props.statusData.projectId &&
+                                    this.props.statusData._id &&
+                                    !this.props.statusData.moveIncidentToTheTop
+                                }
+                            >
+                                <div className="new-theme-incident">
+                                    <div className="font-largest">
+                                        Past Incidents
+                                    </div>
+                                    <NotesMain
+                                        projectId={
+                                            this.props.statusData.projectId._id
+                                        }
+                                        statusPageId={this.props.statusData._id}
+                                        theme={theme}
+                                    />
+                                </div>
+                            </ShouldRender>
+                            <ShouldRender
+                                if={
+                                    this.props.events &&
+                                    this.props.events.length > 0
+                                }
+                            >
+                                <div className="new-theme-incident">
+                                    <div className="font-largest">
+                                        Scheduled Events
+                                    </div>
+                                    <NewThemeEvent
+                                        projectId={
+                                            this.props.statusData.projectId._id
+                                        }
+                                        statusPageId={this.props.statusData._id}
+                                    />
+                                </div>
+                            </ShouldRender>
+
+                            <div className="powered">
+                                <FooterCard
+                                    footerHTML={footerHTML}
+                                    statusData={this.props.statusData}
+                                    primaryText={primaryText}
+                                    secondaryText={secondaryText}
+                                />
+                            </div>
                         </div>
+                        <ShouldRender
+                            if={this.props.subscribed && showSubscriberOption}
+                        >
+                            <SubscribeBox />
+                        </ShouldRender>
+                    </>
+                ) : (
+                    <div className="page-main-wrapper" style={backgroundMain}>
+                        {this.props.statusData &&
+                            this.props.statusData.bannerPath ? (
+                            <span>
+                                <img
+                                    src={`${API_URL}/file/${this.props.statusData.bannerPath}`}
+                                    alt=""
+                                    className="banner"
+                                />
+                            </span>
+                        ) : (
+                            ''
+                        )}
+                        {view ? (
+                            <div className="innernew">
+                                {this.props.events &&
+                                    this.props.events.length > 0 &&
+                                    this.props.statusData &&
+                                    this.props.statusData._id &&
+                                    this.props.events.map(event => (
+                                        <div
+                                            className="content box box__yellow--dark"
+                                            style={{
+                                                margin: '40px 0px',
+                                                cursor: 'pointer',
+                                            }}
+                                            key={event._id}
+                                            onClick={() => {
+                                                this.props.history.push(
+                                                    `/status-page/${this.props.statusData._id}/scheduledEvent/${event._id}`
+                                                );
+                                            }}
+                                        >
+                                            <div className="box-inner ongoing__schedulebox">
+                                                <div
+                                                    style={{
+                                                        textTransform:
+                                                            'uppercase',
+                                                        fontSize: 11,
+                                                        fontWeight: 900,
+                                                    }}
+                                                >
+                                                    Ongoing Scheduled Event
+                                                </div>
+                                                <div className="ongoing__scheduleitem">
+                                                    <span>{event.name}</span>
+                                                    <span>
+                                                        {event.description}
+                                                    </span>
+                                                </div>
+                                                <div className="ongoing__affectedmonitor">
+                                                    <AffectedResources
+                                                        event={event}
+                                                        monitorState={
+                                                            this.props
+                                                                .monitorState
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <span
+                                                    style={{
+                                                        display: 'inline-block',
+                                                        fontSize: 12,
+                                                        marginTop: 5,
+                                                    }}
+                                                >
+                                                    {moment(
+                                                        event.startDate
+                                                    ).format(
+                                                        'MMMM Do YYYY, h:mm a'
+                                                    )}
+                                                    &nbsp;&nbsp;-&nbsp;&nbsp;
+                                                    {moment(
+                                                        event.endDate
+                                                    ).format(
+                                                        'MMMM Do YYYY, h:mm a'
+                                                    )}
+                                                </span>
+                                                <span className="sp__icon sp__icon--more"></span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                <ShouldRender
+                                    if={
+                                        this.props.statusData &&
+                                        this.props.statusData.projectId &&
+                                        this.props.statusData._id &&
+                                        this.props.statusData
+                                            .moveIncidentToTheTop
+                                    }
+                                >
+                                    <NotesMain
+                                        projectId={
+                                            this.props.statusData.projectId._id
+                                        }
+                                        statusPageId={this.props.statusData._id}
+                                    />
+                                </ShouldRender>
+                                <div
+                                    className="content"
+                                    style={{
+                                        position: 'relative',
+                                        marginTop: 75,
+                                    }}
+                                >
+                                    {headerHTML ? (
+                                        <React.Fragment>
+                                            <style>{sanitizedCSS}</style>
+                                            <div
+                                                id="customHeaderHTML"
+                                                dangerouslySetInnerHTML={{
+                                                    __html: headerHTML,
+                                                }}
+                                            />
+                                        </React.Fragment>
+                                    ) : (
+                                        <div
+                                            style={{
+                                                position: 'absolute',
+                                                left: 30,
+                                                top: -25,
+                                            }}
+                                        >
+                                            <div>
+                                                {this.props.statusData &&
+                                                    this.props.statusData
+                                                        .logoPath ? (
+                                                    <span>
+                                                        <img
+                                                            src={`${API_URL}/file/${this.props.statusData.logoPath}`}
+                                                            alt=""
+                                                            className="logo"
+                                                        />
+                                                    </span>
+                                                ) : (
+                                                    ''
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div
+                                        className="white box"
+                                        style={contentBackground}
+                                    >
+                                        <div className="largestatus">
+                                            <span
+                                                className={status}
+                                                style={{
+                                                    ...statusBackground,
+                                                    width: '30px',
+                                                    height: '30px',
+                                                }}
+                                            ></span>
+                                            <div className="title-wrapper">
+                                                <span
+                                                    className="title"
+                                                    style={heading}
+                                                >
+                                                    {statusMessage}
+                                                </span>
+                                                <label
+                                                    className="status-time"
+                                                    style={secondaryText}
+                                                >
+                                                    As of{' '}
+                                                    <span className="current-time">
+                                                        {moment(
+                                                            new Date()
+                                                        ).format('LLLL')}
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <ShouldRender
+                                            if={
+                                                !this.props.statusData
+                                                    .hideProbeBar
+                                            }
+                                        >
+                                            <Probes
+                                                probes={probes}
+                                                backgroundMain={backgroundMain}
+                                                contentBackground={
+                                                    contentBackground
+                                                }
+                                                activeProbe={this.props.activeProbe}
+                                                monitorState={
+                                                    this.props.monitorState
+                                                }
+                                                greenBackground={greenBackground}
+                                                uptimeColor={uptimeColor}
+                                                greyBackground={greyBackground}
+                                                serviceStatus={serviceStatus}
+                                                redBackground={redBackground}
+                                                downtimeColor={downtimeColor}
+                                                yellowBackground={yellowBackground}
+                                                degradedColor={degradedColor}
+                                                heading={heading}
+                                                now={this.state.now}
+                                                selectbutton={index =>
+                                                    this.selectbutton(index)
+                                                }
+                                            />
+                                        </ShouldRender>
+
+                                        <div
+                                            className="statistics"
+                                            style={contentBackground}
+                                        >
+                                            <div className="inner-gradient"></div>
+                                            <div
+                                                className="uptime-graphs box-inner"
+                                                style={
+                                                    isGroupedByMonitorCategory
+                                                        ? { paddingBottom: 0 }
+                                                        : { paddingBottom: 35 }
+                                                }
+                                            >
+                                                {isGroupedByMonitorCategory ? (
+                                                    this.groupedMonitors()
+                                                ) : this.props.statusData &&
+                                                    this.props.statusData
+                                                        .monitorsData !==
+                                                    undefined &&
+                                                    this.props.statusData
+                                                        .monitorsData.length >
+                                                    0 ? (
+                                                    this.props.monitors
+                                                        .filter(monitor =>
+                                                            this.props.statusData.monitorsData.some(
+                                                                m =>
+                                                                    m._id ===
+                                                                    monitor
+                                                                        .monitor
+                                                                        ._id
+                                                            )
+                                                        )
+                                                        .map((monitor, i) => (
+                                                            <>
+                                                                <MonitorInfo
+                                                                    monitor={
+                                                                        this.props.statusData.monitorsData.filter(
+                                                                            m =>
+                                                                                m._id ===
+                                                                                monitor
+                                                                                    .monitor
+                                                                                    ._id
+                                                                        )[0]
+                                                                    }
+                                                                    selectedCharts={
+                                                                        monitor
+                                                                    }
+                                                                    key={`uptime-${i}`}
+                                                                    id={`monitor${i}`}
+                                                                    isGroupedByMonitorCategory={
+                                                                        isGroupedByMonitorCategory
+                                                                    }
+                                                                />
+                                                                <LineChartsContainer
+                                                                    monitor={
+                                                                        this.props.statusData.monitorsData.filter(
+                                                                            m =>
+                                                                                m._id ===
+                                                                                monitor
+                                                                                    .monitor
+                                                                                    ._id
+                                                                        )[0]
+                                                                    }
+                                                                    selectedCharts={
+                                                                        monitor
+                                                                    }
+                                                                    key={`line-charts-${i}`}
+                                                                />
+                                                                {i <
+                                                                    this.props
+                                                                        .statusData
+                                                                        .monitorsData
+                                                                        .length -
+                                                                    1 && (
+                                                                        <div
+                                                                            style={{
+                                                                                margin:
+                                                                                    '30px 0px',
+                                                                                backgroundColor:
+                                                                                    '#e8e8e8',
+                                                                                height:
+                                                                                    '1px',
+                                                                            }}
+                                                                        />
+                                                                    )}
+                                                            </>
+                                                        ))
+                                                ) : (
+                                                    <NoMonitor />
+                                                )}
+                                            </div>
+                                            {this.props.statusData &&
+                                                this.props.statusData
+                                                    .monitorsData !== undefined &&
+                                                this.props.statusData.monitorsData
+                                                    .length > 0 ? (
+                                                <UptimeLegend
+                                                    background={
+                                                        contentBackground
+                                                    }
+                                                    secondaryTextColor={
+                                                        secondaryText
+                                                    }
+                                                    downtimeColor={
+                                                        downtimeColor
+                                                    }
+                                                    uptimeColor={uptimeColor}
+                                                    degradedColor={
+                                                        degradedColor
+                                                    }
+                                                    disabledColor={
+                                                        disabledColor
+                                                    }
+                                                    disabled={disabled}
+                                                />
+                                            ) : (
+                                                ''
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <Helmet>
+                                    {this.props.statusData &&
+                                        this.props.statusData.faviconPath ? (
+                                        <link
+                                            rel="shortcut icon"
+                                            href={`${API_URL}/file/${this.props.statusData.faviconPath}`}
+                                        />
+                                    ) : (
+                                        <link
+                                            rel="shortcut icon"
+                                            href={faviconurl}
+                                        />
+                                    )}
+                                    <title>
+                                        {this.props.statusData &&
+                                            this.props.statusData.title
+                                            ? this.props.statusData.title
+                                            : 'Status page'}
+                                    </title>
+                                    <script
+                                        src="/status-page/js/landing.base.js"
+                                        type="text/javascript"
+                                    ></script>
+                                </Helmet>
+                                <ShouldRender
+                                    if={
+                                        this.props.statusData &&
+                                        this.props.statusData.projectId &&
+                                        this.props.statusData._id &&
+                                        !this.props.statusData
+                                            .moveIncidentToTheTop
+                                    }
+                                >
+                                    <NotesMain
+                                        projectId={
+                                            this.props.statusData.projectId._id
+                                        }
+                                        statusPageId={this.props.statusData._id}
+                                    />
+                                </ShouldRender>
+                                <ShouldRender
+                                    if={
+                                        this.props.statusData &&
+                                        this.props.statusData.projectId &&
+                                        this.props.statusData._id
+                                    }
+                                >
+                                    <ShouldRender
+                                        if={
+                                            this.props.statusData
+                                                .showScheduledEvents
+                                        }
+                                    >
+                                        <EventsMain
+                                            projectId={
+                                                this.props.statusData.projectId
+                                                    ._id
+                                            }
+                                            statusPageId={
+                                                this.props.statusData._id
+                                            }
+                                        />
+                                    </ShouldRender>
+                                </ShouldRender>
+                                <FooterCard
+                                    footerHTML={footerHTML}
+                                    statusData={this.props.statusData}
+                                    primaryText={primaryText}
+                                    secondaryText={secondaryText}
+                                />
+                            </div>
+                        ) : (
+                            ''
+                        )}
+
+                        <ShouldRender
+                            if={
+                                this.props.status &&
+                                (this.props.status.requesting ||
+                                    this.props.status.logs.some(
+                                        log => log.requesting
+                                    )) &&
+                                this.props.requestingEvents
+                            }
+                        >
+                            <div
+                                id="app-loading"
+                                style={{
+                                    position: 'fixed',
+                                    top: '0',
+                                    bottom: '0',
+                                    left: '0',
+                                    right: '0',
+                                    backgroundColor: '#fdfdfd',
+                                    zIndex: '999',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <div style={{ transform: 'scale(2)' }}>
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="bs-Spinner-svg"
+                                    >
+                                        <ellipse
+                                            cx="12"
+                                            cy="12"
+                                            rx="10"
+                                            ry="10"
+                                            className="bs-Spinner-ellipse"
+                                        ></ellipse>
+                                    </svg>
+                                </div>
+                            </div>
+                        </ShouldRender>
+                        <ShouldRender if={error}>
+                            <div id="app-loading">
+                                <div>{error}</div>
+                            </div>
+                        </ShouldRender>
                     </div>
-                </ShouldRender>
-                <ShouldRender if={error}>
-                    <div id="app-loading">
-                        <div>{error}</div>
-                    </div>
-                </ShouldRender>
-            </div>
+                )}
+            </>
         );
     }
 }
@@ -886,6 +1110,9 @@ const mapStateToProps = state => ({
     probes: state.probe.probes,
     events: state.status.events.events,
     requestingEvents: state.status.events.requesting,
+    statusPage: state.status.statusPage,
+    subscribed: state.subscribe.subscribeMenu,
+    isSubscriberEnabled: state.status.statusPage.isSubscriberEnabled,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -895,6 +1122,7 @@ const mapDispatchToProps = dispatch =>
             getProbes,
             selectedProbe,
             getScheduledEvent,
+            openSubscribeMenu,
         },
         dispatch
     );
@@ -914,6 +1142,182 @@ Main.propTypes = {
     history: PropTypes.object,
     getScheduledEvent: PropTypes.func,
     requestingEvents: PropTypes.bool,
+    openSubscribeMenu: PropTypes.func,
+    statusPage: PropTypes.object,
+    subscribed: PropTypes.bool,
+    isSubscriberEnabled: PropTypes.bool.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);
+
+const Probes = ({
+    probes,
+    backgroundMain,
+    contentBackground,
+    activeProbe,
+    monitorState,
+    greenBackground,
+    uptimeColor,
+    greyBackground,
+    serviceStatus,
+    redBackground,
+    downtimeColor,
+    yellowBackground,
+    degradedColor,
+    heading,
+    now,
+    selectbutton,
+}) => {
+    return (
+        <div className="btn-group">
+            {probes.map((probe, index) => (
+                <button
+                    onClick={() => selectbutton(index)}
+                    style={{
+                        background: backgroundMain.background,
+                        borderColor: contentBackground.background,
+                    }}
+                    key={`probes-btn${index}`}
+                    id={`probes-btn${index}`}
+                    className={
+                        activeProbe === index
+                            ? 'icon-container selected'
+                            : 'icon-container'
+                    }
+                >
+                    <span
+                        style={
+                            // If the page doesn't include any monitor or includes only manual monitors
+                            // The probe servers will be shown online
+                            monitorState.length === 0 ||
+                                monitorState.every(
+                                    monitor => monitor.type === 'manual'
+                                )
+                                ? {
+                                    ...greenBackground,
+                                    backgroundColor:
+                                        uptimeColor.backgroundColor,
+                                }
+                                : probe.lastAlive &&
+                                    moment(now).diff(
+                                        moment(probe.lastAlive),
+                                        'seconds'
+                                    ) >= 300
+                                    ? greyBackground
+                                    : serviceStatus === 'none' ||
+                                        serviceStatus === 'some'
+                                        ? {
+                                            ...redBackground,
+                                            backgroundColor:
+                                                downtimeColor.backgroundColor,
+                                        }
+                                        : serviceStatus === 'some-degraded'
+                                            ? {
+                                                ...yellowBackground,
+                                                backgroundColor:
+                                                    degradedColor.backgroundColor,
+                                            }
+                                            : {
+                                                ...greenBackground,
+                                                backgroundColor:
+                                                    uptimeColor.backgroundColor,
+                                            }
+                        }
+                    ></span>
+                    <span style={heading}>{probe.probeName}</span>
+                </button>
+            ))}
+        </div>
+    );
+};
+
+Probes.displayName = 'Probes';
+
+Probes.propTypes = {
+    probes: PropTypes.array.isRequired,
+    backgroundMain: PropTypes.object.isRequired,
+    contentBackground: PropTypes.object.isRequired,
+    activeProbe: PropTypes.number.isRequired,
+    monitorState: PropTypes.array.isRequired,
+    greenBackground: PropTypes.object.isRequired,
+    uptimeColor: PropTypes.object.isRequired,
+    greyBackground: PropTypes.object.isRequired,
+    serviceStatus: PropTypes.object.isRequired,
+    redBackground: PropTypes.object.isRequired,
+    downtimeColor: PropTypes.object.isRequired,
+    yellowBackground: PropTypes.object.isRequired,
+    degradedColor: PropTypes.object.isRequired,
+    heading: PropTypes.object.isRequired,
+    now: PropTypes.object.isRequired,
+    selectbutton: PropTypes.func,
+};
+
+const FooterCard = ({ footerHTML, statusData, primaryText, secondaryText }) => {
+    return (
+        <>
+            {footerHTML ? (
+                <div
+                    id="customFooterHTML"
+                    dangerouslySetInnerHTML={{
+                        __html: footerHTML,
+                    }}
+                />
+            ) : (
+                <div id="footer">
+                    <ul>
+                        <ShouldRender if={statusData && statusData.copyright}>
+                            <li>
+                                {' '}
+                                <span style={primaryText}>&copy;</span>{' '}
+                                {statusData && statusData.copyright ? (
+                                    <span style={primaryText}>
+                                        {statusData.copyright}
+                                    </span>
+                                ) : (
+                                    ''
+                                )}
+                            </li>
+                        </ShouldRender>
+                        <ShouldRender
+                            if={
+                                statusData &&
+                                statusData.links &&
+                                statusData.links.length
+                            }
+                        >
+                            {statusData &&
+                                statusData.links &&
+                                statusData.links.map((link, i) => (
+                                    <Footer
+                                        link={link}
+                                        key={i}
+                                        textColor={secondaryText}
+                                    />
+                                ))}
+                        </ShouldRender>
+                    </ul>
+
+                    <p>
+                        <a
+                            href="https://fyipe.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={secondaryText}
+                        >
+                            Powered by Fyipe
+                        </a>
+                    </p>
+                </div>
+            )}
+        </>
+    );
+};
+
+FooterCard.displayName = 'FooterCard';
+
+FooterCard.propTypes = {
+    footerHTML: PropTypes.string,
+    statusData: PropTypes.object,
+    primaryText: PropTypes.object,
+    secondaryText: PropTypes.object,
+};

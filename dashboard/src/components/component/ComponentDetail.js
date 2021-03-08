@@ -107,7 +107,7 @@ export class ComponentDetail extends Component {
             this.props.component.projectId;
         const promise = this.props.deleteComponent(componentId, projectId);
         history.push(
-            `/dashboard/project/${this.props.currentProject._id}/components`
+            `/dashboard/project/${this.props.currentProject.slug}/components`
         );
         if (IS_SAAS_SERVICE) {
             logEvent('EVENT: DASHBOARD > COMPONENT > COMPONENT DELETED', {
@@ -125,7 +125,6 @@ export class ComponentDetail extends Component {
             0,
             5
         );
-        this.props.fetchMonitors(component.projectId._id);
     }
 
     render() {
@@ -210,7 +209,7 @@ export class ComponentDetail extends Component {
                                     setTimeout(() => {
                                         history.push(
                                             '/dashboard/project/' +
-                                                currentProject._id +
+                                                currentProject.slug +
                                                 '/' +
                                                 component._id +
                                                 '/monitoring'
@@ -306,7 +305,7 @@ ComponentDetail.propTypes = {
         PropTypes.object,
         PropTypes.array,
     ]),
-    fetchMonitors: PropTypes.func,
+    //  fetchMonitors: PropTypes.func, unused
     animateSidebar: PropTypes.func,
 };
 

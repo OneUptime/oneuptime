@@ -9,7 +9,7 @@ import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import sortByName from '../../utils/sortByName';
 
 const ScheduleProjectBox = props => {
@@ -76,7 +76,7 @@ const ScheduleProjectBox = props => {
                             <div className="Box-root">
                                 <RenderIfSubProjectAdmin
                                     subProjectId={props.projectId}
-                                    key={() => uuid.v4()}
+                                    key={() => uuidv4()}
                                 >
                                     <button
                                         id={`btnCreateSchedule_${props.subProjectName}`}
@@ -143,6 +143,7 @@ const ScheduleProjectBox = props => {
                                 schedules={sortByName(props.schedules)}
                                 requesting={props.isRequesting}
                                 subProjectId={props.subProjectSchedule._id}
+                                slug={props.currentProject.slug}
                                 bottonTitle="View On-Call Duty"
                             />
                         </tbody>

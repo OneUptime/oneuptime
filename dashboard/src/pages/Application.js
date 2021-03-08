@@ -69,7 +69,7 @@ class Application extends Component {
 
         socket.on(`createApplicationSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${projectId}/${componentId}/security/application/${data._id}`
+                `/dashboard/project/${this.props.slug}/${componentId}/security/application/${data._id}`
             );
         });
         const applicationSecurities = appSecurities
@@ -177,6 +177,7 @@ Application.displayName = 'Application Security Page';
 
 Application.propTypes = {
     componentId: PropTypes.string,
+    slug: PropTypes.string,
     projectId: PropTypes.string,
     getApplicationSecurities: PropTypes.func,
     applicationSecurities: PropTypes.array,
@@ -196,7 +197,7 @@ Application.propTypes = {
 };
 
 const mapStateToProps = (state, ownProps) => {
-    const { componentId, projectId } = ownProps.match.params;
+    const { componentId } = ownProps.match.params;
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
@@ -208,7 +209,9 @@ const mapStateToProps = (state, ownProps) => {
 
     return {
         componentId,
-        projectId,
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
+        slug: state.project.currentProject && state.project.currentProject.slug,
         applicationSecurities: state.security.applicationSecurities,
         gettingSecurityLogs:
             state.security.getApplicationSecurityLog.requesting,

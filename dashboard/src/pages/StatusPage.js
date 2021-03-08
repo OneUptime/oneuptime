@@ -29,6 +29,7 @@ import EmbeddedBubble from '../components/statusPage/EmbeddedBubble';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
+import Themes from '../components/statusPage/Themes';
 
 class StatusPage extends Component {
     state = {
@@ -44,9 +45,7 @@ class StatusPage extends Component {
 
     async componentDidMount() {
         if (!this.props.statusPage.status._id) {
-            const projectId = history.location.pathname
-                .split('project/')[1]
-                .split('/')[0];
+            const projectId = this.props.projectId && this.props.projectId;
             const statusPageId = history.location.pathname
                 .split('status-page/')[1]
                 .split('/')[0];
@@ -79,11 +78,38 @@ class StatusPage extends Component {
         resetIdCounter();
     }
 
-    componentDidUpdate(prevProps) {
+    async componentDidUpdate(prevProps) {
         if (
             prevProps.statusPage.status._id !== this.props.statusPage.status._id
         ) {
             this.tabSelected(0);
+        }
+
+        if (prevProps.projectId !== this.props.projectId) {
+            if (!this.props.statusPage.status._id) {
+                const projectId = this.props.projectId && this.props.projectId;
+                const statusPageId = history.location.pathname
+                    .split('status-page/')[1]
+                    .split('/')[0];
+                await this.props.fetchProjectStatusPage(projectId);
+                await this.props.fetchSubProjectStatusPages(projectId);
+
+                if (
+                    this.props.statusPage.subProjectStatusPages &&
+                    this.props.statusPage.subProjectStatusPages.length > 0
+                ) {
+                    const { subProjectStatusPages } = this.props.statusPage;
+                    subProjectStatusPages.forEach(subProject => {
+                        const statusPages = subProject.statusPages;
+                        const statusPage = statusPages.find(
+                            page => page._id === statusPageId
+                        );
+                        if (statusPage) {
+                            this.props.switchStatusPage(statusPage);
+                        }
+                    });
+                }
+            }
         }
     }
 
@@ -93,6 +119,12 @@ class StatusPage extends Component {
             statusPage: { status },
         } = this.props;
         const pageName = status ? status.name : null;
+        const projectId = this.props.projectId;
+        const data = {
+            statusPageId: status._id,
+            projectId,
+            theme: status.theme,
+        };
 
         return (
             <Dashboard>
@@ -203,6 +235,13 @@ class StatusPage extends Component {
                                                                                 .subProjectId
                                                                         }
                                                                     >
+                                                                        <div className="Box-root Margin-bottom--12">
+                                                                            <Themes
+                                                                                data={
+                                                                                    data
+                                                                                }
+                                                                            />
+                                                                        </div>
                                                                         <div className="Box-root Margin-bottom--12">
                                                                             <Branding />
                                                                         </div>
@@ -327,6 +366,8 @@ function mapStateToProps(state) {
     return {
         statusPage: state.statusPage,
         showDuplicateStatusPage: state.statusPage.showDuplicateStatusPage,
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
     };
 }
 
@@ -340,6 +381,7 @@ StatusPage.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    projectId: PropTypes.string,
 };
 
 StatusPage.displayName = 'StatusPage';

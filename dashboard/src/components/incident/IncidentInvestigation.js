@@ -10,17 +10,17 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from '../../analytics';
 import IncidentMessageThread from './IncidentMessageThread';
 import { openModal } from '../../actions/modal';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 export class IncidentInvestigation extends Component {
     constructor(props) {
         super(props);
         this.props = props;
         this.state = {
-            createMessageModalId: uuid.v4(),
-            editMessageModalId: uuid.v4(),
-            deleteMessageModalId: uuid.v4(),
-            page: 1
+            createMessageModalId: uuidv4(),
+            editMessageModalId: uuidv4(),
+            deleteMessageModalId: uuidv4(),
+            page: 1,
         };
     }
     olderInvestigationMessage = () => {
@@ -32,8 +32,8 @@ export class IncidentInvestigation extends Component {
             parseInt(this.props.incidentMessages.limit, 10)
         );
         this.setState({
-            page: this.state.page - 1
-        })
+            page: this.state.page - 1,
+        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > OLDER INVESTIGATION MESSAGES CLICKED',
@@ -54,8 +54,8 @@ export class IncidentInvestigation extends Component {
             parseInt(this.props.incidentMessages.limit, 10)
         );
         this.setState({
-            page: this.state.page + 1
-        })
+            page: this.state.page + 1,
+        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > NEWER INVESTIGATION MESSAGES CLICKED',
@@ -97,7 +97,9 @@ export class IncidentInvestigation extends Component {
             editMessageModalId,
             deleteMessageModalId,
         } = this.state;
-        const numberOfPages = Math.ceil(parseInt(incidentMessages && incidentMessages.count) / 10)
+        const numberOfPages = Math.ceil(
+            parseInt(incidentMessages && incidentMessages.count) / 10
+        );
         if (incidentMessages) {
             count = incidentMessages.count;
             skip = incidentMessages.skip;
@@ -132,7 +134,7 @@ export class IncidentInvestigation extends Component {
                         title="Status Page"
                         description="Tell your customer what went wrong. This will be visible to your customers."
                         incidentMessages={incidentMessages}
-                        count={count}
+                        count={incidentMessages && incidentMessages.count}
                         canPrev={canPrev}
                         canNext={canNext}
                         requesting={requesting}
@@ -148,6 +150,7 @@ export class IncidentInvestigation extends Component {
                         deleteIncidentMessage={this.deleteInvestigationMessage}
                         numberOfPages={numberOfPages}
                         page={this.state.page}
+                        slug={this.props.currentProject.slug}
                     />
                 </div>
             </div>

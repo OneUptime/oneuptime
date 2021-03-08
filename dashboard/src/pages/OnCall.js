@@ -11,7 +11,7 @@ import {
     paginate,
 } from '../actions/schedule';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import Badge from '../components/common/Badge';
 import ScheduleProjectBox from '../components/schedule/ScheduleProjectBox';
@@ -25,7 +25,7 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 export class OnCall extends Component {
     constructor(props) {
         super(props);
-        this.state = { scheduleModalId: uuid.v4() };
+        this.state = { scheduleModalId: uuidv4() };
     }
 
     ready() {
@@ -87,11 +87,11 @@ export class OnCall extends Component {
     };
 
     createSchedule = subProjectId => {
-        const { createSchedule, currentProjectId, history } = this.props;
+        const { createSchedule, history } = this.props;
 
         createSchedule(subProjectId, { name: 'Unnamed' }).then(({ data }) => {
             history.push(
-                `/dashboard/project/${currentProjectId}/sub-project/${subProjectId}/schedule/${data[0]._id}`
+                `/dashboard/project/${this.props.currentProject.slug}/sub-project/${subProjectId}/schedule/${data[0]._id}`
             );
         });
 
@@ -231,8 +231,8 @@ export class OnCall extends Component {
         projectSchedule =
             projectSchedule && projectSchedule.schedules ? (
                 <RenderIfUserInSubProject
-                    subProjectId={currentProject._id}
-                    key={() => uuid.v4()}
+                    subProjectId={currentProject && currentProject._id}
+                    key={() => uuidv4()}
                 >
                     <div className="bs-BIM">
                         <div className="Box-root Margin-bottom--12">
@@ -243,7 +243,9 @@ export class OnCall extends Component {
                                     </div>
                                 </ShouldRender>
                                 <ScheduleProjectBox
-                                    projectId={currentProject._id}
+                                    projectId={
+                                        currentProject && currentProject._id
+                                    }
                                     currentProject={currentProject}
                                     schedules={schedules}
                                     isRequesting={isRequesting}
@@ -252,7 +254,9 @@ export class OnCall extends Component {
                                     limit={limit}
                                     numberOfSchedules={numberOfSchedules}
                                     subProjectSchedule={projectSchedule}
-                                    subProjectName={currentProject.name}
+                                    subProjectName={
+                                        currentProject && currentProject.name
+                                    }
                                     scheduleModalId={this.state.scheduleModalId}
                                     openModal={this.props.openModal}
                                     subProject={currentProject}
@@ -265,7 +269,11 @@ export class OnCall extends Component {
                                         subProjectSchedules.length
                                     }
                                     modalList={this.props.modalList}
-                                    page={this.state[currentProject._id]}
+                                    page={
+                                        this.state[
+                                            currentProject && currentProject._id
+                                        ]
+                                    }
                                 />
                             </div>
                         </div>
@@ -325,8 +333,7 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-const mapStateToProps = (state, props) => {
-    const { projectId } = props.match.params;
+const mapStateToProps = state => {
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
@@ -338,7 +345,8 @@ const mapStateToProps = (state, props) => {
         subProjectNames.map(name =>
             subProjects.find(subProject => subProject.name === name)
         );
-
+    const projectId =
+        state.project.currentProject && state.project.currentProject._id;
     const currentProjectId = projectId;
     const schedules = state.schedule.subProjectSchedules;
 

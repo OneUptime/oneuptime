@@ -221,11 +221,7 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, ownProps) => {
-    const {
-        projectId,
-        componentId,
-        applicationSecurityId,
-    } = ownProps.match.params;
+    const { componentId, applicationSecurityId } = ownProps.match.params;
 
     const components = [];
     // filter to get the actual component
@@ -239,7 +235,8 @@ const mapStateToProps = (state, ownProps) => {
     );
 
     return {
-        projectId,
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
         componentId,
         applicationSecurityId,
         applicationSecurity: state.security.applicationSecurity,

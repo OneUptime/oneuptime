@@ -44,4 +44,11 @@ const escalationSchema = new Schema({
 
     deletedById: { type: String, ref: 'User', index: true },
 });
+
+escalationSchema.virtual('teams.teamMembers.user', {
+    ref: 'User',
+    localField: 'teams.teamMembers.userId',
+    foreignField: '_id',
+    justOne: true,
+});
 module.exports = mongoose.model('Escalation', escalationSchema);

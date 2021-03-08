@@ -4,6 +4,7 @@ import validUrl from 'valid-url';
 import valid from 'card-validator';
 import FileSaver from 'file-saver';
 import moment from 'moment';
+import { isEmpty } from 'lodash';
 import { emaildomains } from './constants/emaildomains';
 // import booleanParser from './utils/booleanParser';
 const dJSON = require('dirty-json');
@@ -619,8 +620,7 @@ export function saveFile(content, filename) {
 
 export function makeCriteria(val) {
     const val2 = {};
-    const and = [];
-    const or = [];
+    const criteria = [];
 
     for (let i = 0; i < val.length; i++) {
         const val3 = {};
@@ -646,83 +646,236 @@ export function makeCriteria(val) {
                     ? val[i].field2.replace(/;/g, '')
                     : val[i].field2;
         }
-        if (val[i].collection && val[i].collection.length) {
-            val3.collection = makeCriteria(val[i].collection);
-        }
+
+        let nestVal = [];
+        nestVal = innerCriteria(val[i], nestVal);
+
+        criteria.push(val3);
+        criteria.push(...nestVal);
+
         if (val[0].match && val[0].match.length && val[0].match === 'all') {
-            and.push(val3);
+            val2.condition = 'and';
         }
         if (val[0].match && val[0].match.length && val[0].match === 'any') {
-            or.push(val3);
+            val2.condition = 'or';
         }
     }
-    val2.and = and;
-    val2.or = or;
+
+    val2.criteria = criteria;
     return val2;
+}
+
+function innerCriteria(val, nestVal) {
+    nestVal = [...nestVal];
+    if (val.criteria && val.criteria.length) {
+        for (let j = 0; j < val.criteria.length; j++) {
+            const innerVal = {};
+            if (
+                val.criteria[j].responseType &&
+                val.criteria[j].responseType.length
+            ) {
+                innerVal.responseType = val.criteria[j].responseType;
+            }
+            if (val.criteria[j].filter && val.criteria[j].filter.length) {
+                innerVal.filter = val.criteria[j].filter;
+            }
+            if (val.criteria[j].field1 && val.criteria[j].field1.length) {
+                innerVal.field1 =
+                    val.criteria[j].field1 &&
+                    typeof val.criteria[j].field1 === 'string' &&
+                    val.criteria[j].field1.indexOf(';')
+                        ? val.criteria[j].field1.replace(/;/g, '')
+                        : val.criteria[j].field1;
+            }
+            if (val.criteria[j].field2 && val.criteria[j].field2.length) {
+                innerVal.field2 =
+                    val.criteria[j].field2 &&
+                    typeof val.criteria[j].field2 === 'string' &&
+                    val.criteria[j].field2.indexOf(';')
+                        ? val.criteria[j].field2.replace(/;/g, '')
+                        : val.criteria[j].field2;
+            }
+
+            if (Object.keys(val.criteria[j]).includes('match')) {
+                const condition =
+                    val.criteria[j].match === 'all' ? 'and' : 'or';
+                const criteria = [innerVal];
+                nestVal.push({ condition, criteria });
+            } else {
+                nestVal[nestVal.length - 1].criteria.push(innerVal);
+            }
+
+            if (val.criteria[j].criteria) {
+                const out = innerCriteria(val.criteria[j], []);
+                nestVal[nestVal.length - 1].criteria.push(...out);
+            }
+        }
+    }
+    return nestVal;
 }
 
 export function mapCriteria(val) {
     const val2 = [];
-    if (val && val.and && val.and.length) {
-        for (let i = 0; i < val.and.length; i++) {
+    if (val && val.criteria && val.criteria.condition === 'and') {
+        for (let i = 0; i < val.criteria.criteria.length; i++) {
             const val3 = {};
-            if (val.and[i].responseType && val.and[i].responseType.length) {
-                val3.responseType = val.and[i].responseType;
-            }
-            if (val.and[i].filter && val.and[i].filter.length) {
-                val3.filter = val.and[i].filter;
-            }
-            if (val.and[i].field1 && val.and[i].field1.length) {
-                val3.field1 = val.and[i].field1;
-            }
-            if (val.and[i].field2 && val.and[i].field2.length) {
-                val3.field2 = val.and[i].field2;
+            if (
+                val.criteria.criteria[i].responseType &&
+                val.criteria.criteria[i].responseType.length
+            ) {
+                val3.responseType = val.criteria.criteria[i].responseType;
             }
             if (
-                val.and[i].collection &&
-                (val.and[i].collection.and || val.and[i].collection.or)
+                val.criteria.criteria[i].filter &&
+                val.criteria.criteria[i].filter.length
             ) {
-                val3.field3 = true;
-                val3.collection = mapCriteria(val.and[i].collection);
+                val3.filter = val.criteria.criteria[i].filter;
+            }
+            if (
+                val.criteria.criteria[i].field1 &&
+                val.criteria.criteria[i].field1.length
+            ) {
+                val3.field1 = val.criteria.criteria[i].field1;
+            }
+            if (
+                val.criteria.criteria[i].field2 &&
+                val.criteria.criteria[i].field2.length
+            ) {
+                val3.field2 = val.criteria.criteria[i].field2;
+            }
+
+            const innerContainer = [];
+            if (
+                val.criteria.criteria[i].criteria &&
+                val.criteria.criteria[i].criteria.length > 0 &&
+                (val.criteria.criteria[i].condition === 'and' ||
+                    val.criteria.criteria[i].condition === 'or')
+            ) {
+                mapNestedCriteria(
+                    val.criteria.criteria[i],
+                    innerContainer,
+                    val2[val2.length - 1]
+                );
             } else {
                 val3.field3 = false;
             }
             if (i === 0) {
                 val3.match = 'all';
             }
-            val2.push(val3);
+            if (!isEmpty(val3)) {
+                val2.push(val3);
+            }
         }
         return val2;
-    } else if (val && val.or && val.or.length) {
-        for (let i = 0; i < val.or.length; i++) {
+    } else if (val && val.criteria && val.criteria.condition === 'or') {
+        for (let i = 0; i < val.criteria.criteria.length; i++) {
             const val3 = {};
-            if (val.or[i].responseType && val.or[i].responseType.length) {
-                val3.responseType = val.or[i].responseType;
-            }
-            if (val.or[i].filter && val.or[i].filter.length) {
-                val3.filter = val.or[i].filter;
-            }
-            if (val.or[i].field1 && val.or[i].field1.length) {
-                val3.field1 = val.or[i].field1;
-            }
-            if (val.or[i].field2 && val.or[i].field2.length) {
-                val3.field2 = val.or[i].field2;
+            if (
+                val.criteria.criteria[i].responseType &&
+                val.criteria.criteria[i].responseType.length
+            ) {
+                val3.responseType = val.criteria.criteria[i].responseType;
             }
             if (
-                val.or[i].collection &&
-                (val.or[i].collection.and || val.or[i].collection.or)
+                val.criteria.criteria[i].filter &&
+                val.criteria.criteria[i].filter.length
             ) {
-                val3.field3 = true;
-                val3.collection = mapCriteria(val.or[i].collection);
+                val3.filter = val.criteria.criteria[i].filter;
+            }
+            if (
+                val.criteria.criteria[i].field1 &&
+                val.criteria.criteria[i].field1.length
+            ) {
+                val3.field1 = val.criteria.criteria[i].field1;
+            }
+            if (
+                val.criteria.criteria[i].field2 &&
+                val.criteria.criteria[i].field2.length
+            ) {
+                val3.field2 = val.criteria.criteria[i].field2;
+            }
+
+            const innerContainer = [];
+            if (
+                val.criteria.criteria[i].criteria &&
+                val.criteria.criteria[i].criteria.length > 0 &&
+                (val.criteria.criteria[i].condition === 'and' ||
+                    val.criteria.criteria[i].condition === 'or')
+            ) {
+                mapNestedCriteria(
+                    val.criteria.criteria[i],
+                    innerContainer,
+                    val2[val2.length - 1]
+                );
             } else {
                 val3.field3 = false;
             }
             if (i === 0) {
                 val3.match = 'any';
             }
-            val2.push(val3);
+            if (!isEmpty(val3)) {
+                val2.push(val3);
+            }
         }
         return val2;
+    }
+}
+
+function mapNestedCriteria(criteriaObj, innerContainer, cr) {
+    innerContainer = [...innerContainer];
+    for (let j = 0; j < criteriaObj.criteria.length; j++) {
+        const innerVal = {};
+        if (
+            criteriaObj.criteria[j].responseType &&
+            criteriaObj.criteria[j].responseType.length
+        ) {
+            innerVal.responseType = criteriaObj.criteria[j].responseType;
+        }
+        if (
+            criteriaObj.criteria[j].filter &&
+            criteriaObj.criteria[j].filter.length
+        ) {
+            innerVal.filter = criteriaObj.criteria[j].filter;
+        }
+        if (
+            criteriaObj.criteria[j].field1 &&
+            criteriaObj.criteria[j].field1.length
+        ) {
+            innerVal.field1 = criteriaObj.criteria[j].field1;
+        }
+        if (
+            criteriaObj.criteria[j].field2 &&
+            criteriaObj.criteria[j].field2.length
+        ) {
+            innerVal.field2 = criteriaObj.criteria[j].field2;
+        }
+
+        if (j === 0 && criteriaObj.condition === 'and') {
+            innerVal.match = 'all';
+        } else if (j === 0 && criteriaObj.condition === 'or') {
+            innerVal.match = 'any';
+        }
+
+        if (
+            criteriaObj.criteria[j].criteria &&
+            criteriaObj.criteria[j].criteria.length > 0
+        ) {
+            mapNestedCriteria(
+                criteriaObj.criteria[j],
+                [],
+                innerContainer[innerContainer.length - 1]
+            );
+        }
+
+        if (!isEmpty(innerVal)) {
+            innerContainer.push(innerVal);
+        }
+    }
+    cr.field3 = true;
+    if (cr.criteria) {
+        cr.criteria.push(...innerContainer);
+    } else {
+        cr.criteria = innerContainer;
     }
 }
 
@@ -871,7 +1024,6 @@ function compareStatus(incident, log) {
 export const getMonitorStatus = (incidents, logs, type) => {
     const incident = incidents && incidents.length > 0 ? incidents[0] : null;
     const log = logs && logs.length > 0 ? logs[0] : null;
-
     const statusCompare =
         incident && log
             ? compareStatus(incident, log)
@@ -1075,7 +1227,8 @@ const { ErrorTracker } = Fyipe;
                                                     
 // set up tracking configurations                    
 const options = {                    
-    maxTimeline: 10,                    
+    maxTimeline: 10, 
+    captureCodeSnippet: true,                   
 };
                                                     
 // constructor                    
@@ -1086,10 +1239,7 @@ const tracker = new ErrorTracker(
     options // Optional Field
 );
                                 
-// capturing error exception 
-NonExistingMethodCall(); // this is automatically captured and sent to your fyipe dashboard
-                                
-// capturing error exception manually
+// capturing error exception manually and sent to your fyipe dashboard
 try {
     // your code logic
     NonExistingMethodCall();

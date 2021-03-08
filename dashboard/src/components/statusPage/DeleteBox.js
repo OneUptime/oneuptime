@@ -1,4 +1,4 @@
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -15,11 +15,11 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 export class DeleteStatusPageBox extends Component {
     constructor(props) {
         super(props);
-        this.state = { deleteModalId: uuid.v4() };
+        this.state = { deleteModalId: uuidv4() };
     }
 
     handleClick = () => {
-        const { projectId, deleteStatusPage, scheduleId, history } = this.props;
+        const { deleteStatusPage, scheduleId, history } = this.props;
         const { deleteModalId } = this.state;
         const { subProjectId } = this.props.match.params;
         this.props.openModal({
@@ -32,7 +32,7 @@ export class DeleteStatusPageBox extends Component {
                         );
                     }
                     history.push(
-                        `/dashboard/project/${projectId}/status-pages`
+                        `/dashboard/project/${this.props.slug}/status-pages`
                     );
                 });
             },
@@ -103,7 +103,7 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators({ deleteStatusPage, openModal, closeModal }, dispatch);
 
 const mapStateToProps = (state, props) => {
-    const { scheduleId, projectId } = props.match.params;
+    const { scheduleId } = props.match.params;
 
     //  const status = state.statusPage.statusPages.find(
     //   statusPage => statusPage._id === scheduleId
@@ -113,7 +113,9 @@ const mapStateToProps = (state, props) => {
 
     return {
         // scheduleName,
-        projectId,
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
+        slug: state.project.currentProject && state.project.currentProject.slug,
         scheduleId,
         isRequesting:
             state.statusPage &&
@@ -125,10 +127,6 @@ const mapStateToProps = (state, props) => {
 DeleteStatusPageBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     history: PropTypes.object.isRequired,
-    projectId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
     scheduleId: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
@@ -136,6 +134,7 @@ DeleteStatusPageBox.propTypes = {
     deleteStatusPage: PropTypes.func.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
+    slug: PropTypes.string,
     match: PropTypes.object,
 };
 

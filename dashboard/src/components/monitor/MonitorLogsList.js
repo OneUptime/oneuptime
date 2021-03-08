@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import ViewJsonLogs from '../modals/ViewJsonLogs';
@@ -15,7 +15,7 @@ import ShouldRender from '../../components/basic/ShouldRender';
 export class MonitorLogsList extends Component {
     constructor(props) {
         super(props);
-        this.state = { viewJsonModalId: uuid.v4() };
+        this.state = { viewJsonModalId: uuidv4() };
     }
     render() {
         const { monitorLogs } = this.props;
@@ -23,7 +23,7 @@ export class MonitorLogsList extends Component {
         let limit = monitorLogs && monitorLogs.limit ? monitorLogs.limit : null;
         const count =
             monitorLogs && monitorLogs.count ? monitorLogs.count : null;
-        const numberOfPages = Math.ceil(parseInt(count) / 10)
+        const numberOfPages = Math.ceil(parseInt(count) / 10);
         if (skip && typeof skip === 'string') {
             skip = parseInt(skip, 10);
         }
@@ -194,7 +194,9 @@ export class MonitorLogsList extends Component {
                                             if={
                                                 this.props.monitorType &&
                                                 this.props.monitorType !==
-                                                    'incomingHttpRequest'
+                                                    'incomingHttpRequest' &&
+                                                this.props.monitorType !==
+                                                    'kubernetes'
                                             }
                                         >
                                             <td
@@ -732,7 +734,10 @@ export class MonitorLogsList extends Component {
                                                                 .monitorType &&
                                                             this.props
                                                                 .monitorType !==
-                                                                'incomingHttpRequest'
+                                                                'incomingHttpRequest' &&
+                                                            this.props
+                                                                .monitorType !==
+                                                                'kubernetes'
                                                         }
                                                     >
                                                         <td
@@ -935,12 +940,20 @@ export class MonitorLogsList extends Component {
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {
-                                        numberOfPages > 0 ? `Page ${this.props.page} of ${numberOfPages} (${count ? count + (count > 1 ? ' Logs' : ' Log') : '0 Logs'})`:
-                                        count
+                                    {numberOfPages > 0
+                                        ? `Page ${
+                                              this.props.page
+                                          } of ${numberOfPages} (${
+                                              count
+                                                  ? count +
+                                                    (count > 1
+                                                        ? ' Logs'
+                                                        : ' Log')
+                                                  : '0 Logs'
+                                          })`
+                                        : count
                                         ? count + (count > 1 ? ' Logs' : ' Log')
-                                        : '0 Logs'
-                                    }
+                                        : '0 Logs'}
                                 </span>
                             </span>
                         </span>
@@ -1031,6 +1044,7 @@ MonitorLogsList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     openModal: PropTypes.func,
     prevClicked: PropTypes.func.isRequired,
+    page: PropTypes.number,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorLogsList);

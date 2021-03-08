@@ -1,7 +1,8 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { fetchSsoDefaultRoles } from '../../actions/ssoDefaultRoles';
+import PropTypes from 'prop-types';
+import { fetchSsoDefaultRoles, paginate } from '../../actions/ssoDefaultRoles';
 import { fetchProjects } from '../../actions/project';
 import Button from './ssoDefaultRoles/Button';
 import BoxHeader from './ssoDefaultRoles/BoxHeader';
@@ -11,50 +12,31 @@ import { openModal } from '../../actions/modal';
 import { CreateDefaultRoleModal } from './ssoDefaultRoles/DefaultRoleModal';
 
 class Box extends React.Component {
-    constructor() {
-        super();
-        this.state = {
-            canPrev: false,
-            canNext: false,
-            skip: 0,
-            limit: 10,
-        };
-    }
     async previousClicked() {
-        const { skip, limit } = this.state;
+        const { skip, limit } = this.props.ssoPaginate;
         if (0 <= skip - limit) {
             await this.props.fetchSsoDefaultRoles(skip - limit, limit);
-            this.setState({
-                skip: skip - limit,
-                canNext: true,
-                canPrev: 0 < skip - limit,
-            });
+            this.props.paginate('prev');
         }
     }
     async nextClicked() {
-        const { skip, limit } = this.state;
-        const { count } = this.props;
+        const { skip, limit } = this.props.ssoPaginate;
+        const { count, paginate } = this.props;
         if (skip + limit < count) {
             await this.props.fetchSsoDefaultRoles(skip + limit, limit);
-            this.setState({
-                skip: skip + limit,
-                canNext: skip + limit * 2 < count,
-                canPrev: true,
-            });
+            paginate('next');
         }
     }
     async componentDidMount() {
         this.props.fetchProjects(0, 0);
-        await this.props.fetchSsoDefaultRoles();
-        const { count } = this.props;
-        const { skip, limit } = this.state;
-        this.setState({
-            canNext: skip + limit < count,
-        });
+        await this.props.fetchSsoDefaultRoles(0, 10);
     }
     render() {
         const { ssoDefaultRoles, openModal, count } = this.props;
-        const { canPrev, canNext } = this.state;
+        const canPrev = this.props.ssoPaginate.skip > 0;
+        const canNext =
+            this.props.ssoPaginate.skip + this.props.ssoPaginate.limit < count;
+        const numberOfPages = Math.ceil(parseInt(count) / 10);
         return (
             <div
                 className="bs-ContentSection Card-root Card-shadow--medium"
@@ -67,6 +49,7 @@ class Box extends React.Component {
                         buttons={[
                             <Button
                                 text="Define new configurations"
+                                key="config"
                                 shortcut="M"
                                 onClick={() =>
                                     openModal({
@@ -84,6 +67,8 @@ class Box extends React.Component {
                             canNext={canNext}
                             previousClicked={() => this.previousClicked()}
                             nextClicked={() => this.nextClicked()}
+                            page={this.props.page}
+                            numberOfPages={numberOfPages}
                         />
                     </div>
                 </div>
@@ -92,9 +77,22 @@ class Box extends React.Component {
     }
 }
 
+Box.displayName = 'ssoDefaultRoles';
+Box.propTypes = {
+    ssoDefaultRoles: PropTypes.array,
+    fetchSsoDefaultRoles: PropTypes.func,
+    openModal: PropTypes.func,
+    count: PropTypes.number,
+    fetchProjects: PropTypes.func,
+    paginate: PropTypes.func,
+    page: PropTypes.number,
+    ssoPaginate: PropTypes.object,
+};
 const mapStateToProps = state => ({
     ssoDefaultRoles: state.ssoDefaultRoles.ssoDefaultRoles.ssoDefaultRoles,
     count: state.ssoDefaultRoles.ssoDefaultRoles.count,
+    ssoPaginate: state.ssoDefaultRoles.ssoDefaultRoles,
+    page: state.ssoDefaultRoles.page,
 });
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
@@ -102,6 +100,7 @@ const mapDispatchToProps = dispatch =>
             fetchSsoDefaultRoles,
             fetchProjects,
             openModal,
+            paginate,
         },
         dispatch
     );

@@ -34,6 +34,7 @@ module.exports = {
             Log.mainTemp = data.mainTemp;
             Log.maxTemp = data.maxTemp;
             Log.sslCertificate = data.sslCertificate;
+            Log.kubernetesLog = data.kubernetesData || {};
 
             const savedLog = await Log.save();
 
@@ -260,9 +261,11 @@ module.exports = {
             const monitor = await MonitorService.findOneBy({
                 _id: data.monitorId,
             });
+            const logData = await this.findOneBy({ _id: data._id });
             if (monitor && monitor.projectId && monitor.projectId._id) {
                 await RealTimeService.updateMonitorLog(
                     data,
+                    logData,
                     monitor.projectId._id
                 );
             }

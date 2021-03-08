@@ -49,7 +49,7 @@ export class DashboardApp extends Component {
     }
 
     componentDidMount() {
-        const { project, match, ready, getProjects } = this.props;
+        const { project, ready, getProjects } = this.props;
 
         if (
             project.projects &&
@@ -57,7 +57,7 @@ export class DashboardApp extends Component {
             project.projects.projects.length === 0 &&
             !project.projects.requesting
         ) {
-            getProjects(match.params.projectId || null).then(() => {
+            getProjects(this.props.projectId || null).then(() => {
                 ready && ready();
             });
         } else {
@@ -138,6 +138,7 @@ export class DashboardApp extends Component {
                         route="/"
                         name={projectName}
                         projectId={projectId}
+                        slug={currentProject ? currentProject.slug : null}
                         switchToProjectViewerNav={switchToProjectViewerNav}
                     />
                 )}
@@ -339,7 +340,10 @@ export class DashboardApp extends Component {
                         incidentNotifications.length > 0
                     }
                 >
-                    <IncidentCreated notifications={incidentNotifications} />
+                    <IncidentCreated
+                        notifications={incidentNotifications}
+                        slug={currentProject ? currentProject.slug : null}
+                    />
                 </ShouldRender>
             </Fragment>
         );
@@ -360,6 +364,7 @@ DashboardApp.propTypes = {
     location: PropTypes.object.isRequired,
     children: PropTypes.any,
     ready: PropTypes.func,
+    projectId: PropTypes.string,
     currentModal: PropTypes.object,
     closeModal: PropTypes.func,
     showDeleteBtn: PropTypes.bool,
@@ -371,6 +376,7 @@ DashboardApp.propTypes = {
 const mapStateToProps = state => ({
     project: state.project,
     profile: state.profileSettings,
+    projectId: state.project.currentProject && state.project.currentProject._id,
     notification: state.notifications,
     currentModal:
         state.modal.modals && state.modal.modals.length > 0

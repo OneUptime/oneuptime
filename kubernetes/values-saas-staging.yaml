@@ -53,6 +53,10 @@ replicaCount: 1
 # This should be 32 chars in length.
 encryptionKey: pg#K^C$-)IGOg6DYXDGq2jdmfws0MiR7
 
+# Is backend on HTTPS?
+backendProtocol: 'https'
+
 haraka:
+    domain: 'fyipe.com'
     user: 'noreply@fyipe.com'
     password: 'tX8z_bDEcRdRHnyKxAHYEQk_B'

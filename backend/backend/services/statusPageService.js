@@ -385,7 +385,7 @@ module.exports = {
 
             if (!skip) skip = 0;
 
-            if (!limit) limit = 5;
+            if (!limit || isNaN(limit)) limit = 5;
 
             if (typeof skip === 'string') skip = parseInt(skip);
 
@@ -696,6 +696,7 @@ module.exports = {
                 .populate('projectId')
                 .populate('monitorIds', 'name')
                 .populate('domains.domainVerificationToken')
+                .populate('monitors.monitor', 'name')
                 .lean();
 
             let statusPage = null;
@@ -742,7 +743,7 @@ module.exports = {
                 }
 
                 const monitorIds = statusPage.monitors.map(monitor =>
-                    monitor.monitor.toString()
+                    monitor.monitor._id.toString()
                 );
                 const projectId = statusPage.projectId._id;
                 const subProjects = await ProjectService.findBy({

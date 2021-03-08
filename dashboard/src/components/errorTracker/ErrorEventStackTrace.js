@@ -1,15 +1,64 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
+import AceCodeEditor from '../basic/AceCodeEditor';
 
 class ErrorEventStackTrace extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            currentFrameIndex: 0,
+        };
+    }
+    setFrameToDisplay = index => {
+        // if current frame is not the same as the index, set it as the current frame
+        // if current frame is the same, remove it to produce the toggle effect
+        this.setState(state => ({
+            currentFrameIndex: state.currentFrameIndex !== index ? index : null,
+        }));
+    };
+    renderCodeSnippet = frame => {
+        let codeSnippet = null;
+        const { linesBeforeError, errorLine, linesAfterError } = frame;
+        if (linesAfterError && linesBeforeError && errorLine) {
+            let codeContent = '\n';
+            linesBeforeError.map(line => {
+                codeContent += line + '\n';
+                return line;
+            });
+            codeContent += errorLine + '\n';
+            linesAfterError.map(line => {
+                codeContent += line + '\n';
+                return line;
+            });
+            codeSnippet = (
+                <div>
+                    <AceCodeEditor
+                        value={codeContent}
+                        name={`codeContent`}
+                        readOnly={true}
+                        mode="javascript"
+                        height={250}
+                        markers={[
+                            {
+                                startRow: 6,
+                                startCol: 0,
+                                endRow: 6,
+                                endCol: 150,
+                                className: 'error-marker',
+                                type: 'background',
+                            },
+                        ]}
+                    />
+                </div>
+            );
+        }
+        return codeSnippet;
+    };
     render() {
         const { errorEvent } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
-        // get the host from the tags, this value is always set if the SDK is used from the client side for now.
-        const host = errorEventDetails
-            ? errorEventDetails.tags.filter(tag => tag.key === 'url')[0]
-            : null;
         return (
             <ShouldRender
                 if={
@@ -83,42 +132,41 @@ class ErrorEventStackTrace extends Component {
                                 (frame, i) => {
                                     return (
                                         <div key={i}>
-                                            <a
-                                                href={`${
-                                                    frame.fileName.startsWith(
-                                                        'http'
-                                                    )
-                                                        ? frame.fileName
-                                                        : host
-                                                        ? host.value +
-                                                          frame.fileName
-                                                        : frame.fileName
-                                                }`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="Text-fontWeight--bold"
-                                            >
-                                                {frame.fileName}
-                                                {'  '}
-                                            </a>
-                                            <img
-                                                src="/dashboard/assets/img/external.svg"
-                                                alt=""
+                                            <div
                                                 style={{
-                                                    height: '12px',
-                                                    width: '12px',
                                                     cursor: 'pointer',
+                                                    padding: '8px 16px',
                                                 }}
-                                            />
-                                            {'  '}
-                                            in{' '}
-                                            <span className="Text-fontWeight--bold">
-                                                {frame.methodName}
-                                            </span>{' '}
-                                            at line{' '}
-                                            <span className="Text-fontWeight--bold">
-                                                {`${frame.lineNumber}:${frame.columnNumber}`}
-                                            </span>
+                                                onClick={() =>
+                                                    this.setFrameToDisplay(i)
+                                                }
+                                            >
+                                                <span className="Text-fontWeight--bold">
+                                                    {frame.fileName}
+                                                    {'  '}
+                                                </span>
+                                                {'  '}
+                                                in{' '}
+                                                <span className="Text-fontWeight--bold">
+                                                    {frame.methodName}
+                                                </span>{' '}
+                                                at line{' '}
+                                                <span className="Text-fontWeight--bold">
+                                                    {`${
+                                                        frame.lineNumber
+                                                    }:${frame.columnNumber ||
+                                                        0}`}
+                                                </span>
+                                                <span> {frame.renderCode}</span>
+                                            </div>
+                                            <ShouldRender
+                                                if={
+                                                    this.state
+                                                        .currentFrameIndex === i
+                                                }
+                                            >
+                                                {this.renderCodeSnippet(frame)}
+                                            </ShouldRender>
                                         </div>
                                     );
                                 }

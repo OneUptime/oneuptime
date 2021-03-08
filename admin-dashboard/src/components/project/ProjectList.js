@@ -42,6 +42,9 @@ export class ProjectList extends Component {
             canNext = false;
             canPrev = false;
         }
+        const numberOfPages = Math.ceil(
+            parseInt(this.props.projects && this.props.projects.count) / 10
+        );
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -181,20 +184,18 @@ export class ProjectList extends Component {
                                                 key={project._id}
                                                 className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
                                                 id={`project_${index}`}
+                                                onClick={() => {
+                                                    history.push(
+                                                        '/admin/projects/' +
+                                                            project.slug
+                                                    );
+                                                }}
                                             >
                                                 <td
                                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                                                     style={{
                                                         height: '1px',
                                                         minWidth: '270px',
-                                                        textDecoration:
-                                                            'underline',
-                                                    }}
-                                                    onClick={() => {
-                                                        history.push(
-                                                            '/admin/projects/' +
-                                                                project._id
-                                                        );
                                                     }}
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -213,18 +214,6 @@ export class ProjectList extends Component {
                                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     style={{
                                                         height: '1px',
-                                                        textDecoration:
-                                                            'underline',
-                                                    }}
-                                                    onClick={() => {
-                                                        if (
-                                                            projectOwner.userId
-                                                        ) {
-                                                            history.push(
-                                                                '/admin/users/' +
-                                                                    projectOwner.userId
-                                                            );
-                                                        }
                                                     }}
                                                 >
                                                     <div className="db-ListViewItem-link">
@@ -356,13 +345,28 @@ export class ProjectList extends Component {
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {this.props.projects &&
-                                    this.props.projects.count
-                                        ? this.props.projects.count +
-                                          (this.props.projects &&
-                                          this.props.projects.count > 1
-                                              ? ' projects'
-                                              : ' Project')
+                                    {numberOfPages > 0
+                                        ? `Page ${
+                                              this.props.page
+                                          } of ${numberOfPages} (${this.props
+                                              .projects &&
+                                              this.props.projects
+                                                  .count} Project${
+                                              this.props.projects &&
+                                              this.props.projects.count === 1
+                                                  ? ''
+                                                  : 's'
+                                          })`
+                                        : this.props.projects &&
+                                          this.props.projects.count
+                                        ? `${this.props.projects &&
+                                              this.props.projects
+                                                  .count} Project${
+                                              this.props.projects &&
+                                              this.props.projects.count === 1
+                                                  ? ''
+                                                  : 's'
+                                          }`
                                         : null}
                                 </span>
                             </span>
@@ -446,6 +450,7 @@ ProjectList.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     requesting: PropTypes.bool,
+    page: PropTypes.number,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectList);

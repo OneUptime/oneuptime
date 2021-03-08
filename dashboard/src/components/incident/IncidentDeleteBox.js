@@ -1,4 +1,4 @@
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -17,7 +17,7 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 export class IncidentDeleteBox extends Component {
     constructor(props) {
         super(props);
-        this.state = { deleteModalId: uuid.v4() };
+        this.state = { deleteModalId: uuidv4() };
     }
 
     deleteIncident = () => {
@@ -25,7 +25,7 @@ export class IncidentDeleteBox extends Component {
             this.props.incident.projectId._id || this.props.incident.projectId;
         const incidentId = this.props.incident._id;
         const componentId = this.props.componentId;
-        const monitorId = this.props.incident.monitorId._id;
+        const monitorSlug = this.props.incident.monitorId.slug;
 
         const promise = this.props.deleteIncident(projectId, incidentId);
         promise.then(() => {
@@ -39,7 +39,7 @@ export class IncidentDeleteBox extends Component {
                 );
             }
             history.push(
-                `/dashboard/project/${projectId}/${componentId}/monitoring/${monitorId}`
+                `/dashboard/project/${this.props.currentProject.slug}/${componentId}/monitoring/${monitorSlug}`
             );
         });
         return promise;
@@ -127,6 +127,7 @@ IncidentDeleteBox.propTypes = {
     incident: PropTypes.object.isRequired,
     deleteIncident: PropTypes.func.isRequired,
     deleting: PropTypes.bool.isRequired,
+    currentProject: PropTypes.object,
     componentId: PropTypes.string,
 };
 

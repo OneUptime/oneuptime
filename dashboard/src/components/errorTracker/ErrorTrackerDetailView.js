@@ -5,7 +5,7 @@ import { ListLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 import DataPathHoC from '../DataPathHoC';
 import ConfirmErrorTrackerIssueAction from '../modals/ConfirmErrorTrackerIssueAction';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import ErrorEventIssueMember from '../modals/ErrorEventIssueMember';
 import ShouldRender from '../basic/ShouldRender';
 import AlertPanel from '../basic/AlertPanel';
@@ -16,8 +16,8 @@ class ErrorTrackerDetailView extends Component {
         this.props = props;
         this.state = {
             selectedErrorEvents: [],
-            ignoreModalId: uuid.v4(),
-            memberModalId: uuid.v4(),
+            ignoreModalId: uuidv4(),
+            memberModalId: uuidv4(),
         };
     }
     selectErrorEvent = errorEventId => {
@@ -111,6 +111,7 @@ class ErrorTrackerDetailView extends Component {
             componentId,
             openModal,
             errorTrackerStatus,
+            slug,
         } = this.props;
         let skip =
             errorTrackerIssues && errorTrackerIssues.skip
@@ -381,6 +382,7 @@ class ErrorTrackerDetailView extends Component {
                                                 errorTrackerStatus={
                                                     errorTrackerStatus
                                                 }
+                                                slug={slug}
                                             />
                                         );
                                     }
@@ -511,9 +513,10 @@ ErrorTrackerDetailView.propTypes = {
     errorTrackerIssues: PropTypes.object,
     errorTracker: PropTypes.object,
     projectId: PropTypes.string,
+    slug: PropTypes.string,
     componentId: PropTypes.string,
     handleNavigationButtonClick: PropTypes.string,
-    ignoreErrorEvent: PropTypes.string,
+    ignoreErrorEvent: PropTypes.func,
     resolveErrorEvent: PropTypes.string,
     openModal: PropTypes.func,
     updateErrorEventMember: PropTypes.func,

@@ -13,16 +13,17 @@ import RemoveResourceCategory from '../modals/RemoveResourceCategory';
 import EditResourceCategory from '../modals/EditResourceCategory';
 import { openModal, closeModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
 
 export class ResourceCategories extends Component {
     state = {
-        CreateResourceCategoryModalId: uuid.v4(),
-        EditResourceCategoryModalId: uuid.v4(),
-        removeResourceCategoryModalId: uuid.v4(),
+        CreateResourceCategoryModalId: uuidv4(),
+        EditResourceCategoryModalId: uuidv4(),
+        removeResourceCategoryModalId: uuidv4(),
+        page: 1,
     };
 
     componentDidMount() {
@@ -65,6 +66,9 @@ export class ResourceCategories extends Component {
             this.props.skip ? parseInt(this.props.skip, 10) - 10 : 10,
             10
         );
+        this.setState({
+            page: this.state.page === 1 ? 1 : this.state.page - 1,
+        });
     };
 
     nextClicked = () => {
@@ -73,6 +77,7 @@ export class ResourceCategories extends Component {
             this.props.skip ? parseInt(this.props.skip, 10) + 10 : 10,
             10
         );
+        this.setState({ page: this.state.page + 1 });
     };
 
     handleCreateResourceCategory = userId => {
@@ -139,6 +144,7 @@ export class ResourceCategories extends Component {
         }
 
         const userId = User.getUserId();
+        const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -352,12 +358,23 @@ export class ResourceCategories extends Component {
                                             id="resourceCategoryCount"
                                             className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                         >
-                                            {this.props.count
-                                                ? this.props.count +
-                                                  (this.props.count > 1
-                                                      ? ' Resource Categories'
-                                                      : ' Resource Category')
-                                                : '0 Resource Category'}
+                                            {numberOfPages > 0
+                                                ? `Page ${
+                                                      this.state.page
+                                                  } of ${numberOfPages} (${
+                                                      this.props.count
+                                                  } Resourse Categor${
+                                                      this.props.count === 1
+                                                          ? 'y'
+                                                          : 'ies'
+                                                  })`
+                                                : `${
+                                                      this.props.count
+                                                  } Resourse Categor${
+                                                      this.props.count === 1
+                                                          ? 'y'
+                                                          : 'ies'
+                                                  }`}
                                         </span>
                                     </span>
                                 </span>
@@ -441,9 +458,7 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = state => ({
-    projectId:
-        state.project.currentProject !== null &&
-        state.project.currentProject._id,
+    projectId: state.project.currentProject && state.project.currentProject._id,
     resourceCategories:
         state.resourceCategories.resourceCategoryList.resourceCategories,
     skip: state.resourceCategories.resourceCategoryList.skip,

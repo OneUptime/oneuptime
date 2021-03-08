@@ -9,14 +9,27 @@ import {
     ignoreErrorEvent,
     unresolveErrorEvent,
     resolveErrorEvent,
+    deleteErrorTrackerIssue,
 } from '../../actions/errorTracker';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Notification from '../basic/Notification';
 import ShouldRender from '../basic/ShouldRender';
 import ErrorTrackerIssueTimeline from './ErrorTrackerIssueTimeline';
+import { v4 as uuidv4 } from 'uuid';
+import DataPathHoC from '../DataPathHoC';
+import { openModal } from '../../actions/modal';
+import DeleteErrorTrackerIssue from '../modals/DeleteErrorTrackerIssue';
+import { history } from '../../store';
 
 class ErrorEventDetail extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            deleteModalId: uuidv4(),
+        };
+    }
     ignoreErrorEvent = (issueId, unIgnore = false) => {
         const {
             projectId,
@@ -50,12 +63,41 @@ class ErrorEventDetail extends Component {
         } = this.props;
         resolveErrorEvent(projectId, componentId, errorTrackerId, [issueId]);
     };
+    openDeleteModal = issue => {
+        this.props.openModal({
+            id: this.state.deleteModalId,
+            onClose: () => '',
+            onConfirm: () => this.deleteErrorTrackerIssue(issue),
+            content: DataPathHoC(DeleteErrorTrackerIssue, { issue }),
+        });
+    };
+    deleteErrorTrackerIssue = issue => {
+        const {
+            projectId,
+            componentId,
+            errorTrackerId,
+            deleteErrorTrackerIssue,
+            currentProject,
+        } = this.props;
+        const promise = deleteErrorTrackerIssue(
+            projectId,
+            componentId,
+            errorTrackerId,
+            issue._id
+        );
+        history.push(
+            `/dashboard/project/${currentProject.slug}/${componentId}/error-trackers/${errorTrackerId}`
+        );
+
+        return promise;
+    };
     render() {
         const {
             errorEvent,
             navigationLink,
             errorTrackerIssue,
             errorTrackerStatus,
+            errorTrackerState,
         } = this.props;
         return (
             <div className="bs-BIM">
@@ -93,6 +135,8 @@ class ErrorEventDetail extends Component {
                                             this.resolveErrorEvent
                                         }
                                         errorTrackerStatus={errorTrackerStatus}
+                                        openDeleteModal={this.openDeleteModal}
+                                        errorTrackerState={errorTrackerState}
                                     />
                                     <ErrorEventMiniTag
                                         errorEvent={errorEvent}
@@ -124,6 +168,8 @@ const mapDispatchToProps = dispatch => {
             ignoreErrorEvent,
             unresolveErrorEvent,
             resolveErrorEvent,
+            openModal,
+            deleteErrorTrackerIssue,
         },
         dispatch
     );
@@ -166,6 +212,7 @@ const mapStateToProps = (state, ownProps) => {
         resolved: errorTrackerIssueStatus.resolved,
         timeline: errorTrackerIssueStatus.timeline,
         errorTrackerStatus,
+        errorTrackerState: state.errorTracker,
     };
 };
 ErrorEventDetail.propTypes = {
@@ -179,6 +226,10 @@ ErrorEventDetail.propTypes = {
     unresolveErrorEvent: PropTypes.func,
     resolveErrorEvent: PropTypes.func,
     errorTrackerStatus: PropTypes.object,
+    openModal: PropTypes.func,
+    errorTrackerState: PropTypes.object,
+    deleteErrorTrackerIssue: PropTypes.func,
+    currentProject: PropTypes.object,
 };
 ErrorEventDetail.displayName = 'ErrorEventDetail';
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorEventDetail);

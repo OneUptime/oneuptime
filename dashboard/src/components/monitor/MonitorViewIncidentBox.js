@@ -7,7 +7,7 @@ import { fetchMonitorsIncidents } from '../../actions/monitor';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import { createNewIncident } from '../../actions/incident';
 import CreateManualIncident from '../modals/CreateManualIncident';
@@ -19,10 +19,11 @@ export class MonitorViewIncidentBox extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            createIncidentModalId: uuid.v4(),
+            createIncidentModalId: uuidv4(),
             filteredIncidents: [],
             isFiltered: false,
             filterOption: 'Filter By',
+            page: 1,
         };
     }
 
@@ -31,10 +32,13 @@ export class MonitorViewIncidentBox extends Component {
             this.props.monitor.projectId._id,
             this.props.monitor._id,
             this.props.monitor.skip
-                ? parseInt(this.props.monitor.skip, 10) - 5
-                : 5,
-            5
+                ? parseInt(this.props.monitor.skip, 10) - 10
+                : 10,
+            10
         );
+        this.setState({
+            page: this.state.page === 1 ? 1 : this.state.page - 1,
+        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > PREVIOUS INCIDENT CLICKED',
@@ -50,10 +54,11 @@ export class MonitorViewIncidentBox extends Component {
             this.props.monitor.projectId._id,
             this.props.monitor._id,
             this.props.monitor.skip
-                ? parseInt(this.props.monitor.skip, 10) + 5
-                : 5,
-            5
+                ? parseInt(this.props.monitor.skip, 10) + 10
+                : 10,
+            10
         );
+        this.setState({ page: this.state.page + 1 });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEXT INCIDENT CLICKED',
@@ -112,7 +117,6 @@ export class MonitorViewIncidentBox extends Component {
             filterOption,
         } = this.state;
         const creating = this.props.create ? this.props.create : false;
-
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -228,6 +232,7 @@ export class MonitorViewIncidentBox extends Component {
                         nextClicked={this.nextClicked}
                         filteredIncidents={filteredIncidents}
                         isFiltered={isFiltered}
+                        page={this.state.page}
                     />
                 </div>
             </div>

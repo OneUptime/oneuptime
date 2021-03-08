@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -11,6 +11,7 @@ import {
     resolveIncident,
     closeIncident,
     getIncidentTimeline,
+    updateIncident,
 } from '../../actions/incident';
 import { FormLoader, Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -19,7 +20,7 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
-import EditIncident from '../modals/EditIncident';
+//import EditIncident from '../modals/EditIncident';
 import { history } from '../../store';
 import MessageBox from '../modals/MessageBox';
 import { markAsRead } from '../../actions/notification';
@@ -27,21 +28,128 @@ import ViewJsonLogs from '../modals/ViewJsonLogs';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import FooterButton from './FooterButton';
 import { animateSidebar } from '../../actions/animateSidebar';
+import { reduxForm, Field, formValueSelector } from 'redux-form';
+import { RenderField } from '../basic/RenderField';
+import { ValidateField } from '../../config';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
+import { RenderSelect } from '../basic/RenderSelect';
 export class IncidentStatus extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            editIncidentModalId: uuid.v4(),
-            messageModalId: uuid.v4(),
-            viewJsonModalId: uuid.v4(),
+            // editIncidentModalId: uuidv4(), unused due to code re-implementation
+            messageModalId: uuidv4(),
+            viewJsonModalId: uuidv4(),
             resolveLoad: false,
             value: undefined,
             stats: false,
+            firstHover: {
+                display: 'none',
+            },
+            secondHover: {
+                display: 'none',
+            },
+            thirdHover: {
+                display: 'none',
+            },
+            firstVisibility: true,
+            secondVisibility: true,
+            thirdVisibility: true,
         };
     }
-    acknowledge = setLoading => {
-        const userId = User.getUserId();
+    firstIconClick = () => {
+        this.setState({
+            firstVisibility: false,
+        });
+    };
+    firstFormSubmit = values => {
+        const incidentId = this.props.incident._id;
+        const projectId = this.props.incident.projectId;
+        const incidentType = this.props.incident.incidentType;
+        const description = this.props.incident.description;
+        const incidentPriority = this.props.incident.incidentPriority._id;
+
         this.props
+            .updateIncident(
+                projectId,
+                incidentId,
+                incidentType,
+                values.title,
+                description,
+                incidentPriority
+            )
+            .then(() => {
+                this.setState({
+                    firstVisibility: true,
+                    firstHover: {
+                        display: 'none',
+                    },
+                });
+            });
+    };
+    secondIconClick = () => {
+        this.setState({
+            secondVisibility: false,
+        });
+    };
+    secondFormSubmit = () => {
+        const incidentId = this.props.incident._id;
+        const projectId = this.props.incident.projectId;
+        const incidentType = this.props.incident.incidentType;
+        const title = this.props.incident.title;
+        const description = this.props.description;
+        const incidentPriority = this.props.incident.incidentPriority._id;
+        this.props
+            .updateIncident(
+                projectId,
+                incidentId,
+                incidentType,
+                title,
+                description,
+                incidentPriority
+            )
+            .then(() => {
+                this.setState({
+                    secondVisibility: true,
+                    secondHover: {
+                        display: 'none',
+                    },
+                });
+            });
+    };
+    thirdIconClick = () => {
+        this.setState({
+            thirdVisibility: false,
+        });
+    };
+    thirdFormSubmit = (e, value) => {
+        const incidentId = this.props.incident._id;
+        const projectId = this.props.incident.projectId;
+        const incidentType = this.props.incident.incidentType;
+        const title = this.props.incident.title;
+        const description = this.props.incident.description;
+        const incidentPriority = value;
+        this.props
+            .updateIncident(
+                projectId,
+                incidentId,
+                incidentType,
+                title,
+                description,
+                incidentPriority
+            )
+            .then(() => {
+                this.setState({
+                    thirdVisibility: true,
+                    thirdHover: {
+                        display: 'none',
+                    },
+                });
+            });
+    };
+    acknowledge = async setLoading => {
+        const userId = User.getUserId();
+        await this.props
             .acknowledgeIncident(
                 this.props.incident.projectId,
                 this.props.incident._id,
@@ -50,11 +158,13 @@ export class IncidentStatus extends Component {
             )
             .then(() => {
                 this.setState({ resolveLoad: false });
-                setLoading(false);
                 this.props.markAsRead(
                     this.props.incident.projectId,
                     this.props.incident.notificationId
                 );
+                if (setLoading) {
+                    setLoading(false);
+                }
                 this.props.getIncidentTimeline(
                     this.props.currentProject._id,
                     this.props.incident._id,
@@ -74,9 +184,9 @@ export class IncidentStatus extends Component {
         }
     };
 
-    resolve = setLoading => {
+    resolve = async setLoading => {
         const userId = User.getUserId();
-        this.props
+        await this.props
             .resolveIncident(
                 this.props.incident.projectId,
                 this.props.incident._id,
@@ -85,7 +195,9 @@ export class IncidentStatus extends Component {
             )
             .then(() => {
                 this.setState({ resolveLoad: false, value: '', stats: false });
-                setLoading(false);
+                if (setLoading) {
+                    setLoading(false);
+                }
                 this.props.markAsRead(
                     this.props.incident.projectId,
                     this.props.incident.notificationId
@@ -129,6 +241,30 @@ export class IncidentStatus extends Component {
         }
     };
 
+    getOnCallTeamMembers = () => {
+        const monitorId =
+            (this.props.multiple &&
+                this.props.incident &&
+                this.props.incident.monitorId) ||
+            (this.props.incident && this.props.incident.monitorId)
+                ? this.props.incident.monitorId._id
+                : '';
+        const escalation = this.props.escalations
+            ? this.props.escalations.find(
+                  escalation =>
+                      escalation.scheduleId &&
+                      escalation.scheduleId.monitorIds &&
+                      escalation.scheduleId.monitorIds.length > 0 &&
+                      escalation.scheduleId.monitorIds.some(
+                          monitor => monitor._id === monitorId
+                      )
+              )
+            : null;
+        return escalation && escalation.teams && escalation.teams[0]
+            ? escalation.teams[0].teamMembers
+            : null;
+    };
+
     render() {
         const subProject =
             this.props.subProjects &&
@@ -162,18 +298,18 @@ export class IncidentStatus extends Component {
             ? this.props.incident.monitorId.componentId._id
             : '';
         const homeRoute = this.props.currentProject
-            ? '/dashboard/project/' + this.props.currentProject._id
+            ? '/dashboard/project/' + this.props.currentProject.slug
             : '';
         const monitorRoute = this.props.currentProject
             ? '/dashboard/project/' +
-              projectId +
+              this.props.currentProject.slug +
               '/' +
               componentId +
               '/monitoring'
             : '';
         const incidentRoute = this.props.currentProject
             ? '/dashboard/project/' +
-              projectId +
+              this.props.currentProject.slug +
               '/' +
               componentId +
               '/incidents/' +
@@ -258,6 +394,8 @@ export class IncidentStatus extends Component {
             }
             return valueTxt;
         };
+
+        const team = this.getOnCallTeamMembers();
 
         return (
             <>
@@ -508,15 +646,15 @@ export class IncidentStatus extends Component {
                                             ) : null}
                                         </div>
                                     </div>
-                                    <ShouldRender
+                                    {/* <ShouldRender
                                         if={
                                             !this.props.route ||
                                             (this.props.route &&
                                                 !(
                                                     this.props.route ===
-                                                        homeRoute ||
+                                                    homeRoute ||
                                                     this.props.route ===
-                                                        monitorRoute
+                                                    monitorRoute
                                                 ))
                                         }
                                     >
@@ -543,7 +681,7 @@ export class IncidentStatus extends Component {
                                         >
                                             <span>Edit Incident</span>
                                         </button>
-                                    </ShouldRender>
+                                    </ShouldRender> */}
                                 </div>
                             </div>
                             <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
@@ -585,7 +723,10 @@ export class IncidentStatus extends Component {
                                                                     }}
                                                                     to={
                                                                         '/dashboard/project/' +
-                                                                        projectId +
+                                                                        this
+                                                                            .props
+                                                                            .currentProject
+                                                                            .slug +
                                                                         '/' +
                                                                         componentId +
                                                                         '/monitoring'
@@ -611,7 +752,10 @@ export class IncidentStatus extends Component {
                                                                     }}
                                                                     to={
                                                                         '/dashboard/project/' +
-                                                                        projectId +
+                                                                        this
+                                                                            .props
+                                                                            .currentProject
+                                                                            .slug +
                                                                         '/' +
                                                                         componentId +
                                                                         '/monitoring/' +
@@ -619,7 +763,7 @@ export class IncidentStatus extends Component {
                                                                             .props
                                                                             .incident
                                                                             .monitorId
-                                                                            ._id
+                                                                            .slug
                                                                     }
                                                                     id="backToMonitorView"
                                                                 >
@@ -712,7 +856,7 @@ export class IncidentStatus extends Component {
                                                                     <div className="bs-margin-right">
                                                                         <span className="bs-content-create bs-text-bold">
                                                                             Created
-                                                                            by{' '}
+                                                                            by
                                                                         </span>
                                                                         <span className=" bs-text-bold">
                                                                             {this
@@ -775,7 +919,7 @@ export class IncidentStatus extends Component {
                                                                     </div>
                                                                 </div>
 
-                                                                <div className="bs-flex-display bs-margin-top-1 bs-justify-cont bs-margin-bottom">
+                                                                <div className="bs-flex-display bs-margin-top-1 bs-justify-cont bs-margin-bottom bs-padding-left">
                                                                     <span className="bs-bullet-container">
                                                                         <span className="bs-dark-bullet"></span>
                                                                     </span>
@@ -1016,7 +1160,7 @@ export class IncidentStatus extends Component {
                                                                                 )}
                                                                             </div>
                                                                         </div>
-                                                                        <div className="bs-flex-display bs-justify-cont bs-margin-top-1">
+                                                                        <div className="bs-flex-display bs-justify-cont bs-margin-top-1  bs-padding-left ">
                                                                             <span className="bs-bullet-container">
                                                                                 <span className="bs-dark-bullet"></span>
                                                                             </span>
@@ -1057,7 +1201,7 @@ export class IncidentStatus extends Component {
                                                                                 }
                                                                             </div>
                                                                         </div>
-                                                                        <div className="bs-flex-display bs-justify-cont">
+                                                                        <div className="bs-flex-display bs-justify-cont  bs-padding-left">
                                                                             <span className="bs-bullet-container">
                                                                                 <span className="bs-dark-bullet"></span>
                                                                             </span>
@@ -1163,7 +1307,7 @@ export class IncidentStatus extends Component {
                                                                                     )}
                                                                                 </div>
                                                                             </div>
-                                                                            <div className="bs-flex-display bs-justify-cont bs-margin-top-1">
+                                                                            <div className="bs-flex-display bs-justify-cont bs-margin-top-1  bs-padding-left">
                                                                                 <span className="bs-bullet-container">
                                                                                     <span className="bs-dark-bullet"></span>
                                                                                 </span>
@@ -1205,7 +1349,7 @@ export class IncidentStatus extends Component {
                                                                                 </div>
                                                                             </div>
                                                                         </div>
-                                                                        <div className="bs-flex-display bs-justify-cont">
+                                                                        <div className="bs-flex-display bs-justify-cont  bs-padding-left">
                                                                             <span className="bs-bullet-container">
                                                                                 <span className="bs-dark-bullet"></span>
                                                                             </span>
@@ -1379,16 +1523,134 @@ export class IncidentStatus extends Component {
                                                             <label className="">
                                                                 Title
                                                             </label>
-                                                            <div className="bs-content-inside">
-                                                                <span className="value">
-                                                                    {
-                                                                        this
-                                                                            .props
-                                                                            .incident
-                                                                            .title
+
+                                                            <ShouldRender
+                                                                if={
+                                                                    this.state
+                                                                        .firstVisibility
+                                                                }
+                                                            >
+                                                                <div
+                                                                    className="bs-content-inside"
+                                                                    onMouseEnter={() =>
+                                                                        this.setState(
+                                                                            {
+                                                                                firstHover: {
+                                                                                    display:
+                                                                                        'inline',
+                                                                                },
+                                                                            }
+                                                                        )
                                                                     }
-                                                                </span>
-                                                            </div>
+                                                                    onMouseLeave={() =>
+                                                                        this.setState(
+                                                                            {
+                                                                                firstHover: {
+                                                                                    display:
+                                                                                        'none',
+                                                                                },
+                                                                            }
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <span
+                                                                        className="value"
+                                                                        onClick={
+                                                                            this
+                                                                                .props
+                                                                                .editable
+                                                                                ? this
+                                                                                      .firstIconClick
+                                                                                : null
+                                                                        }
+                                                                        style={{
+                                                                            cursor: this
+                                                                                .props
+                                                                                .editable
+                                                                                ? 'pointer'
+                                                                                : null,
+                                                                        }}
+                                                                    >
+                                                                        {
+                                                                            this
+                                                                                .props
+                                                                                .incident
+                                                                                .title
+                                                                        }
+                                                                    </span>{' '}
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            this
+                                                                                .props
+                                                                                .editable
+                                                                        }
+                                                                    >
+                                                                        <span
+                                                                            onClick={
+                                                                                this
+                                                                                    .firstIconClick
+                                                                            }
+                                                                        >
+                                                                            <img
+                                                                                style={
+                                                                                    this
+                                                                                        .state
+                                                                                        .firstHover
+                                                                                }
+                                                                                className="incidentEditIcon"
+                                                                                alt=""
+                                                                                src={
+                                                                                    'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6c3ZnanM9Imh0dHA6Ly9zdmdqcy5jb20vc3ZnanMiIHZlcnNpb249IjEuMSIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHg9IjAiIHk9IjAiIHZpZXdCb3g9IjAgMCA0MDEuNTIyODkgNDAxIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA1MTIgNTEyIiB4bWw6c3BhY2U9InByZXNlcnZlIiBjbGFzcz0iIj48Zz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzAuNTg5ODQ0IDI1MC45NzI2NTZjLTUuNTIzNDM4IDAtMTAgNC40NzY1NjMtMTAgMTB2ODguNzg5MDYzYy0uMDE5NTMyIDE2LjU2MjUtMTMuNDM3NSAyOS45ODQzNzUtMzAgMzBoLTI4MC41ODk4NDRjLTE2LjU2MjUtLjAxNTYyNS0yOS45ODA0NjktMTMuNDM3NS0zMC0zMHYtMjYwLjU4OTg0NGMuMDE5NTMxLTE2LjU1ODU5NCAxMy40Mzc1LTI5Ljk4MDQ2OSAzMC0zMGg4OC43ODkwNjJjNS41MjM0MzggMCAxMC00LjQ3NjU2MyAxMC0xMCAwLTUuNTE5NTMxLTQuNDc2NTYyLTEwLTEwLTEwaC04OC43ODkwNjJjLTI3LjYwMTU2Mi4wMzEyNS00OS45Njg3NSAyMi4zOTg0MzctNTAgNTB2MjYwLjU5Mzc1Yy4wMzEyNSAyNy42MDE1NjMgMjIuMzk4NDM4IDQ5Ljk2ODc1IDUwIDUwaDI4MC41ODk4NDRjMjcuNjAxNTYyLS4wMzEyNSA0OS45Njg3NS0yMi4zOTg0MzcgNTAtNTB2LTg4Ljc5Mjk2OWMwLTUuNTIzNDM3LTQuNDc2NTYzLTEwLTEwLTEwem0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzYuNjI4OTA2IDEzLjQ0MTQwNmMtMTcuNTc0MjE4LTE3LjU3NDIxOC00Ni4wNjY0MDYtMTcuNTc0MjE4LTYzLjY0MDYyNSAwbC0xNzguNDA2MjUgMTc4LjQwNjI1Yy0xLjIyMjY1NiAxLjIyMjY1Ni0yLjEwNTQ2OSAyLjczODI4Mi0yLjU2NjQwNiA0LjQwMjM0NGwtMjMuNDYwOTM3IDg0LjY5OTIxOWMtLjk2NDg0NCAzLjQ3MjY1Ni4wMTU2MjQgNy4xOTE0MDYgMi41NjI1IDkuNzQyMTg3IDIuNTUwNzgxIDIuNTQ2ODc1IDYuMjY5NTMxIDMuNTI3MzQ0IDkuNzQyMTg3IDIuNTY2NDA2bDg0LjY5OTIxOS0yMy40NjQ4NDNjMS42NjQwNjItLjQ2MDkzOCAzLjE3OTY4Ny0xLjM0Mzc1IDQuNDAyMzQ0LTIuNTY2NDA3bDE3OC40MDIzNDMtMTc4LjQxMDE1NmMxNy41NDY4NzUtMTcuNTg1OTM3IDE3LjU0Njg3NS00Ni4wNTQ2ODcgMC02My42NDA2MjV6bS0yMjAuMjU3ODEyIDE4NC45MDYyNSAxNDYuMDExNzE4LTE0Ni4wMTU2MjUgNDcuMDg5ODQ0IDQ3LjA4OTg0NC0xNDYuMDE1NjI1IDE0Ni4wMTU2MjV6bS05LjQwNjI1IDE4Ljg3NSAzNy42MjEwOTQgMzcuNjI1LTUyLjAzOTA2MyAxNC40MTc5Njl6bTIyNy4yNTc4MTItMTQyLjU0Njg3NS0xMC42MDU0NjggMTAuNjA1NDY5LTQ3LjA5Mzc1LTQ3LjA5Mzc1IDEwLjYwOTM3NC0xMC42MDU0NjljOS43NjE3MTktOS43NjE3MTkgMjUuNTg5ODQ0LTkuNzYxNzE5IDM1LjM1MTU2MyAwbDExLjczODI4MSAxMS43MzQzNzVjOS43NDYwOTQgOS43NzM0MzggOS43NDYwOTQgMjUuNTg5ODQ0IDAgMzUuMzU5Mzc1em0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48L2c+PC9zdmc+Cg=='
+                                                                                }
+                                                                            />
+                                                                        </span>
+                                                                    </ShouldRender>
+                                                                </div>
+                                                            </ShouldRender>
+                                                            <ShouldRender
+                                                                if={
+                                                                    !this.state
+                                                                        .firstVisibility
+                                                                }
+                                                            >
+                                                                <form
+                                                                    onSubmit={this.props.handleSubmit(
+                                                                        this.firstFormSubmit.bind(
+                                                                            this
+                                                                        )
+                                                                    )}
+                                                                    style={{
+                                                                        marginTop:
+                                                                            '3px',
+                                                                        marginLeft:
+                                                                            '-3px',
+                                                                    }}
+                                                                >
+                                                                    <div className="bs-Fieldset-fields">
+                                                                        <Field
+                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                            component={
+                                                                                RenderField
+                                                                            }
+                                                                            name="title"
+                                                                            disabled={
+                                                                                false
+                                                                            }
+                                                                            validate={[
+                                                                                ValidateField.required,
+                                                                            ]}
+                                                                            style={{
+                                                                                width: 212,
+                                                                            }}
+                                                                            onBlur={this.props.handleSubmit(
+                                                                                this
+                                                                                    .firstFormSubmit
+                                                                            )}
+                                                                            id="title"
+                                                                        />
+                                                                    </div>
+                                                                </form>
+                                                            </ShouldRender>
                                                         </div>
                                                     )}
                                                     {this.props.incident
@@ -1397,16 +1659,140 @@ export class IncidentStatus extends Component {
                                                             <label className="">
                                                                 Description
                                                             </label>
-                                                            <div className="bs-content-inside">
-                                                                <ReactMarkdown
-                                                                    source={
-                                                                        this
-                                                                            .props
-                                                                            .incident
-                                                                            .description
+                                                            <ShouldRender
+                                                                if={
+                                                                    this.state
+                                                                        .secondVisibility
+                                                                }
+                                                            >
+                                                                <div
+                                                                    className="bs-content-inside"
+                                                                    onMouseEnter={() =>
+                                                                        this.setState(
+                                                                            {
+                                                                                secondHover: {
+                                                                                    display:
+                                                                                        'inline',
+                                                                                },
+                                                                            }
+                                                                        )
                                                                     }
-                                                                />
-                                                            </div>
+                                                                    onMouseLeave={() =>
+                                                                        this.setState(
+                                                                            {
+                                                                                secondHover: {
+                                                                                    display:
+                                                                                        'none',
+                                                                                },
+                                                                            }
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <p
+                                                                        onClick={
+                                                                            this
+                                                                                .props
+                                                                                .editable
+                                                                                ? this
+                                                                                      .secondIconClick
+                                                                                : null
+                                                                        }
+                                                                        style={{
+                                                                            display:
+                                                                                'inline',
+                                                                            wordBreak:
+                                                                                'break-word',
+                                                                            cursor: this
+                                                                                .props
+                                                                                .editable
+                                                                                ? 'pointer'
+                                                                                : null,
+                                                                        }}
+                                                                    >
+                                                                        {
+                                                                            this
+                                                                                .props
+                                                                                .incident
+                                                                                .description
+                                                                        }
+                                                                    </p>{' '}
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            this
+                                                                                .props
+                                                                                .editable
+                                                                        }
+                                                                    >
+                                                                        <span
+                                                                            onClick={
+                                                                                this
+                                                                                    .secondIconClick
+                                                                            }
+                                                                        >
+                                                                            <img
+                                                                                style={
+                                                                                    this
+                                                                                        .state
+                                                                                        .secondHover
+                                                                                }
+                                                                                className="incidentEditIcon"
+                                                                                alt=""
+                                                                                src={
+                                                                                    'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6c3ZnanM9Imh0dHA6Ly9zdmdqcy5jb20vc3ZnanMiIHZlcnNpb249IjEuMSIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHg9IjAiIHk9IjAiIHZpZXdCb3g9IjAgMCA0MDEuNTIyODkgNDAxIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA1MTIgNTEyIiB4bWw6c3BhY2U9InByZXNlcnZlIiBjbGFzcz0iIj48Zz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzAuNTg5ODQ0IDI1MC45NzI2NTZjLTUuNTIzNDM4IDAtMTAgNC40NzY1NjMtMTAgMTB2ODguNzg5MDYzYy0uMDE5NTMyIDE2LjU2MjUtMTMuNDM3NSAyOS45ODQzNzUtMzAgMzBoLTI4MC41ODk4NDRjLTE2LjU2MjUtLjAxNTYyNS0yOS45ODA0NjktMTMuNDM3NS0zMC0zMHYtMjYwLjU4OTg0NGMuMDE5NTMxLTE2LjU1ODU5NCAxMy40Mzc1LTI5Ljk4MDQ2OSAzMC0zMGg4OC43ODkwNjJjNS41MjM0MzggMCAxMC00LjQ3NjU2MyAxMC0xMCAwLTUuNTE5NTMxLTQuNDc2NTYyLTEwLTEwLTEwaC04OC43ODkwNjJjLTI3LjYwMTU2Mi4wMzEyNS00OS45Njg3NSAyMi4zOTg0MzctNTAgNTB2MjYwLjU5Mzc1Yy4wMzEyNSAyNy42MDE1NjMgMjIuMzk4NDM4IDQ5Ljk2ODc1IDUwIDUwaDI4MC41ODk4NDRjMjcuNjAxNTYyLS4wMzEyNSA0OS45Njg3NS0yMi4zOTg0MzcgNTAtNTB2LTg4Ljc5Mjk2OWMwLTUuNTIzNDM3LTQuNDc2NTYzLTEwLTEwLTEwem0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzYuNjI4OTA2IDEzLjQ0MTQwNmMtMTcuNTc0MjE4LTE3LjU3NDIxOC00Ni4wNjY0MDYtMTcuNTc0MjE4LTYzLjY0MDYyNSAwbC0xNzguNDA2MjUgMTc4LjQwNjI1Yy0xLjIyMjY1NiAxLjIyMjY1Ni0yLjEwNTQ2OSAyLjczODI4Mi0yLjU2NjQwNiA0LjQwMjM0NGwtMjMuNDYwOTM3IDg0LjY5OTIxOWMtLjk2NDg0NCAzLjQ3MjY1Ni4wMTU2MjQgNy4xOTE0MDYgMi41NjI1IDkuNzQyMTg3IDIuNTUwNzgxIDIuNTQ2ODc1IDYuMjY5NTMxIDMuNTI3MzQ0IDkuNzQyMTg3IDIuNTY2NDA2bDg0LjY5OTIxOS0yMy40NjQ4NDNjMS42NjQwNjItLjQ2MDkzOCAzLjE3OTY4Ny0xLjM0Mzc1IDQuNDAyMzQ0LTIuNTY2NDA3bDE3OC40MDIzNDMtMTc4LjQxMDE1NmMxNy41NDY4NzUtMTcuNTg1OTM3IDE3LjU0Njg3NS00Ni4wNTQ2ODcgMC02My42NDA2MjV6bS0yMjAuMjU3ODEyIDE4NC45MDYyNSAxNDYuMDExNzE4LTE0Ni4wMTU2MjUgNDcuMDg5ODQ0IDQ3LjA4OTg0NC0xNDYuMDE1NjI1IDE0Ni4wMTU2MjV6bS05LjQwNjI1IDE4Ljg3NSAzNy42MjEwOTQgMzcuNjI1LTUyLjAzOTA2MyAxNC40MTc5Njl6bTIyNy4yNTc4MTItMTQyLjU0Njg3NS0xMC42MDU0NjggMTAuNjA1NDY5LTQ3LjA5Mzc1LTQ3LjA5Mzc1IDEwLjYwOTM3NC0xMC42MDU0NjljOS43NjE3MTktOS43NjE3MTkgMjUuNTg5ODQ0LTkuNzYxNzE5IDM1LjM1MTU2MyAwbDExLjczODI4MSAxMS43MzQzNzVjOS43NDYwOTQgOS43NzM0MzggOS43NDYwOTQgMjUuNTg5ODQ0IDAgMzUuMzU5Mzc1em0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48L2c+PC9zdmc+Cg=='
+                                                                                }
+                                                                            />
+                                                                        </span>
+                                                                    </ShouldRender>
+                                                                </div>
+                                                            </ShouldRender>
+                                                            <ShouldRender
+                                                                if={
+                                                                    !this.state
+                                                                        .secondVisibility
+                                                                }
+                                                            >
+                                                                <form
+                                                                    onSubmit={this.props.handleSubmit(
+                                                                        this.secondFormSubmit.bind(
+                                                                            this
+                                                                        )
+                                                                    )}
+                                                                    style={{
+                                                                        marginTop:
+                                                                            '3px',
+                                                                        marginLeft:
+                                                                            '-3px',
+                                                                    }}
+                                                                >
+                                                                    <div className="bs-Fieldset-fields">
+                                                                        <Field
+                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                            component={
+                                                                                RenderCodeEditor
+                                                                            }
+                                                                            name="description"
+                                                                            readOnly={
+                                                                                false
+                                                                            }
+                                                                            required={
+                                                                                true
+                                                                            }
+                                                                            wrapEnabled={
+                                                                                true
+                                                                            }
+                                                                            mode="markdown"
+                                                                            height="125px"
+                                                                            width="100%"
+                                                                            placeholder="Please add a description"
+                                                                            onBlur={
+                                                                                this
+                                                                                    .secondFormSubmit
+                                                                            }
+                                                                            id="description"
+                                                                        />
+                                                                    </div>
+                                                                </form>
+                                                            </ShouldRender>
                                                         </div>
                                                     )}
                                                     {this.props.incident
@@ -1615,36 +2001,157 @@ export class IncidentStatus extends Component {
                                                                 Priority
                                                             </label>
                                                             <div className="bs-content-inside">
-                                                                <div className="Flex-flex Flex-alignItems--center bs-justify-cont">
-                                                                    <span
-                                                                        className="Margin-right--4"
-                                                                        style={{
-                                                                            display:
-                                                                                'inline-block',
-                                                                            backgroundColor: `rgba(${this.props.incident.incidentPriority.color.r},${this.props.incident.incidentPriority.color.g},${this.props.incident.incidentPriority.color.b},${this.props.incident.incidentPriority.color.a})`,
-                                                                            height:
-                                                                                '15px',
-                                                                            width:
-                                                                                '15px',
-                                                                            borderRadius:
-                                                                                '30%',
-                                                                        }}
-                                                                    ></span>
-                                                                    <span
-                                                                        className="Text-fontWeight--medium"
-                                                                        style={{
-                                                                            color: `rgba(${this.props.incident.incidentPriority.color.r},${this.props.incident.incidentPriority.color.g},${this.props.incident.incidentPriority.color.b},${this.props.incident.incidentPriority.color.a})`,
-                                                                        }}
+                                                                <ShouldRender
+                                                                    if={
+                                                                        this
+                                                                            .state
+                                                                            .thirdVisibility
+                                                                    }
+                                                                >
+                                                                    <div className="Flex-flex Flex-alignItems--center bs-justify-cont">
+                                                                        <span
+                                                                            className="Margin-right--4"
+                                                                            style={{
+                                                                                display:
+                                                                                    'inline',
+                                                                                backgroundColor: `rgba(${this.props.incident.incidentPriority.color.r},${this.props.incident.incidentPriority.color.g},${this.props.incident.incidentPriority.color.b},${this.props.incident.incidentPriority.color.a})`,
+                                                                                height:
+                                                                                    '15px',
+                                                                                width:
+                                                                                    '15px',
+                                                                                borderRadius:
+                                                                                    '30%',
+                                                                            }}
+                                                                        ></span>
+                                                                        <span
+                                                                            onMouseEnter={() =>
+                                                                                this.setState(
+                                                                                    {
+                                                                                        thirdHover: {
+                                                                                            display:
+                                                                                                'inline',
+                                                                                        },
+                                                                                    }
+                                                                                )
+                                                                            }
+                                                                            onMouseLeave={() =>
+                                                                                this.setState(
+                                                                                    {
+                                                                                        thirdHover: {
+                                                                                            display:
+                                                                                                'none',
+                                                                                        },
+                                                                                    }
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <span
+                                                                                onClick={
+                                                                                    this
+                                                                                        .props
+                                                                                        .editable
+                                                                                        ? this
+                                                                                              .thirdIconClick
+                                                                                        : null
+                                                                                }
+                                                                                className="Text-fontWeight--medium"
+                                                                                style={{
+                                                                                    color: `rgba(${this.props.incident.incidentPriority.color.r},${this.props.incident.incidentPriority.color.g},${this.props.incident.incidentPriority.color.b},${this.props.incident.incidentPriority.color.a})`,
+                                                                                    cursor: this
+                                                                                        .props
+                                                                                        .editable
+                                                                                        ? 'pointer'
+                                                                                        : null,
+                                                                                }}
+                                                                            >
+                                                                                {
+                                                                                    this
+                                                                                        .props
+                                                                                        .incident
+                                                                                        .incidentPriority
+                                                                                        .name
+                                                                                }
+                                                                            </span>{' '}
+                                                                            <ShouldRender
+                                                                                if={
+                                                                                    this
+                                                                                        .props
+                                                                                        .editable
+                                                                                }
+                                                                            >
+                                                                                <span
+                                                                                    onClick={
+                                                                                        this
+                                                                                            .thirdIconClick
+                                                                                    }
+                                                                                >
+                                                                                    <img
+                                                                                        style={
+                                                                                            this
+                                                                                                .state
+                                                                                                .thirdHover
+                                                                                        }
+                                                                                        className="incidentEditIcon"
+                                                                                        alt=""
+                                                                                        src={
+                                                                                            'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6c3ZnanM9Imh0dHA6Ly9zdmdqcy5jb20vc3ZnanMiIHZlcnNpb249IjEuMSIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHg9IjAiIHk9IjAiIHZpZXdCb3g9IjAgMCA0MDEuNTIyODkgNDAxIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA1MTIgNTEyIiB4bWw6c3BhY2U9InByZXNlcnZlIiBjbGFzcz0iIj48Zz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzAuNTg5ODQ0IDI1MC45NzI2NTZjLTUuNTIzNDM4IDAtMTAgNC40NzY1NjMtMTAgMTB2ODguNzg5MDYzYy0uMDE5NTMyIDE2LjU2MjUtMTMuNDM3NSAyOS45ODQzNzUtMzAgMzBoLTI4MC41ODk4NDRjLTE2LjU2MjUtLjAxNTYyNS0yOS45ODA0NjktMTMuNDM3NS0zMC0zMHYtMjYwLjU4OTg0NGMuMDE5NTMxLTE2LjU1ODU5NCAxMy40Mzc1LTI5Ljk4MDQ2OSAzMC0zMGg4OC43ODkwNjJjNS41MjM0MzggMCAxMC00LjQ3NjU2MyAxMC0xMCAwLTUuNTE5NTMxLTQuNDc2NTYyLTEwLTEwLTEwaC04OC43ODkwNjJjLTI3LjYwMTU2Mi4wMzEyNS00OS45Njg3NSAyMi4zOTg0MzctNTAgNTB2MjYwLjU5Mzc1Yy4wMzEyNSAyNy42MDE1NjMgMjIuMzk4NDM4IDQ5Ljk2ODc1IDUwIDUwaDI4MC41ODk4NDRjMjcuNjAxNTYyLS4wMzEyNSA0OS45Njg3NS0yMi4zOTg0MzcgNTAtNTB2LTg4Ljc5Mjk2OWMwLTUuNTIzNDM3LTQuNDc2NTYzLTEwLTEwLTEwem0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzYuNjI4OTA2IDEzLjQ0MTQwNmMtMTcuNTc0MjE4LTE3LjU3NDIxOC00Ni4wNjY0MDYtMTcuNTc0MjE4LTYzLjY0MDYyNSAwbC0xNzguNDA2MjUgMTc4LjQwNjI1Yy0xLjIyMjY1NiAxLjIyMjY1Ni0yLjEwNTQ2OSAyLjczODI4Mi0yLjU2NjQwNiA0LjQwMjM0NGwtMjMuNDYwOTM3IDg0LjY5OTIxOWMtLjk2NDg0NCAzLjQ3MjY1Ni4wMTU2MjQgNy4xOTE0MDYgMi41NjI1IDkuNzQyMTg3IDIuNTUwNzgxIDIuNTQ2ODc1IDYuMjY5NTMxIDMuNTI3MzQ0IDkuNzQyMTg3IDIuNTY2NDA2bDg0LjY5OTIxOS0yMy40NjQ4NDNjMS42NjQwNjItLjQ2MDkzOCAzLjE3OTY4Ny0xLjM0Mzc1IDQuNDAyMzQ0LTIuNTY2NDA3bDE3OC40MDIzNDMtMTc4LjQxMDE1NmMxNy41NDY4NzUtMTcuNTg1OTM3IDE3LjU0Njg3NS00Ni4wNTQ2ODcgMC02My42NDA2MjV6bS0yMjAuMjU3ODEyIDE4NC45MDYyNSAxNDYuMDExNzE4LTE0Ni4wMTU2MjUgNDcuMDg5ODQ0IDQ3LjA4OTg0NC0xNDYuMDE1NjI1IDE0Ni4wMTU2MjV6bS05LjQwNjI1IDE4Ljg3NSAzNy42MjEwOTQgMzcuNjI1LTUyLjAzOTA2MyAxNC40MTc5Njl6bTIyNy4yNTc4MTItMTQyLjU0Njg3NS0xMC42MDU0NjggMTAuNjA1NDY5LTQ3LjA5Mzc1LTQ3LjA5Mzc1IDEwLjYwOTM3NC0xMC42MDU0NjljOS43NjE3MTktOS43NjE3MTkgMjUuNTg5ODQ0LTkuNzYxNzE5IDM1LjM1MTU2MyAwbDExLjczODI4MSAxMS43MzQzNzVjOS43NDYwOTQgOS43NzM0MzggOS43NDYwOTQgMjUuNTg5ODQ0IDAgMzUuMzU5Mzc1em0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48L2c+PC9zdmc+Cg=='
+                                                                                        }
+                                                                                    />
+                                                                                </span>
+                                                                            </ShouldRender>
+                                                                        </span>
+                                                                    </div>
+                                                                </ShouldRender>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        !this
+                                                                            .state
+                                                                            .thirdVisibility
+                                                                    }
+                                                                >
+                                                                    <form
+                                                                        onSubmit={this.props.handleSubmit(
+                                                                            this.thirdFormSubmit.bind(
+                                                                                this
+                                                                            )
+                                                                        )}
                                                                     >
-                                                                        {
-                                                                            this
-                                                                                .props
-                                                                                .incident
-                                                                                .incidentPriority
-                                                                                .name
-                                                                        }
-                                                                    </span>
-                                                                </div>
+                                                                        <div
+                                                                            className="bs-Fieldset-fields"
+                                                                            style={{
+                                                                                marginTop: 2,
+                                                                            }}
+                                                                        >
+                                                                            <div>
+                                                                                <Field
+                                                                                    className="db-select-nw"
+                                                                                    component={
+                                                                                        RenderSelect
+                                                                                    }
+                                                                                    name="incidentPriority"
+                                                                                    disabled={
+                                                                                        false
+                                                                                    }
+                                                                                    id="incidentPriority"
+                                                                                    options={[
+                                                                                        ...this.props.incidentPriorities.map(
+                                                                                            incidentPriority => ({
+                                                                                                value:
+                                                                                                    incidentPriority._id,
+                                                                                                label:
+                                                                                                    incidentPriority.name,
+                                                                                            })
+                                                                                        ),
+                                                                                    ]}
+                                                                                    onChange={
+                                                                                        this
+                                                                                            .thirdFormSubmit
+                                                                                    }
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                    </form>
+                                                                </ShouldRender>
                                                             </div>
                                                         </div>
                                                     )}
@@ -1677,6 +2184,42 @@ export class IncidentStatus extends Component {
                                                                 </div>
                                                             )
                                                         )}
+                                                    {team && team.length > 0 && (
+                                                        <div className="bs-content">
+                                                            <label className="">
+                                                                Members on Call
+                                                                Duty
+                                                            </label>
+                                                            <div className="bs-content-inside">
+                                                                {team.map(
+                                                                    member => (
+                                                                        <div
+                                                                            className="Box-root Margin-right--16 pointer"
+                                                                            key={
+                                                                                member
+                                                                                    .user
+                                                                                    ._id
+                                                                            }
+                                                                        >
+                                                                            <img
+                                                                                src="/dashboard/assets/img/profile-user.svg"
+                                                                                className="userIcon"
+                                                                                alt=""
+                                                                            />
+                                                                            <span>
+                                                                                {member
+                                                                                    .user
+                                                                                    .name ??
+                                                                                    member
+                                                                                        .user
+                                                                                        .email}
+                                                                            </span>
+                                                                        </div>
+                                                                    )
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </fieldset>
@@ -1698,7 +2241,7 @@ export class IncidentStatus extends Component {
                                         onClick={() => {
                                             setTimeout(() => {
                                                 history.push(
-                                                    `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
+                                                    `/dashboard/project/${this.props.currentProject.slug}/${componentId}/incidents/${incidentId}`
                                                 );
                                                 this.props.animateSidebar(
                                                     false
@@ -1835,12 +2378,34 @@ export class IncidentStatus extends Component {
 
 IncidentStatus.displayName = 'IncidentStatus';
 
-const mapStateToProps = state => {
+const EditIncidentStatusForm = reduxForm({
+    form: 'IncidentStatusForm',
+    enableReinitialize: true,
+})(IncidentStatus);
+const selector = formValueSelector('IncidentStatusForm');
+const mapStateToProps = (state, ownProps) => {
+    const incident = ownProps.incident;
+    const initialValues = {
+        title: incident.title,
+        description: incident.description,
+        incidentPriority: incident.incidentPriority._id,
+    };
+    const { description, incidentPriority } = selector(
+        state,
+        'description',
+        'incidentPriority'
+    );
     return {
         currentProject: state.project.currentProject,
         closeincident: state.incident.closeincident,
         subProjects: state.subProject.subProjects.subProjects,
         incidentRequest: state.incident.incident,
+        escalations: state.schedule.escalations,
+        incidentPriorities:
+            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        initialValues,
+        description,
+        incidentPriority,
     };
 };
 
@@ -1854,14 +2419,17 @@ const mapDispatchToProps = dispatch => {
             markAsRead,
             getIncidentTimeline,
             animateSidebar,
+            updateIncident,
         },
         dispatch
     );
 };
 
 IncidentStatus.propTypes = {
+    handleSubmit: PropTypes.func.isRequired,
     resolveIncident: PropTypes.func.isRequired,
     acknowledgeIncident: PropTypes.func.isRequired,
+    updateIncident: PropTypes.func.isRequired,
     closeIncident: PropTypes.func,
     closeincident: PropTypes.object,
     requesting: PropTypes.bool,
@@ -1872,6 +2440,7 @@ IncidentStatus.propTypes = {
     count: PropTypes.number,
     openModal: PropTypes.func.isRequired,
     projectId: PropTypes.string,
+    description: PropTypes.string,
     componentId: PropTypes.string,
     route: PropTypes.string,
     incidentRequest: PropTypes.object.isRequired,
@@ -1879,6 +2448,12 @@ IncidentStatus.propTypes = {
     markAsRead: PropTypes.func,
     getIncidentTimeline: PropTypes.func,
     animateSidebar: PropTypes.func,
+    escalations: PropTypes.array,
+    editable: PropTypes.bool,
+    incidentPriorities: PropTypes.array.isRequired,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(EditIncidentStatusForm);

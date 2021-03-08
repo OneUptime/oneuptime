@@ -12,8 +12,8 @@ class ComponentIssue extends Component {
         fetchErrorTrackers(currentProjectId, component._id);
     }
     generateUrlLink(componentIssue) {
-        const { currentProjectId, component } = this.props;
-        return `/dashboard/project/${currentProjectId}/${component._id}/error-trackers/${componentIssue.errorTrackerId._id}`;
+        const { component, currentProject } = this.props;
+        return `/dashboard/project/${currentProject.slug}/${component._id}/error-trackers/${componentIssue.errorTrackerId._id}`;
     }
     render() {
         const { component, errorTrackers } = this.props;
@@ -67,6 +67,7 @@ ComponentIssue.displayName = 'ComponentIssue';
 ComponentIssue.propTypes = {
     currentProjectId: PropTypes.string.isRequired,
     component: PropTypes.object,
+    currentProject: PropTypes.object.isRequired,
     fetchErrorTrackers: PropTypes.func,
     errorTrackers: PropTypes.array,
 };

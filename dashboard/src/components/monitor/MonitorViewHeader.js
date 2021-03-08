@@ -3,7 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import MonitorChart from './MonitorChart';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import MonitorTitle from './MonitorTitle';
 import ProbeBar from './ProbeBar';
 import moment from 'moment';
@@ -35,10 +35,10 @@ export class MonitorViewHeader extends Component {
         super(props);
         this.props = props;
         this.state = {
-            deleteModalId: uuid.v4(),
+            deleteModalId: uuidv4(),
             startDate: moment().subtract(30, 'd'),
             endDate: moment(),
-            createIncidentModalId: uuid.v4(),
+            createIncidentModalId: uuidv4(),
         };
 
         this.deleteMonitor = this.deleteMonitor.bind(this);
@@ -111,7 +111,7 @@ export class MonitorViewHeader extends Component {
             this.props.monitor.projectId._id || this.props.monitor.projectId
         );
         history.push(
-            `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/monitoring`
+            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/monitoring`
         );
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -384,7 +384,7 @@ export class MonitorViewHeader extends Component {
                         <MonitorChart
                             start={startDate}
                             end={endDate}
-                            key={uuid.v4()}
+                            key={uuidv4()}
                             monitor={monitor}
                             data={logs}
                             statuses={statuses}
@@ -396,7 +396,7 @@ export class MonitorViewHeader extends Component {
                         <MonitorChart
                             start={startDate}
                             end={endDate}
-                            key={uuid.v4()}
+                            key={uuidv4()}
                             monitor={monitor}
                             data={logs}
                             statuses={statuses}

@@ -59,6 +59,11 @@ const statusSchema = new Schema({
         type: Boolean,
         default: false,
     },
+    // show or hide the probe bar
+    hideProbeBar: {
+        type: Boolean,
+        default: false,
+    },
     description: String,
     copyright: String,
     faviconPath: String,
@@ -104,5 +109,6 @@ const statusSchema = new Schema({
     },
 
     deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    theme: { type: String },
 });
 module.exports = mongoose.model('StatusPage', statusSchema);

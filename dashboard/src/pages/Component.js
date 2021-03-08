@@ -213,6 +213,11 @@ class DashboardView extends Component {
                                                             currentProjectId={
                                                                 currentProjectId
                                                             }
+                                                            slug={
+                                                                this.props
+                                                                    .currentProject
+                                                                    .slug
+                                                            }
                                                             hideActionButton={
                                                                 true
                                                             }
@@ -359,7 +364,8 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = state => {
+    // removal of unused props
     const component = state.component;
     let subProjects = state.subProject.subProjects.subProjects;
     let monitors = [];
@@ -378,7 +384,8 @@ const mapStateToProps = (state, props) => {
         return monitor;
     });
 
-    const { projectId } = props.match.params;
+    const projectId =
+        state.project.currentProject && state.project.currentProject._id;
 
     // try to get custom project tutorial by project ID
     const projectCustomTutorial = state.tutorial[projectId];

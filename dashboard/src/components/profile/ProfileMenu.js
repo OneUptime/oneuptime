@@ -9,7 +9,7 @@ import { openModal, closeModal } from '../../actions/modal';
 import { hideProfileMenu } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
 import About from '../modals/About';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { logEvent } from '../../analytics';
 import ShouldRender from '../basic/ShouldRender';
 
@@ -17,7 +17,7 @@ export class ProfileMenu extends Component {
     constructor(props) {
         super(props);
 
-        this.state = { aboutId: uuid.v4() };
+        this.state = { aboutId: uuidv4() };
     }
 
     componentDidMount() {

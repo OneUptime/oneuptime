@@ -656,3 +656,15 @@ export const resolveScheduledEvent = (
         dispatch(resolveScheduledEventFailure(errorMsg));
     }
 };
+export const nextPage = projectId => {
+    return {
+        type: types.NEXT_PAGE,
+        payload: projectId,
+    };
+};
+export const prevPage = projectId => {
+    return {
+        type: types.PREV_PAGE,
+        payload: projectId,
+    };
+};

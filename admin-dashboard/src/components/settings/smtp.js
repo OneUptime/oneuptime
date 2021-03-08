@@ -47,24 +47,6 @@ const settingsType = 'smtp';
 
 const fields = [
     {
-        key: 'email-enabled',
-        label: 'Enable Emails',
-        // eslint-disable-next-line react/display-name, react/prop-types
-        component: ({ input: { value, onChange } }) => (
-            <label className="Toggler-wrap">
-                <input
-                    className="btn-toggler"
-                    checked={value}
-                    onChange={onChange}
-                    type="checkbox"
-                    name="email-enabled"
-                    id="email-enabled"
-                />
-                <span className="TogglerBtn-slider round"></span>
-            </label>
-        ),
-    },
-    {
         key: 'email',
         label: 'Email',
         type: 'text',
@@ -127,6 +109,68 @@ const fields = [
     },
 ];
 
+const emailEnableField = [
+    {
+        key: 'email-enabled',
+        label: 'Enable Emails',
+        // eslint-disable-next-line react/display-name, react/prop-types
+        component: ({ input: { value, onChange } }) => (
+            <label className="Toggler-wrap">
+                <input
+                    className="btn-toggler"
+                    checked={value}
+                    onChange={onChange}
+                    type="checkbox"
+                    name="email-enabled"
+                    id="email-enabled"
+                />
+                <span className="TogglerBtn-slider round"></span>
+            </label>
+        ),
+    },
+];
+
+const smtpOptions = [
+    {
+        key: 'internalSmtp',
+        label: 'Enable internal SMTP server',
+        // eslint-disable-next-line react/display-name, react/prop-types
+        component: ({ input: { value, onChange } }) => (
+            <label className="Toggler-wrap">
+                <input
+                    className="btn-toggler"
+                    checked={value}
+                    onChange={onChange}
+                    type="checkbox"
+                    name="internalSmtp"
+                    id="internalSmtp"
+                />
+                <span className="TogglerBtn-slider round"></span>
+            </label>
+        ),
+        explanation: 'Use pre-configured internal SMTP server',
+    },
+    {
+        key: 'customSmtp',
+        label: 'Enable custom SMTP server',
+        // eslint-disable-next-line react/display-name, react/prop-types
+        component: ({ input: { value, onChange } }) => (
+            <label className="Toggler-wrap">
+                <input
+                    className="btn-toggler"
+                    checked={value}
+                    onChange={onChange}
+                    type="checkbox"
+                    name="customSmtp"
+                    id="customSmtp"
+                />
+                <span className="TogglerBtn-slider round"></span>
+            </label>
+        ),
+        explanation: 'Custom SMTP will also serve as backup SMTP server',
+    },
+];
+
 export class Component extends React.Component {
     constructor(props) {
         super(props);
@@ -148,6 +192,7 @@ export class Component extends React.Component {
         this.props.openModal({
             id: testModalId,
             onConfirm: testForm => {
+                const { smtpToUse } = this.props.smtpTestForm.values;
                 const { 'test-email': email } = testForm;
                 const {
                     email: user,
@@ -157,6 +202,8 @@ export class Component extends React.Component {
                     'smtp-secure': secure,
                     from,
                     'from-name': name,
+                    internalSmtp,
+                    customSmtp,
                 } = smtpForm.values;
 
                 const payload = {
@@ -168,6 +215,9 @@ export class Component extends React.Component {
                     from,
                     name,
                     email,
+                    internalSmtp,
+                    customSmtp,
+                    smtpToUse,
                 };
 
                 return testSmtp(payload).then(res => {
@@ -209,7 +259,7 @@ export class Component extends React.Component {
     };
 
     render() {
-        const { settings, handleSubmit } = this.props;
+        const { settings, handleSubmit, smtpForm } = this.props;
         return (
             <div
                 id="fyipeSmtp"
@@ -242,7 +292,7 @@ export class Component extends React.Component {
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <fieldset className="bs-Fieldset">
                                         <div className="bs-Fieldset-rows">
-                                            {fields.map(field => (
+                                            {emailEnableField.map(field => (
                                                 <div
                                                     key={field.key}
                                                     className="bs-Fieldset-row"
@@ -283,6 +333,107 @@ export class Component extends React.Component {
                                                     </div>
                                                 </div>
                                             ))}
+                                            {smtpForm.values &&
+                                                smtpForm.values[
+                                                    'email-enabled'
+                                                ] &&
+                                                smtpOptions.map(field => {
+                                                    return (
+                                                        <div
+                                                            key={field.key}
+                                                            className="bs-Fieldset-row"
+                                                        >
+                                                            <label className="bs-Fieldset-label">
+                                                                {field.label}
+                                                            </label>
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    paddingTop: 3,
+                                                                }}
+                                                            >
+                                                                <Field
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    type={
+                                                                        field.type
+                                                                    }
+                                                                    name={
+                                                                        field.key
+                                                                    }
+                                                                    id={
+                                                                        field.key
+                                                                    }
+                                                                    placeholder={
+                                                                        field.placeholder ||
+                                                                        field.label
+                                                                    }
+                                                                    component={
+                                                                        field.component
+                                                                    }
+                                                                    disabled={
+                                                                        settings &&
+                                                                        settings.requesting
+                                                                    }
+                                                                />
+                                                                {field.explanation && (
+                                                                    <p className="bs-Fieldset-explanation">
+                                                                        {
+                                                                            field.explanation
+                                                                        }
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            {smtpForm.values &&
+                                                smtpForm.values[
+                                                    'email-enabled'
+                                                ] &&
+                                                smtpForm.values.customSmtp &&
+                                                fields.map(field => (
+                                                    <div
+                                                        key={field.key}
+                                                        className="bs-Fieldset-row"
+                                                    >
+                                                        <label className="bs-Fieldset-label">
+                                                            {field.label}
+                                                        </label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                paddingTop: 3,
+                                                            }}
+                                                        >
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                type={
+                                                                    field.type
+                                                                }
+                                                                name={field.key}
+                                                                id={field.key}
+                                                                placeholder={
+                                                                    field.placeholder ||
+                                                                    field.label
+                                                                }
+                                                                component={
+                                                                    field.component
+                                                                }
+                                                                disabled={
+                                                                    settings &&
+                                                                    settings.requesting
+                                                                }
+                                                            />
+                                                            {field.explanation && (
+                                                                <p className="bs-Fieldset-explanation">
+                                                                    {
+                                                                        field.explanation
+                                                                    }
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
                                         </div>
                                     </fieldset>
                                 </div>
@@ -334,6 +485,7 @@ Component.propTypes = {
     fetchSettings: PropTypes.func.isRequired,
     initialValues: PropTypes.object,
     smtpForm: PropTypes.object,
+    smtpTestForm: PropTypes.object,
     closeModal: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
     testSmtp: PropTypes.func,
@@ -356,7 +508,8 @@ function mapStateToProps(state) {
     return {
         settings: state.settings,
         initialValues: state.settings[settingsType],
-        smtpForm: state.form['smtp-form'],
+        smtpForm: state.form['smtp-form'] || {},
+        smtpTestForm: state.form['smtp-test-form'] || {}
     };
 }
 

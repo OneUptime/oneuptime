@@ -303,7 +303,7 @@ router.put(
                     req.params.projectId,
                     userId,
                     userId,
-                    data.role
+                    'Administrator'
                 );
                 await NotificationService.create(
                     req.params.projectId,

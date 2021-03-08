@@ -10,7 +10,7 @@ import {
 } from '../actions/team';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import TeamMemberProjectBox from '../components/team/TeamMemberProjectBox';
 import PropTypes from 'prop-types';
@@ -19,7 +19,6 @@ import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProje
 import ShouldRender from '../components/basic/ShouldRender';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
-import { history } from '../store';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 const LoadingState = () => (
@@ -74,7 +73,7 @@ const LoadedTeam = props => {
         currentProjectId,
         modalList,
     } = props;
-    const membersPerPage = 20;
+    const membersPerPage = 10;
 
     // SubProject TeamMembers List
     const allTeamMembers =
@@ -146,7 +145,7 @@ const LoadedTeam = props => {
         projectTeamMembers && projectTeamMembers.teamMembers ? (
             <RenderIfUserInSubProject
                 subProjectId={currentProjectId}
-                key={() => uuid.v4()}
+                key={() => uuidv4()}
             >
                 <div className="bs-BIM">
                     <div className="Box-root Margin-bottom--12">
@@ -218,7 +217,7 @@ LoadedTeam.propTypes = {
 class TeamApp extends Component {
     constructor(props) {
         super(props);
-        this.state = { inviteModalId: uuid.v4() };
+        this.state = { inviteModalId: uuidv4() };
     }
 
     getTableHeaders() {
@@ -236,18 +235,20 @@ class TeamApp extends Component {
     }
 
     componentDidMount() {
-        if (!this.props.currentProject) {
-            const projectId = history.location.pathname
-                .split('project/')[1]
-                .split('/')[0];
-            this.props.subProjectTeamLoading(projectId);
-        } else {
+        if (this.props.currentProject) {
             this.props.subProjectTeamLoading(this.props.currentProject._id);
         }
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > TEAM MEMBERS');
         }
     }
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.currentProject !== this.props.currentProject) {
+            this.props.subProjectTeamLoading(this.props.currentProject._id);
+        }
+    }
+
     componentWillUnmount() {
         this.props.paginate('reset');
     }

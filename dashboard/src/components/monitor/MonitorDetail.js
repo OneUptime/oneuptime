@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import IncidentList from '../incident/IncidentList';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import {
     editMonitorSwitch,
     selectedProbe,
@@ -35,7 +35,7 @@ export class MonitorDetail extends Component {
         super(props);
         this.props = props;
         this.state = {
-            createIncidentModalId: uuid.v4(),
+            createIncidentModalId: uuidv4(),
             startDate: moment().subtract(30, 'd'),
             endDate: moment(),
             now: Date.now(),
@@ -45,14 +45,33 @@ export class MonitorDetail extends Component {
     }
 
     componentDidMount() {
+        const { fetchMonitorLogs, monitor } = this.props;
+        const { startDate, endDate } = this.state;
+
+        fetchMonitorLogs(
+            monitor.projectId._id || monitor.projectId,
+            monitor._id,
+            startDate,
+            endDate
+        );
         this.setLastAlive();
     }
 
     componentDidUpdate(prevProps) {
+        const { fetchMonitorLogs, monitor } = this.props;
+        const { startDate, endDate } = this.state;
+
         if (prevProps.probes !== this.props.probes) {
             if (this.state.nowHandler) {
                 clearTimeout(this.state.nowHandler);
             }
+
+            fetchMonitorLogs(
+                monitor.projectId._id || monitor.projectId,
+                monitor._id,
+                startDate,
+                endDate
+            );
 
             this.setLastAlive();
         }
@@ -100,14 +119,22 @@ export class MonitorDetail extends Component {
     };
 
     prevClicked = () => {
-        this.props.fetchMonitorsIncidents(
-            this.props.monitor.projectId._id,
-            this.props.monitor._id,
-            this.props.monitor.skip
-                ? parseInt(this.props.monitor.skip, 10) - 3
-                : 3,
-            3
-        );
+        this.props
+            .fetchMonitorsIncidents(
+                this.props.monitor.projectId._id,
+                this.props.monitor._id,
+                this.props.monitor.skip
+                    ? parseInt(this.props.monitor.skip, 10) - 3
+                    : 3,
+                3
+            )
+            .then(() => {
+                this.setState({
+                    [this.props.monitor._id]:
+                        this.state[this.props.monitor._id] - 1,
+                });
+            });
+
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > PREVIOUS INCIDENT CLICKED',
@@ -115,22 +142,36 @@ export class MonitorDetail extends Component {
                     ProjectId: this.props.monitor.projectId._id,
                     monitorId: this.props.monitor._id,
                     skip: this.props.monitor.skip
-                        ? parseInt(this.props.monitor.skip, 10) - 3
-                        : 3,
+                        ? parseInt(this.props.monitor.skip, 10) - 10
+                        : 10,
                 }
             );
         }
     };
 
     nextClicked = () => {
-        this.props.fetchMonitorsIncidents(
-            this.props.monitor.projectId._id,
-            this.props.monitor._id,
-            this.props.monitor.skip
-                ? parseInt(this.props.monitor.skip, 10) + 3
-                : 3,
-            3
-        );
+        this.props
+            .fetchMonitorsIncidents(
+                this.props.monitor.projectId._id,
+                this.props.monitor._id,
+                this.props.monitor.skip
+                    ? parseInt(this.props.monitor.skip, 10) + 3
+                    : 3,
+                3
+            )
+            .then(() => {
+                const numberOfPage = Math.ceil(
+                    parseInt(this.props.monitor && this.props.monitor.count) / 3
+                );
+                this.setState({
+                    [this.props.monitor._id]: this.state[this.props.monitor._id]
+                        ? this.state[this.props.monitor._id] < numberOfPage
+                            ? this.state[this.props.monitor._id] + 1
+                            : numberOfPage
+                        : 2,
+                });
+            });
+
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEXT INCIDENT CLICKED',
@@ -138,7 +179,7 @@ export class MonitorDetail extends Component {
                     ProjectId: this.props.monitor.projectId._id,
                     monitorId: this.props.monitor._id,
                     skip: this.props.monitor.skip
-                        ? parseInt(this.props.monitor.skip, 10) + 3
+                        ? parseInt(this.props.monitor.skip, 3) + 3
                         : 3,
                 }
             );
@@ -200,6 +241,9 @@ export class MonitorDetail extends Component {
             activeIncident,
             componentId,
         } = this.props;
+        const numberOfPage = Math.ceil(
+            parseInt(this.props.monitor && this.props.monitor.count) / 3
+        );
         const probe =
             monitor && probes && probes.length > 0
                 ? probes[probes.length < 2 ? 0 : activeProbe]
@@ -229,7 +273,7 @@ export class MonitorDetail extends Component {
                 : monitor && monitor.data && monitor.data.link
                 ? monitor.data.link
                 : null;
-        const probeUrl = `/dashboard/project/${monitor.projectId._id}/settings/probe`;
+        const probeUrl = `/dashboard/project/${currentProject.slug}/settings/probe`;
 
         monitor.error = null;
         if (
@@ -515,11 +559,11 @@ export class MonitorDetail extends Component {
                                 onClick={() => {
                                     history.push(
                                         '/dashboard/project/' +
-                                            currentProject._id +
+                                            currentProject.slug +
                                             '/' +
                                             componentId +
                                             '/monitoring/' +
-                                            monitor._id
+                                            monitor.slug
                                     );
                                 }}
                             >
@@ -580,7 +624,7 @@ export class MonitorDetail extends Component {
                     <MonitorChart
                         start={startDate}
                         end={endDate}
-                        key={uuid.v4()}
+                        key={uuidv4()}
                         monitor={monitor}
                         data={logs}
                         statuses={statuses}
@@ -599,7 +643,7 @@ export class MonitorDetail extends Component {
                                     <MonitorChart
                                         start={startDate}
                                         end={endDate}
-                                        key={uuid.v4()}
+                                        key={uuidv4()}
                                         monitor={monitor}
                                         data={logs}
                                         statuses={statuses}
@@ -648,6 +692,19 @@ export class MonitorDetail extends Component {
                                                         nextClicked={
                                                             this.nextClicked
                                                         }
+                                                        page={
+                                                            this.state[
+                                                                monitor._id
+                                                            ]
+                                                                ? this.state[
+                                                                      monitor
+                                                                          ._id
+                                                                  ]
+                                                                : 1
+                                                        }
+                                                        numberOfPage={
+                                                            numberOfPage
+                                                        }
                                                     />
                                                 </div>
                                             </div>
@@ -665,7 +722,7 @@ export class MonitorDetail extends Component {
                                 <MonitorChart
                                     start={startDate}
                                     end={endDate}
-                                    key={uuid.v4()}
+                                    key={uuidv4()}
                                     monitor={monitor}
                                     data={logs}
                                     statuses={statuses}
@@ -709,6 +766,14 @@ export class MonitorDetail extends Component {
                                                     nextClicked={
                                                         this.nextClicked
                                                     }
+                                                    page={
+                                                        this.state[monitor._id]
+                                                            ? this.state[
+                                                                  monitor._id
+                                                              ]
+                                                            : 1
+                                                    }
+                                                    numberOfPage={numberOfPage}
                                                 />
                                             </div>
                                         </div>

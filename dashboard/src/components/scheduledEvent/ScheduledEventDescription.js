@@ -19,7 +19,8 @@ function ScheduledEventDescription({
     monitorList,
     resolveScheduledEvent,
     resolving,
-    match,
+    slug,
+    projectId,
 }) {
     const handleMonitorListing = (event, monitorState) => {
         const affectedMonitors = [];
@@ -55,8 +56,7 @@ function ScheduledEventDescription({
 
     const handleResolve = () => {
         const { _id } = scheduledEvent;
-        const { params } = match;
-        resolveScheduledEvent(params.projectId, _id);
+        resolveScheduledEvent(projectId, _id);
     };
 
     const startDate = moment(scheduledEvent.startDate).format();
@@ -95,7 +95,7 @@ function ScheduledEventDescription({
                                     type="button"
                                     onClick={() =>
                                         history.push(
-                                            `/dashboard/project/${scheduledEvent.projectId._id}/scheduledEvents/${scheduledEvent._id}`
+                                            `/dashboard/project/${slug}/scheduledEvents/${scheduledEvent._id}`
                                         )
                                     }
                                 >
@@ -360,7 +360,8 @@ ScheduledEventDescription.propTypes = {
     monitorList: PropTypes.array,
     resolveScheduledEvent: PropTypes.func,
     resolving: PropTypes.bool,
-    match: PropTypes.object,
+    slug: PropTypes.string,
+    projectId: PropTypes.string,
 };
 
 ScheduledEventDescription.defaultProps = {
@@ -373,6 +374,9 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = state => {
     return {
         resolving: state.scheduledEvent.resolveScheduledEvent.requesting,
+        slug: state.project.currentProject && state.project.currentProject.slug,
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
     };
 };
 

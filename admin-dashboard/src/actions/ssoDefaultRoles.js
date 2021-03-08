@@ -113,6 +113,7 @@ export const deleteSsoDefaultRole = ssoId => async dispatch => {
     try {
         const response = await deleteApi(`ssoDefaultRoles/${ssoId}`);
         dispatch(deleteSsoDefaultRoleSuccess(response.data));
+        dispatch(fetchSsoDefaultRoles());
     } catch (error) {
         let errorMsg;
         if (error && error.response && error.response.data)
@@ -210,5 +211,17 @@ export const updateSsoDefaultRole = ({ id, data }) => async dispatch => {
         }
         dispatch(updateSsoDefaultRoleError(errorMsg));
         return false;
+    }
+};
+
+export const paginate = type => {
+    if (type === 'next') {
+        return {
+            type: types.NEXT_PAGE,
+        };
+    } else if (type === 'prev') {
+        return {
+            type: types.PREV_PAGE,
+        };
     }
 };

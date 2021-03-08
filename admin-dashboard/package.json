@@ -33,7 +33,7 @@
         "react-redux": "^5.0.7",
         "react-router-dom": "^4.2.2",
         "react-router-redux": "^4.0.8",
-        "react-scripts": "^3.4.4",
+        "react-scripts": "^4.0.3",
         "react-select": "^3.2.0",
         "react-select-fyipe": "^2.1.8",
         "react-widgets": "^4.4.9",
@@ -52,7 +52,7 @@
         "enterprise-test": "jest --forceExit --runInBand ./src/test/*.test.enterprise.js",
         "start": "node index.js",
         "audit": "npm audit --audit-level=low",
-        "preinstall": "npx npm-force-resolutions",
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,loadable-components,js-uuid,acorn,@beam-australia/react-env'"
     },
     "devDependencies": {
@@ -66,6 +66,7 @@
         "npm-force-resolutions": "0.0.3",
         "should": "^13.2.3"
     },
+    "resolutions": {},
     "jest": {
         "collectCoverageFrom": [
             "src/**/*.js",

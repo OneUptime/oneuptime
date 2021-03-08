@@ -74,6 +74,9 @@ export class EmailLogsList extends Component {
             canNext = false;
             canPrev = false;
         }
+        const numberOfPages = Math.ceil(
+            parseInt(this.props.emailLogs && this.props.emailLogs.count) / 10
+        );
         return (
             <div onKeyDown={this.handleKeyBoard}>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -117,6 +120,16 @@ export class EmailLogsList extends Component {
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Subject</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Server Sent From</span>
                                         </span>
                                     </div>
                                 </td>
@@ -268,6 +281,27 @@ export class EmailLogsList extends Component {
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root">
                                                                 <span>
+                                                                    {emailLog.smtpServer
+                                                                        ? emailLog.smtpServer ===
+                                                                          'internal'
+                                                                            ? 'Internal'
+                                                                            : emailLog.smtpServer
+                                                                        : 'N/A'}
+                                                                </span>
+                                                            </div>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
+                                            >
+                                                <div className="db-ListViewItem-link">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <div className="Box-root">
+                                                                <span>
                                                                     <button
                                                                         onClick={() => {
                                                                             this.props.openModal(
@@ -379,11 +413,16 @@ export class EmailLogsList extends Component {
                                 >
                                     {this.props.emailLogs &&
                                     this.props.emailLogs.count
-                                        ? this.props.emailLogs.count +
-                                          (this.props.emailLogs &&
-                                          this.props.emailLogs.count > 1
-                                              ? ' Logs'
-                                              : ' Log')
+                                        ? `Page ${
+                                              this.props.page
+                                          } of ${numberOfPages} (${this.props
+                                              .emailLogs &&
+                                              this.props.emailLogs.count} Log${
+                                              this.props.emailLogs &&
+                                              this.props.emailLogs.count === 1
+                                                  ? ''
+                                                  : 's'
+                                          })`
                                         : null}
                                 </span>
                             </span>
@@ -486,6 +525,7 @@ EmailLogsList.propTypes = {
     ]),
     requesting: PropTypes.bool,
     openModal: PropTypes.func.isRequired,
+    page: PropTypes.number,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(EmailLogsList);

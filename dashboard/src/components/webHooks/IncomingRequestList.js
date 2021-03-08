@@ -20,6 +20,7 @@ import { fetchBasicIncidentSettings } from '../../actions/incidentBasicsSettings
 class IncomingRequestList extends React.Component {
     state = {
         copied: false,
+        page: 1,
     };
 
     handleCopyToClipboard = (requestId, text) => {
@@ -81,12 +82,14 @@ class IncomingRequestList extends React.Component {
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             limit
         );
+        this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
     nextClicked = (projectId, skip, limit) => {
         const { fetchAllIncomingRequest } = this.props;
 
         fetchAllIncomingRequest(projectId, skip + limit, limit);
+        this.setState({ page: this.state.page + 1 });
     };
 
     handleIncomingRequests = () => {
@@ -253,6 +256,7 @@ class IncomingRequestList extends React.Component {
 
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;
+        const numberOfPages = Math.ceil(parseInt(count) / 10);
 
         return (
             <div className="bs-ContentSection-content Box-root">
@@ -339,10 +343,21 @@ class IncomingRequestList extends React.Component {
                                         id="requestCount"
                                         className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                     >
-                                        {this.props.count +
-                                            (this.props.count > 1
-                                                ? '  Requests'
-                                                : ' Request')}
+                                        {numberOfPages > 0
+                                            ? `Page ${
+                                                  this.state.page
+                                              } of ${numberOfPages} (${
+                                                  this.props.count
+                                              } Request${
+                                                  this.props.count === 1
+                                                      ? ''
+                                                      : 's'
+                                              })`
+                                            : `${this.props.count} Request${
+                                                  this.props.count === 1
+                                                      ? ''
+                                                      : 's'
+                                              }`}
                                     </span>
                                 </span>
                             </span>

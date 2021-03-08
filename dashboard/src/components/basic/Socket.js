@@ -6,7 +6,7 @@ import io from 'socket.io-client';
 import RemovedFromSubProjectModal from '../modals/RemovedFromSubProject';
 import RemovedFromProjectModal from '../modals/RemovedFromProject';
 import { User, API_URL } from '../../config';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import {
     incidentresolvedbysocket,
@@ -31,6 +31,7 @@ import {
     resolvescheduledevent,
     slacountdown,
     updateAlllighthouselogbysocket,
+    updateTimelineBySocket,
 } from '../../actions/socket';
 import DataPathHoC from '../DataPathHoC';
 import {
@@ -99,6 +100,9 @@ class SocketApp extends Component {
                 );
                 socket.removeListener(
                     `addIncidentNote-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `incidentTimeline-${this.props.project._id}`
                 );
                 socket.removeListener(
                     `createMonitor-${this.props.project._id}`
@@ -559,7 +563,7 @@ class SocketApp extends Component {
                     );
                     if (!projectUser) {
                         thisObj.props.openModal({
-                            id: uuid.v4(),
+                            id: uuidv4(),
                             onClose: () => '',
                             onConfirm: () => new Promise(resolve => resolve()),
                             content: RemovedFromProjectModal,
@@ -575,7 +579,7 @@ class SocketApp extends Component {
                     const subProjectName = subProject ? subProject.name : '';
                     if (!subProjectUser) {
                         thisObj.props.openModal({
-                            id: uuid.v4(),
+                            id: uuidv4(),
                             onClose: () => '',
                             onConfirm: () => new Promise(resolve => resolve()),
                             content: DataPathHoC(RemovedFromSubProjectModal, {
@@ -590,6 +594,11 @@ class SocketApp extends Component {
                 data
             ) {
                 thisObj.props.addIncidentNote(data);
+            });
+            socket.on(`incidentTimeline-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.updateTimelineBySocket(data);
             });
             socket.on(`createMonitor-${this.props.project._id}`, function(
                 data
@@ -673,6 +682,7 @@ const mapDispatchToProps = dispatch =>
             openModal,
             closeModal,
             addIncidentNote,
+            updateTimelineBySocket,
             createMonitor,
             createScheduledEventSuccess,
             updateScheduledEventSuccess,

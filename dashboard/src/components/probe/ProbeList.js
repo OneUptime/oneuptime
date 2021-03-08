@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import ProbeStatus from './ProbeStatus';
 import { openModal, closeModal } from '../../actions/modal';
@@ -13,7 +13,7 @@ import DataPathHoC from '../DataPathHoC';
 export class ProbeList extends Component {
     constructor(props) {
         super(props);
-        this.state = { ProbeDetailModalId: uuid.v4() };
+        this.state = { ProbeDetailModalId: uuidv4() };
     }
 
     render() {
@@ -59,6 +59,9 @@ export class ProbeList extends Component {
             canNext = false;
             canPrev = false;
         }
+        const numberOfPages = Math.ceil(
+            parseInt(this.props.probesList && this.props.probesList.count) / 10
+        );
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -293,9 +296,18 @@ export class ProbeList extends Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {this.props.probesList &&
                                     this.props.probesList.count
-                                        ? this.props.probesList.count
-                                        : '0'}{' '}
-                                    Probes
+                                        ? `Page ${
+                                              this.props.page
+                                          } of ${numberOfPages} (${this.props
+                                              .probesList &&
+                                              this.props.probesList
+                                                  .count} Probe${
+                                              this.props.probesList &&
+                                              this.props.probesList.count === 1
+                                                  ? ''
+                                                  : 's'
+                                          })`
+                                        : null}
                                 </span>
                             </span>
                         </span>
@@ -370,6 +382,7 @@ ProbeList.propTypes = {
     nextClicked: PropTypes.func,
     openModal: PropTypes.func,
     closeModal: PropTypes.func,
+    page: PropTypes.number,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProbeList);

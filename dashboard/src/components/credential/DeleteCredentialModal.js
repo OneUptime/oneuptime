@@ -37,7 +37,7 @@ class DeleteCredentialModal extends Component {
             getSecuritiesError,
         } = this.props;
 
-        const { credentialType, projectId } = propArr[0];
+        const { credentialType } = propArr[0];
         const securityType =
             (credentialType === 'git' && 'application') ||
             (credentialType === 'docker' && 'container');
@@ -96,7 +96,7 @@ class DeleteCredentialModal extends Component {
                                                         className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                     >
                                                         <a
-                                                            href={`/dashboard/project/${projectId}/${security.componentId._id}/security/${securityType}/${security._id}`}
+                                                            href={`/dashboard/project/${this.props.slug}/${security.componentId._id}/security/${securityType}/${security._id}`}
                                                         >
                                                             {security.name}
                                                         </a>
@@ -217,6 +217,7 @@ DeleteCredentialModal.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     securities: PropTypes.array,
+    slug: PropTypes.string,
 };
 
 const mapStateToProps = (state, ownProps) => {
@@ -231,6 +232,7 @@ const mapStateToProps = (state, ownProps) => {
         isRequesting: state.credential.deleteCredential.requesting,
         deleteCredentialError: state.credential.deleteCredential.error,
         getSecurities: state.credential.getSecurities.requesting,
+        slug: state.project.currentProject && state.project.currentProject.slug,
         getSecuritiesError: state.credential.getSecurities.error,
         securities,
     };

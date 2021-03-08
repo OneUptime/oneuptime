@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { history } from '../../store';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from 'amplitude-js';
 import { bindActionCreators } from 'redux';
@@ -27,8 +27,8 @@ class ApplicationLogDetail extends Component {
         this.props = props;
         this.state = {
             deleting: false,
-            deleteModalId: uuid.v4(),
-            openApplicationLogKeyModalId: uuid.v4(),
+            deleteModalId: uuidv4(),
+            openApplicationLogKeyModalId: uuidv4(),
             filter: '',
             currentDate: moment(),
             logType: { value: '', label: 'All Logs' },
@@ -41,7 +41,7 @@ class ApplicationLogDetail extends Component {
             this.props.index
         );
         history.push(
-            `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/application-log`
+            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/application-log`
         );
         // crashing the application
         // if (SHOULD_LOG_ANALYTICS) {
@@ -99,7 +99,7 @@ class ApplicationLogDetail extends Component {
         const { currentProject, componentId, applicationLog } = this.props;
         history.push(
             '/dashboard/project/' +
-                currentProject._id +
+                currentProject.slug +
                 '/' +
                 componentId +
                 '/application-logs/' +

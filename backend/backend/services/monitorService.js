@@ -121,12 +121,19 @@ module.exports = {
                         data.type === 'server-monitor' ||
                         data.type === 'script' ||
                         data.type === 'incomingHttpRequest' ||
+                        data.type === 'kubernetes' ||
                         data.type === 'ip'
                     ) {
                         monitor.criteria = _.isEmpty(data.criteria)
                             ? MonitorCriteriaService.create(data.type)
                             : data.criteria;
                     }
+
+                    if (data.type === 'kubernetes') {
+                        monitor.kubernetesConfig = data.kubernetesConfig;
+                        monitor.kubernetesNamespace = data.kubernetesNamespace;
+                    }
+
                     if (data.type === 'api') {
                         if (data.method && data.method.length)
                             monitor.method = data.method;
@@ -142,6 +149,10 @@ module.exports = {
                     if (data.type === 'url') {
                         monitor.siteUrls = [monitor.data.url];
                     }
+                    let name = data.name;
+                    name = slugify(name);
+                    name = `${name}-${generate('1234567890', 8)}`;
+                    monitor.slug = name.toLowerCase();
                     const savedMonitor = await monitor.save();
                     monitor = await _this.findOneBy({ _id: savedMonitor._id });
                     if (data.type === 'manual') {
@@ -177,6 +188,10 @@ module.exports = {
 
             await this.updateMonitorSlaStat(query);
             if (data) {
+                let name = data.name;
+                name = slugify(name);
+                name = `${name}-${generate('1234567890', 8)}`;
+                data.slug = name.toLowerCase();
                 await MonitorModel.findOneAndUpdate(
                     query,
                     { $set: data },
@@ -501,6 +516,7 @@ module.exports = {
                                                 'url',
                                                 'api',
                                                 'incomingHttpRequest',
+                                                'kubernetes',
                                                 'ip',
                                             ],
                                         },
@@ -1351,6 +1367,8 @@ const NotificationService = require('./notificationService');
 const ProjectService = require('./projectService');
 const PaymentService = require('./paymentService');
 const IncidentService = require('./incidentService');
+const generate = require('nanoid/generate');
+const slugify = require('slugify');
 const AlertService = require('./alertService');
 const StatusPageService = require('./statusPageService');
 const ScheduleService = require('./scheduleService');

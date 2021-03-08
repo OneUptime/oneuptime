@@ -106,6 +106,10 @@ export function loginUser(values) {
             function(error) {
                 if (error.message === 'Verify your email first.') {
                     dispatch(resendToken(values));
+                    dispatch({
+                        type: types.LOGIN_STATE,
+                        payload: values,
+                    });
                 }
                 if (error && error.response && error.response.data)
                     error = error.response.data;

@@ -19,6 +19,7 @@ class EmailLogs extends React.Component {
 
         this.state = {
             searchBox: null,
+            page: 1,
         };
     }
 
@@ -35,6 +36,7 @@ class EmailLogs extends React.Component {
         } else {
             fetchEmailLogs((skip || 0) > (limit || 10) ? skip - limit : 0, 10);
         }
+        this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
     nextClicked = (skip, limit) => {
@@ -46,6 +48,7 @@ class EmailLogs extends React.Component {
         } else {
             fetchEmailLogs(skip + limit, 10);
         }
+        this.setState({ page: this.state.page + 1 });
     };
 
     ready = () => {
@@ -59,6 +62,7 @@ class EmailLogs extends React.Component {
 
         this.setState({ searchBox: value });
         searchEmailLogs(value, 0, 10);
+        this.setState({ page: 1 });
     };
 
     render() {
@@ -169,6 +173,7 @@ class EmailLogs extends React.Component {
                                                 requesting={
                                                     this.props.requesting
                                                 }
+                                                page={this.state.page}
                                             />
                                         </div>
                                     </div>

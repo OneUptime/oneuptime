@@ -14,13 +14,13 @@ import { logEvent } from '../analytics';
 import { IS_SAAS_SERVICE } from '../config';
 import { history } from '../store';
 import DataPathHoC from '../components/DataPathHoC';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 class ComponentSettingsAdvanced extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            deleteComponentModalId: uuid.v4(),
+            deleteComponentModalId: uuidv4(),
         };
     }
 
@@ -33,9 +33,7 @@ class ComponentSettingsAdvanced extends Component {
             this.props.component.projectId._id ||
             this.props.component.projectId;
         const promise = this.props.deleteComponent(componentId, projectId);
-        history.push(
-            `/dashboard/project/${this.props.component.projectId._id}/components`
-        );
+        history.push(`/dashboard/project/${this.props.slug}/components`);
         if (IS_SAAS_SERVICE) {
             logEvent('EVENT: DASHBOARD > COMPONENT > COMPONENT DELETED', {
                 ProjectId: this.props.component.projectId._id,
@@ -145,6 +143,7 @@ ComponentSettingsAdvanced.displayName = 'ComponentSettingsAdvanced';
 ComponentSettingsAdvanced.propTypes = {
     showDeleteModal: PropTypes.func,
     openModal: PropTypes.func,
+    slug: PropTypes.string,
     component: PropTypes.object.isRequired,
     deleteComponent: PropTypes.func,
     location: PropTypes.shape({
@@ -165,6 +164,7 @@ const mapStateToProps = (state, ownProps) => {
 
     return {
         component: component,
+        slug: state.project.currentProject && state.project.currentProject.slug,
     };
 };
 

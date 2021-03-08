@@ -1,3 +1,4 @@
+{{- if .Values.haraka.domain -}}
 ############-----HARAKA----#############################
 apiVersion: apps/v1
 kind: Deployment
@@ -29,8 +30,8 @@ spec:
                         value: {{ .Values.haraka.password }}
                       - name: DOMAIN
                         value: {{ .Values.haraka.domain }}
-                      - name: PRIVATE_KEY
-                        value: {{ .Values.haraka.privateKey }}
+                      - name: DKIM_PRIVATE_KEY
+                        value: {{ .Values.haraka.dkimPrivateKey }}
                       - name: TLS_CERT
                         value: {{ .Values.haraka.tlsCert }}
                       - name: TLS_KEY
@@ -61,3 +62,4 @@ spec:
     type: ClusterIP
 ---
 ##########################################################
+{{- end -}}

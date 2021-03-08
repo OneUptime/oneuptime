@@ -10,16 +10,16 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from '../../analytics';
 import IncidentMessageThread from './IncidentMessageThread';
 import { openModal } from '../../actions/modal';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 export class IncidentInternal extends Component {
     constructor(props) {
         super(props);
         this.props = props;
         this.state = {
-            createMessageModalId: uuid.v4(),
-            editMessageModalId: uuid.v4(),
-            deleteMessageModalId: uuid.v4(),
+            createMessageModalId: uuidv4(),
+            editMessageModalId: uuidv4(),
+            deleteMessageModalId: uuidv4(),
         };
     }
     olderInternalMessage = () => {
@@ -141,6 +141,7 @@ export class IncidentInternal extends Component {
                         editMessageModalId={editMessageModalId}
                         deleteMessageModalId={deleteMessageModalId}
                         deleteIncidentMessage={this.deleteInvestigationMessage}
+                        slug={this.props.currentProject.slug}
                     />
                 </div>
             </div>
