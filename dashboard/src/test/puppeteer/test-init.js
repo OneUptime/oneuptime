@@ -108,8 +108,7 @@ module.exports = {
         await page.click('button#profile-menu');
         await page.waitForSelector('button#logout-button');
         await page.click('button#logout-button');
-        await page.reload();
-        await page.waitForTimeout(3000);
+        await page.reload({waitUntil:'networkidle0'});        
     },
     adminLogout: async function(page) {
         await page.goto(utils.ADMIN_DASHBOARD_URL);
@@ -117,8 +116,7 @@ module.exports = {
         await page.click('button#profile-menu');
         await page.waitForSelector('button#logout-button');
         await page.click('button#logout-button');
-        await page.reload();
-        await page.waitForTimeout(3000);
+        await page.reload({waitUntil:'networkidle0'});
     },
     addComponent: async function(component, page, projectName = null) {
         await page.goto(utils.DASHBOARD_URL);
@@ -263,7 +261,7 @@ module.exports = {
         page.waitForSelector('#name', { timeout: 2000 });
         await page.type('#name', callSchedule);
         await page.click('#btnCreateSchedule');
-        await page.waitForTimeout(2000);
+        await page.waitFor(2000);
     },
     addSubProject: async function(subProjectName, page) {
         const subProjectNameSelector = await page.$('#btn_Add_SubProjects');
@@ -295,7 +293,7 @@ module.exports = {
         await page.type(`#emails_${subProjectName}`, email);
         await page.click(`#${role}_${subProjectName}`);
         await page.click(`#btn_modal_${subProjectName}`);
-        await page.waitForTimeout(5000);
+        await page.waitFor(5000);
     },
     switchProject: async function(projectName, page) {
         await page.goto(utils.DASHBOARD_URL);
@@ -321,7 +319,7 @@ module.exports = {
             await page.type('input[name=project_name]', newProjectName);
             await page.click('#btnCreateProject');
         }
-        await page.waitForTimeout(5000);
+        await page.waitFor(5000);
     },
     clear: async function(selector, page) {
         const input = await page.$(selector);
@@ -336,7 +334,6 @@ module.exports = {
         if (!noOption) {
             await page.keyboard.press('Tab');
         }
-        await page.waitForTimeout(1000);
     },
     addMonitorToComponent: async function(component, monitorName, page) {
         component && (await this.addComponent(component, page));
@@ -523,7 +520,7 @@ module.exports = {
         await page.waitForSelector('#CreateIncidentPriority');
         await page.type('input[name=name]', incidentPriority);
         await page.click('#CreateIncidentPriority');
-        await page.waitForTimeout(3000);
+        await page.waitFor(3000);
     },
     addStatusPageToProject: async function(statusPageName, projectName, page) {
         const createStatusPageSelector = await page.$(
@@ -596,10 +593,10 @@ module.exports = {
         await page.waitForSelector('input[name=startDate]');
         await page.click('input[name=startDate]');
         await page.click('div.MuiDialogActions-root button:nth-child(2)');
-        await page.waitForTimeout(1000); // needed because of the date picker
+        await page.waitFor(1000); // needed because of the date picker
         await page.click('input[name=endDate]');
         await page.click('div.MuiDialogActions-root button:nth-child(2)');
-        await page.waitForTimeout(1000); // needed because of the date picker
+        await page.waitFor(1000); // needed because of the date picker
         await page.click('#createScheduledEventButton');
         await page.waitForSelector('.ball-beat', {
             hidden: true,
@@ -631,7 +628,7 @@ module.exports = {
         );
         startupOption.click();
         if (checkCard) {
-            await page.waitForTimeout(5000);
+            await page.waitFor(5000);
             await page.waitForSelector('iframe[name=__privateStripeFrame5]');
 
             const elementHandle = await page.$(
@@ -851,7 +848,7 @@ module.exports = {
         await page.type('#phone', phoneNumber);
         await page.type('#alert-limit', alertLimit);
         await page.click('button[type=submit]');
-        await page.waitForTimeout(5000);
+        await page.waitFor(5000);
         await page.reload();
         await page.waitForSelector('#account-sid');
     },
@@ -892,8 +889,7 @@ module.exports = {
     },
     gotoTab: async function(tabId, page) {
         await page.waitForSelector(`#react-tabs-${tabId}`, { visible: true });
-        await page.$eval(`#react-tabs-${tabId}`, e => e.click());
-        await page.waitForTimeout(2000);
+        await page.$eval(`#react-tabs-${tabId}`, e => e.click());        
     },
     setAlertPhoneNumber: async (phoneNumber, code, page) => {
         await page.goto(utils.DASHBOARD_URL);

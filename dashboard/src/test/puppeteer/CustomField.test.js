@@ -104,6 +104,7 @@ describe('Incident Custom Field', () => {
                     incidentFieldNumber.fieldType,
                     page
                 );
+                await page.waitForSelector('#updaCustomField',{visible:true});
                 await page.click('#updateCustomField');
                 await page.waitForSelector('#updateCustomField', {
                     hidden: true,
