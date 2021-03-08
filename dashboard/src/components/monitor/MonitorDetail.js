@@ -563,7 +563,7 @@ export class MonitorDetail extends Component {
                                             '/' +
                                             componentId +
                                             '/monitoring/' +
-                                            monitor._id
+                                            monitor.slug
                                     );
                                 }}
                             >

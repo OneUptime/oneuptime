@@ -1,10 +1,10 @@
 module.exports = {
     create: async function({ name, value }) {
         try {
-            if (name === 'smtp' && value.internalSmtp && !value.backupSmtp) {
+            if (name === 'smtp' && value.internalSmtp && !value.customSmtp) {
                 value = {
                     internalSmtp: true,
-                    backupSmtp: false,
+                    customSmtp: false,
                     'email-enabled': true,
                 };
             }
@@ -43,7 +43,7 @@ module.exports = {
                 globalConfig.name === 'smtp' &&
                 (!globalConfig.value.internalSmtp ||
                     (globalConfig.value.internalSmtp &&
-                        globalConfig.value.backupSmtp))
+                        globalConfig.value.customSmtp))
             ) {
                 globalConfig.value['password'] = await EncryptDecrypt.decrypt(
                     globalConfig.value['password'],
@@ -68,11 +68,11 @@ module.exports = {
             if (
                 query.name === 'smtp' &&
                 data.value.internalSmtp &&
-                !data.value.backupSmtp
+                !data.value.customSmtp
             ) {
                 data.value = {
                     internalSmtp: true,
-                    backupSmtp: false,
+                    customSmtp: false,
                     'email-enabled': true,
                 };
             }
@@ -125,7 +125,7 @@ module.exports = {
                 globalConfig.name === 'smtp' &&
                 (!globalConfig.value.internalSmtp ||
                     (globalConfig.value.internalSmtp &&
-                        globalConfig.value.backupSmtp))
+                        globalConfig.value.customSmtp))
             ) {
                 globalConfig.value['password'] = await EncryptDecrypt.decrypt(
                     globalConfig.value['password'],
@@ -189,7 +189,7 @@ module.exports = {
                     globalConfig.name === 'smtp' &&
                     (!globalConfig.value.internalSmtp ||
                         (globalConfig.value.internalSmtp &&
-                            globalConfig.value.backupSmtp))
+                            globalConfig.value.customSmtp))
                 ) {
                     globalConfig.value[
                         'password'
@@ -229,7 +229,7 @@ module.exports = {
                 globalConfig.name === 'smtp' &&
                 (!globalConfig.value.internalSmtp ||
                     (globalConfig.value.internalSmtp &&
-                        globalConfig.value.backupSmtp))
+                        globalConfig.value.customSmtp))
             ) {
                 globalConfig.value['password'] = await EncryptDecrypt.decrypt(
                     globalConfig.value['password'],

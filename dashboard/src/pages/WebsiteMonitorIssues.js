@@ -438,10 +438,21 @@ class WebsiteMonitorIssues extends React.Component {
 }
 
 const mapStateToProps = (state, props) => {
-    const { componentId, monitorId } = props.match.params;
+    const { componentId, monitorSlug } = props.match.params;
     const component = state.component.componentList.components.map(item => {
         return item.components.find(component => component._id === componentId);
     });
+    const projectId =
+        state.project.currentProject && state.project.currentProject._id;
+    const monitorCollection = state.monitor.monitorsList.monitors.find(el => {
+        return projectId === el._id;
+    });
+    const currentMonitor =
+        monitorCollection &&
+        monitorCollection.monitors.find(el => {
+            return el.slug === monitorSlug;
+        });
+    const monitorId = currentMonitor && currentMonitor._id;
     const monitor = state.monitor.monitorsList.monitors
         .map(monitor =>
             monitor.monitors.find(monitor => monitor._id === monitorId)
@@ -452,8 +463,7 @@ const mapStateToProps = (state, props) => {
         component,
         monitor,
         monitorState: state.monitor,
-        projectId:
-            state.project.currentProject && state.project.currentProject._id,
+        projectId,
     };
 };
 

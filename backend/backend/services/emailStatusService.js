@@ -38,6 +38,7 @@ module.exports = {
         template,
         content,
         error,
+        smtpServer,
     }) {
         try {
             let item = new EmailStatusModel();
@@ -50,6 +51,7 @@ module.exports = {
             item.template = template;
             item.content = content;
             item.error = error;
+            item.smtpServer = smtpServer;
             item = await item.save();
 
             return item;
