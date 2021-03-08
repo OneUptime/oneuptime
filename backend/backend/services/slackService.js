@@ -243,7 +243,7 @@ module.exports = {
                         color: '#fedc56',
                         title: `Incident Note Created`,
                         title_link: uri,
-                        text: `State:             ${data.incident_state}\nCreated By:   ${data.created_by}\nMonitor:        *${incident.monitorId.componentId.name} / ${incident.monitorId.name}*\nContent:        ${data.content}`,
+                        text: `State:             ${data.incident_state}\nCreated By:   ${data.created_by}\nMonitor:        *${incident.monitorId.componentId.name} / ${incident.monitorId.name}*\nText:               ${data.content}`,
                     },
                 ],
             };

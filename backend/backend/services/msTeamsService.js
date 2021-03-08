@@ -249,7 +249,7 @@ module.exports = {
                         facts: [
                             { Name: 'State', value: `${data.incident_state}` },
                             { Name: 'Created By', value: `${data.created_by}` },
-                            { Name: 'Content', value: `${data.content}` },
+                            { Name: 'Text', value: `${data.content}` },
                         ],
                     },
                 ],
