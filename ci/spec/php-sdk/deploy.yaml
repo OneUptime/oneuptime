@@ -15,7 +15,7 @@ deploy_staging_php-sdk:
         - sudo npm install -g json composer-version
         - cd php-sdk
         - json -I -f composer.json -e 'this.name="fyipe/sdk-staging"'
-        - json -I -f composer.json -e 'this.version="3.0.$CI_PIPELINE_IID"'
+        - json -I -f composer.json -e 'this.version="3.0.${CI_PIPELINE_IID}"'
         - git init
         - git add .
         - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
@@ -50,7 +50,7 @@ deploy_production_php-sdk:
         - git status
         - git checkout -f master
         - json -I -f composer.json -e 'this.name="fyipe/sdk"'
-        - json -I -f composer.json -e 'this.version="3.0.$CI_PIPELINE_IID"'
+        - json -I -f composer.json -e 'this.version="3.0.${CI_PIPELINE_IID}"'
         - git init
         - git add .
         - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
