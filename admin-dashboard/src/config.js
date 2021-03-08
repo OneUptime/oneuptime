@@ -57,7 +57,9 @@ export const API_DOCS_URL = docsUrl;
 
 export const IS_SAAS_SERVICE = booleanParser(env('IS_SAAS_SERVICE'));
 
-export const IS_INTERNAL_SMTP_DEPLOYED = booleanParser(env('SMTP_SERVER'));
+export const IS_INTERNAL_SMTP_DEPLOYED = booleanParser(
+    env('INTERNAL_SMTP_SERVER')
+);
 
 export const IS_THIRD_PARTY_BILLING =
     env('IS_THIRD_PARTY_BILLING') === 'true' ? true : false;
