@@ -271,7 +271,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
     );
 
     test(
-        'should enable enabling sms notification when incident is created, acknowledged, resolved or investigated',
+        'should enable sending sms notification when incident is created, acknowledged, resolved or investigated',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -289,38 +289,38 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 await page.waitForSelector('#sendCreatedIncidentNotificationSms', {
                     visible: true,
                 });
-                let enableCreatedIncidentNotification = await page.$eval(
+                let sendCreatedIncidentNotification = await page.$eval(
                     '#sendCreatedIncidentNotificationSms',
                     elem => elem.value
                 );
-                let enableAcknowledgedIncidentNotification = await page.$eval(
+                let sendAcknowledgedIncidentNotification = await page.$eval(
                     '#sendAcknowledgedIncidentNotificationSms',
                     elem => elem.value
                 );
-                let enableResolvedIncidentNotification = await page.$eval(
+                let sendResolvedIncidentNotification = await page.$eval(
                     '#sendResolvedIncidentNotificationSms',
                     elem => elem.value
                 );
-                let enableInvestigationNoteNotification = await page.$eval(
+                let sendInvestigationNoteNotification = await page.$eval(
                     '#enableInvestigationNoteNotificationSMS',
                     elem => elem.value
                 );
-                enableCreatedIncidentNotification = utils.parseBoolean(
-                    enableCreatedIncidentNotification
+                sendCreatedIncidentNotification = utils.parseBoolean(
+                    sendCreatedIncidentNotification
                 );
-                enableAcknowledgedIncidentNotification = utils.parseBoolean(
-                    enableAcknowledgedIncidentNotification
+                sendAcknowledgedIncidentNotification = utils.parseBoolean(
+                    sendAcknowledgedIncidentNotification
                 );
-                enableResolvedIncidentNotification = utils.parseBoolean(
-                    enableResolvedIncidentNotification
+                sendResolvedIncidentNotification = utils.parseBoolean(
+                    sendResolvedIncidentNotification
                 );
-                enableInvestigationNoteNotification = utils.parseBoolean(
-                    enableInvestigationNoteNotification
+                sendInvestigationNoteNotification = utils.parseBoolean(
+                    sendInvestigationNoteNotification
                 );
-                expect(enableCreatedIncidentNotification).toBeTruthy();
-                expect(enableAcknowledgedIncidentNotification).toBeTruthy();
-                expect(enableResolvedIncidentNotification).toBeTruthy();
-                expect(enableInvestigationNoteNotification).toBeTruthy();
+                expect(sendCreatedIncidentNotification).toBeTruthy();
+                expect(sendAcknowledgedIncidentNotification).toBeTruthy();
+                expect(sendResolvedIncidentNotification).toBeTruthy();
+                expect(sendInvestigationNoteNotification).toBeTruthy();
             });
             done();
         },
@@ -328,7 +328,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
     );
 
     test(
-        'should disable enabling sms notification when incident is created',
+        'should disable sending sms notification when incident is created',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -369,7 +369,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
     );
 
     test(
-        'should disable enabling sms notification when incident is acknowledged',
+        'should disable sending sms notification when incident is acknowledged',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -415,7 +415,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
     );
 
     test(
-        'should disable enabling sms notification when incident is resolved',
+        'should disable sending sms notification when incident is resolved',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -456,7 +456,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
     test(
-        'should disable enabling sms notification for investigation note',
+        'should disable sending sms notification for investigation note',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
