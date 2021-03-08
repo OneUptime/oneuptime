@@ -81,6 +81,20 @@ cd ..
 cd ..
 ```
 
+### Update a chart dependency
+
+```
+cd ./helm-chart/public
+#IMPORTANT: change the version of the dependent chart at `/helm-chart/public/fyipe/Chart.yaml`
+
+# Run this command.
+helm dependency update fyipe
+
+# Go back to root.
+cd ..
+cd..
+```
+
 ### Docker Images
 
 Docker Images are hosted at: https://hub.docker.com/orgs/fyipeproject/repositories and are public.

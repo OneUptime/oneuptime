@@ -1,14 +1,22 @@
 apiVersion: v1
 entries:
   mongodb:
-  - apiVersion: v1
-    appVersion: 4.2.4
-    created: "2020-04-08T18:09:03.766372+02:00"
+  - annotations:
+      category: Database
+    apiVersion: v2
+    appVersion: 4.4.4
+    created: "2021-03-07T11:19:29.272301Z"
+    dependencies:
+    - name: common
+      repository: https://charts.bitnami.com/bitnami
+      tags:
+      - bitnami-common
+      version: 1.x.x
     description: NoSQL document-oriented database that stores JSON-like documents
       with dynamic schemas, simplifying the integration of data in content-driven
       applications.
-    digest: 830154796c9c562df4a6a074729b64e998a90949eb2a0476ab19dd7bd833a6cf
-    home: https://mongodb.org
+    digest: a13fefbc49447d6ca42675d5b620fcb344bfcfccf58345c5fc5807f5471c08b4
+    home: https://github.com/bitnami/charts/tree/master/bitnami/mongodb
     icon: https://bitnami.com/assets/stacks/mongodb/img/mongodb-stack-220x234.png
     keywords:
     - mongodb
@@ -23,16 +31,19 @@ entries:
     name: mongodb
     sources:
     - https://github.com/bitnami/bitnami-docker-mongodb
+    - https://mongodb.org
     urls:
-    - charts/mongodb-7.8.10.tgz
-    version: 7.8.10
+    - charts/mongodb-10.9.1.tgz
+    version: 10.9.1
   nginx-ingress-controller:
-  - apiVersion: v1
-    appVersion: 0.30.0
-    created: "2020-04-08T18:09:03.769262+02:00"
+  - annotations:
+      category: Infrastructure
+    apiVersion: v2
+    appVersion: 0.41.2
+    created: "2021-03-07T11:19:29.274993Z"
     description: Chart for the nginx Ingress controller
-    digest: 46529208c77b4f9532ff6e95fb8734feeb4139b0d6bdee1820318ab59172e21d
-    home: https://github.com/kubernetes/ingress-nginx
+    digest: a40b7483b6b11c8d9c36db0c583d29658b2d484f04175cb31c6202f4d8be37be
+    home: https://github.com/bitnami/charts/tree/master/bitnami/nginx-ingress-controller
     icon: https://bitnami.com/assets/stacks/nginx-ingress-controller/img/nginx-ingress-controller-stack-220x234.png
     keywords:
     - ingress
@@ -47,13 +58,14 @@ entries:
     name: nginx-ingress-controller
     sources:
     - https://github.com/bitnami/bitnami-docker-nginx-ingress-controller
+    - https://github.com/kubernetes/ingress-nginx
     urls:
-    - charts/nginx-ingress-controller-5.3.9.tgz
-    version: 5.3.9
+    - charts/nginx-ingress-controller-6.0.1.tgz
+    version: 6.0.1
   redis:
   - apiVersion: v1
     appVersion: 5.0.8
-    created: "2020-04-08T18:09:03.774748+02:00"
+    created: "2021-03-07T11:19:29.277358Z"
     description: Open source, advanced key-value store. It is often referred to as
       a data structure server since keys can contain strings, hashes, lists, sets
       and sorted sets.
@@ -75,4 +87,4 @@ entries:
     urls:
     - charts/redis-10.5.11.tgz
     version: 10.5.11
-generated: "2020-04-08T18:09:03.75625+02:00"
+generated: "2021-03-07T11:19:29.266593Z"

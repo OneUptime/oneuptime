@@ -4,6 +4,7 @@
     "description": "",
     "main": "index.js",
     "scripts": {
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "start": "node --max-http-header-size=80000 index.js",
         "dev": "nodemon --max-http-header-size=80000 index.js",
         "test": "echo 'no tests'",
@@ -38,8 +39,10 @@
         "winston": "^2.4.0",
         "winston-slack-transport": "^2.0.0"
     },
+    "resolutions": {},
     "devDependencies": {
         "depcheck": "^0.9.2",
-        "nodemon": "^2.0.4"
+        "nodemon": "^2.0.4",
+        "npm-force-resolutions": "0.0.3"
     }
 }
