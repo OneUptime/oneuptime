@@ -36,7 +36,7 @@ describe('Alert Warning', () => {
                     password: data.password,
                 };
                 await init.registerUser(user, page);
-                await init.loginUser(user, page);
+               // await init.loginUser(user, page);
                 done();
             }
         );

@@ -33,7 +33,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             };
             // user
             await init.registerUser(user, page);
-            // await init.loginUser(user, page);
+            //await init.loginUser(user, page);
             done();
         });
     });
