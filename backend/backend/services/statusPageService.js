@@ -77,7 +77,13 @@ module.exports = {
         }
     },
 
-    createDomain: async function(subDomain, projectId, statusPageId) {
+    createDomain: async function(
+        subDomain,
+        projectId,
+        statusPageId,
+        cert,
+        privateKey
+    ) {
         let createdDomain = {};
 
         try {
@@ -118,6 +124,8 @@ module.exports = {
                     ...statusPage.domains,
                     {
                         domain: subDomain,
+                        cert,
+                        privateKey,
                         domainVerificationToken:
                             createdDomain._id || existingBaseDomain._id,
                     },
@@ -141,7 +149,14 @@ module.exports = {
         }
     },
 
-    updateDomain: async function(projectId, statusPageId, domainId, newDomain) {
+    updateDomain: async function(
+        projectId,
+        statusPageId,
+        domainId,
+        newDomain,
+        cert,
+        privateKey
+    ) {
         let createdDomain = {};
 
         try {
@@ -175,6 +190,12 @@ module.exports = {
             let domainList = [...statusPage.domains];
             domainList = domainList.map(eachDomain => {
                 if (String(eachDomain._id) === String(domainId)) {
+                    if (cert && cert.trim()) {
+                        eachDomain.cert = cert;
+                    }
+                    if (privateKey && privateKey.trim()) {
+                        eachDomain.privateKey = privateKey;
+                    }
                     eachDomain.domain = newDomain;
                     eachDomain.domainVerificationToken =
                         createdDomain._id || existingBaseDomain._id;
