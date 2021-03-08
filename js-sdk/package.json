@@ -10,7 +10,7 @@
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "build-dev": "npm run build && npm link",
-        "test": "mocha --require @babel/polyfill --require @babel/register",
+        "test": "mocha --require @babel/polyfill --require @babel/register \"test/**/*.test.js\" \"src/**/*.test.js\"",
         "build": "webpack --mode production",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='axios,webpack-cli,babel-loader,depcheck,mocha,webpack'"
