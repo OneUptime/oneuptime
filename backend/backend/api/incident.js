@@ -678,7 +678,7 @@ router.post(
 
                 data.created_by = user && user.name ? user.name : 'Fyipe User';
 
-                // send slack notification
+                // send slack/msteams notification
                 await IncidentService.sendIncidentNoteAdded(
                     projectId,
                     incident,

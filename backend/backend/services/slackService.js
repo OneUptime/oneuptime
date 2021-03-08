@@ -223,7 +223,10 @@ module.exports = {
             }
             return response;
         } catch (error) {
-            ErrorService.log('slackService.sendNotification', error);
+            ErrorService.log(
+                'slackService.sendIncidentNoteNotification',
+                error
+            );
             throw error;
         }
     },
@@ -259,7 +262,7 @@ module.exports = {
 
             return 'Webhook successfully pinged';
         } catch (error) {
-            ErrorService.log('slackService.notify', error);
+            ErrorService.log('slackService.noteNotify', error);
             throw error;
         }
     },

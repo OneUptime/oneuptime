@@ -847,6 +847,12 @@ module.exports = {
                 incident,
                 data
             );
+
+            await MsTeamsService.sendIncidentNoteNotification(
+                projectId,
+                incident,
+                data
+            );
         } catch (error) {
             ErrorService.log('incidentService.sendIncidentNoteAdded', error);
             throw error;
