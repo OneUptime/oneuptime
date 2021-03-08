@@ -62,5 +62,6 @@ deploy_production_php-sdk:
         refs:
             - release
             - hotfix-release
+            - feature-error-tracking
     environment:
         name: production
