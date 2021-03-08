@@ -11,7 +11,7 @@ import { ButtonSpinner } from '../basic/Loader.js';
 import { openModal, closeModal } from '../../actions/modal';
 import ExtraCharge from '../modals/ExtraCharge';
 
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import {
     CardNumberElement,
     CardExpiryElement,
@@ -68,7 +68,7 @@ class CardForm extends Component {
         cardNumber: '',
         cardCvc: '',
         cardExpiry: '',
-        registerModal: uuid.v4(),
+        registerModal: uuidv4(),
     };
 
     handleChange = event => {
@@ -192,7 +192,7 @@ class CardForm extends Component {
                                 <p>
                                     Your card will be charged $1.00 to check its
                                     billability.{' '}
-                                    <span key={() => uuid.v4()}></span>
+                                    <span key={() => uuidv4()}></span>
                                     <span
                                         style={{
                                             color: 'green',

@@ -184,7 +184,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                                   this.props
                                                                       .componentId +
                                                                   '/monitoring/' +
-                                                                  monitor._id +
+                                                                  monitor.slug +
                                                                   '/issues/' +
                                                                   log._id
                                                           )

@@ -849,9 +849,9 @@ router.get(
                             notes: statusPageEvent.notes,
                         });
                     }
+                    events = formatNotes(updatedEvents);
+                    events = checkDuplicateDates(events);
                 }
-                events = formatNotes(updatedEvents);
-                events = checkDuplicateDates(events);
             }
             return sendListResponse(req, res, events, count);
         } catch (error) {
@@ -1176,7 +1176,7 @@ function checkDuplicateDates(items, bool) {
 
     const result = [];
 
-    for (let item of items) {
+    for (const item of items) {
         const date = String(item.createdAt).slice(0, 10);
 
         if (!track[date]) {
@@ -1191,10 +1191,8 @@ function checkDuplicateDates(items, bool) {
     if (!bool) {
         return result;
     } else {
-        let trueCount, falseCount;
         const specificNumberToDisplay = 15;
-        trueCount = result.filter(num => num.style).length;
-        falseCount = result.filter(num => !num.style).length;
+        const falseCount = result.filter(num => !num.style).length;
         return specificNumberToDisplay + falseCount;
     }
 }

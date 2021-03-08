@@ -3,14 +3,9 @@
 const puppeteer = require('puppeteer');
 const should = require('should');
 const utils = require('./test-utils');
-const init = require('./test-init');
 
 let browser;
 let page;
-
-const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
-const user = { email, password };
 
 describe('Resend Verification API', () => {
     beforeAll(async () => {
@@ -40,24 +35,5 @@ describe('Resend Verification API', () => {
         });
         should.exist(html);
         html.should.containEql('No user associated with this account');
-    }, 160000);
-
-    it('Should resend verification token successfully', async () => {
-        await init.registerUser(user, page);
-        await page.goto(utils.ACCOUNTS_URL + '/user-verify/resend', {
-            waitUntil: 'networkidle2',
-        });
-        await page.waitForSelector('#email');
-        await page.click('input[name=email]');
-        await page.type('input[name=email]', email);
-        await page.click('button[type=submit]');
-        await page.waitForSelector('#resend-verification-success');
-        const html = await page.$eval('#resend-verification-success', e => {
-            return e.innerHTML;
-        });
-        should.exist(html);
-        html.should.containEql(
-            " An email is on its way to you with new verification link. Please don't forget to check spam."
-        );
     }, 160000);
 });

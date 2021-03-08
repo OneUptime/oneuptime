@@ -381,6 +381,7 @@ StatusPage.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    projectId: PropTypes.string,
 };
 
 StatusPage.displayName = 'StatusPage';

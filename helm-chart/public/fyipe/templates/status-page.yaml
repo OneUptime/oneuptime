@@ -25,12 +25,16 @@ spec:
                   env:
                     - name: FYIPE_HOST
                       value: {{ .Values.fyipe.hosts.host1.host }}
+                    - name: NODE_ENV
+                      value: 'production'
                     {{- if .Values.saas.isSaasService }}
                     - name: IS_SAAS_SERVICE
                       value: 'true'
                     {{- end }}
-                    - name: NODE_ENV
-                      value: 'production'
+                    {{- if .Values.backendProtocol }}
+                    - name: BACKEND_PROTOCOL
+                      value: {{ .Values.backendProtocol }}
+                    {{- end }}
                   ports:
                       - containerPort: {{ .Values.host.statusPagePort }}
                         hostPort: {{ .Values.host.statusPagePort }}

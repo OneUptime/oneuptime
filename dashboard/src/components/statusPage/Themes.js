@@ -85,7 +85,7 @@ export class Themes extends Component {
                                                             }}
                                                         >
                                                             <div
-                                                                className={`radio-field monitor-type-item Box-background--white`}
+                                                                className={`radio-field monitor-type-item Box-background--white bs-theme-block`}
                                                                 style={{
                                                                     border: `1px solid ${
                                                                         this
@@ -97,52 +97,56 @@ export class Themes extends Component {
                                                                     }`,
                                                                 }}
                                                             >
-                                                                <div className="radioButtonStyle">
-                                                                    <Field
-                                                                        required={
-                                                                            true
-                                                                        }
-                                                                        component="input"
-                                                                        type="radio"
-                                                                        data-testId={`type_${theme.value}`}
-                                                                        id={`type_${theme.value}`}
-                                                                        name={`theme`}
-                                                                        className="Margin-left--4 Margin-top--4"
-                                                                        validate={
-                                                                            ValidateField.select
-                                                                        }
-                                                                        disabled={
-                                                                            requesting
-                                                                        }
-                                                                        onChange={(
-                                                                            e,
-                                                                            v
-                                                                        ) => {
-                                                                            this.changeBox(
+                                                                <div className="bs-radio-input">
+                                                                    <div className="radioButtonStyle">
+                                                                        <Field
+                                                                            required={
+                                                                                true
+                                                                            }
+                                                                            component="input"
+                                                                            type="radio"
+                                                                            data-testId={`type_${theme.value}`}
+                                                                            id={`type_${theme.value}`}
+                                                                            name={`theme`}
+                                                                            className="Margin-left--4 Margin-top--4"
+                                                                            validate={
+                                                                                ValidateField.select
+                                                                            }
+                                                                            disabled={
+                                                                                requesting
+                                                                            }
+                                                                            onChange={(
                                                                                 e,
                                                                                 v
-                                                                            );
-                                                                        }}
-                                                                        value={
-                                                                            theme.value
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                                <div className="themelabel">
-                                                                    <div
-                                                                        style={{
-                                                                            fontWeight:
-                                                                                this
-                                                                                    .state
-                                                                                    .type ===
+                                                                            ) => {
+                                                                                this.changeBox(
+                                                                                    e,
+                                                                                    v
+                                                                                );
+                                                                            }}
+                                                                            value={
                                                                                 theme.value
-                                                                                    ? '600'
-                                                                                    : '400',
-                                                                        }}
-                                                                    >
-                                                                        {
-                                                                            theme.value
-                                                                        }
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                    <div className="themelabel">
+                                                                        <div
+                                                                            style={{
+                                                                                fontWeight:
+                                                                                    this
+                                                                                        .state
+                                                                                        .type ===
+                                                                                    theme.value
+                                                                                        ? '600'
+                                                                                        : '400',
+                                                                                marginLeft:
+                                                                                    '7px',
+                                                                            }}
+                                                                        >
+                                                                            {
+                                                                                theme.value
+                                                                            }
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                                 <div className="bs-screenshot">
