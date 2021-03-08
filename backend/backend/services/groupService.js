@@ -2,7 +2,7 @@ const GroupModel = require('../models/groups');
 const ErrorService = require('./errorService');
 
 module.exports = {
-    findBy: async function(query, limit, skip, sort) {
+    findBy: async function(query, limit, skip) {
         try {
             if (!skip) skip = 0;
 
@@ -16,15 +16,21 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const groups = await GroupModel.find(query)
-                .sort(sort)
+                .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name')
                 .populate({
                     path: 'teams',
-                    select: 'name',
+                    select: 'name email',
                 });
-            return groups;
+            const response = {};
+            const count = await GroupModel.countDocuments(query);
+            response.groups = groups;
+            response.count = count;
+            response.skip = skip;
+            response.limit = limit;
+            return response;
         } catch (error) {
             ErrorService.log('groupService.findBy', error);
             throw error;
@@ -55,17 +61,28 @@ module.exports = {
 
     create: async function(data) {
         try {
-            const GroupModel = new GroupModel({
+            const groupExist = await this.findOneBy({
+                name: data.name,
+                projectId: data.projectId,
+            });
+
+            if (groupExist) {
+                const error = new Error('Group already exist in this project');
+                error.code = 400;
+                ErrorService.log('groupService.create', error);
+                throw error;
+            }
+            const createGroup = new GroupModel({
                 name: data.name,
                 projectId: data.projectId,
                 createdById: data.createdById,
                 teams: data.teams,
             });
 
-            const escalation = await GroupModel.save();
-            return escalation;
+            const group = await createGroup.save();
+            return group;
         } catch (error) {
-            ErrorService.log('escalationService.create', error);
+            ErrorService.log('groupService.create', error);
             throw error;
         }
     },
@@ -122,7 +139,10 @@ module.exports = {
                 {
                     new: true,
                 }
-            );
+            ).populate({
+                path: 'teams',
+                select: 'name email',
+            });
             return group;
         } catch (error) {
             ErrorService.log('escalationService.updateOneBy', error);

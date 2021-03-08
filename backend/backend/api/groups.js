@@ -3,11 +3,13 @@ const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendListResponse = require('../middlewares/response').sendListResponse;
 const GroupService = require('../services/groupService');
+const getSubProjects = require('../middlewares/subProject').getSubProjects;
 
 const router = express.Router();
 
-router.post('/:projectId/group', getUser, isAuthorized, async (req, res) => {
+router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
     try {
         const { name, teams } = req.body;
         const { projectId } = req.params;
@@ -16,7 +18,7 @@ router.post('/:projectId/group', getUser, isAuthorized, async (req, res) => {
         if (!name) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Please provide a password',
+                message: 'Please provide a name',
             });
         }
 
@@ -32,44 +34,46 @@ router.post('/:projectId/group', getUser, isAuthorized, async (req, res) => {
     }
 });
 
-router.get('/:projectId/groups', getUser, isAuthorized, async (req, res) => {
-    try {
-        const { projectId } = req.params;
-        const { skip, limit } = req.query;
-        const groups = await GroupService.findBy(
-            {
-                projectId,
-            },
-            skip,
-            limit
-        );
-        return sendItemResponse(req, res, groups);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.get(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    getSubProjects,
+    async (req, res) => {
+        const subProjectIds = req.user.subProjects
+            ? req.user.subProjects.map(project => {
+                  return { id: project._id, name: project.name };
+              })
+            : null;
+        try {
+            const groups = await Promise.all(
+                subProjectIds.map(async project => {
+                    const groups = await GroupService.findBy({
+                        projectId: project.id,
+                    });
+                    return {
+                        groups,
+                        project,
+                    };
+                })
+            );
+            return sendListResponse(req, res, groups);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.put(
-    '/:projectId/gitCredential/:groupId',
+router.get(
+    '/:projectId/group/:groupId',
     getUser,
     isAuthorized,
     async (req, res) => {
         try {
             const { groupId } = req.params;
-            const { name, teams } = req.body;
-
-            const data = {};
-            if (name) {
-                data.name = name;
-            }
-            if (teams) {
-                data.teams = teams;
-            }
-
-            const groups = await GroupService.updateOneBy(
-                { _id: groupId },
-                data
-            );
+            const groups = await GroupService.findOneBy({
+                _id: groupId,
+            });
             return sendItemResponse(req, res, groups);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -77,8 +81,28 @@ router.put(
     }
 );
 
+router.put('/:projectId/:groupId', getUser, isAuthorized, async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        const { name, teams } = req.body;
+
+        const data = {};
+        if (name) {
+            data.name = name;
+        }
+        if (teams) {
+            data.teams = teams;
+        }
+
+        const groups = await GroupService.updateOneBy({ _id: groupId }, data);
+        return sendItemResponse(req, res, groups);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.delete(
-    '/:projectId/gitCredential/:groupId',
+    '/:projectId/:groupId',
     getUser,
     isAuthorized,
     async (req, res) => {

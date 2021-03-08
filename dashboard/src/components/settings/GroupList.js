@@ -4,20 +4,20 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import GroupTable from './GroupTable';
-import SubProjectForm from './SubProjectForm';
+import GroupForm from './addGroupModal';
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import { getSubProjects } from '../../actions/subProject';
-import PricingPlan from '../basic/PricingPlan';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import { User } from '../../config';
 import Unauthorised from '../modals/Unauthorised';
+import Badge from '../common/Badge';
 
 export class GroupList extends Component {
     constructor(props) {
         super(props);
-        this.state = { subProjectModalId: uuidv4(), page: 1 };
+        this.state = { groupModalId: uuidv4(), page: 1 };
     }
 
     componentDidMount() {
@@ -69,22 +69,33 @@ export class GroupList extends Component {
         const userId = User.getUserId();
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
-                  id: this.state.subProjectModalId,
-                  content: DataPathHoC(SubProjectForm, {
-                      subProjectModalId: this.state.subProjectModalId,
-                      editSubProject: false,
-                      subProjectId: null,
+                  id: this.state.groupModalId,
+                  content: DataPathHoC(GroupForm, {
+                      groupModalId: this.state.groupModalId,
+                      projectModa: this.props.project,
+                      editGroup: false,
+                      subProjectId: this.props.project,
                       subProjectTitle: null,
+                      projectId: this.props.project.id,
+                      parentProject: this.props.parentProject,
                   }),
               })
             : openModal({
-                  id: this.state.subProjectModalId,
+                  id: this.state.groupModalId,
                   content: DataPathHoC(Unauthorised),
               });
     };
 
     render() {
-        const { limit, skip, count, subProjectState } = this.props;
+        const {
+            limit,
+            skip,
+            count,
+            subProjectState,
+            groups,
+            project,
+            parentProject,
+        } = this.props;
         const { subProjects } = subProjectState;
         const canNext = count > skip + limit ? false : true;
         const canPrev = skip <= 0 ? true : false;
@@ -97,16 +108,30 @@ export class GroupList extends Component {
                     <div className="bs-ContentSection Card-root Card-shadow--medium">
                         <div className="Box-root">
                             <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                <div className="Box-root Padding-top--20">
+                                    <Badge
+                                        color={parentProject ? 'red' : 'blue'}
+                                    >
+                                        {parentProject
+                                            ? 'Project'
+                                            : project.name}
+                                    </Badge>
+                                </div>
                                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                         <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                            <span>Sub Projects</span>
+                                            <span>
+                                                {parentProject
+                                                    ? 'Project'
+                                                    : project.name}{' '}
+                                                Groups
+                                            </span>
                                         </span>
                                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                             <span>
-                                                Subprojects let’s you have
-                                                flexible access controls between
-                                                Fyipe resources and your team.
+                                                Here are all the Groups which
+                                                belong to {` ${project.name} `}{' '}
+                                                Project
                                             </span>
                                         </span>
                                     </div>
@@ -123,24 +148,17 @@ export class GroupList extends Component {
                                                 className="Button bs-ButtonLegacy ActionIconParent"
                                                 type="button"
                                             >
-                                                <PricingPlan
-                                                    plan="Growth"
-                                                    hideChildren={false}
-                                                >
-                                                    <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                        <div className="Box-root Margin-right--8">
-                                                            <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
-                                                        </div>
-                                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
-                                                            <span>
-                                                                Add Subproject
-                                                            </span>
-                                                            <span className="new-btn__keycode">
-                                                                N
-                                                            </span>
-                                                        </span>
+                                                <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                                                     </div>
-                                                </PricingPlan>
+                                                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
+                                                        <span>Add Group</span>
+                                                        <span className="new-btn__keycode">
+                                                            N
+                                                        </span>
+                                                    </span>
+                                                </div>
                                             </button>
                                         </div>
                                     </div>
@@ -160,10 +178,7 @@ export class GroupList extends Component {
                                                     Name
                                                 </div>
                                                 <div className="bs-ObjectList-cell">
-                                                    Project Id
-                                                </div>
-                                                <div className="bs-ObjectList-cell">
-                                                    Created
+                                                    Members
                                                 </div>
                                                 <div
                                                     className="bs-ObjectList-cell"
@@ -175,31 +190,30 @@ export class GroupList extends Component {
                                                     Actions
                                                 </div>
                                             </header>
-                                            {subProjects &&
-                                            subProjects.length > 0
-                                                ? subProjects.map(
-                                                      (subProject, i) => {
-                                                          return (
-                                                              <GroupTable
-                                                                  subProject={
-                                                                      subProject
-                                                                  }
-                                                                  key={
-                                                                      subProject._id
-                                                                  }
-                                                                  loop={i}
-                                                              />
-                                                          );
-                                                      }
-                                                  )
+                                            {groups && groups.length > 0
+                                                ? groups.map((group, i) => {
+                                                      return (
+                                                          <GroupTable
+                                                              group={group}
+                                                              projectId={
+                                                                  group
+                                                                      .projectId
+                                                                      ._id
+                                                              }
+                                                              
+                                                              key={
+                                                                  group._id
+                                                              }
+                                                              loop={i}
+                                                          />
+                                                      );
+                                                  })
                                                 : ''}
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <ShouldRender
-                                if={subProjects && subProjects.length <= 0}
-                            >
+                            <ShouldRender if={groups && groups.length <= 0}>
                                 <div
                                     className="Flex-flex Flex-alignItems--center Flex-justifyContent--center"
                                     style={{
@@ -208,8 +222,7 @@ export class GroupList extends Component {
                                         padding: '0 10px',
                                     }}
                                 >
-                                    You don&#39;t have any sub project at this
-                                    time!
+                                    You don&#39;t have any group at this time!
                                 </div>
                             </ShouldRender>
                             <div
@@ -246,10 +259,10 @@ export class GroupList extends Component {
                                             {numbersOfPage > 0
                                                 ? `Page ${
                                                       this.state.page
-                                                  } of ${numbersOfPage} (${count} Sub Project${
+                                                  } of ${numbersOfPage} (${count} Group${
                                                       count === 1 ? '' : 's'
                                                   })`
-                                                : `${count} Sub Project${
+                                                : `${count} Group${
                                                       count === 1 ? '' : 's'
                                                   }`}
                                         </span>
@@ -318,6 +331,9 @@ GroupList.propTypes = {
     subProjectState: PropTypes.object,
     modalId: PropTypes.string,
     modalList: PropTypes.array,
+    project: PropTypes.object,
+    parentProject: PropTypes.bool,
+    groups: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -336,26 +352,17 @@ const mapStateToProps = state => {
         state.subProject.subProjects && state.subProject.subProjects.limit
             ? state.subProject.subProjects.limit
             : 10;
-    let count =
-        state.subProject.subProjects && state.subProject.subProjects.count
-            ? state.subProject.subProjects.count
-            : 0;
-
     if (skip && typeof skip === 'string') {
         skip = parseInt(skip, 10);
     }
     if (limit && typeof limit === 'string') {
         limit = parseInt(limit, 10);
     }
-    if (count && typeof count === 'string') {
-        count = parseInt(count, 10);
-    }
     return {
         subProjectState: state.subProject.subProjects,
         currentProject: state.project.currentProject,
         skip,
         limit,
-        count,
         modalId: state.modal.modals[0] ? state.modal.modals[0].id : '',
         modalList: state.modal.modals,
     };

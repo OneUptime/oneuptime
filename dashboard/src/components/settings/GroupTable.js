@@ -2,87 +2,47 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import moment from 'moment';
-import SubProjectForm from './SubProjectForm';
+import GroupForm from './addGroupModal';
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import RemoveSubProject from '../modals/RemoveSubProject';
-import SubProjectApiKey from '../modals/SubProjectApiKey';
-import { User } from '../../config';
-import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
-import Unauthorised from '../modals/Unauthorised';
-import isSubProjectViewer from '../../utils/isSubProjectViewer';
 
 export class GroupTable extends Component {
     constructor(props) {
         super(props);
-        this.state = { subProjectModalId: uuidv4() };
+        this.state = { groupModalId: uuidv4() };
     }
 
-    handleRevealAPIKey = userId => {
-        const { openModal, subProject, currentProject } = this.props;
-        isOwnerOrAdmin(userId, currentProject) &&
-        !isSubProjectViewer(userId, subProject)
-            ? openModal({
-                  id: this.state.subProjectModalId,
-                  content: DataPathHoC(SubProjectApiKey, {
-                      subProjectModalId: this.state.subProjectModalId,
-                      subProjectId: subProject._id,
-                      subProjectTitle: subProject.name,
-                  }),
-              })
-            : openModal({
-                  id: this.state.subProjectModalId,
-                  content: DataPathHoC(Unauthorised),
-              });
+    handleEdit = () => {
+        const { openModal, group, projectId } = this.props;
+        openModal({
+            id: this.state.groupModalId,
+            content: DataPathHoC(GroupForm, {
+                groupModalId: this.state.groupModalId,
+                editGroup: true,
+                projectId: projectId,
+                groupName: group.name,
+                teams: group.teams,
+                groupId: group._id,
+            }),
+        });
     };
 
-    handleEdit = userId => {
-        const { openModal, subProject, currentProject } = this.props;
-        isOwnerOrAdmin(userId, currentProject) &&
-        !isSubProjectViewer(userId, subProject)
-            ? openModal({
-                  id: this.state.subProjectModalId,
-                  content: DataPathHoC(SubProjectForm, {
-                      subProjectModalId: this.state.subProjectModalId,
-                      editSubProject: true,
-                      subProjectId: subProject._id,
-                      subProjectTitle: subProject.name,
-                  }),
-              })
-            : openModal({
-                  id: this.state.subProjectModalId,
-                  content: DataPathHoC(Unauthorised),
-              });
-    };
-
-    handleRemove = userId => {
-        const { openModal, subProject, currentProject } = this.props;
-        isOwnerOrAdmin(userId, currentProject) &&
-        !isSubProjectViewer(userId, subProject)
-            ? openModal({
-                  id: this.state.subProjectModalId,
-                  content: DataPathHoC(RemoveSubProject, {
-                      subProjectModalId: this.state.subProjectModalId,
-                      subProjectId: subProject._id,
-                      subProjectTitle: subProject.name,
-                  }),
-              })
-            : openModal({
-                  id: this.state.subProjectModalId,
-                  content: DataPathHoC(Unauthorised),
-              });
+    handleRemove = () => {
+        const { openModal, group, projectId } = this.props;
+        openModal({
+            id: this.state.groupModalId,
+            content: DataPathHoC(RemoveSubProject, {
+                subProjectModalId: this.state.groupModalId,
+                projectId: projectId,
+                groupTitle: group.name,
+            }),
+        });
     };
 
     render() {
-        const { subProject, subProjectState } = this.props;
-        const disabled =
-            subProjectState.subProjects.requesting ||
-            subProjectState.newSubProject.requesting ||
-            subProjectState.renameSubProject.requesting;
-        const userId = User.getUserId();
-
+        const { group, disabled } = this.props;
         return (
             <div className="bs-ObjectList-row db-UserListRow">
                 <div
@@ -91,9 +51,9 @@ export class GroupTable extends Component {
                 >
                     <div
                         className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
-                        id={`sub_project_name_${subProject.name}`}
+                        id={`sub_project_name_${group.name}`}
                     >
-                        {subProject.name}
+                        {group.name}
                     </div>
                 </div>
                 <div
@@ -101,20 +61,19 @@ export class GroupTable extends Component {
                     style={{ padding: '10px' }}
                 >
                     <div className="bs-ObjectList-cell-row">
-                        {subProject.parentProjectId &&
-                        subProject.parentProjectId._id
-                            ? subProject.parentProjectId._id
-                            : ''}
-                    </div>
-                </div>
-                <div
-                    className="bs-ObjectList-cell bs-u-v-middle"
-                    style={{ padding: '10px' }}
-                >
-                    <div className="bs-ObjectList-cell-row">
-                        <span>
-                            {moment(subProject.createdAt).format('lll')}
-                        </span>
+                        {group.teams.length > 0
+                            ? group.teams.length === 1
+                                ? group.teams[0].name
+                                    ? group.teams[0].name
+                                    : group.teams[0].email
+                                : `${
+                                      group.teams[0].name
+                                          ? group.teams[0].name
+                                          : group.teams[0].email
+                                  } and ${group.teams.length - 1} other${
+                                      group.teams.length - 1 === 1 ? '' : ''
+                                  }`
+                            : `No Team member added yet`}
                     </div>
                 </div>
                 <div
@@ -125,21 +84,21 @@ export class GroupTable extends Component {
                         <div className="Flex-flex Flex-alignContent--spaceBetween">
                             <button
                                 title="edit"
-                                id={`sub_project_edit_${subProject.name}`}
+                                id={`group_edit_${group.name}`}
                                 disabled={disabled}
                                 className="bs-Button bs-DeprecatedButton Margin-left--8"
                                 type="button"
-                                onClick={() => this.handleEdit(userId)}
+                                onClick={() => this.handleEdit()}
                             >
                                 <span>Edit</span>
                             </button>
                             <button
                                 title="delete"
-                                id={`sub_project_delete_${subProject.name}`}
+                                id={`group_delete_${group.name}`}
                                 disabled={disabled}
                                 className="bs-Button bs-DeprecatedButton Margin-left--8"
                                 type="button"
-                                onClick={() => this.handleRemove(userId)}
+                                onClick={() => this.handleRemove()}
                             >
                                 <span>Remove</span>
                             </button>
@@ -155,9 +114,9 @@ GroupTable.displayName = 'GroupTable';
 
 GroupTable.propTypes = {
     openModal: PropTypes.func,
-    subProject: PropTypes.object,
-    subProjectState: PropTypes.object,
-    currentProject: PropTypes.object,
+    group: PropTypes.object,
+    disabled: PropTypes.bool,
+    projectId: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -168,6 +127,7 @@ const mapStateToProps = state => {
     return {
         currentProject: state.project.currentProject,
         subProjectState: state.subProject,
+        disabled: state.groups.updateGroup.requesting,
     };
 };
 
