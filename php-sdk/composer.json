@@ -2,7 +2,7 @@
     "name": "fyipe/sdk",
     "description": "Fyipe SDK package send logs from your applications to your fyipe dashboard.",
     "license": "MIT",
-    "version": "3.0.3",
+    "version": "3.0.4",
     "minimum-stability": "stable",
     "authors": [
         {
