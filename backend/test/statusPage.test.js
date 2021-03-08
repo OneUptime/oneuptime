@@ -613,7 +613,9 @@ describe('Status API', function() {
             });
     });
 
-    it('should save an array of valid domains', function(done) {
+    // this is no longer the case
+    // array of domain are no longer used in the application
+    it.skip('should save an array of valid domains', function(done) {
         const authorization = `Basic ${token}`;
         const data = {
             domain: [{ domain: 'fyipe.z.com' }, { domain: 'fyipe1.z.com' }],
@@ -629,7 +631,9 @@ describe('Status API', function() {
             });
     });
 
-    it('should not save domains if one domain in the array is invalid', function(done) {
+    // this is no longer the case
+    // array of domain are no longer used in the application
+    it.skip('should not save domains if one domain in the array is invalid', function(done) {
         const authorization = `Basic ${token}`;
         const data = {
             domain: [
