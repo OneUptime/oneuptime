@@ -108,8 +108,7 @@ module.exports = {
         await page.click('button#profile-menu');
         await page.waitForSelector('button#logout-button');
         await page.click('button#logout-button');
-        await page.reload();
-        await page.waitFor(3000);
+        await page.reload({waitUntil:'networkidle0'});        
     },
     adminLogout: async function(page) {
         await page.goto(utils.ADMIN_DASHBOARD_URL);
@@ -117,8 +116,7 @@ module.exports = {
         await page.click('button#profile-menu');
         await page.waitForSelector('button#logout-button');
         await page.click('button#logout-button');
-        await page.reload();
-        await page.waitFor(3000);
+        await page.reload({waitUntil:'networkidle0'});
     },
     addComponent: async function(component, page, projectName = null) {
         await page.goto(utils.DASHBOARD_URL);
@@ -282,7 +280,7 @@ module.exports = {
             await page.type('#title', subProjectName);
             await page.click('#btnAddSubProjects');
         }
-        await page.waitFor('#btnAddSubProjects', { hidden: true });
+        await page.waitForSelector('#btnAddSubProjects', { hidden: true });
     },
     addUserToProject: async function(data, page) {
         const { email, role, subProjectName } = data;
@@ -336,7 +334,6 @@ module.exports = {
         if (!noOption) {
             await page.keyboard.press('Tab');
         }
-        await page.waitFor(1000);
     },
     addMonitorToComponent: async function(component, monitorName, page) {
         component && (await this.addComponent(component, page));
@@ -894,8 +891,7 @@ module.exports = {
     },
     gotoTab: async function(tabId, page) {
         await page.waitForSelector(`#react-tabs-${tabId}`, { visible: true });
-        await page.$eval(`#react-tabs-${tabId}`, e => e.click());
-        await page.waitFor(2000);
+        await page.$eval(`#react-tabs-${tabId}`, e => e.click());        
     },
     setAlertPhoneNumber: async (phoneNumber, code, page) => {
         await page.goto(utils.DASHBOARD_URL);
@@ -940,6 +936,8 @@ module.exports = {
         await page.waitForSelector('#projectSettings', { visible: true });
         await page.click('#projectSettings');
         if (owner === 'monitor') {
+            await page.waitForSelector('#more');
+            await page.click('#more');
             await page.waitForSelector('#monitor', { visible: true });
             await page.click('#monitor');
             await page.reload({
@@ -947,6 +945,8 @@ module.exports = {
             });
             await this.gotoTab(2, page);
         } else {
+            await page.waitForSelector('#more');
+            await page.click('#more');
             await page.waitForSelector('#incidentSettings', { visible: true });
             await page.click('#incidentSettings');
             await page.reload({

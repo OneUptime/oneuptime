@@ -41,8 +41,7 @@ describe('Incident Custom Field', () => {
                 password: data.password,
             };
             // user
-            await init.registerUser(user, page);
-            await init.loginUser(user, page);
+            await init.registerUser(user, page);           
         });
 
         done();
@@ -80,6 +79,8 @@ describe('Incident Custom Field', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#incidentSettings', {
                     visible: true,
                 });
@@ -103,6 +104,7 @@ describe('Incident Custom Field', () => {
                     incidentFieldNumber.fieldType,
                     page
                 );
+                await page.waitForSelector('#updaCustomField',{visible:true});
                 await page.click('#updateCustomField');
                 await page.waitForSelector('#updateCustomField', {
                     hidden: true,
@@ -128,6 +130,8 @@ describe('Incident Custom Field', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#incidentSettings', {
                     visible: true,
                 });

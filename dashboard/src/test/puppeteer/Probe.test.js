@@ -33,8 +33,7 @@ describe('API test', () => {
         // Register user
         return await cluster.execute(null, async ({ page }) => {
             // user
-            await init.registerUser(user, page);
-            await init.loginUser(user, page);
+            await init.registerUser(user, page);            
         });
     });
 
@@ -52,6 +51,8 @@ describe('API test', () => {
                 });
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#probe');
                 await page.click('#probe a');
                 await page.waitForSelector('#probe_0', { visible: true });
