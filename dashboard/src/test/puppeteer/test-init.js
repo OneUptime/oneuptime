@@ -345,10 +345,10 @@ module.exports = {
         await page.type('input[id=name]', monitorName);
         await page.waitForSelector('button[id=showMoreMonitors]');
         await page.click('button[id=showMoreMonitors]');
-        await page.click('[data-testId=type_device]');
-        await page.waitForSelector('#deviceId');
-        await page.click('#deviceId');
-        await page.type('#deviceId', utils.generateRandomString());
+        await page.click('[data-testId=type_url]');
+        await page.waitForSelector('#url');
+        await page.click('#url');
+        await page.type('#url', 'https://google.com');        
         await page.click('button[type=submit]');
         await page.waitForSelector(`#monitor-title-${monitorName}`, {
             visible: true,
@@ -678,6 +678,8 @@ module.exports = {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#projectSettings');
         await page.click('#projectSettings');
+        await page.waitForSelector('#more');
+        await page.click('#more');
 
         await page.waitForSelector('li#resources a');
         await page.click('li#resources a');
