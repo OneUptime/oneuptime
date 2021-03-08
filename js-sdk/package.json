@@ -8,6 +8,7 @@
         "fyipe": "./src/cli/fyipe.js"
     },
     "scripts": {
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "build-dev": "npm run build && npm link",
         "test": "mocha --require @babel/polyfill --require @babel/register",
         "build": "webpack --mode production",
@@ -35,10 +36,11 @@
         "depcheck": "^0.9.2",
         "jsdoc": "^3.6.6",
         "mocha": "^7.2.0",
-        "nodemon": "^2.0.7",
+        "npm-force-resolutions": "0.0.3",
         "webpack": "^4.43.0",
         "webpack-cli": "^3.3.11"
     },
+    "resolutions": {},
     "dependencies": {
         "@babel/polyfill": "^7.10.1",
         "axios": "^0.21.1",

@@ -4,6 +4,7 @@
     "version": "3.0.0",
     "main": "server.js",
     "scripts": {
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "test": "jest --forceExit tests",
         "start": "node server.js",
         "dev": "nodemon server.js",
@@ -17,9 +18,11 @@
         "slugify": "^1.4.7",
         "uuid": "^8.3.2"
     },
+    "resolutions": {},
     "devDependencies": {
         "depcheck": "^0.9.2",
-        "jest": "^25.1.0"
+        "jest": "^25.1.0",
+        "npm-force-resolutions": "0.0.3"
     },
     "jest": {
         "collectCoverageFrom": [
