@@ -31,14 +31,18 @@ helm install -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/
 Staging:
 
 ```
-helm upgrade -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
+helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
 ```
+
+Use default values first and then use staging values.
 
 Production:
 
 ```
-helm upgrade -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe
+helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe
 ```
+
+Use default values first and then use production values.
 
 If you introduce values, you can set
 

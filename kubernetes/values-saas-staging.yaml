@@ -57,6 +57,8 @@ encryptionKey: pg#K^C$-)IGOg6DYXDGq2jdmfws0MiR7
 backendProtocol: 'https'
 
 haraka:
+    fromEmail: 'noreply@fyipeapp.com'
+    fromName: 'Fyipe Staging'
     domain: 'fyipeapp.com'
     user: 'noreply@fyipeapp.com'
     password: 'tX8z_bDEcRdRHnyKxAHYEQk_B'

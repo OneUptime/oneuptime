@@ -181,6 +181,8 @@ nginx-ingress-controller:
   ##################################################################################
 
 haraka:
+  fromEmail:
+  fromName: 
   user: 
   password:
   domain:
