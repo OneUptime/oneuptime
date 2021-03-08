@@ -25,9 +25,7 @@
         "puppeteer": "^5.5.0",
         "should": "^13.2.3"
     },
-    "resolutions": {
-
-    },
+    "resolutions": {},
     "devDependencies": {
         "depcheck": "^0.9.2",
         "nodemon": "^2.0.2",
