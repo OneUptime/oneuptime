@@ -122,7 +122,7 @@
             "!src/setupTests.js"
         ],
         "testMatch": [
-            "<rootDir>/src/test/puppeteer/**/CustomField.test.js",
+            "<rootDir>/src/test/puppeteer/**/*.test.js",
             "<rootDir>/src/test/puppeteer/**/*.test.enterprise.js"
         ]
     },

@@ -80,6 +80,8 @@ describe('Incident Custom Field', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#incidentSettings', {
                     visible: true,
                 });
@@ -128,6 +130,8 @@ describe('Incident Custom Field', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#incidentSettings', {
                     visible: true,
                 });
