@@ -45,7 +45,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
     });
 
     test(
-        'should enable enabling email notification when incident is created, acknowledged or resolved',
+        'should enable sending email notification when incident is created, acknowledged, resolved or investigated',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -62,38 +62,38 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 await page.waitForSelector('#sendCreatedIncidentNotificationEmail', {
                     visible: true,
                 });
-                let enableCreatedIncidentNotification = await page.$eval(
+                let sendCreatedIncidentNotification = await page.$eval(
                     '#sendCreatedIncidentNotificationEmail',
                     elem => elem.value
                 );
-                let enableAcknowledgedIncidentNotification = await page.$eval(
+                let sendAcknowledgedIncidentNotification = await page.$eval(
                     '#sendAcknowledgedIncidentNotificationEmail',
                     elem => elem.value
                 );
-                let enableResolvedIncidentNotification = await page.$eval(
+                let sendResolvedIncidentNotification = await page.$eval(
                     '#sendResolvedIncidentNotificationEmail',
                     elem => elem.value
                 );
-                let enableInvestigationNoteNotification = await page.$eval(
+                let sendInvestigationNoteNotification = await page.$eval(
                     '#enableInvestigationNoteNotificationEmail',
                     elem => elem.value
                 );
-                enableCreatedIncidentNotification = utils.parseBoolean(
-                    enableCreatedIncidentNotification
+                sendCreatedIncidentNotification = utils.parseBoolean(
+                    sendCreatedIncidentNotification
                 );
-                enableAcknowledgedIncidentNotification = utils.parseBoolean(
-                    enableAcknowledgedIncidentNotification
+                sendAcknowledgedIncidentNotification = utils.parseBoolean(
+                    sendAcknowledgedIncidentNotification 
                 );
-                enableResolvedIncidentNotification = utils.parseBoolean(
-                    enableResolvedIncidentNotification
+                sendResolvedIncidentNotification = utils.parseBoolean(
+                    sendResolvedIncidentNotification
                 );
-                enableInvestigationNoteNotification = utils.parseBoolean(
-                    enableInvestigationNoteNotification
+                sendInvestigationNoteNotification = utils.parseBoolean(
+                    sendInvestigationNoteNotification
                 );
-                expect(enableCreatedIncidentNotification).toBeTruthy();
-                expect(enableAcknowledgedIncidentNotification).toBeTruthy();
-                expect(enableResolvedIncidentNotification).toBeTruthy();
-                expect(enableInvestigationNoteNotification).toBeTruthy();
+                expect(sendCreatedIncidentNotification).toBeTruthy();
+                expect(sendAcknowledgedIncidentNotification).toBeTruthy();
+                expect(sendResolvedIncidentNotification).toBeTruthy();
+                expect(sendInvestigationNoteNotification).toBeTruthy();
             });
             done();
         },
@@ -101,7 +101,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
     );
 
     test(
-        'should disable enabling email notification when incident is created',
+        'should disable sending email notification when incident is created',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -142,7 +142,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
     );
 
     test(
-        'should disable enabling email notification when incident is acknowledged',
+        'should disable sending email notification when incident is acknowledged',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -189,7 +189,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
     );
 
     test(
-        'should disable enabling email notification when incident is resolved',
+        'should disable sending email notification when incident is resolved',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -230,7 +230,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
     );
 
     test(
-        'should disable enabling email notification for investigation note',
+        'should disable sending email notification for investigation note',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
