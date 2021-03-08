@@ -1,6 +1,6 @@
 {
     "name": "app",
-    "version": "3.0.0",
+    "version": "3.0.4",
     "description": "One Complete SRE and DevOps platform.",
     "main": "index.js",
     "dependencies": {
