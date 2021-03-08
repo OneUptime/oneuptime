@@ -247,7 +247,6 @@ module.exports = {
                         activityTitle: `[Incident Note Created](${uri})`,
                         activitySubtitle: `${incident.monitorId.componentId.name} / ${incident.monitorId.name}`,
                         facts: [
-                            { Name: 'Note Type', value: `${data.type}` },
                             { Name: 'State', value: `${data.incident_state}` },
                             { Name: 'Created By', value: `${data.created_by}` },
                             { Name: 'Content', value: `${data.content}` },
