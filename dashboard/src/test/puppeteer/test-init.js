@@ -78,15 +78,15 @@ module.exports = {
         }
 
         await Promise.all([
-            //page.waitForSelector('div#success-step'),
+            // page.waitForSelector('div#success-step'),
             page.click('button[type=submit]'),
-            page.waitForNavigation()
+            page.waitForNavigation(),
         ]);
     },
     loginUser: async function(user, page) {
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/login', {
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#login-button');
         await page.click('input[name=email]');
@@ -95,7 +95,7 @@ module.exports = {
         await page.type('input[name=password]', password);
         await page.waitForSelector('button[type=submit]', { visible: true });
         await Promise.all([
-            page.waitForNavigation({ waitUntil: 'networkidle0' }),
+            page.waitForNavigation({ waitUntil: 'networkidle2' }),
             page.click('button[type=submit]'),
         ]);
         expect(page.url().startsWith(utils.ACCOUNTS_URL + '/login')).toEqual(

@@ -160,10 +160,10 @@ describe('Team API With SubProjects', () => {
                 expect(elementHandle).toEqual(null);
             }
         );
-    });
+    }, 200000);
 
-    test('should not allow administrator to add project owners', async () => {
-        return await cluster.execute(
+    test('should not allow administrator to add project owners', async done => {
+        await cluster.execute(
             { anotherEmail, anotherPassword, projectName, isParentUser: true },
             async ({ page, data }) => {
                 const user = {
@@ -188,7 +188,8 @@ describe('Team API With SubProjects', () => {
                 expect(elementHandle).toEqual(null);
             }
         );
-    });
+        done();
+    }, 200000);
 
     test('should add a new user to sub-project (role -> `Member`)', async done => {
         await cluster.execute(
@@ -354,6 +355,87 @@ describe('Team API With SubProjects', () => {
                     spanElement.should.be.exactly(
                         'Please enter business emails of the members.'
                     );
+                }
+            );
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should assign a new owner of the project',
+        async done => {
+            const newRole = 'Owner';
+            await cluster.execute(
+                { email, password, newRole, anotherEmail, projectName },
+                async ({ page, data }) => {
+                    const user = {
+                        email: data.email,
+                        password: data.password,
+                    };
+                    const memberEmailSelector = data.anotherEmail.split('@')[0];
+                    const ownerEmailSelector = data.email.split('@')[0];
+
+                    await page.goto(utils.DASHBOARD_URL);
+                    await init.loginUser(user, page);
+                    await init.switchProject(data.projectName, page);
+                    await page.waitForSelector('#teamMembers');
+                    await page.click('#teamMembers');
+
+                    // Invite a team member
+                    await page.waitForSelector(`#btn_${data.projectName}`);
+                    await page.click(`#btn_${data.projectName}`);
+                    await page.waitForSelector(`#frm_${data.projectName}`);
+                    await page.waitForSelector(`#emails_${data.projectName}`);
+                    await page.click(`#emails_${data.projectName}`);
+                    await page.type(
+                        `#emails_${data.projectName}`,
+                        data.anotherEmail
+                    );
+                    await page.click(`#Member_${data.projectName}`);
+                    await page.waitForSelector(
+                        `#btn_modal_${data.projectName}`
+                    );
+                    await page.click(`#btn_modal_${data.projectName}`);
+                    await page.waitForSelector('#btnConfirmInvite');
+                    await page.click('#btnConfirmInvite');
+                    await page.waitForSelector(
+                        `#btn_modal_${data.projectName}`,
+                        {
+                            hidden: true,
+                        }
+                    );
+
+                    await page.waitForSelector(
+                        `#changeRole_${memberEmailSelector}`
+                    );
+                    const oldMemberRole = await page.$eval(
+                        `#Member_${memberEmailSelector}`,
+                        elem => elem.innerHTML
+                    );
+                    expect(oldMemberRole).toEqual('Member');
+                    const oldOwnerRole = await page.$eval(
+                        `#Owner_${ownerEmailSelector}`,
+                        elem => elem.innerHTML
+                    );
+                    expect(oldOwnerRole).toEqual('Owner');
+
+                    await page.click(`#changeRole_${memberEmailSelector}`);
+                    await page.waitForSelector(`div[title="${newRole}"]`);
+                    await page.click(`div[title="${newRole}"]`);
+                    await page.waitForSelector('#confirmRoleChange');
+                    await page.click('#confirmRoleChange');
+                    await page.waitForTimeout(5000);
+                    const newMemberRole = await page.$eval(
+                        `#Owner_${memberEmailSelector}`,
+                        elem => elem.innerHTML
+                    );
+                    expect(newMemberRole).toEqual('Owner');
+                    const newOwnerRole = await page.$eval(
+                        `#Administrator_${ownerEmailSelector}`,
+                        elem => elem.innerHTML
+                    );
+                    expect(newOwnerRole).toEqual('Administrator');
                 }
             );
             done();
