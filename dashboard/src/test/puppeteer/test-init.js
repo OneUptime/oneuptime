@@ -678,6 +678,8 @@ module.exports = {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#projectSettings');
         await page.click('#projectSettings');
+        await page.waitForSelector('#more');
+        await page.click('#more');
 
         await page.waitForSelector('li#resources a');
         await page.click('li#resources a');
