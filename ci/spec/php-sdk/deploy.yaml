@@ -48,7 +48,7 @@ deploy_production_php-sdk:
         - sudo npm install -g json composer-version
         - cd php-sdk
         - git status
-        # - git checkout -f master
+        - git checkout -f master
         - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/sdk"'
         - git init
