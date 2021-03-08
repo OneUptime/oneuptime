@@ -14,7 +14,7 @@ deploy_staging_php-sdk:
         - sudo apt-get install -y composer
         - sudo npm install -g json composer-version
         - cd php-sdk
-        - composer-version patch
+        # - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/sdk-staging"'
         - git init
         - git add .
@@ -49,7 +49,7 @@ deploy_production_php-sdk:
         - cd php-sdk
         - git status
         - git checkout -f master
-        - composer-version patch
+        # - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/sdk"'
         - git init
         - git add .
