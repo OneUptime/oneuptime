@@ -331,6 +331,7 @@ module.exports = {
         subscription,
     }) {
         const _this = this;
+        const userId = incident.createdById._id;
         const monitorId = incident.monitorId._id
             ? incident.monitorId._id
             : incident.monitorId;
@@ -344,7 +345,9 @@ module.exports = {
         }
 
         // storing the subscription in the DB
-        if (typeof subscription === 'object') {
+        if (typeof subscription === 'object' && userId) {
+            const userId = incident.createdById._id;
+            UserService.updateOneBy({ _id: userId }, { subscription });
             IncidentService.updateOneBy(
                 {
                     _id: incident._id,
@@ -791,65 +794,83 @@ module.exports = {
     }) {
         const _this = this;
         let pushMessage;
-        if (!subscription) {
-            const findIncident = await IncidentService.findOneBy({
-                _id: incident._id,
-            });
-            subscription = findIncident.subscription;
-        }
+        if (incident.createdById._id) {
+            if (!subscription) {
+                const findIncident = await UserService.findOneBy({
+                    _id: user._id,
+                });
+                subscription = findIncident.subscription;
+            }
 
-        webpush.setVapidDetails(
-            process.env.WEBPUSH_EMAIL,
-            process.env.VAPID_PUBLIC_KEY,
-            process.env.VAPID_PRIVATE_KEY
-        );
+            webpush.setVapidDetails(
+                process.env.WEBPUSH_EMAIL,
+                process.env.VAPID_PUBLIC_KEY,
+                process.env.VAPID_PRIVATE_KEY
+            );
 
-        if (pushProgress) {
-            pushMessage = `Reminder ${pushProgress.current}/${pushProgress.total}: `;
+            if (pushProgress) {
+                pushMessage = `Reminder ${pushProgress.current}/${pushProgress.total}: `;
+            } else {
+                pushMessage = '';
+            }
+
+            // Create payload
+            const title = `${pushMessage}Incident #${incident.idNumber} is created`;
+            const body = `Please acknowledge or resolve this incident on Fyipe Dashboard.`;
+            const payload = JSON.stringify({ title, body });
+
+            // Pass object into sendNotification
+            webpush
+                .sendNotification(subscription, payload)
+                .then(async () => {
+                    return await _this.create({
+                        projectId: incident.projectId,
+                        monitorId: monitor._id,
+                        schedule: schedule._id,
+                        escalation: escalation._id,
+                        onCallScheduleStatus: onCallScheduleStatus._id,
+                        alertVia: `${AlertType.Push} Notification`,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        eventType,
+                        alertStatus: 'Success',
+                        alertProgress: pushProgress,
+                    });
+                })
+                .catch(async e => {
+                    return await _this.create({
+                        projectId: incident.projectId,
+                        monitorId: monitor._id,
+                        schedule: schedule._id,
+                        escalation: escalation._id,
+                        onCallScheduleStatus: onCallScheduleStatus._id,
+                        alertVia: `${AlertType.Push} Notification`,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        eventType,
+                        alertStatus: 'Cannot Send',
+                        error: true,
+                        errorMessage: e.message,
+                        alertProgress: pushProgress,
+                    });
+                });
         } else {
-            pushMessage = '';
-        }
-
-        // Create payload
-        const title = `${pushMessage}Incident #${incident.idNumber} is created`;
-        const body = `Please acknowledge or resolve this incident on Fyipe Dashboard.`;
-        const payload = JSON.stringify({ title, body });
-
-        // Pass object into sendNotification
-        webpush
-            .sendNotification(subscription, payload)
-            .then(async () => {
-                return await _this.create({
-                    projectId: incident.projectId,
-                    monitorId: monitor._id,
-                    schedule: schedule._id,
-                    escalation: escalation._id,
-                    onCallScheduleStatus: onCallScheduleStatus._id,
-                    alertVia: `${AlertType.Push} Notification`,
-                    userId: user._id,
-                    incidentId: incident._id,
-                    eventType,
-                    alertStatus: 'Success',
-                    alertProgress: pushProgress,
-                });
-            })
-            .catch(async e => {
-                return await _this.create({
-                    projectId: incident.projectId,
-                    monitorId: monitor._id,
-                    schedule: schedule._id,
-                    escalation: escalation._id,
-                    onCallScheduleStatus: onCallScheduleStatus._id,
-                    alertVia: `${AlertType.Push} Notification`,
-                    userId: user._id,
-                    incidentId: incident._id,
-                    eventType,
-                    alertStatus: 'Cannot Send',
-                    error: true,
-                    errorMessage: e.message,
-                    alertProgress: pushProgress,
-                });
+            return await _this.create({
+                projectId: incident.projectId,
+                monitorId: monitor._id,
+                schedule: schedule._id,
+                escalation: escalation._id,
+                onCallScheduleStatus: onCallScheduleStatus._id,
+                alertVia: `${AlertType.Push} Notification`,
+                userId: user._id,
+                incidentId: incident._id,
+                eventType,
+                alertStatus: 'Cannot Send',
+                error: true,
+                errorMessage: 'Unable to send push notification',
+                alertProgress: pushProgress,
             });
+        }
     },
 
     sendEmailAlert: async function({

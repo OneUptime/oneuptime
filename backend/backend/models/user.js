@@ -86,6 +86,7 @@ const userSchema = new Schema({
     tempAlertPhoneNumber: String,
     tutorial: Object,
     createdBy: { type: String, ref: 'User' },
+    subscription: Object,
 });
 
 module.exports = mongoose.model('User', userSchema);
