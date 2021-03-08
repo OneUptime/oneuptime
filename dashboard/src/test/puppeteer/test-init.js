@@ -282,7 +282,7 @@ module.exports = {
             await page.type('#title', subProjectName);
             await page.click('#btnAddSubProjects');
         }
-        await page.waitForTimeout('#btnAddSubProjects', { hidden: true });
+        await page.waitForSelector('#btnAddSubProjects', { hidden: true });
     },
     addUserToProject: async function(data, page) {
         const { email, role, subProjectName } = data;
