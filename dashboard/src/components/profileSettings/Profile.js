@@ -311,8 +311,7 @@ export class ProfileSetting extends Component {
         this.props.setInitAlertEmail(emailValue);
     };
 
-    render() {
-        console.log("Profile Props ", this.props);
+    render() {        
         const {
             profileSettingState,
             emailValue,
