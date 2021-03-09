@@ -30,7 +30,7 @@ class MSTeamsItem extends React.Component {
 
     render() {
         const { data, monitorId, webhooks, currentMonitorName } = this.props;
-        const { endpoint } = data.data;
+        const { webHookName } = data.data;
         let deleting = false;
 
         if (
@@ -54,7 +54,7 @@ class MSTeamsItem extends React.Component {
                                     overflow: 'hidden',
                                 }}
                             >
-                                <span>{endpoint}</span>
+                                <span>{webHookName}</span>
                             </div>
                         </span>
                     </div>
