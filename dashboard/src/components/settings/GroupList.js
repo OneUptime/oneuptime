@@ -8,7 +8,7 @@ import GroupForm from './addGroupModal';
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
-import { getSubProjects } from '../../actions/subProject';
+import { getProjectGroups } from '../../actions/group';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import { User } from '../../config';
 import Unauthorised from '../modals/Unauthorised';
@@ -51,16 +51,16 @@ export class GroupList extends Component {
     };
 
     paginatePrev = () => {
-        const { skip, getSubProjects, currentProject } = this.props;
-        getSubProjects(currentProject._id, skip ? skip - 10 : 10, 10);
+        const { skip, getProjectGroups } = this.props;
+        getProjectGroups(this.props.project.id, skip ? skip - 10 : 10, 10);
         this.setState({
             page: this.state.page === 1 ? 1 : this.state.page - 1,
         });
     };
 
     paginateNext = () => {
-        const { skip, getSubProjects, currentProject } = this.props;
-        getSubProjects(currentProject._id, skip ? skip + 10 : 10, 10);
+        const { skip, getProjectGroups } = this.props;
+        getProjectGroups(this.props.project.id, skip ? skip + 10 : 10, 10);
         this.setState({ page: this.state.page + 1 });
     };
 
@@ -91,12 +91,12 @@ export class GroupList extends Component {
             limit,
             skip,
             count,
-            subProjectState,
+            groupError,
             groups,
             project,
             parentProject,
+            createGroupRequest,
         } = this.props;
-        const { subProjects } = subProjectState;
         const canNext = count > skip + limit ? false : true;
         const canPrev = skip <= 0 ? true : false;
         const _this = this;
@@ -107,7 +107,10 @@ export class GroupList extends Component {
                 <div className="Box-root Margin-bottom--12">
                     <div className="bs-ContentSection Card-root Card-shadow--medium">
                         <div className="Box-root">
-                            <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                            <div
+                                className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16"
+                                style={{ paddingRight: '0' }}
+                            >
                                 <div className="Box-root Padding-top--20">
                                     <Badge
                                         color={parentProject ? 'red' : 'blue'}
@@ -140,7 +143,7 @@ export class GroupList extends Component {
                                             <button
                                                 id="btn_Add_SubProjects"
                                                 disabled={
-                                                    subProjectState.requesting
+                                                    createGroupRequest.requesting
                                                 }
                                                 onClick={
                                                     this.handleAddSubProject
@@ -191,7 +194,7 @@ export class GroupList extends Component {
                                                 </div>
                                             </header>
                                             {groups && groups.length > 0
-                                                ? groups.map((group, i) => {
+                                                ? groups.map(group => {
                                                       return (
                                                           <GroupTable
                                                               group={group}
@@ -200,11 +203,7 @@ export class GroupList extends Component {
                                                                       .projectId
                                                                       ._id
                                                               }
-                                                              
-                                                              key={
-                                                                  group._id
-                                                              }
-                                                              loop={i}
+                                                              key={group._id}
                                                           />
                                                       );
                                                   })
@@ -226,17 +225,13 @@ export class GroupList extends Component {
                                 </div>
                             </ShouldRender>
                             <div
-                                className={`bs-Tail ${
-                                    subProjects && subProjects.length <= 0
-                                        ? ''
-                                        : 'bs-Tail--separated'
-                                } bs-Tail--short`}
+                                className={`bs-Tail bs-Tail--separated bs-Tail--short`}
                                 style={{
                                     marginTop: '0px',
                                     marginBottom: '0px',
                                 }}
                             >
-                                <ShouldRender if={subProjects.error}>
+                                <ShouldRender if={groupError.error}>
                                     <div className="bs-Tail-copy">
                                         <div
                                             className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
@@ -247,13 +242,13 @@ export class GroupList extends Component {
                                             </div>
                                             <div className="Box-root">
                                                 <span style={{ color: 'red' }}>
-                                                    {subProjects.error}
+                                                    {groupError.error}
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
                                 </ShouldRender>
-                                <ShouldRender if={!subProjects.error}>
+                                <ShouldRender if={!groupError.error}>
                                     <div className="bs-Tail-copy Text-fontWeight--medium">
                                         <span>
                                             {numbersOfPage > 0
@@ -324,45 +319,31 @@ GroupList.displayName = 'GroupList';
 GroupList.propTypes = {
     count: PropTypes.number,
     currentProject: PropTypes.object,
-    getSubProjects: PropTypes.func,
     limit: PropTypes.number,
     openModal: PropTypes.func,
     skip: PropTypes.number,
-    subProjectState: PropTypes.object,
+    groupError: PropTypes.object,
     modalId: PropTypes.string,
     modalList: PropTypes.array,
     project: PropTypes.object,
     parentProject: PropTypes.bool,
     groups: PropTypes.array,
+    getProjectGroups: PropTypes.func,
+    createGroupRequest: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { openModal, closeModal, getSubProjects },
+        { openModal, closeModal, getProjectGroups },
         dispatch
     );
 };
 
 const mapStateToProps = state => {
-    let skip =
-        state.subProject.subProjects && state.subProject.subProjects.skip
-            ? state.subProject.subProjects.skip
-            : 0;
-    let limit =
-        state.subProject.subProjects && state.subProject.subProjects.limit
-            ? state.subProject.subProjects.limit
-            : 10;
-    if (skip && typeof skip === 'string') {
-        skip = parseInt(skip, 10);
-    }
-    if (limit && typeof limit === 'string') {
-        limit = parseInt(limit, 10);
-    }
     return {
-        subProjectState: state.subProject.subProjects,
+        groupError: state.groups.getGroups,
         currentProject: state.project.currentProject,
-        skip,
-        limit,
+        createGroupRequest: state.groups.createGroup,
         modalId: state.modal.modals[0] ? state.modal.modals[0].id : '',
         modalList: state.modal.modals,
     };

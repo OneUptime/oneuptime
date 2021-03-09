@@ -6,7 +6,7 @@ import GroupForm from './addGroupModal';
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
-import RemoveSubProject from '../modals/RemoveSubProject';
+import removeGroup from '../modals/removeGroup';
 
 export class GroupTable extends Component {
     constructor(props) {
@@ -33,16 +33,17 @@ export class GroupTable extends Component {
         const { openModal, group, projectId } = this.props;
         openModal({
             id: this.state.groupModalId,
-            content: DataPathHoC(RemoveSubProject, {
-                subProjectModalId: this.state.groupModalId,
+            content: DataPathHoC(removeGroup, {
+                groupModalId: this.state.groupModalId,
                 projectId: projectId,
-                groupTitle: group.name,
+                groupName: group.name,
+                groupId: group._id,
             }),
         });
     };
 
     render() {
-        const { group, disabled } = this.props;
+        const { group, disabled, deleteDisable } = this.props;
         return (
             <div className="bs-ObjectList-row db-UserListRow">
                 <div
@@ -71,7 +72,7 @@ export class GroupTable extends Component {
                                           ? group.teams[0].name
                                           : group.teams[0].email
                                   } and ${group.teams.length - 1} other${
-                                      group.teams.length - 1 === 1 ? '' : ''
+                                      group.teams.length - 1 === 1 ? '' : 's'
                                   }`
                             : `No Team member added yet`}
                     </div>
@@ -85,7 +86,7 @@ export class GroupTable extends Component {
                             <button
                                 title="edit"
                                 id={`group_edit_${group.name}`}
-                                disabled={disabled}
+                                disabled={disabled[group._id]}
                                 className="bs-Button bs-DeprecatedButton Margin-left--8"
                                 type="button"
                                 onClick={() => this.handleEdit()}
@@ -95,7 +96,7 @@ export class GroupTable extends Component {
                             <button
                                 title="delete"
                                 id={`group_delete_${group.name}`}
-                                disabled={disabled}
+                                disabled={deleteDisable}
                                 className="bs-Button bs-DeprecatedButton Margin-left--8"
                                 type="button"
                                 onClick={() => this.handleRemove()}
@@ -117,6 +118,7 @@ GroupTable.propTypes = {
     group: PropTypes.object,
     disabled: PropTypes.bool,
     projectId: PropTypes.string,
+    deleteDisable: PropTypes.bool,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -128,6 +130,7 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         subProjectState: state.subProject,
         disabled: state.groups.updateGroup.requesting,
+        deleteDisable: state.groups.deleteGroup.requesting,
     };
 };
 

@@ -35238,6 +35238,9 @@ padding-left:20px
     opacity: 0.5;
     width: 10px;
 }
+.Remove-team-btn{
+  color: grey;
+}
 .rm-auto {
   grid-template-columns: auto auto !important;
 }

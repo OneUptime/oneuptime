@@ -18,7 +18,7 @@ router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
         if (!name) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Please provide a name',
+                message: 'Group name must be present'
             });
         }
 
@@ -35,7 +35,7 @@ router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
 });
 
 router.get(
-    '/:projectId',
+    '/:projectId/groups',
     getUser,
     isAuthorized,
     getSubProjects,
@@ -64,22 +64,22 @@ router.get(
     }
 );
 
-router.get(
-    '/:projectId/group/:groupId',
-    getUser,
-    isAuthorized,
-    async (req, res) => {
-        try {
-            const { groupId } = req.params;
-            const groups = await GroupService.findOneBy({
-                _id: groupId,
-            });
-            return sendItemResponse(req, res, groups);
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
-        }
+router.get('/:projectId', getUser, isAuthorized, async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const { skip, limit } = req.query;
+        const groups = await GroupService.findBy(
+            {
+                projectId: projectId,
+            },
+            limit,
+            skip
+        );
+        return sendItemResponse(req, res, groups);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
     }
-);
+});
 
 router.put('/:projectId/:groupId', getUser, isAuthorized, async (req, res) => {
     try {

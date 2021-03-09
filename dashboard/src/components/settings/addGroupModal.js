@@ -8,14 +8,14 @@ import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { closeModal } from '../../actions/modal';
 import { RenderSelect } from '../basic/RenderSelect';
-import { ValidateField } from '../../config';
 import { createGroup, updateGroup } from '../../actions/group';
 
 export class GroupForm extends React.Component {
     state = {
-        teamMembers: [],
+        teamMemberIds: [],
         teams: [],
         projectTeam: [],
+        teamMemberId: '',
     };
     componentDidMount() {
         const projectTeam = this.props.teamMembers.filter(project => {
@@ -35,7 +35,7 @@ export class GroupForm extends React.Component {
             const teamId = this.props.teams.map(team => team._id);
             this.setState({
                 projectTeam: this.props.teams,
-                teamMembers: teamId,
+                teamMemberIds: teamId,
             });
         }
 
@@ -59,16 +59,19 @@ export class GroupForm extends React.Component {
         if (!editGroup) {
             createGroup(this.props.projectId, {
                 name: groupName,
-                teams: this.state.teamMembers,
-            });
-            return closeModal({
-                id: groupModalId,
+                teams: this.state.teamMemberIds,
+            }).then(data => {
+                if (!data.error) {
+                    return closeModal({
+                        id: groupModalId,
+                    });
+                }
             });
         } else {
-            const { teamMembers } = this.state;
+            const { teamMemberIds } = this.state;
             updateGroup(this.props.projectId, this.props.groupId, {
                 name: groupName,
-                teams: teamMembers,
+                teams: teamMemberIds,
             }).then(data => {
                 if (!data.error) {
                     return closeModal({
@@ -84,7 +87,7 @@ export class GroupForm extends React.Component {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
-                return document.getElementById('btnAddGroups').click();
+                return document.getElementById('btnAddGroup').click();
             default:
                 return false;
         }
@@ -96,17 +99,43 @@ export class GroupForm extends React.Component {
         });
     };
     handleChange = value => {
-        if (value && !this.state.teamMembers.includes(value)) {
-            const newTeam = [...this.state.teamMembers, value];
+        if (value) {
+            this.setState({
+                teamMemberId: value,
+            });
+        }
+    };
+
+    //this adds a team member to the group
+    handleAddTeam = () => {
+        const { teamMemberId } = this.state;
+        if (teamMemberId && !this.state.teamMemberIds.includes(teamMemberId)) {
+            const newTeamMemberIds = [
+                ...this.state.teamMemberIds,
+                teamMemberId,
+            ];
             const filteredTeamMember = this.state.teams.filter(
-                user => user.userId === value
+                user => user.userId === teamMemberId
             );
 
             this.setState({
-                teamMembers: newTeam,
+                teamMemberIds: newTeamMemberIds,
                 projectTeam: [...this.state.projectTeam, filteredTeamMember[0]],
             });
         }
+    };
+    //it removes the team members from the list
+    handleRemoveTeamMember = id => {
+        const newProjectTeam = this.state.projectTeam.filter(
+            user => user._id !== id
+        );
+        const newTeamMemberIds = this.state.teamMemberIds.filter(
+            userId => userId !== id
+        );
+        this.setState({
+            projectTeam: newProjectTeam,
+            teamMemberIds: newTeamMemberIds,
+        });
     };
     render() {
         const {
@@ -117,6 +146,7 @@ export class GroupForm extends React.Component {
             groupModalId,
             requesting,
             errorMessage,
+            groupId,
         } = this.props;
         return (
             <form
@@ -170,12 +200,11 @@ export class GroupForm extends React.Component {
                                             id="groupName"
                                             className="bs-TextInput"
                                             style={{
-                                                width: '250px',
+                                                width: '67%',
                                                 margin: '10px 0 10px 0',
                                             }}
                                             disabled={false}
                                             autoFocus={true}
-                                            validate={ValidateField.required}
                                         />
                                         <div
                                             className="bs-Fieldset-row Margin-bottom--12"
@@ -207,6 +236,15 @@ export class GroupForm extends React.Component {
                                                     this.handleChange(value);
                                                 }}
                                             />
+                                            <button
+                                                title="add-team-member"
+                                                id={`group_member-add`}
+                                                className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                                type="button"
+                                                onClick={this.handleAddTeam}
+                                            >
+                                                <span>Add</span>
+                                            </button>
                                         </div>
                                         <div
                                             className="bs-Fieldset-row Margin-bottom--12"
@@ -214,13 +252,23 @@ export class GroupForm extends React.Component {
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 paddingTop: '0',
-                                                width: '250px',
+                                                width: '298px',
                                                 paddingLeft: '0',
+                                                paddingRight: '0',
                                             }}
                                         >
                                             {this.state.projectTeam.map(
                                                 user => (
-                                                    <div key={user.userId}>
+                                                    <div
+                                                        key={user.userId}
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems:
+                                                                'flex-end',
+                                                            justifyContent:
+                                                                'space-between',
+                                                        }}
+                                                    >
                                                         <span>
                                                             <img
                                                                 src="/dashboard/assets/img/profile-user.svg"
@@ -237,6 +285,22 @@ export class GroupForm extends React.Component {
                                                                     : user.email}
                                                             </span>
                                                         </span>
+                                                        <div
+                                                            className="Remove-team-btn"
+                                                            style={{
+                                                                marginRight:
+                                                                    '0',
+                                                                cursor:
+                                                                    'pointer',
+                                                            }}
+                                                            onClick={() =>
+                                                                this.handleRemoveTeamMember(
+                                                                    user._id
+                                                                )
+                                                            }
+                                                        >
+                                                            x
+                                                        </div>
                                                     </div>
                                                 )
                                             )}
@@ -245,15 +309,23 @@ export class GroupForm extends React.Component {
                                     <div className="bs-Modal-footer">
                                         <div className="bs-Modal-footer-actions">
                                             <button
-                                                className={`bs-Button bs-DeprecatedButton btn__modal ${requesting &&
-                                                    'bs-is-disabled'}`}
+                                                className={`bs-Button bs-DeprecatedButton btn__modal ${
+                                                    editGroup
+                                                        ? requesting[groupId]
+                                                        : requesting &&
+                                                          'bs-is-disabled'
+                                                }`}
                                                 type="button"
                                                 onClick={() => {
                                                     return closeModal({
                                                         id: groupModalId,
                                                     });
                                                 }}
-                                                disabled={requesting}
+                                                disabled={
+                                                    editGroup
+                                                        ? requesting[groupId]
+                                                        : requesting
+                                                }
                                             >
                                                 <span>Cancel</span>
                                                 <span className="cancel-btn__keycode">
@@ -262,15 +334,39 @@ export class GroupForm extends React.Component {
                                             </button>
                                             <button
                                                 id="btnAddGroup"
-                                                className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${requesting &&
-                                                    'bs-is-disabled'}`}
+                                                className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${
+                                                    editGroup
+                                                        ? requesting[groupId]
+                                                        : requesting &&
+                                                          'bs-is-disabled'
+                                                }`}
                                                 type="save"
-                                                disabled={requesting}
+                                                disabled={
+                                                    editGroup
+                                                        ? requesting[groupId]
+                                                        : requesting
+                                                }
                                             >
-                                                <ShouldRender if={requesting}>
+                                                <ShouldRender
+                                                    if={
+                                                        editGroup
+                                                            ? requesting[
+                                                                  groupId
+                                                              ]
+                                                            : requesting
+                                                    }
+                                                >
                                                     <FormLoader />
                                                 </ShouldRender>
-                                                <ShouldRender if={!requesting}>
+                                                <ShouldRender
+                                                    if={
+                                                        !(editGroup
+                                                            ? requesting[
+                                                                  groupId
+                                                              ]
+                                                            : requesting)
+                                                    }
+                                                >
                                                     <span>Save</span>
                                                     <span className="create-btn__keycode">
                                                         <span className="keycode__icon keycode__icon--enter" />

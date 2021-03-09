@@ -34,6 +34,8 @@ class Groups extends Component {
                             groups={project.groups && project.groups.groups}
                             count={project.groups.count}
                             project={project.project}
+                            skip={project.groups.skip}
+                            limit={project.groups.limit}
                         />
                     );
                 }
@@ -51,6 +53,8 @@ class Groups extends Component {
                             key={project.project.id}
                             groups={project.groups && project.groups.groups}
                             count={project.groups.count}
+                            skip={project.groups.skip}
+                            limit={project.groups.limit}
                             project={project.project}
                             parentProject={true}
                         />

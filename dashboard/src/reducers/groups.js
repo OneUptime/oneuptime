@@ -3,8 +3,9 @@ import * as types from '../constants/group';
 const initialState = {
     createGroup: { requesting: false, success: false, error: null },
     getGroups: { requesting: false, success: false, error: null },
+    getProjectGroups: { requesting: false, success: false, error: null },
     deleteGroup: { requesting: false, success: false, error: null },
-    updateGroup: { requesting: false, success: false, error: null },
+    updateGroup: { requesting: {}, success: false, error: null },
     groups: [],
 };
 
@@ -70,7 +71,10 @@ export default function groups(state = initialState, action) {
             return {
                 ...state,
                 updateGroup: {
-                    requesting: true,
+                    requesting: {
+                        ...state.updateGroup.requesting,
+                        [action.payload]: true,
+                    },
                     success: false,
                     error: null,
                 },
@@ -87,8 +91,8 @@ export default function groups(state = initialState, action) {
             };
         case types.UPDATE_GROUP_SUCCESS:
             updatedGroup = state.groups.map(projectGroup => {
-                if (projectGroup.project.id === action.payload.projectId) {
-                    const k = projectGroup.groups.groups.map(group => {
+                if (projectGroup.project.id === action.payload.projectId._id) {
+                    const groups = projectGroup.groups.groups.map(group => {
                         if (group._id === action.payload._id) {
                             return action.payload;
                         }
@@ -97,7 +101,7 @@ export default function groups(state = initialState, action) {
                     return {
                         groups: {
                             ...projectGroup.groups,
-                            groups: k,
+                            groups,
                         },
                         project: projectGroup.project,
                     };
@@ -107,11 +111,78 @@ export default function groups(state = initialState, action) {
             return {
                 ...state,
                 updateGroup: {
-                    requesting: false,
+                    requesting: {
+                        ...state.updateGroup.requesting,
+                        [action.payload._id]: false,
+                    },
                     success: true,
                     error: null,
                 },
                 groups: updatedGroup,
+            };
+        case types.GET_PROJECT_GROUPS_REQUEST:
+            return {
+                ...state,
+                getProjectGroups: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+        case types.GET_PROJECT_GROUPS_FAILURE:
+            return {
+                ...state,
+                getProjectGroups: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+        case types.GET_PROJECT_GROUPS_SUCCESS:
+            return {
+                ...state,
+                getProjectGroups: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                groups: state.groups.map(projectGroup => {
+                    const projectId = action.payload.groups[0].projectId._id;
+                    if (projectGroup.project.id === projectId) {
+                        return {
+                            project: projectGroup.project,
+                            groups: action.payload,
+                        };
+                    }
+                    return projectGroup;
+                }),
+            };
+        case types.DELETE_GROUP_REQUEST:
+            return {
+                ...state,
+                deleteGroup: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+        case types.DELETE_GROUP_SUCCESS:
+            return {
+                ...state,
+                deleteGroup: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            };
+        case types.DELETE_GROUP_FAILURE:
+            return {
+                ...state,
+                deleteGroup: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
             };
 
         default:

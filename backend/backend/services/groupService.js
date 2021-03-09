@@ -139,10 +139,12 @@ module.exports = {
                 {
                     new: true,
                 }
-            ).populate({
-                path: 'teams',
-                select: 'name email',
-            });
+            )
+                .populate('projectId', 'name')
+                .populate({
+                    path: 'teams',
+                    select: 'name email',
+                });
             return group;
         } catch (error) {
             ErrorService.log('escalationService.updateOneBy', error);
