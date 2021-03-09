@@ -104,10 +104,10 @@ class Util
         $frames = $errorObj->stacktrace ? $errorObj->stacktrace->frames : [];
 
         // get content related to each frame
-        $frames = array_map(array('self', 'getFrameContent'), $frames);
+        $frames = array_map(array(Util::class, 'getFrameContent'), $frames);
 
         // update content of each frame
-        $frames = array_map(array('self', 'updateFrameContent'), $frames);
+        $frames = array_map(array(Util::class, 'updateFrameContent'), $frames);
         $errorObj->stacktrace->frames = $frames;
         return $errorObj;
     }
