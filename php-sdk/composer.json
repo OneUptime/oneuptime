@@ -13,8 +13,8 @@
         "php": "^7.0",
         "guzzlehttp/guzzle": "^7.0",
         "symfony/var-dumper": "^5.1",
-        "fzaninotto/faker": "^1.9",
-        "lrucache/lrucache": "^0.3.0"
+        "lrucache/lrucache": "^0.3.0",
+        "fakerphp/faker": "^1.13"
     },
     "require-dev": {
         "mockery/mockery": "^1.0",
