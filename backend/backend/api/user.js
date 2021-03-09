@@ -717,7 +717,7 @@ router.post('/generate/backupCode', getUser, async function(req, res) {
 // Params:
 // Param 1: req.params-> {userId}
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/totp/token/:userId', async function(req, res) {   
+router.post('/totp/token/:userId', async function(req, res) {
     try {
         const userId = req.params.userId;
         const user = await UserService.findOneBy({ _id: userId });
@@ -727,6 +727,7 @@ router.post('/totp/token/:userId', async function(req, res) {
                 message: 'Provide a valid user Id',
             });
         }
+
         if (user.otpauth_url) {
             const response = { otpauth_url: user.otpauth_url };
             return sendItemResponse(req, res, response);
