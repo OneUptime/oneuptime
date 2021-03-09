@@ -3,6 +3,7 @@ const mongoose = require('../config/db');
 const Schema = mongoose.Schema;
 
 const integrationSchema = new Schema({
+    webHookName: { type: String },
     projectId: {
         type: Schema.Types.ObjectId,
         ref: 'Project',

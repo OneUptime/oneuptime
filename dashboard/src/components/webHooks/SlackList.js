@@ -8,7 +8,7 @@ import { WebHookTableHeader } from './WebHookRow';
 import { getSlack, paginate } from '../../actions/slackWebhook';
 import { ListLoader } from '../basic/Loader';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../../config';
 import { history } from '../../store';
 
 class SlackList extends React.Component {
@@ -109,7 +109,7 @@ class SlackList extends React.Component {
                     >
                         <thead className="Table-body">
                             <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                                <WebHookTableHeader text="Endpoint" />
+                                <WebHookTableHeader text="Name" />
                                 {!monitorId && (
                                     <WebHookTableHeader text="Monitors" />
                                 )}
@@ -248,7 +248,9 @@ const mapStateToProps = state => ({
     slacks: state.slackWebhooks.slacks,
     isRequesting: state.slackWebhooks.slacks.requesting,
     currentProject: state.project.currentProject,
-    projectId: state.project.currentProject && state.project.currentProject._id,
+    projectId:
+        (state.project.currentProject && state.project.currentProject._id) ||
+        User.getCurrentProjectId(),
     monitor: state.monitor,
     pages: state.slackWebhooks.pages,
 });

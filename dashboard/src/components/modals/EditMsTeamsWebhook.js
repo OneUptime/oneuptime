@@ -40,6 +40,7 @@ class EditWebHook extends React.Component {
         } = this.props;
 
         const postObj = {};
+        postObj.webHookName = values.webHookName;
         postObj.endpoint = values.endpoint;
         postObj.monitorId = values.monitorId;
         postObj.endpointType = values.endpointType;
@@ -148,6 +149,46 @@ class EditWebHook extends React.Component {
                                                 >
                                                     <label
                                                         className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="webHookName"
+                                                    >
+                                                        <span>Name</span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div
+                                                            className="bs-Fieldset-field"
+                                                            style={{
+                                                                width: '70%',
+                                                            }}
+                                                        >
+                                                            <Field
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                name="webHookName"
+                                                                placeholder="Webhook Name"
+                                                                id="webHookName"
+                                                                type="text"
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                style={{
+                                                                    width: 250,
+                                                                    padding:
+                                                                        '3px 5px',
+                                                                }}
+                                                                autoFocus={true}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
                                                         htmlFor="endpoint"
                                                     >
                                                         <span>
@@ -175,7 +216,6 @@ class EditWebHook extends React.Component {
                                                                     padding:
                                                                         '3px 5px',
                                                                 }}
-                                                                autoFocus={true}
                                                             />
                                                         </div>
                                                     </div>
@@ -628,6 +668,7 @@ const mapStateToProps = (state, props) => {
         currentProject: state.project.currentProject,
         newMsTeams: state.msTeams.updateMsTeams,
         initialValues: {
+            webHookName: props.data.data.webHookName,
             endpoint: props.data.data.endpoint,
             monitorId: currentMonitorValue.value,
             incidentCreated: props.data.notificationOptions.incidentCreated,

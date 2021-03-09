@@ -144,6 +144,7 @@ module.exports = {
                     {
                         $set: {
                             monitorId: data.monitorId,
+                            'data.webHookName': data.webHookName,
                             'data.endpoint': data.endpoint,
                             'data.monitorId': data.monitorId,
                             'data.endpointType': data.endpointType,
