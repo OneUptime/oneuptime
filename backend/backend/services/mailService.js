@@ -3895,6 +3895,7 @@ const _this = {
                 template: 'smtp_test',
                 context: {
                     homeURL: global.homeHost,
+                    smtpServer,
                     ...data,
                 },
             };
