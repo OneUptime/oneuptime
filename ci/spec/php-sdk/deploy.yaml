@@ -13,12 +13,13 @@ deploy_staging_php-sdk:
         - sudo apt install -y php7.3 php7.3-common php7.3-opcache php7.3-cli php7.3-gd php7.3-curl php7.3-mysql php7.3-xml php7.3-mbstring
         - cd php-sdk
         - sudo apt-get install -y composer
-        - sudo npm install -g json
+        - sudo npm install -g json composer-version
         - git init
         # - git add .
         # - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
+        - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/sdk-staging"'
         - git init
         - git add .
@@ -50,13 +51,14 @@ deploy_production_php-sdk:
         - sudo apt install -y php7.3 php7.3-common php7.3-opcache php7.3-cli php7.3-gd php7.3-curl php7.3-mysql php7.3-xml php7.3-mbstring
         - cd php-sdk
         - sudo apt-get install -y composer
-        - sudo npm install -g json
+        - sudo npm install -g json composer-version
         - git init
         - git add .
         - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
         - git checkout -f master
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
+        - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/sdk"'
         - git add .
         - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
