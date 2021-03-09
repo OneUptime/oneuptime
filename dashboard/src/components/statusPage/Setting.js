@@ -419,7 +419,7 @@ export class Setting extends Component {
                                                                                         }}
                                                                                     >
                                                                                         <button
-                                                                                            id="btnVerifyDomain"
+                                                                                            id={`btnVerifyDomain_${index}`}
                                                                                             className="bs-Button"
                                                                                             onClick={e => {
                                                                                                 this.handleVerifyDomain(
@@ -454,6 +454,7 @@ export class Setting extends Component {
                                                                                         }}
                                                                                     >
                                                                                         <button
+                                                                                            id={`btnDeleteDomain_${index}`}
                                                                                             className="btnDeleteDomain bs-Button"
                                                                                             onClick={e => {
                                                                                                 //Todo: handle delete here
@@ -551,7 +552,10 @@ export class Setting extends Component {
                                             this.state.fields.length === 0
                                         }
                                     >
-                                        <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2 Padding-all--16 Text-align--center Padding-top--20">
+                                        <div
+                                            id="domainNotSet"
+                                            className="bs-Fieldset-wrapper Box-root Margin-bottom--2 Padding-all--16 Text-align--center Padding-top--20"
+                                        >
                                             <span>No domains added</span>
                                         </div>
                                     </ShouldRender>

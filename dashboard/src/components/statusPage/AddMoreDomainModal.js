@@ -86,7 +86,7 @@ class AddMoreDomainModal extends React.Component {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
-                return document.getElementById('createSlaBtn').click();
+                return document.getElementById('createCustomDomainBtn').click();
             default:
                 return false;
         }
@@ -468,7 +468,7 @@ class AddMoreDomainModal extends React.Component {
                                             </span>
                                         </button>
                                         <button
-                                            id="createSlaBtn"
+                                            id="createCustomDomainBtn"
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                             disabled={requesting}
                                             type="submit"

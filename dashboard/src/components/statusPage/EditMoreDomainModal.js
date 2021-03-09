@@ -88,7 +88,7 @@ class EditMoreDomainModal extends React.Component {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
-                return document.getElementById('createSlaBtn').click();
+                return document.getElementById('updateCustomDomainBtn').click();
             default:
                 return false;
         }
@@ -179,7 +179,7 @@ class EditMoreDomainModal extends React.Component {
                                 </div>
                             </div>
                             <form
-                                id="addMoreDomainModal"
+                                id="editMoreDomainModal"
                                 onSubmit={handleSubmit(this.submitForm)}
                             >
                                 <div className="bs-Modal-content">
@@ -470,7 +470,7 @@ class EditMoreDomainModal extends React.Component {
                                             </span>
                                         </button>
                                         <button
-                                            id="createSlaBtn"
+                                            id="updateCustomDomainBtn"
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                             disabled={requesting}
                                             type="submit"
