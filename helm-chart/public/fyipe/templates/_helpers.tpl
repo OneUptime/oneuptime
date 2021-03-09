@@ -7,6 +7,10 @@ Expand the name of the chart.
 {{ printf "mongodb://%s:%s@%s-%s.%s.%s:%s/%s?replicaSet=%s" $.Values.mongodb.mongodbUsername $.Values.mongodb.mongodbPassword $.Release.Name "mongodb" $.Release.Namespace "svc.cluster.local" "27017" $.Values.mongodb.mongodbDatabase $.Values.mongodb.replicaSet.name }}
 {{- end -}}
 
+{{- define "fyipe.internalSmtpServer" -}}
+{{ printf "%s-haraka.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
+{{- end -}}
+
 {{- define "fyipe.redisHost" -}}
 {{ printf "%s-redis-master.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
 {{- end -}}

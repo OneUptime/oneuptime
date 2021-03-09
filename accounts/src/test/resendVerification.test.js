@@ -3,14 +3,9 @@
 const puppeteer = require('puppeteer');
 const should = require('should');
 const utils = require('./test-utils');
-const init = require('./test-init');
 
 let browser;
 let page;
-
-const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
-const user = { email, password };
 
 describe('Resend Verification API', () => {
     beforeAll(async () => {
@@ -41,5 +36,4 @@ describe('Resend Verification API', () => {
         should.exist(html);
         html.should.containEql('No user associated with this account');
     }, 160000);
-
 });

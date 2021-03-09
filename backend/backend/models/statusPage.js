@@ -61,6 +61,11 @@ const statusSchema = new Schema({
         type: Boolean,
         default: false,
     },
+    // show or hide the probe bar
+    hideProbeBar: {
+        type: Boolean,
+        default: false,
+    },
     description: String,
     copyright: String,
     faviconPath: String,

@@ -29,8 +29,7 @@ describe('Custom Tutorial With SubProjects', () => {
         });
 
         return await cluster.execute(null, async ({ page }) => {
-            await init.registerUser(user, page);
-            await init.loginUser(user, page);
+            await init.registerUser(user, page);            
         });
     });
 
@@ -48,8 +47,7 @@ describe('Custom Tutorial With SubProjects', () => {
                 // Navigate to home page
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
-                });
-                await page.waitForTimeout(5000);
+                });                
                 const componentBoxElement = await page.waitForSelector(
                     `#info-${customTutorialType}`
                 );

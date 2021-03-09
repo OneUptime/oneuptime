@@ -862,9 +862,9 @@ router.get(
                             notes: statusPageEvent.notes,
                         });
                     }
+                    events = formatNotes(updatedEvents);
+                    events = checkDuplicateDates(events);
                 }
-                events = formatNotes(updatedEvents);
-                events = checkDuplicateDates(events);
             }
             return sendListResponse(req, res, events, count);
         } catch (error) {
@@ -1204,10 +1204,8 @@ function checkDuplicateDates(items, bool) {
     if (!bool) {
         return result;
     } else {
-        //let trueCount;
         const specificNumberToDisplay = 15;
-        //trueCount = result.filter(num => num.style).length;  // trueCount assigned but never used
-        const falseCount = result.filter(num => !num.style).length; // falseCount is never reassigned
+        const falseCount = result.filter(num => !num.style).length;
         return specificNumberToDisplay + falseCount;
     }
 }
