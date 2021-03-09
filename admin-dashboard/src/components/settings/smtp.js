@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { reduxForm, Field } from 'redux-form';
 import uuid from 'uuid';
 import { RenderField } from '../basic/RenderField';
-import { Validate } from '../../config';
+import { Validate, IS_INTERNAL_SMTP_DEPLOYED } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 import { fetchSettings, saveSettings, testSmtp } from '../../actions/settings';
@@ -338,6 +338,13 @@ export class Component extends React.Component {
                                                     'email-enabled'
                                                 ] &&
                                                 smtpOptions.map(field => {
+                                                    if (
+                                                        field.key ===
+                                                            'internalSmtp' &&
+                                                        !IS_INTERNAL_SMTP_DEPLOYED
+                                                    ) {
+                                                        return null;
+                                                    }
                                                     return (
                                                         <div
                                                             key={field.key}

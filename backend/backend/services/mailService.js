@@ -28,6 +28,16 @@ const options = {
     extName: '.hbs',
 };
 
+// handlebars helper function
+// checks for equality
+Handlebars.registerHelper('if_eq', function(a, b, opts) {
+    if (a == b) {
+        return opts.fn(this);
+    } else {
+        return opts.inverse(this);
+    }
+});
+
 const _this = {
     getProjectSmtpSettings: async projectId => {
         let user,
@@ -3885,6 +3895,7 @@ const _this = {
                 template: 'smtp_test',
                 context: {
                     homeURL: global.homeHost,
+                    smtpServer,
                     ...data,
                 },
             };
