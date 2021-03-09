@@ -22,6 +22,7 @@ deploy_staging_php-sdk:
         - json -I -f composer.json -e 'this.name="fyipe/sdk-staging"'
         - git init
         - git add .
+        - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
         - git checkout staging || git checkout -b staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/php-sdk.git staging --force
         - cd ..
