@@ -162,11 +162,12 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.waitForSelector('input[name=twoFactorAuthEnabled]', {
                     visible: true,
                 });
+                await page.reload({waitUntil: 'networkidle0'});
                 await page.$eval('input[name=twoFactorAuthEnabled]', e =>
                     e.click()
                 );
 
-                //wait for the QR code to show
+                //wait for the QR code to show                
                 await page.waitForSelector('#qr-code',{visible:true});                
 
                 // click on the next button
