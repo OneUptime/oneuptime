@@ -213,30 +213,30 @@ class Main extends Component {
                                     {this.props.monitors.some(
                                         m => monitor._id === m.monitor
                                     ) && (
-                                            <LineChartsContainer
-                                                monitor={monitor}
-                                                selectedCharts={
-                                                    this.props.monitors.filter(
-                                                        m =>
-                                                            monitor._id ===
-                                                            m.monitor
-                                                    )[0]
-                                                }
-                                            />
-                                        )}
+                                        <LineChartsContainer
+                                            monitor={monitor}
+                                            selectedCharts={
+                                                this.props.monitors.filter(
+                                                    m =>
+                                                        monitor._id ===
+                                                        m.monitor
+                                                )[0]
+                                            }
+                                        />
+                                    )}
                                     {i <
                                         this.props.statusData.monitorsData
                                             .length -
-                                        1 && (
-                                            <div
-                                                style={{
-                                                    margin: '30px 0px',
-                                                    backgroundColor:
-                                                        'rgb(232, 232, 232)',
-                                                    height: '1px',
-                                                }}
-                                            />
-                                        )}
+                                            1 && (
+                                        <div
+                                            style={{
+                                                margin: '30px 0px',
+                                                backgroundColor:
+                                                    'rgb(232, 232, 232)',
+                                                height: '1px',
+                                            }}
+                                        />
+                                    )}
                                 </>
                             );
                         })}
@@ -406,7 +406,7 @@ class Main extends Component {
                                     </div>
                                 </React.Fragment>
                             ) : this.props.statusData &&
-                                this.props.statusData.logoPath ? (
+                              this.props.statusData.logoPath ? (
                                 <div className="logo_section pad-left">
                                     <span>
                                         <img
@@ -420,7 +420,7 @@ class Main extends Component {
                                 ''
                             )}
                             {this.props.statusData &&
-                                this.props.statusData.bannerPath ? (
+                            this.props.statusData.bannerPath ? (
                                 <div className="banner-container">
                                     <div className="page-main-wrapper">
                                         {/* Banner */}
@@ -458,7 +458,7 @@ class Main extends Component {
                                 <ShouldRender
                                     if={
                                         this.props.isSubscriberEnabled ===
-                                        true && showSubscriberOption
+                                            true && showSubscriberOption
                                     }
                                 >
                                     <button
@@ -536,10 +536,10 @@ class Main extends Component {
                                             {isGroupedByMonitorCategory ? (
                                                 this.groupedMonitors()
                                             ) : this.props.statusData &&
-                                                this.props.statusData
-                                                    .monitorsData !== undefined &&
-                                                this.props.statusData.monitorsData
-                                                    .length > 0 ? (
+                                              this.props.statusData
+                                                  .monitorsData !== undefined &&
+                                              this.props.statusData.monitorsData
+                                                  .length > 0 ? (
                                                 this.props.monitors
                                                     .filter(monitor =>
                                                         this.props.statusData.monitorsData.some(
@@ -644,7 +644,7 @@ class Main extends Component {
                 ) : (
                     <div className="page-main-wrapper" style={backgroundMain}>
                         {this.props.statusData &&
-                            this.props.statusData.bannerPath ? (
+                        this.props.statusData.bannerPath ? (
                             <span>
                                 <img
                                     src={`${API_URL}/file/${this.props.statusData.bannerPath}`}
@@ -768,8 +768,8 @@ class Main extends Component {
                                         >
                                             <div>
                                                 {this.props.statusData &&
-                                                    this.props.statusData
-                                                        .logoPath ? (
+                                                this.props.statusData
+                                                    .logoPath ? (
                                                     <span>
                                                         <img
                                                             src={`${API_URL}/file/${this.props.statusData.logoPath}`}
@@ -828,17 +828,23 @@ class Main extends Component {
                                                 contentBackground={
                                                     contentBackground
                                                 }
-                                                activeProbe={this.props.activeProbe}
+                                                activeProbe={
+                                                    this.props.activeProbe
+                                                }
                                                 monitorState={
                                                     this.props.monitorState
                                                 }
-                                                greenBackground={greenBackground}
+                                                greenBackground={
+                                                    greenBackground
+                                                }
                                                 uptimeColor={uptimeColor}
                                                 greyBackground={greyBackground}
                                                 serviceStatus={serviceStatus}
                                                 redBackground={redBackground}
                                                 downtimeColor={downtimeColor}
-                                                yellowBackground={yellowBackground}
+                                                yellowBackground={
+                                                    yellowBackground
+                                                }
                                                 degradedColor={degradedColor}
                                                 heading={heading}
                                                 now={this.state.now}
@@ -864,12 +870,12 @@ class Main extends Component {
                                                 {isGroupedByMonitorCategory ? (
                                                     this.groupedMonitors()
                                                 ) : this.props.statusData &&
-                                                    this.props.statusData
-                                                        .monitorsData !==
-                                                    undefined &&
-                                                    this.props.statusData
-                                                        .monitorsData.length >
-                                                    0 ? (
+                                                  this.props.statusData
+                                                      .monitorsData !==
+                                                      undefined &&
+                                                  this.props.statusData
+                                                      .monitorsData.length >
+                                                      0 ? (
                                                     this.props.monitors
                                                         .filter(monitor =>
                                                             this.props.statusData.monitorsData.some(
@@ -921,18 +927,18 @@ class Main extends Component {
                                                                         .statusData
                                                                         .monitorsData
                                                                         .length -
-                                                                    1 && (
-                                                                        <div
-                                                                            style={{
-                                                                                margin:
-                                                                                    '30px 0px',
-                                                                                backgroundColor:
-                                                                                    '#e8e8e8',
-                                                                                height:
-                                                                                    '1px',
-                                                                            }}
-                                                                        />
-                                                                    )}
+                                                                        1 && (
+                                                                    <div
+                                                                        style={{
+                                                                            margin:
+                                                                                '30px 0px',
+                                                                            backgroundColor:
+                                                                                '#e8e8e8',
+                                                                            height:
+                                                                                '1px',
+                                                                        }}
+                                                                    />
+                                                                )}
                                                             </>
                                                         ))
                                                 ) : (
@@ -940,10 +946,10 @@ class Main extends Component {
                                                 )}
                                             </div>
                                             {this.props.statusData &&
-                                                this.props.statusData
-                                                    .monitorsData !== undefined &&
-                                                this.props.statusData.monitorsData
-                                                    .length > 0 ? (
+                                            this.props.statusData
+                                                .monitorsData !== undefined &&
+                                            this.props.statusData.monitorsData
+                                                .length > 0 ? (
                                                 <UptimeLegend
                                                     background={
                                                         contentBackground
@@ -971,7 +977,7 @@ class Main extends Component {
                                 </div>
                                 <Helmet>
                                     {this.props.statusData &&
-                                        this.props.statusData.faviconPath ? (
+                                    this.props.statusData.faviconPath ? (
                                         <link
                                             rel="shortcut icon"
                                             href={`${API_URL}/file/${this.props.statusData.faviconPath}`}
@@ -984,7 +990,7 @@ class Main extends Component {
                                     )}
                                     <title>
                                         {this.props.statusData &&
-                                            this.props.statusData.title
+                                        this.props.statusData.title
                                             ? this.props.statusData.title
                                             : 'Status page'}
                                     </title>
@@ -1190,38 +1196,38 @@ const Probes = ({
                             // If the page doesn't include any monitor or includes only manual monitors
                             // The probe servers will be shown online
                             monitorState.length === 0 ||
-                                monitorState.every(
-                                    monitor => monitor.type === 'manual'
-                                )
+                            monitorState.every(
+                                monitor => monitor.type === 'manual'
+                            )
                                 ? {
-                                    ...greenBackground,
-                                    backgroundColor:
-                                        uptimeColor.backgroundColor,
-                                }
+                                      ...greenBackground,
+                                      backgroundColor:
+                                          uptimeColor.backgroundColor,
+                                  }
                                 : probe.lastAlive &&
-                                    moment(now).diff(
-                                        moment(probe.lastAlive),
-                                        'seconds'
-                                    ) >= 300
-                                    ? greyBackground
-                                    : serviceStatus === 'none' ||
-                                        serviceStatus === 'some'
-                                        ? {
-                                            ...redBackground,
-                                            backgroundColor:
-                                                downtimeColor.backgroundColor,
-                                        }
-                                        : serviceStatus === 'some-degraded'
-                                            ? {
-                                                ...yellowBackground,
-                                                backgroundColor:
-                                                    degradedColor.backgroundColor,
-                                            }
-                                            : {
-                                                ...greenBackground,
-                                                backgroundColor:
-                                                    uptimeColor.backgroundColor,
-                                            }
+                                  moment(now).diff(
+                                      moment(probe.lastAlive),
+                                      'seconds'
+                                  ) >= 300
+                                ? greyBackground
+                                : serviceStatus === 'none' ||
+                                  serviceStatus === 'some'
+                                ? {
+                                      ...redBackground,
+                                      backgroundColor:
+                                          downtimeColor.backgroundColor,
+                                  }
+                                : serviceStatus === 'some-degraded'
+                                ? {
+                                      ...yellowBackground,
+                                      backgroundColor:
+                                          degradedColor.backgroundColor,
+                                  }
+                                : {
+                                      ...greenBackground,
+                                      backgroundColor:
+                                          uptimeColor.backgroundColor,
+                                  }
                         }
                     ></span>
                     <span style={heading}>{probe.probeName}</span>

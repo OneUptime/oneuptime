@@ -108,7 +108,7 @@ module.exports = {
         await page.click('button#profile-menu');
         await page.waitForSelector('button#logout-button');
         await page.click('button#logout-button');
-        await page.reload({waitUntil:'networkidle0'});        
+        await page.reload({ waitUntil: 'networkidle0' });
     },
     adminLogout: async function(page) {
         await page.goto(utils.ADMIN_DASHBOARD_URL);
@@ -116,7 +116,7 @@ module.exports = {
         await page.click('button#profile-menu');
         await page.waitForSelector('button#logout-button');
         await page.click('button#logout-button');
-        await page.reload({waitUntil:'networkidle0'});
+        await page.reload({ waitUntil: 'networkidle0' });
     },
     addComponent: async function(component, page, projectName = null) {
         await page.goto(utils.DASHBOARD_URL);
@@ -343,7 +343,7 @@ module.exports = {
         await page.click('[data-testId=type_url]');
         await page.waitForSelector('#url');
         await page.click('#url');
-        await page.type('#url', 'https://google.com');        
+        await page.type('#url', 'https://google.com');
         await page.click('button[type=submit]');
         await page.waitForSelector(`#monitor-title-${monitorName}`, {
             visible: true,
@@ -889,7 +889,7 @@ module.exports = {
     },
     gotoTab: async function(tabId, page) {
         await page.waitForSelector(`#react-tabs-${tabId}`, { visible: true });
-        await page.$eval(`#react-tabs-${tabId}`, e => e.click());        
+        await page.$eval(`#react-tabs-${tabId}`, e => e.click());
     },
     setAlertPhoneNumber: async (phoneNumber, code, page) => {
         await page.goto(utils.DASHBOARD_URL);
