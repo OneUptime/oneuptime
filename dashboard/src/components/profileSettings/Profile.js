@@ -312,6 +312,7 @@ export class ProfileSetting extends Component {
     };
 
     render() {
+        console.log("Profile Props ", this.props);
         const {
             profileSettingState,
             emailValue,

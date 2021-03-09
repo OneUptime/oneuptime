@@ -33,7 +33,7 @@ describe('Profile -> Delete Account Component test', () => {
         // Register user
         return await cluster.execute(null, async ({ page }) => {
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
+            //await init.loginUser(user, page);
         });
     });
 
@@ -166,14 +166,17 @@ describe('Profile -> Delete Account Component test', () => {
                     e.click()
                 );
 
+                //wait for the QR code to show
+                await page.waitForSelector('#qr-code',{visible:true});                
+
                 // click on the next button
                 await page.waitForSelector('#nextFormButton');
                 await page.click('#nextFormButton');
-
+                
                 // enter a random verification code
                 await page.waitForSelector('#token');
                 await page.type('#token', '021196');
-
+                
                 // click the verification button
                 await page.waitForSelector('#enableTwoFactorAuthButton');
                 await page.click('#enableTwoFactorAuthButton');

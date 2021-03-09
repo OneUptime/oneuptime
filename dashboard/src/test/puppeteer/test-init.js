@@ -292,8 +292,7 @@ module.exports = {
         await page.click(`#emails_${subProjectName}`);
         await page.type(`#emails_${subProjectName}`, email);
         await page.click(`#${role}_${subProjectName}`);
-        await page.click(`#btn_modal_${subProjectName}`);
-        await page.waitFor(5000);
+        await page.click(`#btn_modal_${subProjectName}`);       
     },
     switchProject: async function(projectName, page) {
         await page.goto(utils.DASHBOARD_URL);
@@ -319,7 +318,6 @@ module.exports = {
             await page.type('input[name=project_name]', newProjectName);
             await page.click('#btnCreateProject');
         }
-        await page.waitFor(5000);
     },
     clear: async function(selector, page) {
         const input = await page.$(selector);

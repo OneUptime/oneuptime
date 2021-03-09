@@ -32,8 +32,7 @@ describe('User Feedback', () => {
             };
 
             // user
-            await init.registerUser(user, page);
-            await init.loginUser(user, page);
+            await init.registerUser(user, page);            
         });
 
         await cluster.queue({ email, password });
@@ -50,7 +49,7 @@ describe('User Feedback', () => {
     test(
         'should send feedback in project',
         async done => {
-            expect.assertions(3);
+            expect.assertions(2); // It became 2 since the removal of init.loginUser which has become redundant.
 
             const cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
