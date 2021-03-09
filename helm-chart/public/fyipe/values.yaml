@@ -181,9 +181,12 @@ nginx-ingress-controller:
   ##################################################################################
 
 haraka:
+  fromEmail:
+  fromName: 
   user: 
   password:
   domain:
+  # This should be base64 of your private key
   dkimPrivateKey:
   tlsCert:
   tlsKey:

@@ -179,12 +179,12 @@ const _this = {
             document.value.customSmtp
         ) {
             return {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASSWORD,
-                host: process.env.SMTP_SERVER,
-                port: process.env.SMTP_PORT,
-                from: process.env.SMTP_FROM,
-                name: process.env.SMTP_NAME,
+                user: process.env.INTERNAL_SMTP_USER,
+                pass: process.env.INTERNAL_SMTP_PASSWORD,
+                host: process.env.INTERNAL_SMTP_SERVER,
+                port: process.env.INTERNAL_SMTP_PORT,
+                from: process.env.INTERNAL_SMTP_FROM,
+                name: process.env.INTERNAL_SMTP_NAME,
                 'email-enabled': document.value['email-enabled'],
                 internalSmtp: document.value.internalSmtp,
                 customSmtp: document.value.customSmtp,
@@ -201,12 +201,12 @@ const _this = {
             };
         } else if (document && document.value && document.value.internalSmtp) {
             return {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASSWORD,
-                host: process.env.SMTP_SERVER,
-                port: process.env.SMTP_PORT,
-                from: process.env.SMTP_FROM,
-                name: process.env.SMTP_NAME,
+                user: process.env.INTERNAL_SMTP_USER,
+                pass: process.env.INTERNAL_SMTP_PASSWORD,
+                host: process.env.INTERNAL_SMTP_SERVER,
+                port: process.env.INTERNAL_SMTP_PORT,
+                from: process.env.INTERNAL_SMTP_FROM,
+                name: process.env.INTERNAL_SMTP_NAME,
                 'email-enabled': document.value['email-enabled'],
                 internalSmtp: document.value.internalSmtp,
             };
