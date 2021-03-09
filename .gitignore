@@ -45,3 +45,4 @@ kubernetes/values-saas-production.yaml
 /public
 /tls_cert.pem
 /tls_key.pem
+/keys

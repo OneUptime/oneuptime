@@ -44,15 +44,10 @@ By default, fyipe will ship with it's own default credential configuration for s
 ### Setup Private Key
 
 ```
-# Unix machine
-
-
 # generate private key
-
 openssl genrsa -out private 2048
 
 # Encode it to base64 and export it
-
 export DKIM_PRIVATE_KEY=$(cat private | base64)
 
 ```
@@ -62,15 +57,13 @@ export DKIM_PRIVATE_KEY=$(cat private | base64)
 ### Setup DKIM on DNS TXT Record
 
 ```
-# Unix machine
 
-# private should point to the private key generated previously
-
+# This is the private key created in the above step.
 chmod 0400 private
+
 openssl rsa -in private -out public -pubout
 
-# value of DKIM dns record
-
+# value of DKIM DNS record should be...
 echo "v=DKIM1;p=$(grep -v '^-' public | tr -d '\n')"
 
 ```
