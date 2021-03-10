@@ -519,7 +519,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 await page.click('#profile-menu');
                 await page.waitForSelector('#profileBilling');
                 await page.click('#profileBilling');
-                await page.waitForSelector('#ProfileSettings-text', {
+                await page.waitForSelector('#profileSettings', {
                     visible: true,
                 });
 
@@ -571,7 +571,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
-                await page.waitForSelector('#Billing-text', { visible: true });
+                await page.waitForSelector('#billing', { visible: true });
 
                 await page.keyboard.press('f');
                 await page.keyboard.press('b');
@@ -625,7 +625,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
                 await page.keyboard.press('f');
                 await page.keyboard.press('k');
-                const component = await page.waitForSelector('#Components-text', {
+                const component = await page.waitForSelector('#components', {
                     visible: true,
                 });
                 expect(component).toBeDefined();
