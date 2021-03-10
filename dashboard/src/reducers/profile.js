@@ -71,6 +71,11 @@ const INITIAL_STATE = {
         data: {},
     },
     resendTimer: null,
+    pushNotification: {
+        error: null,
+        requesting: false,
+        success: false,
+    },
 };
 
 export default function profileSettings(state = INITIAL_STATE, action) {
@@ -109,6 +114,36 @@ export default function profileSettings(state = INITIAL_STATE, action) {
         case types.UPDATE_PROFILE_SETTING_RESET:
             return Object.assign({}, state, {
                 ...INITIAL_STATE,
+            });
+
+        // update push notification setting
+        case types.UPDATE_PUSH_NOTIFICATION_REQUEST:
+            return Object.assign({}, state, {
+                pushNotification: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case types.UPDATE_PUSH_NOTIFICATION_ERROR:
+            return Object.assign({}, state, {
+                requesting: false,
+                error: action.payload,
+                success: false,
+            });
+
+        case types.UPDATE_PUSH_NOTIFICATION_SUCCESS:
+            return Object.assign({}, state, {
+                pushNotification: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                profileSetting: {
+                    data: action.payload,
+                    success: true,
+                },
             });
 
         // Update backup codes
