@@ -188,7 +188,7 @@ module.exports = {
 
             await this.updateMonitorSlaStat(query);
             if (data) {
-                if (data && data.name) {
+                if (data.name) {
                     let name = data.name;
                     name = slugify(name);
                     name = `${name}-${generate('1234567890', 8)}`;
