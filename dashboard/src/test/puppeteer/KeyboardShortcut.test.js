@@ -107,7 +107,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#On-CallDuty-text', {
+                await page.waitForSelector('#onCallDuty', {
                     visible: true,
                 });
                 await page.keyboard.press('f');
@@ -128,7 +128,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#On-CallDuty-text', {
+                await page.waitForSelector('#onCallDuty', {
                     visible: true,
                 });
                 await page.keyboard.press('o');
@@ -545,7 +545,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
-                await page.waitForSelector('#ChangePassword-text', {
+                await page.waitForSelector('#changePassword', {
                     visible: true,
                 });
 
