@@ -555,7 +555,7 @@ export const groups = [
                         subRoutes: [],
                         component: CallRouting,
                         index: 8,
-                        shortcut: 's+c+r',
+                        shortcut: 's+q',
                     },
                     {
                         title: 'Webhooks',
