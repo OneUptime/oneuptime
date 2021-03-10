@@ -124,13 +124,25 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query, data, projectId) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
+
+            const groupExist = await this.findOneBy({
+                name: data.name,
+                projectId,
+            });
+
+            if (groupExist && String(groupExist._id) !== String(query._id)) {
+                const error = new Error('Group already exist in this project');
+                error.code = 400;
+                ErrorService.log('groupService.update', error);
+                throw error;
+            }
             const group = await GroupModel.findOneAndUpdate(
                 query,
                 {

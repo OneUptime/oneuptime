@@ -182,3 +182,8 @@ export const deleteGroup = (projectId, groupId) => async dispatch => {
         return errorMsg;
     }
 };
+
+//Reset error message
+export const resetErrorMessage = () => ({
+    type: types.RESET_ERROR_MESSAGE,
+});

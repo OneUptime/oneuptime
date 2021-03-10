@@ -18,7 +18,7 @@ router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
         if (!name) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Group name must be present'
+                message: 'Group name must be present',
             });
         }
 
@@ -83,7 +83,7 @@ router.get('/:projectId', getUser, isAuthorized, async (req, res) => {
 
 router.put('/:projectId/:groupId', getUser, isAuthorized, async (req, res) => {
     try {
-        const { groupId } = req.params;
+        const { groupId, projectId } = req.params;
         const { name, teams } = req.body;
 
         const data = {};
@@ -94,7 +94,11 @@ router.put('/:projectId/:groupId', getUser, isAuthorized, async (req, res) => {
             data.teams = teams;
         }
 
-        const groups = await GroupService.updateOneBy({ _id: groupId }, data);
+        const groups = await GroupService.updateOneBy(
+            { _id: groupId },
+            data,
+            projectId
+        );
         return sendItemResponse(req, res, groups);
     } catch (error) {
         return sendErrorResponse(req, res, error);

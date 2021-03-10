@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import GroupForm from './addGroupModal';
+import GroupForm from './GroupForm';
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
@@ -128,7 +128,6 @@ const mapDispatchToProps = dispatch => {
 const mapStateToProps = state => {
     return {
         currentProject: state.project.currentProject,
-        subProjectState: state.subProject,
         disabled: state.groups.updateGroup.requesting,
         deleteDisable: state.groups.deleteGroup.requesting,
     };

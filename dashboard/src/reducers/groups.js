@@ -184,6 +184,18 @@ export default function groups(state = initialState, action) {
                     error: action.payload,
                 },
             };
+        case types.RESET_ERROR_MESSAGE:
+            return {
+                ...state,
+                createGroup: {
+                    ...state.createGroup,
+                    error: null,
+                },
+                updateGroup: {
+                    ...state.updateGroup,
+                    error: null,
+                },
+            };
 
         default:
             return state;

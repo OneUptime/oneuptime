@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import GroupTable from './GroupTable';
-import GroupForm from './addGroupModal';
+import GroupForm from './GroupForm';
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
@@ -17,7 +17,7 @@ import Badge from '../common/Badge';
 export class GroupList extends Component {
     constructor(props) {
         super(props);
-        this.state = { groupModalId: uuidv4(), page: 1 };
+        this.state = { groupModalId: uuidv4()};
     }
 
     componentDidMount() {
@@ -252,9 +252,8 @@ export class GroupList extends Component {
                                     <div className="bs-Tail-copy Text-fontWeight--medium">
                                         <span>
                                             {numbersOfPage > 0
-                                                ? `Page ${
-                                                      this.state.page
-                                                  } of ${numbersOfPage} (${count} Group${
+                                                ? `Page ${skip / 10 +
+                                                      1} of ${numbersOfPage} (${count} Group${
                                                       count === 1 ? '' : 's'
                                                   })`
                                                 : `${count} Group${

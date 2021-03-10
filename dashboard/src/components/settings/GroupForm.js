@@ -8,7 +8,11 @@ import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { closeModal } from '../../actions/modal';
 import { RenderSelect } from '../basic/RenderSelect';
-import { createGroup, updateGroup } from '../../actions/group';
+import {
+    createGroup,
+    updateGroup,
+    resetErrorMessage,
+} from '../../actions/group';
 
 export class GroupForm extends React.Component {
     state = {
@@ -54,6 +58,7 @@ export class GroupForm extends React.Component {
             updateGroup,
             closeModal,
             groupModalId,
+            resetErrorMessage
         } = this.props;
 
         if (!editGroup) {
@@ -62,9 +67,10 @@ export class GroupForm extends React.Component {
                 teams: this.state.teamMemberIds,
             }).then(data => {
                 if (!data.error) {
-                    return closeModal({
+                     closeModal({
                         id: groupModalId,
                     });
+                    resetErrorMessage()
                 }
             });
         } else {
@@ -74,9 +80,10 @@ export class GroupForm extends React.Component {
                 teams: teamMemberIds,
             }).then(data => {
                 if (!data.error) {
-                    return closeModal({
+                     closeModal({
                         id: groupModalId,
                     });
+                    resetErrorMessage()
                 } else return null;
             });
         }
@@ -97,6 +104,7 @@ export class GroupForm extends React.Component {
         this.props.closeModal({
             id: this.props.groupModalId,
         });
+        this.props.resetErrorMessage();
     };
     handleChange = value => {
         if (value) {
@@ -114,9 +122,14 @@ export class GroupForm extends React.Component {
                 ...this.state.teamMemberIds,
                 teamMemberId,
             ];
-            const filteredTeamMember = this.state.teams.filter(
-                user => user.userId === teamMemberId
-            );
+            const filteredTeamMember = this.state.teams
+                .filter(user => user.userId === teamMemberId)
+                .map(user => {
+                    return {
+                        ...user,
+                        _id: user.userId,
+                    };
+                });
 
             this.setState({
                 teamMemberIds: newTeamMemberIds,
@@ -317,9 +330,10 @@ export class GroupForm extends React.Component {
                                                 }`}
                                                 type="button"
                                                 onClick={() => {
-                                                    return closeModal({
+                                                     closeModal({
                                                         id: groupModalId,
                                                     });
+                                                    this.props.resetErrorMessage();
                                                 }}
                                                 disabled={
                                                     editGroup
@@ -425,6 +439,7 @@ const mapDispatchToProps = dispatch => {
             closeModal,
             createGroup,
             updateGroup,
+            resetErrorMessage,
         },
         dispatch
     );
@@ -443,6 +458,7 @@ GroupForm.propTypes = {
     updateGroup: PropTypes.func,
     groupId: PropTypes.string,
     teams: PropTypes.array,
+    resetErrorMessage: PropTypes.func,
     errorMessage: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null]),
