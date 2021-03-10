@@ -147,7 +147,7 @@ module.exports = {
                     incident = await _this.findOneBy({ _id: incident._id });
 
                     const notification = await _this._sendIncidentCreatedAlert(
-                        incident, data.subscription
+                        incident
                     );
                     incident.notificationId = notification._id;
                     incident = await incident.save();
@@ -343,9 +343,9 @@ module.exports = {
         }
     },
 
-    async _sendIncidentCreatedAlert(incident, subscription) {
+    async _sendIncidentCreatedAlert(incident) {
         try {
-            await AlertService.sendCreatedIncident(incident, subscription);
+            await AlertService.sendCreatedIncident(incident);
             await ZapierService.pushToZapier('incident_created', incident);
             // await RealTimeService.sendCreatedIncident(incident);
 
