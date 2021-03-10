@@ -36,8 +36,7 @@ describe('Schedule', () => {
                 email: data.email,
                 password: data.password,
             };
-            await init.registerUser(user, page);
-            await init.loginUser(user, page);
+            await init.registerUser(user, page);            
         });
         done();
     });
@@ -56,10 +55,10 @@ describe('Schedule', () => {
                 const newScheduleName = 'test';
                 await init.addProject(page, projectName);
 
-                await page.waitForSelector('#onCallSchedules', {
+                await page.waitForSelector('#onCallDuty', {
                     visible: true,
                 });
-                await page.$eval('#onCallSchedules', elem => elem.click());
+                await page.$eval('#onCallDuty', elem => elem.click());
                 const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
                 await page.waitForSelector(createScheduleBtn, {
                     visible: true,
@@ -93,10 +92,10 @@ describe('Schedule', () => {
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#onCallSchedules', {
+                await page.waitForSelector('#onCallDuty', {
                     visible: true,
                 });
-                await page.$eval('#onCallSchedules', elem => elem.click());
+                await page.$eval('#onCallDuty', elem => elem.click());
 
                 await page.reload({ waitUntil: 'networkidle0' });
                 await page.evaluate(() => {
@@ -128,18 +127,17 @@ describe('Schedule', () => {
                     componentName
                 );
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#onCallSchedules', {
+                await page.waitForSelector('#onCallDuty', {
                     visible: true,
                 });
-                await page.$eval('#onCallSchedules', elem => elem.click());
+                await page.$eval('#onCallDuty', elem => elem.click());
 
                 await page.reload({ waitUntil: 'networkidle0' });
                 await page.evaluate(() => {
                     let elem = document.querySelectorAll('.Table > tbody tr');
                     elem = Array.from(elem);
                     elem[0].click();
-                });
-                await page.waitForTimeout(5000);
+                });                
 
                 let monitor = await page.$(
                     `label[id=scheduleMonitor_0] > div.Checkbox-label > span > span[title=${monitorName}]`
@@ -160,10 +158,10 @@ describe('Schedule', () => {
                 const newScheduleName = 'test';
                 await init.addProject(page, projectName);
 
-                await page.waitForSelector('#onCallSchedules', {
+                await page.waitForSelector('#onCallDuty', {
                     visible: true,
                 });
-                await page.$eval('#onCallSchedules', elem => elem.click());
+                await page.$eval('#onCallDuty', elem => elem.click());
                 const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
                 await page.waitForSelector(createScheduleBtn, {
                     visible: true,
