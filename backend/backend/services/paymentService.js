@@ -301,36 +301,28 @@ module.exports = {
                 ErrorService.log('paymentService.changeSeats', error);
                 throw error;
             } else {
-                //Prevent update if user is still in trial period
+                let trial_end_date = subscription.trial_end;
 
-                let today_date = new Date();
-                let trial_end_date =
-                    subscription.trial_end && subscription.trial_end != null
-                        ? new Date(subscription.trial_end * 1000)
-                        : today_date;
-
-                if (trial_end_date <= today_date) {
-                    for (let i = 0; i < subscription.items.data.length; i++) {
-                        plan = await Plans.getPlanById(
-                            subscription.items.data[i].plan.id
-                        );
-
-                        if (plan) {
-                            const item = {
-                                plan: plan.planId,
-                                id: subscription.items.data[i].id,
-                                quantity: seats,
-                            };
-
-                            items.push(item);
-                        }
-                    }
-
-                    subscription = await stripe.subscriptions.update(
-                        subscriptionId,
-                        { items: items }
+                for (let i = 0; i < subscription.items.data.length; i++) {
+                    plan = await Plans.getPlanById(
+                        subscription.items.data[i].plan.id
                     );
+
+                    if (plan) {
+                        const item = {
+                            plan: plan.planId,
+                            id: subscription.items.data[i].id,
+                            quantity: seats,
+                        };
+
+                        items.push(item);
+                    }
                 }
+
+                subscription = await stripe.subscriptions.update(
+                    subscriptionId,
+                    { items: items, trial_end: trial_end_date }
+                );
 
                 return subscription.id;
             }
