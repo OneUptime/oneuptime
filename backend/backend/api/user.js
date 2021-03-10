@@ -915,6 +915,38 @@ router.put('/profile', getUser, async function(req, res) {
 });
 
 // Route
+// Description: Turns on or off Push Notification
+// Params:
+// Param 1: req.headers-> {authorization}; req.user-> {id};
+// Returns: 200: Success, 400: Error; 500: Server Error.
+router.put('/push-notification', isUserMasterAdmin, async function(req, res) {
+    try {
+        const userId = req.user ? req.user.id : null;
+        const data = req.body;
+        const user = await UserModel.findOne({ _id: userId });
+        const checkExist = await user.identification.find(
+            user => String(user.userAgent) === String(data.userAgent)
+        );
+        if (!data.checked) {
+            const findIndex = await user.identification.findIndex(
+                user => String(user.userAgent) === String(data.userAgent)
+            );
+            await user.identification.splice(findIndex, 1);
+            await user.save();
+        } else {
+            if (!checkExist) {
+                await user.identification.push(data);
+                await user.save();
+            }
+        }
+        const userData = await UserModel.findOne({ _id: userId });
+        return sendItemResponse(req, res, userData);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Route
 // Description: Turns on or off 2FA.
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
@@ -1117,6 +1149,7 @@ router.get('/profile', getUser, async function(req, res) {
             tempEmail: user.tempEmail || null,
             tempAlertPhoneNumber: user.tempAlertPhoneNumber || null,
             role: user.role || null,
+            identification: user.identification,
         };
         return sendItemResponse(req, res, userObj);
     } catch (error) {
