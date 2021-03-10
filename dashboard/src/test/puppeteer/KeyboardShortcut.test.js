@@ -470,6 +470,48 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
+        'should navigate to git credentials page (project settings) with keyboard shortcut (s + g)',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.keyboard.press('s');
+                await page.keyboard.press('g');
+                const gitCredentialsSettings = await page.waitForSelector(
+                    '#gitCredentialPage',
+                    { visible: true }
+                );
+                expect(gitCredentialsSettings).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should navigate to docker credentials page (project settings) with keyboard shortcut (s + d)',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.keyboard.press('s');
+                await page.keyboard.press('d');
+                const dockerCredentialsSettings = await page.waitForSelector(
+                    '#dockerCredentialPage',
+                    { visible: true }
+                );
+                expect(dockerCredentialsSettings).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
         'should navigate to api page with keyboard shortcut (s + a)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
