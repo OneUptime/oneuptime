@@ -44,7 +44,6 @@ const ping = (
         interval,
         () => {
             if (typeof simulateData !== 'object') simulateData = null;
-
             switch (simulate) {
                 case 'online':
                     try {
@@ -117,8 +116,8 @@ const ping = (
                                       )
                                     : data[2];
                             return {
-                                cpuLoad: data[0].currentload,
-                                avgCpuLoad: data[0].avgload * 100,
+                                cpuLoad: data[0].currentLoad,
+                                avgCpuLoad: data[0].avgLoad * 100,
                                 cpuCores: data[4].physicalCores,
                                 memoryUsed: data[1].active,
                                 totalMemory: data[1].total,
@@ -160,7 +159,8 @@ const ping = (
                                     logger.info(
                                         `${monitorId} - System Information uploaded`
                                     );
-                                }
+                                },
+                                error => logger.error(error)
                             );
                         })
                         .catch(error => {
