@@ -148,7 +148,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#ScheduledMaintenance-text', {
+                await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
                 });
                 await page.keyboard.press('f');
