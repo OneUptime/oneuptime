@@ -158,6 +158,7 @@ module.exports = {
         privateKey
     ) {
         let createdDomain = {};
+        const _this = this;
 
         try {
             const existingBaseDomain = await DomainVerificationService.findOneBy(
@@ -187,8 +188,10 @@ module.exports = {
                 throw error;
             }
 
-            let domainList = [...statusPage.domains];
-            domainList = domainList.map(eachDomain => {
+            let doesDomainExist = false;
+            const domainList = [...statusPage.domains];
+            const updatedDomainList = [];
+            for (const eachDomain of domainList) {
                 if (String(eachDomain._id) === String(domainId)) {
                     if (cert && cert.trim()) {
                         eachDomain.cert = cert;
@@ -196,14 +199,33 @@ module.exports = {
                     if (privateKey && privateKey.trim()) {
                         eachDomain.privateKey = privateKey;
                     }
+                    if (eachDomain.domain !== newDomain) {
+                        doesDomainExist = await _this.doesDomainExist(
+                            newDomain
+                        );
+                    }
+
+                    // if domain exist
+                    // break the loop
+                    if (doesDomainExist) break;
+
                     eachDomain.domain = newDomain;
                     eachDomain.domainVerificationToken =
                         createdDomain._id || existingBaseDomain._id;
                 }
-                return eachDomain;
-            });
 
-            statusPage.domains = domainList;
+                updatedDomainList.push(eachDomain);
+            }
+
+            if (doesDomainExist) {
+                const error = new Error(
+                    `This custom domain ${newDomain} already exist`
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            statusPage.domains = updatedDomainList;
 
             const result = await statusPage.save();
             return result
@@ -337,7 +359,8 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .populate('projectId')
                 .populate('monitorIds', 'name')
-                .populate('domains.domainVerificationToken');
+                .populate('domains.domainVerificationToken')
+                .populate('monitors.monitor', 'name');
             return statusPage;
         } catch (error) {
             ErrorService.log('statusPageService.findOneBy', error);
@@ -992,6 +1015,22 @@ module.exports = {
             return { bubble, statusMessage };
         } catch (error) {
             ErrorService.log('statusPageService.getStatusBubble', error);
+            throw error;
+        }
+    },
+
+    doesDomainExist: async function(domain) {
+        const _this = this;
+        try {
+            const statusPage = await _this.findOneBy({
+                domains: { $elemMatch: { domain } },
+            });
+
+            if (!statusPage) return false;
+
+            return true;
+        } catch (error) {
+            ErrorService.log('statusPageService.doesDomainExist', error);
             throw error;
         }
     },

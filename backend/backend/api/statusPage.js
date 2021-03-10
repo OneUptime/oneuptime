@@ -135,8 +135,19 @@ router.put(
 
             if (doesDomainBelongToProject) {
                 return sendErrorResponse(req, res, {
-                    message: `This domain ${subDomain} is already associated with another project`,
+                    message: `This domain is already associated with another project`,
                     code: 400,
+                });
+            }
+
+            const doesDomainExist = await StatusPageService.doesDomainExist(
+                subDomain
+            );
+
+            if (doesDomainExist) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: `This custom domain ${subDomain} already exist`,
                 });
             }
 
