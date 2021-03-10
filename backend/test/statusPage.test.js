@@ -742,7 +742,7 @@ describe('Status API', function() {
                                 if (err) throw err;
                                 expect(res).to.have.status(400);
                                 expect(res.body.message).to.be.equals(
-                                    `This domain ${data.domain} is already associated with another project`
+                                    `This domain is already associated with another project`
                                 );
                                 done();
                             });
