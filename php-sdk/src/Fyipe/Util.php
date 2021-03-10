@@ -34,20 +34,28 @@ class Util
         switch ($errno) {
             case 1:
                 $type = 'E_ERROR';
+                break;
             case 2:
                 $type = 'E_WARNING';
+                break;
             case 8:
                 $type = 'E_NOTICE';
+                break;
             case 256:
                 $type = 'E_USER_ERROR';
+                break;
             case 512:
                 $type = 'E_USER_WARNING';
+                break;
             case 1024:
                 $type = 'E_USER_NOTICE';
+                break;
             case 2048:
                 $type = 'E_STRICT';
+                break;
             case 8191:
                 $type = 'E_ALL';
+                break;
             default:
                 $type = 'UNKNOWN ERROR';
         }
