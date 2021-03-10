@@ -75,6 +75,10 @@ class Util
         $stacktrace->frames = $frames;
         $obj->stacktrace = $stacktrace;
 
+        // run only if user agreed to use this feature
+        if($this->options['captureCodeSnippet']) {
+            $obj = $this->getErrorCodeSnippet($obj);
+        }
         return $obj;
     }
 
@@ -91,7 +95,7 @@ class Util
             $currentFrame = $exception->getTrace()[$cursor];
 
             $frameData = [
-                'methodName' => $currentFrame['class'] . '->' . $currentFrame['function'],
+                'methodName' => isset($currentFrame['class']) ? $currentFrame['class'] : 'UNKNOWN_CLASS' . '->' . $currentFrame['function'],
                 'lineNumber' => $currentFrame['line'],
                 'fileName' => $currentFrame['file'],
             ];
