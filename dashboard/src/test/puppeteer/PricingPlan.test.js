@@ -34,7 +34,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             };
             // user
             await init.registerUser(user, page);
-           // await init.loginUser(user, page);
+            await init.loginUser(user, page);
         });
     });
 
