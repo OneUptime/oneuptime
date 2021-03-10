@@ -292,7 +292,7 @@ module.exports = {
         }
     },
 
-    sendCreatedIncident: async function(incident, subscription) {
+    sendCreatedIncident: async function(incident) {
         try {
             if (incident) {
                 const _this = this;
@@ -304,7 +304,6 @@ module.exports = {
                         _this.sendAlertsToTeamMembersInSchedule({
                             schedule,
                             incident,
-                            subscription,
                         });
                     }
                 } else {
@@ -325,11 +324,7 @@ module.exports = {
         }
     },
 
-    sendAlertsToTeamMembersInSchedule: async function({
-        schedule,
-        incident,
-        subscription,
-    }) {
+    sendAlertsToTeamMembersInSchedule: async function({ schedule, incident }) {
         const _this = this;
         const userId = incident.createdById._id;
         const monitorId = incident.monitorId._id
@@ -342,20 +337,6 @@ module.exports = {
 
         if (!schedule || !incident) {
             return;
-        }
-
-        // storing the subscription in the DB
-        if (typeof subscription === 'object' && userId) {
-            const userId = incident.createdById._id;
-            UserService.updateOneBy({ _id: userId }, { subscription });
-            IncidentService.updateOneBy(
-                {
-                    _id: incident._id,
-                },
-                {
-                    subscription,
-                }
-            );
         }
 
         //scheudle has no escalations. Skip.
@@ -475,7 +456,7 @@ module.exports = {
             !shouldSendCallReminder &&
             !shouldSendPushReminder
         ) {
-            _this.escalate({ schedule, incident, subscription, alertProgress });
+            _this.escalate({ schedule, incident, alertProgress });
         } else {
             _this.sendAlertsToTeamMembersInEscalationPolicy({
                 escalation,
@@ -483,18 +464,12 @@ module.exports = {
                 incident,
                 schedule,
                 onCallScheduleStatus,
-                subscription,
                 alertProgress,
             });
         }
     },
 
-    escalate: async function({
-        schedule,
-        incident,
-        subscription,
-        alertProgress,
-    }) {
+    escalate: async function({ schedule, incident, alertProgress }) {
         const _this = this;
         const callScheduleStatuses = await OnCallScheduleStatusService.findBy({
             query: { incident: incident._id, schedule: schedule._id },
@@ -561,7 +536,6 @@ module.exports = {
             incident,
             schedule,
             onCallScheduleStatus: callScheduleStatus,
-            subscription,
             alertProgress,
         });
     },
@@ -572,7 +546,6 @@ module.exports = {
         monitor,
         schedule,
         onCallScheduleStatus,
-        subscription,
         alertProgress,
     }) {
         const _this = this;
@@ -773,7 +746,6 @@ module.exports = {
                         escalation,
                         onCallScheduleStatus,
                         eventType: 'identified',
-                        subscription,
                         pushProgress: alertProgress.pushProgress,
                     });
                 }
@@ -789,39 +761,42 @@ module.exports = {
         escalation,
         onCallScheduleStatus,
         eventType,
-        subscription,
         pushProgress,
     }) {
         const _this = this;
         let pushMessage;
-        if (incident.createdById._id) {
-            if (!subscription) {
-                const findIncident = await UserService.findOneBy({
-                    _id: user._id,
-                });
-                subscription = findIncident.subscription;
+        const userData = await UserService.findOneBy({
+            _id: user._id,
+        });
+        const identification = userData.identification;
+
+        webpush.setVapidDetails(
+            process.env.WEBPUSH_EMAIL,
+            process.env.VAPID_PUBLIC_KEY,
+            process.env.VAPID_PRIVATE_KEY
+        );
+
+        if (pushProgress) {
+            pushMessage = `Reminder ${pushProgress.current}/${pushProgress.total}: `;
+        } else {
+            pushMessage = '';
+        }
+
+        // Create payload
+        const title = `${pushMessage}Incident #${incident.idNumber} is created`;
+        const body = `Please acknowledge or resolve this incident on Fyipe Dashboard.`;
+        const payload = JSON.stringify({ title, body });
+
+        // Pass object into sendNotification
+        if (identification.length > 0) {
+            let promiseFuncs = [];
+            for (let sub of identification) {
+                promiseFuncs = [
+                    ...promiseFuncs,
+                    webpush.sendNotification(sub.subscription, payload),
+                ];
             }
-
-            webpush.setVapidDetails(
-                process.env.WEBPUSH_EMAIL,
-                process.env.VAPID_PUBLIC_KEY,
-                process.env.VAPID_PRIVATE_KEY
-            );
-
-            if (pushProgress) {
-                pushMessage = `Reminder ${pushProgress.current}/${pushProgress.total}: `;
-            } else {
-                pushMessage = '';
-            }
-
-            // Create payload
-            const title = `${pushMessage}Incident #${incident.idNumber} is created`;
-            const body = `Please acknowledge or resolve this incident on Fyipe Dashboard.`;
-            const payload = JSON.stringify({ title, body });
-
-            // Pass object into sendNotification
-            webpush
-                .sendNotification(subscription, payload)
+            return Promise.all(promiseFuncs)
                 .then(async () => {
                     return await _this.create({
                         projectId: incident.projectId,
@@ -867,7 +842,8 @@ module.exports = {
                 eventType,
                 alertStatus: 'Cannot Send',
                 error: true,
-                errorMessage: 'Unable to send push notification',
+                errorMessage:
+                    'Push Notification not allowed in the user dashboard',
                 alertProgress: pushProgress,
             });
         }
