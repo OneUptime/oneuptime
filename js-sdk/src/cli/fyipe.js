@@ -7,7 +7,7 @@ program
     .description('Fyipe SDK cli');
 
 program.command('server-monitor [options]', 'Fyipe Monitoring shell', {
-    executableFile: __dirname + '/server-monitor/bin/index',
+    executableFile: './server-monitor/bin/index',
 });
 
 program.parse(process.argv);
