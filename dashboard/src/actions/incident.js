@@ -1,7 +1,6 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/incident';
 import errors from '../errors';
-import { getTheSubscription } from '../useNotification';
 
 //Array of Incidents
 
@@ -247,7 +246,6 @@ export function createNewIncident(
     customFields
 ) {
     return async function(dispatch) {
-        const subscription = await getTheSubscription();
         const promise = postApi(`incident/${projectId}/${monitorId}`, {
             monitorId,
             projectId,
@@ -256,7 +254,6 @@ export function createNewIncident(
             description,
             incidentPriority,
             customFields,
-            subscription
         });
 
         dispatch(createIncidentRequest(monitorId));
