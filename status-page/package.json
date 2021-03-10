@@ -13,6 +13,7 @@
         "markdown-to-jsx": "^6.11.4",
         "mocha": "^6.1.4",
         "moment": "^2.22.1",
+        "node-fetch": "^2.6.1",
         "prop-types": "^15.6.2",
         "puppeteer": "^5.5.0",
         "query-string": "^6.10.1",
