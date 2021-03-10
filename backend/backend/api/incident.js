@@ -13,6 +13,7 @@ const StatusPageService = require('../services/statusPageService');
 const RealTimeService = require('../services/realTimeService');
 const IncidentMessageService = require('../services/incidentMessageService');
 const AlertService = require('../services/alertService');
+const UserService = require('../services/userService');
 const router = express.Router();
 
 const { isAuthorized } = require('../middlewares/authorization');
@@ -540,7 +541,8 @@ router.post(
         try {
             const data = req.body;
             const incidentId = req.params.incidentId;
-
+            const projectId = req.params.projectId;
+            const userId = req.user.id;
             if (!data.content) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -671,6 +673,19 @@ router.post(
                 const status = `${incidentMessage.type} notes ${
                     data.id ? 'updated' : 'added'
                 }`;
+
+                const user = await UserService.findOneBy({
+                    _id: userId,
+                });
+
+                data.created_by = user && user.name ? user.name : 'Fyipe User';
+
+                // send slack/msteams notification
+                await IncidentService.sendIncidentNoteAdded(
+                    projectId,
+                    incident,
+                    data
+                );
 
                 // update timeline
                 await IncidentTimelineService.create({

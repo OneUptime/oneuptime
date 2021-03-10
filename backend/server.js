@@ -272,6 +272,8 @@ app.use(
     ['/callRouting', '/api/callRouting'],
     require('./backend/api/callRouting')
 );
+app.use(['/group', '/api/group'], require('./backend/api/groups'));
+
 app.set('port', process.env.PORT || 3002);
 
 // Push notification

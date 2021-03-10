@@ -33,7 +33,7 @@ describe('API test', () => {
         // Register user
         return await cluster.execute(null, async ({ page }) => {
             // user
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
         });
     });
 
