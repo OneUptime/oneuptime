@@ -103,17 +103,18 @@ const checkParams = params => {
  * @return {Promise} The cli param value promise.
  */
 const getParamValue = (params, name) => {
+    const options = program.opts();
     return new Promise(resolve => {
-        if (program[name] === true || program[name] === undefined) {
+        if (options[name] === true || options[name] === undefined) {
             if (name === 'monitorId') {
                 resolve(process.env[name] || null);
             } else if (name === 'daemon') {
-                resolve(program[name] === true);
+                resolve(options[name] === true);
             } else {
                 if (process.env[name]) {
                     resolve(process.env[name]);
                 } else {
-                    if (typeof program['daemon'] === 'string') {
+                    if (typeof options['daemon'] === 'string') {
                         resolve(null);
                     } else {
                         prompt(
@@ -125,7 +126,7 @@ const getParamValue = (params, name) => {
                 }
             }
         } else {
-            resolve(program[name]);
+            resolve(options[name]);
         }
     });
 };
