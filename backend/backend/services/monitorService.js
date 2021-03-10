@@ -188,10 +188,12 @@ module.exports = {
 
             await this.updateMonitorSlaStat(query);
             if (data) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
+                if (data.name) {
+                    let name = data.name;
+                    name = slugify(name);
+                    name = `${name}-${generate('1234567890', 8)}`;
+                    data.slug = name.toLowerCase();
+                }
                 await MonitorModel.findOneAndUpdate(
                     query,
                     { $set: data },
