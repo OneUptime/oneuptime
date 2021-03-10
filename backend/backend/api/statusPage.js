@@ -265,6 +265,39 @@ router.post('/:projectId/privateKeyFile', async function(req, res) {
     }
 });
 
+router.get('/tlsCredential', async function(req, res) {
+    try {
+        const { domain } = req.query;
+        const user = req.user;
+
+        if (!domain) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'No domain is specified',
+            });
+        }
+
+        const statusPage = await StatusPageService.getStatusPage(
+            { domains: { $elemMatch: { domain } } },
+            user
+        );
+
+        let domainObj;
+        statusPage.domains.forEach(eachDomain => {
+            if (eachDomain.domain === domain) {
+                domainObj = eachDomain;
+            }
+        });
+
+        return sendItemResponse(req, res, {
+            cert: domainObj.cert,
+            privateKey: domainObj.privateKey,
+        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 /**
  * @description deletes a particular domain from statuspage collection
  * @param {string} projectId id of the project
