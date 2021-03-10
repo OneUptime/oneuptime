@@ -10,7 +10,6 @@ import { RenderTeams } from './RenderTeams';
 import { RenderField } from '../basic/RenderField';
 import Tooltip from '../basic/Tooltip';
 import PricingPlan from '../basic/PricingPlan';
-import { askUserPermission } from '../../useNotification';
 
 const RenderSingleEscalation = ({
     policy,
@@ -152,9 +151,7 @@ const RenderSingleEscalation = ({
                                         </label>
                                     </div>
                                 </div>
-                                <div
-                                    className="bs-Fieldset-fields"
-                                >
+                                <div className="bs-Fieldset-fields">
                                     <div
                                         className="Box-root"
                                         style={{ height: '5px' }}
@@ -164,7 +161,6 @@ const RenderSingleEscalation = ({
                                             <Field
                                                 component="input"
                                                 type="checkbox"
-                                                onChange={() => askUserPermission()}
                                                 name={`${policy}.push`}
                                                 data-test="RetrySettings-failedPaymentsCheckbox"
                                                 className="Checkbox-source"
@@ -176,7 +172,9 @@ const RenderSingleEscalation = ({
                                             </div>
                                             <div className="Checkbox-label Box-root Margin-left--8">
                                                 <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <span>Push notification</span>
+                                                    <span>
+                                                        Push notification
+                                                    </span>
                                                 </span>
                                             </div>
                                         </label>
@@ -311,7 +309,8 @@ const RenderSingleEscalation = ({
                                     {push && (
                                         <div className="bs-Fieldset-row">
                                             <label className="bs-Fieldset-label">
-                                                Number of Push notification Reminders
+                                                Number of Push notification
+                                                Reminders
                                             </label>
                                             <div className="bs-Fieldset-fields">
                                                 <span className="flex">
@@ -335,8 +334,9 @@ const RenderSingleEscalation = ({
                                                                 How many times
                                                                 do you want your
                                                                 team to be
-                                                                alerted by Push notification
-                                                                if they do not
+                                                                alerted by Push
+                                                                notification if
+                                                                they do not
                                                                 respond. After X
                                                                 reminders Fyipe
                                                                 will escalates
