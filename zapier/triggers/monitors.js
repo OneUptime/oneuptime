@@ -1,7 +1,7 @@
 // fetches a list of records from the endpoint
-const fetchList = z => {
+const fetchList = (z, bundle) => {
     const options = {
-        url: 'https://fyipe.com/api/zapier/monitors',
+        url: `${bundle.authData.serverUrl}/zapier/monitors`,
     };
     return z.request(options).then(response => JSON.parse(response.content));
 };
