@@ -352,6 +352,7 @@ const mapStateToProps = state => {
         initialValues.fieldName = customFieldToBeUpdated.fieldName;
         initialValues.fieldType = customFieldToBeUpdated.fieldType;
         initialValues._id = customFieldToBeUpdated._id;
+        initialValues.uniqueField = customFieldToBeUpdated.uniqueField;
     }
     return {
         requesting: state.customField.customField.requesting,
