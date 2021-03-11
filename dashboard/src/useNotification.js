@@ -1,5 +1,5 @@
 import { registerService } from './serviceWorker';
-const publicVapidKey = process.env.REACT_APP_VAPID_PUBLIC_KEY;
+const publicVapidKey = process.env.REACT_APP_VAPID_PUBLIC_KEY; // URL Safe Base64 Encoded Public Key
 
 // Adk for permission
 export async function askUserPermission() {
