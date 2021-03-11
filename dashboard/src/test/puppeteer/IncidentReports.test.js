@@ -90,7 +90,7 @@ describe('Incident Reports API', () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);               
-
+                await page.waitForSelector('#closeIncident_0',{visible: true, timeout:100000});
                 let incidentReportElement = await page.waitForSelector(
                     `#${monitorName}_IncidentReport_0`,
                     { visible: true, timeout: operationTimeOut }
@@ -133,8 +133,8 @@ describe('Incident Reports API', () => {
 
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
-                await init.navigateToComponentDetails(componentName, page);                
-                await page.waitForSelector('#incident_1')
+                await init.navigateToComponentDetails(componentName, page);
+                await page.waitForSelector('#closeIncident_1',{visible: true, timeout:100000});                
                 let incidentReportElement = await page.waitForSelector(
                     `#${monitorName}_IncidentReport_0`,
                     { visible: true, timeout: operationTimeOut }
@@ -143,7 +143,8 @@ describe('Incident Reports API', () => {
                     'innerText'
                 );
                 incidentReportElement = await incidentReportElement.jsonValue();
-                expect(incidentReportElement).endsWith('Status Code is 400.'); 
+                console.log("Incident Report Element: ",incidentReportElement);
+                expect(incidentReportElement).toHaveProperty('Status Code is 400.'); 
                 // 'was' has been changed to 'is'. 'Response Time is' has been added to rendered page                
             });
         },
