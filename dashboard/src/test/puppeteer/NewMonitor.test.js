@@ -60,7 +60,8 @@ describe('New Monitor API', () => {
                         page,
                         componentName,
                         monitorName
-                    );                   
+                    );  
+                    await page.waitForSelector('.ball-beat', { hidden: true });                 
                 }
 
                 // try to add more monitor
@@ -111,7 +112,8 @@ describe('New Monitor API', () => {
                         page,
                         componentName,
                         monitorName
-                    );                    
+                    );    
+                    await page.waitForSelector('.ball-beat', { hidden: true });                
                 }
 
                 // try to add more monitor
