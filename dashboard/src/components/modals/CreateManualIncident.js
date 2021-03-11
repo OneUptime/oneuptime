@@ -50,6 +50,8 @@ class CreateManualIncident extends Component {
 
         const customFields = this.props.customFields.map(field => ({
             fieldName: field.fieldName,
+            fieldType: field.fieldType,
+            uniqueField: field.uniqueField,
             fieldValue:
                 field.fieldType === 'number'
                     ? parseFloat(values[field.fieldName])
@@ -143,7 +145,10 @@ class CreateManualIncident extends Component {
                 style={{ marginTop: '40px' }}
             >
                 <div className="bs-BIM">
-                    <div className="bs-Modal bs-Modal--medium">
+                    <div
+                        className="bs-Modal bs-Modal--medium"
+                        style={{ width: 500 }}
+                    >
                         <ClickOutside onClickOutside={this.handleCloseModal}>
                             <div className="bs-Modal-header">
                                 <div
@@ -175,7 +180,7 @@ class CreateManualIncident extends Component {
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <Field
-                                                            className="db-select-nw"
+                                                            className="db-select-nw db-select-fw"
                                                             component={
                                                                 RenderSelect
                                                             }
@@ -222,6 +227,9 @@ class CreateManualIncident extends Component {
                                                                 )
                                                             }
                                                             autoFocus={true}
+                                                            style={{
+                                                                width: '100%',
+                                                            }}
                                                         />
                                                     </div>
                                                 </div>
@@ -237,7 +245,7 @@ class CreateManualIncident extends Component {
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
                                                             <Field
-                                                                className="db-select-nw"
+                                                                className="db-select-nw db-select-fw"
                                                                 component={
                                                                     RenderSelect
                                                                 }
@@ -270,6 +278,10 @@ class CreateManualIncident extends Component {
                                                                         name
                                                                     )
                                                                 }
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                }}
                                                             />
                                                         </div>
                                                     </div>
@@ -300,6 +312,9 @@ class CreateManualIncident extends Component {
                                                                     titleEdited: true,
                                                                 })
                                                             }
+                                                            style={{
+                                                                width: '100%',
+                                                            }}
                                                         />
                                                     </div>
                                                 </div>
@@ -366,6 +381,10 @@ class CreateManualIncident extends Component {
                                                                                         .newIncident
                                                                                         .requesting
                                                                                 }
+                                                                                style={{
+                                                                                    width:
+                                                                                        '100%',
+                                                                                }}
                                                                             />
                                                                         </div>
                                                                     </div>
@@ -390,7 +409,13 @@ class CreateManualIncident extends Component {
                                     </div>
                                 </div>
                                 <div className="bs-Modal-footer">
-                                    <div className="bs-Modal-footer-actions">
+                                    <div
+                                        className="bs-Modal-footer-actions"
+                                        style={{
+                                            width: '100%',
+                                            flexWrap: 'nowrap',
+                                        }}
+                                    >
                                         <ShouldRender
                                             if={
                                                 newIncident &&
