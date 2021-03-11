@@ -37,16 +37,16 @@ describe('Incident Reports API', () => {
             };
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
+          //  await init.loginUser(user, page);
 
             // Create component
             await init.addComponent(componentName, page);
 
             // add new monitor to project
-            await page.waitForSelector('#form-new-monitor', { visible: true });
+            await page.waitForSelector('#form-new-monitor', { visible: true });     
             await page.$eval('input[id=name]', e => e.click());
             await page.type('input[id=name]', monitorName);
-            await init.selectByText('#type', 'url', page);
+            await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url');
             await page.$eval('#url', e => e.click());
             await page.type('#url', utils.HTTP_TEST_SERVER_URL);
@@ -89,9 +89,7 @@ describe('Incident Reports API', () => {
 
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
-                await init.navigateToComponentDetails(componentName, page);
-
-                await page.waitForTimeout(120000);
+                await init.navigateToComponentDetails(componentName, page);               
 
                 let incidentReportElement = await page.waitForSelector(
                     `#${monitorName}_IncidentReport_0`,
@@ -102,7 +100,7 @@ describe('Incident Reports API', () => {
                 );
                 incidentReportElement = await incidentReportElement.jsonValue();
                 expect(
-                    incidentReportElement.startsWith('Response Time was')
+                    incidentReportElement.startsWith('Response Time is') // 'was' has been changed to 'is'
                 ).toEqual(true);
             });
         },
@@ -135,10 +133,8 @@ describe('Incident Reports API', () => {
 
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
-                await init.navigateToComponentDetails(componentName, page);
-
-                await page.waitForTimeout(120000);
-
+                await init.navigateToComponentDetails(componentName, page);                
+                await page.waitForSelector('#incident_1')
                 let incidentReportElement = await page.waitForSelector(
                     `#${monitorName}_IncidentReport_0`,
                     { visible: true, timeout: operationTimeOut }
@@ -147,7 +143,8 @@ describe('Incident Reports API', () => {
                     'innerText'
                 );
                 incidentReportElement = await incidentReportElement.jsonValue();
-                expect(incidentReportElement).toMatch('Status Code was 400.');
+                expect(incidentReportElement).endsWith('Status Code is 400.'); 
+                // 'was' has been changed to 'is'. 'Response Time is' has been added to rendered page                
             });
         },
         operationTimeOut
