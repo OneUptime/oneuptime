@@ -36,8 +36,7 @@ describe('Incident Reports API', () => {
                 password,
             };
             // user
-            await init.registerUser(user, page);
-          //  await init.loginUser(user, page);
+            await init.registerUser(user, page);          
 
             // Create component
             await init.addComponent(componentName, page);
@@ -142,10 +141,8 @@ describe('Incident Reports API', () => {
                 incidentReportElement = await incidentReportElement.getProperty(
                     'innerText'
                 );
-                incidentReportElement = await incidentReportElement.jsonValue();
-                console.log("Incident Report Element: ",incidentReportElement);
-                expect(incidentReportElement).toHaveProperty('Status Code is 400.'); 
-                // 'was' has been changed to 'is'. 'Response Time is' has been added to rendered page                
+                incidentReportElement = await incidentReportElement.jsonValue();                
+                expect(incidentReportElement).toMatch(/Status Code is 400./);     // 'was' has been changed to 'is'. 'Response Time is' has been added to rendered page                
             });
         },
         operationTimeOut
