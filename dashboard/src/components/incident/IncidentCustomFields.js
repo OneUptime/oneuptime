@@ -16,6 +16,10 @@ import EditCustomField from '../modals/EditCustomField';
 
 class IncidentCustomFields extends Component {
     componentDidMount() {
+        const { fetchCustomFields, currentProject, limit } = this.props;
+        const projectId = currentProject._id;
+        fetchCustomFields(projectId, 0, limit);
+
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT SETTINGS > INCIDENT > CUSTOM FIELDS'
