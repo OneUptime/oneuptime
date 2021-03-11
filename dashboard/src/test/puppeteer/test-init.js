@@ -349,6 +349,28 @@ module.exports = {
             visible: true,
         });
     },
+    addNewMonitorToComponent: async function(page,componentName, monitorName){
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle0',
+        });
+        await page.waitForSelector('#components');
+        await page.click('#components');
+        await page.waitForSelector('#component0');
+        await page.waitForSelector(`#more-details-${componentName}`);
+        await page.click(`#more-details-${componentName}`);
+        await page.waitForSelector('#form-new-monitor');
+        await page.waitForSelector('input[id=name]');
+        await page.click('input[id=name]');
+        await page.type('input[id=name]', monitorName);        
+        await page.click('[data-testId=type_url]');
+        await page.waitForSelector('#url');
+        await page.click('#url');
+        await page.type('#url', 'https://google.com');
+        await page.click('button[type=submit]');
+        await page.waitForSelector(`#monitor-title-${monitorName}`, {
+            visible: true,
+        });
+    },
     /**
      *  adds an api monitor with js expressions for up and degraded events
      * @param {*} page a page instance of puppeteer
