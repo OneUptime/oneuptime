@@ -202,7 +202,7 @@ class ProjectBalance extends Component {
                                             </div>
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
-                                                    Add balance{' '}
+                                                    Update balance{' '}
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <Field
@@ -238,7 +238,7 @@ class ProjectBalance extends Component {
                                                         !this.props.isRequesting
                                                     }
                                                 >
-                                                    <span>Add Balance</span>
+                                                    <span>Update Balance</span>
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={this.props.isRequesting}

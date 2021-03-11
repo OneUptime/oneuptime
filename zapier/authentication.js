@@ -8,7 +8,7 @@ const testAuth = (z, bundle) => {
     if (bundle.cleanedRequest) return bundle.cleanedRequest;
     return z
         .request({
-            url: 'https://fyipe.com/api/zapier/test',
+            url: `${bundle.authData.serverUrl}/zapier/test`,
         })
         .then(response => {
             if (response.status === 400) {
@@ -36,10 +36,16 @@ module.exports = {
     // they connect their account.
     fields: [
         {
+            key: 'serverUrl',
+            label: 'Server Url',
+            helpText:
+                'Your Server Url, Project ID and API Key are found on the project settings page on your Fyipe dashboard.',
+            required: true,
+            type: 'string',
+        },
+        {
             key: 'projectId',
             label: 'Project ID',
-            helpText:
-                'Your Project ID and API Key are found on the project settings page on your Fyipe dashboard.',
             required: true,
             type: 'string',
         },
