@@ -175,6 +175,8 @@ module.exports = {
     },
 
     updateOneBy: async function(query, data, unsetData) {
+        const _this = this;
+
         try {
             if (!query) {
                 query = {};
@@ -183,6 +185,38 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             await this.updateMonitorSlaStat(query);
+
+            let errorMsg;
+            if (data.customFields && data.customFields.length > 0) {
+                const monitor = await _this.findOneBy(query);
+                for (const field of data.customFields) {
+                    if (field.uniqueField) {
+                        const _monitor = await _this.findOneBy({
+                            customFields: {
+                                $elemMatch: {
+                                    fieldName: field.fieldName,
+                                    fieldType: field.fieldType,
+                                    fieldValue: field.fieldValue,
+                                },
+                            },
+                        });
+
+                        if (
+                            _monitor &&
+                            String(monitor._id) !== String(_monitor._id)
+                        ) {
+                            errorMsg = `The field ${field.fieldName} should have unique values per monitor`;
+                        }
+                    }
+                }
+            }
+
+            if (errorMsg) {
+                const error = new Error(errorMsg);
+                error.code = 400;
+                throw error;
+            }
+
             if (data) {
                 await MonitorModel.findOneAndUpdate(
                     query,
