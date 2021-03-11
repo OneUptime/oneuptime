@@ -145,7 +145,14 @@ const monitorSchema = new Schema({
     },
     breachedMonitorSla: { type: Boolean, default: false },
     breachClosedBy: [{ type: String, ref: 'User' }],
-    customFields: [{ fieldName: String, fieldValue: Schema.Types.Mixed }],
+    customFields: [
+        {
+            fieldName: String,
+            fieldValue: Schema.Types.Mixed,
+            uniqueField: { type: Boolean, default: false },
+            fieldType: String,
+        },
+    ],
 });
 
 monitorSchema.virtual('project', {
