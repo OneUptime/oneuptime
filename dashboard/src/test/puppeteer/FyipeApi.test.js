@@ -38,7 +38,9 @@ describe('API test', () => {
         return await cluster.execute(null, async ({ page }) => {
             // user
             await init.registerUser(user, page);
+            await init.logout(page);
             await init.registerUser(member, page);
+            await init.logout(page);
             await init.loginUser(user, page);
         });
     });
