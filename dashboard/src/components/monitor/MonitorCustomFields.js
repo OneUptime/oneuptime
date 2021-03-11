@@ -153,11 +153,43 @@ class MonitorCustomFields extends Component {
                                             }}
                                             id={`customfield_${field.fieldName}`}
                                         >
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {field.fieldName}
+                                            {field.uniqueField ? (
+                                                <div
+                                                    className="bs-ObjectList-cell bs-u-v-middle"
+                                                    style={{
+                                                        display: 'flex',
+                                                        width: '10vw',
+                                                        whiteSpace: 'normal',
+                                                    }}
+                                                >
+                                                    <div className="bs-ObjectList-cell-row">
+                                                        {field.fieldName}
+                                                    </div>
+                                                    <div
+                                                        style={{
+                                                            marginLeft: 5,
+                                                        }}
+                                                        className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                    >
+                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                            <span>Unique</span>
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            ) : (
+                                                <div
+                                                    className="bs-ObjectList-cell bs-u-v-middle"
+                                                    style={{
+                                                        display: 'flex',
+                                                        width: '15vw',
+                                                        whiteSpace: 'normal',
+                                                    }}
+                                                >
+                                                    <div className="bs-ObjectList-cell-row">
+                                                        {field.fieldName}
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div className="bs-ObjectList-cell bs-u-v-middle">
                                                 <div
                                                     className="bs-ObjectList-cell-row"
