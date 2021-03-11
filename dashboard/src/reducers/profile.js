@@ -128,9 +128,11 @@ export default function profileSettings(state = INITIAL_STATE, action) {
 
         case types.UPDATE_PUSH_NOTIFICATION_ERROR:
             return Object.assign({}, state, {
-                requesting: false,
-                error: action.payload,
-                success: false,
+                pushNotification: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
             });
 
         case types.UPDATE_PUSH_NOTIFICATION_SUCCESS:
