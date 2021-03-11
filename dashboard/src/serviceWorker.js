@@ -36,19 +36,6 @@ export function register(config) {
 
         window.addEventListener('load', () => {
             const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
-            const pushSW = `${process.env.PUBLIC_URL}/sw.js`;
-
-            navigator.serviceWorker
-                .register(pushSW, { scope: `${process.env.PUBLIC_URL}/` })
-                .then(registration => {
-                    registerService = registration;
-                })
-                .catch(err => {
-                    console.log(
-                        'Error ocurred while registering this service worker: ',
-                        err
-                    );
-                });
 
             if (isLocalhost) {
                 // This is running on localhost. Let's check if a service worker still exists or not.
@@ -96,6 +83,7 @@ function registerValidSW(swUrl, config) {
     navigator.serviceWorker
         .register(swUrl, { scope: `${process.env.PUBLIC_URL}/` })
         .then(registration => {
+            registerService = registration;
             registration.onupdatefound = () => {
                 const installingWorker = registration.installing;
                 if (installingWorker == null) {
@@ -154,11 +142,11 @@ function checkValidServiceWorker(swUrl, config) {
                     'This registers the sw file for the push notification'
                 );
                 // No service worker found. Probably a different app. Reload the page.
-                // navigator.serviceWorker.ready.then(registration => {
-                //     registration.unregister().then(() => {
-                // window.location.reload();
-                //     });
-                // });
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.unregister().then(() => {
+                        window.location.reload();
+                    });
+                });
             } else {
                 // Service worker found. Proceed as normal.
                 registerValidSW(swUrl, config);
