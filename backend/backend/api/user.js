@@ -919,28 +919,12 @@ router.put('/profile', getUser, async function(req, res) {
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/push-notification', isUserMasterAdmin, async function(req, res) {
+router.put('/push-notification', getUser, async function(req, res) {
     try {
         const userId = req.user ? req.user.id : null;
         const data = req.body;
-        const user = await UserModel.findOne({ _id: userId });
-        const checkExist = await user.identification.find(
-            user => String(user.userAgent) === String(data.userAgent)
-        );
-        if (!data.checked) {
-            const findIndex = await user.identification.findIndex(
-                user => String(user.userAgent) === String(data.userAgent)
-            );
-            await user.identification.splice(findIndex, 1);
-            await user.save();
-        } else {
-            if (!checkExist) {
-                await user.identification.push(data);
-                await user.save();
-            }
-        }
-        const userData = await UserModel.findOne({ _id: userId });
-        return sendItemResponse(req, res, userData);
+        const user = await UserService.updatePush({ userId, data });
+        return sendItemResponse(req, res, user);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
