@@ -32,7 +32,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 password: data.password,
             };
             // user
-            await init.registerUser(user, page);        
+            await init.registerUser(user, page);
             done();
         });
     });
@@ -58,9 +58,12 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 await page.waitForSelector('#email', { visible: true });
                 await page.click('#email');
 
-                await page.waitForSelector('#sendCreatedIncidentNotificationEmail', {
-                    visible: true,
-                });
+                await page.waitForSelector(
+                    '#sendCreatedIncidentNotificationEmail',
+                    {
+                        visible: true,
+                    }
+                );
                 let sendCreatedIncidentNotification = await page.$eval(
                     '#sendCreatedIncidentNotificationEmail',
                     elem => elem.value
@@ -81,7 +84,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     sendCreatedIncidentNotification
                 );
                 sendAcknowledgedIncidentNotification = utils.parseBoolean(
-                    sendAcknowledgedIncidentNotification 
+                    sendAcknowledgedIncidentNotification
                 );
                 sendResolvedIncidentNotification = utils.parseBoolean(
                     sendResolvedIncidentNotification
@@ -114,20 +117,27 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 await page.waitForSelector('#email', { visible: true });
                 await page.click('#email');
 
-                await page.waitForSelector('#sendCreatedIncidentNotificationEmail', {
-                    visible: true,
-                });
-                await page.$eval('#sendCreatedIncidentNotificationEmail', elem =>
-                    elem.click()
+                await page.waitForSelector(
+                    '#sendCreatedIncidentNotificationEmail',
+                    {
+                        visible: true,
+                    }
+                );
+                await page.$eval(
+                    '#sendCreatedIncidentNotificationEmail',
+                    elem => elem.click()
                 );
                 await page.click('#saveIncidentNotification');
                 await page.waitForTimeout(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.reload({ waitUntil: 'networkidle0' });
-                await page.waitForSelector('#sendCreatedIncidentNotificationEmail', {
-                    visible: true,
-                });
+                await page.waitForSelector(
+                    '#sendCreatedIncidentNotificationEmail',
+                    {
+                        visible: true,
+                    }
+                );
                 let checkedState = await page.$eval(
                     '#sendCreatedIncidentNotificationEmail',
                     elem => elem.value
@@ -161,8 +171,9 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                         visible: true,
                     }
                 );
-                await page.$eval('#sendAcknowledgedIncidentNotificationEmail', elem =>
-                    elem.click()
+                await page.$eval(
+                    '#sendAcknowledgedIncidentNotificationEmail',
+                    elem => elem.click()
                 );
                 await page.click('#saveIncidentNotification');
                 await page.waitForTimeout(2000);
@@ -202,20 +213,27 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 await page.waitForSelector('#email', { visible: true });
                 await page.click('#email');
 
-                await page.waitForSelector('#sendResolvedIncidentNotificationEmail', {
-                    visible: true,
-                });
-                await page.$eval('#sendResolvedIncidentNotificationEmail', elem =>
-                    elem.click()
+                await page.waitForSelector(
+                    '#sendResolvedIncidentNotificationEmail',
+                    {
+                        visible: true,
+                    }
+                );
+                await page.$eval(
+                    '#sendResolvedIncidentNotificationEmail',
+                    elem => elem.click()
                 );
                 await page.click('#saveIncidentNotification');
                 await page.waitForTimeout(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.reload({ waitUntil: 'networkidle0' });
-                await page.waitForSelector('#sendResolvedIncidentNotificationEmail', {
-                    visible: true,
-                });
+                await page.waitForSelector(
+                    '#sendResolvedIncidentNotificationEmail',
+                    {
+                        visible: true,
+                    }
+                );
                 let checkedState = await page.$eval(
                     '#sendResolvedIncidentNotificationEmail',
                     elem => elem.value
@@ -243,20 +261,27 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 await page.waitForSelector('#email', { visible: true });
                 await page.click('#email');
 
-                await page.waitForSelector('#enableInvestigationNoteNotificationEmail', {
-                    visible: true,
-                });
-                await page.$eval('#enableInvestigationNoteNotificationEmail', elem =>
-                    elem.click()
+                await page.waitForSelector(
+                    '#enableInvestigationNoteNotificationEmail',
+                    {
+                        visible: true,
+                    }
+                );
+                await page.$eval(
+                    '#enableInvestigationNoteNotificationEmail',
+                    elem => elem.click()
                 );
                 await page.click('#saveIncidentNotification');
                 await page.waitForTimeout(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.reload({ waitUntil: 'networkidle0' });
-                await page.waitForSelector('#enableInvestigationNoteNotificationEmail', {
-                    visible: true,
-                });
+                await page.waitForSelector(
+                    '#enableInvestigationNoteNotificationEmail',
+                    {
+                        visible: true,
+                    }
+                );
                 let checkedState = await page.$eval(
                     '#enableInvestigationNoteNotificationEmail',
                     elem => elem.value
@@ -279,15 +304,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
-                await page.waitForSelector('#more');    
+                await page.waitForSelector('#more');
                 await page.click('#more');
                 await page.waitForSelector('#smsCalls', { visible: true });
                 await page.click('#smsCalls');
-               
 
-                await page.waitForSelector('#sendCreatedIncidentNotificationSms', {
-                    visible: true,
-                });
+                await page.waitForSelector(
+                    '#sendCreatedIncidentNotificationSms',
+                    {
+                        visible: true,
+                    }
+                );
                 let sendCreatedIncidentNotification = await page.$eval(
                     '#sendCreatedIncidentNotificationSms',
                     elem => elem.value
@@ -336,14 +363,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
-                await page.waitForSelector('#more');    
+                await page.waitForSelector('#more');
                 await page.click('#more');
                 await page.waitForSelector('#smsCalls', { visible: true });
                 await page.click('#smsCalls');
 
-                await page.waitForSelector('#sendCreatedIncidentNotificationSms', {
-                    visible: true,
-                });
+                await page.waitForSelector(
+                    '#sendCreatedIncidentNotificationSms',
+                    {
+                        visible: true,
+                    }
+                );
                 await page.$eval('#sendCreatedIncidentNotificationSms', elem =>
                     elem.click()
                 );
@@ -352,9 +382,12 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.reload({ waitUntil: 'networkidle0' });
-                await page.waitForSelector('#sendCreatedIncidentNotificationSms', {
-                    visible: true,
-                });
+                await page.waitForSelector(
+                    '#sendCreatedIncidentNotificationSms',
+                    {
+                        visible: true,
+                    }
+                );
                 let checkedState = await page.$eval(
                     '#sendCreatedIncidentNotificationSms',
                     elem => elem.value
@@ -377,7 +410,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
-                await page.waitForSelector('#more');    
+                await page.waitForSelector('#more');
                 await page.click('#more');
                 await page.waitForSelector('#smsCalls', { visible: true });
                 await page.click('#smsCalls');
@@ -387,8 +420,9 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                         visible: true,
                     }
                 );
-                await page.$eval('#sendAcknowledgedIncidentNotificationSms', elem =>
-                    elem.click()
+                await page.$eval(
+                    '#sendAcknowledgedIncidentNotificationSms',
+                    elem => elem.click()
                 );
                 await page.click('#saveIncidentNotification');
                 await page.waitForTimeout(2000);
@@ -424,14 +458,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 });
                 await page.click('#projectSettings');
                 await page.waitForSelector('#more');
-                await page.click('#more')
+                await page.click('#more');
                 await page.waitForSelector('#smsCalls', { visible: true });
                 await page.click('#smsCalls');
-                await page.waitForSelector('#more');    
+                await page.waitForSelector('#more');
                 await page.click('#more');
-                await page.waitForSelector('#sendResolvedIncidentNotificationSms', {
-                    visible: true,
-                });
+                await page.waitForSelector(
+                    '#sendResolvedIncidentNotificationSms',
+                    {
+                        visible: true,
+                    }
+                );
                 await page.$eval('#sendResolvedIncidentNotificationSms', elem =>
                     elem.click()
                 );
@@ -440,9 +477,12 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.reload({ waitUntil: 'networkidle0' });
-                await page.waitForSelector('#sendResolvedIncidentNotificationSms', {
-                    visible: true,
-                });
+                await page.waitForSelector(
+                    '#sendResolvedIncidentNotificationSms',
+                    {
+                        visible: true,
+                    }
+                );
                 let checkedState = await page.$eval(
                     '#sendResolvedIncidentNotificationSms',
                     elem => elem.value
@@ -469,20 +509,27 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 await page.waitForSelector('#smsCalls', { visible: true });
                 await page.click('#smsCalls');
 
-                await page.waitForSelector('#enableInvestigationNoteNotificationSMS', {
-                    visible: true,
-                });
-                await page.$eval('#enableInvestigationNoteNotificationSMS', elem =>
-                    elem.click()
+                await page.waitForSelector(
+                    '#enableInvestigationNoteNotificationSMS',
+                    {
+                        visible: true,
+                    }
+                );
+                await page.$eval(
+                    '#enableInvestigationNoteNotificationSMS',
+                    elem => elem.click()
                 );
                 await page.click('#saveIncidentNotification');
                 await page.waitForTimeout(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.reload({ waitUntil: 'networkidle0' });
-                await page.waitForSelector('#enableInvestigationNoteNotificationSMS', {
-                    visible: true,
-                });
+                await page.waitForSelector(
+                    '#enableInvestigationNoteNotificationSMS',
+                    {
+                        visible: true,
+                    }
+                );
                 let checkedState = await page.$eval(
                     '#enableInvestigationNoteNotificationSMS',
                     elem => elem.value

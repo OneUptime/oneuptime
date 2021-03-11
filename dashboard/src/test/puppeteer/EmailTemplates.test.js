@@ -36,7 +36,6 @@ describe('Email Templates API', () => {
             };
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
         });
 
         done();
@@ -55,6 +54,8 @@ describe('Email Templates API', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#email');
                 await page.click('#email');
                 await init.selectByText(
@@ -82,6 +83,8 @@ describe('Email Templates API', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#email');
                 await page.click('#email');
                 await init.selectByText(
@@ -122,6 +125,8 @@ describe('Email Templates API', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#email');
                 await page.click('#email');
                 await init.selectByText(
@@ -147,6 +152,8 @@ describe('Email Templates API', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#email');
                 await page.click('#email');
                 await init.selectByText(

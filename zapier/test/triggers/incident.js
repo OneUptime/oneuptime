@@ -35,8 +35,7 @@ describe('Incident Trigger', () => {
                 },
             ],
         };
-
-        appTester(App.triggers.incident_created.operation.perform, bundle)
+        appTester(App.triggers.incident.operation.perform, bundle)
             .then(response => {
                 response.should.be.an.instanceOf(Array);
                 response[0].should.have.property('projectName');
