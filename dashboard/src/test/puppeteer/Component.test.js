@@ -587,8 +587,7 @@ describe('Components', () => {
                 });
                 await page.waitForSelector('#components');
                 await page.$eval('#components', e => e.click());
-
-                //await page.waitForTimeout(2000);
+                
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector(`#count_${componentName}`);
