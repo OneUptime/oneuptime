@@ -108,6 +108,8 @@ class EditIncomingRequest extends Component {
 
             postObj.customFields = customFields.map(field => ({
                 fieldName: field.fieldName,
+                fieldType: field.fieldType,
+                uniqueField: field.uniqueField,
                 fieldValue:
                     field.fieldType === 'number'
                         ? parseFloat(values[field.fieldName])
