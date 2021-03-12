@@ -181,9 +181,12 @@ nginx-ingress-controller:
   ##################################################################################
 
 haraka:
+  fromEmail:
+  fromName: 
   user: 
   password:
   domain:
+  # This should be base64 of your private key
   dkimPrivateKey:
   tlsCert:
   tlsKey:
@@ -217,7 +220,7 @@ host:
   licensingServicePort: 80
   helmChartServicePort: 80
   httpTestServerServicePort: 80
-  harakaServicePort: 80
+  harakaServicePort: 2525
 
 isThirdPartyBilling: false
 isRunningOnGCPMarketplace: false

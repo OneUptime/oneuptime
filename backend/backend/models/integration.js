@@ -3,6 +3,7 @@ const mongoose = require('../config/db');
 const Schema = mongoose.Schema;
 
 const integrationSchema = new Schema({
+    webHookName: { type: String },
     projectId: {
         type: Schema.Types.ObjectId,
         ref: 'Project',
@@ -30,7 +31,9 @@ const integrationSchema = new Schema({
         incidentCreated: { type: Boolean, default: false },
         incidentAcknowledged: { type: Boolean, default: false },
         incidentResolved: { type: Boolean, default: false },
+        incidentNoteAdded: { type: Boolean, default: false },
     },
+
     deleted: { type: Boolean, default: false },
     deletedAt: {
         type: Date,

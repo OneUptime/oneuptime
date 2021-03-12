@@ -200,19 +200,19 @@ class NewIncidentMessage extends Component {
                                                             options={[
                                                                 {
                                                                     value:
-                                                                        'investigating',
+                                                                        'Investigating',
                                                                     label:
                                                                         'Investigating',
                                                                 },
                                                                 {
                                                                     value:
-                                                                        'update',
+                                                                        'Update',
                                                                     label:
                                                                         'Update',
                                                                 },
                                                                 {
                                                                     value:
-                                                                        'others',
+                                                                        'Others',
                                                                     label:
                                                                         'Others',
                                                                 },
@@ -224,7 +224,7 @@ class NewIncidentMessage extends Component {
                                                 <ShouldRender
                                                     if={
                                                         incident_state ===
-                                                        'others'
+                                                        'Others'
                                                     }
                                                 >
                                                     <div className="bs-Fieldset-row">

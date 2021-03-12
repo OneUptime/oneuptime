@@ -34,8 +34,7 @@ describe('Project API', () => {
             };
 
             // user
-            await init.registerUser(user, page);
-            await init.loginUser(user, page);
+            await init.registerUser(user, page);            
         });
 
         await cluster.queue({ email, password });
@@ -77,8 +76,9 @@ describe('Project API', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', utils.generateRandomString());
                 await page.click('input[id=Startup_month]');
-                await page.click('button[type=submit]');
-                await page.waitForTimeout(2000);
+                await Promise.all(
+                    [page.click('button[type=submit]'), page.waitForNavigation()
+                ]);                
                 // eslint-disable-next-line no-undef
                 localStorageData = await page.evaluate(() => {
                     const json = {};
@@ -130,7 +130,7 @@ describe('Project API', () => {
                 );
 
                 await element.click();
-                await page.waitForTimeout(5000);
+                await page.waitForNavigation();
                 // eslint-disable-next-line no-undef
                 localStorageData = await page.evaluate(() => {
                     const json = {};

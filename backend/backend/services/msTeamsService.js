@@ -194,6 +194,85 @@ module.exports = {
             throw error;
         }
     },
+    sendIncidentNoteNotification: async function(projectId, incident, data) {
+        try {
+            const self = this;
+            let response;
+            const project = await ProjectService.findOneBy({ _id: projectId });
+            if (project && project.parentProjectId) {
+                projectId = project.parentProjectId._id;
+            }
+
+            let query = {
+                projectId: projectId,
+                integrationType: 'msteams',
+                monitorId: incident.monitorId._id,
+                'notificationOptions.incidentNoteAdded': true,
+            };
+
+            const integrations = await IntegrationService.findBy(query);
+
+            for (const integration of integrations) {
+                response = await self.noteNotify(
+                    project,
+                    incident,
+                    integration,
+                    data
+                );
+            }
+            return response;
+        } catch (error) {
+            ErrorService.log(
+                'msTeamsService.sendIncidentNoteNotification',
+                error
+            );
+            throw error;
+        }
+    },
+
+    // send notification to slack workspace channels
+    async noteNotify(project, incident, integration, data) {
+        try {
+            const uri = `${global.dashboardHost}/project/${project.slug}/${integration.monitorId.componentId._id}/incidents/${incident._id}`;
+            let payload;
+            const yellow = '#fedc56';
+
+            payload = {
+                '@context': 'https://schema.org/extensions',
+                '@type': 'MessageCard',
+                themeColor: yellow,
+                summary: 'Incident Note Created',
+                sections: [
+                    {
+                        activityTitle: `[Incident Note Created](${uri})`,
+                        activitySubtitle: `${incident.monitorId.componentId.name} / ${incident.monitorId.name}`,
+                        facts: [
+                            { Name: 'State', value: `${data.incident_state}` },
+                            { Name: 'Created By', value: `${data.created_by}` },
+                            { Name: 'Text', value: `${data.content}` },
+                        ],
+                    },
+                ],
+            };
+
+            await axios.post(
+                integration.data.endpoint,
+                {
+                    ...payload,
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            return 'Webhook successfully pinged';
+        } catch (error) {
+            ErrorService.log('msTeams.noteNotify', error);
+            throw error;
+        }
+    },
 };
 
 const IntegrationService = require('./integrationService');

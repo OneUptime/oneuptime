@@ -393,9 +393,21 @@ class Main extends Component {
                 {theme === 'Clean Theme' ? (
                     <>
                         <div className="new-theme">
-                            {this.props.statusData &&
-                            this.props.statusData.logoPath ? (
-                                <div className="logo_section">
+                            {headerHTML ? (
+                                <React.Fragment>
+                                    <style>{sanitizedCSS}</style>
+                                    <div className="logo_section">
+                                        <div
+                                            id="customHeaderHTML"
+                                            dangerouslySetInnerHTML={{
+                                                __html: headerHTML,
+                                            }}
+                                        />
+                                    </div>
+                                </React.Fragment>
+                            ) : this.props.statusData &&
+                              this.props.statusData.logoPath ? (
+                                <div className="logo_section pad-left">
                                     <span>
                                         <img
                                             src={`${API_URL}/file/${this.props.statusData.logoPath}`}
@@ -431,7 +443,16 @@ class Main extends Component {
                                         target="_blank"
                                         rel="noopener noreferrer"
                                     >
-                                        Fyipe&#39;s Status Page
+                                        <ShouldRender
+                                            if={this.props.statusData.title}
+                                        >
+                                            {this.props.statusData.title}
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={!this.props.statusData.title}
+                                        >
+                                            Status Page
+                                        </ShouldRender>
                                     </a>
                                 </div>
                                 <ShouldRender
@@ -474,6 +495,28 @@ class Main extends Component {
                             <div className="new-main-container">
                                 <div className="sy-op">
                                     All Systems Operational
+                                </div>
+                                <div className="bs-probes">
+                                    <Probes
+                                        probes={probes}
+                                        backgroundMain={backgroundMain}
+                                        contentBackground={contentBackground}
+                                        activeProbe={this.props.activeProbe}
+                                        monitorState={this.props.monitorState}
+                                        greenBackground={greenBackground}
+                                        uptimeColor={uptimeColor}
+                                        greyBackground={greyBackground}
+                                        serviceStatus={serviceStatus}
+                                        redBackground={redBackground}
+                                        downtimeColor={downtimeColor}
+                                        yellowBackground={yellowBackground}
+                                        degradedColor={degradedColor}
+                                        heading={heading}
+                                        now={this.state.now}
+                                        selectbutton={index =>
+                                            this.selectbutton(index)
+                                        }
+                                    />
                                 </div>
                                 <ShouldRender
                                     if={
@@ -564,28 +607,32 @@ class Main extends Component {
                                     />
                                 </div>
                             </ShouldRender>
-                            <div className="new-theme-incident">
-                                <div className="font-largest">
-                                    Scheduled Events
+                            <ShouldRender
+                                if={
+                                    this.props.events &&
+                                    this.props.events.length > 0
+                                }
+                            >
+                                <div className="new-theme-incident">
+                                    <div className="font-largest">
+                                        Scheduled Events
+                                    </div>
+                                    <NewThemeEvent
+                                        projectId={
+                                            this.props.statusData.projectId._id
+                                        }
+                                        statusPageId={this.props.statusData._id}
+                                    />
                                 </div>
-                                <NewThemeEvent
-                                    projectId={
-                                        this.props.statusData.projectId._id
-                                    }
-                                    statusPageId={this.props.statusData._id}
-                                />
-                            </div>
+                            </ShouldRender>
+
                             <div className="powered">
-                                <p>
-                                    <a
-                                        href="https://fyipe.com"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={secondaryText}
-                                    >
-                                        Powered by Fyipe
-                                    </a>
-                                </p>
+                                <FooterCard
+                                    footerHTML={footerHTML}
+                                    statusData={this.props.statusData}
+                                    primaryText={primaryText}
+                                    secondaryText={secondaryText}
+                                />
                             </div>
                         </div>
                         <ShouldRender
@@ -769,85 +816,44 @@ class Main extends Component {
                                                 </label>
                                             </div>
                                         </div>
-                                        <div className="btn-group">
-                                            {probes.map((probe, index) => (
-                                                <button
-                                                    onClick={() =>
-                                                        this.selectbutton(index)
-                                                    }
-                                                    style={{
-                                                        background:
-                                                            backgroundMain.background,
-                                                        borderColor:
-                                                            contentBackground.background,
-                                                    }}
-                                                    key={`probes-btn${index}`}
-                                                    id={`probes-btn${index}`}
-                                                    className={
-                                                        this.props
-                                                            .activeProbe ===
-                                                        index
-                                                            ? 'icon-container selected'
-                                                            : 'icon-container'
-                                                    }
-                                                >
-                                                    <span
-                                                        style={
-                                                            // If the page doesn't include any monitor or includes only manual monitors
-                                                            // The probe servers will be shown online
-                                                            this.props
-                                                                .monitorState
-                                                                .length === 0 ||
-                                                            this.props.monitorState.every(
-                                                                monitor =>
-                                                                    monitor.type ===
-                                                                    'manual'
-                                                            )
-                                                                ? {
-                                                                      ...greenBackground,
-                                                                      backgroundColor:
-                                                                          uptimeColor.backgroundColor,
-                                                                  }
-                                                                : probe.lastAlive &&
-                                                                  moment(
-                                                                      this.state
-                                                                          .now
-                                                                  ).diff(
-                                                                      moment(
-                                                                          probe.lastAlive
-                                                                      ),
-                                                                      'seconds'
-                                                                  ) >= 300
-                                                                ? greyBackground
-                                                                : serviceStatus ===
-                                                                      'none' ||
-                                                                  serviceStatus ===
-                                                                      'some'
-                                                                ? {
-                                                                      ...redBackground,
-                                                                      backgroundColor:
-                                                                          downtimeColor.backgroundColor,
-                                                                  }
-                                                                : serviceStatus ===
-                                                                  'some-degraded'
-                                                                ? {
-                                                                      ...yellowBackground,
-                                                                      backgroundColor:
-                                                                          degradedColor.backgroundColor,
-                                                                  }
-                                                                : {
-                                                                      ...greenBackground,
-                                                                      backgroundColor:
-                                                                          uptimeColor.backgroundColor,
-                                                                  }
-                                                        }
-                                                    ></span>
-                                                    <span style={heading}>
-                                                        {probe.probeName}
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
+                                        <ShouldRender
+                                            if={
+                                                !this.props.statusData
+                                                    .hideProbeBar
+                                            }
+                                        >
+                                            <Probes
+                                                probes={probes}
+                                                backgroundMain={backgroundMain}
+                                                contentBackground={
+                                                    contentBackground
+                                                }
+                                                activeProbe={
+                                                    this.props.activeProbe
+                                                }
+                                                monitorState={
+                                                    this.props.monitorState
+                                                }
+                                                greenBackground={
+                                                    greenBackground
+                                                }
+                                                uptimeColor={uptimeColor}
+                                                greyBackground={greyBackground}
+                                                serviceStatus={serviceStatus}
+                                                redBackground={redBackground}
+                                                downtimeColor={downtimeColor}
+                                                yellowBackground={
+                                                    yellowBackground
+                                                }
+                                                degradedColor={degradedColor}
+                                                heading={heading}
+                                                now={this.state.now}
+                                                selectbutton={index =>
+                                                    this.selectbutton(index)
+                                                }
+                                            />
+                                        </ShouldRender>
+
                                         <div
                                             className="statistics"
                                             style={contentBackground}
@@ -1033,83 +1039,12 @@ class Main extends Component {
                                         />
                                     </ShouldRender>
                                 </ShouldRender>
-                                {footerHTML ? (
-                                    <div
-                                        id="customFooterHTML"
-                                        dangerouslySetInnerHTML={{
-                                            __html: footerHTML,
-                                        }}
-                                    />
-                                ) : (
-                                    <div id="footer">
-                                        <ul>
-                                            <ShouldRender
-                                                if={
-                                                    this.props.statusData &&
-                                                    this.props.statusData
-                                                        .copyright
-                                                }
-                                            >
-                                                <li>
-                                                    {' '}
-                                                    <span style={primaryText}>
-                                                        &copy;
-                                                    </span>{' '}
-                                                    {this.props.statusData &&
-                                                    this.props.statusData
-                                                        .copyright ? (
-                                                        <span
-                                                            style={primaryText}
-                                                        >
-                                                            {
-                                                                this.props
-                                                                    .statusData
-                                                                    .copyright
-                                                            }
-                                                        </span>
-                                                    ) : (
-                                                        ''
-                                                    )}
-                                                </li>
-                                            </ShouldRender>
-                                            <ShouldRender
-                                                if={
-                                                    this.props.statusData &&
-                                                    this.props.statusData
-                                                        .links &&
-                                                    this.props.statusData.links
-                                                        .length
-                                                }
-                                            >
-                                                {this.props.statusData &&
-                                                    this.props.statusData
-                                                        .links &&
-                                                    this.props.statusData.links.map(
-                                                        (link, i) => (
-                                                            <Footer
-                                                                link={link}
-                                                                key={i}
-                                                                textColor={
-                                                                    secondaryText
-                                                                }
-                                                            />
-                                                        )
-                                                    )}
-                                            </ShouldRender>
-                                        </ul>
-
-                                        <p>
-                                            <a
-                                                href="https://fyipe.com"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                style={secondaryText}
-                                            >
-                                                Powered by Fyipe
-                                            </a>
-                                        </p>
-                                    </div>
-                                )}
+                                <FooterCard
+                                    footerHTML={footerHTML}
+                                    statusData={this.props.statusData}
+                                    primaryText={primaryText}
+                                    secondaryText={secondaryText}
+                                />
                             </div>
                         ) : (
                             ''
@@ -1220,3 +1155,175 @@ Main.propTypes = {
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);
+
+const Probes = ({
+    probes,
+    backgroundMain,
+    contentBackground,
+    activeProbe,
+    monitorState,
+    greenBackground,
+    uptimeColor,
+    greyBackground,
+    serviceStatus,
+    redBackground,
+    downtimeColor,
+    yellowBackground,
+    degradedColor,
+    heading,
+    now,
+    selectbutton,
+}) => {
+    return (
+        <div className="btn-group">
+            {probes.map((probe, index) => (
+                <button
+                    onClick={() => selectbutton(index)}
+                    style={{
+                        background: backgroundMain.background,
+                        borderColor: contentBackground.background,
+                    }}
+                    key={`probes-btn${index}`}
+                    id={`probes-btn${index}`}
+                    className={
+                        activeProbe === index
+                            ? 'icon-container selected'
+                            : 'icon-container'
+                    }
+                >
+                    <span
+                        style={
+                            // If the page doesn't include any monitor or includes only manual monitors
+                            // The probe servers will be shown online
+                            monitorState.length === 0 ||
+                            monitorState.every(
+                                monitor => monitor.type === 'manual'
+                            )
+                                ? {
+                                      ...greenBackground,
+                                      backgroundColor:
+                                          uptimeColor.backgroundColor,
+                                  }
+                                : probe.lastAlive &&
+                                  moment(now).diff(
+                                      moment(probe.lastAlive),
+                                      'seconds'
+                                  ) >= 300
+                                ? greyBackground
+                                : serviceStatus === 'none' ||
+                                  serviceStatus === 'some'
+                                ? {
+                                      ...redBackground,
+                                      backgroundColor:
+                                          downtimeColor.backgroundColor,
+                                  }
+                                : serviceStatus === 'some-degraded'
+                                ? {
+                                      ...yellowBackground,
+                                      backgroundColor:
+                                          degradedColor.backgroundColor,
+                                  }
+                                : {
+                                      ...greenBackground,
+                                      backgroundColor:
+                                          uptimeColor.backgroundColor,
+                                  }
+                        }
+                    ></span>
+                    <span style={heading}>{probe.probeName}</span>
+                </button>
+            ))}
+        </div>
+    );
+};
+
+Probes.displayName = 'Probes';
+
+Probes.propTypes = {
+    probes: PropTypes.array.isRequired,
+    backgroundMain: PropTypes.object.isRequired,
+    contentBackground: PropTypes.object.isRequired,
+    activeProbe: PropTypes.number.isRequired,
+    monitorState: PropTypes.array.isRequired,
+    greenBackground: PropTypes.object.isRequired,
+    uptimeColor: PropTypes.object.isRequired,
+    greyBackground: PropTypes.object.isRequired,
+    serviceStatus: PropTypes.object.isRequired,
+    redBackground: PropTypes.object.isRequired,
+    downtimeColor: PropTypes.object.isRequired,
+    yellowBackground: PropTypes.object.isRequired,
+    degradedColor: PropTypes.object.isRequired,
+    heading: PropTypes.object.isRequired,
+    now: PropTypes.object.isRequired,
+    selectbutton: PropTypes.func,
+};
+
+const FooterCard = ({ footerHTML, statusData, primaryText, secondaryText }) => {
+    return (
+        <>
+            {footerHTML ? (
+                <div
+                    id="customFooterHTML"
+                    dangerouslySetInnerHTML={{
+                        __html: footerHTML,
+                    }}
+                />
+            ) : (
+                <div id="footer">
+                    <ul>
+                        <ShouldRender if={statusData && statusData.copyright}>
+                            <li>
+                                {' '}
+                                <span style={primaryText}>&copy;</span>{' '}
+                                {statusData && statusData.copyright ? (
+                                    <span style={primaryText}>
+                                        {statusData.copyright}
+                                    </span>
+                                ) : (
+                                    ''
+                                )}
+                            </li>
+                        </ShouldRender>
+                        <ShouldRender
+                            if={
+                                statusData &&
+                                statusData.links &&
+                                statusData.links.length
+                            }
+                        >
+                            {statusData &&
+                                statusData.links &&
+                                statusData.links.map((link, i) => (
+                                    <Footer
+                                        link={link}
+                                        key={i}
+                                        textColor={secondaryText}
+                                    />
+                                ))}
+                        </ShouldRender>
+                    </ul>
+
+                    <p>
+                        <a
+                            href="https://fyipe.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={secondaryText}
+                        >
+                            Powered by Fyipe
+                        </a>
+                    </p>
+                </div>
+            )}
+        </>
+    );
+};
+
+FooterCard.displayName = 'FooterCard';
+
+FooterCard.propTypes = {
+    footerHTML: PropTypes.string,
+    statusData: PropTypes.object,
+    primaryText: PropTypes.object,
+    secondaryText: PropTypes.object,
+};

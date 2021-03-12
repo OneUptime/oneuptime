@@ -34,7 +34,6 @@ describe('Project API', () => {
             };
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
         });
 
         await cluster.queue({ email, password });
