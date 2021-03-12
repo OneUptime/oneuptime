@@ -522,7 +522,7 @@ export const changeMonitorComponent = (
     return async dispatch => {
         try {
             dispatch(changeMonitorComponentRequest(monitorId));
-            const monitor = await putApi(
+            const monitor = await postApi(
                 `monitor/${projectId}/changeComponent/${monitorId}`,
                 {
                     newComponentId,

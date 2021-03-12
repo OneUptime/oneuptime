@@ -23,22 +23,15 @@ class ChangeMonitorComponent extends React.Component {
     }
 
     submitForm = values => {
-        const {
-            closeModal,
-            changeMonitorComponentModalId,
-            data,
-            changeMonitorComponent,
-        } = this.props;
+        const { data, changeMonitorComponent } = this.props;
         const projectId = data.monitor.projectId._id;
         const monitorId = data.monitor._id;
         const { newComponentId } = values;
 
         changeMonitorComponent(projectId, monitorId, newComponentId).then(
-            () => {
+            response => {
                 if (!this.props.changeMonitorComponentError) {
-                    closeModal({
-                        id: changeMonitorComponentModalId,
-                    });
+                    this.props.confirmThisDialog(response.data);
                 }
             }
         );
@@ -124,7 +117,9 @@ class ChangeMonitorComponent extends React.Component {
                                                         className="bs-Fieldset-label Text-align--left"
                                                         htmlFor="fieldName"
                                                     >
-                                                        <span>Component</span>
+                                                        <span>
+                                                            New Component
+                                                        </span>
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <div
@@ -236,7 +231,7 @@ class ChangeMonitorComponent extends React.Component {
                                         >
                                             {!requesting && (
                                                 <>
-                                                    <span>Create</span>
+                                                    <span>Change</span>
                                                     <span className="create-btn__keycode">
                                                         <span className="keycode__icon keycode__icon--enter" />
                                                     </span>
@@ -269,6 +264,7 @@ ChangeMonitorComponent.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     components: PropTypes.array,
+    confirmThisDialog: PropTypes.func,
 };
 
 const ChangeMonitorComponentForm = reduxForm({

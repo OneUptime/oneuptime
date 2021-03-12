@@ -12,6 +12,7 @@ import DataPathHoC from '../DataPathHoC';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import ChangeMonitorComponent from '../modals/ChangeMonitorComponent';
+import { history } from '../../store';
 
 class MonitorViewChangeComponentBox extends Component {
     constructor(props) {
@@ -19,25 +20,31 @@ class MonitorViewChangeComponentBox extends Component {
         this.state = { changeMonitorComponentModalId: uuidv4() };
     }
 
-    changeMonitorComponent = async () => {
-        const projectId =
-            this.props.monitor.projectId._id || this.props.monitor.projectId;
-        const promise = await this.props.changeMonitorComponent(
-            this.props.monitor._id,
-            projectId
-        );
-        this.props.tabSelected(0);
+    handleMonitorComponentChanged = async (monitor, oldComponentId) => {
+        const { currentProject } = this.props;
+
+        const { projectId, _id: monitorId, componentId, slug } = monitor;
+
+        const redirectTo = `/dashboard/project/${currentProject.slug}/${componentId._id}/monitoring/${slug}`;
+        history.push(redirectTo);
+
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR COMPONENT CHANGED',
                 {
-                    ProjectId: this.props.currentProject._id,
-                    monitorId: this.props.monitor._id,
-                    oldComponentId: this.props.monitor.componentId,
+                    projectId,
+                    monitorId,
+                    oldComponentId,
+                    newComponentId: componentId,
                 }
             );
         }
-        return promise;
+
+        this.props.closeModal({
+            id: this.state.changeMonitorComponentModalId,
+        });
+
+        return;
     };
 
     handleKeyBoard = e => {
@@ -62,6 +69,7 @@ class MonitorViewChangeComponentBox extends Component {
             changingComponent = true;
         }
         const { changeMonitorComponentModalId } = this.state;
+        const oldComponentId = this.props.monitor.componentId;
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -92,8 +100,11 @@ class MonitorViewChangeComponentBox extends Component {
                                             this.props.openModal({
                                                 id: changeMonitorComponentModalId,
                                                 onClose: () => '',
-                                                onConfirm: () =>
-                                                    this.changeMonitorComponent(),
+                                                onConfirm: monitor =>
+                                                    this.handleMonitorComponentChanged(
+                                                        monitor,
+                                                        oldComponentId
+                                                    ),
                                                 content: DataPathHoC(
                                                     ChangeMonitorComponent,
                                                     {
@@ -137,13 +148,12 @@ const mapStateToProps = state => {
 };
 
 MonitorViewChangeComponentBox.propTypes = {
-    currentProject: PropTypes.object.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     monitorState: PropTypes.object.isRequired,
     monitor: PropTypes.object.isRequired,
     changeMonitorComponent: PropTypes.func.isRequired,
-    tabSelected: PropTypes.func.isRequired,
+    currentProject: PropTypes.object,
 };
 
 export default withRouter(
