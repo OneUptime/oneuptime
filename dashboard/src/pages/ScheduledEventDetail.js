@@ -222,7 +222,7 @@ class ScheduledEvent extends Component {
                                             </div>
                                         </div>
                                     </ShouldRender>
-                                    <ShouldRender
+                                    {/* <ShouldRender
                                         if={internalNotesList.requesting}
                                     >
                                         <LoadingState />
@@ -265,7 +265,7 @@ class ScheduledEvent extends Component {
                                                 </div>
                                             </div>
                                         </div>
-                                    </ShouldRender>
+                                    </ShouldRender> */}
                                 </Fade>
                             </TabPanel>
                             <TabPanel>

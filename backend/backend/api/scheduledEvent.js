@@ -580,6 +580,10 @@ router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
             });
         }
 
+        if (data.internal_note === true) {
+            data.type = 'internal';
+        }
+
         const scheduledEventMessage = await ScheduledEventNoteService.create(
             data,
             projectId
@@ -598,39 +602,16 @@ router.get('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
 ) {
     try {
         const { eventId } = req.params;
-        const { limit, skip, type } = req.query;
-
-        if (!type) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Scheduled Event Message type is required',
-            });
-        }
-
-        if (typeof type !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Scheduled Event Message type is not in string type.',
-            });
-        }
-
-        if (!['investigation', 'internal'].includes(type)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message:
-                    'Scheduled Event Message type should be of type investigation or internal.',
-            });
-        }
+        const { limit, skip } = req.query;
 
         const eventNotes = await ScheduledEventNoteService.findBy(
-            { scheduledEventId: eventId, type },
+            { scheduledEventId: eventId },
             limit,
             skip
         );
 
         const count = await ScheduledEventNoteService.countBy({
             scheduledEventId: eventId,
-            type,
         });
         return sendListResponse(req, res, eventNotes, count);
     } catch (error) {

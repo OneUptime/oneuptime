@@ -367,11 +367,11 @@ export const fetchScheduledEventNotesInvestigation = (
         let response = {};
         if (skip >= 0 && limit >= 0) {
             response = await getApi(
-                `scheduledEvent/${projectId}/${scheduledEventId}/notes?type=investigation&limit=${limit}&skip=${skip}`
+                `scheduledEvent/${projectId}/${scheduledEventId}/notes?limit=${limit}&skip=${skip}`
             );
         } else {
             response = await getApi(
-                `scheduledEvent/${projectId}/${scheduledEventId}/notes?type=investigation`
+                `scheduledEvent/${projectId}/${scheduledEventId}/notes`
             );
         }
 
