@@ -74,8 +74,10 @@ class MonitorView extends React.Component {
     componentDidUpdate(prevProps) {
         const { monitor } = this.props;
         if (String(prevProps.monitor._id) !== String(this.props.monitor._id)) {
-            const subProjectId = monitor.projectId._id || monitor.projectId;
-            this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
+            const subProjectId = monitor.projectId
+                ? monitor.projectId._id || monitor.projectId
+                : '';
+            subProjectId && this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
             if (monitor.type === 'url') {
                 this.props.fetchLighthouseLogs(
                     monitor.projectId._id || monitor.projectId,
@@ -787,7 +789,6 @@ const mapStateToProps = (state, props) => {
     const scheduleWarning = [];
     const { componentId, monitorSlug } = props.match.params;
     const schedules = state.schedule.schedules;
-
     state.schedule.subProjectSchedules.forEach(item => {
         item.schedules.forEach(item => {
             item.monitorIds.forEach(monitor => {
@@ -830,7 +831,6 @@ const mapStateToProps = (state, props) => {
             }
         });
     });
-
     const initialValues = {};
     let currentMonitorCriteria = [];
     if (monitor && monitor._id) {
