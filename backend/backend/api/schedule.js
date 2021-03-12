@@ -196,11 +196,11 @@ router.post(
                 const storagevalue = {};
                 const tempTeam = [];
 
-                if (!value.email && !value.call && !value.sms) {
+                if (!value.email && !value.call && !value.sms && !value.push) {
                     return sendErrorResponse(req, res, {
                         code: 400,
                         message:
-                            'Please select how should Fyipe alert your team - SMS, Email OR Call' +
+                            'Please select how should Fyipe alert your team - SMS, Email, Call OR Push notification ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
                                   escalationPolicyCount
@@ -237,6 +237,18 @@ router.post(
                         code: 400,
                         message:
                             'Number of SMS Reminders is required ' +
+                            (req.body.length > 1
+                                ? ' in Escalation Policy ' +
+                                  escalationPolicyCount
+                                : ''),
+                    });
+                }
+
+                if (value.push && !value.pushReminders) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message:
+                            'Number of Push notification Reminders is required ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
                                   escalationPolicyCount
@@ -323,6 +335,13 @@ router.post(
                 }
 
                 if (
+                    value.pushReminders &&
+                    typeof value.pushReminders === 'string'
+                ) {
+                    value.pushReminders = parseInt(value.pushReminders);
+                }
+
+                if (
                     value.firstRotationOn &&
                     typeof value.firstRotationOn === 'string'
                 ) {
@@ -332,6 +351,7 @@ router.post(
                 storagevalue.callReminders = value.callReminders;
                 storagevalue.smsReminders = value.smsReminders;
                 storagevalue.emailReminders = value.emailReminders;
+                storagevalue.pushReminders = value.pushReminders;
 
                 storagevalue.rotateBy = value.rotateBy;
                 storagevalue.rotationInterval = value.rotationInterval;
@@ -340,6 +360,7 @@ router.post(
                 storagevalue.email = value.email;
                 storagevalue.call = value.call;
                 storagevalue.sms = value.sms;
+                storagevalue.push = value.push;
                 storagevalue.projectId = req.params.projectId;
                 storagevalue.scheduleId = scheduleId;
                 storagevalue.createdById = userId;

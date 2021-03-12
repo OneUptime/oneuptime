@@ -1,6 +1,6 @@
 {
     "name": "zapier",
-    "version": "3.0.1",
+    "version": "3.0.6",
     "description": "Fyipe is an automation tool that helps you monitor the performance and downtime of your APIs and Web apps.",
     "homepage": "https://fyipe.com",
     "author": "HackerBay <hello@hackerbay.io>",
@@ -18,7 +18,7 @@
     },
     "resolutions": {},
     "dependencies": {
-        "zapier-platform-core": "^10.1.2"
+        "zapier-platform-core": "10.2.0"
     },
     "devDependencies": {
         "babel-preset-react": "^6.24.1",

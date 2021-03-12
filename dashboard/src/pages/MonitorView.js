@@ -39,6 +39,7 @@ import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 import { fetchCommunicationSlas } from '../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../actions/monitorSla';
 import ThirdPartyVariables from '../components/monitor/ThirdPartyVariables';
+import MonitorViewChangeComponentBox from '../components/monitor/MonitorViewChangeComponentBox';
 class MonitorView extends React.Component {
     // eslint-disable-next-line
     constructor(props) {
@@ -751,6 +752,20 @@ class MonitorView extends React.Component {
                                                                             </ShouldRender>
                                                                             <div className="Box-root Margin-bottom--12">
                                                                                 <MonitorViewDeleteBox
+                                                                                    componentId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .componentId
+                                                                                    }
+                                                                                    monitor={
+                                                                                        this
+                                                                                            .props
+                                                                                            .monitor
+                                                                                    }
+                                                                                />
+                                                                            </div>
+                                                                            <div className="Box-root Margin-bottom--12">
+                                                                                <MonitorViewChangeComponentBox
                                                                                     componentId={
                                                                                         this
                                                                                             .props

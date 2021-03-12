@@ -44,6 +44,7 @@ class CreateCustomField extends React.Component {
         const postObj = {
             fieldName: values.fieldName,
             fieldType: values.fieldType,
+            uniqueField: values.uniqueField,
         };
 
         createCustomField(projectId, postObj).then(() => {
@@ -210,6 +211,47 @@ class CreateCustomField extends React.Component {
                                                 </div>
                                             </div>
                                         </fieldset>
+
+                                        <div className="bs-Fieldset-row">
+                                            <label className="bs-Fieldset-label">
+                                                <span></span>
+                                            </label>
+                                            <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                <div
+                                                    className="Box-root"
+                                                    style={{
+                                                        height: '5px',
+                                                    }}
+                                                ></div>
+                                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                    <label
+                                                        className="Checkbox"
+                                                        htmlFor="uniqueField"
+                                                    >
+                                                        <Field
+                                                            component="input"
+                                                            type="checkbox"
+                                                            name="uniqueField"
+                                                            className="Checkbox-source"
+                                                            id="uniqueField"
+                                                        />
+                                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                            <div className="Checkbox-target Box-root">
+                                                                <div className="Checkbox-color Box-root"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="Checkbox-label Box-root Margin-left--8">
+                                                            <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Make field
+                                                                    unique
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="bs-Modal-footer">

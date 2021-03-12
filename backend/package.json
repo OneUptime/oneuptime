@@ -50,6 +50,7 @@
         "urldecode": "^1.0.1",
         "uuid": "^3.2.1",
         "valid-url": "^1.0.9",
+        "web-push": "^3.4.4",
         "winston": "^2.4.0",
         "winston-slack-transport": "^2.0.0"
     },

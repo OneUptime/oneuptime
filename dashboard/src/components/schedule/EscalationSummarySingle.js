@@ -298,6 +298,15 @@ const EscalationSummarySingle = ({
                                                 {escalation.emailReminders}{' '}
                                                 Email reminders
                                             </span>
+                                        )}{' '}{(escalation.sms || escalation.call ||
+                                            escalation.email) && (
+                                                <span>,</span>
+                                            )}{' '}
+                                        {escalation.push && (
+                                            <span>
+                                                {escalation.pushReminders} Push
+                                                Notification reminders
+                                            </span>
                                         )}{' '}
                                         <span>
                                             {' '}

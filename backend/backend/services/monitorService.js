@@ -179,6 +179,8 @@ module.exports = {
     },
 
     updateOneBy: async function(query, data, unsetData) {
+        const _this = this;
+
         try {
             if (!query) {
                 query = {};
@@ -187,8 +189,40 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             await this.updateMonitorSlaStat(query);
+
+            let errorMsg;
+            if (data.customFields && data.customFields.length > 0) {
+                const monitor = await _this.findOneBy(query);
+                for (const field of data.customFields) {
+                    if (field.uniqueField) {
+                        const _monitor = await _this.findOneBy({
+                            customFields: {
+                                $elemMatch: {
+                                    fieldName: field.fieldName,
+                                    fieldType: field.fieldType,
+                                    fieldValue: field.fieldValue,
+                                },
+                            },
+                        });
+
+                        if (
+                            _monitor &&
+                            String(monitor._id) !== String(_monitor._id)
+                        ) {
+                            errorMsg = `The field ${field.fieldName} should have unique values per monitor`;
+                        }
+                    }
+                }
+            }
+
+            if (errorMsg) {
+                const error = new Error(errorMsg);
+                error.code = 400;
+                throw error;
+            }
+
             if (data) {
-                if (data && data.name) {
+                if (data.name) {
                     let name = data.name;
                     name = slugify(name);
                     name = `${name}-${generate('1234567890', 8)}`;
@@ -1352,6 +1386,30 @@ module.exports = {
             throw error;
         }
     },
+
+    changeMonitorComponent: async function(projectId, monitorId, componentId) {
+        const monitor = await this.findOneBy({ _id: monitorId });
+        const component = await componentService.findOneBy({
+            _id: componentId,
+        });
+
+        // ensure monitor and component belong to same project
+        if (
+            !monitor.projectId.equals(projectId) ||
+            !component.projectId.equals(projectId)
+        ) {
+            throw new Error(
+                'Monitor and component do not belong to the same project or sub-project'
+            );
+        }
+
+        const updatedMonitor = await this.updateOneBy(
+            { _id: monitorId },
+            { componentId }
+        );
+
+        return updatedMonitor;
+    },
 };
 
 const MonitorModel = require('../models/monitor');
@@ -1383,3 +1441,4 @@ const { IS_SAAS_SERVICE } = require('../config/server');
 const ScheduledEventService = require('./scheduledEventService');
 const MonitorSlaService = require('./monitorSlaService');
 const IncomingRequestService = require('./incomingRequestService');
+const componentService = require('./componentService');
