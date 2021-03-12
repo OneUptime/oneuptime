@@ -6,7 +6,6 @@ const createDOMPurify = require('dompurify');
 const jsdom = require('jsdom').jsdom;
 const window = jsdom('').defaultView;
 const DOMPurify = createDOMPurify(window);
-const Handlebars = require('handlebars');
 const { isEmpty } = require('lodash');
 const IncidentMessageService = require('../services/incidentMessageService');
 const IncidentPrioritiesService = require('../services/incidentPrioritiesService');
@@ -124,6 +123,8 @@ module.exports = {
                 const customFields = [...data.customFields];
                 data.customFields = customFields.map(field => ({
                     fieldName: field.fieldName,
+                    fieldType: field.fieldType,
+                    uniqueField: field.uniqueField,
                     fieldValue:
                         typeof field.fieldValue === 'number'
                             ? field.fieldValue
@@ -302,6 +303,8 @@ module.exports = {
                 const customFields = [...data.customFields];
                 data.customFields = customFields.map(field => ({
                     fieldName: field.fieldName,
+                    fieldType: field.fieldType,
+                    uniqueField: field.uniqueField,
                     fieldValue:
                         typeof field.fieldValue === 'number'
                             ? field.fieldValue
@@ -567,12 +570,7 @@ module.exports = {
                 projectId: data.projectId,
             });
 
-            let titleTemplate,
-                descriptionTemplate,
-                incidentTypeTemplate,
-                incidentPriorityTemplate,
-                filterTextTemplate,
-                customFieldTemplates = [];
+            let filterTextTemplate;
 
             const filterMatch = incomingRequest.filterMatch;
             const filters = incomingRequest.filters;
@@ -592,7 +590,6 @@ module.exports = {
                     `Created by: ${incomingRequest.name}`,
                     `Reason: This incident was created by an incoming HTTP request`,
                 ];
-
                 if (
                     data.title &&
                     data.title.trim() &&
@@ -601,30 +598,6 @@ module.exports = {
                     data.incidentPriority
                 ) {
                     data.manuallyCreated = true;
-
-                    // handle template variables
-                    titleTemplate = Handlebars.compile(data.title);
-                    descriptionTemplate = Handlebars.compile(data.description);
-                }
-
-                if (data.customFields && data.customFields.length > 0) {
-                    customFieldTemplates = data.customFields.map(field => ({
-                        ...field,
-                        fieldValue: Handlebars.compile(
-                            String(field.fieldValue)
-                        ),
-                    }));
-                }
-
-                if (data.incidentType) {
-                    incidentTypeTemplate = Handlebars.compile(
-                        data.incidentType
-                    );
-                }
-                if (data.incidentPriority) {
-                    incidentPriorityTemplate = Handlebars.compile(
-                        data.incidentPriority
-                    );
                 }
 
                 if (!filters || filters.length === 0) {
@@ -640,62 +613,92 @@ module.exports = {
                                 request: data.request,
                             };
 
-                            if (titleTemplate) {
-                                data.title = titleTemplate(dataConfig);
-                            }
-                            if (descriptionTemplate) {
-                                data.description = descriptionTemplate(
-                                    dataConfig
-                                );
-                            }
-                            if (incidentTypeTemplate) {
-                                const incidentType = incidentTypeTemplate(
-                                    dataConfig
-                                );
-                                data.incidentType = [
-                                    'offline',
-                                    'online',
-                                    'degraded',
-                                ].includes(incidentType)
-                                    ? incidentType
-                                    : 'offline';
-                            }
-                            if (incidentPriorityTemplate) {
-                                const incidentPriority = incidentPriorityTemplate(
-                                    dataConfig
-                                );
-                                const priorityObj = {};
-                                incidentPriorities.forEach(
-                                    priority =>
-                                        (priorityObj[priority.name] =
-                                            priority._id)
-                                );
-                                data.incidentPriority =
-                                    priorityObj[incidentPriority] ||
-                                    incidentSettings.incidentPriority;
-                            }
+                            let _incident;
                             if (
-                                customFieldTemplates &&
-                                customFieldTemplates.length > 0
+                                data.customFields &&
+                                data.customFields.length > 0
                             ) {
-                                data.customFields = customFieldTemplates.map(
-                                    field => ({
-                                        ...field,
-                                        fieldValue: field.fieldValue(
-                                            dataConfig
-                                        ),
-                                    })
-                                );
+                                for (const field of data.customFields) {
+                                    if (field.uniqueField) {
+                                        _incident = await IncidentService.findOneBy(
+                                            {
+                                                customFields: {
+                                                    $elemMatch: {
+                                                        fieldName:
+                                                            field.fieldName,
+                                                        fieldType:
+                                                            field.fieldType,
+                                                        uniqueField:
+                                                            field.uniqueField,
+                                                        fieldValue: handleVariable(
+                                                            field.fieldValue,
+                                                            dataConfig
+                                                        ),
+                                                    },
+                                                },
+                                            }
+                                        );
+                                    }
+                                }
                             }
+
+                            data.title = handleVariable(data.title, dataConfig);
+                            data.description = handleVariable(
+                                data.description,
+                                dataConfig
+                            );
+                            const incidentType = handleVariable(
+                                data.incidentType,
+                                dataConfig
+                            );
+                            data.incidentType = [
+                                'offline',
+                                'online',
+                                'degraded',
+                            ].includes(incidentType)
+                                ? incidentType
+                                : 'offline';
+
+                            const incidentPriority = handleVariable(
+                                data.incidentPriority,
+                                dataConfig
+                            );
+                            const priorityObj = {};
+                            incidentPriorities.forEach(
+                                priority =>
+                                    (priorityObj[priority.name] = priority._id)
+                            );
+                            data.incidentPriority =
+                                priorityObj[incidentPriority] ||
+                                incidentSettings.incidentPriority;
+
+                            data.customFields = data.customFields.map(
+                                field => ({
+                                    ...field,
+                                    fieldValue: handleVariable(
+                                        String(field.fieldValue),
+                                        dataConfig
+                                    ),
+                                })
+                            );
+
                             data.monitorId = monitor._id;
                             if (
                                 !monitorsWithIncident.includes(
                                     String(monitor._id)
                                 )
                             ) {
-                                const incident = await IncidentService.create(
-                                    data
-                                );
+                                let incident;
+                                if (_incident) {
+                                    incident = await IncidentService.updateOneBy(
+                                        { _id: _incident._id },
+                                        data
+                                    );
+                                } else {
+                                    incident = await IncidentService.create(
+                                        data
+                                    );
+                                }
                                 incidentResponse.push(incident);
                                 monitorsWithIncident.push(String(monitor._id));
                             }
@@ -712,53 +715,76 @@ module.exports = {
                                 projectName: incomingRequest.projectId.name,
                                 request: data.request,
                             };
-                            if (titleTemplate) {
-                                data.title = titleTemplate(dataConfig);
-                            }
-                            if (descriptionTemplate) {
-                                data.description = descriptionTemplate(
-                                    dataConfig
-                                );
-                            }
-                            if (incidentTypeTemplate) {
-                                const incidentType = incidentTypeTemplate(
-                                    dataConfig
-                                );
-                                data.incidentType = [
-                                    'offline',
-                                    'online',
-                                    'degraded',
-                                ].includes(incidentType)
-                                    ? incidentType
-                                    : 'offline';
-                            }
-                            if (incidentPriorityTemplate) {
-                                const incidentPriority = incidentPriorityTemplate(
-                                    dataConfig
-                                );
-                                const priorityObj = {};
-                                incidentPriorities.forEach(
-                                    priority =>
-                                        (priorityObj[priority.name] =
-                                            priority._id)
-                                );
-                                data.incidentPriority =
-                                    priorityObj[incidentPriority] ||
-                                    incidentSettings.incidentPriority;
-                            }
+
+                            let _incident;
                             if (
-                                customFieldTemplates &&
-                                customFieldTemplates.length > 0
+                                data.customFields &&
+                                data.customFields.length > 0
                             ) {
-                                data.customFields = customFieldTemplates.map(
-                                    field => ({
-                                        ...field,
-                                        fieldValue: field.fieldValue(
-                                            dataConfig
-                                        ),
-                                    })
-                                );
+                                for (const field of data.customFields) {
+                                    if (field.uniqueField) {
+                                        _incident = await IncidentService.findOneBy(
+                                            {
+                                                customFields: {
+                                                    $elemMatch: {
+                                                        fieldName:
+                                                            field.fieldName,
+                                                        fieldType:
+                                                            field.fieldType,
+                                                        uniqueField:
+                                                            field.uniqueField,
+                                                        fieldValue: handleVariable(
+                                                            field.fieldValue,
+                                                            dataConfig
+                                                        ),
+                                                    },
+                                                },
+                                            }
+                                        );
+                                    }
+                                }
                             }
+
+                            data.title = handleVariable(data.title, dataConfig);
+                            data.description = handleVariable(
+                                data.description,
+                                dataConfig
+                            );
+
+                            const incidentType = handleVariable(
+                                data.incidentType,
+                                dataConfig
+                            );
+                            data.incidentType = [
+                                'offline',
+                                'online',
+                                'degraded',
+                            ].includes(incidentType)
+                                ? incidentType
+                                : 'offline';
+
+                            const incidentPriority = handleVariable(
+                                data.incidentPriority,
+                                dataConfig
+                            );
+                            const priorityObj = {};
+                            incidentPriorities.forEach(
+                                priority =>
+                                    (priorityObj[priority.name] = priority._id)
+                            );
+                            data.incidentPriority =
+                                priorityObj[incidentPriority] ||
+                                incidentSettings.incidentPriority;
+
+                            data.customFields = data.customFields.map(
+                                field => ({
+                                    ...field,
+                                    fieldValue: handleVariable(
+                                        String(field.fieldValue),
+                                        dataConfig
+                                    ),
+                                })
+                            );
 
                             data.monitorId = monitor._id;
                             if (filterMatch === 'any') {
@@ -767,18 +793,34 @@ module.exports = {
                                         String(monitor._id)
                                     )
                                 ) {
-                                    const incident = await IncidentService.create(
-                                        data
-                                    );
+                                    let incident;
+                                    if (_incident) {
+                                        incident = await IncidentService.updateOneBy(
+                                            { _id: _incident._id },
+                                            data
+                                        );
+                                    } else {
+                                        incident = await IncidentService.create(
+                                            data
+                                        );
+                                    }
                                     incidentResponse.push(incident);
                                     monitorsWithIncident.push(
                                         String(monitor._id)
                                     );
                                 }
                             } else {
-                                const incident = await IncidentService.create(
-                                    data
-                                );
+                                let incident;
+                                if (_incident) {
+                                    incident = await IncidentService.updateOneBy(
+                                        { _id: _incident._id },
+                                        data
+                                    );
+                                } else {
+                                    incident = await IncidentService.create(
+                                        data
+                                    );
+                                }
                                 incidentResponse.push(incident);
                             }
                         }
@@ -789,10 +831,10 @@ module.exports = {
                             const dataConfig = {
                                 request: data.request,
                             };
-                            filterTextTemplate = Handlebars.compile(
-                                filter.filterText
+                            filterTextTemplate = handleVariable(
+                                filter.filterText,
+                                dataConfig
                             );
-                            filterTextTemplate = filterTextTemplate(dataConfig);
                         }
 
                         const filterCriteria = filter.filterCriteria,
@@ -875,53 +917,78 @@ module.exports = {
                                         request: data.request,
                                     };
 
-                                    if (titleTemplate) {
-                                        data.title = titleTemplate(dataConfig);
-                                    }
-                                    if (descriptionTemplate) {
-                                        data.description = descriptionTemplate(
-                                            dataConfig
-                                        );
-                                    }
-                                    if (incidentTypeTemplate) {
-                                        const incidentType = incidentTypeTemplate(
-                                            dataConfig
-                                        );
-                                        data.incidentType = [
-                                            'offline',
-                                            'online',
-                                            'degraded',
-                                        ].includes(incidentType)
-                                            ? incidentType
-                                            : 'offline';
-                                    }
-                                    if (incidentPriorityTemplate) {
-                                        const incidentPriority = incidentPriorityTemplate(
-                                            dataConfig
-                                        );
-                                        const priorityObj = {};
-                                        incidentPriorities.forEach(
-                                            priority =>
-                                                (priorityObj[priority.name] =
-                                                    priority._id)
-                                        );
-                                        data.incidentPriority =
-                                            priorityObj[incidentPriority] ||
-                                            incidentSettings.incidentPriority;
-                                    }
+                                    let _incident;
                                     if (
-                                        customFieldTemplates &&
-                                        customFieldTemplates.length > 0
+                                        data.customFields &&
+                                        data.customFields.length > 0
                                     ) {
-                                        data.customFields = customFieldTemplates.map(
-                                            field => ({
-                                                ...field,
-                                                fieldValue: field.fieldValue(
-                                                    dataConfig
-                                                ),
-                                            })
-                                        );
+                                        for (const field of data.customFields) {
+                                            if (field.uniqueField) {
+                                                _incident = await IncidentService.findOneBy(
+                                                    {
+                                                        customFields: {
+                                                            $elemMatch: {
+                                                                fieldName:
+                                                                    field.fieldName,
+                                                                fieldType:
+                                                                    field.fieldType,
+                                                                uniqueField:
+                                                                    field.uniqueField,
+                                                                fieldValue: handleVariable(
+                                                                    field.fieldValue,
+                                                                    dataConfig
+                                                                ),
+                                                            },
+                                                        },
+                                                    }
+                                                );
+                                            }
+                                        }
                                     }
+
+                                    data.title = handleVariable(
+                                        data.title,
+                                        dataConfig
+                                    );
+                                    data.description = handleVariable(
+                                        data.description,
+                                        dataConfig
+                                    );
+                                    const incidentType = handleVariable(
+                                        data.incidentType,
+                                        dataConfig
+                                    );
+                                    data.incidentType = [
+                                        'offline',
+                                        'online',
+                                        'degraded',
+                                    ].includes(incidentType)
+                                        ? incidentType
+                                        : 'offline';
+
+                                    const incidentPriority = handleVariable(
+                                        data.incidentPriority,
+                                        dataConfig
+                                    );
+                                    const priorityObj = {};
+                                    incidentPriorities.forEach(
+                                        priority =>
+                                            (priorityObj[priority.name] =
+                                                priority._id)
+                                    );
+                                    data.incidentPriority =
+                                        priorityObj[incidentPriority] ||
+                                        incidentSettings.incidentPriority;
+
+                                    data.customFields = data.customFields.map(
+                                        field => ({
+                                            ...field,
+                                            fieldValue: handleVariable(
+                                                String(field.fieldValue),
+                                                dataConfig
+                                            ),
+                                        })
+                                    );
 
                                     data.monitorId = monitor._id;
                                     if (filterMatch === 'any') {
@@ -930,18 +997,34 @@ module.exports = {
                                                 String(monitor._id)
                                             )
                                         ) {
-                                            const incident = await IncidentService.create(
-                                                data
-                                            );
+                                            let incident;
+                                            if (_incident) {
+                                                incident = await IncidentService.updateOneBy(
+                                                    { _id: _incident._id },
+                                                    data
+                                                );
+                                            } else {
+                                                incident = await IncidentService.create(
+                                                    data
+                                                );
+                                            }
                                             incidentResponse.push(incident);
                                             monitorsWithIncident.push(
                                                 String(monitor._id)
                                             );
                                         }
                                     } else {
-                                        const incident = await IncidentService.create(
-                                            data
-                                        );
+                                        let incident;
+                                        if (_incident) {
+                                            incident = await IncidentService.updateOneBy(
+                                                { _id: _incident._id },
+                                                data
+                                            );
+                                        } else {
+                                            incident = await IncidentService.create(
+                                                data
+                                            );
+                                        }
                                         incidentResponse.push(incident);
                                     }
                                 }
@@ -1095,27 +1178,55 @@ module.exports = {
                                             incomingRequest.projectId.name,
                                         request: data.request,
                                     };
-                                    if (titleTemplate) {
-                                        data.title = titleTemplate(dataConfig);
-                                    }
-                                    if (descriptionTemplate) {
-                                        data.description = descriptionTemplate(
-                                            dataConfig
-                                        );
-                                    }
+
+                                    let _incident;
                                     if (
-                                        customFieldTemplates &&
-                                        customFieldTemplates.length > 0
+                                        data.customFields &&
+                                        data.customFields.length > 0
                                     ) {
-                                        data.customFields = customFieldTemplates.map(
-                                            field => ({
-                                                ...field,
-                                                fieldValue: field.fieldValue(
-                                                    dataConfig
-                                                ),
-                                            })
-                                        );
+                                        for (const field of data.customFields) {
+                                            if (field.uniqueField) {
+                                                _incident = await IncidentService.findOneBy(
+                                                    {
+                                                        customFields: {
+                                                            $elemMatch: {
+                                                                fieldName:
+                                                                    field.fieldName,
+                                                                fieldType:
+                                                                    field.fieldType,
+                                                                uniqueField:
+                                                                    field.uniqueField,
+                                                                fieldValue: handleVariable(
+                                                                    field.fieldValue,
+                                                                    dataConfig
+                                                                ),
+                                                            },
+                                                        },
+                                                    }
+                                                );
+                                            }
+                                        }
                                     }
+
+                                    data.title = handleVariable(
+                                        data.title,
+                                        dataConfig
+                                    );
+
+                                    data.description = handleVariable(
+                                        data.description,
+                                        dataConfig
+                                    );
+
+                                    data.customFields = data.customFields.map(
+                                        field => ({
+                                            ...field,
+                                            fieldValue: handleVariable(
+                                                String(field.fieldValue),
+                                                dataConfig
+                                            ),
+                                        })
+                                    );
 
                                     data.monitorId = monitor._id;
                                     if (filterMatch === 'any') {
@@ -1124,18 +1235,34 @@ module.exports = {
                                                 String(monitor._id)
                                             )
                                         ) {
-                                            const incident = await IncidentService.create(
-                                                data
-                                            );
+                                            let incident;
+                                            if (_incident) {
+                                                incident = await IncidentService.updateOneBy(
+                                                    { _id: _incident._id },
+                                                    data
+                                                );
+                                            } else {
+                                                incident = await IncidentService.create(
+                                                    data
+                                                );
+                                            }
                                             incidentResponse.push(incident);
                                             monitorsWithIncident.push(
                                                 String(monitor._id)
                                             );
                                         }
                                     } else {
-                                        const incident = await IncidentService.create(
-                                            data
-                                        );
+                                        let incident;
+                                        if (_incident) {
+                                            incident = await IncidentService.updateOneBy(
+                                                { _id: _incident._id },
+                                                data
+                                            );
+                                        } else {
+                                            incident = await IncidentService.create(
+                                                data
+                                            );
+                                        }
                                         incidentResponse.push(incident);
                                     }
                                 }
@@ -1194,10 +1321,10 @@ module.exports = {
                             const dataConfig = {
                                 request: data.request,
                             };
-                            filterTextTemplate = Handlebars.compile(
-                                filter.filterText
+                            filterTextTemplate = handleVariable(
+                                filter.filterText,
+                                dataConfig
                             );
-                            filterTextTemplate = filterTextTemplate(dataConfig);
                         }
 
                         const filterCriteria = filter.filterCriteria,
@@ -1534,10 +1661,10 @@ module.exports = {
                             const dataConfig = {
                                 request: data.request,
                             };
-                            filterTextTemplate = Handlebars.compile(
-                                filter.filterText
+                            filterTextTemplate = handleVariable(
+                                filter.filterText,
+                                dataConfig
                             );
-                            filterTextTemplate = filterTextTemplate(dataConfig);
                         }
 
                         const filterCriteria = filter.filterCriteria,
@@ -1883,4 +2010,61 @@ module.exports = {
  */
 function isArrayUnique(myArray) {
     return myArray.length === new Set(myArray).size;
+}
+
+/**
+ * @description transforms a template variable into an actual value
+ * @param {string} variable template like string eg: {{request.body.name}}
+ * @param {object} data an object containing the key-value pairs to work with
+ */
+function handleVariable(variable, data) {
+    const regex = /\{\{([^}]+)\}\}/g;
+
+    if (regex.test(variable)) {
+        variable = variable.replace(regex, function(match) {
+            // Remove the wrapping curly braces
+            match = match.slice(2, -2);
+
+            // Check if the item has sub-properties
+            const sub = match.split('.');
+
+            // If the item has a sub-property, loop through until you get it
+            if (sub.length > 1) {
+                let temp = data;
+                const altSub = [];
+                sub.forEach(item => {
+                    if (item.indexOf('[') >= 0) {
+                        const key = item.slice(0, item.indexOf('['));
+                        const arrayIndex = item.slice(item.indexOf('['));
+
+                        altSub.push(key);
+                        // grab all the numeric values from the index
+                        const index = arrayIndex
+                            .replace(/[[\]]+/g, '')
+                            .split('');
+                        altSub.push(...index);
+                    } else {
+                        altSub.push(item);
+                    }
+                });
+
+                altSub.forEach(function(item) {
+                    // Make sure the item exists
+                    if (!temp[item]) {
+                        temp = '{{' + match + '}}';
+                        return;
+                    }
+
+                    // Update temp
+                    temp = temp[item];
+                });
+
+                return temp;
+            } else {
+                if (!data[match]) return '{{' + match + '}}';
+                return data[match];
+            }
+        });
+    }
+    return variable;
 }

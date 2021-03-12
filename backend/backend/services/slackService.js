@@ -195,6 +195,77 @@ module.exports = {
             throw error;
         }
     },
+
+    sendIncidentNoteNotification: async function(projectId, incident, data) {
+        try {
+            const self = this;
+            let response;
+            const project = await ProjectService.findOneBy({ _id: projectId });
+            if (project && project.parentProjectId) {
+                projectId = project.parentProjectId._id;
+            }
+            let query = {
+                projectId: projectId,
+                integrationType: 'slack',
+                monitorId: incident.monitorId._id,
+                'notificationOptions.incidentNoteAdded': true,
+            };
+
+            const integrations = await IntegrationService.findBy(query);
+
+            for (const integration of integrations) {
+                response = await self.noteNotify(
+                    project,
+                    incident,
+                    integration,
+                    data
+                );
+            }
+            return response;
+        } catch (error) {
+            ErrorService.log(
+                'slackService.sendIncidentNoteNotification',
+                error
+            );
+            throw error;
+        }
+    },
+
+    // send notification to slack workspace channels when note is created
+    async noteNotify(project, incident, integration, data) {
+        try {
+            const uri = `${global.dashboardHost}/project/${project.slug}/${integration.monitorId.componentId._id}/incidents/${incident._id}`;
+            let payload;
+
+            payload = {
+                attachments: [
+                    {
+                        color: '#fedc56',
+                        title: `Incident Note Created`,
+                        title_link: uri,
+                        text: `State:             ${data.incident_state}\nCreated By:   ${data.created_by}\nMonitor:        *${incident.monitorId.componentId.name} / ${incident.monitorId.name}*\nText:               ${data.content}`,
+                    },
+                ],
+            };
+
+            await axios.post(
+                integration.data.endpoint,
+                {
+                    ...payload,
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            return 'Webhook successfully pinged';
+        } catch (error) {
+            ErrorService.log('slackService.noteNotify', error);
+            throw error;
+        }
+    },
 };
 
 const IntegrationService = require('./integrationService');

@@ -43,15 +43,15 @@ class ConfirmBalanceTopUp extends Component {
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                             <span>
-                                                Confirm Account Balance Top Up
+                                                Confirm Account Balance Update
                                             </span>
                                         </span>
                                     </div>
                                 </div>
                                 <div className="bs-Modal-content">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        Are you sure you want to top up project
-                                        account balance with{' '}
+                                        Are you sure you want to update account
+                                        balance with{' '}
                                         <span
                                             style={{
                                                 fontWeight: 'bold',
@@ -85,7 +85,9 @@ class ConfirmBalanceTopUp extends Component {
                                         >
                                             {!recharging && (
                                                 <>
-                                                    <span>Yes, Add Amount</span>
+                                                    <span>
+                                                        Yes, Update Amount
+                                                    </span>
                                                     <span className="create-btn__keycode">
                                                         <span className="keycode__icon keycode__icon--enter" />
                                                     </span>

@@ -39,7 +39,7 @@ describe('Acknowledge Trigger', () => {
             ],
         };
 
-        appTester(App.triggers.incident_acknowledge.operation.perform, bundle)
+        appTester(App.triggers.acknowledge.operation.perform, bundle)
             .then(response => {
                 response.should.be.an.instanceOf(Array);
                 response[0].should.have.property('projectName');

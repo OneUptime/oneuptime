@@ -21,6 +21,8 @@ const isLocalhost = Boolean(
         )
 );
 
+let registerService;
+
 export function register(config) {
     if ('serviceWorker' in navigator) {
         // The URL constructor is available in all browsers that support SW.
@@ -46,6 +48,7 @@ export function register(config) {
                             'worker. To learn more, visit https://bit.ly/CRA-PWA'
                     );
                 });
+                registerValidSW(swUrl, config);
             } else {
                 // Is not localhost. Just register service worker
                 registerValidSW(swUrl, config);
@@ -80,6 +83,7 @@ function registerValidSW(swUrl, config) {
     navigator.serviceWorker
         .register(swUrl, { scope: `${process.env.PUBLIC_URL}/` })
         .then(registration => {
+            registerService = registration;
             registration.onupdatefound = () => {
                 const installingWorker = registration.installing;
                 if (installingWorker == null) {
@@ -116,7 +120,10 @@ function registerValidSW(swUrl, config) {
             };
         })
         .catch(error => {
-            console.error('Error during service worker registration: ', error);
+            console.error(
+                'response Error during service worker registration: ',
+                error
+            );
         });
 }
 
@@ -131,6 +138,9 @@ function checkValidServiceWorker(swUrl, config) {
                 (contentType != null &&
                     contentType.indexOf('javascript') === -1)
             ) {
+                console.log(
+                    'This registers the sw file for the push notification'
+                );
                 // No service worker found. Probably a different app. Reload the page.
                 navigator.serviceWorker.ready.then(registration => {
                     registration.unregister().then(() => {
@@ -142,9 +152,10 @@ function checkValidServiceWorker(swUrl, config) {
                 registerValidSW(swUrl, config);
             }
         })
-        .catch(() => {
+        .catch(err => {
             console.log(
-                'No internet connection found. App is running in offline mode.'
+                'No internet connection found. App is running in offline mode.',
+                err
             );
         });
 }
@@ -156,3 +167,5 @@ export function unregister() {
         });
     }
 }
+
+export { registerService };

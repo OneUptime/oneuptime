@@ -245,7 +245,7 @@ export function createNewIncident(
     incidentPriority,
     customFields
 ) {
-    return function(dispatch) {
+    return async function(dispatch) {
         const promise = postApi(`incident/${projectId}/${monitorId}`, {
             monitorId,
             projectId,

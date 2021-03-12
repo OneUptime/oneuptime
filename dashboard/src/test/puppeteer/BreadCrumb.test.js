@@ -37,7 +37,6 @@ describe('BreadCrumb Component test', () => {
 
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
         });
     });
 

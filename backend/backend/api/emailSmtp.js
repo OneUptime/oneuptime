@@ -67,12 +67,12 @@ router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
             data = {
                 ...data,
                 internalSmtp: true,
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASSWORD,
-                host: process.env.SMTP_SERVER,
-                port: process.env.SMTP_PORT,
-                from: process.env.SMTP_FROM,
-                name: process.env.SMTP_NAME,
+                user: process.env.INTERNAL_SMTP_USER,
+                pass: process.env.INTERNAL_SMTP_PASSWORD,
+                host: process.env.INTERNAL_SMTP_SERVER,
+                port: process.env.INTERNAL_SMTP_PORT,
+                from: process.env.INTERNAL_SMTP_FROM,
+                name: process.env.INTERNAL_SMTP_NAME,
                 secure: false,
             };
         }

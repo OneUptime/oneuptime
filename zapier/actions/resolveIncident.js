@@ -5,7 +5,7 @@ const resolveIncident = (z, bundle) => {
     };
     const responsePromise = z.request({
         method: 'POST',
-        url: 'https://fyipe.com/api/zapier/incident/resolveIncident',
+        url: `${bundle.authData.serverUrl}/zapier/incident/resolveIncident`,
         body: data,
     });
     return responsePromise.then(response => JSON.parse(response.content));

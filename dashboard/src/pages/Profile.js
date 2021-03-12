@@ -18,7 +18,10 @@ const Profile = props => {
                     <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
                     <BreadCrumbItem route={pathname} name="Profile Settings" />
                     <div>
-                        <div className="db-RadarRulesLists-page bs-ContentSection">
+                        <div
+                            className="db-RadarRulesLists-page bs-ContentSection"
+                            style={{ boxShadow: 'none' }}
+                        >
                             <div className="react-settings-view react-view">
                                 <span data-reactroot="">
                                     <div>
