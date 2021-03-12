@@ -5,7 +5,7 @@ const acknowledgeIncident = (z, bundle) => {
     };
     const responsePromise = z.request({
         method: 'POST',
-        url: 'https://fyipe.com/api/zapier/incident/acknowledgeIncident',
+        url: `${bundle.authData.serverUrl}/zapier/incident/acknowledgeIncident`,
         body: data,
     });
     return responsePromise.then(response => JSON.parse(response.content));

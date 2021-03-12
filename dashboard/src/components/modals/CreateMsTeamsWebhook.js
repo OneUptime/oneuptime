@@ -38,6 +38,7 @@ class CreateMsTeams extends React.Component {
             data: { monitorId },
         } = this.props;
         const postObj = {};
+        postObj.webHookName = values.webHookName;
         postObj.endpoint = values.endpoint;
         postObj.monitorId = monitorId ? monitorId : values.monitorId;
         postObj.type = 'msteams';
@@ -49,6 +50,9 @@ class CreateMsTeams extends React.Component {
             : false;
         postObj.incidentAcknowledged = values.incidentAcknowledged
             ? values.incidentAcknowledged
+            : false;
+        postObj.incidentNoteAdded = values.incidentNoteAdded
+            ? values.incidentNoteAdded
             : false;
 
         createMsTeams(this.props.currentProject._id, postObj).then(() => {
@@ -141,6 +145,46 @@ class CreateMsTeams extends React.Component {
                                                 >
                                                     <label
                                                         className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="webHookName"
+                                                    >
+                                                        <span>Name</span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div
+                                                            className="bs-Fieldset-field"
+                                                            style={{
+                                                                width: '70%',
+                                                            }}
+                                                        >
+                                                            <Field
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                name="webHookName"
+                                                                type="text"
+                                                                placeholder="Webhook Name"
+                                                                id="webHookName"
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                style={{
+                                                                    width: 250,
+                                                                    padding:
+                                                                        '3px 5px',
+                                                                }}
+                                                                autoFocus={true}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
                                                         htmlFor="endpoint"
                                                     >
                                                         <span>
@@ -168,7 +212,6 @@ class CreateMsTeams extends React.Component {
                                                                     padding:
                                                                         '3px 5px',
                                                                 }}
-                                                                autoFocus={true}
                                                             />
                                                         </div>
                                                     </div>
@@ -418,6 +461,68 @@ class CreateMsTeams extends React.Component {
                                                                             incident
                                                                             is
                                                                             Resolved
+                                                                        </span>
+                                                                    </label>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="monitorId"
+                                                    >
+                                                        <span></span>
+                                                    </label>
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            paddingTop: '6px',
+                                                        }}
+                                                    >
+                                                        <div className="bs-Fieldset-field">
+                                                            <label
+                                                                className="Checkbox"
+                                                                style={{
+                                                                    marginRight:
+                                                                        '12px',
+                                                                }}
+                                                            >
+                                                                <Field
+                                                                    component="input"
+                                                                    type="checkbox"
+                                                                    name="incidentNoteAdded"
+                                                                    className="Checkbox-source"
+                                                                    id="incidentNoteAdded"
+                                                                />
+                                                                <div className="Checkbox-box Box-root Margin-right--2">
+                                                                    <div className="Checkbox-target Box-root">
+                                                                        <div className="Checkbox-color Box-root"></div>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        paddingLeft:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    <label>
+                                                                        <span>
+                                                                            Ping
+                                                                            when
+                                                                            incident
+                                                                            note
+                                                                            is
+                                                                            added
                                                                         </span>
                                                                     </label>
                                                                 </div>

@@ -19,10 +19,12 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
 
         const monitorId = body.monitorId;
         const endpoint = body.endpoint;
+        const webHookName = body.webHookName;
         const endpointType = body.endpointType;
         const incidentCreated = body.incidentCreated;
         const incidentResolved = body.incidentResolved;
         const incidentAcknowledged = body.incidentAcknowledged;
+        const incidentNoteAdded = body.incidentNoteAdded;
         const integrationType = body.type;
 
         if (!projectId) {
@@ -53,12 +55,36 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
             });
         }
 
+        if (integrationType !== 'webhook') {
+            if (!webHookName) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'name missing in body, must be present',
+                });
+            }
+
+            const existingName = await IntegrationService.findOneBy({
+                monitorId,
+                webHookName,
+                integrationType,
+                deleted: { $ne: null },
+            });
+
+            if (existingName) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'webhook with same name already exist.',
+                });
+            }
+        }
+
         const existingWebhook = await IntegrationService.findOneBy({
             monitorId,
             'data.endpoint': endpoint,
             'data.endpointType': endpointType,
             deleted: { $ne: null },
         });
+
         if (existingWebhook) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -66,11 +92,12 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
             });
         }
 
-        const data = { userId, endpoint, endpointType, monitorId };
+        const data = { userId, endpoint, endpointType, monitorId, webHookName };
         const notificationOptions = {
             incidentCreated,
             incidentAcknowledged,
             incidentResolved,
+            incidentNoteAdded,
         };
 
         const webhook = await IntegrationService.create(
@@ -124,6 +151,28 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
                 code: 400,
                 message: 'type is missing in body, it must be present',
             });
+        }
+
+        if (data.type !== 'webhook') {
+            if (!data.webHookName) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'name missing in body, must be present',
+                });
+            }
+            const existingName = await IntegrationService.findOneBy({
+                monitorId: data.monitorId,
+                webHookName: data.webHookName,
+                integrationType: data.type,
+                deleted: { $ne: null },
+            });
+
+            if (existingName && existingName._id.toString() !== integrationId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'name of webhook already exist.',
+                });
+            }
         }
 
         const existingWebhook = await IntegrationService.findOneBy({
