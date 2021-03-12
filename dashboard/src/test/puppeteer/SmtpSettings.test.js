@@ -36,8 +36,7 @@ describe('Custom SMTP Settings', () => {
                 password: data.password,
             };
             // user
-            await init.registerUser(user, page);
-           // await init.loginUser(user, page);
+            await init.registerUser(user, page);           
         });
 
         done();
