@@ -66,6 +66,9 @@ import {
     UPLOAD_CONFIGURATION_FILE_SUCCESS,
     RESET_UPLOAD_CONFIGURATION_FILE,
     SET_CONFIGURATION_FILE_INPUT_KEY,
+    CHANGE_MONITOR_COMPONENT_FAILURE,
+    CHANGE_MONITOR_COMPONENT_SUCCESS,
+    CHANGE_MONITOR_COMPONENT_REQUEST,
 } from '../constants/monitor';
 import moment from 'moment';
 
@@ -114,6 +117,12 @@ const INITIAL_STATE = {
     fetchMonitorsSubscriberRequest: false,
     deleteMonitor: false,
     disableMonitor: false,
+    changeMonitorComponent: {
+        newComponentId: null,
+        error: null,
+        requesting: false,
+        success: false,
+    },
     monitorSlaBreaches: {
         requesting: false,
         error: null,
@@ -1397,6 +1406,62 @@ export default function monitor(state = INITIAL_STATE, action) {
                     success: false,
                 },
                 disableMonitor: action.payload,
+            });
+
+        case CHANGE_MONITOR_COMPONENT_SUCCESS: {
+            return Object.assign({}, state, {
+                monitorsList: {
+                    ...state.monitorsList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    monitors: state.monitorsList.monitors.map(
+                        subProjectMonitor => {
+                            subProjectMonitor.monitors = subProjectMonitor.monitors.map(
+                                monitor => {
+                                    if (
+                                        String(monitor._id) ===
+                                        String(action.payload.monitorId)
+                                    ) {
+                                        monitor.componentId =
+                                            action.payload.newComponentId;
+                                        return monitor;
+                                    } else {
+                                        return monitor;
+                                    }
+                                }
+                            );
+                            return subProjectMonitor;
+                        }
+                    ),
+                },
+                changeMonitorComponent: {
+                    ...state.changeMonitorComponent,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+            });
+        }
+
+        case CHANGE_MONITOR_COMPONENT_FAILURE:
+            return Object.assign({}, state, {
+                changeMonitorComponent: {
+                    ...state.changeMonitorComponent,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case CHANGE_MONITOR_COMPONENT_REQUEST:
+            return Object.assign({}, state, {
+                changeMonitorComponent: {
+                    newComponentId: action.payload.newComponentId,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
             });
 
         case DELETE_PROJECT_MONITORS:
