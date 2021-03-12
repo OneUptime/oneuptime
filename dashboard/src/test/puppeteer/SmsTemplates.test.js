@@ -35,7 +35,7 @@ describe('SMS Templates API', () => {
             };
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
+            //await init.loginUser(user, page);
         });
 
         done();
@@ -54,12 +54,14 @@ describe('SMS Templates API', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#smsCalls');
                 await page.click('#smsCalls');
                 await page.waitForSelector('#type');
                 await init.selectByText(
                     '#type',
-                    'Subscriber Incident Created',
+                    'External Subscriber Incident Created',
                     page
                 );
                 await page.waitForSelector('#templateField');
@@ -84,12 +86,14 @@ describe('SMS Templates API', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#smsCalls');
                 await page.click('#smsCalls');
                 await page.waitForSelector('#type');
                 await init.selectByText(
                     '#type',
-                    'Subscriber Incident Created',
+                    ' External Subscriber Incident Created',
                     page
                 );
                 await page.waitForSelector('#frmSmsTemplate');
@@ -104,7 +108,7 @@ describe('SMS Templates API', () => {
                 });
                 await init.selectByText(
                     '#type',
-                    'Subscriber Incident Created',
+                    'External Subscriber Incident Created',
                     page
                 );
                 await page.waitForSelector('#frmSmsTemplate');
@@ -128,12 +132,14 @@ describe('SMS Templates API', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#smsCalls');
                 await page.click('#smsCalls');
                 await page.waitForSelector('#type');
                 await init.selectByText(
                     '#type',
-                    'Subscriber Incident Created',
+                    'External Subscriber Incident Created',
                     page
                 );
                 const resetBtn = await page.waitForSelector('#templateReset', {
@@ -154,12 +160,14 @@ describe('SMS Templates API', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#smsCalls');
                 await page.click('#smsCalls');
                 await page.waitForSelector('#type');
                 await init.selectByText(
                     '#type',
-                    'Subscriber Incident Created',
+                    'External Subscriber Incident Created',
                     page
                 );
 
@@ -175,7 +183,7 @@ describe('SMS Templates API', () => {
                 await page.waitForSelector('#type');
                 await init.selectByText(
                     '#type',
-                    'Subscriber Incident Created',
+                    'External Subscriber Incident Created',
                     page
                 );
                 await page.waitForSelector('#templateField');

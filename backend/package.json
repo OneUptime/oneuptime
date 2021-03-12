@@ -8,6 +8,7 @@
         "axios": "^0.21.1",
         "bcrypt": "^5.0.0",
         "body-parser": "^1.19.0",
+        "brcypt": "^1.0.1",
         "cors": "^2.8.4",
         "cross-env": "^6.0.3",
         "crypto-js": "^4.0.0",

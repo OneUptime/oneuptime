@@ -21,7 +21,7 @@ const puppeteerLaunchConfig = {
         '--disable-features=IsolateOrigins,site-per-process', // fix issue with cross origin policy
     ],
     defaultViewport: null,
-    headless: true, //change this to `false` debug locally.
+    headless: false, //change this to `false` debug locally.
 };
 
 const user = faker.helpers.createCard();
@@ -120,11 +120,11 @@ const gitCredential = {
 };
 
 const smtpCredential = {
-    user: process.env.TEST_EMAIL,
-    pass: process.env.TEST_EMAIL_PASSWORD,
-    host: process.env.TEST_EMAIL_SMTP_SERVER,
-    port: process.env.TEST_EMAIL_SMTP_PORT,
-    from: process.env.TEST_EMAIL,
+    user: 'noreply@fyipe.com',
+    pass: 'qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD',
+    host: 'smtp.gmail.com',
+    port: '465',
+    from: 'noreply@fyipe.com',
     secure: true,
 };
 

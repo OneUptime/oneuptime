@@ -37,7 +37,7 @@ describe('Custom SMTP Settings', () => {
             };
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
+           // await init.loginUser(user, page);
         });
 
         done();
@@ -58,6 +58,8 @@ describe('Custom SMTP Settings', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#email');
                 await page.click('#email');
                 await page.waitForSelector('#showsmtpForm');
@@ -99,6 +101,8 @@ describe('Custom SMTP Settings', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#email');
                 await page.click('#email');
                 const from = 'test@fyipe.com';
@@ -128,6 +132,8 @@ describe('Custom SMTP Settings', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#email');
                 await page.click('#email');
                 await page.waitForSelector('#port', { visible: true });
@@ -161,6 +167,8 @@ describe('Custom SMTP Settings', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#email');
                 await page.click('#email');
                 await page.waitForSelector('label[id=showsmtpForm]');
@@ -188,6 +196,8 @@ describe('Custom SMTP Settings', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#email');
                 await page.click('#email');
                 await page.waitForSelector('#saveSmtp');
