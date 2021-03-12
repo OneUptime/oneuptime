@@ -1352,6 +1352,30 @@ module.exports = {
             throw error;
         }
     },
+
+    changeMonitorComponent: async function(projectId, monitorId, componentId) {
+        const monitor = await this.findOneBy({ _id: monitorId });
+        const component = await componentService.findOneBy({
+            _id: componentId,
+        });
+
+        // ensure monitor and component belong to same project
+        if (
+            !monitor.projectId.equals(projectId) ||
+            !component.projectId.equals(projectId)
+        ) {
+            throw new Error(
+                'Monitor and component do not belong to the same project or sub-project'
+            );
+        }
+
+        const updatedMonitor = await this.updateOneBy(
+            { _id: monitorId },
+            { componentId }
+        );
+
+        return updatedMonitor;
+    },
 };
 
 const MonitorModel = require('../models/monitor');
@@ -1383,3 +1407,4 @@ const { IS_SAAS_SERVICE } = require('../config/server');
 const ScheduledEventService = require('./scheduledEventService');
 const MonitorSlaService = require('./monitorSlaService');
 const IncomingRequestService = require('./incomingRequestService');
+const componentService = require('./componentService');
