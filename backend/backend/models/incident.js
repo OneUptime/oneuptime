@@ -96,7 +96,14 @@ const monitorSchema = new Schema({
 
     deletedById: { type: String, ref: 'User', index: true },
     breachedCommunicationSla: { type: Boolean, default: false },
-    customFields: [{ fieldName: String, fieldValue: Schema.Types.Mixed }],
+    customFields: [
+        {
+            fieldName: String,
+            fieldValue: Schema.Types.Mixed,
+            uniqueField: { type: Boolean, default: false },
+            fieldType: String,
+        },
+    ],
     acknowledgedByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },
     resolvedByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },
     createdByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },

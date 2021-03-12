@@ -7,31 +7,40 @@ import { Field, reduxForm } from 'redux-form';
 import { FormLoader, ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderField } from '../basic/RenderField';
-import { editMonitor } from '../../actions/monitor';
+import { editMonitor, resetEditMonitor } from '../../actions/monitor';
 import { fetchCustomFields } from '../../actions/monitorCustomField';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from '../../analytics';
 
 class ThirdPartyVariables extends Component {
     componentDidMount() {
-        const { currentProject, fetchCustomFields } = this.props;
+        const {
+            currentProject,
+            fetchCustomFields,
+            resetEditMonitor,
+        } = this.props;
         fetchCustomFields(currentProject._id);
+        resetEditMonitor();
     }
 
     submitForm = values => {
         const { currentProject, monitor, customFields } = this.props;
-        values._id = monitor._id;
-        values.projectId = currentProject._id;
+        const postObj = {
+            _id: monitor._id,
+            projectId: currentProject._id,
+        };
 
-        values.customFields = customFields.map(field => ({
+        postObj.customFields = customFields.map(field => ({
             fieldName: field.fieldName,
+            uniqueField: field.uniqueField,
+            fieldType: field.fieldType,
             fieldValue:
                 field.fieldType === 'number'
                     ? parseFloat(values[field.fieldName])
                     : values[field.fieldName],
         }));
 
-        this.props.editMonitor(currentProject._id, values);
+        this.props.editMonitor(currentProject._id, postObj);
 
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -266,6 +275,7 @@ ThirdPartyVariables.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     fetchCustomFields: PropTypes.func,
+    resetEditMonitor: PropTypes.func,
     customFields: PropTypes.array,
 };
 
@@ -280,6 +290,7 @@ const mapDispatchToProps = dispatch =>
         {
             editMonitor,
             fetchCustomFields,
+            resetEditMonitor,
         },
         dispatch
     );
