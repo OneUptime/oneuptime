@@ -8,6 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { renameProject } from '../../actions/project';
 import { RenderField } from '../basic/RenderField';
 import PropTypes from 'prop-types';
+import { history } from '../../store';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS, User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
@@ -41,6 +42,9 @@ export class ProjectSettings extends Component {
                     if (val && val.data && val.data.name) {
                         document.title = val.data.name + ' Dashboard';
                     }
+                    history.push(
+                        `/dashboard/project/${val.data.slug}/settings`
+                    );
                 });
                 if (SHOULD_LOG_ANALYTICS) {
                     logEvent(
