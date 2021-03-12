@@ -125,8 +125,10 @@ class MonitorView extends React.Component {
         const { monitor } = this.props;
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
         this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
-        const subProjectId = monitor.projectId._id || monitor.projectId;
-        this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
+        const subProjectId = monitor.projectId
+            ? monitor.projectId._id || monitor.projectId
+            : '';
+        subProjectId && this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
         if (monitor.type === 'url') {
             this.props.fetchLighthouseLogs(
                 monitor.projectId._id || monitor.projectId,
@@ -811,10 +813,20 @@ const mapStateToProps = (state, props) => {
             });
         });
     });
+
+    let component;
+    state.component.componentList.components.forEach(item => {
+        item.components.forEach(c => {
+            if (String(c._id) === String(componentId)) {
+                component = c;
+            }
+        });
+    });
+
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     const monitorCollection = state.monitor.monitorsList.monitors.find(el => {
-        return projectId === el._id;
+        return component.projectId._id === el._id;
     });
     const currentMonitor =
         monitorCollection &&
@@ -828,16 +840,6 @@ const mapStateToProps = (state, props) => {
             defaultSchedule = item.isDefault;
         });
     });
-
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
-                component = c;
-            }
-        });
-    });
-
     let monitor = {};
     state.monitor.monitorsList.monitors.forEach(item => {
         item.monitors.forEach(monitorItem => {
