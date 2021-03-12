@@ -41,7 +41,7 @@ describe('Custom Twilio Settings', () => {
             };
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
+           // await init.loginUser(user, page);
             await init.addProject(page, projectName);
         });
 
@@ -63,12 +63,14 @@ describe('Custom Twilio Settings', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#smsCalls');
                 await page.click('#smsCalls');
-                await page.waitForSelector('label[for=enabled]', {
+                await page.waitForSelector('#enableTwilio', {
                     visible: true,
                 });
-                await page.click('label[for=enabled]');
+                await page.click('#enableTwilio');
                 await page.waitForSelector('#accountSid', { visible: true });
                 await page.type('#accountSid', twilioCredentials.accountSid);
                 await page.type('#authToken', twilioCredentials.authToken);
@@ -77,8 +79,8 @@ describe('Custom Twilio Settings', () => {
                 await page.waitForSelector('.ball-beat', { visible: true });
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
-                await page.reload({ waitUntil: 'networkidle0' });
-                await page.waitForSelector('#accountSid');
+                await page.reload({ waitUntil: ['networkidle0','domcontentloaded'] });
+                await page.waitForSelector('#accountSid',{visible:true});
                 const savedAccountSid = await page.$eval(
                     '#accountSid',
                     elem => elem.value
@@ -113,8 +115,8 @@ describe('Custom Twilio Settings', () => {
                 });
 
                 await init.gotoTab(utils.monitorTabIndexes.BASIC, page);
-                await page.waitForSelector(`#createIncident_${monitorName}`);
-                await page.click(`#createIncident_${monitorName}`);
+                await page.waitForSelector(`#monitorCreateIncident_${monitorName}`);
+                await page.click(`#monitorCreateIncident_${monitorName}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
                 await page.type('input[name=title]', incidentTitle);
