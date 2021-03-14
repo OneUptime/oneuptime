@@ -39,7 +39,7 @@ describe('Subscribers Alert logs API', () => {
                 password,
             };
             await init.registerUser(user, page);
-                        
+
             await init.addSmtpSettings(
                 true,
                 utils.smtpCredential.user,
@@ -162,8 +162,7 @@ describe('Subscribers Alert logs API', () => {
                 await page.waitForSelector('#notificationscroll');
                 await page.click('#viewIncident-0');
                 await page.waitForSelector('#incident_0');
-
-                //await page.waitForTimeout(10000);
+                
                 await page.reload({ waitUntil: 'networkidle0' });
                 await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
                 await page.waitForSelector('#subscriberAlertTable tbody tr');
