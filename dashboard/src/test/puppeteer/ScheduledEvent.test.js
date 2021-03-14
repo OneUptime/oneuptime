@@ -9,7 +9,7 @@ const password = '1234567890';
 
 const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
-const scheduledMaintenaceName = utils.generateRandomString();
+const scheduleMaintenanceName = utils.generateRandomString();
 const newScheduledMaintenanceName = utils.generateRandomString();
 
 describe('Scheduled event', () => {
@@ -76,7 +76,7 @@ describe('Scheduled event', () => {
                 });
                 await page.waitForSelector('#name');
                 await page.click('#name');
-                await page.type('#name', scheduledMaintenaceName);
+                await page.type('#name', scheduleMaintenanceName);
                 await page.click('label[for=selectAllMonitorsBox]');
                 await page.click('#addMoreMonitor');
                 await page.waitForSelector('#monitorfield_0');
@@ -137,7 +137,7 @@ describe('Scheduled event', () => {
                 });
                 await page.waitForSelector('#name');
                 await page.click('#name');
-                await page.type('#name', scheduledMaintenaceName);
+                await page.type('#name', scheduleMaintenanceName);
                 await page.click('label[for=selectAllMonitorsBox]');
                 await page.click('#addMoreMonitor');
                 await page.waitForSelector('#monitorfield_0');
