@@ -50,6 +50,7 @@ const {
     ComponentSettingsAdvanced,
     MonitorSettings,
     CallRouting,
+    DomainSettings,
 } = pages;
 
 export const groups = [
@@ -497,13 +498,23 @@ export const groups = [
                         shortcut: '',
                     },
                     {
+                        title: 'Domains',
+                        path: '/dashboard/project/:slug/settings/domains',
+                        icon: 'monitor',
+                        visible: true,
+                        subRoutes: [],
+                        component: DomainSettings,
+                        index: 2,
+                        shortcut: 's+d',
+                    },
+                    {
                         title: 'Resources',
                         path: '/dashboard/project/:slug/settings/resources',
                         icon: 'monitor',
                         visible: true,
                         subRoutes: [],
                         component: Resources,
-                        index: 2,
+                        index: 3,
                         shortcut: 's+r',
                     },
                     {
@@ -513,7 +524,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: MonitorSettings,
-                        index: 3,
+                        index: 4,
                         shortcut: 's+m',
                     },
                     {
@@ -523,7 +534,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: IncidentSettings,
-                        index: 4,
+                        index: 5,
                         shortcut: 's+t',
                     },
                     {
@@ -554,7 +565,7 @@ export const groups = [
                         subRoutes: [],
                         component: CallRouting,
                         index: 8,
-                        shortcut: 's+c+r',
+                        shortcut: 's+r',
                     },
                     {
                         title: 'Webhooks',
@@ -595,7 +606,7 @@ export const groups = [
                         subRoutes: [],
                         component: DockerCredential,
                         index: 12,
-                        shortcut: 's+d',
+                        shortcut: 's+k',
                     },
                 ],
                 component: Settings,
