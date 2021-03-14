@@ -80,10 +80,10 @@ describe('Scheduled event', () => {
                 await page.click('label[for=selectAllMonitorsBox]');
                 await page.click('#addMoreMonitor');
                 await page.waitForSelector('#monitorfield_0');
-                await init.selectByText('#monitorfield_0', componentName, page);
+                await init.selectByText('#monitorfield_0', componentName, page); // "ComponentName / MonitorName" is in the dropdown. Using only ComponentName selects both
                 await page.click('#addMoreMonitor');
                 await page.waitForSelector('#monitorfield_1');
-                await init.selectByText('#monitorfield_1', componentName, page);
+                await init.selectByText('#monitorfield_1', componentName, page); 
                 await page.click('#description');
                 await page.type(
                     '#description',

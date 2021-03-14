@@ -39,7 +39,7 @@ describe('Subscribers Alert logs API', () => {
                 password,
             };
             await init.registerUser(user, page);
-            //await init.loginUser(user, page);
+                        
             await init.addSmtpSettings(
                 true,
                 utils.smtpCredential.user,
