@@ -1,17 +1,18 @@
 /* eslint-disable no-console */
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
-const { NodeVM } = require('vm2');
+const scriptSandbox = require('../utils/scriptSandbox');
+// const { NodeVM } = require('vm2');
 
-const vm = new NodeVM({
-    timeout: 30000,
-    console: 'inherit',
-    sandbox: {},
-    require: {
-        external: true,
-        root: './',
-    },
-});
+// const vm = new NodeVM({
+//     timeout: 30000,
+//     console: 'inherit',
+//     sandbox: {},
+//     require: {
+//         external: true,
+//         root: './',
+//     },
+// });
 
 // it collects all monitors then ping them one by one to store their response
 // checks if the website of the url in the monitors is up or down
@@ -26,7 +27,7 @@ module.exports = {
                     module.exports = (success, error) => {
                         ${monitor.data.script}
                     }`;
-                    const { res, resp } = await runScript(code);
+                    const { res, resp } = await scriptSandbox.runScript(code);
                     await ApiService.ping(monitor._id, {
                         monitor,
                         res,
@@ -42,25 +43,25 @@ module.exports = {
     },
 };
 
-const runScript = async code => {
-    const now = new Date().getTime();
-    let resp = null;
-    let res = null;
-    const success = value => {
-        res = new Date().getTime() - now;
-        resp = { status: 'success', body: value };
-    };
+// const runScript = async code => {
+//     const now = new Date().getTime();
+//     let resp = null;
+//     let res = null;
+//     const success = value => {
+//         res = new Date().getTime() - now;
+//         resp = { status: 'success', body: value };
+//     };
 
-    const error = value => {
-        res = new Date().getTime() - now;
-        resp = { status: 'failed', body: value };
-    };
-    try {
-        const vmRunner = vm.run(code, 'vm.js');
-        vmRunner(success, error);
-    } catch (err) {
-        res = new Date().getTime() - now;
-        resp = { status: 'timeout', body: err };
-    }
-    return { res, resp };
-};
+//     const error = value => {
+//         res = new Date().getTime() - now;
+//         resp = { status: 'failed', body: value };
+//     };
+//     try {
+//         const vmRunner = vm.run(code, 'vm.js');
+//         vmRunner(success, error);
+//     } catch (err) {
+//         res = new Date().getTime() - now;
+//         resp = { status: 'timeout', body: err };
+//     }
+//     return { res, resp };
+// };
