@@ -508,7 +508,10 @@ class Main extends Component {
                                             .moveIncidentToTheTop
                                     }
                                 >
-                                    <div className="new-theme-incident matop-40">
+                                    <div
+                                        className="new-theme-incident matop-40"
+                                        style={{width: '100%', ...contentBackground}}
+                                    >
                                         <div
                                             className="font-largest"
                                             style={heading}
