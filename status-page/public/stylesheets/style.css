@@ -382,7 +382,7 @@ div.block-chart::-webkit-scrollbar {
 
 .uptime-graphs {
   position: relative;
-  z-index: 10;
+  z-index: 1;
 }
 
 /* .uptime-graph-section {
