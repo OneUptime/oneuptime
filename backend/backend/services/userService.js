@@ -489,7 +489,7 @@ module.exports = {
     //Param 1: email: User email.
     //Param 2: password: User password.
     //Returns: promise.
-    login: async function(email, password, clientIP) {
+    login: async function(email, password, clientIP, userAgent) {
         try {
             const _this = this;
             let user = null;
@@ -532,7 +532,21 @@ module.exports = {
                     throw error;
                 } else {
                     const ipLocation = await _this.getUserIpLocation(clientIP);
-                    await LoginIPLog.create({ userId: user._id, ipLocation });
+                    const detector = new DeviceDetector();
+                    const result = detector.detect(userAgent);
+                    const twoFactorEnabled = user.twoFactorAuthEnabled;
+                    await LoginIPLog.create({
+                        userId: user._id,
+                        ipLocation,
+                        device: result,
+                    });
+                    MailService.sendLoginEmail(
+                        user.email,
+                        clientIP,
+                        ipLocation,
+                        result,
+                        twoFactorEnabled
+                    );
 
                     if (user.paymentFailedDate && IS_SAAS_SERVICE) {
                         // calculate number of days the subscription renewal has failed.
@@ -945,3 +959,4 @@ const MailService = require('../services/mailService');
 const AirtableService = require('./airtableService');
 const speakeasy = require('speakeasy');
 const { hotp } = require('otplib');
+const DeviceDetector = require('node-device-detector');

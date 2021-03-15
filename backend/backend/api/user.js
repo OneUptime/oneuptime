@@ -481,10 +481,12 @@ router.post('/login', async function(req, res) {
         }
 
         // Call the UserService
+        const userAgent = req.get('user-agent');
         const user = await UserService.login(
             data.email,
             data.password,
-            clientIP
+            clientIP,
+            userAgent
         );
 
         let authUserObj;

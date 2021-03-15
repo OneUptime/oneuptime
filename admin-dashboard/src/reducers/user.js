@@ -43,6 +43,9 @@ import {
     UPDATE_TWO_FACTOR_AUTH_SUCCESS,
     UPDATE_TWO_FACTOR_AUTH_FAILURE,
     SET_TWO_FACTOR_AUTH,
+    FETCH_USER_LOGIN_HISTORY_FAILURE,
+    FETCH_USER_LOGIN_HISTORY_SUCCESS,
+    FETCH_USER_LOGIN_HISTORY_REQUEST,
 } from '../constants/user';
 
 const INITIAL_STATE = {
@@ -107,6 +110,12 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
         data: {},
+    },
+    loginHistory: {
+        error: null,
+        requesting: false,
+        success: false,
+        history: {},
     },
 };
 
@@ -574,6 +583,34 @@ export default function user(state = INITIAL_STATE, action) {
                 user: {
                     ...state.user,
                     twoFactorAuthEnabled: action.payload,
+                },
+            });
+        case FETCH_USER_LOGIN_HISTORY_REQUEST:
+            return Object.assign({}, state, {
+                loginHistory: {
+                    ...state.loginHistory,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case FETCH_USER_LOGIN_HISTORY_SUCCESS:
+            return Object.assign({}, state, {
+                loginHistory: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    history: action.payload,
+                },
+            });
+
+        case FETCH_USER_LOGIN_HISTORY_FAILURE:
+            return Object.assign({}, state, {
+                loginHistory: {
+                    ...state.loginHistory,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
                 },
             });
 

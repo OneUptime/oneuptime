@@ -383,6 +383,171 @@ const _this = {
             throw error;
         }
     },
+    sendLoginEmail: async function(
+        userEmail,
+        ip,
+        location,
+        deviceObj,
+        twoFactorEnabled
+    ) {
+        let mailOptions = {};
+        let EmailBody;
+        let smtpServer;
+        let locations;
+        let device;
+        const os = deviceObj && deviceObj.os && deviceObj.os.name;
+        const browser = deviceObj && deviceObj.client && deviceObj.client.name;
+        if (location.city && location.country) {
+            locations = `${location.city}, ${location.country}.`;
+        } else if (!location.city && location.country) {
+            locations = `${location.country}.`;
+        } else if (location.city && !location.country) {
+            locations = `${location.city}.`;
+        } else {
+            locations = 'Unknown Location';
+        }
+
+        if (os && browser) {
+            device = `${browser} on ${os}.`;
+        } else if (!os && browser) {
+            device = `${browser} on an Unknown Device.`;
+        } else if (os && !browser) {
+            device = `unknown browser on ${os}`;
+        } else {
+            device = 'Unknown Device';
+        }
+
+        try {
+            let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
+            mailOptions = {
+                from: `"${accountMail.name}" <${accountMail.from}>`,
+                to: userEmail,
+                subject: `New login to Fyipe from ${device}`,
+                template: 'user_login_body',
+                context: {
+                    homeURL: global.homeHost,
+                    userEmail,
+                    dashboardURL: global.dashboardHost,
+                    ip,
+                    locations,
+                    device,
+                    twoFactorEnabled,
+                },
+            };
+
+            const mailer = await _this.createMailer({});
+            EmailBody = await _this.getEmailBody(mailOptions);
+
+            if (!mailer) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.',
+                    content: EmailBody,
+                    error: 'Email not enabled.',
+                    smtpServer,
+                });
+                return;
+            }
+
+            let info = {};
+            try {
+                info = await mailer.sendMail(mailOptions);
+
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Success',
+                    content: EmailBody,
+                    smtpServer,
+                });
+            } catch (error) {
+                if (error.code === 'ECONNECTION') {
+                    if (
+                        accountMail.internalSmtp &&
+                        accountMail.customSmtp &&
+                        !isEmpty(accountMail.backupConfig)
+                    ) {
+                        smtpServer = accountMail.backupConfig.host;
+                        accountMail = {
+                            ...accountMail.backupConfig,
+                        };
+                        mailOptions = {
+                            from: `"${accountMail.name}" <${accountMail.from}>`,
+                            to: userEmail,
+                            subject: `New login to Fyipe from ${device}`,
+                            template: 'user_login_body',
+                            context: {
+                                homeURL: global.homeHost,
+                                userEmail,
+                                dashboardURL: global.dashboardHost,
+                                ip,
+                                locations,
+                                device,
+                                twoFactorEnabled,
+                            },
+                        };
+
+                        const mailer = await _this.createMailer(accountMail);
+                        EmailBody = await _this.getEmailBody(mailOptions);
+
+                        if (!mailer) {
+                            await EmailStatusService.create({
+                                from: mailOptions.from,
+                                to: mailOptions.to,
+                                subject: mailOptions.subject,
+                                template: mailOptions.template,
+                                status: 'Email not enabled.',
+                                content: EmailBody,
+                                error: 'Email not enabled.',
+                                smtpServer,
+                            });
+                            return;
+                        }
+
+                        info = await mailer.sendMail(mailOptions);
+
+                        await EmailStatusService.create({
+                            from: mailOptions.from,
+                            to: mailOptions.to,
+                            subject: mailOptions.subject,
+                            template: mailOptions.template,
+                            status: 'Success',
+                            content: EmailBody,
+                            smtpServer,
+                        });
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    throw error;
+                }
+            }
+
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error',
+                content: EmailBody,
+                error: error.message,
+                smtpServer,
+            });
+            throw error;
+        }
+    },
     // Automated email sent when a user deletes a project
     sendDeleteProjectEmail: async function({ userEmail, name, projectName }) {
         let mailOptions = {};
