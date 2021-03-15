@@ -510,7 +510,10 @@ class Main extends Component {
                                 >
                                     <div
                                         className="new-theme-incident matop-40"
-                                        style={{width: '100%', ...contentBackground}}
+                                        style={{
+                                            width: '100%',
+                                            ...contentBackground,
+                                        }}
                                     >
                                         <div
                                             className="font-largest"
