@@ -426,23 +426,26 @@ class MonitorInfo extends Component {
             primaryText.color = `rgba(${colors.primaryText.r}, ${colors.primaryText.g}, ${colors.primaryText.b}, ${colors.primaryText.a})`;
             if (monitorStatus === 'degraded') {
                 status.backgroundColor = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`; // "degraded-status";
+                status.font = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`; // "degraded-status";
             } else if (monitorStatus === 'online') {
                 status.backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`; // "online-status";
+                status.font = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`; // "online-status";
             } else if (monitorStatus === 'offline') {
                 status.backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`; // "red-downtime";
+                status.font = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`; // "red-downtime";
             } else {
                 status.backgroundColor = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b})`; // "grey-disabled";
+                status.font = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b})`; // "grey-disabled";
             }
         }
 
         return (
             <>
                 <ShouldRender if={this.props.theme}>
-                    <div className="op-div border-top">
+                    <>
                         <div className="op-disp">
                             <div className="op-info">
                                 <div className="collecion_item">
-                                    <span style={status}></span>
                                     <span
                                         className="uptime-stat-name"
                                         style={{
@@ -464,7 +467,19 @@ class MonitorInfo extends Component {
                                     </ShouldRender>
                                 </div>
                             </div>
-                            <div>Operational</div>
+                            <div
+                                style={{
+                                    color:
+                                        status.font === 'rgba(108, 219, 86)'
+                                            ? 'rgb(73, 195, 177)'
+                                            : status.font,
+                                    textTransform: 'capitalize',
+                                }}
+                            >
+                                {monitorStatus === 'online'
+                                    ? 'operational'
+                                    : monitorStatus}
+                            </div>
                         </div>
                         <ShouldRender if={selectedCharts.uptime}>
                             <div
@@ -502,7 +517,7 @@ class MonitorInfo extends Component {
                                 </div>
                             </div>
                         </ShouldRender>
-                    </div>
+                    </>
                 </ShouldRender>
 
                 <ShouldRender if={!this.props.theme}>
