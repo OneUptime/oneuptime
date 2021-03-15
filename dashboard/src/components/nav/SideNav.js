@@ -168,7 +168,7 @@ class SideNav extends Component {
                 /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/incident-log/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
+                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/incidents\/([0-9])*/
             ) ||
             location.pathname.match(
                 /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/application-log/

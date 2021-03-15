@@ -379,6 +379,38 @@ export function getIncident(projectId, incidentId) {
     };
 }
 
+// Calls the API to get the incident to show using idNumber
+export function getIncidentByIdNumber(projectId, incidentIdNumber) {
+    return function(dispatch) {
+        let promise = null;
+        promise = getApi(
+            `incident/${projectId}/incidentNumber/${incidentIdNumber}`
+        );
+        dispatch(incidentRequest(promise));
+
+        promise.then(
+            function(incident) {
+                dispatch(incidentSuccess(incident.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(incidentError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
 // Calls the API to get the incident timeline
 export function getIncidentTimeline(projectId, incidentId, skip, limit) {
     return function(dispatch) {

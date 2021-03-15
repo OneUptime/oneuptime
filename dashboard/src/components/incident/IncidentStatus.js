@@ -293,7 +293,9 @@ export class IncidentStatus extends Component {
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : '';
-        const incidentId = this.props.incident ? this.props.incident._id : '';
+        const incidentIdNumber = this.props.incident
+            ? this.props.incident.idNumber
+            : '';
         const componentId = this.props.incident
             ? this.props.incident.monitorId.componentId._id
             : '';
@@ -313,7 +315,7 @@ export class IncidentStatus extends Component {
               '/' +
               componentId +
               '/incidents/' +
-              this.props.incident._id
+              this.props.incident._idNumber
             : '';
 
         const showResolveButton = this.props.multipleIncidentRequest
@@ -2241,7 +2243,7 @@ export class IncidentStatus extends Component {
                                         onClick={() => {
                                             setTimeout(() => {
                                                 history.push(
-                                                    `/dashboard/project/${this.props.currentProject.slug}/${componentId}/incidents/${incidentId}`
+                                                    `/dashboard/project/${this.props.currentProject.slug}/${componentId}/incidents/${incidentIdNumber}`
                                                 );
                                                 this.props.animateSidebar(
                                                     false

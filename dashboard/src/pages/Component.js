@@ -214,9 +214,7 @@ class DashboardView extends Component {
                                                                 currentProjectId
                                                             }
                                                             slug={
-                                                                this.props
-                                                                    .currentProject
-                                                                    .slug
+                                                                this.props.slug
                                                             }
                                                             hideActionButton={
                                                                 true
@@ -408,6 +406,7 @@ const mapStateToProps = state => {
         incidents: state.incident.unresolvedincidents.incidents,
         components: state.component.componentList.components,
         subProjects,
+        slug: state.project.currentProject && state.project.currentProject.slug,
         monitor: state.monitor,
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
@@ -432,6 +431,7 @@ DashboardView.propTypes = {
     loadPage: PropTypes.func,
     destroy: PropTypes.func.isRequired,
     fetchMonitors: PropTypes.func.isRequired,
+    slug: PropTypes.string,
     subProjects: PropTypes.array,
     location: PropTypes.shape({
         pathname: PropTypes.string,

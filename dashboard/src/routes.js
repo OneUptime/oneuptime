@@ -140,7 +140,7 @@ export const groups = [
                     {
                         title: 'Log Container View',
                         path:
-                            '/dashboard/project/:slug/:componentId/application-logs/:applicationLogId',
+                            '/dashboard/project/:slug/:componentId/application-logs/:applicationLogSlug',
                         icon: 'radar',
                         visible: true,
                         subRoutes: [],
@@ -163,7 +163,7 @@ export const groups = [
                     {
                         title: 'Error Tracking View',
                         path:
-                            '/dashboard/project/:slug/:componentId/error-trackers/:errorTrackerId',
+                            '/dashboard/project/:slug/:componentId/error-trackers/:errorTrackerSlug',
                         icon: 'radar',
                         visible: true,
                         exact: true,
@@ -175,7 +175,7 @@ export const groups = [
                     {
                         title: 'Error Tracking Detail View',
                         path:
-                            '/dashboard/project/:slug/:componentId/error-trackers/:errorTrackerId/events/:errorEventId',
+                            '/dashboard/project/:slug/:componentId/error-trackers/:errorTrackerSlug/events/:errorEventId',
                         icon: 'radar',
                         visible: true,
                         exact: true,
@@ -211,7 +211,7 @@ export const groups = [
                     {
                         title: 'Container Detail',
                         path:
-                            '/dashboard/project/:slug/:componentId/security/container/:containerSecurityId',
+                            '/dashboard/project/:slug/:componentId/security/container/:containerSecuritySlug',
                         icon: 'docker',
                         visible: true,
                         subRoute: [],
@@ -235,7 +235,7 @@ export const groups = [
                     {
                         title: 'Application Detail',
                         path:
-                            '/dashboard/project/:slug/:componentId/security/application/:applicationSecurityId',
+                            '/dashboard/project/:slug/:componentId/security/application/:applicationSecuritySlug',
                         icon: 'info',
                         visible: true,
                         component: ApplicationDetail,

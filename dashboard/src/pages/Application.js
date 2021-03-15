@@ -69,7 +69,7 @@ class Application extends Component {
 
         socket.on(`createApplicationSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${this.props.slug}/${componentId}/security/application/${data._id}`
+                `/dashboard/project/${this.props.slug}/${componentId}/security/application/${data.slug}`
             );
         });
         const applicationSecurities = appSecurities
@@ -138,6 +138,9 @@ class Application extends Component {
                                                                         }
                                                                         applicationSecurityId={
                                                                             applicationSecurity._id
+                                                                        }
+                                                                        applicationSecuritySlug={
+                                                                            applicationSecurity.slug
                                                                         }
                                                                         projectId={
                                                                             projectId
