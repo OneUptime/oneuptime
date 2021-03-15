@@ -80,7 +80,7 @@ class TwoFactorAuthModal extends Component {
         }
     };
 
-    render() {        
+    render() {
         const { handleSubmit, qrCode, twoFactorAuthSetting } = this.props;
         const { next } = this.state;
 
@@ -338,7 +338,7 @@ TwoFactorAuthModal.propTypes = {
     verifyTwoFactorAuthToken: PropTypes.func,
 };
 
-const mapStateToProps = state => {    
+const mapStateToProps = state => {
     return {
         profileSettings: state.profileSettings.profileSetting,
         qrCode: state.profileSettings.qrCode,

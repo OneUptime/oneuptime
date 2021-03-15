@@ -790,7 +790,7 @@ module.exports = {
         // Pass object into sendNotification
         if (identification.length > 0) {
             let promiseFuncs = [];
-            for (let sub of identification) {
+            for (const sub of identification) {
                 promiseFuncs = [
                     ...promiseFuncs,
                     webpush.sendNotification(sub.subscription, payload),
@@ -3445,7 +3445,7 @@ const {
     calculateHumanReadableDownTime,
     getIncidentLength,
 } = require('../utils/incident');
-const IncidentService = require('./incidentService');
+//  const IncidentService = require('./incidentService'); Declared but unused
 const IncidentMessageService = require('./incidentMessageService');
 const IncidentTimelineService = require('./incidentTimelineService');
 const Services = require('../utils/services');

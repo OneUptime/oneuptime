@@ -33,7 +33,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                 password: data.password,
             };
             // user
-            await init.registerUser(user, page);           
+            await init.registerUser(user, page);
         });
     });
 
@@ -64,8 +64,9 @@ describe('Status Page -> Pricing Plan Component', () => {
                 await page.waitForSelector('ul#customTabList > li', {
                     visible: true,
                 });
-                await page.$$eval('ul#customTabList > li', elems =>
-                    elems[4].click() // Advanced Option is now in a new tab position.
+                await page.$$eval(
+                    'ul#customTabList > li',
+                    elems => elems[4].click() // Advanced Option is now in a new tab position.
                 );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()

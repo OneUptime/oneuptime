@@ -204,7 +204,7 @@ module.exports = {
             if (project && project.parentProjectId) {
                 projectId = project.parentProjectId._id;
             }
-            let query = {
+            const query = {
                 projectId: projectId,
                 integrationType: 'slack',
                 monitorId: incident.monitorId._id,
@@ -235,9 +235,8 @@ module.exports = {
     async noteNotify(project, incident, integration, data) {
         try {
             const uri = `${global.dashboardHost}/project/${project.slug}/${integration.monitorId.componentId._id}/incidents/${incident._id}`;
-            let payload;
 
-            payload = {
+            const payload = {
                 attachments: [
                     {
                         color: '#fedc56',
