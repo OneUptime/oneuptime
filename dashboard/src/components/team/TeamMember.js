@@ -22,12 +22,15 @@ import { history } from '../../store';
 import '@trendmicro/react-dropdown/dist/react-dropdown.css';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
-import HasProjectOwner from '../basic/HasProjectOwner';
+import ConfirmChangeRoleModal from '../modals/ConfirmChangeRole';
 
 export class TeamMember extends Component {
     constructor(props) {
         super(props);
-        this.state = { removeUserModalId: uuidv4() };
+        this.state = {
+            removeUserModalId: uuidv4(),
+            ConfirmationDialogId: uuidv4(),
+        };
         this.removeTeamMember = this.removeTeamMember.bind(this);
         this.updateTeamMemberRole = this.updateTeamMemberRole.bind(this);
     }
@@ -114,7 +117,10 @@ export class TeamMember extends Component {
         );
 
         return (
-            <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withName">
+            <div
+                className="bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                id="added_team_members"
+            >
                 <div
                     className="bs-ObjectList-cell bs-u-v-middle"
                     style={{ cursor: 'pointer' }}
@@ -210,27 +216,41 @@ export class TeamMember extends Component {
                                     )}
 
                                     <Dropdown.Menu>
-                                        <ShouldRender
-                                            if={
-                                                !HasProjectOwner(
-                                                    this.props.currentProject,
-                                                    this.props.subProjectId,
-                                                    this.props.subProjects
-                                                )
-                                            }
-                                        >
+                                        <ShouldRender if={loggedInUserIsOwner}>
                                             <MenuItem
                                                 title="Owner"
-                                                onClick={handleSubmit(values =>
-                                                    this.updateTeamMemberRole(
-                                                        {
-                                                            ...values,
-                                                            role: this.props
-                                                                .role,
-                                                            userId: userId,
-                                                        },
-                                                        'Owner'
-                                                    )
+                                                onClick={handleSubmit(
+                                                    values => {
+                                                        this.props.openModal({
+                                                            id: this.state
+                                                                .ConfirmationDialogId,
+                                                            content: DataPathHoC(
+                                                                ConfirmChangeRoleModal,
+                                                                {
+                                                                    ConfirmationDialogId: this
+                                                                        .state
+                                                                        .ConfirmationDialogId,
+                                                                    name:
+                                                                        this
+                                                                            .props
+                                                                            .name ??
+                                                                        this
+                                                                            .props
+                                                                            .email,
+                                                                    values,
+                                                                    role: this
+                                                                        .props
+                                                                        .role,
+                                                                    userId: userId,
+                                                                    newRole:
+                                                                        'Owner',
+                                                                    updating,
+                                                                    updateTeamMemberRole: this
+                                                                        .updateTeamMemberRole,
+                                                                }
+                                                            ),
+                                                        });
+                                                    }
                                                 )}
                                             >
                                                 Owner
@@ -347,8 +367,6 @@ TeamMember.propTypes = {
     teamUpdateRole: PropTypes.func.isRequired,
     updating: PropTypes.oneOf([null, false, true]),
     userId: PropTypes.string.isRequired,
-    currentProject: PropTypes.object,
-    subProjects: PropTypes.array,
 };
 
 const TeamMemberForm = reduxForm({

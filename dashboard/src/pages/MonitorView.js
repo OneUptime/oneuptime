@@ -39,6 +39,7 @@ import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 import { fetchCommunicationSlas } from '../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../actions/monitorSla';
 import ThirdPartyVariables from '../components/monitor/ThirdPartyVariables';
+import MonitorViewChangeComponentBox from '../components/monitor/MonitorViewChangeComponentBox';
 class MonitorView extends React.Component {
     // eslint-disable-next-line
     constructor(props) {
@@ -74,8 +75,10 @@ class MonitorView extends React.Component {
     componentDidUpdate(prevProps) {
         const { monitor } = this.props;
         if (String(prevProps.monitor._id) !== String(this.props.monitor._id)) {
-            const subProjectId = monitor.projectId._id || monitor.projectId;
-            this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
+            const subProjectId = monitor.projectId
+                ? monitor.projectId._id || monitor.projectId
+                : '';
+            subProjectId && this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
             if (monitor.type === 'url') {
                 this.props.fetchLighthouseLogs(
                     monitor.projectId._id || monitor.projectId,
@@ -122,8 +125,10 @@ class MonitorView extends React.Component {
         const { monitor } = this.props;
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
         this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
-        const subProjectId = monitor.projectId._id || monitor.projectId;
-        this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
+        const subProjectId = monitor.projectId
+            ? monitor.projectId._id || monitor.projectId
+            : '';
+        subProjectId && this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
         if (monitor.type === 'url') {
             this.props.fetchLighthouseLogs(
                 monitor.projectId._id || monitor.projectId,
@@ -761,6 +766,20 @@ class MonitorView extends React.Component {
                                                                                     }
                                                                                 />
                                                                             </div>
+                                                                            <div className="Box-root Margin-bottom--12">
+                                                                                <MonitorViewChangeComponentBox
+                                                                                    componentId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .componentId
+                                                                                    }
+                                                                                    monitor={
+                                                                                        this
+                                                                                            .props
+                                                                                            .monitor
+                                                                                    }
+                                                                                />
+                                                                            </div>
                                                                         </RenderIfSubProjectAdmin>
                                                                     </Fade>
                                                                 </TabPanel>
@@ -785,21 +804,13 @@ class MonitorView extends React.Component {
 
 const mapStateToProps = (state, props) => {
     const scheduleWarning = [];
-    const { componentId, monitorId } = props.match.params;
+    const { componentId, monitorSlug } = props.match.params;
     const schedules = state.schedule.schedules;
-
     state.schedule.subProjectSchedules.forEach(item => {
         item.schedules.forEach(item => {
             item.monitorIds.forEach(monitor => {
                 scheduleWarning.push(monitor._id);
             });
-        });
-    });
-
-    let defaultSchedule;
-    state.schedule.subProjectSchedules.forEach(item => {
-        item.schedules.forEach(item => {
-            defaultSchedule = item.isDefault;
         });
     });
 
@@ -812,6 +823,23 @@ const mapStateToProps = (state, props) => {
         });
     });
 
+    const projectId =
+        state.project.currentProject && state.project.currentProject._id;
+    const monitorCollection = state.monitor.monitorsList.monitors.find(el => {
+        return component.projectId._id === el._id;
+    });
+    const currentMonitor =
+        monitorCollection &&
+        monitorCollection.monitors.find(el => {
+            return el.slug === monitorSlug;
+        });
+    const monitorId = currentMonitor && currentMonitor._id;
+    let defaultSchedule;
+    state.schedule.subProjectSchedules.forEach(item => {
+        item.schedules.forEach(item => {
+            defaultSchedule = item.isDefault;
+        });
+    });
     let monitor = {};
     state.monitor.monitorsList.monitors.forEach(item => {
         item.monitors.forEach(monitorItem => {
@@ -820,7 +848,6 @@ const mapStateToProps = (state, props) => {
             }
         });
     });
-
     const initialValues = {};
     let currentMonitorCriteria = [];
     if (monitor && monitor._id) {
@@ -976,8 +1003,7 @@ const mapStateToProps = (state, props) => {
     return {
         defaultSchedule,
         scheduleWarning,
-        projectId:
-            state.project.currentProject && state.project.currentProject._id,
+        projectId,
         monitorId,
         slug: state.project.currentProject && state.project.currentProject.slug,
         componentId,

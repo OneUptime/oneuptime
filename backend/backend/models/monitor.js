@@ -72,6 +72,7 @@ const monitorSchema = new Schema({
         index: true,
     },
     name: String,
+    slug: String,
     data: Object, //can be URL, IP address, or anything that depends on the type.
     createdById: { type: String, ref: 'User', index: true }, //userId.
     type: {
@@ -145,7 +146,14 @@ const monitorSchema = new Schema({
     },
     breachedMonitorSla: { type: Boolean, default: false },
     breachClosedBy: [{ type: String, ref: 'User' }],
-    customFields: [{ fieldName: String, fieldValue: Schema.Types.Mixed }],
+    customFields: [
+        {
+            fieldName: String,
+            fieldValue: Schema.Types.Mixed,
+            uniqueField: { type: Boolean, default: false },
+            fieldType: String,
+        },
+    ],
 });
 
 monitorSchema.virtual('project', {

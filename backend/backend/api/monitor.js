@@ -905,4 +905,24 @@ router.post(
     }
 );
 
+router.post(
+    '/:projectId/changeComponent/:monitorId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { projectId, monitorId } = req.params;
+            const { newComponentId } = req.body;
+            const monitor = await MonitorService.changeMonitorComponent(
+                projectId,
+                monitorId,
+                newComponentId
+            );
+            return sendItemResponse(req, res, monitor);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 module.exports = router;

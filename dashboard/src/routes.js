@@ -50,6 +50,7 @@ const {
     ComponentSettingsAdvanced,
     MonitorSettings,
     CallRouting,
+    Groups,
 } = pages;
 
 export const groups = [
@@ -80,7 +81,7 @@ export const groups = [
                     {
                         title: 'Monitor View',
                         path:
-                            '/dashboard/project/:slug/:componentId/monitoring/:monitorId',
+                            '/dashboard/project/:slug/:componentId/monitoring/:monitorSlug',
                         icon: 'monitor',
                         visible: true,
                         subRoutes: [],
@@ -92,7 +93,7 @@ export const groups = [
                     {
                         title: 'Website Issues',
                         path:
-                            '/dashboard/project/:slug/:componentId/monitoring/:monitorId/issues/:issueId',
+                            '/dashboard/project/:slug/:componentId/monitoring/:monitorSlug/issues/:issueId',
                         icon: 'info',
                         visible: true,
                         subRoutes: [],
@@ -554,7 +555,7 @@ export const groups = [
                         subRoutes: [],
                         component: CallRouting,
                         index: 8,
-                        shortcut: 's+c+r',
+                        shortcut: 's+q',
                     },
                     {
                         title: 'Webhooks',
@@ -595,6 +596,16 @@ export const groups = [
                         subRoutes: [],
                         component: DockerCredential,
                         index: 12,
+                        shortcut: 's+d',
+                    },
+                    {
+                        title: 'Groups',
+                        path: '/dashboard/project/:slug/settings/groups',
+                        icon: 'docker',
+                        visible: true,
+                        subRoutes: [],
+                        component: Groups,
+                        index: 13,
                         shortcut: 's+d',
                     },
                 ],

@@ -144,6 +144,7 @@ export class SmsSmtpBox extends Component {
                                                                                 marginLeft:
                                                                                     '150px',
                                                                             }}
+                                                                            id="enableTwilio"
                                                                         >
                                                                             <Field
                                                                                 component="input"

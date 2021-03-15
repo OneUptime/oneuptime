@@ -67,6 +67,18 @@ spec:
                         value: {{ .Values.fyipe.admin.password }}
                       - name: DISABLE_SIGNUP
                         value: {{ .Values.disableSignup | quote  }}
+                      - name: INTERNAL_SMTP_SERVER
+                        value: {{ template "fyipe.internalSmtpServer" . }}
+                      - name: INTERNAL_SMTP_PORT
+                        value: {{ quote .Values.host.harakaServicePort }}
+                      - name: INTERNAL_SMTP_USER
+                        value: {{ .Values.haraka.user }}
+                      - name: INTERNAL_SMTP_PASSWORD
+                        value: {{ .Values.haraka.password }}
+                      - name: INTERNAL_SMTP_FROM
+                        value: {{ .Values.haraka.fromEmail }}
+                      - name: INTERNAL_SMTP_NAME
+                        value: {{ .Values.haraka.fromName }}
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:

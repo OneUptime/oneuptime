@@ -31,16 +31,18 @@ helm install -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/
 Staging:
 
 ```
-sudo kubectl delete job fi-init-script
-sudo helm upgrade --reuse-values -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
+helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
 ```
+
+Use default values first and then use staging values.
 
 Production:
 
 ```
-sudo kubectl delete job fi-init-script
-sudo helm upgrade --reuse-values -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe
+helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe
 ```
+
+Use default values first and then use production values.
 
 If you introduce values, you can set
 
@@ -79,6 +81,20 @@ helm package ./fyipe
 helm repo index .
 cd ..
 cd ..
+```
+
+### Update a chart dependency
+
+```
+cd ./helm-chart/public
+#IMPORTANT: change the version of the dependent chart at `/helm-chart/public/fyipe/Chart.yaml`
+
+# Run this command.
+helm dependency update fyipe
+
+# Go back to root.
+cd ..
+cd..
 ```
 
 ### Docker Images
