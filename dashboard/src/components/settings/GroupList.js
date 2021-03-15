@@ -17,7 +17,7 @@ import Badge from '../common/Badge';
 export class GroupList extends Component {
     constructor(props) {
         super(props);
-        this.state = { groupModalId: uuidv4()};
+        this.state = { groupModalId: uuidv4() };
     }
 
     componentDidMount() {

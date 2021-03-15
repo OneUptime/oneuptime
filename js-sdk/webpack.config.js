@@ -31,6 +31,8 @@ const serverBuild = {
     },
     node: {
         fs: 'empty',
+        child_process: 'empty',
+        net: 'empty',
     },
 };
 const webBuild = {

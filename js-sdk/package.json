@@ -4,10 +4,13 @@
     "description": "Fyipe is a JS package that tracks error event and send logs from your applications to your fyipe dashboard.",
     "main": "dist/fyipe.js",
     "unpkg": "dist/fyipe.min.js",
+    "bin": {
+        "fyipe": "./src/cli/fyipe.js"
+    },
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "build-dev": "npm run build && npm link",
-        "test": "mocha --require @babel/polyfill --require @babel/register",
+        "test": "mocha --require @babel/polyfill --require @babel/register \"test/**/*.test.js\" \"src/**/*.test.js\"",
         "build": "webpack --mode production",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='axios,webpack-cli,babel-loader,depcheck,mocha,webpack'"
@@ -31,6 +34,7 @@
         "chai": "^4.2.0",
         "chai-http": "^4.3.0",
         "depcheck": "^0.9.2",
+        "jsdoc": "^3.6.6",
         "mocha": "^7.2.0",
         "npm-force-resolutions": "0.0.3",
         "webpack": "^4.43.0",
@@ -41,7 +45,15 @@
         "@babel/polyfill": "^7.10.1",
         "axios": "^0.21.1",
         "babel-loader": "^8.2.2",
+        "commander": "^7.1.0",
+        "cron": "^1.8.2",
+        "dotenv": "^8.2.0",
+        "inquirer": "^8.0.0",
         "lru_map": "^0.4.1",
+        "pino": "^6.11.1",
+        "pino-pretty": "^4.7.0",
+        "promise": "^8.1.0",
+        "systeminformation": "^5.6.1",
         "uuid": "^8.3.1"
     },
     "directories": {
@@ -51,5 +63,11 @@
     "repository": {
         "type": "git",
         "url": "https://github.com/Fyipe/js-sdk"
+    },
+    "optionalDependencies": {
+        "node-linux": "^0.1.12",
+        "node-mac": "^1.0.1",
+        "node-windows": "^1.0.0-beta.5",
+        "osx-temperature-sensor": "^1.0.7"
     }
 }

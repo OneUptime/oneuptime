@@ -20,7 +20,7 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 class WebHookList extends React.Component {
     ready() {
         const { getWebHook } = this.props;
-        let { projectId } = this.props;
+        const { projectId } = this.props;
 
         getWebHook(projectId);
 

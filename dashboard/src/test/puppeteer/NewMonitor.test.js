@@ -34,7 +34,6 @@ describe('New Monitor API', () => {
             };
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
         });
     });
 
@@ -57,11 +56,10 @@ describe('New Monitor API', () => {
                 for (let i = 0; i < 5; i++) {
                     const monitorName = utils.generateRandomString();
 
-                    await init.addMonitorToComponent(
-                        null,
-                        monitorName,
+                    await init.addNewMonitorToComponent(
                         page,
-                        componentName
+                        componentName,
+                        monitorName
                     );
                     await page.waitForSelector('.ball-beat', { hidden: true });
                 }
@@ -73,11 +71,15 @@ describe('New Monitor API', () => {
                 await page.click('#components');
                 await page.waitForSelector('#component0', { visible: true });
                 await page.click(`#more-details-${componentName}`);
-
+                await page.waitForSelector('#form-new-monitor');
                 await page.waitForSelector('input[id=name]');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
-                //Please add a new monitor type here. IOT Device Monitor has been removed.
+                // Added new URL-Montior
+                await page.click('[data-testId=type_url]');
+                await page.waitForSelector('#url');
+                await page.click('#url');
+                await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
 
                 const pricingPlanModal = await page.waitForSelector(
@@ -106,11 +108,10 @@ describe('New Monitor API', () => {
                 for (let i = 0; i < 10; i++) {
                     const monitorName = utils.generateRandomString();
 
-                    await init.addMonitorToComponent(
-                        null,
-                        monitorName,
+                    await init.addNewMonitorToComponent(
                         page,
-                        componentName
+                        componentName,
+                        monitorName
                     );
                     await page.waitForSelector('.ball-beat', { hidden: true });
                 }
@@ -122,11 +123,15 @@ describe('New Monitor API', () => {
                 await page.click('#components');
                 await page.waitForSelector('#component0', { visible: true });
                 await page.click(`#more-details-${componentName}`);
-
+                await page.waitForSelector('#form-new-monitor');
                 await page.waitForSelector('input[id=name]');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
-                //Please add a new monitor type here. IOT Device Monitor has been removed.
+                // Added new URL-Montior
+                await page.click('[data-testId=type_url]');
+                await page.waitForSelector('#url');
+                await page.click('#url');
+                await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
 
                 const pricingPlanModal = await page.waitForSelector(
@@ -155,23 +160,31 @@ describe('New Monitor API', () => {
                 for (let i = 0; i < 15; i++) {
                     const monitorName = utils.generateRandomString();
 
-                    await init.addMonitorToComponent(
-                        null,
-                        monitorName,
+                    await init.addNewMonitorToComponent(
                         page,
-                        componentName
+                        componentName,
+                        monitorName
                     );
                     await page.waitForSelector('.ball-beat', { hidden: true });
                 }
 
                 // try to add more monitor
                 const monitorName = utils.generateRandomString();
-                await init.addMonitorToComponent(
-                    null,
-                    monitorName,
-                    page,
-                    componentName
-                );
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+                await page.waitForSelector('#component0', { visible: true });
+                await page.click(`#more-details-${componentName}`);
+                await page.waitForSelector('#form-new-monitor');
+                await page.waitForSelector('input[id=name]');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', monitorName);
+                // Added new URL-Montior
+                await page.click('[data-testId=type_url]');
+                await page.waitForSelector('#url');
+                await page.click('#url');
+                await page.type('#url', 'https://google.com');
+                await page.click('button[type=submit]');
 
                 const pricingPlanModal = await page.waitForSelector(
                     '#pricingPlanModal',
