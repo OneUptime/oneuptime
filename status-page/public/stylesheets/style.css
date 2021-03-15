@@ -1327,6 +1327,7 @@ margin-left:10px;
   margin-bottom: 70px;
   z-index: 20;
   padding: 10px;
+  box-sizing: border-box;
 }
 
 .font-largest {
