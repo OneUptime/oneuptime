@@ -1,0 +1,170 @@
+// TODO - make this configurable from admin-dashboard
+const runConfig = {
+    availableImports: ['axios'], // init allowed modules
+    maxSyncStatementDuration: 3000,
+    maxScriptRunTime: 5000,
+};
+
+class ScriptMonitorError extends Error {
+    constructor(errors, message = "Script monitor resource error") {
+        super();
+        this.message = message;
+        this.errors = errors;
+    }
+}
+
+const {
+    availableImports,
+    maxScriptRunTime,
+    maxSyncStatementDuration,
+} = runConfig;
+
+const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, maxSyncStatementDuration }) => {
+    const { isMainThread, Worker, parentPort, workerData } = require('worker_threads');
+
+    if (isMainThread) {
+        // modifiable option in development mode only
+        const { maxScriptRunTime, maxSyncStatementDuration } = options; 
+        if (!isCalled) return;
+        return new Promise(resolve => {
+            const worker = new Worker(__filename, { workerData: { functionCode } });
+
+            let lastMessage = null;
+
+            worker.on('message', msg => {
+                switch (msg) {
+                    case 'ping': {
+                        lastMessage = Date.now();
+                        break;
+                    }
+                    default: {
+                        if (msg.error) {
+                            resolve({
+                                success: false,
+                                error: msg.error,
+                            });
+                        }
+                        break;
+                    }
+                }
+            });
+            worker.on('online', () => {
+                lastMessage = Date.now();                
+            });
+            worker.on('exit', exitCode => {
+                switch (exitCode) {
+                    case 0:
+                        resolve({ success: true });
+                        break;
+                    case 1: {
+                        const message = statementTimeExceeded
+                            ? `Max. synchronous statement execution time exceeded (${maxSyncStatementDuration}ms)`
+                            : scriptTimeExceeded
+                            ? `Max. script execution time exceeded (${maxScriptRunTime}ms)`
+                            : 'Script was terminated';
+                        resolve({
+                            success: false,
+                            message,
+                        });
+                        break;
+                    }
+                    default:
+                        resolve({
+                            success: false,
+                            message: "Unknown Error: script terminated"
+                        })
+                        break;
+                }
+
+                clearInterval(checker);
+            });
+            worker.on('error', err => {
+                if (err.errors) {
+                    resolve({ success: false, message: err.message, errors: err.errors});
+                    return;
+                }
+                resolve({ success: false, message: err.message });
+            });
+
+            let totalRuntime = 0,
+                statementTimeExceeded = false,
+                scriptTimeExceeded = false;
+
+            const checker = setInterval(
+                () => {
+                    totalRuntime += 1000;
+                    if (totalRuntime > maxScriptRunTime) {
+                        clearInterval(checker);
+                        scriptTimeExceeded = true;
+                        worker.terminate();
+                    }
+                    // Last ping was too long ago, terminate it
+                    if (
+                        lastMessage !== null &&
+                        (Date.now() - lastMessage >= maxSyncStatementDuration)
+                    ) {
+                        clearInterval(checker);
+                        statementTimeExceeded = true;
+                        worker.terminate();
+                    }
+                },
+                1000,
+                maxSyncStatementDuration
+            );
+        });
+    } else {
+        // worker_threads code
+        const { NodeVM } = require('vm2');
+        const vm = new NodeVM({
+            eval: false,
+            wasm: false,
+            require: {
+                root: "./",
+                external: availableImports, 
+                import: availableImports,
+            },
+            console: "inherit"
+        });
+
+        const scriptCompletedCallback = err => {
+            if (err) {
+                throw new ScriptMonitorError(err);
+            }
+        };
+
+        const code = workerData.functionCode;
+        const sandboxFunction = vm.run(`module.exports = ${code}`);
+
+        setInterval(() => parentPort.postMessage('ping'), 500);
+        await sandboxFunction(scriptCompletedCallback);
+        process.exit();
+
+    }
+};
+
+module.exports = runScript();
+module.exports.runScript = runScript;
+
+/* module.exports = {
+    // run: async monitor => {
+    //     try {
+    //         if (monitor && monitor.type) {
+    //             if (monitor.data.script) {
+    //                 // start worker thread to run script
+    //                 const inputCode = monitor.data.script;
+    //                 const { res, resp } = await runScript(inputCode);
+    //                 await ApiService.ping(monitor._id, {
+    //                     monitor,
+    //                     res,
+    //                     resp,
+    //                     type: monitor.type,
+    //                 });
+    //             }
+    //         }
+    //     } catch (error) {
+    //         ErrorService.log('scriptMonitors.run', error);
+    //         throw error;
+    //     }
+    // },
+    runScript,
+}; */
