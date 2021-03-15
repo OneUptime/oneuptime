@@ -217,7 +217,7 @@ export class IncidentList extends Component {
                                                                 .componentId
                                                                 ._id +
                                                             '/incidents/' +
-                                                            incident._id
+                                                            incident.idNumber
                                                     );
                                                     this.props.animateSidebar(
                                                         false

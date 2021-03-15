@@ -11,6 +11,8 @@ const statusSchema = new Schema({
     domains: [
         {
             domain: String, // complete domain eg status.fyipe.com
+            cert: String, // filename gridfs
+            privateKey: String, // filename gridfs
             domainVerificationToken: {
                 type: Schema.Types.ObjectId,
                 ref: 'DomainVerificationToken',

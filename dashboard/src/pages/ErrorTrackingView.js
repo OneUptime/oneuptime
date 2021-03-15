@@ -100,7 +100,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 const mapStateToProps = (state, ownProps) => {
-    const { componentId, errorTrackerId } = ownProps.match.params;
+    const { componentId, errorTrackerSlug } = ownProps.match.params;
     const currentProject = state.project.currentProject;
     let component;
     state.component.componentList.components.forEach(item => {
@@ -111,7 +111,7 @@ const mapStateToProps = (state, ownProps) => {
         });
     });
     const errorTracker = state.errorTracker.errorTrackersList.errorTrackers.filter(
-        errorTracker => errorTracker._id === errorTrackerId
+        errorTracker => errorTracker.slug === errorTrackerSlug
     );
     return {
         currentProject,

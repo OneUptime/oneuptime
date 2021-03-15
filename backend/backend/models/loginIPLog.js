@@ -13,6 +13,10 @@ const loginIPlogSchema = new Schema({
     ipLocation: {
         type: Object,
     },
+    device: {
+        type: Object,
+    },
+    status: String,
 });
 
 module.exports = mongoose.model('LoginIPLog', loginIPlogSchema);

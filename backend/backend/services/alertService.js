@@ -771,9 +771,9 @@ module.exports = {
         const identification = userData.identification;
 
         webpush.setVapidDetails(
-            process.env.WEBPUSH_EMAIL, // Address or URL for this application
-            process.env.VAPID_PUBLIC_KEY, // URL Safe Base64 Encoded Public Key
-            process.env.VAPID_PRIVATE_KEY // URL Safe Base64 Encoded Private Key
+            process.env.PUSHNOTIFICATION_URL, // Address or URL for this application
+            process.env.PUSHNOTIFICATION_PUBLIC_KEY, // URL Safe Base64 Encoded Public Key
+            process.env.PUSHNOTIFICATION_PRIVATE_KEY // URL Safe Base64 Encoded Private Key
         );
 
         if (pushProgress) {
@@ -790,7 +790,7 @@ module.exports = {
         // Pass object into sendNotification
         if (identification.length > 0) {
             let promiseFuncs = [];
-            for (let sub of identification) {
+            for (const sub of identification) {
                 promiseFuncs = [
                     ...promiseFuncs,
                     webpush.sendNotification(sub.subscription, payload),
@@ -3445,7 +3445,7 @@ const {
     calculateHumanReadableDownTime,
     getIncidentLength,
 } = require('../utils/incident');
-const IncidentService = require('./incidentService');
+//  const IncidentService = require('./incidentService'); Declared but unused
 const IncidentMessageService = require('./incidentMessageService');
 const IncidentTimelineService = require('./incidentTimelineService');
 const Services = require('../utils/services');

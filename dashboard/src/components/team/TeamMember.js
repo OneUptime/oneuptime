@@ -117,7 +117,10 @@ export class TeamMember extends Component {
         );
 
         return (
-            <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withName" id="added_team_members">
+            <div
+                className="bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                id="added_team_members"
+            >
                 <div
                     className="bs-ObjectList-cell bs-u-v-middle"
                     style={{ cursor: 'pointer' }}

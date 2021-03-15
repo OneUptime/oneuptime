@@ -19,14 +19,14 @@ function getComponentBadge(componentName) {
 }
 getComponentBadge.displayName = 'getComponentBadge';
 
-function viewMore(slug, componentId, errorTrackerId, errorEventId) {
+function viewMore(slug, componentId, errorTrackerSlug, errorEventId) {
     return history.push(
         '/dashboard/project/' +
             slug +
             '/' +
             componentId +
             '/error-trackers/' +
-            errorTrackerId +
+            errorTrackerSlug +
             '/events/' +
             errorEventId
     );
@@ -85,7 +85,7 @@ function ErrorTrackerIssue({
                     viewMore(
                         slug,
                         componentId,
-                        errorTracker._id,
+                        errorTracker.slug,
                         errorTrackerIssue.latestId
                     )
                 }

@@ -17,6 +17,7 @@ import threatLevel from '../../utils/threatLevel';
 const ApplicationSecurityView = ({
     isRequesting,
     applicationSecurityId,
+    applicationSecuritySlug,
     projectId,
     componentId,
     openModal,
@@ -31,19 +32,20 @@ const ApplicationSecurityView = ({
         projectId,
         componentId,
         applicationSecurityId,
+        applicationSecuritySlug,
     }) => {
         openModal({
             id: applicationSecurityId,
             content: DeleteApplicationSecurity,
-            propArr: [{ projectId, componentId, applicationSecurityId }],
+            propArr: [{ projectId, componentId, applicationSecurityId, applicationSecuritySlug }],
         });
     };
 
-    const handleEdit = ({ projectId, componentId, applicationSecurityId }) => {
+    const handleEdit = ({ projectId, componentId, applicationSecurityId, applicationSecuritySlug }) => {
         openModal({
             id: applicationSecurityId,
             content: EditApplicationSecurity,
-            propArr: [{ projectId, componentId, applicationSecurityId }],
+            propArr: [{ projectId, componentId, applicationSecurityId, applicationSecuritySlug }],
         });
     };
 
@@ -217,6 +219,7 @@ const ApplicationSecurityView = ({
                                             projectId,
                                             componentId,
                                             applicationSecurityId,
+                                            applicationSecuritySlug,
                                         })
                                     }
                                     id={`edit_${applicationSecurity.name}`}
@@ -232,6 +235,7 @@ const ApplicationSecurityView = ({
                                             projectId,
                                             componentId,
                                             applicationSecurityId,
+                                            applicationSecuritySlug,
                                         })
                                     }
                                 >
@@ -287,6 +291,7 @@ ApplicationSecurityView.displayName = 'Application Security View';
 ApplicationSecurityView.propTypes = {
     isRequesting: PropTypes.bool,
     applicationSecurityId: PropTypes.string,
+    applicationSecuritySlug: PropTypes.string,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
     openModal: PropTypes.func,

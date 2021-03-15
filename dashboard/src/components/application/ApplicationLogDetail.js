@@ -103,7 +103,7 @@ class ApplicationLogDetail extends Component {
                 '/' +
                 componentId +
                 '/application-logs/' +
-                applicationLog._id
+                applicationLog.slug
         );
     };
     handleStartDateTimeChange = val => {

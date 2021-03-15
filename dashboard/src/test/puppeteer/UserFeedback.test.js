@@ -32,7 +32,7 @@ describe('User Feedback', () => {
             };
 
             // user
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
         });
 
         await cluster.queue({ email, password });

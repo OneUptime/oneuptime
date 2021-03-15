@@ -105,7 +105,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators({ fetchApplicationLogs }, dispatch);
 };
 const mapStateToProps = (state, props) => {
-    const { componentId, applicationLogId } = props.match.params;
+    const { componentId, applicationLogSlug } = props.match.params;
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
@@ -115,7 +115,7 @@ const mapStateToProps = (state, props) => {
         });
     });
     const applicationLog = state.applicationLog.applicationLogsList.applicationLogs.filter(
-        applicationLog => applicationLog._id === applicationLogId
+        applicationLog => applicationLog.slug === applicationLogSlug
     );
     return {
         componentId,

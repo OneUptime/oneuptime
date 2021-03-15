@@ -21,10 +21,12 @@ const SecurityInfo = ({
     componentId,
     type,
     applicationSecurityId,
+    applicationSecuritySlug,
     applicationSecurityLog,
     scanApplicationSecurity,
     scanningApplication,
     containerSecurityId,
+    containerSecuritySlug,
     containerSecurityLog,
     scanContainerSecurity,
     scanningContainer,
@@ -50,14 +52,14 @@ const SecurityInfo = ({
     };
 
     const more = () => {
-        const securityId = containerSecurityId || applicationSecurityId;
+        const securitySlug = containerSecuritySlug || applicationSecuritySlug; 
 
         type =
             (type === 'container' && 'container') ||
             (type === 'application' && 'application');
 
         history.push(
-            `/dashboard/project/${slug}/${componentId}/security/${type}/${securityId}`
+            `/dashboard/project/${slug}/${componentId}/security/${type}/${securitySlug}`
         );
     };
 
@@ -337,6 +339,7 @@ SecurityInfo.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    applicationSecuritySlug: PropTypes.string,
     applicationSecurityLog: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),

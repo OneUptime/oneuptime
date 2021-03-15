@@ -11,13 +11,17 @@ let RenderEscalation = ({
     subProjectId,
     form,
 }) => {
-        
     return (
         <ul>
             {fields.map((policy, i) => {
-                const { email, sms, call, push, rotateBy, rotationInterval } = form[
-                    i
-                ];
+                const {
+                    email,
+                    sms,
+                    call,
+                    push,
+                    rotateBy,
+                    rotationInterval,
+                } = form[i];
 
                 return (
                     <RenderSingleEscalation

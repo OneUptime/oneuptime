@@ -203,7 +203,7 @@ module.exports = {
                 projectId = project.parentProjectId._id;
             }
 
-            let query = {
+            const query = {
                 projectId: projectId,
                 integrationType: 'msteams',
                 monitorId: incident.monitorId._id,
@@ -234,10 +234,8 @@ module.exports = {
     async noteNotify(project, incident, integration, data) {
         try {
             const uri = `${global.dashboardHost}/project/${project.slug}/${integration.monitorId.componentId._id}/incidents/${incident._id}`;
-            let payload;
             const yellow = '#fedc56';
-
-            payload = {
+            const payload = {
                 '@context': 'https://schema.org/extensions',
                 '@type': 'MessageCard',
                 themeColor: yellow,

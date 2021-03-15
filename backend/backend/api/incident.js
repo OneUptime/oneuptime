@@ -287,6 +287,29 @@ router.get(
     }
 );
 
+// Route
+// Description: Getting incident
+// Params:
+// Param 1: req.headers-> {authorization}; req.user-> {id}; req.params-> {incidentIdNumber}
+// Returns: 200: incidents, 400: Error; 500: Server Error.
+router.get(
+    '/:projectId/incidentNumber/:incidentIdNumber',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        // Call the IncidentService.
+
+        try {
+            const incident = await IncidentService.findOneBy({
+                idNumber: req.params.incidentIdNumber,
+            });
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 router.get(
     '/:projectId/timeline/:incidentId',
     getUser,

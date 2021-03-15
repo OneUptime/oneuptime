@@ -58,13 +58,13 @@ class CreateIncident extends Component {
             description,
             incidentPriority,
         } = values;
-        let projectId = currentProject._id;
+        const subProjectId = data.subProjectId;
         const subProjectMonitor = monitors.find(
             subProjectMonitor => subProjectMonitor._id === data.subProjectId
         );
         subProjectMonitor.monitors.forEach(monitor => {
             if (monitor._id === values)
-                projectId = monitor.projectId._id || monitor.projectId;
+                currentProject._id = monitor.projectId._id || monitor.projectId;
         });
 
         const customFields = this.props.customFields.map(field => ({
@@ -78,7 +78,7 @@ class CreateIncident extends Component {
         }));
 
         createNewIncident(
-            projectId,
+            subProjectId,
             monitorId,
             incidentType,
             title,

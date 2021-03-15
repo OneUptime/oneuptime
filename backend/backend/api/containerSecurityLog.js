@@ -31,6 +31,29 @@ router.get(
 );
 
 //Route: GET
+//Description: get a particular container security log by slug
+//Params: req.params -> {projectId, componentId, containerSecuritySlug}
+//returns: response -> {sendItemResponse, sendErrorResponse}
+router.get(
+    '/:projectId/:componentId/containerSecuritySlug/logs/:containerSecuritySlug',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { containerSecuritySlug, componentId } = req.params;
+
+            const securityLog = await ContainerSecurityLogService.findOneBy({
+                slug: containerSecuritySlug,
+                componentId,
+            });
+            return sendItemResponse(req, res, securityLog);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+//Route: GET
 //Description: get container security logs in a component
 //Params: req.params -> {projectId, componentId}
 //returns: response -> {sendItemResponse, sendErrorResponse}

@@ -50,6 +50,7 @@ const {
     ComponentSettingsAdvanced,
     MonitorSettings,
     CallRouting,
+    DomainSettings,
     Groups,
 } = pages;
 
@@ -139,7 +140,7 @@ export const groups = [
                     {
                         title: 'Log Container View',
                         path:
-                            '/dashboard/project/:slug/:componentId/application-logs/:applicationLogId',
+                            '/dashboard/project/:slug/:componentId/application-logs/:applicationLogSlug',
                         icon: 'radar',
                         visible: true,
                         subRoutes: [],
@@ -162,7 +163,7 @@ export const groups = [
                     {
                         title: 'Error Tracking View',
                         path:
-                            '/dashboard/project/:slug/:componentId/error-trackers/:errorTrackerId',
+                            '/dashboard/project/:slug/:componentId/error-trackers/:errorTrackerSlug',
                         icon: 'radar',
                         visible: true,
                         exact: true,
@@ -174,7 +175,7 @@ export const groups = [
                     {
                         title: 'Error Tracking Detail View',
                         path:
-                            '/dashboard/project/:slug/:componentId/error-trackers/:errorTrackerId/events/:errorEventId',
+                            '/dashboard/project/:slug/:componentId/error-trackers/:errorTrackerSlug/events/:errorEventId',
                         icon: 'radar',
                         visible: true,
                         exact: true,
@@ -210,7 +211,7 @@ export const groups = [
                     {
                         title: 'Container Detail',
                         path:
-                            '/dashboard/project/:slug/:componentId/security/container/:containerSecurityId',
+                            '/dashboard/project/:slug/:componentId/security/container/:containerSecuritySlug',
                         icon: 'docker',
                         visible: true,
                         subRoute: [],
@@ -234,7 +235,7 @@ export const groups = [
                     {
                         title: 'Application Detail',
                         path:
-                            '/dashboard/project/:slug/:componentId/security/application/:applicationSecurityId',
+                            '/dashboard/project/:slug/:componentId/security/application/:applicationSecuritySlug',
                         icon: 'info',
                         visible: true,
                         component: ApplicationDetail,
@@ -498,13 +499,23 @@ export const groups = [
                         shortcut: '',
                     },
                     {
+                        title: 'Domains',
+                        path: '/dashboard/project/:slug/settings/domains',
+                        icon: 'monitor',
+                        visible: true,
+                        subRoutes: [],
+                        component: DomainSettings,
+                        index: 2,
+                        shortcut: 's+d',
+                    },
+                    {
                         title: 'Resources',
                         path: '/dashboard/project/:slug/settings/resources',
                         icon: 'monitor',
                         visible: true,
                         subRoutes: [],
                         component: Resources,
-                        index: 2,
+                        index: 3,
                         shortcut: 's+r',
                     },
                     {
@@ -514,7 +525,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: MonitorSettings,
-                        index: 3,
+                        index: 4,
                         shortcut: 's+m',
                     },
                     {
@@ -524,7 +535,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: IncidentSettings,
-                        index: 4,
+                        index: 5,
                         shortcut: 's+t',
                     },
                     {
@@ -596,7 +607,7 @@ export const groups = [
                         subRoutes: [],
                         component: DockerCredential,
                         index: 12,
-                        shortcut: 's+d',
+                        shortcut: 's+k',
                     },
                     {
                         title: 'Groups',

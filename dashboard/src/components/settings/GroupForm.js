@@ -58,7 +58,7 @@ export class GroupForm extends React.Component {
             updateGroup,
             closeModal,
             groupModalId,
-            resetErrorMessage
+            resetErrorMessage,
         } = this.props;
 
         if (!editGroup) {
@@ -67,10 +67,10 @@ export class GroupForm extends React.Component {
                 teams: this.state.teamMemberIds,
             }).then(data => {
                 if (!data.error) {
-                     closeModal({
+                    closeModal({
                         id: groupModalId,
                     });
-                    resetErrorMessage()
+                    resetErrorMessage();
                 }
             });
         } else {
@@ -80,10 +80,10 @@ export class GroupForm extends React.Component {
                 teams: teamMemberIds,
             }).then(data => {
                 if (!data.error) {
-                     closeModal({
+                    closeModal({
                         id: groupModalId,
                     });
-                    resetErrorMessage()
+                    resetErrorMessage();
                 } else return null;
             });
         }
@@ -330,7 +330,7 @@ export class GroupForm extends React.Component {
                                                 }`}
                                                 type="button"
                                                 onClick={() => {
-                                                     closeModal({
+                                                    closeModal({
                                                         id: groupModalId,
                                                     });
                                                     this.props.resetErrorMessage();
