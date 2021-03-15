@@ -40,7 +40,7 @@ describe('Components', () => {
         });
 
         return await cluster.execute(null, async ({ page }) => {
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
         });
     });
 
@@ -279,7 +279,7 @@ describe('Components', () => {
                 await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
                 await page.click('#url');
-                await page.type('#url', 'https://google.com');            
+                await page.type('#url', 'https://google.com');
                 await page.$eval('button[type=submit]', e => e.click());
 
                 let spanElement = await page.waitForSelector(
@@ -316,7 +316,7 @@ describe('Components', () => {
                 await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
                 await page.click('#url');
-                await page.type('#url', 'https://google.com'); 
+                await page.type('#url', 'https://google.com');
                 await page.$eval('button[type=submit]', e => e.click());
 
                 let spanElement = await page.waitForSelector(
@@ -389,7 +389,7 @@ describe('Components', () => {
                 await init.navigateToComponentDetails(componentName, page);
 
                 await page.waitForSelector('#logs');
-                await page.click('#logs');                
+                await page.click('#logs');
 
                 // Fill and submit New Application  log form
                 await page.waitForSelector('#form-new-application-log');
@@ -430,7 +430,7 @@ describe('Components', () => {
                 await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
                 await page.click('#url');
-                await page.type('#url', 'https://google.com'); 
+                await page.type('#url', 'https://google.com');
                 await page.$eval('button[type=submit]', e => e.click());
                 await page.waitForSelector(`#cb${newMonitorName}`, {
                     visible: true,
@@ -439,7 +439,7 @@ describe('Components', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components');
                 await page.$eval('#components', e => e.click());
-                
+
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector('#component0', { visible: true });
@@ -498,8 +498,9 @@ describe('Components', () => {
                 await monitorPage.waitForSelector(
                     `#monitorCreateIncident_${monitorName}`
                 );
-                await monitorPage.$eval(`#monitorCreateIncident_${monitorName}`, e =>
-                    e.click()
+                await monitorPage.$eval(
+                    `#monitorCreateIncident_${monitorName}`,
+                    e => e.click()
                 );
                 await monitorPage.waitForSelector('#createIncident');
                 await init.selectByText(
@@ -587,7 +588,7 @@ describe('Components', () => {
                 });
                 await page.waitForSelector('#components');
                 await page.$eval('#components', e => e.click());
-                
+
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector(`#count_${componentName}`);
@@ -732,9 +733,12 @@ describe('Components', () => {
                     newMonitorName,
                     page
                 );
-                await page.waitForSelector(`#monitorCreateIncident_${newMonitorName}`);
-                await page.$eval(`#monitorCreateIncident_${newMonitorName}`, e =>
-                    e.click()
+                await page.waitForSelector(
+                    `#monitorCreateIncident_${newMonitorName}`
+                );
+                await page.$eval(
+                    `#monitorCreateIncident_${newMonitorName}`,
+                    e => e.click()
                 );
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);

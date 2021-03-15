@@ -41,7 +41,7 @@ class EditWebHook extends React.Component {
 
         const postObj = {};
         postObj.webHookName = values.webHookName;
-        postObj.endpoint = values.endpoint
+        postObj.endpoint = values.endpoint;
         postObj.monitorId = values.monitorId;
         postObj.endpointType = values.endpointType;
         postObj.type = 'slack';
