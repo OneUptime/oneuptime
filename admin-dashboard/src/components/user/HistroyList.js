@@ -121,6 +121,16 @@ export class HistoryList extends Component {
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Status</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Date</span>
                                         </span>
                                     </div>
@@ -306,6 +316,37 @@ export class HistoryList extends Component {
                                             >
                                                 <div className="db-ListViewItem-link">
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        {log.status ===
+                                                        'successful' ? (
+                                                            <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                    <span>
+                                                                        {
+                                                                            log.status
+                                                                        }
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                    <span>
+                                                                        {
+                                                                            log.status
+                                                                        }
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
+                                            >
+                                                <div className="db-ListViewItem-link">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         {moment
                                                             .utc(log.createdAt)
                                                             .local()
@@ -444,7 +485,6 @@ HistoryList.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     requesting: PropTypes.bool,
-    page: PropTypes.number,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(HistoryList);

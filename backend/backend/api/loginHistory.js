@@ -28,7 +28,7 @@ router.get('/:userId', getUser, isAuthorized, async function(req, res) {
             skip,
             limit
         );
-        
+
         return sendItemResponse(req, res, historyLogs);
     } catch (error) {
         return sendErrorResponse(req, res, error);

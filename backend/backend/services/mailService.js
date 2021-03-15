@@ -388,13 +388,15 @@ const _this = {
         ip,
         location,
         deviceObj,
-        twoFactorEnabled
+        twoFactorEnabled,
+        status,
     ) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
         let locations;
         let device;
+        let statusMessage
         const os = deviceObj && deviceObj.os && deviceObj.os.name;
         const browser = deviceObj && deviceObj.client && deviceObj.client.name;
         if (location.city && location.country) {
@@ -416,6 +418,11 @@ const _this = {
         } else {
             device = 'Unknown Device';
         }
+        if(status === "successful"){
+            statusMessage = "a successful"
+        }else{
+            statusMessage = "an unsuccessful"
+        }
 
         try {
             let accountMail = await _this.getSmtpSettings();
@@ -436,6 +443,7 @@ const _this = {
                     locations,
                     device,
                     twoFactorEnabled,
+                    statusMessage
                 },
             };
 
@@ -493,6 +501,7 @@ const _this = {
                                 locations,
                                 device,
                                 twoFactorEnabled,
+                                statusMessage,
                             },
                         };
 

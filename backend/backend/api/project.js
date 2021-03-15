@@ -14,8 +14,6 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const DeviceDetector = require('node-device-detector');
-const geoip = require('geoip-lite');
 
 // Route
 // Description: Creating new Porject by Admin.
@@ -165,17 +163,6 @@ router.post('/create', getUser, async function(req, res) {
 // Returns: 200: [{project}]; 400: Error.
 router.get('/projects', getUser, async function(req, res) {
     try {
-        const clientIP =
-            req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-          const userAgent = req.get('user-agent')  
-          const detector = new DeviceDetector();
-          const result = detector.detect(userAgent);
-        console.log('Result parse client', result);
-        const geo = geoip.lookup("41.184.208.195");
-        console.log(geo)
-
-
-
         const userId = req.user ? req.user.id : null;
         // find user subprojects and parent projects
         const userProjects = await ProjectService.findBy({

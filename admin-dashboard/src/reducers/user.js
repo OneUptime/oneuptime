@@ -116,6 +116,8 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
         history: {},
+        limit: null,
+        skip: null,
     },
 };
 
