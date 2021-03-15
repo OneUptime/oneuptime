@@ -33,7 +33,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 password: data.password,
             };
             // user
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
         });
 
         done();
@@ -335,9 +335,12 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 });
                 await page.keyboard.press('s');
                 await page.keyboard.press('i');
-                const integrations = await page.waitForSelector('#integrations', {
-                    visible: true,
-                });
+                const integrations = await page.waitForSelector(
+                    '#integrations',
+                    {
+                        visible: true,
+                    }
+                );
                 expect(integrations).toBeDefined();
             });
             done();

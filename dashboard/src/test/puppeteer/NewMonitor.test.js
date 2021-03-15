@@ -33,7 +33,7 @@ describe('New Monitor API', () => {
                 password: data.password,
             };
             // user
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
         });
     });
 
@@ -60,8 +60,8 @@ describe('New Monitor API', () => {
                         page,
                         componentName,
                         monitorName
-                    );  
-                    await page.waitForSelector('.ball-beat', { hidden: true });                 
+                    );
+                    await page.waitForSelector('.ball-beat', { hidden: true });
                 }
 
                 // try to add more monitor
@@ -74,7 +74,7 @@ describe('New Monitor API', () => {
                 await page.waitForSelector('#form-new-monitor');
                 await page.waitForSelector('input[id=name]');
                 await page.click('input[id=name]');
-                await page.type('input[id=name]', monitorName);               
+                await page.type('input[id=name]', monitorName);
                 // Added new URL-Montior
                 await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
@@ -112,8 +112,8 @@ describe('New Monitor API', () => {
                         page,
                         componentName,
                         monitorName
-                    );    
-                    await page.waitForSelector('.ball-beat', { hidden: true });                
+                    );
+                    await page.waitForSelector('.ball-beat', { hidden: true });
                 }
 
                 // try to add more monitor
@@ -126,7 +126,7 @@ describe('New Monitor API', () => {
                 await page.waitForSelector('#form-new-monitor');
                 await page.waitForSelector('input[id=name]');
                 await page.click('input[id=name]');
-                await page.type('input[id=name]', monitorName);               
+                await page.type('input[id=name]', monitorName);
                 // Added new URL-Montior
                 await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
@@ -164,7 +164,7 @@ describe('New Monitor API', () => {
                         page,
                         componentName,
                         monitorName
-                    ); 
+                    );
                     await page.waitForSelector('.ball-beat', { hidden: true });
                 }
 
@@ -178,7 +178,7 @@ describe('New Monitor API', () => {
                 await page.waitForSelector('#form-new-monitor');
                 await page.waitForSelector('input[id=name]');
                 await page.click('input[id=name]');
-                await page.type('input[id=name]', monitorName);               
+                await page.type('input[id=name]', monitorName);
                 // Added new URL-Montior
                 await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');

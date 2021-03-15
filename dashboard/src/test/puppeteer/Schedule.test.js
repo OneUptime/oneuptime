@@ -36,7 +36,7 @@ describe('Schedule', () => {
                 email: data.email,
                 password: data.password,
             };
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
         });
         done();
     });
@@ -137,7 +137,7 @@ describe('Schedule', () => {
                     let elem = document.querySelectorAll('.Table > tbody tr');
                     elem = Array.from(elem);
                     elem[0].click();
-                });                
+                });
 
                 let monitor = await page.$(
                     `label[id=scheduleMonitor_0] > div.Checkbox-label > span > span[title=${monitorName}]`

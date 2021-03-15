@@ -2,7 +2,7 @@ const triggerIncident = (z, bundle) => {
     return bundle.cleanedRequest;
 };
 
-const fallbackHook = (z, bundle ) => {
+const fallbackHook = (z, bundle) => {
     // For the test poll, you should get some real data, to aid the setup process.
     const options = {
         url: `${bundle.authData.serverUrl}/zapier/incidents`,

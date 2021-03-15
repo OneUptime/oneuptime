@@ -1643,9 +1643,6 @@ ProfileSetting.propTypes = {
     setVerified: PropTypes.func.isRequired,
     updateProfileSetting: PropTypes.func.isRequired,
     updatePushNotification: PropTypes.func.isRequired,
-    askUserPermission: PropTypes.func,
-    getTheSubscription: PropTypes.func,
-    getUserAgent: PropTypes.func,
     userEmail: PropTypes.string,
     userSettings: PropTypes.func.isRequired,
     verified: PropTypes.bool,
@@ -1657,6 +1654,7 @@ ProfileSetting.propTypes = {
     ]),
     verifySMSCodeRequesting: PropTypes.bool,
     getProjects: PropTypes.func,
+    pushSettings: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProfileSettingForm);

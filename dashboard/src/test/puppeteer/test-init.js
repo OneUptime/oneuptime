@@ -292,7 +292,7 @@ module.exports = {
         await page.click(`#emails_${subProjectName}`);
         await page.type(`#emails_${subProjectName}`, email);
         await page.click(`#${role}_${subProjectName}`);
-        await page.click(`#btn_modal_${subProjectName}`);       
+        await page.click(`#btn_modal_${subProjectName}`);
     },
     switchProject: async function(projectName, page) {
         await page.goto(utils.DASHBOARD_URL);
@@ -349,7 +349,7 @@ module.exports = {
             visible: true,
         });
     },
-    addNewMonitorToComponent: async function(page,componentName, monitorName){
+    addNewMonitorToComponent: async function(page, componentName, monitorName) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle0',
         });
@@ -361,7 +361,7 @@ module.exports = {
         await page.waitForSelector('#form-new-monitor');
         await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
-        await page.type('input[id=name]', monitorName);        
+        await page.type('input[id=name]', monitorName);
         await page.click('[data-testId=type_url]');
         await page.waitForSelector('#url');
         await page.click('#url');
