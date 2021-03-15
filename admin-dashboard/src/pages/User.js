@@ -6,13 +6,14 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../components/basic/ShouldRender';
 import UserSetting from '../components/user/UserSetting';
 import UserProject from '../components/user/UserProject';
+import UserHistory from '../components/user/UserHistory';
 import UserDeleteBox from '../components/user/UserDeleteBox';
 import UserRestoreBox from '../components/user/UserRestoreBox';
 import UserBlockBox from '../components/user/UserBlockBox';
 import UserUnblockBox from '../components/user/UserUnblockBox';
 import AdminNotes from '../components/adminNote/AdminNotes';
 import { fetchUserProjects } from '../actions/project';
-import { addUserNote, fetchUser } from '../actions/user';
+import { addUserNote, fetchUser, fetchUserloginHistory } from '../actions/user';
 
 class User extends Component {
     componentDidMount() {
@@ -24,6 +25,7 @@ class User extends Component {
     ready = async () => {
         await this.props.fetchUserProjects(this.props.match.params.userId);
         await this.props.fetchUser(this.props.match.params.userId);
+        await this.props.fetchUserloginHistory(this.props.match.params.userId);
     };
 
     render() {
@@ -56,6 +58,17 @@ class User extends Component {
                                                         initialValues={
                                                             this.props
                                                                 .initialValues
+                                                        }
+                                                    />
+                                                </div>
+                                                <div className="Box-root Margin-bottom--12">
+                                                    <UserHistory
+                                                        history={
+                                                            this.props.history
+                                                        }
+                                                        userId={
+                                                            this.props.match
+                                                                .params.userId
                                                         }
                                                     />
                                                 </div>
@@ -120,16 +133,18 @@ class User extends Component {
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { fetchUserProjects, addUserNote, fetchUser },
+        { fetchUserProjects, addUserNote, fetchUser, fetchUserloginHistory },
         dispatch
     );
 };
 
 const mapStateToProps = state => {
     const user = state.user.user.user || {};
+    const history = state.user.loginHistory.history;
 
     return {
         user,
+        history,
         initialValues: { adminNotes: user.adminNotes || [] },
     };
 };
@@ -143,8 +158,10 @@ User.propTypes = {
     fetchUserProjects: PropTypes.func.isRequired,
     fetchUser: PropTypes.func.isRequired,
     user: PropTypes.object.isRequired,
+    history: PropTypes.object,
     addUserNote: PropTypes.func.isRequired,
     initialValues: PropTypes.object,
+    fetchUserloginHistory: PropTypes.func,
 };
 
 User.displayName = 'User';
