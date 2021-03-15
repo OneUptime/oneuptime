@@ -291,7 +291,8 @@ class Main extends Component {
             uptimeColor,
             degradedColor,
             disabledColor,
-            disabled;
+            disabled,
+            noteBackgroundColor;
         let statusBackground;
         if (this.props.statusData && this.props.statusData.monitorsData) {
             serviceStatus = getServiceStatus(this.props.monitorState, probes);
@@ -371,6 +372,10 @@ class Main extends Component {
             contentBackground = {
                 background: `rgba(${colors.statusPageBackground.r}, ${colors.statusPageBackground.g}, ${colors.statusPageBackground.b}, ${colors.statusPageBackground.a})`,
             };
+
+            noteBackgroundColor = {
+                background: `rgba(${colors.noteBackground.r}, ${colors.noteBackground.g}, ${colors.noteBackground.b})`,
+            };
         }
 
         const {
@@ -391,7 +396,15 @@ class Main extends Component {
             <>
                 {theme === 'Clean Theme' ? (
                     <>
-                        <div className="new-theme">
+                        <div
+                            className="new-theme"
+                            style={
+                                backgroundMain.background ===
+                                'rgba(247, 247, 247, 1)'
+                                    ? { background: 'rgba(255, 255, 255, 1)' }
+                                    : backgroundMain
+                            }
+                        >
                             <HelemtCard
                                 statusData={this.props.statusData}
                                 faviconurl={faviconurl}
@@ -456,18 +469,7 @@ class Main extends Component {
                                             target="_blank"
                                             rel="noopener noreferrer"
                                         >
-                                            <ShouldRender
-                                                if={this.props.statusData.title}
-                                            >
-                                                {this.props.statusData.title}
-                                            </ShouldRender>
-                                            <ShouldRender
-                                                if={
-                                                    !this.props.statusData.title
-                                                }
-                                            >
-                                                Status Page
-                                            </ShouldRender>
+                                            {this.props.statusData.title}
                                             <ShouldRender
                                                 if={
                                                     this.props.statusData
@@ -507,7 +509,10 @@ class Main extends Component {
                                     }
                                 >
                                     <div className="new-theme-incident matop-40">
-                                        <div className="font-largest">
+                                        <div
+                                            className="font-largest"
+                                            style={heading}
+                                        >
                                             Past Incidents
                                         </div>
                                         <NotesMain
@@ -591,6 +596,7 @@ class Main extends Component {
                                                                 borderTopWidth:
                                                                     i === 0 &&
                                                                     '1px',
+                                                                ...contentBackground,
                                                             }}
                                                             key={i}
                                                         >
@@ -638,7 +644,10 @@ class Main extends Component {
                                     </div>
                                 </ShouldRender>
                                 <ShouldRender if={availableMonitors.length < 1}>
-                                    <div className="bs-no-monitor">
+                                    <div
+                                        className="bs-no-monitor"
+                                        style={noteBackgroundColor}
+                                    >
                                         No monitors added yet. Please, add a
                                         monitor.
                                     </div>
@@ -652,8 +661,14 @@ class Main extends Component {
                                     !this.props.statusData.moveIncidentToTheTop
                                 }
                             >
-                                <div className="new-theme-incident">
-                                    <div className="font-largest">
+                                <div
+                                    className="new-theme-incident"
+                                    style={contentBackground}
+                                >
+                                    <div
+                                        className="font-largest"
+                                        style={heading}
+                                    >
                                         Past Incidents
                                     </div>
                                     <NotesMain
@@ -671,8 +686,14 @@ class Main extends Component {
                                     this.props.events.length > 0
                                 }
                             >
-                                <div className="new-theme-incident">
-                                    <div className="font-largest">
+                                <div
+                                    className="new-theme-incident"
+                                    style={contentBackground}
+                                >
+                                    <div
+                                        className="font-largest"
+                                        style={heading}
+                                    >
                                         Scheduled Events
                                     </div>
                                     <NewThemeEvent
@@ -680,6 +701,9 @@ class Main extends Component {
                                             this.props.statusData.projectId._id
                                         }
                                         statusPageId={this.props.statusData._id}
+                                        noteBackgroundColor={
+                                            noteBackgroundColor
+                                        }
                                     />
                                 </div>
                             </ShouldRender>

@@ -509,11 +509,54 @@ class MonitorInfo extends Component {
                                     </div>
                                 )}
                                 <div className="alerts_days">
-                                    <div>{range} days ago</div>
-                                    <div className="spacer"></div>
-                                    <div>{uptime}% uptime</div>
-                                    <div className="spacer"></div>
-                                    <div>Today</div>
+                                    <div
+                                        style={
+                                            subheading.color ===
+                                            'rgba(76, 76, 76, 1)'
+                                                ? { color: '#aaaaaa' }
+                                                : subheading
+                                        }
+                                    >
+                                        {range} days ago
+                                    </div>
+                                    <div
+                                        style={
+                                            subheading.color ===
+                                            'rgba(76, 76, 76, 1)'
+                                                ? { color: '#aaaaaa' }
+                                                : subheading
+                                        }
+                                        className="spacer"
+                                    ></div>
+                                    <div
+                                        style={
+                                            subheading.color ===
+                                            'rgba(76, 76, 76, 1)'
+                                                ? { color: '#aaaaaa' }
+                                                : subheading
+                                        }
+                                    >
+                                        {uptime}% uptime
+                                    </div>
+                                    <div
+                                        style={
+                                            subheading.color ===
+                                            'rgba(76, 76, 76, 1)'
+                                                ? { color: '#aaaaaa' }
+                                                : subheading
+                                        }
+                                        className="spacer"
+                                    ></div>
+                                    <div
+                                        style={
+                                            subheading.color ===
+                                            'rgba(76, 76, 76, 1)'
+                                                ? { color: '#aaaaaa' }
+                                                : subheading
+                                        }
+                                    >
+                                        Today
+                                    </div>
                                 </div>
                             </div>
                         </ShouldRender>
