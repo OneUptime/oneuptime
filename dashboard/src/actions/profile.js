@@ -25,6 +25,26 @@ export function updateProfileSettingError(error) {
     };
 }
 
+export function updatePushNotificationRequest() {
+    return {
+        type: types.UPDATE_PUSH_NOTIFICATION_REQUEST,
+    };
+}
+
+export function updatePushNotificationError(error) {
+    return {
+        type: types.UPDATE_PUSH_NOTIFICATION_ERROR,
+        payload: error,
+    };
+}
+
+export function updatePushNotificationSuccess(data) {
+    return {
+        type: types.UPDATE_PUSH_NOTIFICATION_SUCCESS,
+        payload: data,
+    };
+}
+
 // Calls the API to update setting.
 
 export function updateProfileSetting(values) {
@@ -75,6 +95,36 @@ export function updateProfileSetting(values) {
                     error = 'Network Error';
                 }
                 dispatch(updateProfileSettingError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+// Update push notification
+export function updatePushNotification(data) {
+    return function(dispatch) {
+        const promise = putApi('user/push-notification', data);
+        dispatch(updatePushNotificationRequest());
+        promise.then(
+            function(response) {
+                const profileSettings = response.data;
+                dispatch(updatePushNotificationSuccess(profileSettings));
+                return profileSettings;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updatePushNotificationError(errors(error)));
             }
         );
 

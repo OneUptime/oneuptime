@@ -217,6 +217,32 @@ module.exports = {
         }
     },
 
+    updatePush: async function({ userId, data }) {
+        try {
+            const user = await UserModel.findOne({ _id: userId });
+            const checkExist = await user.identification.find(
+                user => String(user.userAgent) === String(data.userAgent)
+            );
+            if (!data.checked) {
+                const findIndex = await user.identification.findIndex(
+                    user => String(user.userAgent) === String(data.userAgent)
+                );
+                await user.identification.splice(findIndex, 1);
+                await user.save();
+            } else {
+                if (!checkExist) {
+                    await user.identification.push(data);
+                    await user.save();
+                }
+            }
+            const userData = await UserModel.findOne({ _id: userId });
+            return userData;
+        } catch (error) {
+            ErrorService.log('userService.updatePush', error);
+            throw error;
+        }
+    },
+
     closeTutorialBy: async function(query, type, data, projectId) {
         try {
             if (!query) query = {};

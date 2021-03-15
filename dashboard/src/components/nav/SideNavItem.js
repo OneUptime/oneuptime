@@ -77,7 +77,8 @@ export class SidebarNavItem extends Component {
             subRoute.title === 'Git Credentials' ||
             subRoute.title === 'Docker Credentials' ||
             subRoute.title === 'Resources' ||
-            subRoute.title === 'Domains';
+            subRoute.title === 'Domains' ||
+            subRoute.title === 'Groups';
         if (projectSettingsSubRoutes) {
             if (match.url === subRoutePath) {
                 this.props.toggleProjectSettingsMore(true);
@@ -379,7 +380,8 @@ export class SidebarNavItem extends Component {
                 child.title === 'Git Credentials' ||
                 child.title === 'Docker Credentials' ||
                 child.title === 'Resources' ||
-                child.title === 'Domains';
+                child.title === 'Domains' ||
+                child.title === 'Groups';
             if (removedLinks.some(link => link === child.title)) return null;
 
             if (child.visible) {

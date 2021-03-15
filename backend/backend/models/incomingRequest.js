@@ -34,7 +34,14 @@ const incomingRequestSchema = new Schema(
             index: true,
         },
         incidentDescription: String,
-        customFields: [{ fieldName: String, fieldValue: Schema.Types.Mixed }],
+        customFields: [
+            {
+                fieldName: String,
+                fieldValue: Schema.Types.Mixed,
+                uniqueField: { type: Boolean, default: false },
+                fieldType: String,
+            },
+        ],
         filterMatch: String,
         filters: [
             {

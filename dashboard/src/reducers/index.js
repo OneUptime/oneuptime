@@ -45,6 +45,7 @@ import incomingRequest from './incomingRequest';
 import customField from './customField';
 import monitorCustomField from './monitorCustomField';
 import callRouting from './callRouting';
+import groups from './groups';
 const appReducer = combineReducers({
     routing: routerReducer,
     form: formReducer,
@@ -62,6 +63,7 @@ const appReducer = combineReducers({
     invoice,
     profileSettings,
     feedback,
+    groups,
     notifications,
     slack,
     slackWebhooks,

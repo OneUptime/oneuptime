@@ -34,7 +34,6 @@ describe('Status Page -> Pricing Plan Component', () => {
             };
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
         });
     });
 
@@ -65,8 +64,9 @@ describe('Status Page -> Pricing Plan Component', () => {
                 await page.waitForSelector('ul#customTabList > li', {
                     visible: true,
                 });
-                await page.$$eval('ul#customTabList > li', elems =>
-                    elems[3].click()
+                await page.$$eval(
+                    'ul#customTabList > li',
+                    elems => elems[4].click() // Advanced Option is now in a new tab position.
                 );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
@@ -170,7 +170,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                     visible: true,
                 });
                 await page.$$eval('ul#customTabList > li', elems =>
-                    elems[3].click()
+                    elems[4].click()
                 );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
@@ -210,7 +210,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                     visible: true,
                 });
                 await page.$$eval('ul#customTabList > li', elems =>
-                    elems[3].click()
+                    elems[4].click()
                 );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
@@ -231,7 +231,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                 });
                 await page.reload({ waitUntil: 'networkidle2' });
                 await page.$$eval('ul#customTabList > li', elems =>
-                    elems[3].click()
+                    elems[4].click()
                 );
 
                 await page.$eval('input[name="isPrivate"]', elem =>

@@ -34,7 +34,6 @@ describe('Keyboard Shortcut: Dashboard', () => {
             };
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
         });
 
         done();
@@ -108,7 +107,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#onCallSchedules', {
+                await page.waitForSelector('#onCallDuty', {
                     visible: true,
                 });
                 await page.keyboard.press('f');
@@ -129,7 +128,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#onCallSchedules', {
+                await page.waitForSelector('#onCallDuty', {
                     visible: true,
                 });
                 await page.keyboard.press('o');
@@ -149,7 +148,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#scheduledEvents', {
+                await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
                 });
                 await page.keyboard.press('f');
@@ -253,7 +252,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 });
                 await page.keyboard.press('s');
                 await page.keyboard.press('b');
-                const billing = await page.waitForSelector('#billingSetting', {
+                const billing = await page.waitForSelector('#billing', {
                     visible: true,
                 });
                 expect(billing).toBeDefined();
@@ -336,10 +335,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 });
                 await page.keyboard.press('s');
                 await page.keyboard.press('i');
-                const zapier = await page.waitForSelector('#zapierId', {
-                    visible: true,
-                });
-                expect(zapier).toBeDefined();
+                const integrations = await page.waitForSelector(
+                    '#integrations',
+                    {
+                        visible: true,
+                    }
+                );
+                expect(integrations).toBeDefined();
             });
             done();
         },
