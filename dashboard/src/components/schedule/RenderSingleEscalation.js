@@ -15,6 +15,7 @@ const RenderSingleEscalation = ({
     policy,
     email,
     sms,
+    push,
     call,
     rotateBy,
     subProjectId,
@@ -150,6 +151,35 @@ const RenderSingleEscalation = ({
                                         </label>
                                     </div>
                                 </div>
+                                <div className="bs-Fieldset-fields">
+                                    <div
+                                        className="Box-root"
+                                        style={{ height: '5px' }}
+                                    ></div>
+                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                        <label className="Checkbox">
+                                            <Field
+                                                component="input"
+                                                type="checkbox"
+                                                name={`${policy}.push`}
+                                                data-test="RetrySettings-failedPaymentsCheckbox"
+                                                className="Checkbox-source"
+                                            />
+                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                <div className="Checkbox-target Box-root">
+                                                    <div className="Checkbox-color Box-root"></div>
+                                                </div>
+                                            </div>
+                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <span>
+                                                        Push notification
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                 <fieldset className="bs-Fieldset">
@@ -264,6 +294,49 @@ const RenderSingleEscalation = ({
                                                                 team to be
                                                                 alerted by Email
                                                                 if they do not
+                                                                respond. After X
+                                                                reminders Fyipe
+                                                                will escalates
+                                                                this incident to
+                                                                another team.{' '}
+                                                            </p>
+                                                        </div>
+                                                    </Tooltip>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {push && (
+                                        <div className="bs-Fieldset-row">
+                                            <label className="bs-Fieldset-label">
+                                                Number of Push notification
+                                                Reminders
+                                            </label>
+                                            <div className="bs-Fieldset-fields">
+                                                <span className="flex">
+                                                    <Field
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        type="text"
+                                                        name={`${policy}.pushReminders`}
+                                                        component={RenderField}
+                                                        style={{
+                                                            width: '250px',
+                                                        }}
+                                                        defaultValue="3"
+                                                        subProjectId={
+                                                            subProjectId
+                                                        }
+                                                    />
+                                                    <Tooltip title="Push notification Reminders">
+                                                        <div>
+                                                            <p>
+                                                                {' '}
+                                                                How many times
+                                                                do you want your
+                                                                team to be
+                                                                alerted by Push
+                                                                notification if
+                                                                they do not
                                                                 respond. After X
                                                                 reminders Fyipe
                                                                 will escalates
@@ -782,6 +855,7 @@ RenderSingleEscalation.propTypes = {
     call: PropTypes.bool.isRequired,
     sms: PropTypes.bool.isRequired,
     email: PropTypes.bool.isRequired,
+    push: PropTypes.bool.isRequired,
     policy: PropTypes.string.isRequired,
     policyIndex: PropTypes.number.isRequired,
     rotateBy: PropTypes.string,

@@ -326,6 +326,7 @@ module.exports = {
 
     sendAlertsToTeamMembersInSchedule: async function({ schedule, incident }) {
         const _this = this;
+        const userId = incident.createdById._id;
         const monitorId = incident.monitorId._id
             ? incident.monitorId._id
             : incident.monitorId;
@@ -363,6 +364,7 @@ module.exports = {
                 callRemindersSent: 0,
                 emailRemindersSent: 0,
                 smsRemindersSent: 0,
+                pushRemindersSent: 0,
             };
 
             //create new onCallScheduleStatus
@@ -386,6 +388,7 @@ module.exports = {
         let shouldSendSMSReminder = false;
         let shouldSendCallReminder = false;
         let shouldSendEmailReminder = false;
+        let shouldSendPushReminder = false;
 
         //No escalation found in the database skip.
         const escalation = await EscalationService.findOneBy({
@@ -400,10 +403,13 @@ module.exports = {
             emailProgress: null,
             smsProgress: null,
             callProgress: null,
+            pushProgress: null,
         };
         const emailRem = currentEscalationStatus.emailRemindersSent + 1;
         const smsRem = currentEscalationStatus.smsRemindersSent + 1;
         const callRem = currentEscalationStatus.callRemindersSent + 1;
+        const pushRem = currentEscalationStatus.pushRemindersSent + 1;
+
         if (emailRem > 1) {
             alertProgress.emailProgress = {
                 current: emailRem,
@@ -425,6 +431,13 @@ module.exports = {
             };
         }
 
+        if (pushRem > 1) {
+            alertProgress.pushProgress = {
+                current: pushRem,
+                total: escalation.pushReminders,
+            };
+        }
+
         shouldSendSMSReminder =
             escalation.smsReminders > currentEscalationStatus.smsRemindersSent;
         shouldSendCallReminder =
@@ -433,11 +446,15 @@ module.exports = {
         shouldSendEmailReminder =
             escalation.emailReminders >
             currentEscalationStatus.emailRemindersSent;
+        shouldSendPushReminder =
+            escalation.pushReminders >
+            currentEscalationStatus.pushRemindersSent;
 
         if (
             !shouldSendSMSReminder &&
             !shouldSendEmailReminder &&
-            !shouldSendCallReminder
+            !shouldSendCallReminder &&
+            !shouldSendPushReminder
         ) {
             _this.escalate({ schedule, incident, alertProgress });
         } else {
@@ -555,6 +572,9 @@ module.exports = {
         const shouldSendEmailReminder =
             escalation.emailReminders >
             currentEscalationStatus.emailRemindersSent;
+        const shouldSendPushReminder =
+            escalation.pushReminders >
+            currentEscalationStatus.pushRemindersSent;
 
         if (shouldSendCallReminder) {
             currentEscalationStatus.callRemindersSent++;
@@ -566,6 +586,10 @@ module.exports = {
 
         if (shouldSendSMSReminder) {
             currentEscalationStatus.smsRemindersSent++;
+        }
+
+        if (shouldSendPushReminder) {
+            currentEscalationStatus.pushRemindersSent++;
         }
 
         if (!activeTeam.teamMembers || activeTeam.teamMembers.length === 0) {
@@ -648,6 +672,20 @@ module.exports = {
                         alertProgress: alertProgress.smsProgress,
                     });
                 }
+                if (escalation.push && shouldSendPushReminder) {
+                    await _this.create({
+                        projectId: incident.projectId,
+                        monitorId,
+                        alertVia: AlertType.Push,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        schedule: schedule,
+                        escalation: escalation,
+                        onCallScheduleStatus: onCallScheduleStatus,
+                        alertStatus: 'Not on Duty',
+                        eventType: 'identified',
+                    });
+                }
 
                 continue;
             } else {
@@ -698,7 +736,116 @@ module.exports = {
                         callProgress: alertProgress.callProgress,
                     });
                 }
+
+                if (escalation.push && shouldSendPushReminder) {
+                    await _this.sendPushAlert({
+                        incident,
+                        user,
+                        monitor,
+                        schedule,
+                        escalation,
+                        onCallScheduleStatus,
+                        eventType: 'identified',
+                        pushProgress: alertProgress.pushProgress,
+                    });
+                }
             }
+        }
+    },
+
+    sendPushAlert: async function({
+        incident,
+        user,
+        monitor,
+        schedule,
+        escalation,
+        onCallScheduleStatus,
+        eventType,
+        pushProgress,
+    }) {
+        const _this = this;
+        let pushMessage;
+        const userData = await UserService.findOneBy({
+            _id: user._id,
+        });
+        const identification = userData.identification;
+
+        webpush.setVapidDetails(
+            process.env.WEBPUSH_EMAIL, // Address or URL for this application
+            process.env.VAPID_PUBLIC_KEY, // URL Safe Base64 Encoded Public Key
+            process.env.VAPID_PRIVATE_KEY // URL Safe Base64 Encoded Private Key
+        );
+
+        if (pushProgress) {
+            pushMessage = `Reminder ${pushProgress.current}/${pushProgress.total}: `;
+        } else {
+            pushMessage = '';
+        }
+
+        // Create payload
+        const title = `${pushMessage}Incident #${incident.idNumber} is created`;
+        const body = `Please acknowledge or resolve this incident on Fyipe Dashboard.`;
+        const payload = JSON.stringify({ title, body });
+
+        // Pass object into sendNotification
+        if (identification.length > 0) {
+            let promiseFuncs = [];
+            for (const sub of identification) {
+                promiseFuncs = [
+                    ...promiseFuncs,
+                    webpush.sendNotification(sub.subscription, payload),
+                ];
+            }
+            return Promise.all(promiseFuncs)
+                .then(async () => {
+                    return await _this.create({
+                        projectId: incident.projectId,
+                        monitorId: monitor._id,
+                        schedule: schedule._id,
+                        escalation: escalation._id,
+                        onCallScheduleStatus: onCallScheduleStatus._id,
+                        alertVia: `${AlertType.Push} Notification`,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        eventType,
+                        alertStatus: 'Success',
+                        alertProgress: pushProgress,
+                    });
+                })
+                .catch(async e => {
+                    return await _this.create({
+                        projectId: incident.projectId,
+                        monitorId: monitor._id,
+                        schedule: schedule._id,
+                        escalation: escalation._id,
+                        onCallScheduleStatus: onCallScheduleStatus._id,
+                        alertVia: `${AlertType.Push} Notification`,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        eventType,
+                        alertStatus: 'Cannot Send',
+                        error: true,
+                        errorMessage: e.message,
+                        alertProgress: pushProgress,
+                    });
+                });
+        } else {
+            return await _this.create({
+                projectId: incident.projectId,
+                monitorId: monitor._id,
+                schedule: schedule._id,
+                escalation: escalation._id,
+                onCallScheduleStatus: onCallScheduleStatus._id,
+                alertVia: `${AlertType.Push} Notification`,
+                userId: user._id,
+                incidentId: incident._id,
+                eventType,
+                alertStatus: 'Cannot Send',
+                error: true,
+                errorMessage:
+                    'Push Notification not allowed in the user dashboard',
+                alertProgress: pushProgress,
+            });
         }
     },
 
@@ -3293,10 +3440,12 @@ const {
     INCIDENT_ACKNOWLEDGED,
 } = require('../constants/incidentEvents');
 const componentService = require('./componentService');
+const webpush = require('web-push');
 const {
     calculateHumanReadableDownTime,
     getIncidentLength,
 } = require('../utils/incident');
+//  const IncidentService = require('./incidentService'); Declared but unused
 const IncidentMessageService = require('./incidentMessageService');
 const IncidentTimelineService = require('./incidentTimelineService');
 const Services = require('../utils/services');

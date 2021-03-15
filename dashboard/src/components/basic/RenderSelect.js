@@ -57,6 +57,7 @@ const RenderSelect = ({
                         opt.show !== undefined ? opt.show : true
                     )}
                     autoFocus={autoFocus}
+                    style={{ width: '100%' }}
                 />
                 {message && message.length && (
                     <>

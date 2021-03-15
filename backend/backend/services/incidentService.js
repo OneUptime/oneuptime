@@ -62,6 +62,33 @@ module.exports = {
                         ? project.users.map(({ userId }) => userId)
                         : [];
 
+                let errorMsg;
+                if (data.customFields && data.customFields.length > 0) {
+                    for (const field of data.customFields) {
+                        if (field.uniqueField) {
+                            const incident = await _this.findOneBy({
+                                customFields: {
+                                    $elemMatch: {
+                                        fieldName: field.fieldName,
+                                        fieldType: field.fieldType,
+                                        fieldValue: field.fieldValue,
+                                    },
+                                },
+                            });
+
+                            if (incident) {
+                                errorMsg = `The field ${field.fieldName} must be unique for all incidents`;
+                            }
+                        }
+                    }
+                }
+
+                if (errorMsg) {
+                    const error = new Error(errorMsg);
+                    error.code = 400;
+                    throw error;
+                }
+
                 if (monitor) {
                     let incident = new IncidentModel();
                     const incidentsCountInProject = await _this.countBy({
@@ -292,6 +319,15 @@ module.exports = {
                 data.manuallyCreated ||
                 (oldIncident && oldIncident.manuallyCreated) ||
                 false;
+
+            if (
+                data.reason &&
+                Array.isArray(data.reason) &&
+                data.reason.length > 0
+            ) {
+                data.reason = data.reason.join('\n');
+            }
+
             let updatedIncident = await IncidentModel.findOneAndUpdate(
                 query,
                 {
