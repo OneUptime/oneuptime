@@ -81,8 +81,8 @@ class Call extends Component {
                 {this.props.subscribed &&
                 this.props.subscribed.success ? null : (
                     <div className="directions">
-                        Get sms notifications when an incident is{' '}
-                        <strong>created</strong>.
+                        Get sms notifications when an incident is <b>created</b>
+                        .
                     </div>
                 )}
                 <form
@@ -363,7 +363,11 @@ class Call extends Component {
                                 ? 'Close'
                                 : 'Subscribe'
                         }
-                        className="subscribe-btn-full"
+                        className={
+                            this.props.theme
+                                ? 'subscribe-btn-full bs-theme-btn'
+                                : 'subscribe-btn-full'
+                        }
                         id="subscribe-btn-sms"
                     />
                     {this.props.subscribed &&
@@ -378,6 +382,7 @@ class Call extends Component {
                                 target="_blank"
                                 href="https://www.atlassian.com/legal/cloud-terms-of-service"
                                 rel="noopener noreferrer"
+                                style={{ fontSize: this.props.theme && '12px' }}
                             >
                                 Cloud Terms of Service
                             </a>
@@ -430,6 +435,7 @@ Call.propTypes = {
     subscribeUser: PropTypes.func,
     openSubscribeMenu: PropTypes.func,
     userDataReset: PropTypes.func,
+    theme: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Call);
