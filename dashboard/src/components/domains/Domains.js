@@ -190,12 +190,24 @@ class Domains extends Component {
                                                     className="bs-ObjectList-cell bs-u-v-middle"
                                                     style={{
                                                         display: 'flex',
-                                                        width: '15vw',
+                                                        width: '10vw',
                                                         whiteSpace: 'normal',
                                                     }}
                                                 >
                                                     <div className="bs-ObjectList-cell-row">
                                                         {eachDomain.domain}
+                                                    </div>
+                                                    <div
+                                                        style={{
+                                                            marginLeft: 5,
+                                                        }}
+                                                        className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                    >
+                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                            <span>
+                                                                Unverified
+                                                            </span>
+                                                        </span>
                                                     </div>
                                                 </div>
                                             )}
