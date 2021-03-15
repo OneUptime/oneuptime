@@ -51,6 +51,28 @@ class ApplicationSecurityDetail extends Component {
             getGitCredentials({ projectId });
         }
     }
+    componentDidMount(){
+        const {
+            projectId,
+            componentId,
+            applicationSecuritySlug,
+            getApplicationSecurityBySlug,
+            getApplicationSecurityLogBySlug,
+            getGitCredentials,
+        } = this.props;
+        // get a particular application security
+        getApplicationSecurityBySlug({
+            projectId,
+            componentId,
+            applicationSecuritySlug,
+        });
+        getApplicationSecurityLogBySlug({
+            projectId,
+            componentId,
+            applicationSecuritySlug,
+        });
+        getGitCredentials({ projectId });
+    }
 
     render() {
         const {

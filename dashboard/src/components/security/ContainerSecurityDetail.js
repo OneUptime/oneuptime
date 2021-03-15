@@ -55,6 +55,32 @@ class ContainerSecurityDetail extends Component {
             getDockerCredentials({ projectId });
         }
     }
+    componentDidMount() {
+        const {
+            projectId,
+            componentId,
+            containerSecuritySlug,
+            getContainerSecurityBySlug,
+            getContainerSecurityLogBySlug,
+            getDockerCredentials,
+        } = this.props;
+
+        // get a particular container security
+        getContainerSecurityBySlug({
+            projectId,
+            componentId,
+            containerSecuritySlug,
+        });
+
+        // get a container security log
+        getContainerSecurityLogBySlug({
+            projectId,
+            componentId,
+            containerSecuritySlug,
+        });
+
+        getDockerCredentials({ projectId });
+    }
 
     render() {
         const {
