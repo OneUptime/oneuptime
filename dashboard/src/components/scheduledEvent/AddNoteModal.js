@@ -49,8 +49,8 @@ class AddNoteModal extends Component {
             closeModal,
         } = this.props;
         const postObj = {};
-        if (values.internal_note) {
-            postObj.internal_note = values['internal_note'];
+        if (values.external_note) {
+            postObj.external_note = values['external_note'];
         }
         postObj.content = values[`content`];
         postObj.event_state =
@@ -256,7 +256,7 @@ class AddNoteModal extends Component {
                                                         <Field
                                                             component="input"
                                                             type="checkbox"
-                                                            name={`internal_note`}
+                                                            name={`external_note`}
                                                             data-test="RetrySettings-failedPaymentsCheckbox"
                                                             className="Checkbox-source"
                                                         />
@@ -273,10 +273,8 @@ class AddNoteModal extends Component {
                                                         >
                                                             <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                 <span>
-                                                                    Internal
-                                                                    note, team
-                                                                    members
-                                                                    only.
+                                                                    Post on
+                                                                    status page
                                                                 </span>
                                                             </span>
                                                         </div>

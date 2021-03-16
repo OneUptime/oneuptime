@@ -339,63 +339,6 @@ export function updateScheduledEventFailure(error) {
 }
 
 // Scheduled Event Note
-export const fetchScheduledEventNotesInvestigationRequest = () => ({
-    type: types.FETCH_SCHEDULED_EVENT_NOTES_INVESTIGATION_REQUEST,
-});
-
-export const fetchScheduledEventNotesInvestigationSuccess = payload => ({
-    type: types.FETCH_SCHEDULED_EVENT_NOTES_INVESTIGATION_SUCCESS,
-    payload,
-});
-
-export const fetchScheduledEventNotesInvestigationFailure = error => ({
-    type: types.FETCH_SCHEDULED_EVENT_NOTES_INVESTIGATION_FAILURE,
-    payload: error,
-});
-
-export const fetchScheduledEventNotesInvestigation = (
-    projectId,
-    scheduledEventId,
-    limit,
-    skip
-) => async dispatch => {
-    try {
-        dispatch(fetchScheduledEventNotesInvestigationRequest());
-        skip = Number(skip);
-        limit = Number(limit);
-
-        let response = {};
-        if (skip >= 0 && limit >= 0) {
-            response = await getApi(
-                `scheduledEvent/${projectId}/${scheduledEventId}/notes?limit=${limit}&skip=${skip}`
-            );
-        } else {
-            response = await getApi(
-                `scheduledEvent/${projectId}/${scheduledEventId}/notes`
-            );
-        }
-
-        const { data, count } = response.data;
-        dispatch(
-            fetchScheduledEventNotesInvestigationSuccess({
-                data,
-                count,
-                skip,
-                limit,
-            })
-        );
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(fetchScheduledEventNotesInvestigationFailure(errorMsg));
-    }
-};
 
 export const fetchScheduledEventNotesInternalRequest = () => ({
     type: types.FETCH_SCHEDULED_EVENT_NOTES_INTERNAL_REQUEST,
@@ -425,11 +368,11 @@ export const fetchScheduledEventNotesInternal = (
         let response = {};
         if (skip >= 0 && limit >= 0) {
             response = await getApi(
-                `scheduledEvent/${projectId}/${scheduledEventId}/notes?type=internal&limit=${limit}&skip=${skip}`
+                `scheduledEvent/${projectId}/${scheduledEventId}/notes?limit=${limit}&skip=${skip}`
             );
         } else {
             response = await getApi(
-                `scheduledEvent/${projectId}/${scheduledEventId}/notes?type=internal`
+                `scheduledEvent/${projectId}/${scheduledEventId}/notes?`
             );
         }
 

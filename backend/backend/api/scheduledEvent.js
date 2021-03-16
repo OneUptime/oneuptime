@@ -580,8 +580,8 @@ router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
             });
         }
 
-        if (data.internal_note === true) {
-            data.type = 'internal';
+        if (data.external_note === true) {
+            data.type = 'investigation';
         }
 
         const scheduledEventMessage = await ScheduledEventNoteService.create(
