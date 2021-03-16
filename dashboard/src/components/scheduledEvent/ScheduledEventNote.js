@@ -270,9 +270,10 @@ export class ScheduledEventNote extends Component {
                                                                       }}
                                                                   >
                                                                       <Markdown>
-                                                                          {
-                                                                              note.content
-                                                                          }
+                                                                          {note.content +
+                                                                              ' (' +
+                                                                              note.type +
+                                                                              ' note)'}
                                                                       </Markdown>
                                                                   </span>
                                                               </div>

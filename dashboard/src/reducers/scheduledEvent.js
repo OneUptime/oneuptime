@@ -863,10 +863,6 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
             };
 
         case DELETE_SCHEDULED_EVENT_NOTE_SUCCESS: {
-            let scheduledEventInternalList = {
-                ...state.scheduledEventInternalList,
-            };
-
             const scheduledEventNotes = state.scheduledEventInternalList.scheduledEventNotes.map(
                 internalNote => {
                     if (

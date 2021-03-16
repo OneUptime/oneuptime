@@ -461,7 +461,6 @@ export const updateScheduledEventNoteInternal = (
 ) => async dispatch => {
     try {
         dispatch(updateScheduledEventNoteInternalRequest());
-
         const response = await putApi(
             `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`,
             data

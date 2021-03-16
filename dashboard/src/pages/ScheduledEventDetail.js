@@ -93,7 +93,6 @@ class ScheduledEvent extends Component {
             location: { pathname },
             requesting,
             scheduledEvent,
-            investigationNotesList,
             internalNotesList,
             match,
             monitorList,

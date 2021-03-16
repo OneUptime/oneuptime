@@ -687,29 +687,6 @@ router.put(
                 });
             }
 
-            if (!data.type || !data.type.trim()) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Scheduled Event Message type is required.',
-                });
-            }
-
-            if (typeof data.type !== 'string') {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message:
-                        'Scheduled Event Message type is not in string type.',
-                });
-            }
-
-            if (!['investigation', 'internal'].includes(data.type)) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message:
-                        'Scheduled Event Message type should be of type investigation or internal.',
-                });
-            }
-
             const scheduledEventMessage = await ScheduledEventNoteService.updateOneBy(
                 {
                     _id: noteId,
