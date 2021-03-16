@@ -173,7 +173,7 @@ describe('Monitor API With SubProjects', () => {
                     await page.waitForSelector('#form-new-monitor');
                     await page.click('input[id=name]');
                     await page.type('input[id=name]', data.monitorName);
-                    await page.click('[data-testId=type_url]');
+                    await page.click('[data-testId=type_manual]');
                     await page.click('button[type=submit]');
                     await page.waitForSelector(
                         `#monitor-title-${data.monitorName}`,
