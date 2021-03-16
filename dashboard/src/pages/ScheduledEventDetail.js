@@ -8,7 +8,6 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import {
     fetchscheduledEvent,
     fetchScheduledEventNotesInternal,
-    fetchScheduledEventNotesInvestigation,
     updateScheduledEventNoteInvestigationSuccess,
     updateScheduledEventNoteInternalSuccess,
     deleteScheduledEventNoteSuccess,
@@ -47,7 +46,6 @@ class ScheduledEvent extends Component {
             match,
             fetchscheduledEvent,
             fetchScheduledEventNotesInternal,
-            fetchScheduledEventNotesInvestigation,
             updateScheduledEventNoteInvestigationSuccess,
             updateScheduledEventNoteInternalSuccess,
             deleteScheduledEventNoteSuccess,
@@ -59,12 +57,6 @@ class ScheduledEvent extends Component {
 
         // fetch scheduled event notes
         fetchScheduledEventNotesInternal(
-            this.props.projectId,
-            scheduledEventId,
-            this.limit,
-            0
-        );
-        fetchScheduledEventNotesInvestigation(
             this.props.projectId,
             scheduledEventId,
             this.limit,
@@ -101,7 +93,6 @@ class ScheduledEvent extends Component {
             location: { pathname },
             requesting,
             scheduledEvent,
-            investigationNotesList,
             internalNotesList,
             match,
             monitorList,
@@ -179,50 +170,6 @@ class ScheduledEvent extends Component {
                             <TabPanel>
                                 <Fade>
                                     <ShouldRender
-                                        if={investigationNotesList.requesting}
-                                    >
-                                        <LoadingState />
-                                    </ShouldRender>
-                                    <ShouldRender
-                                        if={!investigationNotesList.requesting}
-                                    >
-                                        <div>
-                                            <div>
-                                                <div className="db-BackboneViewContainer">
-                                                    <div className="react-settings-view react-view">
-                                                        <div className="Box-root Margin-bottom--12">
-                                                            <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                                                <ScheduledEventNote
-                                                                    type="Investigation"
-                                                                    notes={
-                                                                        investigationNotesList.scheduledEventNotes
-                                                                    }
-                                                                    count={
-                                                                        investigationNotesList.count
-                                                                    }
-                                                                    projectId={
-                                                                        this
-                                                                            .props
-                                                                            .projectId
-                                                                    }
-                                                                    scheduledEventId={
-                                                                        scheduledEventId
-                                                                    }
-                                                                    skip={
-                                                                        investigationNotesList.skip
-                                                                    }
-                                                                    limit={
-                                                                        investigationNotesList.limit
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </ShouldRender>
-                                    <ShouldRender
                                         if={internalNotesList.requesting}
                                     >
                                         <LoadingState />
@@ -298,7 +245,6 @@ ScheduledEvent.propTypes = {
     scheduledEvent: PropTypes.object,
     requesting: PropTypes.bool,
     fetchScheduledEventNotesInternal: PropTypes.func,
-    fetchScheduledEventNotesInvestigation: PropTypes.func,
     internalNotesList: PropTypes.object,
     investigationNotesList: PropTypes.object,
     updateScheduledEventNoteInvestigationSuccess: PropTypes.func,
@@ -337,7 +283,6 @@ const mapDispatchToProps = dispatch =>
         {
             fetchscheduledEvent,
             fetchScheduledEventNotesInternal,
-            fetchScheduledEventNotesInvestigation,
             updateScheduledEventNoteInvestigationSuccess,
             updateScheduledEventNoteInternalSuccess,
             deleteScheduledEventNoteSuccess,
