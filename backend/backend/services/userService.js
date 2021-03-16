@@ -515,7 +515,7 @@ module.exports = {
     //Param 1: email: User email.
     //Param 2: password: User password.
     //Returns: promise.
-    login: async function(email, password, clientIP) {
+    login: async function(email, password, clientIP, userAgent) {
         try {
             const _this = this;
             let user = null;
@@ -557,9 +557,6 @@ module.exports = {
                     ErrorService.log('userService.login', error);
                     throw error;
                 } else {
-                    const ipLocation = await _this.getUserIpLocation(clientIP);
-                    await LoginIPLog.create({ userId: user._id, ipLocation });
-
                     if (user.paymentFailedDate && IS_SAAS_SERVICE) {
                         // calculate number of days the subscription renewal has failed.
                         const oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
@@ -619,9 +616,21 @@ module.exports = {
                         }
 
                         if (res) {
+                            LoginHistoryService.create(
+                                user,
+                                clientIP,
+                                userAgent,
+                                'successful'
+                            );
                             return user;
                         } else {
                             const error = new Error('Password is incorrect.');
+                            LoginHistoryService.create(
+                                user,
+                                clientIP,
+                                userAgent,
+                                'incorrect password'
+                            );
                             error.code = 400;
                             ErrorService.log('userService.login', error);
                             throw error;
@@ -954,7 +963,6 @@ module.exports = {
 const bcrypt = require('bcrypt');
 const constants = require('../config/constants.json');
 const UserModel = require('../models/user');
-const LoginIPLog = require('../models/loginIPLog');
 const util = require('./utilService.js');
 const randToken = require('rand-token');
 const PaymentService = require('./paymentService');
@@ -971,3 +979,4 @@ const MailService = require('../services/mailService');
 const AirtableService = require('./airtableService');
 const speakeasy = require('speakeasy');
 const { hotp } = require('otplib');
+const LoginHistoryService = require('./loginHistoryService');

@@ -6,6 +6,7 @@ import SecurityInfo from './SecurityInfo';
 const ApplicationSecurity = ({
     name,
     applicationSecurityId,
+    applicationSecuritySlug,
     projectId,
     componentId,
     applicationSecurityLogs,
@@ -31,6 +32,7 @@ const ApplicationSecurity = ({
                     name={name}
                     projectId={projectId}
                     componentId={componentId}
+                    applicationSecuritySlug={applicationSecuritySlug}
                     applicationSecurityId={applicationSecurityId}
                     type="application"
                     applicationSecurityLog={securityLog}
@@ -45,6 +47,7 @@ ApplicationSecurity.displayName = 'Application Security';
 ApplicationSecurity.propTypes = {
     name: PropTypes.string,
     applicationSecurityId: PropTypes.string,
+    applicationSecuritySlug: PropTypes.string,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
     applicationSecurityLogs: PropTypes.array,

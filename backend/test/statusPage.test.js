@@ -69,81 +69,60 @@ describe('Status API', function() {
                 projectId = res.body.project._id;
                 userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
-                ) {
+                VerificationTokenModel.findOne({ userId }, function(err) {
                     if (err) throw err;
                     request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
+                        .post('/user/login')
+                        .send({
+                            email: userData.user.email,
+                            password: userData.user.password,
+                        })
+                        .end(function(err, res) {
+                            if (err) throw err;
+                            token = res.body.tokens.jwtAccessToken;
+                            const authorization = `Basic ${token}`;
                             request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
+                                .post(`/resourceCategory/${projectId}`)
+                                .set('Authorization', authorization)
+                                .send(resourceCategory)
                                 .end(function(err, res) {
                                     if (err) throw err;
-                                    token = res.body.tokens.jwtAccessToken;
-                                    const authorization = `Basic ${token}`;
-                                    request
-                                        .post(`/resourceCategory/${projectId}`)
-                                        .set('Authorization', authorization)
-                                        .send(resourceCategory)
-                                        .end(function(err, res) {
-                                            if (err) throw err;
-                                            resourceCategoryId = res.body._id;
-                                            monitor.resourceCategory = resourceCategoryId;
-                                            ComponentModel.create({
-                                                name: 'New Component',
-                                            }).then(component => {
-                                                componentId = component._id;
+                                    resourceCategoryId = res.body._id;
+                                    monitor.resourceCategory = resourceCategoryId;
+                                    ComponentModel.create({
+                                        name: 'New Component',
+                                    }).then(component => {
+                                        componentId = component._id;
+                                        request
+                                            .post(`/monitor/${projectId}`)
+                                            .set('Authorization', authorization)
+                                            .send({
+                                                ...monitor,
+                                                componentId,
+                                            })
+                                            .end(function(err, res) {
+                                                if (err) throw err;
+                                                monitorId = res.body._id;
+                                                scheduledEvent.monitors = [
+                                                    monitorId,
+                                                ];
                                                 request
                                                     .post(
-                                                        `/monitor/${projectId}`
+                                                        `/scheduledEvent/${projectId}`
                                                     )
                                                     .set(
                                                         'Authorization',
                                                         authorization
                                                     )
-                                                    .send({
-                                                        ...monitor,
-                                                        componentId,
-                                                    })
+                                                    .send(scheduledEvent)
                                                     .end(function(err, res) {
                                                         if (err) throw err;
-                                                        monitorId =
+                                                        scheduledEventId =
                                                             res.body._id;
-                                                        scheduledEvent.monitors = [
-                                                            monitorId,
-                                                        ];
-                                                        request
-                                                            .post(
-                                                                `/scheduledEvent/${projectId}`
-                                                            )
-                                                            .set(
-                                                                'Authorization',
-                                                                authorization
-                                                            )
-                                                            .send(
-                                                                scheduledEvent
-                                                            )
-                                                            .end(function(
-                                                                err,
-                                                                res
-                                                            ) {
-                                                                if (err)
-                                                                    throw err;
-                                                                scheduledEventId =
-                                                                    res.body
-                                                                        ._id;
-                                                                done();
-                                                            });
+                                                        done();
                                                     });
                                             });
-                                        });
+                                    });
                                 });
                         });
                 });
@@ -613,7 +592,9 @@ describe('Status API', function() {
             });
     });
 
-    it('should save an array of valid domains', function(done) {
+    // this is no longer the case
+    // array of domain are no longer used in the application
+    it.skip('should save an array of valid domains', function(done) {
         const authorization = `Basic ${token}`;
         const data = {
             domain: [{ domain: 'fyipe.z.com' }, { domain: 'fyipe1.z.com' }],
@@ -629,7 +610,9 @@ describe('Status API', function() {
             });
     });
 
-    it('should not save domains if one domain in the array is invalid', function(done) {
+    // this is no longer the case
+    // array of domain are no longer used in the application
+    it.skip('should not save domains if one domain in the array is invalid', function(done) {
         const authorization = `Basic ${token}`;
         const data = {
             domain: [
@@ -759,7 +742,7 @@ describe('Status API', function() {
                                 if (err) throw err;
                                 expect(res).to.have.status(400);
                                 expect(res.body.message).to.be.equals(
-                                    'This domain is already associated with another project'
+                                    `This domain is already associated with another project`
                                 );
                                 done();
                             });
@@ -885,11 +868,7 @@ describe('Status API', function() {
 });
 
 // eslint-disable-next-line no-unused-vars
-let subProjectId,
-    newUserToken,
-    anotherUserToken,
-    subProjectStatusPageId,
-    subProjectUserId;
+let subProjectId, newUserToken, anotherUserToken, subProjectStatusPageId;
 
 describe('StatusPage API with Sub-Projects', function() {
     this.timeout(30000);
@@ -906,53 +885,29 @@ describe('StatusPage API with Sub-Projects', function() {
                     if (err) throw err;
                     subProjectId = res.body[0]._id;
                     // sign up second user (subproject user)
-                    createUser(request, userData.newUser, function(err, res) {
-                        subProjectUserId = res.body.id;
-                        VerificationTokenModel.findOne(
-                            { userId: subProjectUserId },
-                            function(err, verificationToken) {
+                    createUser(request, userData.newUser, function() {
+                        request
+                            .post('/user/login')
+                            .send({
+                                email: userData.newUser.email,
+                                password: userData.newUser.password,
+                            })
+                            .end(function(err, res) {
                                 if (err) throw err;
+                                newUserToken = res.body.tokens.jwtAccessToken;
+                                const authorization = `Basic ${token}`;
+                                // add second user to subproject
                                 request
-                                    .get(
-                                        `/user/confirmation/${verificationToken.token}`
-                                    )
-                                    .redirects(0)
+                                    .post(`/team/${subProjectId}`)
+                                    .set('Authorization', authorization)
+                                    .send({
+                                        emails: userData.newUser.email,
+                                        role: 'Member',
+                                    })
                                     .end(function() {
-                                        request
-                                            .post('/user/login')
-                                            .send({
-                                                email: userData.newUser.email,
-                                                password:
-                                                    userData.newUser.password,
-                                            })
-                                            .end(function(err, res) {
-                                                if (err) throw err;
-                                                newUserToken =
-                                                    res.body.tokens
-                                                        .jwtAccessToken;
-                                                const authorization = `Basic ${token}`;
-                                                // add second user to subproject
-                                                request
-                                                    .post(
-                                                        `/team/${subProjectId}`
-                                                    )
-                                                    .set(
-                                                        'Authorization',
-                                                        authorization
-                                                    )
-                                                    .send({
-                                                        emails:
-                                                            userData.newUser
-                                                                .email,
-                                                        role: 'Member',
-                                                    })
-                                                    .end(function() {
-                                                        done();
-                                                    });
-                                            });
+                                        done();
                                     });
-                            }
-                        );
+                            });
                     });
                 });
         });
@@ -975,61 +930,49 @@ describe('StatusPage API with Sub-Projects', function() {
     });
 
     it('should not create a statupage for user not present in project', function(done) {
-        createUser(request, userData.anotherUser, function(err, res) {
-            VerificationTokenModel.findOne({ userId: res.body.id }, function(
-                err,
-                res
-            ) {
-                request
-                    .get(`/user/confirmation/${res.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.anotherUser.email,
-                                password: userData.anotherUser.password,
-                            })
-                            .end(function(err, res) {
-                                if (err) throw err;
-                                anotherUserToken =
-                                    res.body.tokens.jwtAccessToken;
-                                const authorization = `Basic ${anotherUserToken}`;
-                                request
-                                    .post(`/statusPage/${projectId}`)
-                                    .set('Authorization', authorization)
-                                    .send({
-                                        links: [],
-                                        title: 'Status title',
-                                        description: 'status description',
-                                        copyright: 'status copyright',
-                                        projectId,
-                                        monitors: [
-                                            {
-                                                monitor: monitorId,
-                                                description:
-                                                    'Monitor Description.',
-                                                uptime: true,
-                                                memory: false,
-                                                cpu: false,
-                                                storage: false,
-                                                responseTime: false,
-                                                temperature: false,
-                                                runtime: false,
-                                            },
-                                        ],
-                                    })
-                                    .end(function(err, res) {
-                                        if (err) throw err;
-                                        expect(res).to.have.status(400);
-                                        expect(res.body.message).to.be.equal(
-                                            'You are not present in this project.'
-                                        );
-                                        done();
-                                    });
-                            });
-                    });
-            });
+        createUser(request, userData.anotherUser, function() {
+            request
+                .post('/user/login')
+                .send({
+                    email: userData.anotherUser.email,
+                    password: userData.anotherUser.password,
+                })
+                .end(function(err, res) {
+                    if (err) throw err;
+                    anotherUserToken = res.body.tokens.jwtAccessToken;
+                    const authorization = `Basic ${anotherUserToken}`;
+                    request
+                        .post(`/statusPage/${projectId}`)
+                        .set('Authorization', authorization)
+                        .send({
+                            links: [],
+                            title: 'Status title',
+                            description: 'status description',
+                            copyright: 'status copyright',
+                            projectId,
+                            monitors: [
+                                {
+                                    monitor: monitorId,
+                                    description: 'Monitor Description.',
+                                    uptime: true,
+                                    memory: false,
+                                    cpu: false,
+                                    storage: false,
+                                    responseTime: false,
+                                    temperature: false,
+                                    runtime: false,
+                                },
+                            ],
+                        })
+                        .end(function(err, res) {
+                            if (err) throw err;
+                            expect(res).to.have.status(400);
+                            expect(res.body.message).to.be.equal(
+                                'You are not present in this project.'
+                            );
+                            done();
+                        });
+                });
         });
     });
 

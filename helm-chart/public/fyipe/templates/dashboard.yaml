@@ -27,6 +27,8 @@ spec:
                         value: {{ .Values.domain }}
                       - name: NODE_ENV
                         value: 'production'
+                      - name: PUSHNOTIFICATION_PUBLIC_KEY
+                        value: {{ .Values.pushNotification.publicKey }}
                       {{- if .Values.saas.isSaasService }}
                       - name: STRIPE_PUBLIC_KEY
                         value: {{ .Values.saas.stripe.publicKey }}

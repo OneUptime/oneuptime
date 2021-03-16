@@ -65,14 +65,20 @@ export function createDomainFailure(payload) {
     };
 }
 
-export function createDomain({ projectId, statusPageId, domain }) {
+export function createDomain({
+    projectId,
+    statusPageId,
+    domain,
+    cert,
+    privateKey,
+}) {
     return async function(dispatch) {
         dispatch(createDomainRequest());
 
         try {
             const response = await putApi(
                 `statusPage/${projectId}/${statusPageId}/domain`,
-                { domain }
+                { domain, cert, privateKey }
             );
             dispatch(createDomainSuccess(response.data));
         } catch (error) {
@@ -151,13 +157,20 @@ export function updateDomainFailure(payload) {
     };
 }
 
-export function updateDomain({ projectId, statusPageId, domainId, newDomain }) {
+export function updateDomain({
+    projectId,
+    statusPageId,
+    domainId,
+    domain,
+    cert,
+    privateKey,
+}) {
     return async function(dispatch) {
         dispatch(updateDomainRequest());
         try {
             const response = await putApi(
                 `statusPage/${projectId}/${statusPageId}/${domainId}`,
-                { domain: newDomain }
+                { domain, cert, privateKey }
             );
             dispatch(updateDomainSuccess(response.data));
         } catch (error) {

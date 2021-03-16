@@ -84,6 +84,35 @@ const initialState = {
         error: null,
     },
     switchToProjectViewerNav: false,
+    fetchDomains: {
+        requesting: false,
+        success: false,
+        error: null,
+        domains: [],
+        skip: 0,
+        limit: 10,
+        count: 0,
+    },
+    createDomain: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    updateDomain: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    deleteDomain: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    verifyDomain: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
 };
 
 export default function project(state = initialState, action) {
@@ -728,6 +757,192 @@ export default function project(state = initialState, action) {
             return Object.assign({}, state, {
                 switchToProjectViewerNav: action.payload,
             });
+
+        case types.CREATE_PROJECT_DOMAIN_REQUEST:
+            return {
+                ...state,
+                createDomain: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.CREATE_PROJECT_DOMAIN_SUCCESS:
+            return {
+                ...state,
+                createDomain: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            };
+
+        case types.CREATE_PROJECT_DOMAIN_FAILURE:
+            return {
+                ...state,
+                createDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.UPDATE_PROJECT_DOMAIN_REQUEST:
+            return {
+                ...state,
+                updateDomain: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.UPDATE_PROJECT_DOMAIN_SUCCESS:
+            return {
+                ...state,
+                updateDomain: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            };
+
+        case types.UPDATE_PROJECT_DOMAIN_FAILURE:
+            return {
+                ...state,
+                updateDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.RESET_UPDATE_PROJECT_DOMAIN:
+            return {
+                ...state,
+                updateDomain: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.FETCH_PROJECT_DOMAINS_REQUEST:
+            return {
+                ...state,
+                fetchDomains: {
+                    ...state.fetchDomains,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.FETCH_PROJECT_DOMAINS_SUCCESS:
+            return {
+                ...state,
+                fetchDomains: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    count: action.payload.count,
+                    skip: action.payload.skip,
+                    limit: action.payload.limit,
+                    domains: action.payload.data,
+                },
+            };
+
+        case types.FETCH_PROJECT_DOMAINS_FAILURE:
+            return {
+                ...state,
+                fetchDomains: {
+                    ...state.fetchDomains,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.DELETE_PROJECT_DOMAIN_REQUEST:
+            return {
+                ...state,
+                deleteDomain: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.DELETE_PROJECT_DOMAIN_FAILURE:
+            return {
+                ...state,
+                deleteDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.DELETE_PROJECT_DOMAIN_SUCCESS:
+            return {
+                ...state,
+                deleteDomain: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            };
+
+        case types.RESET_DELETE_PROJECT_DOMAIN:
+            return {
+                ...state,
+                deleteDomain: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.VERIFY_PROJECT_DOMAIN_REQUEST:
+            return {
+                ...state,
+                verifyDomain: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.VERIFY_PROJECT_DOMAIN_SUCCESS:
+            return {
+                ...state,
+                verifyDomain: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            };
+
+        case types.VERIFY_PROJECT_DOMAIN_FAILURE:
+            return {
+                ...state,
+                verifyDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.RESET_VERIFY_PROJECT_DOMAIN:
+            return {
+                ...state,
+                verifyDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
 
         default:
             return state;

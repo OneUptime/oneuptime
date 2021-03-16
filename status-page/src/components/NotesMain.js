@@ -189,7 +189,16 @@ class NotesMain extends Component {
             return incidentNoteData && incidentNoteData.notes.length > 1 ? (
                 checkDuplicateDates(incidentNoteData.notes).map((note, i) => {
                     return (
-                        <div className="incident-object" key={i}>
+                        <div
+                            className="incident-object"
+                            style={
+                                noteBackgroundColor.background ===
+                                'rgba(247, 247, 247)'
+                                    ? { background: 'rgba(255,255,255,1)' }
+                                    : noteBackgroundColor
+                            }
+                            key={i}
+                        >
                             <ShouldRender if={note.style}>
                                 <div className="date-big">
                                     {moment(note.createdAt).format('LL')}

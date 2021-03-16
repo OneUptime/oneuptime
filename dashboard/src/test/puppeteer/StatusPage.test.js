@@ -51,16 +51,16 @@ describe('Status Page', () => {
 
                 // user
                 await init.registerUser(user, page);
-                await init.loginUser(user, page);
+                // await init.loginUser(user, page);
 
                 //project + status page
                 await init.addProject(page);
                 await init.addStatusPageToProject('test', 'test', page);
 
                 //component + monitor
-                await init.addComponent(componentName, page);
+                // await init.addComponent(componentName, page);
                 await init.addMonitorToComponent(
-                    null,
+                    componentName,
                     monitorName,
                     page,
                     componentName
@@ -72,6 +72,7 @@ describe('Status Page', () => {
                     visible: true,
                 });
                 await page.click(`#more-details-${componentName}`);
+                await page.waitForSelector('#monitors', { visible: true });
                 await init.addMonitorToComponent(
                     null,
                     monitorName1,
@@ -228,7 +229,7 @@ describe('Status Page', () => {
                     page
                 );
                 await page.click('#btnAddStatusPageMonitors');
-                await page.waitForTimeout(2000);
+                await page.waitForSelector('.ball-beat', { visible: true });
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.reload({ waitUntil: 'networkidle0' });
@@ -249,7 +250,7 @@ describe('Status Page', () => {
                 await page.waitForSelector('#monitor-0');
                 await page.click('#delete-monitor-0');
                 await page.click('#btnAddStatusPageMonitors');
-                await page.waitForTimeout(2000);
+                await page.waitForSelector('.ball-beat', { visible: true });
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.reload({ waitUntil: 'networkidle0' });
                 const elem = await page.waitForSelector('#app-loading', {
@@ -288,7 +289,7 @@ describe('Status Page', () => {
                     page
                 );
                 await page.click('#btnAddStatusPageMonitors');
-                await page.waitForTimeout(2000);
+                await page.waitForSelector('.ball-beat', { visible: true });
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.reload({ waitUntil: 'networkidle0' });
                 const firstMonitorContainer = await page.waitForSelector(
@@ -345,7 +346,7 @@ describe('Status Page', () => {
                     page
                 );
                 await page.click('#btnAddStatusPageMonitors');
-                await page.waitForTimeout(2000);
+                await page.waitForSelector('.ball-beat', { visible: true });
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.reload({ waitUntil: 'networkidle0' });
                 // We check if the monitors are added
@@ -385,11 +386,8 @@ describe('Status Page', () => {
         'should indicate that no domain is set yet for a status page.',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#statusPages', {
-                    visible: true,
-                });
-                await page.$eval('#statusPages', elem => elem.click());
+                await gotoTheFirstStatusPage(page);
+                await init.gotoTab(2, page);
                 const elem = await page.waitForSelector('#domainNotSet', {
                     visible: true,
                 });
@@ -404,13 +402,23 @@ describe('Status Page', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
+                await init.gotoTab(2, page);
                 await page.waitForSelector('#addMoreDomain');
                 await page.click('#addMoreDomain');
-                await page.waitForSelector('#domain_1', { visible: true });
-                await page.type('#domain_1', 'fyipeapp.com');
-                await page.click('#btnAddDomain');
+
+                await page.waitForSelector('#addMoreDomainModal', {
+                    visible: true,
+                });
+                await page.type('#customDomain', 'fyipeapp.com');
+                await page.click('#createCustomDomainBtn');
+                await page.waitForSelector('#addMoreDomainModal', {
+                    hidden: true,
+                });
+                const elem = await page.waitForSelector('#domainNotSet', {
+                    hidden: true,
+                });
+                expect(elem).toBeNull();
+
                 // if domain was not added sucessfully, list will be undefined
                 // it will timeout
                 const list = await page.waitForSelector(
@@ -423,7 +431,8 @@ describe('Status Page', () => {
         operationTimeOut
     );
 
-    test(
+    // this test case is no longer viable for custom domains
+    test.skip(
         'should indicate if domain(s) is set on a status page',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
@@ -446,25 +455,27 @@ describe('Status Page', () => {
                 const finalValue = 'status.fyipeapp.com';
 
                 await gotoTheFirstStatusPage(page);
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
-                await page.waitForSelector(
-                    'fieldset[name="added-domain"] input[type="text"]'
-                );
+                await init.gotoTab(2, page);
 
-                const input = await page.$(
-                    'fieldset[name="added-domain"] input[type="text"]'
-                );
+                await page.waitForSelector('#editDomain_0', { visible: true });
+                await page.click('#editDomain_0');
+                await page.waitForSelector('#editMoreDomainModal', {
+                    visible: true,
+                });
+                await page.waitForSelector('#customDomain');
+                const input = await page.$('#customDomain');
                 await input.click({ clickCount: 3 });
                 await input.type(finalValue);
 
-                await page.click('#btnAddDomain');
-                await page.waitForTimeout(2000);
+                await page.click('#updateCustomDomainBtn');
+                await page.waitForSelector('.ball-beat', { visible: true });
                 await page.waitForSelector('.ball-beat', { hidden: true });
+                await page.waitForSelector('#editMoreDomainModal', {
+                    hidden: true,
+                });
                 await page.reload({ waitUntil: 'networkidle0' });
 
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
+                await init.gotoTab(2, page);
 
                 const finalInputValue = await page.$eval(
                     'fieldset[name="added-domain"] input[type="text"]',
@@ -482,10 +493,9 @@ describe('Status Page', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
-                await page.waitForSelector('#btnVerifyDomain');
-                await page.click('#btnVerifyDomain');
+                await init.gotoTab(2, page);
+                await page.waitForSelector('#btnVerifyDomain_0');
+                await page.click('#btnVerifyDomain_0');
 
                 await page.waitForSelector('#confirmVerifyDomain');
                 await page.click('#confirmVerifyDomain');
@@ -504,8 +514,7 @@ describe('Status Page', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
+                await init.gotoTab(2, page);
                 await page.waitForSelector('fieldset[name="added-domain"]', {
                     visible: true,
                 });
@@ -519,16 +528,22 @@ describe('Status Page', () => {
                 // create one more domain on the status page
                 await page.waitForSelector('#addMoreDomain');
                 await page.click('#addMoreDomain');
-                await page.waitForSelector('#domain_1', { visible: true });
-                await page.type('#domain_1', 'app.fyipeapp.com');
-                await page.click('#btnAddDomain');
-                await page.waitForTimeout(2000);
-                await page.waitForSelector('.ball-beat', { hidden: true });
+                await page.waitForSelector('#addMoreDomainModal', {
+                    visible: true,
+                });
+                await page.type('#customDomain', 'app.fyipeapp.com');
+                await page.click('#createCustomDomainBtn');
+                await page.waitForSelector('#addMoreDomainModal', {
+                    hidden: true,
+                });
+                await page.reload({ waitUntil: 'networkidle0' });
 
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
-                await page.waitForSelector('.btnDeleteDomain');
-                await page.$eval('.btnDeleteDomain', elem => elem.click());
+                await init.gotoTab(2, page);
+                await page.waitForSelector('#btnDeleteDomain_0');
+                await page.$eval('#btnDeleteDomain_0', elem => elem.click());
+                await page.waitForSelector('#confirmDomainDelete', {
+                    visible: true,
+                });
                 await page.$eval('#confirmDomainDelete', elem => elem.click());
                 await page.waitForSelector('#confirmDomainDelete', {
                     hidden: true,
@@ -536,8 +551,7 @@ describe('Status Page', () => {
 
                 await page.reload({ waitUntil: 'networkidle0' });
                 // get the final length of domains after deleting
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
+                await init.gotoTab(2, page);
                 await page.waitForSelector('fieldset[name="added-domain"]');
                 const finalLength = await page.$$eval(
                     'fieldset[name="added-domain"]',
@@ -555,8 +569,7 @@ describe('Status Page', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
+                await init.gotoTab(2, page);
 
                 await page.waitForSelector('fieldset[name="added-domain"]', {
                     visible: true,
@@ -570,22 +583,24 @@ describe('Status Page', () => {
                 // create one more domain on the status page
                 await page.waitForSelector('#addMoreDomain');
                 await page.click('#addMoreDomain');
-                await page.waitForSelector('#domain_1', { visible: true });
-                await page.type('#domain_1', 'server.fyipeapp.com');
-                await page.click('#btnAddDomain');
-                await page.waitForTimeout(2000);
-                await page.waitForSelector('.ball-beat', { hidden: true });
+                await page.waitForSelector('#addMoreDomainModal', {
+                    visible: true,
+                });
+                await page.type('#customDomain', 'server.fyipeapp.com');
+                await page.click('#createCustomDomainBtn');
+                await page.waitForSelector('#addMoreDomainModal', {
+                    hidden: true,
+                });
                 await page.reload({ waitUntil: 'networkidle0' });
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
 
-                await page.waitForSelector('.btnDeleteDomain');
-                await page.$eval('.btnDeleteDomain', elem => elem.click());
+                await init.gotoTab(2, page);
+
+                await page.waitForSelector('#btnDeleteDomain_0');
+                await page.$eval('#btnDeleteDomain_0', elem => elem.click());
                 await page.$eval('#cancelDomainDelete', elem => elem.click());
 
                 await page.reload({ waitUntil: 'networkidle0' });
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
+                await init.gotoTab(2, page);
                 await page.waitForSelector('fieldset[name="added-domain"]');
                 // get the final length of domains after cancelling
                 const finalLength = await page.$$eval(
@@ -712,17 +727,18 @@ describe('Status Page', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
+                await init.gotoTab(2, page);
                 await page.waitForSelector('#addMoreDomain');
                 await page.click('#addMoreDomain');
-                await page.waitForSelector('#btnAddDomain');
-                await page.click('#btnAddDomain');
+                await page.waitForSelector('#createCustomDomainBtn', {
+                    visible: true,
+                });
+                await page.click('#createCustomDomainBtn');
                 await page.waitForSelector('#field-error', { visible: true });
-                let elem = await page.$('#field-error');
-                elem = await elem.getProperty('innerText');
-                elem = await elem.jsonValue();
-                expect(elem).toEqual('Domain is required.');
+                const element = await page.$eval('#field-error', e => {
+                    return e.innerHTML;
+                });
+                expect(element).toContain('Domain is required');
             });
         },
         operationTimeOut
@@ -733,25 +749,29 @@ describe('Status Page', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
+                await init.gotoTab(2, page);
                 await page.waitForSelector('#addMoreDomain');
                 await page.click('#addMoreDomain');
-                await page.waitForSelector('#domain_1', { visible: true });
-                await page.type('#domain_1', 'fyipeapp');
-                await page.waitForSelector('#btnAddDomain');
-                await page.click('#btnAddDomain');
+                await page.waitForSelector('#addMoreDomainModal', {
+                    visible: true,
+                });
+                await page.waitForSelector('#customDomain');
+                await page.type('#customDomain', 'fyipeapp');
+
+                await page.waitForSelector('#createCustomDomainBtn');
+                await page.click('#createCustomDomainBtn');
                 await page.waitForSelector('#field-error', { visible: true });
-                let elem = await page.$('#field-error');
-                elem = await elem.getProperty('innerText');
-                elem = await elem.jsonValue();
-                expect(elem).toEqual('Domain is not valid.');
+                const element = await page.$eval('#field-error', e => {
+                    return e.innerHTML;
+                });
+                expect(element).toContain('Domain is not valid.');
             });
         },
         operationTimeOut
     );
 
-    test(
+    // test case is no longer valid
+    test.skip(
         'should add multiple domains',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
@@ -787,25 +807,36 @@ describe('Status Page', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
-                const initialDomains = await page.$$eval(
-                    'fieldset[name="added-domain"]',
-                    domains => domains.length
-                );
+                await init.gotoTab(2, page);
                 await page.waitForSelector('#addMoreDomain');
                 await page.click('#addMoreDomain');
-                await page.waitForSelector('#domain_1', { visible: true });
-                await page.type('#domain_1', 'fyipe.fyipeapp.com');
-                await page.waitForSelector('#btnAddDomain');
-                await page.click('#btnAddDomain');
-                await page.waitForTimeout(2000);
-                await page.waitForSelector('.ball-beat', { hidden: true });
-                const domains = await page.$$eval(
-                    'fieldset[name="added-domain"]',
-                    domains => domains.length
+                await page.waitForSelector('#addMoreDomainModal', {
+                    visible: true,
+                });
+                await page.waitForSelector('#customDomain');
+                await page.type('#customDomain', 'fyipe.fyipeapp.com');
+                await page.click('#createCustomDomainBtn');
+                await page.waitForSelector('#addMoreDomainModal', {
+                    hidden: true,
+                });
+                await page.reload({ waitUntil: 'networkidle0' });
+                await init.gotoTab(2, page);
+
+                await page.waitForSelector('#addMoreDomain');
+                await page.click('#addMoreDomain');
+                await page.waitForSelector('#addMoreDomainModal', {
+                    visible: true,
+                });
+                await page.waitForSelector('#customDomain');
+                await page.type('#customDomain', 'fyipe.fyipeapp.com');
+                await page.click('#createCustomDomainBtn');
+                const addDomainError = await page.waitForSelector(
+                    '#addDomainError',
+                    {
+                        visible: true,
+                    }
                 );
-                expect(domains).toEqual(initialDomains);
+                expect(addDomainError).toBeDefined();
             });
         },
         operationTimeOut

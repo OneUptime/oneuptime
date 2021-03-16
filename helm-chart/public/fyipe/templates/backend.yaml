@@ -51,6 +51,12 @@ spec:
                         value: '3600'
                       - name: BACKEND_HOST
                         value: {{ .Values.host.backend }}
+                      - name: PUSHNOTIFICATION_PRIVATE_KEY
+                        value: {{ .Values.pushNotification.privateKey }}
+                      - name: PUSHNOTIFICATION_PUBLIC_KEY
+                        value: {{ .Values.pushNotification.publicKey }}
+                      - name: PUSHNOTIFICATION_URL
+                        value: {{ .Values.pushNotification.url }}
                       - name: NODE_ENV
                         value: 'production'
                       - name: IS_TESTING
