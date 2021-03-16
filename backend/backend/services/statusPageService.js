@@ -51,7 +51,6 @@ module.exports = {
             statusPageModel.projectId = data.projectId || null;
             statusPageModel.domains = data.domains || [];
             statusPageModel.links = data.links || null;
-            statusPageModel.title = data.title || null;
             statusPageModel.name = data.name || null;
             statusPageModel.isPrivate = data.isPrivate || null;
             statusPageModel.description = data.description || null;

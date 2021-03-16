@@ -78,7 +78,10 @@ class Notes extends Component {
                             className="incidentlist feed-item clearfix"
                             key={i}
                             onClick={() =>
-                                this.handleNavigation(statusPageId, note.idNumber)
+                                this.handleNavigation(
+                                    statusPageId,
+                                    note.idNumber
+                                )
                             }
                         >
                             <div

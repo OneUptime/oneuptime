@@ -39,28 +39,6 @@ const validate = values => {
                 monitorErrors.monitor = 'This monitor is already selected.';
             selectedMonitor[monitor.monitor] = true;
         }
-        const {
-            uptime,
-            memory,
-            cpu,
-            storage,
-            responseTime,
-            temperature,
-            runtime,
-        } = monitor;
-        if (
-            !uptime &&
-            !memory &&
-            !cpu &&
-            !storage &&
-            !responseTime &&
-            !temperature &&
-            !runtime
-        ) {
-            //At least one registred field need must be assigned a value
-            monitorErrors.uptime = true;
-            monitorErrors.error = 'You must select at least one chart type';
-        }
         monitorsArrayErrors[i] = monitorErrors;
     }
     errors.monitors = monitorsArrayErrors;
@@ -108,7 +86,7 @@ export class Monitors extends Component {
                     this.props.pushArray('StatuspageMonitors', 'monitors', {
                         monitor: null,
                         description: '',
-                        uptime: true,
+                        uptime: false,
                         memory: false,
                         cpu: false,
                         storage: false,

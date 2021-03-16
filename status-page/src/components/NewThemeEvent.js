@@ -41,10 +41,21 @@ class NewThemeEvent extends Component {
             ? this.props.filteredEvents.events
             : this.props.events;
 
+        const noteBackgroundColor = this.props.noteBackgroundColor;
+
         return data && data.length > 0 ? (
             checkDuplicateDates(data).map((event, i) => {
                 return (
-                    <div className="incident-object" key={i}>
+                    <div
+                        className="incident-object"
+                        style={
+                            noteBackgroundColor.background ===
+                            'rgba(247, 247, 247)'
+                                ? { background: 'rgba(255,255,255,1)' }
+                                : noteBackgroundColor
+                        }
+                        key={i}
+                    >
                         <ShouldRender if={event.style}>
                             <div className="date-big">
                                 {moment(event.createdAt).format('LL')}
@@ -173,6 +184,7 @@ NewThemeEvent.displayName = 'NewThemeEvent';
 NewThemeEvent.propTypes = {
     events: PropTypes.array,
     filteredEvents: PropTypes.object,
+    noteBackgroundColor: PropTypes.object,
 };
 
 const mapStateToProps = state => ({

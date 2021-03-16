@@ -326,7 +326,6 @@ module.exports = {
 
     sendAlertsToTeamMembersInSchedule: async function({ schedule, incident }) {
         const _this = this;
-        const userId = incident.createdById._id;
         const monitorId = incident.monitorId._id
             ? incident.monitorId._id
             : incident.monitorId;

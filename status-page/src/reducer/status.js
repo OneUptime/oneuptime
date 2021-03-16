@@ -395,7 +395,7 @@ export default (state = INITIAL_STATE, action) => {
                                 : [];
                         oneNote = {
                             ...item,
-                            message: [action.payload, ...messageLog],
+                            message: [...messageLog, action.payload],
                         };
                     }
                 });
