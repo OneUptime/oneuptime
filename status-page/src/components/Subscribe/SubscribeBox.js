@@ -18,7 +18,11 @@ class SubscribeBox extends Component {
         this.selectbutton = this.selectbutton.bind(this);
     }
     subscribebutton = () => {
-        this.props.openSubscribeMenu();
+        if (this.props.theme) {
+            this.props.handleCloseButtonClick();
+        } else {
+            this.props.openSubscribeMenu();
+        }
     };
     selectbutton = data => {
         this.props.selectedMenu(data);
@@ -32,14 +36,23 @@ class SubscribeBox extends Component {
             emailNotification,
             selectIndividualMonitors,
         } = statusPage;
+        const theme = this.props.theme;
         return (
             <div className="subscribe-overlay">
                 <ClickOutHandler
                     onClickOut={() => this.props.openSubscribeMenu()}
                 >
                     <div
-                        className="white box subscribe-box"
-                        style={{ height: 'auto', width: '300px' }}
+                        className={
+                            !theme
+                                ? 'white box subscribe-box'
+                                : 'bs-theme-shadow'
+                        }
+                        style={{
+                            height: 'auto',
+                            width: '300px',
+                            marginLeft: theme && '-100px',
+                        }}
                     >
                         <div className="btn-group">
                             <ShouldRender if={emailNotification}>
@@ -148,7 +161,13 @@ class SubscribeBox extends Component {
                             </button>
                         </div>
 
-                        <div className="subscribe-box-inner">
+                        <div
+                            className={
+                                theme
+                                    ? 'subscribe-box-inner bs-new-bg'
+                                    : 'subscribe-box-inner'
+                            }
+                        >
                             <ShouldRender
                                 if={
                                     !this.props.openSelectedBox &&
@@ -156,7 +175,7 @@ class SubscribeBox extends Component {
                                     emailNotification
                                 }
                             >
-                                <Message />
+                                <Message theme={theme} />
                             </ShouldRender>
                             <ShouldRender
                                 if={
@@ -165,7 +184,7 @@ class SubscribeBox extends Component {
                                     smsNotification
                                 }
                             >
-                                <Call />
+                                <Call theme={theme} />
                             </ShouldRender>
                             <ShouldRender
                                 if={
@@ -174,7 +193,7 @@ class SubscribeBox extends Component {
                                     webhookNotification
                                 }
                             >
-                                <Webhook />
+                                <Webhook theme={theme} />
                             </ShouldRender>
                             <ShouldRender
                                 if={
@@ -189,6 +208,11 @@ class SubscribeBox extends Component {
                                         href={`${API_URL}/statusPage/${statusPage._id}/rss`}
                                         target="_blank"
                                         rel="noopener noreferrer"
+                                        style={{
+                                            color: theme && '#00bce7',
+                                            fontSize: theme && '12px',
+                                            fontWeight: theme && '500',
+                                        }}
                                     >
                                         RSS feed
                                     </a>
@@ -230,6 +254,8 @@ SubscribeBox.propTypes = {
     subscribed: PropTypes.object,
     requesting: PropTypes.bool,
     statusPage: PropTypes.object,
+    theme: PropTypes.bool,
+    handleCloseButtonClick: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SubscribeBox);

@@ -754,9 +754,11 @@ router.get(
                             limit
                         );
 
+                        const sortMsg = statusPageNote.message.reverse();
+
                         updatedNotes.push({
                             ...note._doc,
-                            message: statusPageNote.message,
+                            message: sortMsg,
                         });
                     }
                 }

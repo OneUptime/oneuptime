@@ -38,7 +38,7 @@ const statusSchema = new Schema({
         },
     ],
     links: Array,
-    title: String,
+    title: { type: String, default: 'Status Page' },
     name: String,
     isPrivate: {
         type: Boolean,
@@ -111,6 +111,6 @@ const statusSchema = new Schema({
     },
 
     deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
-    theme: { type: String },
+    theme: { type: String, default: 'Clean Theme' },
 });
 module.exports = mongoose.model('StatusPage', statusSchema);

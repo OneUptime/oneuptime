@@ -20,9 +20,8 @@ import {
 import { getProbes } from '../actions/probe';
 import LineChartsContainer from './LineChartsContainer';
 import AffectedResources from './basic/AffectedResources';
-import SubscribeBox from './Subscribe/SubscribeBox';
-import { openSubscribeMenu } from '../actions/subscribe';
 import NewThemeEvent from './NewThemeEvent';
+import NewThemeSubscriber from './NewThemeSubscriber';
 
 const greenBackground = {
     display: 'inline-block',
@@ -292,7 +291,8 @@ class Main extends Component {
             uptimeColor,
             degradedColor,
             disabledColor,
-            disabled;
+            disabled,
+            noteBackgroundColor;
         let statusBackground;
         if (this.props.statusData && this.props.statusData.monitorsData) {
             serviceStatus = getServiceStatus(this.props.monitorState, probes);
@@ -372,6 +372,10 @@ class Main extends Component {
             contentBackground = {
                 background: `rgba(${colors.statusPageBackground.r}, ${colors.statusPageBackground.g}, ${colors.statusPageBackground.b}, ${colors.statusPageBackground.a})`,
             };
+
+            noteBackgroundColor = {
+                background: `rgba(${colors.noteBackground.r}, ${colors.noteBackground.g}, ${colors.noteBackground.b})`,
+            };
         }
 
         const {
@@ -392,8 +396,36 @@ class Main extends Component {
             <>
                 {theme === 'Clean Theme' ? (
                     <>
-                        <div className="new-theme">
-                            {headerHTML ? (
+                        <div
+                            className="new-theme"
+                            style={
+                                backgroundMain.background ===
+                                'rgba(247, 247, 247, 1)'
+                                    ? { background: 'rgba(255, 255, 255, 1)' }
+                                    : backgroundMain
+                            }
+                        >
+                            <HelemtCard
+                                statusData={this.props.statusData}
+                                faviconurl={faviconurl}
+                            />
+                            <ShouldRender
+                                if={
+                                    this.props.statusData &&
+                                    this.props.statusData.logoPath
+                                }
+                            >
+                                <div className="logo_section pad-left">
+                                    <span>
+                                        <img
+                                            src={`${API_URL}/file/${this.props.statusData.logoPath}`}
+                                            alt=""
+                                            className="logo"
+                                        />
+                                    </span>
+                                </div>
+                            </ShouldRender>
+                            <ShouldRender if={headerHTML}>
                                 <React.Fragment>
                                     <style>{sanitizedCSS}</style>
                                     <div className="logo_section">
@@ -405,20 +437,7 @@ class Main extends Component {
                                         />
                                     </div>
                                 </React.Fragment>
-                            ) : this.props.statusData &&
-                              this.props.statusData.logoPath ? (
-                                <div className="logo_section pad-left">
-                                    <span>
-                                        <img
-                                            src={`${API_URL}/file/${this.props.statusData.logoPath}`}
-                                            alt=""
-                                            className="logo"
-                                        />
-                                    </span>
-                                </div>
-                            ) : (
-                                ''
-                            )}
+                            </ShouldRender>
                             {this.props.statusData &&
                             this.props.statusData.bannerPath ? (
                                 <div className="banner-container">
@@ -436,88 +455,115 @@ class Main extends Component {
                             ) : (
                                 ''
                             )}
-                            <div className="subscribe_box">
-                                <div>
-                                    <a
-                                        href="https://fyipe.com"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        <ShouldRender
-                                            if={this.props.statusData.title}
-                                        >
-                                            {this.props.statusData.title}
-                                        </ShouldRender>
-                                        <ShouldRender
-                                            if={!this.props.statusData.title}
-                                        >
-                                            Status Page
-                                        </ShouldRender>
-                                    </a>
-                                </div>
-                                <ShouldRender
-                                    if={
-                                        this.props.isSubscriberEnabled ===
-                                            true && showSubscriberOption
-                                    }
-                                >
-                                    <button
-                                        className="subscribe_btn"
-                                        onClick={() =>
-                                            this.props.openSubscribeMenu()
-                                        }
-                                    >
-                                        subscribe to updates
-                                    </button>
-                                </ShouldRender>
-                            </div>
                             <ShouldRender
                                 if={
-                                    this.props.statusData &&
-                                    this.props.statusData.projectId &&
-                                    this.props.statusData._id &&
-                                    this.props.statusData.moveIncidentToTheTop
+                                    this.props.statusData.title ||
+                                    (this.props.isSubscriberEnabled === true &&
+                                        showSubscriberOption)
                                 }
                             >
-                                <div className="new-theme-incident matop-40">
-                                    <div className="font-largest">
-                                        Past Incidents
+                                <div className="subscribe_box">
+                                    <div>
+                                        <a
+                                            href="https://fyipe.com"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            {this.props.statusData.title}
+                                            <ShouldRender
+                                                if={
+                                                    this.props.statusData
+                                                        .description
+                                                }
+                                            >
+                                                <div className="bs-page_desc">
+                                                    {
+                                                        this.props.statusData
+                                                            .description
+                                                    }
+                                                </div>
+                                            </ShouldRender>
+                                        </a>
                                     </div>
-                                    <NotesMain
-                                        projectId={
-                                            this.props.statusData.projectId._id
+                                    <ShouldRender
+                                        if={
+                                            this.props.isSubscriberEnabled ===
+                                                true && showSubscriberOption
                                         }
-                                        statusPageId={this.props.statusData._id}
-                                        theme={theme}
-                                    />
+                                    >
+                                        <NewThemeSubscriber />
+                                    </ShouldRender>
                                 </div>
                             </ShouldRender>
                             <div className="new-main-container">
                                 <div className="sy-op">
                                     All Systems Operational
                                 </div>
-                                <div className="bs-probes">
-                                    <Probes
-                                        probes={probes}
-                                        backgroundMain={backgroundMain}
-                                        contentBackground={contentBackground}
-                                        activeProbe={this.props.activeProbe}
-                                        monitorState={this.props.monitorState}
-                                        greenBackground={greenBackground}
-                                        uptimeColor={uptimeColor}
-                                        greyBackground={greyBackground}
-                                        serviceStatus={serviceStatus}
-                                        redBackground={redBackground}
-                                        downtimeColor={downtimeColor}
-                                        yellowBackground={yellowBackground}
-                                        degradedColor={degradedColor}
-                                        heading={heading}
-                                        now={this.state.now}
-                                        selectbutton={index =>
-                                            this.selectbutton(index)
-                                        }
-                                    />
-                                </div>
+                                <ShouldRender
+                                    if={
+                                        this.props.statusData &&
+                                        this.props.statusData.projectId &&
+                                        this.props.statusData._id &&
+                                        this.props.statusData
+                                            .moveIncidentToTheTop
+                                    }
+                                >
+                                    <div
+                                        className="new-theme-incident matop-40"
+                                        style={{
+                                            width: '100%',
+                                            ...contentBackground,
+                                        }}
+                                    >
+                                        <div
+                                            className="font-largest"
+                                            style={heading}
+                                        >
+                                            Past Incidents
+                                        </div>
+                                        <NotesMain
+                                            projectId={
+                                                this.props.statusData.projectId
+                                                    ._id
+                                            }
+                                            statusPageId={
+                                                this.props.statusData._id
+                                            }
+                                            theme={theme}
+                                        />
+                                    </div>
+                                </ShouldRender>
+                                <ShouldRender
+                                    if={!this.props.statusData.hideProbeBar}
+                                >
+                                    <div className="bs-probes">
+                                        <Probes
+                                            probes={probes}
+                                            backgroundMain={backgroundMain}
+                                            contentBackground={
+                                                contentBackground
+                                            }
+                                            activeProbe={this.props.activeProbe}
+                                            monitorState={
+                                                this.props.monitorState
+                                            }
+                                            greenBackground={greenBackground}
+                                            uptimeColor={uptimeColor}
+                                            greyBackground={greyBackground}
+                                            serviceStatus={serviceStatus}
+                                            redBackground={redBackground}
+                                            downtimeColor={downtimeColor}
+                                            yellowBackground={yellowBackground}
+                                            degradedColor={degradedColor}
+                                            heading={heading}
+                                            now={this.state.now}
+                                            selectbutton={index =>
+                                                this.selectbutton(index)
+                                            }
+                                            theme={theme}
+                                        />
+                                    </div>
+                                </ShouldRender>
                                 <ShouldRender
                                     if={
                                         availableMonitors &&
@@ -550,7 +596,16 @@ class Main extends Component {
                                                         )
                                                     )
                                                     .map((monitor, i) => (
-                                                        <>
+                                                        <div
+                                                            className="op-div"
+                                                            style={{
+                                                                borderTopWidth:
+                                                                    i === 0 &&
+                                                                    '1px',
+                                                                ...contentBackground,
+                                                            }}
+                                                            key={i}
+                                                        >
                                                             <MonitorInfo
                                                                 monitor={
                                                                     this.props.statusData.monitorsData.filter(
@@ -571,7 +626,22 @@ class Main extends Component {
                                                                 }
                                                                 theme={'clean'}
                                                             />
-                                                        </>
+                                                            <LineChartsContainer
+                                                                monitor={
+                                                                    this.props.statusData.monitorsData.filter(
+                                                                        m =>
+                                                                            m._id ===
+                                                                            monitor
+                                                                                .monitor
+                                                                                ._id
+                                                                    )[0]
+                                                                }
+                                                                selectedCharts={
+                                                                    monitor
+                                                                }
+                                                                key={`line-charts-${i}`}
+                                                            />
+                                                        </div>
                                                     ))
                                             ) : (
                                                 <NoMonitor />
@@ -580,7 +650,10 @@ class Main extends Component {
                                     </div>
                                 </ShouldRender>
                                 <ShouldRender if={availableMonitors.length < 1}>
-                                    <div className="bs-no-monitor">
+                                    <div
+                                        className="bs-no-monitor"
+                                        style={noteBackgroundColor}
+                                    >
                                         No monitors added yet. Please, add a
                                         monitor.
                                     </div>
@@ -594,8 +667,14 @@ class Main extends Component {
                                     !this.props.statusData.moveIncidentToTheTop
                                 }
                             >
-                                <div className="new-theme-incident">
-                                    <div className="font-largest">
+                                <div
+                                    className="new-theme-incident"
+                                    style={contentBackground}
+                                >
+                                    <div
+                                        className="font-largest"
+                                        style={heading}
+                                    >
                                         Past Incidents
                                     </div>
                                     <NotesMain
@@ -613,8 +692,14 @@ class Main extends Component {
                                     this.props.events.length > 0
                                 }
                             >
-                                <div className="new-theme-incident">
-                                    <div className="font-largest">
+                                <div
+                                    className="new-theme-incident"
+                                    style={contentBackground}
+                                >
+                                    <div
+                                        className="font-largest"
+                                        style={heading}
+                                    >
                                         Scheduled Events
                                     </div>
                                     <NewThemeEvent
@@ -622,6 +707,9 @@ class Main extends Component {
                                             this.props.statusData.projectId._id
                                         }
                                         statusPageId={this.props.statusData._id}
+                                        noteBackgroundColor={
+                                            noteBackgroundColor
+                                        }
                                     />
                                 </div>
                             </ShouldRender>
@@ -635,11 +723,6 @@ class Main extends Component {
                                 />
                             </div>
                         </div>
-                        <ShouldRender
-                            if={this.props.subscribed && showSubscriberOption}
-                        >
-                            <SubscribeBox />
-                        </ShouldRender>
                     </>
                 ) : (
                     <div className="page-main-wrapper" style={backgroundMain}>
@@ -748,41 +831,48 @@ class Main extends Component {
                                         marginTop: 75,
                                     }}
                                 >
-                                    {headerHTML ? (
+                                    <ShouldRender if={headerHTML}>
                                         <React.Fragment>
-                                            <style>{sanitizedCSS}</style>
                                             <div
-                                                id="customHeaderHTML"
-                                                dangerouslySetInnerHTML={{
-                                                    __html: headerHTML,
+                                                style={{
+                                                    top: -25,
+                                                    position: 'relative',
                                                 }}
-                                            />
+                                            >
+                                                <style>{sanitizedCSS}</style>
+                                                <div
+                                                    id="customHeaderHTML"
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: headerHTML,
+                                                    }}
+                                                />
+                                            </div>
                                         </React.Fragment>
-                                    ) : (
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={
+                                            this.props.statusData &&
+                                            this.props.statusData.logoPath
+                                        }
+                                    >
                                         <div
                                             style={{
-                                                position: 'absolute',
+                                                position: 'relative',
                                                 left: 30,
-                                                top: -25,
+                                                bottom: '-25px',
                                             }}
                                         >
                                             <div>
-                                                {this.props.statusData &&
-                                                this.props.statusData
-                                                    .logoPath ? (
-                                                    <span>
-                                                        <img
-                                                            src={`${API_URL}/file/${this.props.statusData.logoPath}`}
-                                                            alt=""
-                                                            className="logo"
-                                                        />
-                                                    </span>
-                                                ) : (
-                                                    ''
-                                                )}
+                                                <span>
+                                                    <img
+                                                        src={`${API_URL}/file/${this.props.statusData.logoPath}`}
+                                                        alt=""
+                                                        className="logo"
+                                                    />
+                                                </span>
                                             </div>
                                         </div>
-                                    )}
+                                    </ShouldRender>
                                     <div
                                         className="white box"
                                         style={contentBackground}
@@ -975,30 +1065,10 @@ class Main extends Component {
                                         </div>
                                     </div>
                                 </div>
-                                <Helmet>
-                                    {this.props.statusData &&
-                                    this.props.statusData.faviconPath ? (
-                                        <link
-                                            rel="shortcut icon"
-                                            href={`${API_URL}/file/${this.props.statusData.faviconPath}`}
-                                        />
-                                    ) : (
-                                        <link
-                                            rel="shortcut icon"
-                                            href={faviconurl}
-                                        />
-                                    )}
-                                    <title>
-                                        {this.props.statusData &&
-                                        this.props.statusData.title
-                                            ? this.props.statusData.title
-                                            : 'Status page'}
-                                    </title>
-                                    <script
-                                        src="/status-page/js/landing.base.js"
-                                        type="text/javascript"
-                                    ></script>
-                                </Helmet>
+                                <HelemtCard
+                                    statusData={this.props.statusData}
+                                    faviconurl={faviconurl}
+                                />
                                 <ShouldRender
                                     if={
                                         this.props.statusData &&
@@ -1117,7 +1187,6 @@ const mapStateToProps = state => ({
     events: state.status.events.events,
     requestingEvents: state.status.events.requesting,
     statusPage: state.status.statusPage,
-    subscribed: state.subscribe.subscribeMenu,
     isSubscriberEnabled: state.status.statusPage.isSubscriberEnabled,
 });
 
@@ -1128,7 +1197,6 @@ const mapDispatchToProps = dispatch =>
             getProbes,
             selectedProbe,
             getScheduledEvent,
-            openSubscribeMenu,
         },
         dispatch
     );
@@ -1148,9 +1216,7 @@ Main.propTypes = {
     history: PropTypes.object,
     getScheduledEvent: PropTypes.func,
     requestingEvents: PropTypes.bool,
-    openSubscribeMenu: PropTypes.func,
     statusPage: PropTypes.object,
-    subscribed: PropTypes.bool,
     isSubscriberEnabled: PropTypes.bool.isRequired,
 };
 
@@ -1173,6 +1239,7 @@ const Probes = ({
     heading,
     now,
     selectbutton,
+    theme,
 }) => {
     return (
         <div className="btn-group">
@@ -1180,13 +1247,15 @@ const Probes = ({
                 <button
                     onClick={() => selectbutton(index)}
                     style={{
-                        background: backgroundMain.background,
+                        background: theme
+                            ? '#49c3b1'
+                            : backgroundMain.background,
                         borderColor: contentBackground.background,
                     }}
                     key={`probes-btn${index}`}
                     id={`probes-btn${index}`}
                     className={
-                        activeProbe === index
+                        activeProbe === index && !theme
                             ? 'icon-container selected'
                             : 'icon-container'
                     }
@@ -1230,7 +1299,9 @@ const Probes = ({
                                   }
                         }
                     ></span>
-                    <span style={heading}>{probe.probeName}</span>
+                    <span style={heading} className={theme && 'probe_bg'}>
+                        {probe.probeName}
+                    </span>
                 </button>
             ))}
         </div>
@@ -1256,65 +1327,66 @@ Probes.propTypes = {
     heading: PropTypes.object.isRequired,
     now: PropTypes.object.isRequired,
     selectbutton: PropTypes.func,
+    theme: PropTypes.string,
 };
 
 const FooterCard = ({ footerHTML, statusData, primaryText, secondaryText }) => {
     return (
         <>
-            {footerHTML ? (
-                <div
-                    id="customFooterHTML"
-                    dangerouslySetInnerHTML={{
-                        __html: footerHTML,
-                    }}
-                />
-            ) : (
-                <div id="footer">
-                    <ul>
-                        <ShouldRender if={statusData && statusData.copyright}>
-                            <li>
-                                {' '}
-                                <span style={primaryText}>&copy;</span>{' '}
-                                {statusData && statusData.copyright ? (
-                                    <span style={primaryText}>
-                                        {statusData.copyright}
-                                    </span>
-                                ) : (
-                                    ''
-                                )}
-                            </li>
-                        </ShouldRender>
-                        <ShouldRender
-                            if={
-                                statusData &&
-                                statusData.links &&
-                                statusData.links.length
-                            }
-                        >
-                            {statusData &&
-                                statusData.links &&
-                                statusData.links.map((link, i) => (
-                                    <Footer
-                                        link={link}
-                                        key={i}
-                                        textColor={secondaryText}
-                                    />
-                                ))}
-                        </ShouldRender>
-                    </ul>
+            <div id="footer">
+                <ul>
+                    <ShouldRender if={statusData && statusData.copyright}>
+                        <li>
+                            {' '}
+                            <span style={primaryText}>&copy;</span>{' '}
+                            {statusData && statusData.copyright ? (
+                                <span style={primaryText}>
+                                    {statusData.copyright}
+                                </span>
+                            ) : (
+                                ''
+                            )}
+                        </li>
+                    </ShouldRender>
+                    <ShouldRender
+                        if={
+                            statusData &&
+                            statusData.links &&
+                            statusData.links.length
+                        }
+                    >
+                        {statusData &&
+                            statusData.links &&
+                            statusData.links.map((link, i) => (
+                                <Footer
+                                    link={link}
+                                    key={i}
+                                    textColor={secondaryText}
+                                />
+                            ))}
+                    </ShouldRender>
+                </ul>
 
-                    <p>
-                        <a
-                            href="https://fyipe.com"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={secondaryText}
-                        >
-                            Powered by Fyipe
-                        </a>
-                    </p>
-                </div>
-            )}
+                <ShouldRender if={footerHTML}>
+                    <div
+                        id="customFooterHTML"
+                        dangerouslySetInnerHTML={{
+                            __html: footerHTML,
+                        }}
+                    />
+                </ShouldRender>
+
+                <p>
+                    <a
+                        href="https://fyipe.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={secondaryText}
+                    >
+                        Powered by Fyipe
+                    </a>
+                </p>
+            </div>
         </>
     );
 };
@@ -1326,4 +1398,36 @@ FooterCard.propTypes = {
     statusData: PropTypes.object,
     primaryText: PropTypes.object,
     secondaryText: PropTypes.object,
+};
+
+const HelemtCard = ({ statusData, faviconurl }) => {
+    return (
+        <Helmet>
+            {statusData && statusData.faviconPath ? (
+                <link
+                    rel="shortcut icon"
+                    href={`${API_URL}/file/${statusData.faviconPath}`}
+                />
+            ) : (
+                <link rel="shortcut icon" href={faviconurl} />
+            )}
+            <title>
+                {statusData && statusData.title
+                    ? statusData.title
+                    : 'Status page'}
+            </title>
+            <meta name="description" content={statusData.description}></meta>
+            <script
+                src="/status-page/js/landing.base.js"
+                type="text/javascript"
+            ></script>
+        </Helmet>
+    );
+};
+
+HelemtCard.displayName = 'HelmetCard';
+
+HelemtCard.propTypes = {
+    statusData: PropTypes.object,
+    faviconurl: PropTypes.string,
 };
