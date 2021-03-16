@@ -272,7 +272,7 @@ describe('Monitor API With SubProjects', () => {
                     await page.waitForSelector('#form-new-monitor');
                     await page.click('input[id=name]');
                     await page.type('input[id=name]', data.monitorName);
-                    await init.selectByText('#type', 'manual', page);
+                    await page.click('[data-testId=type_manual]');
                     await page.click('#addMonitorButton');
                     await page.waitForSelector('.ball-beat', { hidden: true });
                     await page.waitForSelector('#cbMonitors', {
@@ -284,7 +284,7 @@ describe('Monitor API With SubProjects', () => {
                     });
                     await page.click('input[id=name]');
                     await page.type('input[id=name]', `${data.monitorName}1`);
-                    await page.click('[data-testId=type_url]');
+                    await page.click('[data-testId=type_manual]');
                     await page.click('#addMonitorButton');
                     await page.waitForSelector('.ball-beat', { hidden: true });
                     await page.waitForSelector('#cbMonitors', {
