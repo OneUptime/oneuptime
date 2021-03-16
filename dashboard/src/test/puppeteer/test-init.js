@@ -8,7 +8,7 @@ module.exports = {
      * @description Registers a new user.
      * @returns { void }
      */
-    registerUser: async function(user, page, checkCard = true){
+    registerUser: async function(user, page, checkCard = true) {
         const { email, password } = user;
         let frame, elementHandle;
         await page.goto(utils.ACCOUNTS_URL + '/register', {
@@ -121,7 +121,7 @@ module.exports = {
             false
         );
     },
-    loginUser: async function(user, page){
+    loginUser: async function(user, page) {
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
@@ -140,7 +140,7 @@ module.exports = {
             false
         );
     },
-    logout: async function(page){
+    logout: async function(page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('button#profile-menu', { visible: true });
         await page.click('button#profile-menu');
@@ -148,7 +148,7 @@ module.exports = {
         await page.click('button#logout-button');
         await page.reload({ waitUntil: 'networkidle0' });
     },
-    adminLogout: async function(page){
+    adminLogout: async function(page) {
         await page.goto(utils.ADMIN_DASHBOARD_URL);
         await page.waitForSelector('button#profile-menu', { visible: true });
         await page.click('button#profile-menu');
@@ -156,7 +156,7 @@ module.exports = {
         await page.click('button#logout-button');
         await page.reload({ waitUntil: 'networkidle0' });
     },
-    addComponent: async function(component, page, projectName = null){
+    addComponent: async function(component, page, projectName = null) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#components', { visible: true });
         await page.click('#components');
@@ -175,7 +175,7 @@ module.exports = {
             page.waitForNavigation(),
         ]);
     },
-    navigateToComponentDetails: async function(component, page){
+    navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
         await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle0' });
         await page.waitForSelector('#components', { visible: true });
@@ -185,7 +185,7 @@ module.exports = {
         await page.waitForSelector(`#more-details-${component}`);
         await page.$eval(`#more-details-${component}`, e => e.click());
     },
-    navigateToMonitorDetails: async function(component, monitor, page){
+    navigateToMonitorDetails: async function(component, monitor, page) {
         // Navigate to Components page
         await this.navigateToComponentDetails(component, page);
 
