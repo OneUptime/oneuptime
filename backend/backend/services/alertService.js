@@ -765,17 +765,29 @@ module.exports = {
     }) {
         const _this = this;
         let pushMessage;
-        console.log('userID', user._id)
+        console.log('userID', user._id);
         const userData = await UserService.findOneBy({
             _id: user._id,
         });
+        console.log('userData::SERVICE', userData);
+        const userData2 = await UserModel.findOne({ _id: user._id });
+        console.log('userData::MODEL', userData2);
         const identification = userData.identification;
-        console.log('identification:::', identification)
+        console.log('identification:::', identification);
 
         webpush.setVapidDetails(
             process.env.PUSHNOTIFICATION_URL, // Address or URL for this application
             process.env.PUSHNOTIFICATION_PUBLIC_KEY, // URL Safe Base64 Encoded Public Key
             process.env.PUSHNOTIFICATION_PRIVATE_KEY // URL Safe Base64 Encoded Private Key
+        );
+        console.log('PUSHNOTIFICATION_URL', process.env.PUSHNOTIFICATION_URL);
+        console.log(
+            'PUSHNOTIFICATION_PUBLIC_KEY',
+            process.env.PUSHNOTIFICATION_PUBLIC_KEY
+        );
+        console.log(
+            'PUSHNOTIFICATION_PRIVATE_KEY',
+            process.env.PUSHNOTIFICATION_PRIVATE_KEY
         );
 
         if (pushProgress) {
@@ -3452,3 +3464,4 @@ const IncidentMessageService = require('./incidentMessageService');
 const IncidentTimelineService = require('./incidentTimelineService');
 const Services = require('../utils/services');
 const RealTimeService = require('./realTimeService');
+const UserModel = require('../models/user');
