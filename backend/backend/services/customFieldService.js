@@ -1,5 +1,6 @@
 const CustomFieldModel = require('../models/customField');
 const ErrorService = require('../services/errorService');
+const IncomingRequestService = require('../services/incomingRequestService');
 
 module.exports = {
     findOneBy: async function(query) {
@@ -38,6 +39,8 @@ module.exports = {
     },
 
     updateOneBy: async function(query, data) {
+        const _this = this;
+
         if (!query) {
             query = {};
         }
@@ -45,17 +48,40 @@ module.exports = {
         if (!query.deleted) query.deleted = false;
 
         try {
-            let customField = await CustomFieldModel.findOneAndUpdate(
+            const oldCustomField = await CustomFieldModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
-                },
-                { new: true }
+                }
             );
+            const customField = await _this.findOneBy(query);
 
-            customField = await customField
-                .populate('projectId', 'name')
-                .execPopulate();
+            // fetch all the corresponding incoming request
+            // and update the custom fields
+            const incomingRequests = await IncomingRequestService.findBy({
+                projectId: query.projectId,
+            });
+
+            for (const request of incomingRequests) {
+                const data = {
+                    customFields: [],
+                };
+                for (const field of request.customFields) {
+                    if (field.fieldName === oldCustomField.fieldName) {
+                        field.fieldName = customField.fieldName;
+                        field.fieldType = customField.fieldType;
+                        field.uniqueField = customField.uniqueField;
+                    }
+                    data.customFields.push(field);
+                }
+
+                // make the update synchronous
+                // so we can propagate the update in the background
+                IncomingRequestService.updateCustomFieldBy(
+                    { projectId: query.projectId, _id: request._id },
+                    data
+                );
+            }
 
             if (!customField) {
                 const error = new Error(
@@ -131,6 +157,28 @@ module.exports = {
                 },
                 { new: true }
             );
+
+            // when a custom field is deleted
+            // it should be removed from the corresponding incoming request
+            const incomingRequests = await IncomingRequestService.findBy({
+                projectId: query.projectId,
+            });
+
+            for (const request of incomingRequests) {
+                const data = {
+                    customFields: [],
+                };
+                data.customFields = request.customFields.filter(
+                    field => field.fieldName !== customField.fieldName
+                );
+
+                // make the update synchronous
+                // so we can propagate the update in the background
+                IncomingRequestService.updateCustomFieldBy(
+                    { projectId: query.projectId, _id: request._id },
+                    data
+                );
+            }
 
             if (!customField) {
                 const error = new Error(

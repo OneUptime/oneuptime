@@ -37,9 +37,9 @@ module.exports = {
     fields: [
         {
             key: 'serverUrl',
-            label: 'Server Url',
+            label: 'Fyipe Server URL',
             helpText:
-                'Your Server Url, Project ID and API Key are found on the project settings page on your Fyipe dashboard.',
+                'Your Server URL, Project ID and API Key are found on the project settings page on your Fyipe dashboard.',
             required: true,
             type: 'string',
         },
