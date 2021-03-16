@@ -80,7 +80,7 @@ class MonitorViewChangeComponentBox extends Component {
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Change Monitor Component</span>
+                                    <span>Move Monitor to another Component</span>
                                 </span>
                                 <p>
                                     <span>
