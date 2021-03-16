@@ -168,8 +168,7 @@ describe('Member Restriction', () => {
                 await init.addSubProject(subProjectName, page);
                 await init.logout(page);
 
-                await init.loginUser({ email: teamEmail, password }, page);
-                //await init.switchProject(newProjectName, page);
+                await init.loginUser({ email: teamEmail, password }, page);                
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
