@@ -369,6 +369,23 @@ module.exports = {
         }
     },
 
+    updateCustomFieldBy: async function(query, data) {
+        try {
+            const incomingRequest = await IncomingRequestModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                { new: true }
+            );
+            return incomingRequest;
+        } catch (error) {
+            ErrorService.log(
+                'incomingRequestService.updateCustomFieldBy',
+                error
+            );
+            throw error;
+        }
+    },
+
     findBy: async function(query, limit, skip) {
         try {
             if (!skip || isNaN(skip)) skip = 0;
@@ -1271,11 +1288,13 @@ module.exports = {
                     }
                 }
 
+                let created_incidents = new Set(
+                    incidentResponse.map(response => response.idNumber)
+                );
+                created_incidents = [...created_incidents];
                 return {
                     status: 'success',
-                    created_incidents: incidentResponse.map(
-                        response => response.idNumber
-                    ),
+                    created_incidents,
                 };
             }
 
