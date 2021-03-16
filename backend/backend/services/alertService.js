@@ -765,10 +765,12 @@ module.exports = {
     }) {
         const _this = this;
         let pushMessage;
+        console.log('userID', user._id)
         const userData = await UserService.findOneBy({
             _id: user._id,
         });
         const identification = userData.identification;
+        console.log('identification:::', identification)
 
         webpush.setVapidDetails(
             process.env.PUSHNOTIFICATION_URL, // Address or URL for this application
