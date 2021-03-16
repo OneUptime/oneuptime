@@ -8,7 +8,7 @@ module.exports = {
      * @description Registers a new user.
      * @returns { void }
      */
-    registerUser: async function (user, page, checkCard = true) {
+    registerUser: async function(user, page, checkCard = true){
         const { email, password } = user;
         let frame, elementHandle;
         await page.goto(utils.ACCOUNTS_URL + '/register', {
@@ -83,7 +83,7 @@ module.exports = {
             page.waitForNavigation(),
         ]);
     },
-    registerAndLoggingTeamMember: async function (user, page) {
+    registerAndLoggingTeamMember: async function(user, page){
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/register'), {
             waitUntil: 'networkidle0'
@@ -121,7 +121,7 @@ module.exports = {
             false
         );
     },
-    loginUser: async function (user, page) {
+    loginUser: async function(user, page){
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
@@ -140,7 +140,7 @@ module.exports = {
             false
         );
     },
-    logout: async function (page) {
+    logout: async function(page){
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('button#profile-menu', { visible: true });
         await page.click('button#profile-menu');
@@ -148,7 +148,7 @@ module.exports = {
         await page.click('button#logout-button');
         await page.reload({ waitUntil: 'networkidle0' });
     },
-    adminLogout: async function (page) {
+    adminLogout: async function(page){
         await page.goto(utils.ADMIN_DASHBOARD_URL);
         await page.waitForSelector('button#profile-menu', { visible: true });
         await page.click('button#profile-menu');
@@ -156,7 +156,7 @@ module.exports = {
         await page.click('button#logout-button');
         await page.reload({ waitUntil: 'networkidle0' });
     },
-    addComponent: async function (component, page, projectName = null) {
+    addComponent: async function(component, page, projectName = null){
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#components', { visible: true });
         await page.click('#components');
@@ -175,7 +175,7 @@ module.exports = {
             page.waitForNavigation(),
         ]);
     },
-    navigateToComponentDetails: async function (component, page) {
+    navigateToComponentDetails: async function(component, page){
         // Navigate to Components page
         await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle0' });
         await page.waitForSelector('#components', { visible: true });
@@ -185,7 +185,7 @@ module.exports = {
         await page.waitForSelector(`#more-details-${component}`);
         await page.$eval(`#more-details-${component}`, e => e.click());
     },
-    navigateToMonitorDetails: async function (component, monitor, page) {
+    navigateToMonitorDetails: async function(component, monitor, page){
         // Navigate to Components page
         await this.navigateToComponentDetails(component, page);
 
@@ -196,7 +196,7 @@ module.exports = {
             visible: true,
         });
     },
-    navigateToApplicationLogDetails: async function (
+    navigateToApplicationLogDetails: async function(
         component,
         applicationLog,
         page
@@ -213,7 +213,7 @@ module.exports = {
         await page.click(`#more-details-${applicationLog}`);
         await page.waitForSelector(`#application-log-title-${applicationLog}`);
     },
-    navigateToErrorTrackerDetails: async function (
+    navigateToErrorTrackerDetails: async function(
         component,
         errorTracker,
         page
@@ -230,7 +230,7 @@ module.exports = {
         await page.click(`#more-details-${errorTracker}`);
         await page.waitForSelector(`#error-tracker-title-${errorTracker}`);
     },
-    registerEnterpriseUser: async function (user, page) {
+    registerEnterpriseUser: async function(user, page) {
         const masterAdmin = {
             email: 'masteradmin@hackerbay.io',
             password: '1234567890',
@@ -266,7 +266,7 @@ module.exports = {
             await this.createUserFromAdminDashboard(user, page);
         }
     },
-    createUserFromAdminDashboard: async function (user, page) {
+    createUserFromAdminDashboard: async function(user, page) {
         // create the user from admin dashboard
         const { email } = user;
         await page.waitForSelector('#add_user');
@@ -287,7 +287,7 @@ module.exports = {
         await page.click('button[type=submit]');
         await page.waitForSelector('#frmUser', { hidden: true });
     },
-    addSchedule: async function (callSchedule, page) {
+    addSchedule: async function(callSchedule, page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#onCallDuty', {
             visible: true,
@@ -301,7 +301,7 @@ module.exports = {
         await page.click('#btnCreateSchedule');
         await page.waitFor(2000);
     },
-    addSubProject: async function (subProjectName, page) {
+    addSubProject: async function(subProjectName, page) {
         const subProjectNameSelector = await page.$('#btn_Add_SubProjects');
         if (subProjectNameSelector) {
             await page.waitForSelector('#btn_Add_SubProjects');
@@ -320,7 +320,7 @@ module.exports = {
         }
         await page.waitForSelector('#btnAddSubProjects', { hidden: true });
     },
-    addUserToProject: async function (data, page) {
+    addUserToProject: async function(data, page) {
         const { email, role, subProjectName } = data;
         await page.waitForSelector('#teamMembers');
         await page.click('#teamMembers');
@@ -332,7 +332,7 @@ module.exports = {
         await page.click(`#${role}_${subProjectName}`);
         await page.click(`#btn_modal_${subProjectName}`);
     },
-    switchProject: async function (projectName, page) {
+    switchProject: async function(projectName, page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#AccountSwitcherId', { visible: true });
         await page.click('#AccountSwitcherId');
@@ -340,7 +340,7 @@ module.exports = {
         await page.click(`#accountSwitcher div#${projectName}`);
         await page.waitForSelector('#components', { visible: true });
     },
-    renameProject: async function (newProjectName, page) {
+    renameProject: async function(newProjectName, page) {
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForSelector('#components', { timeout: 100000 });
         const projectNameSelector = await page.$('input[name=project_name');
@@ -357,12 +357,12 @@ module.exports = {
             await page.click('#btnCreateProject');
         }
     },
-    clear: async function (selector, page) {
+    clear: async function(selector, page) {
         const input = await page.$(selector);
         await input.click({ clickCount: 3 });
         await input.type('');
     },
-    selectByText: async function (selector, text, page) {
+    selectByText: async function(selector, text, page) {
         await page.waitForSelector(selector, { visible: true });
         await page.click(selector);
         await page.keyboard.type(text);
@@ -371,7 +371,7 @@ module.exports = {
             await page.keyboard.press('Tab');
         }
     },
-    addMonitorToComponent: async function (component, monitorName, page) {
+    addMonitorToComponent: async function(component, monitorName, page) {
         component && (await this.addComponent(component, page));
         await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
@@ -387,7 +387,7 @@ module.exports = {
             visible: true,
         });
     },
-    addNewMonitorToComponent: async function (page, componentName, monitorName) {
+    addNewMonitorToComponent: async function(page, componentName, monitorName) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle0',
         });
@@ -415,7 +415,7 @@ module.exports = {
      * @param {string} monitorName the name of the new monitor
      * @param {{createAlertForOnline : boolean, createAlertForDegraded : boolean, createAlertForDown : boolean}} options
      */
-    addAPIMonitorWithJSExpression: async function (
+    addAPIMonitorWithJSExpression: async function(
         page,
         monitorName,
         options = {}
@@ -520,7 +520,7 @@ module.exports = {
             page.waitForNavigation(),
         ]);
     },
-    addMonitorToSubProject: async function (
+    addMonitorToSubProject: async function(
         monitorName,
         projectName,
         componentName,
@@ -539,7 +539,7 @@ module.exports = {
             visible: true,
         });
     },
-    addIncidentToProject: async function (monitorName, projectName, page) {
+    addIncidentToProject: async function(monitorName, projectName, page) {
         const createIncidentSelector = await page.$(
             `#btnCreateIncident_${projectName}`,
             { visible: true }
@@ -565,7 +565,7 @@ module.exports = {
         }
         await page.waitForSelector('#createIncident', { hidden: true });
     },
-    addIncidentPriority: async function (incidentPriority, page) {
+    addIncidentPriority: async function(incidentPriority, page) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle0',
         });
@@ -580,7 +580,7 @@ module.exports = {
         await page.click('#CreateIncidentPriority');
         await page.waitFor(3000);
     },
-    addStatusPageToProject: async function (statusPageName, projectName, page) {
+    addStatusPageToProject: async function(statusPageName, projectName, page) {
         const createStatusPageSelector = await page.$(
             `#btnCreateStatusPage_${projectName}`
         );
@@ -600,7 +600,7 @@ module.exports = {
         }
         await page.waitForSelector('#btnCreateStatusPage', { hidden: true });
     },
-    addScheduleToProject: async function (scheduleName, projectName, page) {
+    addScheduleToProject: async function(scheduleName, projectName, page) {
         const createStatusPageSelector = await page.$(
             `#btnCreateStatusPage_${projectName}`
         );
@@ -620,7 +620,7 @@ module.exports = {
             await page.click('#btnCreateSchedule');
         }
     },
-    addScheduledEvent: async function (monitorName, scheduledEventName, page) {
+    addScheduledEvent: async function(monitorName, scheduledEventName, page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#scheduledEvents', {
             visible: true,
@@ -671,7 +671,7 @@ module.exports = {
             request.continue();
         }
     },
-    addProject: async function (page, projectName = null, checkCard = false) {
+    addProject: async function(page, projectName = null, checkCard = false) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#AccountSwitcherId');
         await page.click('#AccountSwitcherId');
@@ -716,7 +716,7 @@ module.exports = {
         await page.click('#btnCreateProject');
         await page.waitForNavigation({ waitUntil: 'networkidle0' });
     },
-    growthPlanUpgrade: async function (page) {
+    growthPlanUpgrade: async function(page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#projectSettings', { visible: true });
         await page.click('#projectSettings');
@@ -729,7 +729,7 @@ module.exports = {
         await page.click('#changePlanBtn');
         await page.waitForSelector('.ball-beat', { hidden: true });
     },
-    addResourceCategory: async function (resourceCategory, page) {
+    addResourceCategory: async function(resourceCategory, page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#projectSettings');
         await page.click('#projectSettings');
@@ -753,7 +753,7 @@ module.exports = {
             visible: true,
         });
     },
-    addGrowthProject: async function (projectName = 'GrowthProject', page) {
+    addGrowthProject: async function(projectName = 'GrowthProject', page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#AccountSwitcherId');
         await page.click('#AccountSwitcherId');
@@ -772,7 +772,7 @@ module.exports = {
             await page.waitForNavigation({ waitUntil: 'networkidle0' }),
         ]);
     },
-    addScaleProject: async function (projectName = 'ScaleProject', page) {
+    addScaleProject: async function(projectName = 'ScaleProject', page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#AccountSwitcherId');
         await page.click('#AccountSwitcherId');
@@ -791,7 +791,7 @@ module.exports = {
             await page.waitForNavigation({ waitUntil: 'networkidle0' }),
         ]);
     },
-    addScheduledEventNote: async function (
+    addScheduledEventNote: async function(
         page,
         type,
         eventBtn,
@@ -825,7 +825,7 @@ module.exports = {
             hidden: true,
         });
     },
-    addIncident: async function (
+    addIncident: async function(
         monitorName,
         incidentType,
         page,
@@ -854,7 +854,7 @@ module.exports = {
         await page.waitForSelector('.ball-beat', { visible: true });
         await page.waitForSelector('.ball-beat', { hidden: true });
     },
-    addTwilioSettings: async function (
+    addTwilioSettings: async function(
         enableSms,
         accountSid,
         authToken,
@@ -880,7 +880,7 @@ module.exports = {
         await page.reload();
         await page.waitForSelector('#accountSid');
     },
-    addGlobalTwilioSettings: async function (
+    addGlobalTwilioSettings: async function(
         enableSms,
         enableCalls,
         accountSid,
@@ -912,7 +912,7 @@ module.exports = {
         await page.reload();
         await page.waitForSelector('#account-sid');
     },
-    addSmtpSettings: async function (
+    addSmtpSettings: async function(
         enable,
         user,
         pass,
@@ -947,7 +947,7 @@ module.exports = {
         await page.reload();
         await page.waitForSelector('#user');
     },
-    gotoTab: async function (tabId, page) {
+    gotoTab: async function(tabId, page) {
         await page.waitForSelector(`#react-tabs-${tabId}`, { visible: true });
         await page.$eval(`#react-tabs-${tabId}`, e => e.click());
     },
@@ -966,7 +966,7 @@ module.exports = {
         await page.click('#verify');
         await page.waitForSelector('#successMessage');
     },
-    addAnExternalSubscriber: async function (
+    addAnExternalSubscriber: async function(
         componentName,
         monitorName,
         alertType,
@@ -989,7 +989,7 @@ module.exports = {
         }
         await page.click('#createSubscriber');
     },
-    addCustomField: async function (page, data, owner) {
+    addCustomField: async function(page, data, owner) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#projectSettings', { visible: true });
         await page.click('#projectSettings');
