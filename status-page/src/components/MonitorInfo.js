@@ -445,30 +445,50 @@ class MonitorInfo extends Component {
                     <>
                         <div className="op-disp">
                             <div className="op-info">
-                                <div className="collecion_item">
-                                    <span
-                                        className="uptime-stat-name"
-                                        style={{
-                                            paddingRight: '0px',
-                                            ...subheading,
-                                        }}
-                                    >
-                                        {monitor.name}
-                                    </span>
-                                </div>
-                                <div className="tooltip">
+                                <div className="ba-resource">
                                     <ShouldRender
-                                        if={
-                                            selectedCharts &&
-                                            selectedCharts.description
-                                        }
+                                        if={isGroupedByMonitorCategory}
                                     >
-                                        <span className="ques_mark">?</span>
-                                        <span className="tooltiptext tooltip1">
-                                            {selectedCharts &&
-                                                selectedCharts.description}
-                                        </span>
+                                        <div
+                                            id={`monitorCategory_${monitor.name}`}
+                                            style={monitorCategoryStyle}
+                                        >
+                                            <span>
+                                                {resourceCategory
+                                                    ? resourceCategory.name
+                                                    : 'Uncategorized'}
+                                            </span>
+                                        </div>
                                     </ShouldRender>
+                                    <div className="ba-flex">
+                                        <div className="collecion_item">
+                                            <span
+                                                className="uptime-stat-name"
+                                                style={{
+                                                    paddingRight: '0px',
+                                                    ...subheading,
+                                                }}
+                                            >
+                                                {monitor.name}
+                                            </span>
+                                        </div>
+                                        <div className="tooltip">
+                                            <ShouldRender
+                                                if={
+                                                    selectedCharts &&
+                                                    selectedCharts.description
+                                                }
+                                            >
+                                                <span className="ques_mark">
+                                                    ?
+                                                </span>
+                                                <span className="tooltiptext tooltip1">
+                                                    {selectedCharts &&
+                                                        selectedCharts.description}
+                                                </span>
+                                            </ShouldRender>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div

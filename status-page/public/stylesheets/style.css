@@ -1549,6 +1549,15 @@ margin-left:10px;
   margin-right: 15px;
 }
 
+.ba-resource {
+  display: flex;
+  flex-direction: column;
+}
+
+.ba-flex {
+  display: flex;
+}
+
 .powered {
   width: 90%;
   max-width: 850px;

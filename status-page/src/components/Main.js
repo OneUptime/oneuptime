@@ -196,7 +196,9 @@ class Main extends Component {
                                         monitor={monitor}
                                         selectedCharts={
                                             this.props.monitors.filter(
-                                                m => monitor._id === m.monitor
+                                                m =>
+                                                    monitor._id ===
+                                                    m.monitor._id
                                             )[0]
                                         }
                                         key={i}
@@ -208,9 +210,15 @@ class Main extends Component {
                                             this.props.statusData
                                                 .isGroupedByMonitorCategory
                                         }
+                                        theme={
+                                            this.props.statusData.theme ===
+                                            'Clean Theme'
+                                                ? true
+                                                : false
+                                        }
                                     />
                                     {this.props.monitors.some(
-                                        m => monitor._id === m.monitor
+                                        m => monitor._id === m.monitor._id
                                     ) && (
                                         <LineChartsContainer
                                             monitor={monitor}
@@ -218,7 +226,7 @@ class Main extends Component {
                                                 this.props.monitors.filter(
                                                     m =>
                                                         monitor._id ===
-                                                        m.monitor
+                                                        m.monitor._id
                                                 )[0]
                                             }
                                         />
@@ -580,7 +588,15 @@ class Main extends Component {
                                             }
                                         >
                                             {isGroupedByMonitorCategory ? (
-                                                this.groupedMonitors()
+                                                <div
+                                                    className="op-div"
+                                                    style={{
+                                                        borderTopWidth: '1px',
+                                                        ...contentBackground,
+                                                    }}
+                                                >
+                                                    {this.groupedMonitors()}
+                                                </div>
                                             ) : this.props.statusData &&
                                               this.props.statusData
                                                   .monitorsData !== undefined &&
