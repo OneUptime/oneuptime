@@ -284,8 +284,7 @@ module.exports = {
         try {
             let subscription = await stripe.subscriptions.retrieve(
                 subscriptionId
-            );
-            console.log("Stripe Subscritption: ", subscription);
+            );            
 
             let plan = null;
             const items = [];
