@@ -785,4 +785,4 @@ const domains = require('../config/domains');
 const VerificationTokenModel = require('../models/verificationToken');
 const crypto = require('crypto');
 const { IS_SAAS_SERVICE } = require('../config/server');
-const { emaildomains } = require('../config/emaildomains')
+const { emaildomains } = require('../config/emaildomains');
