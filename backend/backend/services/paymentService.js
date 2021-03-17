@@ -285,6 +285,7 @@ module.exports = {
             let subscription = await stripe.subscriptions.retrieve(
                 subscriptionId
             );
+            console.log("Stripe Subscritption: ", subscription);
 
             let plan = null;
             const items = [];
@@ -301,7 +302,10 @@ module.exports = {
                 ErrorService.log('paymentService.changeSeats', error);
                 throw error;
             } else {
-                let trial_end_date = subscription.trial_end;
+                let trial_end_date;
+                if(subscription.trial_end !== null){
+                    trial_end_date = subscription.trial_end
+                }
 
                 for (let i = 0; i < subscription.items.data.length; i++) {
                     plan = await Plans.getPlanById(

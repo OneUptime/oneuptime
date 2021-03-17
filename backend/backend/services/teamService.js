@@ -173,6 +173,7 @@ module.exports = {
 
             // Checks if users to be added as team members are already present or not.
             const isUserInProject = await _this.checkUser(teamMembers, emails);
+            
             if (isUserInProject) {
                 const error = new Error(
                     'These users are already members of the project.'
@@ -183,7 +184,7 @@ module.exports = {
             } else {
                 // Get no of users to be added
                 const extraUsersToAdd = emails.length;
-                try {
+                try {                    
                     const invite = await _this.inviteTeamMembersMethod(
                         projectId,
                         emails,
@@ -196,7 +197,7 @@ module.exports = {
                     ErrorService.log(
                         'TeamService.inviteTeamMembersMethod',
                         error
-                    );
+                    );                    
                     throw error;
                 }
             }
@@ -429,6 +430,9 @@ module.exports = {
                 projectSeats = parseInt(projectSeats);
             }
             const newProjectSeats = projectSeats + extraUsersToAdd;
+            console.log("Project Seats", projectSeats);
+            console.log("Extra User",extraUsersToAdd);
+            console.log("Projects ",project);
 
             if (IS_SAAS_SERVICE) {
                 await PaymentService.changeSeats(

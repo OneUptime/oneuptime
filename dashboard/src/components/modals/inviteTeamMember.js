@@ -152,7 +152,7 @@ export class FormModal extends Component {
             }),
         });
 
-    render() {
+    render() {        
         const { handleSubmit, closeThisDialog, data } = this.props;
         return (
             <div
@@ -568,7 +568,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state) {    
     return {
         team: state.team,
         currentProject: state.project.currentProject,
