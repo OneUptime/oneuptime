@@ -64,7 +64,7 @@ class FyipeTracker
         set_exception_handler(array(FyipeTracker::class, 'setUpExceptionHandlerListener'));
 
         // initializa error handler listener
-        set_error_handler(array(FyipeTracker::class, 'setUpErrorHandler'));
+        set_error_handler(array($this, 'setUpErrorHandler'));
     }
 
     private function setApiUrl(String $apiUrl): void
