@@ -274,7 +274,7 @@ class DeleteAccount extends Component {
                                                     <ShouldRender
                                                         if={shouldRender}
                                                     >
-                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                        <span id = "projectOwnership" className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                             You are the owner of
                                                             the following
                                                             projects, you need
@@ -295,14 +295,14 @@ class DeleteAccount extends Component {
                                                     <ShouldRender
                                                         if={!shouldRender}
                                                     >
-                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                        <span id="projectDeletion" className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                             Deleting your
                                                             account will delete
                                                             all the projects
-                                                            ownened by you. If
+                                                            owned by you. If
                                                             you are a member of
                                                             any projects, you
-                                                            will automaitally be
+                                                            will automatically be
                                                             removed from those
                                                             projects. Please
                                                             type exactly -
