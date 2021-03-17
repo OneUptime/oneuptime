@@ -387,7 +387,7 @@ class MonitorInfo extends Component {
         const upDays = timeBlock.length;
 
         const block = [];
-        if (selectedCharts.uptime)
+        if (selectedCharts && selectedCharts.uptime)
             for (let i = 0; i < range; i++) {
                 block.unshift(
                     <BlockChart
@@ -458,11 +458,15 @@ class MonitorInfo extends Component {
                                 </div>
                                 <div className="tooltip">
                                     <ShouldRender
-                                        if={selectedCharts.description}
+                                        if={
+                                            selectedCharts &&
+                                            selectedCharts.description
+                                        }
                                     >
                                         <span className="ques_mark">?</span>
                                         <span className="tooltiptext tooltip1">
-                                            {selectedCharts.description}
+                                            {selectedCharts &&
+                                                selectedCharts.description}
                                         </span>
                                     </ShouldRender>
                                 </div>
@@ -481,13 +485,15 @@ class MonitorInfo extends Component {
                                     : monitorStatus}
                             </div>
                         </div>
-                        <ShouldRender if={selectedCharts.uptime}>
+                        <ShouldRender
+                            if={selectedCharts && selectedCharts.uptime}
+                        >
                             <div
                                 className="uptime-graph-section dashboard-uptime-graph ma-t-20"
                                 id={this.props.id}
                                 ref={this.container}
                             >
-                                {selectedCharts.uptime && (
+                                {selectedCharts && selectedCharts.uptime && (
                                     <div
                                         ref={this.scrollWrapper}
                                         className="block-chart"
@@ -589,9 +595,11 @@ class MonitorInfo extends Component {
                                     </div>
                                 </ShouldRender>
                                 <div style={{ display: 'flex' }}>
-                                    <div>
-                                        <span style={status}></span>
-                                    </div>
+                                    <ShouldRender if={!this.props.theme}>
+                                        <div>
+                                            <span style={status}></span>
+                                        </div>
+                                    </ShouldRender>
                                     <div>
                                         <span
                                             className="uptime-stat-name"
@@ -610,7 +618,8 @@ class MonitorInfo extends Component {
                                                 wordWrap: 'break-word',
                                             }}
                                         >
-                                            {selectedCharts.description}
+                                            {selectedCharts &&
+                                                selectedCharts.description}
                                         </div>
                                     </div>
                                 </div>
@@ -626,9 +635,10 @@ class MonitorInfo extends Component {
                                 </span>
                             </div>
                         </div>
-                        {selectedCharts.uptime && (
+                        {selectedCharts && selectedCharts.uptime && (
                             <div
                                 ref={this.scrollWrapper}
+                                ƒ
                                 className="block-chart"
                                 style={{
                                     overflowX: this.props.theme

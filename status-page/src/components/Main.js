@@ -1244,65 +1244,74 @@ const Probes = ({
     return (
         <div className="btn-group">
             {probes.map((probe, index) => (
-                <button
-                    onClick={() => selectbutton(index)}
-                    style={{
-                        background: theme
-                            ? '#49c3b1'
-                            : backgroundMain.background,
-                        borderColor: contentBackground.background,
-                    }}
-                    key={`probes-btn${index}`}
-                    id={`probes-btn${index}`}
-                    className={
-                        activeProbe === index && !theme
-                            ? 'icon-container selected'
-                            : 'icon-container'
-                    }
-                >
-                    <span
-                        style={
-                            // If the page doesn't include any monitor or includes only manual monitors
-                            // The probe servers will be shown online
-                            monitorState.length === 0 ||
-                            monitorState.every(
-                                monitor => monitor.type === 'manual'
-                            )
-                                ? {
-                                      ...greenBackground,
-                                      backgroundColor:
-                                          uptimeColor.backgroundColor,
-                                  }
-                                : probe.lastAlive &&
-                                  moment(now).diff(
-                                      moment(probe.lastAlive),
-                                      'seconds'
-                                  ) >= 300
-                                ? greyBackground
-                                : serviceStatus === 'none' ||
-                                  serviceStatus === 'some'
-                                ? {
-                                      ...redBackground,
-                                      backgroundColor:
-                                          downtimeColor.backgroundColor,
-                                  }
-                                : serviceStatus === 'some-degraded'
-                                ? {
-                                      ...yellowBackground,
-                                      backgroundColor:
-                                          degradedColor.backgroundColor,
-                                  }
-                                : {
-                                      ...greenBackground,
-                                      backgroundColor:
-                                          uptimeColor.backgroundColor,
-                                  }
+                <>
+                    <button
+                        onClick={() => selectbutton(index)}
+                        style={{
+                            background: theme
+                                ? '#fff'
+                                : backgroundMain.background,
+                            borderColor: theme
+                                ? 'rgba(170, 170, 170, 0.3)'
+                                : contentBackground.background,
+                            color: theme && '#000',
+                        }}
+                        key={`probes-btn${index}`}
+                        id={`probes-btn${index}`}
+                        className={
+                            theme
+                                ? activeProbe === index
+                                    ? 'icon-container border-fix new_selected'
+                                    : 'icon-container border-fix'
+                                : activeProbe === index
+                                ? 'icon-container selected'
+                                : 'icon-container'
                         }
-                    ></span>
-                    <span style={heading} className={theme && 'probe_bg'}>
-                        {probe.probeName}
-                    </span>
-                </button>
+                    >
+                        <span
+                            style={
+                                // If the page doesn't include any monitor or includes only manual monitors
+                                // The probe servers will be shown online
+                                monitorState.length === 0 ||
+                                monitorState.every(
+                                    monitor => monitor.type === 'manual'
+                                )
+                                    ? {
+                                          ...greenBackground,
+                                          backgroundColor:
+                                              uptimeColor.backgroundColor,
+                                      }
+                                    : probe.lastAlive &&
+                                      moment(now).diff(
+                                          moment(probe.lastAlive),
+                                          'seconds'
+                                      ) >= 300
+                                    ? greyBackground
+                                    : serviceStatus === 'none' ||
+                                      serviceStatus === 'some'
+                                    ? {
+                                          ...redBackground,
+                                          backgroundColor:
+                                              downtimeColor.backgroundColor,
+                                      }
+                                    : serviceStatus === 'some-degraded'
+                                    ? {
+                                          ...yellowBackground,
+                                          backgroundColor:
+                                              degradedColor.backgroundColor,
+                                      }
+                                    : {
+                                          ...greenBackground,
+                                          backgroundColor:
+                                              uptimeColor.backgroundColor,
+                                      }
+                            }
+                        ></span>
+                        <span style={heading} className={theme && 'probe_bg'}>
+                            {probe.probeName}
+                        </span>
+                    </button>
+                </>
             ))}
         </div>
     );

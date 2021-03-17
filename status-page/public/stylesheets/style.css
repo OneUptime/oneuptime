@@ -1280,7 +1280,7 @@ margin-left:10px;
 }
 
 .pad-left {
-  padding-left: 40px;
+  padding-top: 15px;
 }
 
 .new-theme {
@@ -1303,7 +1303,6 @@ margin-left:10px;
   font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
   font-size: 16px;
   margin-bottom: 70px;
-  /* background-color: white; */
 }
 
 .sy-op {
@@ -1673,9 +1672,23 @@ margin-left:10px;
 }
 
 .probe_bg {
-  color: #fff !important;
+  color: #000 !important;
   font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif !important;
   font-weight: 500;
+}
+
+.btn-group .border-fix:first-child {
+  border-left: 2px solid rgba(170, 170, 170, 0.3);
+}
+.btn-group .border-fix:last-child {
+  border-right: 2px solid rgba(170, 170, 170, 0.3);
+}
+
+.border-fix.new_selected {
+  /* border: 2px solid #49c3b1 !important;
+  border-left: 2px solid #49c3b1 !important;
+  border-right: 2px solid #49c3b1 !important; */
+  background-color: rgba(170, 170, 170, 0.1) !important;
 }
 
 /* Popup subscriber's box */
