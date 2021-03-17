@@ -34,7 +34,7 @@ class FyipeTimelineManager
         $this->addItemToTimeline($item);
     }
      // return the timeline
-     public function getTimeline() {
+    public function getTimeline() {
         return $this->timeLineStack;
     }
     // clear the timeline
