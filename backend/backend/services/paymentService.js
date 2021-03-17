@@ -7,7 +7,7 @@ module.exports = {
      * @param {string} alertPhoneNumber phone number of the recipient
      * @returns { (Promise<{error : (string) }> | Promise< {closingBalance : number, chargeAmount:number}>} an object containing error or closing balance and charge amount
      */
-    chargeAlertAndGetProjectBalance: async function(
+    chargeAlertAndGetProjectBalance: async function (
         userId,
         project,
         alertType,
@@ -136,7 +136,7 @@ module.exports = {
      * @param {*} alertType type of alert
      * @returns {{success : boolean, message : string}} whether the balance is recharged successfully
      */
-    checkAndRechargeProjectBalance: async function(
+    checkAndRechargeProjectBalance: async function (
         project,
         userId,
         alertPhoneNumber,
@@ -193,7 +193,7 @@ module.exports = {
     //Params:
     //Param 1: paymentIntent: Payment Intent
     //Returns: promise
-    checkPaymentIntent: async function(paymentIntent) {
+    checkPaymentIntent: async function (paymentIntent) {
         try {
             const processedPaymentIntent = await stripe.paymentIntents.retrieve(
                 paymentIntent.id
@@ -210,7 +210,7 @@ module.exports = {
     //Param 1: stripeToken: Token generated from frontend
     //Param 2: user: User details
     //Returns: promise
-    createCustomer: async function(email, companyName) {
+    createCustomer: async function (email, companyName) {
         try {
             const customer = await stripe.customers.create({
                 email: email,
@@ -224,7 +224,7 @@ module.exports = {
     },
 
     // eslint-disable-next-line no-unused-vars
-    addPayment: async function(customerId, stripeToken) {
+    addPayment: async function (customerId, stripeToken) {
         try {
             const card = await stripe.customers.createSource(customerId);
             return card;
@@ -239,7 +239,7 @@ module.exports = {
     //Param 1: stripePlanId: Id generated from frontend.
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
-    subscribePlan: async function(stripePlanId, stripeCustomerId, coupon) {
+    subscribePlan: async function (stripePlanId, stripeCustomerId, coupon) {
         try {
             const items = [];
             items.push({
@@ -280,11 +280,11 @@ module.exports = {
     //Param 1: stripePlanId: Id generated from frontend.
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
-    changeSeats: async function(subscriptionId, seats) {
+    changeSeats: async function (subscriptionId, seats) {
         try {
             let subscription = await stripe.subscriptions.retrieve(
                 subscriptionId
-            );            
+            );
 
             let plan = null;
             const items = [];
@@ -302,7 +302,7 @@ module.exports = {
                 throw error;
             } else {
                 let trial_end_date;
-                if(subscription.trial_end !== null){
+                if (subscription.trial_end !== null) {
                     trial_end_date = subscription.trial_end
                 }
 
@@ -335,7 +335,7 @@ module.exports = {
         }
     },
 
-    createSubscription: async function(stripeCustomerId, amount) {
+    createSubscription: async function (stripeCustomerId, amount) {
         try {
             const productId = await Plans.getReserveNumberProductId();
             const subscriptions = await stripe.subscriptions.create({
@@ -360,7 +360,7 @@ module.exports = {
         }
     },
 
-    removeSubscription: async function(stripeSubscriptionId) {
+    removeSubscription: async function (stripeSubscriptionId) {
         try {
             const confirmations = [];
             confirmations[0] = await stripe.subscriptions.del(
@@ -373,7 +373,7 @@ module.exports = {
         }
     },
 
-    changePlan: async function(subscriptionId, planId, seats, trialLeft) {
+    changePlan: async function (subscriptionId, planId, seats, trialLeft) {
         try {
             let subscriptionObj = {};
             const subscription = await stripe.subscriptions.retrieve(
@@ -409,7 +409,7 @@ module.exports = {
         }
     },
 
-    chargeAlert: async function(userId, projectId, chargeAmount) {
+    chargeAlert: async function (userId, projectId, chargeAmount) {
         try {
             let project = await ProjectService.findOneBy({
                 _id: projectId,
@@ -471,7 +471,7 @@ module.exports = {
     //Params:
     //Param 1: stripeCustomerId: Received during signup process.
     //Returns : promise
-    chargeExtraUser: async function(
+    chargeExtraUser: async function (
         stripeCustomerId,
         extraUserPlanId,
         extraUsersToAdd
