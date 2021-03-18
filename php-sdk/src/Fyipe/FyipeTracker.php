@@ -8,6 +8,7 @@ namespace Fyipe;
 
 use stdClass;
 use Fyipe\Util;
+use Fyipe\FyipeTransport;
 
 class FyipeTracker
 {
@@ -38,6 +39,7 @@ class FyipeTracker
         'maxTimeline' => 5,
         'captureCodeSnippet' => true,
     ];
+    private $apiTransport;
 
     /**
      * FyipeTracker constructor.
@@ -59,7 +61,8 @@ class FyipeTracker
             $this->options
         ); // Initialize Listener for timeline
 
-
+        // Initializa transport API
+        $this->apiTransport = new FyipeTransport($this->apiUrl);
         // initialize exception handler listener
         set_exception_handler(array(FyipeTracker::class, 'setUpExceptionHandlerListener'));
 
@@ -165,14 +168,14 @@ class FyipeTracker
         }
         return $this->fingerprint;
     }
-    private function setUpExceptionHandlerListener($exception)
+    public function setUpExceptionHandlerListener($exception)
     {
         // construct the error object
         $errorObj = $this->utilObj->getExceptionStackTrace($exception);
 
         $this->manageErrorObject($errorObj);
     }
-    private function setUpErrorHandler($errno, $errstr, $errfile, $errline)
+    public function setUpErrorHandler($errno, $errstr, $errfile, $errline)
     {
 
         $errorObj = $this->utilObj->getErrorStackTrace($errno, $errstr, $errfile, $errline);
@@ -251,29 +254,14 @@ class FyipeTracker
     {
         return $this->listenerObj->getTimeline();
     }
-    private function sendErrorEventToServer()
+    private function sendErrorEventToServer()                                                                                                                                                                                                                                                                                                                                             
     {
-        $response = $this->makeApiRequest($this->event);
+        $response = $this->apiTransport->sendErrorEventToServer($this->event);
         // generate a new event Id
         $this->setEventId();
         // clear the timeline after a successful call to the server
         $this->clear($this->getEventId());
         return $response;
-    }
-    private function makeApiRequest($body): \stdClass
-    {
-        // make api request and return response
-        $client = new \GuzzleHttp\Client(['base_uri' => $this->apiUrl]);
-        try {
-            $response = $client->request('POST', '',  ['form_params' => $body]);
-
-            $responseBody = json_decode($response->getBody()->getContents());
-            return $responseBody;
-        } catch (\GuzzleHttp\Exception\ClientException $e) {
-            $exception = (string) $e->getResponse()->getBody();
-            $exception = json_decode($exception);
-            return $exception;
-        }
     }
     public function getCurrentEvent()
     {
