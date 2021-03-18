@@ -299,7 +299,7 @@ module.exports = {
         page.waitForSelector('#name', { timeout: 2000 });
         await page.type('#name', callSchedule);
         await page.click('#btnCreateSchedule');
-        await page.waitFor(2000);
+        await page.waitForSelector('#btnCreateSchedule',{hidden:true});
     },
     addSubProject: async function(subProjectName, page) {
         const subProjectNameSelector = await page.$('#btn_Add_SubProjects');

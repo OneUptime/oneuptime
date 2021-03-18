@@ -36,7 +36,7 @@ describe('Monitor API', () => {
                 password,
             };
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
+            //await init.loginUser(user, page);
             await init.addSchedule(callSchedule, page);
         });
     });
@@ -46,14 +46,14 @@ describe('Monitor API', () => {
         await cluster.close();
         done();
     });
-
-    const componentName = utils.generateRandomString();
+    // The testing 'Decribe' creates a new component and new monitor because of it testing uniqueness.
     const monitorName = utils.generateRandomString();
     test(
         'Should create new monitor with default criteria settings',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Create Component first
+                const componentName = utils.generateRandomString();
                 // Redirects automatically component to details page
                 await init.addComponent(componentName, page);
 
@@ -80,8 +80,9 @@ describe('Monitor API', () => {
     test(
         'Should create new monitor with edited criteria names',
         async () => {
-            return await cluster.execute(null, async ({ page }) => {
+            return await cluster.execute(null, async ({ page }) => {                
                 // Create Component first
+                const componentName = utils.generateRandomString();
                 // Redirects automatically component to details page
                 await init.addComponent(componentName, page);
 
@@ -137,6 +138,7 @@ describe('Monitor API', () => {
     test('Should create new monitor with multiple criteria on each category', async () => {
         return await cluster.execute(null, async ({ page }) => {
             // Create Component first
+            const componentName = utils.generateRandomString();
             // Redirects automatically component to details page
             await init.addComponent(componentName, page);
 
@@ -312,8 +314,8 @@ describe('Monitor API', () => {
                     waitUntil: ['networkidle0', 'domcontentloaded'],
                 });
 
-                const probe0 = await page.waitForSelector('#probes-btn0');
-                const probe1 = await page.waitForSelector('#probes-btn1');
+                const probe0 = await page.waitForSelector('#probes-btn0',{visible:true});
+                const probe1 = await page.waitForSelector('#probes-btn1',{visible:true});
 
                 expect(probe0).toBeDefined();
                 expect(probe1).toBeDefined();
@@ -337,6 +339,7 @@ describe('Monitor API', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Create Component first
+                
                 // Redirects automatically component to details page
                 await init.addComponent(componentName, page);
 
