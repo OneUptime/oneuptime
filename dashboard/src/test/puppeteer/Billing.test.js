@@ -7,6 +7,7 @@ require('should');
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
+const secondEmail = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 const teamEmail = utils.generateRandomBusinessEmail();
 const newProjectName = 'Test';
@@ -36,8 +37,7 @@ describe('Project Setting: Change Plan', () => {
                 password: data.password,
             };
             // user
-            await init.registerUser(user, page);
-            await init.loginUser(user, page);
+            await init.registerUser(user, page);          
         });
 
         done();
@@ -87,7 +87,7 @@ describe('Project Setting: Change Plan', () => {
                     'innerText'
                 );
                 spanBalanceElement = await spanBalanceElement.jsonValue();
-                expect(spanBalanceElement).toMatch(`${balance}$`);
+                expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
                 // add $20 to the account then click cancel
                 await page.waitForSelector('#rechargeBalanceAmount');
@@ -135,7 +135,7 @@ describe('Project Setting: Change Plan', () => {
                     'innerText'
                 );
                 spanBalanceElement = await spanBalanceElement.jsonValue();
-                expect(spanBalanceElement).toMatch(`${balance}$`);
+                expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
                 // add $20 to the account
                 await page.waitForSelector('#rechargeBalanceAmount');
@@ -150,7 +150,7 @@ describe('Project Setting: Change Plan', () => {
 
                 await page.waitForSelector('#confirmBalanceTopUp');
                 await page.click('#confirmBalanceTopUp');
-                await page.waitForTimeout(9000);
+                await page.waitForSelector('#confirmBalanceTopUp',{hidden:true});
 
                 // confirm a pop up comes up and the message is a successful
                 let spanModalElement = await page.waitForSelector(
@@ -161,13 +161,13 @@ describe('Project Setting: Change Plan', () => {
                 );
                 spanModalElement = await spanModalElement.jsonValue();
                 expect(spanModalElement).toMatch(
-                    `Transaction successful, your balance is now ${balance}$`
+                    `Transaction successful, your balance is now ${balance}.00$`
                 );
 
                 // click ok
                 await page.waitForSelector('#modal-ok');
                 await page.click('#modal-ok');
-                await page.waitForTimeout(5000);
+                await page.waitForSelector('#modal-ok',{hidden:true});
 
                 // confirm the current balance is $20
                 spanBalanceElement = await page.waitForSelector(
@@ -177,7 +177,7 @@ describe('Project Setting: Change Plan', () => {
                     'innerText'
                 );
                 spanBalanceElement = await spanBalanceElement.jsonValue();
-                expect(spanBalanceElement).toMatch(`${balance}$`);
+                expect(spanBalanceElement).toMatch(`${balance}.00$`);
             });
             done();
         },
@@ -205,7 +205,7 @@ describe('Project Setting: Change Plan', () => {
                     'innerText'
                 );
                 spanBalanceElement = await spanBalanceElement.jsonValue();
-                expect(spanBalanceElement).toMatch(`${balance}$`);
+                expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
                 // add $20 to the account then click cancel
                 await page.waitForSelector('#rechargeBalanceAmount');
@@ -219,7 +219,7 @@ describe('Project Setting: Change Plan', () => {
 
                 await page.waitForSelector('#confirmBalanceTopUp');
                 await page.click('#cancelBalanceTopUp');
-                await page.waitForTimeout(4000);
+                await page.waitForSelector('#cancelBalanceTopUp',{hidden:true});                
 
                 // confirm the current balance is still $0
                 spanBalanceElement = await page.waitForSelector(
@@ -229,7 +229,7 @@ describe('Project Setting: Change Plan', () => {
                     'innerText'
                 );
                 spanBalanceElement = await spanBalanceElement.jsonValue();
-                expect(spanBalanceElement).toMatch(`${balance}$`);
+                expect(spanBalanceElement).toMatch(`${balance}.00$`);
             });
             done();
         },
@@ -257,17 +257,17 @@ describe('Member Restriction', () => {
         });
 
         await cluster.execute(
-            { teamEmail, password },
+            { secondEmail, password },
             async ({ page, data }) => {
                 const user = {
-                    email: data.teamEmail,
+                    email: data.secondEmail,
                     password: data.password,
                 };
 
                 // user
-                await init.registerUser(user, page);
-                await init.loginUser({ email, password }, page);
+                await init.registerUser(user, page);              
                 await init.renameProject(newProjectName, page);
+                await page.goto(utils.DASHBOARD_URL,{waitUntil:'networkidle0'})
                 await init.addUserToProject(
                     {
                         email: teamEmail,
@@ -304,9 +304,8 @@ describe('Member Restriction', () => {
                 timeout: 120000,
             });
 
-            await cluster.execute(null, async ({ page }) => {
-                await init.loginUser({ email: teamEmail, password }, page);
-                await init.switchProject(newProjectName, page);
+            await cluster.execute(null, async ({ page }) => {                
+                await init.registerAndLoggingTeamMember({email:teamEmail, password},page)
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
