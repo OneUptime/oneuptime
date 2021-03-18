@@ -158,6 +158,29 @@ describe('Team API', function() {
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('array');
     });
+
+    it('should get unregistered user email from the token', async function() {
+        const authorization = `Basic ${token}`;
+        const res = await request
+            .post(`/team/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                emails: 'noreply4@fyipe.com',
+                role: 'Member',
+            });
+        const { userId } = res.body[0].team[0];
+        const verificationToken = await VerificationTokenModel.findOne({
+            userId,
+        });
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('array');
+
+        const res1 = await request.get(
+            `/user/${verificationToken.token}/email`
+        );
+        expect(res1).to.have.status(200);
+        expect(res1.body.token.userId.email).to.equal('noreply4@fyipe.com');
+    });
 });
 
 // eslint-disable-next-line no-unused-vars
@@ -230,7 +253,7 @@ describe('Team API with Sub-Projects', async function() {
         });
     });
 
-    it('should add a new user to sub-project (role -> `Member`, project seat -> 3)', async () => {
+    it('should add a new user to sub-project (role -> `Member`, project seat -> 4)', async () => {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/team/${subProjectId}`)
@@ -247,7 +270,7 @@ describe('Team API with Sub-Projects', async function() {
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('array');
         expect(subProjectTeamMembers[0].email).to.equal(userData.newUser.email);
-        expect(parseInt(project.seats)).to.be.equal(3);
+        expect(parseInt(project.seats)).to.be.equal(4);
     });
 
     it('should add a new user to parent project and all sub-projects (role -> `Administrator`, project seat -> 4)', async () => {
@@ -275,7 +298,7 @@ describe('Team API with Sub-Projects', async function() {
         expect(subProjectTeamMembers[0].email).to.equal(
             userData.anotherUser.email
         );
-        expect(parseInt(project.seats)).to.be.equal(4);
+        expect(parseInt(project.seats)).to.be.equal(5);
     });
 
     it('should update existing user role in sub-project (old role -> member, new role -> administrator)', async function() {
@@ -318,7 +341,7 @@ describe('Team API with Sub-Projects', async function() {
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('array');
-        expect(res.body.length).to.be.equal(3);
+        expect(res.body.length).to.be.equal(4);
     });
 
     it('should get both project and sub-project Team Members.', async function() {
@@ -344,8 +367,8 @@ describe('Team API with Sub-Projects', async function() {
         ).team;
         const project = await ProjectService.findOneBy({ _id: projectId });
         expect(res).to.have.status(200);
-        expect(subProjectTeamMembers.length).to.be.equal(2);
-        expect(parseInt(project.seats)).to.be.equal(3);
+        expect(subProjectTeamMembers.length).to.be.equal(3);
+        expect(parseInt(project.seats)).to.be.equal(4);
     });
 
     it('should remove user from project Team Members and all sub-projects (sub-project team members count -> 1, project seat -> 2)', async () => {
@@ -358,8 +381,8 @@ describe('Team API with Sub-Projects', async function() {
         ).team;
         const project = await ProjectService.findOneBy({ _id: projectId });
         expect(res).to.have.status(200);
-        expect(projectTeamMembers.length).to.be.equal(1);
-        expect(parseInt(project.seats)).to.be.equal(2);
+        expect(projectTeamMembers.length).to.be.equal(2);
+        expect(parseInt(project.seats)).to.be.equal(3);
     });
 
     it('should not add members that are more than 100 on a project (role -> `Member`)', async function() {
