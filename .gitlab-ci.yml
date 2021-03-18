@@ -84,11 +84,6 @@ include:
   - '/ci/spec/probe/deploy.yaml'
   - '/ci/spec/probe/rollback.yaml'
 
-  # SERVER-MONITOR
-  - '/ci/spec/server-monitor/audit.yaml'
-  - '/ci/spec/server-monitor/build-n-test.yaml'
-  - '/ci/spec/server-monitor/deploy.yaml'
-
   # STATUS-PAGE
   - '/ci/spec/status-page/audit.yaml'
   - '/ci/spec/status-page/build-n-test.yaml'
