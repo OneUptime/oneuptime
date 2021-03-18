@@ -567,6 +567,9 @@ router.post(
         try {
             const data = req.body;
             const incidentId = req.params.incidentId;
+            const { idNumber } = await IncidentService.getIncidentId({
+                _id: incidentId,
+            });
             const projectId = req.params.projectId;
             const userId = req.user.id;
             if (!data.content) {
@@ -776,6 +779,7 @@ router.post(
                     );
                     incidentMessage = {
                         type: data.type,
+                        idNumber,
                         data: await Services.rearrangeDuty(filteredMsg),
                     };
                 } else {
@@ -822,6 +826,9 @@ router.delete(
     async function(req, res) {
         try {
             const { incidentId, incidentMessageId, projectId } = req.params;
+            const { idNumber } = await IncidentService.getIncidentId({
+                _id: incidentId,
+            });
             const checkMsg = await IncidentMessageService.findOneBy({
                 _id: incidentMessageId,
             });
@@ -895,6 +902,7 @@ router.delete(
                     );
                     result = {
                         type: checkMsg.type,
+                        idNumber,
                         data: await Services.rearrangeDuty(filteredMsg),
                     };
                 }
