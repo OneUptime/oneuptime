@@ -29,6 +29,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const subscriberAlertService = require('../services/subscriberAlertService');
 const onCallScheduleStatusService = require('../services/onCallScheduleStatusService');
 const Services = require('../utils/services');
+const { lessThan } = require('../utils/DateTime');
 
 // Route
 // Description: Creating incident.
@@ -277,9 +278,10 @@ router.get(
         // Call the IncidentService.
 
         try {
-            const incidentId = await IncidentService.getIncidentId({
+            let incidentId = await IncidentService.getIncidentId({
                 idNumber: req.params.incidentId,
             });
+            incidentId = incidentId._id;
             const incident = await IncidentService.findOneBy({
                 _id: incidentId,
             });
@@ -920,9 +922,10 @@ router.get(
         try {
             let incidentMessages, result;
             const idNumber = req.params.incidentId;
-            const incidentId = await IncidentService.getIncidentId({
+            let incidentId = await IncidentService.getIncidentId({
                 idNumber,
             });
+            incidentId = incidentId._id;
             const projectId = req.params.projectId;
             if (type === 'investigation') {
                 incidentMessages = await IncidentMessageService.findBy(

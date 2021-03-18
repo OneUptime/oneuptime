@@ -35,9 +35,12 @@ module.exports = {
                     ? project.parentProjectId._id
                     : project._id
                 : timeline.projectId;
+            const { idNumber } = await IncidentService.getIncidentId({
+                _id: timeline.incidentId,
+            });
 
             const data = {
-                incidentId: timeline.incidentId,
+                incidentId: idNumber,
                 incidentMessages: timeline.data,
                 count: timeline.data.length,
                 type: 'internal',
