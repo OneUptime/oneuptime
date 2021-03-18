@@ -1489,4 +1489,16 @@ router.delete('/:userId/delete', getUser, async function(req, res) {
     }
 });
 
+router.get('/:token/email', async function(req, res) {
+    try {
+        const token = await VerificationTokenModel.findOne({
+            token: req.params.token,
+        }).populate('userId', 'email');
+
+        return sendItemResponse(req, res, { token });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;

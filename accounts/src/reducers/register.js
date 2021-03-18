@@ -17,6 +17,7 @@ import {
     ADD_CARD_SUCCESS,
     ADD_CARD_FAILED,
     SAVE_PLAN_ID,
+    GET_EMAIL_FROM_TOKEN,
 } from '../constants/register.js';
 
 // The register state reducer.
@@ -41,6 +42,7 @@ const initialState = {
         error: null,
         success: false,
     },
+    email: null,
 };
 
 export default function register(state = initialState, action) {
@@ -181,6 +183,15 @@ export default function register(state = initialState, action) {
         case SAVE_PLAN_ID:
             return Object.assign({}, state, {
                 planId: action.payload,
+            });
+
+        case GET_EMAIL_FROM_TOKEN:
+            return Object.assign({}, state, {
+                ...state,
+                email:
+                    action.payload && action.payload.token
+                        ? { email: action.payload.token.userId.email }
+                        : null,
             });
 
         default:

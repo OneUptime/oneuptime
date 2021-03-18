@@ -353,7 +353,7 @@ module.exports = {
                         );
                     }
                     let verificationToken;
-                    if (user.role !== 'master-admin' && !customerId) {
+                    if (user.role !== 'master-admin' || !customerId) {
                         verificationToken = await _this.sendToken(
                             user,
                             user.email

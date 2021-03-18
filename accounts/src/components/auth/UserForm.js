@@ -10,6 +10,7 @@ import { removeQuery } from '../../store';
 import queryString from 'query-string';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { getEmailFromToken } from '../../actions/register';
 
 class UserForm extends Component {
     state = {
@@ -17,15 +18,16 @@ class UserForm extends Component {
     };
 
     componentDidMount() {
-        const query = queryString.parse(this.props.location.search).status;
+        const query = queryString.parse(this.props.location.search);
 
-        if (query === 'user-not-found') {
+        if (query && query.status === 'user-not-found') {
             this.setState({
                 serverResponse: 'No user found for this token',
             });
         }
 
         removeQuery();
+        this.props.getEmailFromToken(query.token);
 
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: SIGN UP FORM');
@@ -85,6 +87,10 @@ class UserForm extends Component {
                                         required="required"
                                         value={
                                             this.props.register.user.email || ''
+                                        }
+                                        disabled={
+                                            this.props.initialValues &&
+                                            this.props.initialValues.email
                                         }
                                     />
                                 </span>
@@ -315,12 +321,13 @@ const userForm = reduxForm({
 })(UserForm);
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({}, dispatch);
+    return bindActionCreators({ getEmailFromToken }, dispatch);
 };
 
 function mapStateToProps(state) {
     return {
         register: state.register,
+        initialValues: state.register.email,
     };
 }
 
@@ -329,6 +336,8 @@ UserForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     register: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,
+    getEmailFromToken: PropTypes.func,
+    initialValues: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(userForm);
