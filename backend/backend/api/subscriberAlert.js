@@ -99,7 +99,8 @@ router.get('/:projectId/incident/:incidentId', async (req, res) => {
     try {
         const projectId = req.params.projectId;
         const idNumber = req.params.incidentId;
-        const incidentId = await IncidentService.getIncidentId({ idNumber });
+        let incidentId = await IncidentService.getIncidentId({ idNumber });
+        incidentId = incidentId._id;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
         const subscriberAlerts = await SubscriberAlertService.findBy(

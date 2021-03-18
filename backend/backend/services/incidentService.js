@@ -267,8 +267,8 @@ module.exports = {
 
     getIncidentId: async function(query) {
         try {
-            const incidentId = await IncidentModel.findOne(query);
-            return incidentId._id;
+            const incident = await IncidentModel.findOne(query);
+            return incident;
         } catch (error) {
             ErrorService.log('incidentService.getIncidentId', error);
             throw error;
