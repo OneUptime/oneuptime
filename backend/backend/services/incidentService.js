@@ -265,6 +265,16 @@ module.exports = {
         }
     },
 
+    getIncidentId: async function(query) {
+        try {
+            const incidentId = await IncidentModel.findOne(query);
+            return incidentId._id;
+        } catch (error) {
+            ErrorService.log('incidentService.getIncidentId', error);
+            throw error;
+        }
+    },
+
     // Description: Get Incident by incident Id.
     // Params:
     // Param 1: monitorId: monitor Id
