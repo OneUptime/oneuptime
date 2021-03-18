@@ -162,6 +162,39 @@ router.get(
     }
 );
 
+
+//Route: GET
+//Description: get a particular application security in a component by ApplicationSecuritySlug
+//Param: req.params -> {projectId, componentId, applicationSecuritySlug}
+//returns: response -> {applicationSecurity, error}
+router.get(
+    '/:projectId/:componentId/applicationSecuritySlug/:applicationSecuritySlug',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { applicationSecuritySlug } = req.params;
+            const applicationSecurity = await ApplicationSecurityService.findOneBy(
+                {
+                    slug: applicationSecuritySlug,
+                }
+            );
+
+            if (!applicationSecurity) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Application security not found or does not exist',
+                });
+            }
+
+            return sendItemResponse(req, res, applicationSecurity);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+
 //Route: GET
 //Description: get all application security in a component
 //Param: req.params -> {projectId, componentId}

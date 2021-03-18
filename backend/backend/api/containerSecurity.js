@@ -188,6 +188,35 @@ router.get(
     }
 );
 
+//Route: GET
+//Description: get a particular container security in a component using containerSecuritySlug
+//Param: req.params -> {projectId, componentId, containerSecuritySlug}
+//returns: response -> {containerSecurity, error}
+router.get(
+    '/:projectId/:componentId/containerSecuritySlug/:containerSecuritySlug',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { containerSecuritySlug } = req.params;
+            const containerSecurity = await ContainerSecurityService.findOneBy({
+                slug: containerSecuritySlug,
+            });
+
+            if (!containerSecurity) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Container security not found or does not exist',
+                });
+            }
+
+            return sendItemResponse(req, res, containerSecurity);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 //Route: DELETE
 //Description: delete a particular container security in a component
 //Param: req.params -> {projectId, componentId, containerSecurityId}

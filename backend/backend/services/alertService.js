@@ -326,7 +326,6 @@ module.exports = {
 
     sendAlertsToTeamMembersInSchedule: async function({ schedule, incident }) {
         const _this = this;
-        const userId = incident.createdById._id;
         const monitorId = incident.monitorId._id
             ? incident.monitorId._id
             : incident.monitorId;
@@ -768,12 +767,13 @@ module.exports = {
         const userData = await UserService.findOneBy({
             _id: user._id,
         });
+        
         const identification = userData.identification;
 
         webpush.setVapidDetails(
-            process.env.WEBPUSH_EMAIL, // Address or URL for this application
-            process.env.VAPID_PUBLIC_KEY, // URL Safe Base64 Encoded Public Key
-            process.env.VAPID_PRIVATE_KEY // URL Safe Base64 Encoded Private Key
+            process.env.PUSHNOTIFICATION_URL, // Address or URL for this application
+            process.env.PUSHNOTIFICATION_PUBLIC_KEY, // URL Safe Base64 Encoded Public Key
+            process.env.PUSHNOTIFICATION_PRIVATE_KEY // URL Safe Base64 Encoded Private Key
         );
 
         if (pushProgress) {

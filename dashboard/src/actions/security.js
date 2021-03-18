@@ -82,6 +82,31 @@ export const getContainerSecurity = ({
     }
 };
 
+export const getContainerSecurityBySlug = ({
+    projectId,
+    componentId,
+    containerSecuritySlug,
+}) => async dispatch => {
+    dispatch(getContainerSecurityRequest());
+
+    try {
+        const response = await getApi(
+            `security/${projectId}/${componentId}/containerSecuritySlug/${containerSecuritySlug}`
+        );
+        dispatch(getContainerSecuritySuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(getContainerSecurityFailure(errorMsg));
+    }
+};
+
 // Get all Container Security
 export const getContainerSecuritiesRequest = () => ({
     type: types.GET_CONTAINER_SECURITIES_REQUEST,
@@ -229,6 +254,31 @@ export const getContainerSecurityLog = ({
     try {
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/container/logs/${containerSecurityId}`
+        );
+        dispatch(getContainerSecurityLogSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(getContainerSecurityLogFailure(errorMsg));
+    }
+};
+
+export const getContainerSecurityLogBySlug = ({
+    projectId,
+    componentId,
+    containerSecuritySlug,
+}) => async dispatch => {
+    dispatch(getContainerSecurityLogRequest());
+
+    try {
+        const response = await getApi(
+            `securityLog/${projectId}/${componentId}/containerSecuritySlug/logs/${containerSecuritySlug}`
         );
         dispatch(getContainerSecurityLogSuccess(response.data));
     } catch (error) {
@@ -406,6 +456,31 @@ export const getApplicationSecurity = ({
     }
 };
 
+export const getApplicationSecurityBySlug = ({
+    projectId,
+    componentId,
+    applicationSecuritySlug,
+}) => async dispatch => {
+    dispatch(getApplicationSecurityRequest());
+
+    try {
+        const response = await getApi(
+            `security/${projectId}/${componentId}/applicationSecuritySlug/${applicationSecuritySlug}`
+        );
+        dispatch(getApplicationSecuritySuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(getApplicationSecurityFailure(errorMsg));
+    }
+};
+
 // Get all Application Security
 export const getApplicationSecuritiesRequest = () => ({
     type: types.GET_APPLICATION_SECURITIES_REQUEST,
@@ -553,6 +628,31 @@ export const getApplicationSecurityLog = ({
     try {
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/application/logs/${applicationSecurityId}`
+        );
+        dispatch(getApplicationSecurityLogSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(getApplicationSecurityLogFailure(errorMsg));
+    }
+};
+
+export const getApplicationSecurityLogBySlug = ({
+    projectId,
+    componentId,
+    applicationSecuritySlug,
+}) => async dispatch => {
+    dispatch(getApplicationSecurityLogRequest());
+
+    try {
+        const response = await getApi(
+            `securityLog/${projectId}/${componentId}/applicationSecuritySlug/logs/${applicationSecuritySlug}`
         );
         dispatch(getApplicationSecurityLogSuccess(response.data));
     } catch (error) {

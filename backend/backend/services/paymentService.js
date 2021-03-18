@@ -301,6 +301,11 @@ module.exports = {
                 ErrorService.log('paymentService.changeSeats', error);
                 throw error;
             } else {
+                let trial_end_date;
+                if(subscription.trial_end !== null){
+                    trial_end_date = subscription.trial_end
+                }
+
                 for (let i = 0; i < subscription.items.data.length; i++) {
                     plan = await Plans.getPlanById(
                         subscription.items.data[i].plan.id
@@ -316,9 +321,10 @@ module.exports = {
                         items.push(item);
                     }
                 }
+
                 subscription = await stripe.subscriptions.update(
                     subscriptionId,
-                    { items: items }
+                    { items: items, trial_end: trial_end_date }
                 );
 
                 return subscription.id;

@@ -229,6 +229,18 @@ const INITIAL_STATE = {
         success: false,
         error: null,
     },
+    certFile: {
+        requesting: false,
+        success: false,
+        error: null,
+        file: null,
+    },
+    privateKeyFile: {
+        requesting: false,
+        success: false,
+        error: null,
+        file: null,
+    },
 };
 
 export default function statusPage(state = INITIAL_STATE, action) {
@@ -1243,6 +1255,90 @@ export default function statusPage(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 showDuplicateStatusPage: action.payload,
             });
+
+        case 'CERT_FILE_REQUEST':
+            return {
+                ...state,
+                certFile: {
+                    ...state.certFile,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case 'CERT_FILE_SUCCESS':
+            return {
+                ...state,
+                certFile: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    file: action.payload,
+                },
+            };
+
+        case 'CERT_FILE_ERROR':
+            return {
+                ...state,
+                certFile: {
+                    ...state.certFile,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case 'REMOVE_CERT_FILE':
+            return {
+                ...state,
+                certFile: {
+                    ...state.certFile,
+                    file: null,
+                },
+            };
+
+        case 'PRIVATE_KEY_REQUEST':
+            return {
+                ...state,
+                privateKeyFile: {
+                    ...state.privateKeyFile,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case 'PRIVATE_KEY_SUCCESS':
+            return {
+                ...state,
+                privateKeyFile: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    file: action.payload,
+                },
+            };
+
+        case 'PRIVATE_KEY_ERROR':
+            return {
+                ...state,
+                privateKeyFile: {
+                    ...state.privateKeyFile,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case 'REMOVE_PRIVATE_KEY':
+            return {
+                ...state,
+                privateKeyFile: {
+                    ...state.privateKeyFile,
+                    file: null,
+                },
+            };
 
         default:
             return state;

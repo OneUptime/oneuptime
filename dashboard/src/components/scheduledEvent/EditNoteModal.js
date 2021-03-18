@@ -49,9 +49,7 @@ class EditNoteModal extends Component {
             modalId,
             closeModal,
             updateScheduledEventNoteInternal,
-            updateScheduledEventNoteInvestigation,
             updateInternalError,
-            updateInvestigationError,
         } = this.props;
         const postObj = {};
         postObj.content = values[`content`];
@@ -59,47 +57,23 @@ class EditNoteModal extends Component {
             values[`event_state`] === 'others'
                 ? values[`custom_event_state`]
                 : values[`event_state`];
-        postObj.type = type;
-
-        if (type === 'internal') {
-            updateScheduledEventNoteInternal(
-                projectId,
-                scheduledEventId,
-                scheduledEventNoteId,
-                postObj
-            ).then(() => {
-                if (!updateInternalError) {
-                    if (SHOULD_LOG_ANALYTICS) {
-                        logEvent(
-                            `EVENT: DASHBOARD > PROJECT > SCHEDULED EVENT > INCIDENT > ${type} INVESTIGATION MESSAGE`,
-                            values
-                        );
-                    }
-
-                    return closeModal({ id: modalId });
+        updateScheduledEventNoteInternal(
+            projectId,
+            scheduledEventId,
+            scheduledEventNoteId,
+            postObj
+        ).then(() => {
+            if (!updateInternalError) {
+                if (SHOULD_LOG_ANALYTICS) {
+                    logEvent(
+                        `EVENT: DASHBOARD > PROJECT > SCHEDULED EVENT > INCIDENT > ${type} INVESTIGATION MESSAGE`,
+                        values
+                    );
                 }
-            });
-        }
 
-        if (type === 'investigation') {
-            updateScheduledEventNoteInvestigation(
-                projectId,
-                scheduledEventId,
-                scheduledEventNoteId,
-                postObj
-            ).then(() => {
-                if (!updateInvestigationError) {
-                    if (SHOULD_LOG_ANALYTICS) {
-                        logEvent(
-                            `EVENT: DASHBOARD > PROJECT > SCHEDULED EVENT > INCIDENT > ${type} INVESTIGATION MESSAGE`,
-                            values
-                        );
-                    }
-
-                    return closeModal({ id: modalId });
-                }
-            });
-        }
+                return closeModal({ id: modalId });
+            }
+        });
     };
 
     handleKeyBoard = e => {

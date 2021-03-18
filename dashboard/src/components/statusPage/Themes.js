@@ -50,11 +50,7 @@ export class Themes extends Component {
                             <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                 <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                     <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                        <span
-                                            style={{
-                                                textTransform: 'capitalize',
-                                            }}
-                                        >
+                                        <span>
                                             Select a theme
                                         </span>
                                     </span>

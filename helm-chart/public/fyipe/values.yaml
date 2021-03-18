@@ -235,3 +235,15 @@ disableSignup: false
 
 # What protocol is backend running on. Takes in values like 'http:' or 'https:'
 backendProtocol: 
+
+
+# Push notificaitons. 
+# Generate public and pivate key for push notifications. 
+# These are just the test keys. 
+# You can generate them by: 
+# First install the web-push npm package using npm install web-push -g, then run web-push generate-vapid-keys
+
+pushNotification:
+    publicKey: "BD1kb-OchZlXr32bmwpjhoxp_cq-aqK4dWXRDkC5m6Hd9_cvMOUw_bXRFR3pJFGzpEdjQUk5SDdYaXvb7xd-1Dg"
+    privateKey: "WdFZTeXkuoxpsO_KNOtXvhDUc_Ae1rb-WjPv6AVexA4"
+    url: "https://fyipe-test.com"

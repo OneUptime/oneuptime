@@ -51,8 +51,8 @@ export class SidebarNavItem extends Component {
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitor', match.params.monitorSlug)
-            .replace(':applicationLogId', match.params.applicationLogId)
-            .replace(':errorTrackerId', match.params.errorTrackerId);
+            .replace(':applicationLogSlug', match.params.applicationLogSlug)
+            .replace(':errorTrackerSlug', match.params.errorTrackerSlug);
     };
     handleShowMore = () => {
         this.props.toggleProjectSettingsMore(!this.props.toggleMoreBtn);
@@ -77,6 +77,7 @@ export class SidebarNavItem extends Component {
             subRoute.title === 'Git Credentials' ||
             subRoute.title === 'Docker Credentials' ||
             subRoute.title === 'Resources' ||
+            subRoute.title === 'Domains' ||
             subRoute.title === 'Groups';
         if (projectSettingsSubRoutes) {
             if (match.url === subRoutePath) {
@@ -110,8 +111,8 @@ export class SidebarNavItem extends Component {
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitorSlug', match.params.monitorSlug)
-            .replace(':applicationLogId', match.params.applicationLogId)
-            .replace(':errorTrackerId', match.params.errorTrackerId);
+            .replace(':applicationLogSlug', match.params.applicationLogSlug)
+            .replace(':errorTrackerSlug', match.params.errorTrackerSlug);
         const isLinkActive =
             location.pathname === path ||
             (location.pathname.match(
@@ -133,7 +134,7 @@ export class SidebarNavItem extends Component {
             ) &&
                 route.title === 'Monitors') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
+                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/incidents\/([0-9])*/
             ) &&
                 route.title === 'Incident Log') ||
             (location.pathname.match(
@@ -167,19 +168,19 @@ export class SidebarNavItem extends Component {
             newPath = newPath.replace(/:monitorSlug/, match.params.monitorSlug);
             newPath = newPath.replace(/:componentId/, match.params.componentId);
             newPath = newPath.replace(
-                /:applicationLogId/,
-                match.params.applicationLogId
+                /:applicationLogSlug/,
+                match.params.applicationLogSlug
             );
             newPath = newPath.replace(
-                /:errorTrackerId/,
-                match.params.errorTrackerId
+                /:errorTrackerSlug/,
+                match.params.errorTrackerSlug
             );
 
             const response =
                 newPath === match.url
                     ? true
                     : (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
+                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/incidents\/([0-9])*/
                       ) &&
                           link.title === 'Incident') ||
                       (location.pathname.match(
@@ -191,11 +192,11 @@ export class SidebarNavItem extends Component {
                       ) &&
                           link.title === 'Application') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/application\/([0-9]|[a-z])*/
+                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/application\/([A-Za-z0-9-]+)*/
                       ) &&
                           link.title === 'Application Detail') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/container\/([0-9]|[a-z])*/
+                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/container\/([A-Za-z0-9-]+)*/
                       ) &&
                           link.title === 'Container Detail') ||
                       (location.pathname.match(
@@ -379,6 +380,7 @@ export class SidebarNavItem extends Component {
                 child.title === 'Git Credentials' ||
                 child.title === 'Docker Credentials' ||
                 child.title === 'Resources' ||
+                child.title === 'Domains' ||
                 child.title === 'Groups';
             if (removedLinks.some(link => link === child.title)) return null;
 

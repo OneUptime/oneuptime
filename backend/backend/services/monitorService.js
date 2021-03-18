@@ -209,7 +209,7 @@ module.exports = {
                             _monitor &&
                             String(monitor._id) !== String(_monitor._id)
                         ) {
-                            errorMsg = `The field ${field.fieldName} should have unique values per monitor`;
+                            errorMsg = `The field ${field.fieldName} should be unique. It already exists on another monitor.`;
                         }
                     }
                 }

@@ -97,7 +97,7 @@ class ChangeMonitorComponent extends React.Component {
                                     }}
                                 >
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Change Monitor Component</span>
+                                        <span>Move Monitor to another Component</span>
                                     </span>
                                 </div>
                             </div>

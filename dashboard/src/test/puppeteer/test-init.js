@@ -83,6 +83,44 @@ module.exports = {
             page.waitForNavigation(),
         ]);
     },
+    registerAndLoggingTeamMember: async function(user, page){
+        const { email, password } = user;
+        await page.goto(utils.ACCOUNTS_URL + '/register'), {
+            waitUntil: 'networkidle0'
+        }
+        // Registration
+        await page.waitForSelector('#email');
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', email);
+        await page.click('input[name=name]');
+        await page.type('input[name=name]', 'Test Name');
+        await page.click('input[name=companyName]');
+        await page.type('input[name=companyName]', 'Test Name');
+        await page.click('input[name=companyPhoneNumber]');
+        await page.type('input[name=companyPhoneNumber]', '99105688');
+        await page.click('input[name=password]');
+        await page.type('input[name=password]', password);
+        await page.click('input[name=confirmPassword]');
+        await page.type('input[name=confirmPassword]', password);
+        await page.click('button[type=submit]'),
+        await page.waitForSelector('#success-step');
+        
+        // Login
+        await page.goto(utils.ACCOUNTS_URL + '/login',{waitUntil:'networkidle0'});
+        await page.waitForSelector('#login-form');
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', email);
+        await page.click('input[name=password]');
+        await page.type('input[name=password]', password);
+        await page.waitForSelector('button[type=submit]', { visible: true });
+        await Promise.all([
+            page.waitForNavigation({ waitUntil: 'networkidle2' }),
+            page.click('button[type=submit]'),
+        ]);
+        expect(page.url().startsWith(utils.ACCOUNTS_URL + '/login')).toEqual(
+            false
+        );
+    },
     loginUser: async function(user, page) {
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/login', {

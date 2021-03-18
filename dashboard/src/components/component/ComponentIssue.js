@@ -13,7 +13,7 @@ class ComponentIssue extends Component {
     }
     generateUrlLink(componentIssue) {
         const { component, currentProject } = this.props;
-        return `/dashboard/project/${currentProject.slug}/${component._id}/error-trackers/${componentIssue.errorTrackerId._id}`;
+        return `/dashboard/project/${currentProject.slug}/${component._id}/error-trackers/${componentIssue.errorTrackerId.slug}`;
     }
     render() {
         const { component, errorTrackers } = this.props;

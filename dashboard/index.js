@@ -78,6 +78,7 @@ app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
         }),
         REACT_APP_DOMAIN: req.host,
         REACT_APP_STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
+        REACT_APP_PUSHNOTIFICATION_PUBLIC_KEY: process.env.PUSHNOTIFICATION_PUBLIC_KEY,
         REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
         REACT_APP_VERSION: process.env.REACT_APP_VERSION,
     };

@@ -67,6 +67,131 @@ export function cancelAddMoreDomain() {
     };
 }
 
+// upload cert file
+export function uploadCertFileRequest() {
+    return {
+        type: 'CERT_FILE_REQUEST',
+    };
+}
+
+export function uploadCertFileSuccess(filename) {
+    return {
+        type: 'CERT_FILE_SUCCESS',
+        payload: filename,
+    };
+}
+
+export function uploadCertFileFailure(error) {
+    return {
+        type: 'CERT_FILE_ERROR',
+        payload: error,
+    };
+}
+
+export function removeCertFile() {
+    return {
+        type: 'REMOVE_CERT_FILE',
+    };
+}
+
+export function uploadCertFile(projectId, file) {
+    return function(dispatch) {
+        const data = new FormData();
+        if (file) {
+            data.append('cert', file);
+
+            const promise = postApi(`statusPage/${projectId}/certFile`, data);
+            dispatch(uploadCertFileRequest());
+            promise.then(
+                function(response) {
+                    const data = response.data;
+                    dispatch(uploadCertFileSuccess(data.cert));
+                    return data;
+                },
+                function(error) {
+                    if (error && error.response && error.response.data)
+                        error = error.response.data;
+                    if (error && error.data) {
+                        error = error.data;
+                    }
+                    if (error && error.message) {
+                        error = error.message;
+                    } else {
+                        error = 'Network Error';
+                    }
+                    dispatch(uploadCertFileFailure(error));
+                }
+            );
+
+            return promise;
+        }
+    };
+}
+
+// upload private key file
+export function uploadPrivateKeyRequest() {
+    return {
+        type: 'PRIVATE_KEY_REQUEST',
+    };
+}
+
+export function uploadPrivateKeySuccess(filename) {
+    return {
+        type: 'PRIVATE_KEY_SUCCESS',
+        payload: filename,
+    };
+}
+
+export function uploadPrivateKeyFailure(error) {
+    return {
+        type: 'PRIVATE_KEY_ERROR',
+        payload: error,
+    };
+}
+
+export function removePrivateKeyFile() {
+    return {
+        type: 'REMOVE_PRIVATE_KEY',
+    };
+}
+
+export function uploadPrivateKey(projectId, file) {
+    return function(dispatch) {
+        const data = new FormData();
+        if (file) {
+            data.append('privateKey', file);
+
+            const promise = postApi(
+                `statusPage/${projectId}/privateKeyFile`,
+                data
+            );
+            dispatch(uploadPrivateKeyRequest());
+            promise.then(
+                function(response) {
+                    const data = response.data;
+                    dispatch(uploadPrivateKeySuccess(data.privateKey));
+                    return data;
+                },
+                function(error) {
+                    if (error && error.response && error.response.data)
+                        error = error.response.data;
+                    if (error && error.data) {
+                        error = error.data;
+                    }
+                    if (error && error.message) {
+                        error = error.message;
+                    } else {
+                        error = 'Network Error';
+                    }
+                    dispatch(uploadPrivateKeyFailure(error));
+                }
+            );
+
+            return promise;
+        }
+    };
+}
+
 //Update status page setting
 
 export function updateStatusPageSettingRequest() {
