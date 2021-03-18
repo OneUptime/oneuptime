@@ -24,19 +24,19 @@ JavaScript SDK which has:
 
 A fyipe application logger that can be used to send logs about your applications and log them to fyipe dashboard.
 
-[Logger Documentation: Quick start and API Reference](/docs/logger/README.md)
+[Logger Documentation: Quick start and API Reference](./docs/logger/README.md)
 
 ### Error Tracker: Keeps a log of all your application errors.
 
 A fyipe error tracker is used to automatically log errors which happen in your app and log them to Fyipe dashboard.
 
-[Error Tracker Documentation: Quick start and API Reference](/docs/error-tracker/README.md)
+[Error Tracker Documentation: Quick start and API Reference](./docs/error-tracker/README.md)
 
 ### Server Monitor: Monitors your server and resources.
 
 Server Monitor will monitor any VM, or a Bare metal server.
 
-[Server Monitor Documentation: Quick start and API Reference](/docs/server-monitor/README.md)
+[Server Monitor Documentation: Quick start and API Reference](./docs/server-monitor/README.md)
 
 ## Contribution
 
