@@ -277,8 +277,11 @@ router.get(
         // Call the IncidentService.
 
         try {
+            const incidentId = await IncidentService.getIncidentId({
+                idNumber: req.params.incidentId,
+            });
             const incident = await IncidentService.findOneBy({
-                _id: req.params.incidentId,
+                _id: incidentId,
             });
             return sendItemResponse(req, res, incident);
         } catch (error) {
@@ -916,7 +919,10 @@ router.get(
         }
         try {
             let incidentMessages, result;
-            const incidentId = req.params.incidentId;
+            const idNumber = req.params.incidentId;
+            const incidentId = await IncidentService.getIncidentId({
+                idNumber,
+            });
             const projectId = req.params.projectId;
             if (type === 'investigation') {
                 incidentMessages = await IncidentMessageService.findBy(
