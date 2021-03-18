@@ -28,6 +28,27 @@ class KubePodData extends React.Component {
         this.props.closeModal();
     };
 
+    handleKey = key => {
+        switch (key) {
+            case 'podName':
+                return 'Name';
+            case 'podCreationTimestamp':
+                return 'Creation Time';
+            case 'podStatus':
+                return 'Status';
+            case 'podRestart':
+                return 'Restarts';
+            case 'podNamespace':
+                return 'Namespace';
+            case 'podResourceVersion':
+                return 'Resource Version';
+            case 'podSelfLink':
+                return 'Self Link';
+            case 'podUid':
+                return 'UID';
+        }
+    };
+
     render() {
         const { data } = this.props;
         const podData = data.data;
@@ -42,7 +63,10 @@ class KubePodData extends React.Component {
                 style={{ marginTop: '40px' }}
             >
                 <div className="bs-BIM">
-                    <div className="bs-Modal" style={{ width: '60vw' }}>
+                    <div
+                        className="bs-Modal"
+                        style={{ width: 'fit-content', minWidth: 450 }}
+                    >
                         <ClickOutside onClickOutside={this.handleCloseModal}>
                             <div className="bs-Modal-header">
                                 <div
@@ -84,13 +108,19 @@ class KubePodData extends React.Component {
                                                         style={{
                                                             backgroundColor:
                                                                 'white',
-                                                            cursor: 'pointer',
                                                         }}
                                                         id={`podData_item`}
                                                     >
                                                         <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                            <div className="bs-ObjectList-cell-row">
-                                                                {key}
+                                                            <div
+                                                                className="bs-ObjectList-cell-row"
+                                                                style={{
+                                                                    fontWeight: 500,
+                                                                }}
+                                                            >
+                                                                {this.handleKey(
+                                                                    key
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div className="bs-ObjectList-cell bs-u-v-middle">

@@ -28,6 +28,27 @@ class KubeStatefulsetData extends React.Component {
         this.props.closeModal();
     };
 
+    handleKey = key => {
+        switch (key) {
+            case 'statefulsetName':
+                return 'Name';
+            case 'readyStatefulsets':
+                return 'Ready Statefulsets';
+            case 'desiredStatefulsets':
+                return 'Desired Statefulsets';
+            case 'statefulsetCreationTimestamp':
+                return 'Creation Time';
+            case 'statefulsetNamespace':
+                return 'Namespace';
+            case 'statefulsetResourceVersion':
+                return 'Resource Version';
+            case 'statefulsetSelfLink':
+                return 'Self Link';
+            case 'statefulsetUid':
+                return 'UID';
+        }
+    };
+
     render() {
         const { data } = this.props;
         const statefulsetData = data.data;
@@ -42,7 +63,10 @@ class KubeStatefulsetData extends React.Component {
                 style={{ marginTop: '40px' }}
             >
                 <div className="bs-BIM">
-                    <div className="bs-Modal" style={{ width: '60vw' }}>
+                    <div
+                        className="bs-Modal"
+                        style={{ width: 'fit-content', minWidth: 450 }}
+                    >
                         <ClickOutside onClickOutside={this.handleCloseModal}>
                             <div className="bs-Modal-header">
                                 <div
@@ -77,13 +101,19 @@ class KubeStatefulsetData extends React.Component {
                                                         style={{
                                                             backgroundColor:
                                                                 'white',
-                                                            cursor: 'pointer',
                                                         }}
                                                         id={`statefulsetData_item`}
                                                     >
                                                         <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                            <div className="bs-ObjectList-cell-row">
-                                                                {key}
+                                                            <div
+                                                                className="bs-ObjectList-cell-row"
+                                                                style={{
+                                                                    fontWeight: 500,
+                                                                }}
+                                                            >
+                                                                {this.handleKey(
+                                                                    key
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div className="bs-ObjectList-cell bs-u-v-middle">

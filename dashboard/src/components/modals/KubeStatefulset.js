@@ -29,7 +29,18 @@ class KubeStatefulset extends React.Component {
     };
 
     handleCloseModal = () => {
-        this.props.closeModal();
+        /**
+         * NORMAL BEHAVIOR:
+         * 1. when a user clicks within the modal, the modal should not close
+         * 2. when a user clicks outside the modal, the last modal on the stack should close (the currently viewed modal)
+         *
+         * BUG FIX:
+         * a tiny hack to fix issue with closing stacked modals
+         * when a user clicks on the modal
+         */
+        if (this.props.modals.length === 1) {
+            this.props.closeModal();
+        }
     };
 
     handleStatefulsetData = data => {
@@ -50,7 +61,10 @@ class KubeStatefulset extends React.Component {
                 style={{ marginTop: '40px' }}
             >
                 <div className="bs-BIM">
-                    <div className="bs-Modal" style={{ width: 600 }}>
+                    <div
+                        className="bs-Modal"
+                        style={{ width: 'fit-content', minWidth: 450 }}
+                    >
                         <ClickOutside onClickOutside={this.handleCloseModal}>
                             <div className="bs-Modal-header">
                                 <div
@@ -213,6 +227,7 @@ KubeStatefulset.propTypes = {
     closeModal: PropTypes.func.isRequired,
     data: PropTypes.object,
     openModal: PropTypes.func,
+    modals: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -224,4 +239,8 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-export default connect(null, mapDispatchToProps)(KubeStatefulset);
+const mapStateToProps = state => ({
+    modals: state.modal.modals,
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(KubeStatefulset);
