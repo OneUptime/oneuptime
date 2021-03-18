@@ -52,4 +52,4 @@ marketing/*/*
 licenses/*
 certifications/*
 api-docs/public/assets/*
-server-monitor/out/scripts/prettify/*
+js-sdk/src/cli/server-monitor/out/scripts/prettify/*
