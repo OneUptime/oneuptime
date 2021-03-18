@@ -5,24 +5,19 @@ import Http from 'http';
 import Https from 'https';
 
 class FyipeListiner {
-    #BASE_URL = 'http://localhost:3002/api'; // TODO proper base url config
-    #timelineObj;
-    #debounceDuration = 1000;
-    #keypressTimeout = undefined;
-    #lastEvent = undefined;
-    #currentEventId;
-    #utilObj;
-    #isWindow;
-    #options;
     constructor(eventId, isWindow, options) {
-        this.#options = options;
-        this.#isWindow = isWindow;
-        this.#timelineObj = new FyipeTimelineManager(options);
-        this.#utilObj = new Util();
-        this.#currentEventId = eventId;
+        this.options = options;
+        this.isWindow = isWindow;
+        this.timelineObj = new FyipeTimelineManager(options);
+        this.utilObj = new Util();
+        this.currentEventId = eventId;
+        this.BASE_URL = 'http://localhost:3002/api'; // TODO proper base url config
+        this.debounceDuration = 1000;
+        this.keypressTimeout = undefined;
+        this.lastEvent = undefined;
         this._setUpConsoleListener();
 
-        if (this.#isWindow) {
+        if (this.isWindow) {
             this._init();
         } else {
             this._setUpHttpsListener();
@@ -35,13 +30,13 @@ class FyipeListiner {
     }
     getTimeline() {
         // this always get the current state of the timeline array
-        return this.#timelineObj.getTimeline();
+        return this.timelineObj.getTimeline();
     }
     clearTimeline(eventId) {
         // set a new eventId
-        this.#currentEventId = eventId;
+        this.currentEventId = eventId;
         // this will reset the state of the timeline array
-        return this.#timelineObj.clearTimeline();
+        return this.timelineObj.clearTimeline();
     }
     // set up console listener
     _setUpConsoleListener() {
@@ -51,27 +46,27 @@ class FyipeListiner {
             return {
                 log: function(text) {
                     oldCons.log(text);
-                    // _this._logConsoleEvent(text, _this.#utilObj.getErrorType().INFO);
+                    // _this._logConsoleEvent(text, _this.utilObj.getErrorType().INFO);
                 },
                 info: function(text) {
                     oldCons.info(text);
                     _this._logConsoleEvent(
                         text,
-                        _this.#utilObj.getErrorType().INFO
+                        _this.utilObj.getErrorType().INFO
                     );
                 },
                 warn: function(text) {
                     oldCons.warn(text);
                     _this._logConsoleEvent(
                         text,
-                        _this.#utilObj.getErrorType().WARNING
+                        _this.utilObj.getErrorType().WARNING
                     );
                 },
                 error: function(text) {
                     oldCons.error(text);
                     _this._logConsoleEvent(
                         text,
-                        _this.#utilObj.getErrorType().ERROR
+                        _this.utilObj.getErrorType().ERROR
                     );
                 },
             };
@@ -85,26 +80,26 @@ class FyipeListiner {
         Object.keys(window).forEach(key => {
             if (/^on(keypress|click)/.test(key)) {
                 window.addEventListener(key.slice(2), event => {
-                    if (!_this.#keypressTimeout) {
+                    if (!_this.keypressTimeout) {
                         // confirm the event is new
-                        if (_this.#lastEvent === event) {
+                        if (_this.lastEvent === event) {
                             return;
                         }
-                        _this.#lastEvent = event;
+                        _this.lastEvent = event;
                         // set up how to send this log to the server
                         this._logClickEvent(
                             event,
-                            this.#utilObj.getErrorType().INFO
+                            this.utilObj.getErrorType().INFO
                         );
                     } else {
                         console.log('not logging');
                     }
 
-                    clearTimeout(_this.#keypressTimeout);
+                    clearTimeout(_this.keypressTimeout);
 
-                    _this.#keypressTimeout = setTimeout(() => {
-                        _this.#keypressTimeout = undefined;
-                    }, _this.#debounceDuration);
+                    _this.keypressTimeout = setTimeout(() => {
+                        _this.keypressTimeout = undefined;
+                    }, _this.debounceDuration);
                 });
             }
         });
@@ -121,16 +116,16 @@ class FyipeListiner {
             };
             this.addEventListener('load', function() {
                 // check if it is not a request to Fyipe servers
-                if (!url.startsWith(_this.#BASE_URL)) {
+                if (!url.startsWith(_this.BASE_URL)) {
                     obj.status_code = this.status;
-                    _this._logXHREvent(obj, _this.#utilObj.getErrorType().INFO);
+                    _this._logXHREvent(obj, _this.utilObj.getErrorType().INFO);
                 }
             });
             this.addEventListener('error', function() {
                 // check if it is not a request to Fyipe servers
-                if (!url.startsWith(_this.#BASE_URL)) {
+                if (!url.startsWith(_this.BASE_URL)) {
                     obj.status_code = this.status;
-                    _this._logXHREvent(obj, _this.#utilObj.getErrorType().INFO);
+                    _this._logXHREvent(obj, _this.utilObj.getErrorType().INFO);
                 }
             });
 
@@ -160,8 +155,8 @@ class FyipeListiner {
                     obj.status_code = err.status;
                 }
             );
-            if (!url.startsWith(_this.#BASE_URL)) {
-                _this._logFetchEvent(obj, _this.#utilObj.getErrorType().INFO);
+            if (!url.startsWith(_this.BASE_URL)) {
+                _this._logFetchEvent(obj, _this.utilObj.getErrorType().INFO);
             }
 
             return promise;
@@ -185,10 +180,10 @@ class FyipeListiner {
                             response.on('end', () => {
                                 // get status from final response
                                 log.status = response.statusCode;
-                                if (!log.url.startsWith(_this.#BASE_URL)) {
+                                if (!log.url.startsWith(_this.BASE_URL)) {
                                     _this._logHttpRequestEvent(
                                         log,
-                                        _this.#utilObj.getErrorType().INFO
+                                        _this.utilObj.getErrorType().INFO
                                     );
                                 }
                             });
@@ -225,10 +220,10 @@ class FyipeListiner {
                 content,
             },
             type,
-            eventId: this.#currentEventId,
+            eventId: this.currentEventId,
         };
         // add timeline to the stack
-        this.#timelineObj.addToTimeline(timelineObj);
+        this.timelineObj.addToTimeline(timelineObj);
     }
     _logXHREvent(content, type) {
         const timelineObj = {
@@ -237,10 +232,10 @@ class FyipeListiner {
                 content,
             },
             type,
-            eventId: this.#currentEventId,
+            eventId: this.currentEventId,
         };
         // add timeline to the stack
-        this.#timelineObj.addToTimeline(timelineObj);
+        this.timelineObj.addToTimeline(timelineObj);
     }
     _logFetchEvent(content, type) {
         const timelineObj = {
@@ -249,10 +244,10 @@ class FyipeListiner {
                 content,
             },
             type,
-            eventId: this.#currentEventId,
+            eventId: this.currentEventId,
         };
         // add timeline to the stack
-        this.#timelineObj.addToTimeline(timelineObj);
+        this.timelineObj.addToTimeline(timelineObj);
     }
     _logHttpRequestEvent(content, type) {
         const timelineObj = {
@@ -261,10 +256,10 @@ class FyipeListiner {
                 content,
             },
             type,
-            eventId: this.#currentEventId,
+            eventId: this.currentEventId,
         };
         // add timeline to the stack
-        this.#timelineObj.addToTimeline(timelineObj);
+        this.timelineObj.addToTimeline(timelineObj);
     }
     logErrorEvent(content) {
         const timelineObj = {
@@ -272,17 +267,17 @@ class FyipeListiner {
             data: {
                 content,
             },
-            type: this.#utilObj.getErrorType().ERROR,
-            eventId: this.#currentEventId,
+            type: this.utilObj.getErrorType().ERROR,
+            eventId: this.currentEventId,
         };
         // add timeline to the stack
-        this.#timelineObj.addToTimeline(timelineObj);
+        this.timelineObj.addToTimeline(timelineObj);
     }
     logCustomTimelineEvent(timelineObj) {
-        timelineObj.eventId = this.#currentEventId;
+        timelineObj.eventId = this.currentEventId;
 
         // add timeline to the stack
-        this.#timelineObj.addToTimeline(timelineObj);
+        this.timelineObj.addToTimeline(timelineObj);
     }
     _logClickEvent(event, type) {
         // preepare the event tree
@@ -293,10 +288,10 @@ class FyipeListiner {
                 content,
             },
             type,
-            eventId: this.#currentEventId,
+            eventId: this.currentEventId,
         };
         // add timeline to the stack
-        this.#timelineObj.addToTimeline(timelineObj);
+        this.timelineObj.addToTimeline(timelineObj);
     }
     _getEventTree(event) {
         const tree = [];
@@ -312,7 +307,7 @@ class FyipeListiner {
                 elementPath += `${currentElem.localName}`;
                 // attach ID if it has
                 if (currentElem.id) {
-                    elementPath += `#${currentElem.id}`;
+                    elementPath += `${currentElem.id}`;
                 }
                 // for classes
                 let classes = [];
