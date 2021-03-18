@@ -557,8 +557,17 @@ module.exports = {
         const project = await ProjectService.findOneBy({ _id: projectId });
 
         escalation = await EscalationService.findOneBy({ _id: escalation._id });
-
+        //console.log(escalation)
         const activeTeam = escalation.activeTeam;
+        const groups = activeTeam.groups.map(user => user.groups);
+        const groupUsers = groups.map(group => group.teams);
+        const groupUserIds = [].concat
+            .apply([], groupUsers)
+            .map(id => ({ userId: id }));
+        const filterdUserIds = groupUserIds.filter(user =>
+            activeTeam.teamMembers.some(team => team.userId !== user.userId)
+        );
+
         const currentEscalationStatus =
             onCallScheduleStatus.escalations[
                 onCallScheduleStatus.escalations.length - 1
@@ -601,7 +610,8 @@ module.exports = {
         ] = currentEscalationStatus;
         await onCallScheduleStatus.save();
 
-        for (const teamMember of activeTeam.teamMembers) {
+        const allUsers = [...activeTeam.teamMembers, ...filterdUserIds];
+        for (const teamMember of allUsers) {
             const isOnDuty = await _this.checkIsOnDuty(
                 teamMember.startTime,
                 teamMember.endTime

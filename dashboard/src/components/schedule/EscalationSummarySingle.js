@@ -15,8 +15,12 @@ const EscalationSummarySingle = ({
         ? escalation.activeTeam
         : escalation.nextActiveTeam;
     let teamMembers = [];
+    let groups = [];
 
-    if (data) teamMembers = data.teamMembers;
+    if (data) {
+        teamMembers = data.teamMembers;
+        groups = data.groups;
+    }
 
     const teamMembersOnPartialDutyCount = teamMembers.filter(member => {
         return (
@@ -113,6 +117,36 @@ const EscalationSummarySingle = ({
                         })}
                 </div>
             </div>
+            {groups && groups.length > 0 ? (
+                <div className="bs-Fieldset-row">
+                    <label className="bs-Fieldset-label">
+                        <b>Groups</b>
+                    </label>
+                    <div
+                        className="bs-Fieldset-fields labelfield"
+                        style={{ marginTop: '-1px' }}
+                    >
+                        {groups &&
+                            groups.length > 0 &&
+                            groups.map(group => {
+                                return (
+                                    <div
+                                        key={group._id}
+                                        className="Box-root Margin-right--16 pointer"
+                                    >
+                                        <img
+                                            src="/dashboard/assets/img/profile-user.svg"
+                                            key={''}
+                                            className="userIcon"
+                                            alt=""
+                                        />
+                                        <span>{group.groups.name}</span>
+                                    </div>
+                                );
+                            })}
+                    </div>
+                </div>
+            ) : null}
 
             {data && data.rotationStartTime && (
                 <div className="bs-Fieldset-row">

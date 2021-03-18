@@ -96,6 +96,7 @@ export class GroupList extends Component {
             project,
             parentProject,
             createGroupRequest,
+            subProjects,
         } = this.props;
         const canNext = count > skip + limit ? false : true;
         const canPrev = skip <= 0 ? true : false;
@@ -112,13 +113,17 @@ export class GroupList extends Component {
                                 style={{ paddingRight: '0' }}
                             >
                                 <div className="Box-root Padding-top--20">
-                                    <Badge
-                                        color={parentProject ? 'red' : 'blue'}
-                                    >
-                                        {parentProject
-                                            ? 'Project'
-                                            : project.name}
-                                    </Badge>
+                                    {subProjects ? (
+                                        <Badge
+                                            color={
+                                                parentProject ? 'red' : 'blue'
+                                            }
+                                        >
+                                            {parentProject
+                                                ? 'Project'
+                                                : project.name}
+                                        </Badge>
+                                    ) : null}
                                 </div>
                                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
@@ -127,7 +132,7 @@ export class GroupList extends Component {
                                                 {parentProject
                                                     ? 'Project'
                                                     : project.name}{' '}
-                                                Groups
+                                                Team Member Groups
                                             </span>
                                         </span>
                                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -156,7 +161,9 @@ export class GroupList extends Component {
                                                         <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                                                     </div>
                                                     <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
-                                                        <span>Add Group</span>
+                                                        <span>
+                                                            Add New Group
+                                                        </span>
                                                         <span className="new-btn__keycode">
                                                             N
                                                         </span>
@@ -329,6 +336,7 @@ GroupList.propTypes = {
     groups: PropTypes.array,
     getProjectGroups: PropTypes.func,
     createGroupRequest: PropTypes.object,
+    subProjects: PropTypes.bool,
 };
 
 const mapDispatchToProps = dispatch => {

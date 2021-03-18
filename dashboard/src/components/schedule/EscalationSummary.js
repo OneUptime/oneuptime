@@ -13,7 +13,7 @@ export class EscalationSummary extends Component {
     }
 
     render() {
-        const { onEditClicked, escalations, teamMembers } = this.props;
+        const { onEditClicked, escalations, teamMembers, groups } = this.props;
 
         const { isLoading, error } = this.state;
         return (
@@ -101,6 +101,7 @@ export class EscalationSummary extends Component {
                                                             teamMemberList={
                                                                 teamMembers
                                                             }
+                                                            groupList={groups}
                                                             escalation={
                                                                 escalation
                                                             }
@@ -126,6 +127,7 @@ export class EscalationSummary extends Component {
                                                             teamMemberList={
                                                                 teamMembers
                                                             }
+                                                            groupList={groups}
                                                             escalation={
                                                                 escalation
                                                             }

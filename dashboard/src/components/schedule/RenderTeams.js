@@ -9,6 +9,7 @@ const RenderTeams = ({ fields, subProjectId, policyIndex, rotateBy }) => {
     return (
         <ul>
             {fields.map((team, i) => {
+                console.log(fields, 'consoling field2')
                 return (
                     <li key={i} className="team">
                         {fields.length > 1 && (

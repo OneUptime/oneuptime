@@ -18,33 +18,48 @@ const TeamMemberSelector = ({
     form,
     policyIndex,
     teamIndex,
+    projectGroups,
+    renderType,
 }) => {
     const allowedTeamMembers = makeAllowedTeamMembers(
         form[policyIndex].teams[teamIndex].teamMembers,
         subProjectTeam
     );
+    const groups =
+        (projectGroups.groups &&
+            projectGroups.groups.map(group => {
+                return {
+                    value: group._id,
+                    label: group.name,
+                };
+            })) ||
+        [];
 
-    const allowedOptionsForDropdown = [
-        { value: '', label: 'Select Team Member...' },
-    ].concat(
-        allowedTeamMembers.map(member => {
-            return {
-                value: member.userId,
-                label: member.name ? member.name : member.email,
-                show: member.role !== 'Viewer',
-            };
-        })
-    );
+    const allowedOptionsForDropdown =
+        renderType === 'team'
+            ? [{ value: '', label: 'Select Team Member...' }].concat(
+                  allowedTeamMembers.map(member => {
+                      return {
+                          value: member.userId,
+                          label: member.name ? member.name : member.email,
+                          show: member.role !== 'Viewer',
+                      };
+                  })
+              )
+            : [{ value: '', label: 'Select Group...' }].concat(groups);
 
-    const options = [{ value: '', label: 'Select Team Member...' }].concat(
-        subProjectTeam.map(member => {
-            return {
-                value: member.userId,
-                label: member.name ? member.name : member.email,
-                show: member.role !== 'Viewer',
-            };
-        })
-    );
+    const options =
+        renderType === 'team'
+            ? [{ value: '', label: 'Select Team Member...' }].concat(
+                  subProjectTeam.map(member => {
+                      return {
+                          value: member.userId,
+                          label: member.name ? member.name : member.email,
+                          show: member.role !== 'Viewer',
+                      };
+                  })
+              )
+            : [{ value: '', label: 'Select Group...' }].concat(groups);
 
     const filteredOpt = useRef();
     filteredOpt.current = options.filter(opt => opt.value === input.value);
@@ -84,7 +99,7 @@ const TeamMemberSelector = ({
                     onChange={handleChange}
                     className="db-select-nw"
                     options={allowedOptionsForDropdown.filter(opt =>
-                        opt.show !== undefined ? opt.show : true
+                        opt.show !== undefined ? true : true
                     )}
                 />
             </div>
@@ -119,6 +134,8 @@ TeamMemberSelector.propTypes = {
     policyIndex: PropTypes.number.isRequired,
     form: PropTypes.object.isRequired,
     teamIndex: PropTypes.number.isRequired,
+    projectGroups: PropTypes.array,
+    renderType: PropTypes.string,
 };
 
 function makeAllowedTeamMembers(teamMembers = [], subProjectTeam = []) {
@@ -148,6 +165,7 @@ function mapStateToProps(state, props) {
     return {
         subProjectTeam: subProjectTeam.teamMembers || [],
         form,
+        projectGroups: state.groups.groups,
     };
 }
 

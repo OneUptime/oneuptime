@@ -146,16 +146,19 @@ export default function groups(state = initialState, action) {
                     success: true,
                     error: null,
                 },
-                groups: state.groups.map(projectGroup => {
-                    const projectId = action.payload.groups[0].projectId._id;
-                    if (projectGroup.project.id === projectId) {
-                        return {
-                            project: projectGroup.project,
-                            groups: action.payload,
-                        };
-                    }
-                    return projectGroup;
-                }),
+                groups: action.payload.callduty
+                    ? action.payload
+                    : state.groups.map(projectGroup => {
+                          const projectId =
+                              action.payload.groups[0].projectId._id;
+                          if (projectGroup.project.id === projectId) {
+                              return {
+                                  project: projectGroup.project,
+                                  groups: action.payload,
+                              };
+                          }
+                          return projectGroup;
+                      }),
             };
         case types.DELETE_GROUP_REQUEST:
             return {

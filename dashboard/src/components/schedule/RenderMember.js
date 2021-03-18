@@ -7,8 +7,12 @@ import TimeSelector from '../basic/TimeSelector';
 import Tooltip from '../basic/Tooltip';
 import PricingPlan from '../basic/PricingPlan';
 import moment from 'moment-timezone';
+import { RenderSelect } from '../basic/RenderSelect';
+import { change } from 'redux-form';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 
-const RenderMember = ({
+let RenderMember = ({
     memberValue,
     inputarray,
     subProjectId,
@@ -16,9 +20,11 @@ const RenderMember = ({
     teamIndex,
     nameIndex,
     fields,
+    change,
 }) => {
     const [timeVisible, setTimeVisible] = useState(false);
     const [forcedTimeHide, forceTimeHide] = useState(false);
+    const [type, setType] = useState('team');
 
     const manageVisibility = (timeVisible, memberHasCallTimes) => {
         setTimeVisible(timeVisible);
@@ -42,8 +48,46 @@ const RenderMember = ({
         return result;
     };
 
+    const handleSwitch = val => {
+        setType(val);
+        if (val === 'team') {
+            change('OnCallAlertBox', `${inputarray}.groupId`, '');
+        }
+        if (val === 'group') {
+            change('OnCallAlertBox', `${inputarray}.userId`, '');
+        }
+    };
+
     return (
         <li key={nameIndex}>
+            <div className="bs-Fieldset-row">
+                <label className="bs-Fieldset-label">
+                    Select Team Member or Groups
+                </label>
+                <div className="bs-Fieldset-fields">
+                    <span>
+                        <Field
+                            id={`${inputarray}.${
+                                type === 'group' ? 'groupId' : 'userId'
+                            }`}
+                            className="db-select-nw"
+                            type="text"
+                            name={'team-group' + nameIndex}
+                            component={RenderSelect}
+                            options={[
+                                { label: 'Team members', value: 'team' },
+                                { label: 'Groups', value: 'group' },
+                            ]}
+                            onChange={(event, newValue) => {
+                                handleSwitch(newValue);
+                            }}
+                            subProjectId={subProjectId}
+                            policyIndex={policyIndex}
+                            teamIndex={teamIndex}
+                        />
+                    </span>
+                </div>
+            </div>
             <div className="bs-Fieldset-row">
                 <label className="bs-Fieldset-label">
                     Team Member {fields.length > 1 ? nameIndex + 1 : ''}
@@ -54,12 +98,15 @@ const RenderMember = ({
                             id={`${inputarray}.userId`}
                             className="db-BusinessSettings-input TextInput bs-TextInput"
                             type="text"
-                            name={`${inputarray}.userId`}
+                            name={`${inputarray}.${
+                                type === 'group' ? 'groupId' : 'userId'
+                            }`}
                             component={TeamMemberSelector}
                             placeholder="Nawaz"
                             subProjectId={subProjectId}
                             policyIndex={policyIndex}
                             teamIndex={teamIndex}
+                            renderType={type}
                         />
                         <Tooltip title="Call Reminders">
                             <div>
@@ -225,6 +272,9 @@ const RenderMember = ({
 
 RenderMember.displayName = 'RenderMember';
 
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators({ change }, dispatch);
+};
 RenderMember.propTypes = {
     subProjectId: PropTypes.string.isRequired,
     fields: PropTypes.oneOfType([PropTypes.array, PropTypes.object]).isRequired,
@@ -233,6 +283,8 @@ RenderMember.propTypes = {
     nameIndex: PropTypes.number.isRequired,
     memberValue: PropTypes.object.isRequired,
     inputarray: PropTypes.string.isRequired,
+    change: PropTypes.func,
 };
 
+RenderMember = connect(null, mapDispatchToProps)(RenderMember);
 export { RenderMember };

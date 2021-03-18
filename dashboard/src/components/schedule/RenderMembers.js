@@ -14,12 +14,12 @@ let RenderMembers = ({
     form,
 }) => {
     const policyRotation = form[policyIndex].teams[teamIndex];
+    console.log(fields, 'consoling the fields')
 
     return (
         <ul>
             {fields.map((inputarray, i) => {
                 const memberValue = policyRotation.teamMembers[i];
-
                 return (
                     <RenderMember
                         memberValue={memberValue}
