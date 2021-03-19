@@ -43,7 +43,8 @@ describe('Incident Settings API', () => {
                 email,
                 password,
             };
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
+            await init.loginUser(user, page);
             await init.addMonitorToComponent(componentName, monitorName, page);
         });
     });
@@ -62,12 +63,10 @@ describe('Incident Settings API', () => {
                 });
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
-                await page.waitForSelector('#more');
-                await page.click('#more');
                 await page.waitForSelector('#incidentSettings');
                 await page.click('#incidentSettings');
-                await page.waitForSelector('input[name=title]',{visible:true});
-                                
+                await page.waitForSelector('input[name=title]');
+                await page.waitForTimeout(3000);
                 const priorityFieldValue = await page.$eval(
                     '#incidentPriority',
                     e => e.textContent
@@ -91,7 +90,7 @@ describe('Incident Settings API', () => {
     );
 
     test(
-        'Should not delete newly set custom default incident priority',
+        'Should not set the default incident priority to a removed value.',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 //Create a new priority
@@ -101,48 +100,45 @@ describe('Incident Settings API', () => {
                 });
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
-                await page.waitForSelector('#more');
-                await page.click('#more');
                 await page.waitForSelector('#incidentSettings');
                 await page.click('#incidentSettings');
-                await page.$$eval('ul#customTabList > li', elems =>
-                    elems[1].click()
-                );
                 await page.waitForSelector('#addNewPriority');
                 await page.click('#addNewPriority');
                 await page.waitForSelector('#CreateIncidentPriority');
                 await page.type('input[name=name]', priorityName);
                 await page.click('#CreateIncidentPriority');
-                await page.waitForSelector('#CreateIncidentPriority',{hidden:true});                
+                await page.waitForTimeout(3000);
                 await page.reload({
                     waitUntil: 'networkidle0',
                 });
 
-                //Select the priority in incidentSettings and set it as defult
+                //Select the priority in incidentSettings form
                 await init.selectByText(
                     '#incidentPriority',
                     priorityName,
                     page
                 );
+                //Delete the new incident priority.
+                const deleteButtonLastRowIndentifier =
+                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row:last-of-type>div:nth-child(2)>div>div:nth-child(2)>button';
+                await page.click(deleteButtonLastRowIndentifier);
+                await page.waitForSelector('#RemoveIncidentPriority');
+                await page.click('#RemoveIncidentPriority');
+                await page.waitForTimeout(3000);
+                //Try to save the incident settings
                 await page.click('#saveButton');
-
-                await page.reload({
-                    waitUntil: 'networkidle0',
-                });
-                await page.$$eval('ul#customTabList > li', elems =>
-                    elems[1].click()
+                await page.waitForSelector('#errorInfo');
+                const errorMessage = await page.$eval(
+                    '#errorInfo',
+                    e => e.textContent
                 );
-                  const lowPriorityDeleteButton =
-                  '#incidentPrioritiesList .bs-ObjectList-row.db-UserListRow.db-UserListRow--withName:nth-of-type(2) .bs-ObjectList-cell.bs-u-v-middle:nth-of-type(2)>div>div:last-child>button';
-                await page.click(lowPriorityDeleteButton);
-
-                const unableToDelete = await page.waitForSelector('#message-modal-message');
-                expect(unableToDelete).toBeDefined();
-               
+                expect(errorMessage).toEqual(
+                    `Incident priority doesn't exist.`
+                );
             });
         },
         operationTimeOut
-    );    
+    );
 
     test(
         'Should update default title, description and priority fields',
@@ -153,11 +149,10 @@ describe('Incident Settings API', () => {
                 });
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
-                await page.waitForSelector('#more');
-                await page.click('#more');
                 await page.waitForSelector('#incidentSettings');
                 await page.click('#incidentSettings');
-                await page.waitForSelector('input[name=title]');                
+                await page.waitForSelector('input[name=title]');
+                await page.waitForTimeout(3000);
                 await init.selectByText('#incidentPriority', 'low', page);
                 await page.click('input[name=title]', { clickCount: 3 });
                 await page.keyboard.press('Backspace');
@@ -171,7 +166,8 @@ describe('Incident Settings API', () => {
                 await page.click('#saveButton');
                 await page.reload({
                     waitUntil: 'networkidle0',
-                });                
+                });
+                await page.waitForTimeout(3000);
                 await page.waitForSelector('input[name=title]');
                 const priorityFieldValue = await page.$eval(
                     '#incidentPriority',
@@ -211,7 +207,8 @@ describe('Incident Settings API', () => {
                     `#monitorCreateIncident_${monitorName}`
                 );
                 await page.click(`#monitorCreateIncident_${monitorName}`);
-                await page.waitForSelector('#title');                
+                await page.waitForSelector('#title');
+                await page.waitForTimeout(3000);
                 const priorityFieldValue = await page.$eval(
                     '#incidentPriority',
                     e => e.textContent
@@ -294,16 +291,13 @@ describe('Incident Settings API', () => {
                 });
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
-                await page.waitForSelector('#more');
-                await page.click('#more');
                 await page.waitForSelector('#incidentSettings');
-                await page.click('#incidentSettings');                
+                await page.click('#incidentSettings');
+                await page.waitForSelector('#incidentPrioritiesList');
                 //change default priority before remove the priority
                 await init.selectByText('#incidentPriority', 'high', page);
-                await page.click('#saveButton');                
-                await page.$$eval('ul#customTabList > li', elems =>
-                    elems[1].click()
-                );
+                await page.click('#saveButton');
+                await page.waitForTimeout(3000);
                 const lowPriorityDeleteButton =
                     '#incidentPrioritiesList .bs-ObjectList-row.db-UserListRow.db-UserListRow--withName:nth-of-type(2) .bs-ObjectList-cell.bs-u-v-middle:nth-of-type(2)>div>div:last-child>button';
                 await page.click(lowPriorityDeleteButton);
