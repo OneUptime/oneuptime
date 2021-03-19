@@ -858,7 +858,7 @@ export function setInternalNote(projectId, incidentId, body) {
                 if (incidents.data.type === 'internal') {
                     dispatch(
                         fetchIncidentMessagesSuccess({
-                            incidentId,
+                            incidentId: incidents.data.idNumber,
                             incidentMessages: incidents.data.data,
                             count: incidents.data.data.length,
                             type: incidents.data.type,
@@ -1046,7 +1046,7 @@ export function deleteIncidentMessage(
                 if (incidentMessage.data.type === 'internal') {
                     dispatch(
                         fetchIncidentMessagesSuccess({
-                            incidentId,
+                            incidentId: incidentMessage.data.idNumber,
                             incidentMessages: incidentMessage.data.data,
                             count: incidentMessage.data.data.length,
                             type: incidentMessage.data.type,
