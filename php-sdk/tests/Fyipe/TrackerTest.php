@@ -272,7 +272,7 @@ class TrackerTest extends TestCase
         $tracker->captureMessage($errorMessage);
         $event = $tracker->getCurrentEvent();
 
-        $this->assertCount(1, $event->timeline);
+        $this->assertCount(2, $event->timeline);
         $this->assertEquals($event->eventId, $event->timeline[0]->eventId);
         $this->assertEquals($event->exception->message, $errorMessage);
     }
@@ -342,16 +342,16 @@ class TrackerTest extends TestCase
         $tracker->setTag($tag->key, $tag->value);
         $newEvent = $tracker->captureException(new Error($errorMessageObj));
 
-        // ensure that the first event have a type message, same error message and one timeline
+        // ensure that the first event have a type message, same error message and two timeline (one custom, one generic)
         $this->assertEquals($event->type, 'message');
         $this->assertEquals($event->content->message, $errorMessage);
-        $this->assertCount(1, $event->timeline);
+        $this->assertCount(2, $event->timeline);
         $this->assertCount(1, $event->tags); // the default event tag added
 
         // ensure that the second event have a type exception, same error message and 2 tags
         $this->assertEquals($newEvent->type, 'exception');
         $this->assertEquals($newEvent->content->message, $errorMessageObj);
-        $this->assertCount(1, $newEvent->timeline);
+        $this->assertCount(2, $newEvent->timeline);
         $this->assertCount(2, $newEvent->tags);// the default and custom tag
     }
     public function test_should_contain_version_number_and_sdk_name_in_captured_message() {
