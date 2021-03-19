@@ -212,7 +212,6 @@ class FyipeTracker
         $content = new stdClass();
         $content->message = $errorObj->message;
 
-        $this->listenerObj->logErrorEvent($content);
         // set the a handled tag
         $this->setTag('handled', 'false');
         // prepare to send to server
@@ -223,6 +222,8 @@ class FyipeTracker
     }
     public function prepareErrorObject($type, $errorStackTrace)
     {
+        // set a last timeline as the error message
+        $this->listenerObj->logErrorEvent($errorStackTrace->message, $type);
         // get current timeline
         $timeline = $this->getTimeline();
         // TODO get device location and details
