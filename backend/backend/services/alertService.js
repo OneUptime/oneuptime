@@ -813,7 +813,8 @@ module.exports = {
                     });
                 })
                 .catch(async e => {
-                    console.log('ERROR FROM PUSH::', e)
+                    console.log('ERROR FROM PUSH::', e);
+                    console.log(e);
                     return await _this.create({
                         projectId: incident.projectId,
                         monitorId: monitor._id,
