@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Field } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
@@ -11,6 +11,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import { change } from 'redux-form';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import { formValueSelector } from 'redux-form';
 
 let RenderMember = ({
     memberValue,
@@ -21,10 +22,11 @@ let RenderMember = ({
     nameIndex,
     fields,
     change,
+    form,
 }) => {
     const [timeVisible, setTimeVisible] = useState(false);
     const [forcedTimeHide, forceTimeHide] = useState(false);
-    const [type, setType] = useState('team');
+    const [type, setType] = useState({});
 
     const manageVisibility = (timeVisible, memberHasCallTimes) => {
         setTimeVisible(timeVisible);
@@ -36,6 +38,17 @@ let RenderMember = ({
             forceTimeHide(false);
         }
     };
+    const updateTypeOnMount = () => {
+        setType({
+            ...type,
+            [teamIndex.toString() + nameIndex.toString()]: form[policyIndex]
+                .teams[teamIndex].teamMembers[nameIndex].groupId
+                ? 'group'
+                : 'team',
+        });
+    };
+
+    useEffect(updateTypeOnMount, [memberValue, inputarray]);
 
     const memberHasCallTimes = !!(memberValue.startTime && memberValue.endTime);
     const showTimes = memberHasCallTimes ? !forcedTimeHide : timeVisible;
@@ -49,7 +62,7 @@ let RenderMember = ({
     };
 
     const handleSwitch = val => {
-        setType(val);
+        setType({ [teamIndex.toString() + nameIndex.toString()]: val });
         if (val === 'team') {
             change('OnCallAlertBox', `${inputarray}.groupId`, '');
         }
@@ -68,12 +81,33 @@ let RenderMember = ({
                     <span>
                         <Field
                             id={`${inputarray}.${
-                                type === 'group' ? 'groupId' : 'userId'
+                                type[
+                                    [
+                                        teamIndex.toString() +
+                                            nameIndex.toString(),
+                                    ]
+                                ] === 'group'
+                                    ? 'groupId'
+                                    : 'userId'
                             }`}
                             className="db-select-nw"
                             type="text"
-                            name={'team-group' + nameIndex}
+                            name={
+                                'team-group' +
+                                teamIndex.toString() +
+                                nameIndex.toString()
+                            }
                             component={RenderSelect}
+                            placeholder={
+                                type[
+                                    [
+                                        teamIndex.toString() +
+                                            nameIndex.toString(),
+                                    ]
+                                ] === 'group'
+                                    ? 'Groups'
+                                    : 'Team members'
+                            }
                             options={[
                                 { label: 'Team members', value: 'team' },
                                 { label: 'Groups', value: 'group' },
@@ -90,7 +124,10 @@ let RenderMember = ({
             </div>
             <div className="bs-Fieldset-row">
                 <label className="bs-Fieldset-label">
-                    Team Member {fields.length > 1 ? nameIndex + 1 : ''}
+                    {type[[teamIndex.toString() + nameIndex.toString()]] ===
+                    'group'
+                        ? 'Group'
+                        : 'Team Member'}
                 </label>
                 <div className="bs-Fieldset-fields">
                     <span className="flex">
@@ -99,14 +136,25 @@ let RenderMember = ({
                             className="db-BusinessSettings-input TextInput bs-TextInput"
                             type="text"
                             name={`${inputarray}.${
-                                type === 'group' ? 'groupId' : 'userId'
+                                type[
+                                    [
+                                        teamIndex.toString() +
+                                            nameIndex.toString(),
+                                    ]
+                                ] === 'group'
+                                    ? 'groupId'
+                                    : 'userId'
                             }`}
                             component={TeamMemberSelector}
                             placeholder="Nawaz"
                             subProjectId={subProjectId}
                             policyIndex={policyIndex}
                             teamIndex={teamIndex}
-                            renderType={type}
+                            renderType={
+                                type[
+                                    teamIndex.toString() + nameIndex.toString()
+                                ]
+                            }
                         />
                         <Tooltip title="Call Reminders">
                             <div>
@@ -275,6 +323,15 @@ RenderMember.displayName = 'RenderMember';
 const mapDispatchToProps = dispatch => {
     return bindActionCreators({ change }, dispatch);
 };
+
+function mapStateToProps(state) {
+    const selector = formValueSelector('OnCallAlertBox');
+    const form = selector(state, 'OnCallAlertBox');
+
+    return {
+        form,
+    };
+}
 RenderMember.propTypes = {
     subProjectId: PropTypes.string.isRequired,
     fields: PropTypes.oneOfType([PropTypes.array, PropTypes.object]).isRequired,
@@ -284,7 +341,8 @@ RenderMember.propTypes = {
     memberValue: PropTypes.object.isRequired,
     inputarray: PropTypes.string.isRequired,
     change: PropTypes.func,
+    form: PropTypes.object,
 };
 
-RenderMember = connect(null, mapDispatchToProps)(RenderMember);
+RenderMember = connect(mapStateToProps, mapDispatchToProps)(RenderMember);
 export { RenderMember };

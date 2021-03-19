@@ -557,9 +557,8 @@ module.exports = {
         const project = await ProjectService.findOneBy({ _id: projectId });
 
         escalation = await EscalationService.findOneBy({ _id: escalation._id });
-        //console.log(escalation)
         const activeTeam = escalation.activeTeam;
-        const groups = activeTeam.groups.map(user => user.groups);
+        const groups = activeTeam.teamMembers.map(user => user.groups);
         const groupUsers = groups.map(group => group.teams);
         const groupUserIds = [].concat
             .apply([], groupUsers)

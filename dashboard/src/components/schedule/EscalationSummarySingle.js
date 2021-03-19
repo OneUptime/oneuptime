@@ -15,12 +15,12 @@ const EscalationSummarySingle = ({
         ? escalation.activeTeam
         : escalation.nextActiveTeam;
     let teamMembers = [];
-    let groups = [];
 
     if (data) {
         teamMembers = data.teamMembers;
-        groups = data.groups;
     }
+    const teams = teamMembers && teamMembers.filter(team => team.userId);
+    const groups = teamMembers && teamMembers.filter(group => group.groupId);
 
     const teamMembersOnPartialDutyCount = teamMembers.filter(member => {
         return (
@@ -72,51 +72,62 @@ const EscalationSummarySingle = ({
                     </div>
                 </div>
             )}
+            {teams.length > 0 ? (
+                <div className="bs-Fieldset-row">
+                    <label className="bs-Fieldset-label">
+                        <b>Team Members</b>
+                    </label>
+                    <div
+                        className="bs-Fieldset-fields labelfield"
+                        style={{ marginTop: '-1px' }}
+                    >
+                        {teams.length > 0 &&
+                            teams.map(member => {
+                                let membersFromList = teamMemberList.filter(
+                                    memberFromList => {
+                                        return (
+                                            memberFromList.userId ===
+                                            member.userId
+                                        );
+                                    }
+                                );
 
-            <div className="bs-Fieldset-row">
-                <label className="bs-Fieldset-label">
-                    <b>Team Members</b>
-                </label>
-                <div
-                    className="bs-Fieldset-fields labelfield"
-                    style={{ marginTop: '-1px' }}
-                >
-                    {teamMembers &&
-                        teamMembers.length > 0 &&
-                        teamMembers.map(member => {
-                            let membersFromList = teamMemberList.filter(
-                                memberFromList => {
-                                    return (
-                                        memberFromList.userId === member.userId
-                                    );
+                                if (membersFromList.length > 0) {
+                                    membersFromList = membersFromList[0];
                                 }
-                            );
 
-                            if (membersFromList.length > 0) {
-                                membersFromList = membersFromList[0];
-                            }
-
-                            return (
-                                <div
-                                    key={membersFromList.id}
-                                    className="Box-root Margin-right--16 pointer"
-                                >
-                                    <img
-                                        src="/dashboard/assets/img/profile-user.svg"
-                                        key={membersFromList._id}
-                                        className="userIcon"
-                                        alt=""
-                                    />
-                                    <span>
-                                        {membersFromList.name
-                                            ? membersFromList.name
-                                            : membersFromList.email}
-                                    </span>
-                                </div>
-                            );
-                        })}
+                                return (
+                                    <div
+                                        key={
+                                            member.groupId
+                                                ? member.groupId
+                                                : membersFromList.id
+                                        }
+                                        className="Box-root Margin-right--16 pointer"
+                                    >
+                                        <img
+                                            src="/dashboard/assets/img/profile-user.svg"
+                                            key={
+                                                member.groupId
+                                                    ? member.groupId
+                                                    : membersFromList.id
+                                            }
+                                            className="userIcon"
+                                            alt=""
+                                        />
+                                        <span>
+                                            {member.groupId
+                                                ? member.groups.name
+                                                : membersFromList.name
+                                                ? membersFromList.name
+                                                : membersFromList.email}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                    </div>
                 </div>
-            </div>
+            ) : null}
             {groups && groups.length > 0 ? (
                 <div className="bs-Fieldset-row">
                     <label className="bs-Fieldset-label">
@@ -126,16 +137,15 @@ const EscalationSummarySingle = ({
                         className="bs-Fieldset-fields labelfield"
                         style={{ marginTop: '-1px' }}
                     >
-                        {groups &&
-                            groups.length > 0 &&
+                        {groups.length > 0 &&
                             groups.map(group => {
                                 return (
                                     <div
-                                        key={group._id}
+                                        key={group.groupId}
                                         className="Box-root Margin-right--16 pointer"
                                     >
                                         <img
-                                            src="/dashboard/assets/img/profile-user.svg"
+                                            src="/dashboard/assets/img/group.jpg"
                                             key={''}
                                             className="userIcon"
                                             alt=""

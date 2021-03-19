@@ -34,6 +34,10 @@ const TeamMemberSelector = ({
                 };
             })) ||
         [];
+    const allowedGroups = makeAllowedGroups(
+        projectGroups.groups && projectGroups.groups,
+        form[policyIndex].teams[teamIndex].teamMembers
+    );
 
     const allowedOptionsForDropdown =
         renderType === 'team'
@@ -46,7 +50,14 @@ const TeamMemberSelector = ({
                       };
                   })
               )
-            : [{ value: '', label: 'Select Group...' }].concat(groups);
+            : [{ value: '', label: 'Select Group...' }].concat(
+                  allowedGroups.map(group => {
+                      return {
+                          value: group._id,
+                          label: group.name,
+                      };
+                  })
+              );
 
     const options =
         renderType === 'team'
@@ -99,7 +110,7 @@ const TeamMemberSelector = ({
                     onChange={handleChange}
                     className="db-select-nw"
                     options={allowedOptionsForDropdown.filter(opt =>
-                        opt.show !== undefined ? true : true
+                        opt.show !== undefined ? opt.show : true
                     )}
                 />
             </div>
@@ -134,7 +145,7 @@ TeamMemberSelector.propTypes = {
     policyIndex: PropTypes.number.isRequired,
     form: PropTypes.object.isRequired,
     teamIndex: PropTypes.number.isRequired,
-    projectGroups: PropTypes.array,
+    projectGroups: PropTypes.object,
     renderType: PropTypes.string,
 };
 
@@ -155,6 +166,15 @@ function makeAllowedTeamMembers(teamMembers = [], subProjectTeam = []) {
     return allowedTeamMembers;
 }
 
+function makeAllowedGroups(groups = [], projectGroups = []) {
+    const validGroup = projectGroups.filter(group => group.groupId);
+    if (validGroup.length === 0) return groups;
+    const filteredGroups = groups.filter(group =>
+        validGroup.some(grp => grp.groupId !== group._id)
+    );
+    return filteredGroups;
+}
+
 function mapStateToProps(state, props) {
     const selector = formValueSelector('OnCallAlertBox');
     const form = selector(state, 'OnCallAlertBox');
@@ -165,7 +185,7 @@ function mapStateToProps(state, props) {
     return {
         subProjectTeam: subProjectTeam.teamMembers || [],
         form,
-        projectGroups: state.groups.groups,
+        projectGroups: state.groups.oncallDuty,
     };
 }
 

@@ -9,7 +9,6 @@ const RenderTeams = ({ fields, subProjectId, policyIndex, rotateBy }) => {
     return (
         <ul>
             {fields.map((team, i) => {
-                console.log(fields, 'consoling field2')
                 return (
                     <li key={i} className="team">
                         {fields.length > 1 && (
@@ -29,7 +28,6 @@ const RenderTeams = ({ fields, subProjectId, policyIndex, rotateBy }) => {
                                 policyIndex={policyIndex}
                                 teamIndex={i}
                             />
-
                             <ShouldRender if={fields.length > 1}>
                                 <div className="bs-Fieldset-row">
                                     <label className="bs-Fieldset-label"></label>

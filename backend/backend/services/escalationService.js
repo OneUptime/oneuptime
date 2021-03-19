@@ -53,7 +53,7 @@ module.exports = {
                     populate: { path: 'monitorIds', select: 'name' },
                 })
                 .populate({
-                    path: 'groups.teamMembers.groups',
+                    path: 'teams.teamMembers.groups',
                     select: 'teams name',
                 })
                 .populate({
@@ -274,7 +274,6 @@ function computeActiveTeamIndex(
 function computeActiveTeams(escalation) {
     const {
         teams,
-        groups,
         rotationInterval,
         rotateBy,
         createdAt,
@@ -316,7 +315,7 @@ function computeActiveTeams(escalation) {
         }
 
         const activeTeamIndex = computeActiveTeamIndex(
-            teams.length || groups.length,
+            teams.length,
             intervalDifference,
             rotationInterval
         );
@@ -338,7 +337,6 @@ function computeActiveTeams(escalation) {
         const activeTeam = {
             _id: teams[activeTeamIndex]._id,
             teamMembers: teams[activeTeamIndex].teamMembers,
-            groups: groups[activeTeamIndex].teamMembers,
             rotationStartTime: activeTeamRotationStartTime,
             rotationEndTime: activeTeamRotationEndTime,
         };
@@ -357,7 +355,6 @@ function computeActiveTeams(escalation) {
             _id: teams[nextActiveTeamIndex]._id,
             teamMembers: teams[nextActiveTeamIndex].teamMembers,
             rotationStartTime: nextActiveTeamRotationStartTime,
-            groups: groups[nextActiveTeamIndex].teamMembers,
             rotationEndTime: nextActiveTeamRotationEndTime,
         };
 
@@ -367,7 +364,6 @@ function computeActiveTeams(escalation) {
             activeTeam: {
                 _id: teams[0]._id,
                 teamMembers: teams[0].teamMembers,
-                groups: groups[0].teamMembers,
                 rotationStartTime: null,
                 rotationEndTime: null,
             },

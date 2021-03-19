@@ -125,18 +125,12 @@ export const getProjectGroupsFailure = error => ({
     payload: error,
 });
 
-export const getProjectGroups = (
-    projectId,
-    skip,
-    limit,
-    callduty
-) => async dispatch => {
+export const getProjectGroups = (projectId, skip, limit) => async dispatch => {
     dispatch(getProjectGroupsRequest());
     try {
         const response = await getApi(
             `group/${projectId}?skip=${skip}&limit=${limit}`
         );
-        response.data.callduty = callduty;
         dispatch(getProjectGroupsSuccess(response.data));
     } catch (error) {
         const errorMsg =

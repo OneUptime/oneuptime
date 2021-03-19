@@ -18,17 +18,6 @@ const teamSchema = new Schema({
     ],
 });
 
-const groupSchema = new Schema({
-    teamMembers: [
-        {
-            startTime: Date,
-            endTime: Date,
-            timezone: String,
-            groupId: { type: String, ref: 'Groups', index: true },
-        },
-    ],
-});
-
 const escalationSchema = new Schema({
     projectId: {
         type: String,
@@ -54,7 +43,6 @@ const escalationSchema = new Schema({
     teams: { type: [teamSchema], default: null },
     createdAt: { type: Date, default: Date.now },
     deleted: { type: Boolean, default: false },
-    groups: { type: [groupSchema], default: null },
     deletedAt: {
         type: Date,
     },
@@ -69,9 +57,9 @@ escalationSchema.virtual('teams.teamMembers.user', {
     justOne: true,
 });
 
-escalationSchema.virtual('groups.teamMembers.groups', {
+escalationSchema.virtual('teams.teamMembers.groups', {
     ref: 'Groups',
-    localField: 'groups.teamMembers.groupId',
+    localField: 'teams.teamMembers.groupId',
     foreignField: '_id',
     justOne: true,
 });

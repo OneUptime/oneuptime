@@ -14,7 +14,6 @@ let RenderMembers = ({
     form,
 }) => {
     const policyRotation = form[policyIndex].teams[teamIndex];
-    console.log(fields, 'consoling the fields')
 
     return (
         <ul>
