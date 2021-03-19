@@ -9,6 +9,7 @@ namespace Fyipe;
 use stdClass;
 use Fyipe\Util;
 use Fyipe\FyipeTransport;
+use ErrorException;
 
 class FyipeTracker
 {
@@ -181,6 +182,8 @@ class FyipeTracker
         $errorObj = $this->utilObj->getErrorStackTrace($errno, $errstr, $errfile, $errline);
 
         $this->manageErrorObject($errorObj);
+
+        throw new ErrorException($errstr, $errno, 1, $errfile, $errline);
     }
     public function captureMessage($message)
     {
