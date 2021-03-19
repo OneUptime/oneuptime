@@ -14,6 +14,7 @@ const router = express.Router();
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const IncidentService = require('../services/incidentService');
 
 router.post('/:projectId/:subscriberId', async (req, res) => {
     try {
@@ -97,7 +98,9 @@ router.get('/:projectId', async (req, res) => {
 router.get('/:projectId/incident/:incidentId', async (req, res) => {
     try {
         const projectId = req.params.projectId;
-        const incidentId = req.params.incidentId;
+        const idNumber = req.params.incidentId;
+        let incidentId = await IncidentService.getIncidentId({ idNumber });
+        incidentId = incidentId._id;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
         const subscriberAlerts = await SubscriberAlertService.findBy(

@@ -1215,16 +1215,12 @@ export const logLibraries = {
                         command: `
 $ npm install fyipe`,
                     },
-                    usage: `// In a FrontEnd Environment
-import { ErrorTracker } from 'fyipe';
+                    usage: `// If your env supports import
+import Fyipe from 'fyipe';
                                 
-// In a Backend Environment                    
-const { ErrorTracker } = require('fyipe');
-                                                    
-// in a Backend Environment with ES6                    
-import Fyipe from 'fyipe';                    
-const { ErrorTracker } = Fyipe;
-                                                    
+// If your env supports require                  
+const Fyipe = require('fyipe');
+
 // set up tracking configurations                    
 const options = {                    
     maxTimeline: 10, 
@@ -1232,7 +1228,7 @@ const options = {
 };
                                                     
 // constructor                    
-const tracker = new ErrorTracker(                    
+const tracker = new Fyipe.ErrorTracker(                    
     '${apiUrl ? apiUrl : 'API_URL'}',
     '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
     '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
@@ -1256,18 +1252,20 @@ try {
 $ npm install fyipe`,
                     },
                     usage: `
-// In a FrontEnd Environment
-import { Logger } from 'fyipe';
-                            
-// In a Backend Environment
-const { Logger } = require('fyipe');
-                            
-// in a Backend Environment with ES6
+// If your env supports import
 import Fyipe from 'fyipe';
-const { Logger } = Fyipe;
-            
-// constructor
-const logger = new Logger(
+                                
+// If your env supports require                  
+const Fyipe = require('fyipe');
+
+// set up tracking configurations                    
+const options = {                    
+    maxTimeline: 10, 
+    captureCodeSnippet: true,                   
+};
+                                                    
+// constructor                    
+const logger = new Fyipe.Logger(
     '${apiUrl ? apiUrl : 'API_URL'}',
     '${
         applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'

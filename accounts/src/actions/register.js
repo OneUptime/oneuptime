@@ -1,4 +1,4 @@
-import { postApi } from '../api';
+import { getApi, postApi } from '../api';
 import { masterAdminExistsSuccess, loginSuccess } from './login';
 import * as types from '../constants/register';
 import errors from '../errors';
@@ -234,5 +234,36 @@ export function addCard(data) {
             }
         );
         return promise;
+    };
+}
+
+export function getEmailSuccess(email) {
+    return {
+        type: types.GET_EMAIL_FROM_TOKEN,
+        payload: email,
+    };
+}
+
+export function getEmailFromToken(token) {
+    return function(dispatch) {
+        const promise = getApi(`user/${token}/email`);
+        promise.then(
+            function(response) {
+                dispatch(getEmailSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(getEmailSuccess(error));
+            }
+        );
     };
 }

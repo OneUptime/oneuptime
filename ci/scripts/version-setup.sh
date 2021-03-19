@@ -17,7 +17,6 @@ version backend
 version home 
 version status-page 
 version api-docs
-version server-monitor
 version probe
 version admin-dashboard
 version init-script

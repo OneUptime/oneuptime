@@ -147,6 +147,6 @@ module.exports = {
     },
 
     moreBulkUsers: {
-        emails: StringUtil.generateBulkEmails(99),
+        emails: StringUtil.generateBulkEmails(98),
     },
 };

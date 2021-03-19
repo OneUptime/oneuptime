@@ -163,8 +163,10 @@ const mapDispatchToProps = dispatch =>
 
 function mapStateToProps(state, ownProps) {
     const incidentMessages = state.incident.incidentMessages
-        ? state.incident.incidentMessages[ownProps.incident._id]
-            ? state.incident.incidentMessages[ownProps.incident._id]['internal']
+        ? state.incident.incidentMessages[ownProps.incident.idNumber]
+            ? state.incident.incidentMessages[ownProps.incident.idNumber][
+                  'internal'
+              ]
             : {}
         : {};
     const currentProject = state.project.currentProject;

@@ -20,7 +20,6 @@ clean_install backend
 clean_install home 
 clean_install status-page 
 clean_install api-docs
-clean_install server-monitor
 clean_install probe
 clean_install admin-dashboard
 clean_install init-script

@@ -181,7 +181,10 @@ const ping = (
  * @param {(string | Function)} monitorId - The monitor id or function to resolve monitor id of the server monitor.
  * @return {Object} The server monitor handlers.
  */
-module.exports = (config, apiUrl, apiKey, monitorId) => {
+
+// BUG FIX: TypeError: Cannot assign to read only property 'exports' of object '#<Object>'
+// change export to es6 module export
+export default function(config, apiUrl, apiKey, monitorId) {
     let pingServer,
         projectId = config,
         interval,
