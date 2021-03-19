@@ -157,12 +157,6 @@ class ErrorTracker {
                     errorEvent
                 );
 
-                // log error event
-                const content = {
-                    message: errorObj.message,
-                };
-                _this.#listenerObj.logErrorEvent(content);
-
                 // set the a handled tag
                 _this.setTag('handled', 'false');
                 // prepare to send to server
@@ -195,11 +189,6 @@ class ErrorTracker {
         // construct the error object
         const errorObj = await this.#utilObj._getErrorStackTrace(error);
 
-        // log error event
-        const content = {
-            message: errorObj.message,
-        };
-        this.#listenerObj.logErrorEvent(content);
         // set the a handled tag
         this.setTag('handled', 'false');
         // prepare to send to server
@@ -251,6 +240,11 @@ class ErrorTracker {
         }
     }
     prepareErrorObject(type, errorStackTrace) {
+        // log event
+        const content = {
+            message: errorStackTrace.message,
+        };
+        this.#listenerObj.logErrorEvent(content, type);
         // set the host as a tag to be used later
         this._setHost();
         // get current timeline
