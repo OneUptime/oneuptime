@@ -767,14 +767,23 @@ module.exports = {
         const userData = await UserService.findOneBy({
             _id: user._id,
         });
-        
+
         const identification = userData.identification;
-        console.log('IDENTIFICATION::', identification)
+        console.log('IDENTIFICATION::', identification);
 
         webpush.setVapidDetails(
             process.env.PUSHNOTIFICATION_URL, // Address or URL for this application
             process.env.PUSHNOTIFICATION_PUBLIC_KEY, // URL Safe Base64 Encoded Public Key
             process.env.PUSHNOTIFICATION_PRIVATE_KEY // URL Safe Base64 Encoded Private Key
+        );
+        console.log('PUSHNOTIFICATION_URL', process.env.PUSHNOTIFICATION_URL);
+        console.log(
+            'PUSHNOTIFICATION_PUBLIC_KEY',
+            process.env.PUSHNOTIFICATION_PUBLIC_KEY
+        );
+        console.log(
+            'PUSHNOTIFICATION_PRIVATE_KEY',
+            process.env.PUSHNOTIFICATION_PRIVATE_KEY
         );
 
         if (pushProgress) {
