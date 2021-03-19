@@ -17,7 +17,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 class IncidentBasicSettings extends React.Component {
     submit = async values => {
         const projectId = this.props.currentProject._id;
-        const { title, description, incidentPriority } = values;
+        const { title, description, incidentPriority } = values;        
         await this.props.updateBasicIncidentSettings(
             projectId,
             title,
@@ -25,7 +25,7 @@ class IncidentBasicSettings extends React.Component {
             incidentPriority === '' ? null : incidentPriority
         );
     };
-    render() {
+    render() {        
         const { handleSubmit, reset } = this.props;
         return (
             <div
