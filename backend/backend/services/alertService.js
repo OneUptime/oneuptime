@@ -769,6 +769,7 @@ module.exports = {
         });
         
         const identification = userData.identification;
+        console.log('IDENTIFICATION::', identification)
 
         webpush.setVapidDetails(
             process.env.PUSHNOTIFICATION_URL, // Address or URL for this application
