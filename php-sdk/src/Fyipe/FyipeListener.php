@@ -26,10 +26,10 @@ class FyipeListener
         $this->currentEventId = $eventId;
         $this->utilObj = new Util($options);
     }
-    public function logErrorEvent($content) {
+    public function logErrorEvent($content, $category = 'exception') {
 
         $timelineObj =  new stdClass();
-        $timelineObj->category = 'exception';
+        $timelineObj->category = $category;
         $timelineObj->data = $content;
         $timelineObj->type = $this->utilObj->getErrorType()->error;
         $timelineObj->eventId = $this->currentEventId;
