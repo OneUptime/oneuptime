@@ -17,7 +17,7 @@ The first thing to take note of is passing the right arguments.
 
 | Argument | Function                                                                        | Default                         |
 | -------- | :------------------------------------------------------------------------------ | :------------------------------ |
-| -a       | Ip Address location of remote server                                            | No Default. Compulsory argument |
+| -a       | IP Address of remote server                                                     | No Default. Compulsory argument |
 | -l       | Backup path on local system where backup file will be stored.                   | /root/Documents/backup          |
 | -n       | Database name.                                                                  | 'fyipedb'                       |
 | -p       | Database password.                                                              | 'password'                      |
