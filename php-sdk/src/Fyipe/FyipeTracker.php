@@ -65,7 +65,7 @@ class FyipeTracker
         // Initializa transport API
         $this->apiTransport = new FyipeTransport($this->apiUrl);
         // initialize exception handler listener
-        set_exception_handler(array(FyipeTracker::class, 'setUpExceptionHandlerListener'));
+        set_exception_handler(array($this, 'setUpExceptionHandlerListener'));
 
         // initializa error handler listener
         set_error_handler(array($this, 'setUpErrorHandler'));
