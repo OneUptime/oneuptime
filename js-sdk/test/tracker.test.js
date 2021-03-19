@@ -31,7 +31,7 @@ describe('Tracker Timeline', function() {
 
     before(function(done) {
         this.timeout(60000);
-        sleep(30000).then(() => {
+        sleep(5000).then(() => {
             user.email = generateSecondRandomBusinessEmail();
             request
                 .post('/user/signup')
