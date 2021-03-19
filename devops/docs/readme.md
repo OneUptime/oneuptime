@@ -6,7 +6,7 @@
 
 -   ssh into the local VN and upload scripts install.sh, backup.sh and restore.sh to `/root/fyipe_bk_files`.
 
-The script install.sh will automatically install the latest kubectl version if non is present, create default backup path and kube-config paths, copy the remote server kubernetes config file, create backup service and run the service with a timer.
+The script install.sh will automatically install the latest kubectl version if non is present, create default backup and kube-config paths, copy the remote server kubernetes config file, create backup service and run the service with a timer.
 
 **_Step 2 : Pass Arguments_**
 
