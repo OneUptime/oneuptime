@@ -66,8 +66,8 @@ describe('Incident Settings API', () => {
                 await page.click('#more');
                 await page.waitForSelector('#incidentSettings');
                 await page.click('#incidentSettings');
-                await page.waitForSelector('input[name=title]');
-                //await page.waitForTimeout(3000);
+                await page.waitForSelector('input[name=title]',{visible:true});
+                                
                 const priorityFieldValue = await page.$eval(
                     '#incidentPriority',
                     e => e.textContent
