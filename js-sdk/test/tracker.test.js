@@ -291,7 +291,7 @@ describe('Capture Message', function() {
         const errorMessage = 'This is a test';
         tracker.captureMessage(errorMessage);
         const event = tracker.getCurrentEvent();
-        expect(event.timeline.length).to.equal(1);
+        expect(event.timeline.length).to.equal(2);
         expect(event.eventId).to.equal(event.timeline[0].eventId);
         expect(event.exception.message).to.equal(errorMessage);
     });
@@ -387,16 +387,16 @@ describe('Capture Exception', function() {
             newEvent = evt.data;
         });
 
-        // ensure that the first event have a type message, same error message and one timeline
+        // ensure that the first event have a type message, same error message and two timeline (the custom and the generic one)
         expect(event.type).to.equal('message');
         expect(event.content.message).to.equal(errorMessage);
-        expect(event.timeline).to.have.lengthOf(1);
+        expect(event.timeline).to.have.lengthOf(2);
         expect(event.tags).to.have.lengthOf(1); // the default event tag added
 
-        // ensure that the second event have a type exception, same error message and no timeline
+        // ensure that the second event have a type exception, same error message and one timeline (the generic one)
         expect(newEvent.type).to.equal('exception');
         expect(newEvent.content.message).to.equal(errorMessageObj);
-        expect(newEvent.timeline).to.have.lengthOf(0);
+        expect(newEvent.timeline).to.have.lengthOf(1);
         expect(newEvent.tags).to.have.lengthOf(2); // the default and custom tag
     });
 });
