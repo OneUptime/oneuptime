@@ -175,6 +175,16 @@ module.exports = {
             page.waitForNavigation(),
         ]);
     },
+    addMonitor: async function(monitorName,page){
+        await page.waitForSelector('#form-new-monitor');
+        await page.click('input[id=name]');
+        await page.type('input[id=name]', monitorName);
+        await page.click('[data-testId=type_url]');
+        await page.waitForSelector('#url');
+        await page.click('#url');
+        await page.type('#url', 'https://google.com');
+        await page.click('button[type=submit]');
+    },
     navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
         await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle0' });
