@@ -10,9 +10,7 @@ import ShouldRender from '../basic/ShouldRender';
 
 class IncidentPrioritiesListClass extends React.Component {
     render() {       
-        const projectId = this.props.currentProject._id;
-        console.log("Project ID :", projectId);
-        console.log("The Props", this.props);
+        const projectId = this.props.currentProject._id;        
         return (
             <div
                 id="incidentPrioritiesList"
@@ -104,6 +102,7 @@ class IncidentPrioritiesListClass extends React.Component {
                                                         type="button"
                                                         onClick={() =>
                                                             this.props.updateDefaultIncidentSettings(
+                                                                projectId,
                                                                 incidentPriority._id
                                                             )
                                                         }
