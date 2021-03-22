@@ -192,12 +192,8 @@ module.exports = {
             const updatedDomainList = [];
             for (const eachDomain of domainList) {
                 if (String(eachDomain._id) === String(domainId)) {
-                    if (cert && cert.trim()) {
-                        eachDomain.cert = cert;
-                    }
-                    if (privateKey && privateKey.trim()) {
-                        eachDomain.privateKey = privateKey;
-                    }
+                    eachDomain.cert = cert;
+                    eachDomain.privateKey = privateKey;
                     if (eachDomain.domain !== newDomain) {
                         doesDomainExist = await _this.doesDomainExist(
                             newDomain
