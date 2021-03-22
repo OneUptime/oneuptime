@@ -57,8 +57,11 @@ module.exports = {
                                 ) {
                                     // handle pod output
                                     const healthyPods = [],
+                                        healthyPodData = [],
                                         unhealthyPods = [],
-                                        allPods = [];
+                                        unhealthyPodData = [],
+                                        allPods = [],
+                                        allPodData = [];
                                     let pendingPods = 0,
                                         runningPods = 0,
                                         completedPods = 0,
@@ -102,6 +105,25 @@ module.exports = {
                                                     item.status
                                                         .containerStatuses,
                                             });
+                                            unhealthyPodData.push({
+                                                podName: item.metadata.name,
+                                                podNamespace:
+                                                    item.metadata.namespace,
+                                                podStatus: item.status.phase,
+                                                podCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                                podRestart:
+                                                    item.status &&
+                                                    item.status
+                                                        .containerStatuses &&
+                                                    item.status
+                                                        .containerStatuses[0]
+                                                        ? item.status
+                                                              .containerStatuses[0]
+                                                              .restartCount
+                                                        : 0,
+                                            });
                                             failedPods += 1;
                                         } else {
                                             healthyPods.push({
@@ -133,6 +155,25 @@ module.exports = {
                                                 podContainerStatuses:
                                                     item.status
                                                         .containerStatuses,
+                                            });
+                                            healthyPodData.push({
+                                                podName: item.metadata.name,
+                                                podNamespace:
+                                                    item.metadata.namespace,
+                                                podStatus: item.status.phase,
+                                                podCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                                podRestart:
+                                                    item.status &&
+                                                    item.status
+                                                        .containerStatuses &&
+                                                    item.status
+                                                        .containerStatuses[0]
+                                                        ? item.status
+                                                              .containerStatuses[0]
+                                                              .restartCount
+                                                        : 0,
                                             });
                                             if (item.status.phase === 'Pending')
                                                 ++pendingPods;
@@ -169,6 +210,22 @@ module.exports = {
                                             podContainerStatuses:
                                                 item.status.containerStatuses,
                                         });
+                                        allPodData.push({
+                                            podName: item.metadata.name,
+                                            podNamespace:
+                                                item.metadata.namespace,
+                                            podStatus: item.status.phase,
+                                            podCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            podRestart:
+                                                item.status &&
+                                                item.status.containerStatuses &&
+                                                item.status.containerStatuses[0]
+                                                    ? item.status
+                                                          .containerStatuses[0]
+                                                          .restartCount
+                                                    : 0,
+                                        });
                                     });
                                     const podData = {
                                         podStat: {
@@ -183,12 +240,18 @@ module.exports = {
                                         healthyPods,
                                         unhealthyPods,
                                         allPods,
+                                        healthyPodData,
+                                        unhealthyPodData,
+                                        allPodData,
                                     };
 
                                     // handle job output
                                     const runningJobs = [],
                                         succeededJobs = [],
-                                        failedJobs = [];
+                                        failedJobs = [],
+                                        runningJobData = [],
+                                        succeededJobData = [],
+                                        failedJobData = [];
                                     jobOutput.items.forEach(item => {
                                         /**
                                          * https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#job-v1-batch
@@ -214,6 +277,15 @@ module.exports = {
                                                 jobConditions:
                                                     item.status.conditions,
                                             });
+                                            runningJobData.push({
+                                                jobName: item.metadata.name,
+                                                jobNamespace:
+                                                    item.metadata.namespace,
+                                                jobStatus: 'running',
+                                                jobCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                            });
                                         } else if (
                                             item.status &&
                                             item.status.succeeded > 0
@@ -234,6 +306,15 @@ module.exports = {
                                                     item.metadata.selfLink,
                                                 jobConditions:
                                                     item.status.conditions,
+                                            });
+                                            succeededJobData.push({
+                                                jobName: item.metadata.name,
+                                                jobNamespace:
+                                                    item.metadata.namespace,
+                                                jobStatus: 'succeeded',
+                                                jobCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
                                             });
                                         } else if (
                                             item.status &&
@@ -256,6 +337,15 @@ module.exports = {
                                                 jobConditions:
                                                     item.status.conditions,
                                             });
+                                            failedJobData.push({
+                                                jobName: item.metadata.name,
+                                                jobNamespace:
+                                                    item.metadata.namespace,
+                                                jobStatus: 'failed',
+                                                jobCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                            });
                                         } else {
                                             failedJobs.push({
                                                 jobName: item.metadata.name,
@@ -273,6 +363,15 @@ module.exports = {
                                                     item.metadata.selfLink,
                                                 jobConditions:
                                                     item.status.conditions,
+                                            });
+                                            failedJobData.push({
+                                                jobName: item.metadata.name,
+                                                jobNamespace:
+                                                    item.metadata.namespace,
+                                                jobStatus: 'failed',
+                                                jobCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
                                             });
                                         }
                                     });
@@ -298,11 +397,21 @@ module.exports = {
                                             ...succeededJobs,
                                             ...failedJobs,
                                         ],
+                                        allJobData: [
+                                            ...runningJobData,
+                                            ...succeededJobData,
+                                            ...failedJobData,
+                                        ],
                                         healthyJobs: [
                                             ...runningJobs,
                                             ...succeededJobs,
                                         ],
+                                        healthyJobData: [
+                                            ...runningJobData,
+                                            ...succeededJobData,
+                                        ],
                                         unhealthyJobs: [...failedJobs],
+                                        unhealthyJobData: [...failedJobData],
                                     };
 
                                     // handle services output
@@ -316,7 +425,10 @@ module.exports = {
                                         readyDeployment = 0;
                                     const unhealthyDeployments = [],
                                         healthyDeployments = [],
-                                        allDeployments = [];
+                                        allDeployments = [],
+                                        unhealthyDeploymentData = [],
+                                        healthyDeploymentData = [],
+                                        allDeploymentData = [];
                                     deploymentOutput.items.forEach(item => {
                                         if (item.status.readyReplicas) {
                                             readyDeployment +=
@@ -354,6 +466,20 @@ module.exports = {
                                                 deploymentConditions:
                                                     item.status.conditions,
                                             });
+                                            unhealthyDeploymentData.push({
+                                                deploymentName:
+                                                    item.metadata.name,
+                                                deploymentNamespace:
+                                                    item.metadata.namespace,
+                                                deploymentCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                                readyDeployment:
+                                                    item.status.readyReplicas ||
+                                                    0,
+                                                desiredDeployment:
+                                                    item.status.replicas,
+                                            });
                                         } else {
                                             healthyDeployments.push({
                                                 deploymentName:
@@ -377,6 +503,19 @@ module.exports = {
                                                 deploymentConditions:
                                                     item.status.conditions,
                                             });
+                                            healthyDeploymentData.push({
+                                                deploymentName:
+                                                    item.metadata.name,
+                                                deploymentNamespace:
+                                                    item.metadata.namespace,
+                                                deploymentCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                                readyDeployment:
+                                                    item.status.readyReplicas,
+                                                desiredDeployment:
+                                                    item.status.replicas,
+                                            });
                                         }
 
                                         allDeployments.push({
@@ -397,6 +536,17 @@ module.exports = {
                                             deploymentConditions:
                                                 item.status.conditions,
                                         });
+                                        allDeploymentData.push({
+                                            deploymentName: item.metadata.name,
+                                            deploymentNamespace:
+                                                item.metadata.namespace,
+                                            deploymentCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            readyDeployment:
+                                                item.status.readyReplicas || 0,
+                                            desiredDeployment:
+                                                item.status.replicas,
+                                        });
                                     });
                                     const deploymentData = {
                                         desiredDeployment,
@@ -406,6 +556,9 @@ module.exports = {
                                         allDeployments,
                                         healthy: healthyDeployments.length,
                                         unhealthy: unhealthyDeployments.length,
+                                        healthyDeploymentData,
+                                        unhealthyDeploymentData,
+                                        allDeploymentData,
                                     };
 
                                     // handle statefulset output
@@ -413,7 +566,10 @@ module.exports = {
                                         readyStatefulsets = 0;
                                     const healthyStatefulsets = [],
                                         unhealthyStatefulsets = [],
-                                        allStatefulset = [];
+                                        allStatefulset = [],
+                                        healthyStatefulsetData = [],
+                                        unhealthyStatefulsetData = [],
+                                        allStatefulsetData = [];
                                     statefulsetOutput.items.forEach(item => {
                                         if (item.status.readyReplicas) {
                                             readyStatefulsets +=
@@ -449,6 +605,20 @@ module.exports = {
                                                 statefulsetSelfLink:
                                                     item.metadata.selfLink,
                                             });
+                                            unhealthyStatefulsetData.push({
+                                                statefulsetName:
+                                                    item.metadata.name,
+                                                statefulsetNamespace:
+                                                    item.metadata.namespace,
+                                                statefulsetCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                                readyStatefulsets:
+                                                    item.status.readyReplicas ||
+                                                    0,
+                                                desiredStatefulsets:
+                                                    item.status.replicas,
+                                            });
                                         } else {
                                             healthyStatefulsets.push({
                                                 statefulsetName:
@@ -470,6 +640,19 @@ module.exports = {
                                                 statefulsetSelfLink:
                                                     item.metadata.selfLink,
                                             });
+                                            healthyStatefulsetData.push({
+                                                statefulsetName:
+                                                    item.metadata.name,
+                                                statefulsetNamespace:
+                                                    item.metadata.namespace,
+                                                statefulsetCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                                readyStatefulsets:
+                                                    item.status.readyReplicas,
+                                                desiredStatefulsets:
+                                                    item.status.replicas,
+                                            });
                                         }
 
                                         allStatefulset.push({
@@ -488,6 +671,17 @@ module.exports = {
                                             statefulsetSelfLink:
                                                 item.metadata.selfLink,
                                         });
+                                        allStatefulsetData.push({
+                                            statefulsetName: item.metadata.name,
+                                            statefulsetNamespace:
+                                                item.metadata.namespace,
+                                            statefulsetCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            readyStatefulsets:
+                                                item.status.readyReplicas || 0,
+                                            desiredStatefulsets:
+                                                item.status.replicas,
+                                        });
                                     });
                                     const statefulsetData = {
                                         readyStatefulsets,
@@ -497,6 +691,9 @@ module.exports = {
                                         allStatefulset,
                                         healthy: healthyStatefulsets.length,
                                         unhealthy: unhealthyStatefulsets.length,
+                                        healthyStatefulsetData,
+                                        unhealthyStatefulsetData,
+                                        allStatefulsetData,
                                     };
 
                                     const data = {
