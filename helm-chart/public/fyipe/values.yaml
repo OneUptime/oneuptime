@@ -236,6 +236,8 @@ disableSignup: false
 # What protocol is backend running on. Takes in values like 'http:' or 'https:'
 backendProtocol: 
 
+# Status page domain to add to CNAME to work with custom domains
+statusPageDomain:
 
 # Push notificaitons. 
 # Generate public and pivate key for push notifications. 

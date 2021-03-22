@@ -56,6 +56,9 @@ encryptionKey: pg#K^C$-)IGOg6DYXDGq2jdmfws0MiR7
 # Is backend on HTTPS?
 backendProtocol: 'https'
 
+# domain for staging status page
+statusPageDomain: 'staging-statuspage.fyipe.com'
+
 haraka:
     fromEmail: 'noreply@fyipeapp.com'
     fromName: 'Fyipe Staging'
