@@ -20,7 +20,7 @@ class SetDefaultIncidentPriority extends Component {
         const {data} = this.props;
         const incidentPriorityId = data.incidentPriorityId;              
         this.props
-            .updateDefaultIncidentSettings(this.props.currentProject._id, incidentPriorityId ).then(()=> console.log("Ade"));
+            .updateDefaultIncidentSettings(this.props.currentProject._id, incidentPriorityId );
         this.props.closeThisDialog();            
     }
 
@@ -35,8 +35,7 @@ class SetDefaultIncidentPriority extends Component {
         }
     };
 
-    render() {
-        console.log("The Props :", this.props);
+    render() {        
         const { closeThisDialog, data } = this.props;        
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -83,14 +82,15 @@ class SetDefaultIncidentPriority extends Component {
                                             <span className="create-btn__keycode">
                                                 <span className="keycode__icon keycode__icon--enter" />
                                             </span>
-                                            {/* <ShouldRender
+                                            <ShouldRender
                                                 if={
                                                     this.props
-                                                        .confirmThisDialog()
+                                                        .updatedIncident
+                                                        .requesting
                                                 }
                                             >
                                                 <Spinner />
-                                            </ShouldRender> */}
+                                            </ShouldRender>
                                         </button>
                                     </div>
                                 </div>
@@ -108,11 +108,13 @@ SetDefaultIncidentPriority.displayName = 'SetDefaultIncidentPriorityFormModal';
 SetDefaultIncidentPriority.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,    
     currentProject: PropTypes.object.isRequired,
+    updatedIncident: PropTypes.object,
     data: PropTypes.object.isRequired,    
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = state => {    
     return {
+        updatedIncident: state.incidentBasicSettings.updateIncidentBasicSettings,
         currentProject: state.project.currentProject,        
     };
 };

@@ -105,8 +105,7 @@ class IncidentPrioritiesListClass extends React.Component {
                                                                     id: uuidv4(),
                                                                     content: DataPathHoC(SetDefaultIncidentPriority,{
                                                                         incidentPriorityName: incidentPriority.name,
-                                                                        incidentPriorityId: incidentPriority._id,
-                                                                        projectId: projectId                                                                        
+                                                                        incidentPriorityId: incidentPriority._id                                                                                                                                              
                                                                     })
                                                                 }
                                                             )                                                           

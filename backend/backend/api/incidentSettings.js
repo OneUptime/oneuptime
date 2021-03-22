@@ -65,8 +65,7 @@ router.put('/:projectId/setDefault', getUser, isAuthorized, async function(req, 
                 {                    
                     incidentPriority,
                 }
-            );
-            console.log("Returned: ", defaultPrioritySetting);
+            );              
             return sendItemResponse(req, res, defaultPrioritySetting);
         }catch(error){
             return sendErrorResponse(req, res, error);
