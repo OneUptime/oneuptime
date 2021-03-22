@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
+import moment from 'moment';
 
 class KubeJobData extends React.Component {
     componentDidMount() {
@@ -44,13 +45,84 @@ class KubeJobData extends React.Component {
                 return 'Self Link';
             case 'jobUid':
                 return 'UID';
+            case 'lastTransitionTime':
+                return 'Last Transition Time';
+            case 'lastProbeTime':
+                return 'Last Probe Time';
+            case 'message':
+                return 'Message';
+            case 'reason':
+                return 'Reason';
+            case 'status':
+                return 'Status';
+            case 'type':
+                return 'Type';
         }
+    };
+
+    handleCondition = (jobData, key) => {
+        return jobData[key].map((condition, index) => {
+            const dataKeys = Object.keys(condition);
+            return (
+                <div
+                    key={index}
+                    style={{
+                        borderBottom: '1px solid #cfd7df80',
+                    }}
+                >
+                    {dataKeys.map(key => {
+                        let output = moment(condition[key]);
+                        if (output.isValid()) {
+                            output = output.format('LLL');
+                        } else {
+                            output = String(condition[key]);
+                        }
+
+                        return (
+                            <div
+                                key={key}
+                                className="scheduled-event-list-item bs-ObjectList-row db-UserListRow"
+                                style={{
+                                    backgroundColor: 'white',
+                                    height: 60,
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                }}
+                                id={`jobData_item`}
+                            >
+                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                    <div
+                                        className="bs-ObjectList-cell-row"
+                                        style={{
+                                            fontWeight: 500,
+                                        }}
+                                    >
+                                        {this.handleKey(key)}
+                                    </div>
+                                </div>
+                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                    <div
+                                        className="bs-ObjectList-cell-row"
+                                        style={{
+                                            whiteSpace: 'normal',
+                                        }}
+                                    >
+                                        {output}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        });
     };
 
     render() {
         const { data } = this.props;
         const jobData = data.data;
-        const logTitle = data.title;
+        const logTitle = data.data['jobName'];
 
         const dataKeys = Object.keys(jobData);
 
@@ -63,7 +135,7 @@ class KubeJobData extends React.Component {
                 <div className="bs-BIM">
                     <div
                         className="bs-Modal"
-                        style={{ width: 'fit-content', minWidth: 450 }}
+                        style={{ width: '100%', maxWidth: 650 }}
                     >
                         <ClickOutside onClickOutside={this.handleCloseModal}>
                             <div className="bs-Modal-header">
@@ -93,15 +165,82 @@ class KubeJobData extends React.Component {
                                         >
                                             {dataKeys.map(key => {
                                                 if (key === 'jobConditions') {
-                                                    return null;
+                                                    return (
+                                                        <>
+                                                            <div
+                                                                key={key}
+                                                                className="scheduled-event-list-item bs-ObjectList-row db-UserListRow"
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        'white',
+                                                                    height: 60,
+                                                                    borderBottom:
+                                                                        '1px solid #cfd7df80',
+                                                                    display:
+                                                                        'flex',
+                                                                    justifyContent:
+                                                                        'space-between',
+                                                                    alignItems:
+                                                                        'center',
+                                                                }}
+                                                                id={`podData_item`}
+                                                            >
+                                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                    <div
+                                                                        className="bs-ObjectList-cell-row"
+                                                                        style={{
+                                                                            fontWeight: 500,
+                                                                        }}
+                                                                    >
+                                                                        List of
+                                                                        All Job
+                                                                        Conditions
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                    <div className="bs-ObjectList-cell-row"></div>
+                                                                </div>
+                                                            </div>
+                                                            {this.handleCondition(
+                                                                jobData,
+                                                                key
+                                                            )}
+                                                        </>
+                                                    );
+                                                }
+
+                                                let output = moment(
+                                                    jobData[key]
+                                                );
+                                                if (
+                                                    output.isValid() &&
+                                                    key !==
+                                                        'jobResourceVersion' &&
+                                                    key !== 'jobName'
+                                                ) {
+                                                    output = output.format(
+                                                        'LLL'
+                                                    );
+                                                } else {
+                                                    output = String(
+                                                        jobData[key]
+                                                    );
                                                 }
                                                 return (
                                                     <div
                                                         key={key}
-                                                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                                                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow"
                                                         style={{
                                                             backgroundColor:
                                                                 'white',
+                                                            height: 60,
+                                                            borderBottom:
+                                                                '1px solid #cfd7df80',
+                                                            display: 'flex',
+                                                            justifyContent:
+                                                                'space-between',
+                                                            alignItems:
+                                                                'center',
                                                         }}
                                                         id={`jobData_item`}
                                                     >
@@ -123,9 +262,11 @@ class KubeJobData extends React.Component {
                                                                 style={{
                                                                     textAlign:
                                                                         'right',
+                                                                    whiteSpace:
+                                                                        'normal',
                                                                 }}
                                                             >
-                                                                {jobData[key]}
+                                                                {output}
                                                             </div>
                                                         </div>
                                                     </div>
