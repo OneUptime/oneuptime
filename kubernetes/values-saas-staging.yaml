@@ -71,6 +71,6 @@ haraka:
 # First install the web-push npm package using npm install web-push -g, then run web-push generate-vapid-keys
 
 pushNotification:
-    publicKey: 'BJEaF04Cib43KkYX6hHgJBPGJr45s2Rfpikh5G1Gwk6usuIAHYn5A48aD0up4M1L9HqxfTaQ74Sn2aoizwpULig'
-    privateKey: 'QRioUavlDsFkwNCWSjXsun_i6N2se8umlyZ1jIU2GB8'
-    url: 'https://staging.fyipe.com'
+    publicKey: 'BFAPbOTTU14VbTe_dnoYlVnOPLKUNm8GYmC50n3i4Ps64sk1Xqx8e894Clrscn1L2PsQ8-l4SsJVw7NRg4cx69Y'
+    privateKey: '8aXTsH48-cegK-xBApLxxOezCOZIjaWpg81Dny2zbio'
+    url: 'mailto:support@fyipe.com'
