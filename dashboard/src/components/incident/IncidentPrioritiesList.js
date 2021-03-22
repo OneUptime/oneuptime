@@ -7,6 +7,8 @@ import MessageBox from '../modals/MessageBox';
 import { openModal } from '../../actions/modal';
 import {updateDefaultIncidentSettings} from '../../actions/incidentBasicsSettings'
 import ShouldRender from '../basic/ShouldRender';
+import SetDefaultIncidentPriority from '../modals/SetDefaultIncidentPriority'
+import DataPathHoC from '../DataPathHoC';
 
 class IncidentPrioritiesListClass extends React.Component {
     render() {       
@@ -67,19 +69,16 @@ class IncidentPrioritiesListClass extends React.Component {
                                                         }}
                                                     >
                                                         {incidentPriority.name} 
-                                                        <ShouldRender if={ this.props.selectedIncidentPriority === incidentPriority._id}>
-                                                            <img
+                                                        <ShouldRender if={ this.props.selectedIncidentPriority === incidentPriority._id}>                                                           
+                                                            <span
                                                                 style={{
                                                                     marginLeft: 10,
-                                                                    verticalAlign: 'middle',
-                                                                    height: '20px',
-                                                                    width: '20px',
+                                                                    padding: '5px',                                                                    
+                                                                    color: 'green',
+                                                                    border: '1px solid green',
+                                                                    borderRadius: '25px'
                                                                 }}
-                                                                alt="default"
-                                                                src={
-                                                                    'data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjUxMnB0IiB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgd2lkdGg9IjUxMnB0IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Im01MTIgNTguNjY3OTY5YzAtMzIuMzYzMjgxLTI2LjMwNDY4OC01OC42Njc5NjktNTguNjY3OTY5LTU4LjY2Nzk2OWgtMzk0LjY2NDA2MmMtMzIuMzYzMjgxIDAtNTguNjY3OTY5IDI2LjMwNDY4OC01OC42Njc5NjkgNTguNjY3OTY5djM5NC42NjQwNjJjMCAzMi4zNjMyODEgMjYuMzA0Njg4IDU4LjY2Nzk2OSA1OC42Njc5NjkgNTguNjY3OTY5aDM5NC42NjQwNjJjMzIuMzYzMjgxIDAgNTguNjY3OTY5LTI2LjMwNDY4OCA1OC42Njc5NjktNTguNjY3OTY5em0wIDAiIGZpbGw9IiM0Y2FmNTAiLz48cGF0aCBkPSJtMzg1Ljc1IDE3MS41ODU5MzhjOC4zMzk4NDQgOC4zMzk4NDMgOC4zMzk4NDQgMjEuODIwMzEyIDAgMzAuMTY0MDYybC0xMzguNjY3OTY5IDEzOC42NjQwNjJjLTQuMTYwMTU2IDQuMTYwMTU3LTkuNjIxMDkzIDYuMjUzOTA3LTE1LjA4MjAzMSA2LjI1MzkwN3MtMTAuOTIxODc1LTIuMDkzNzUtMTUuMDgyMDMxLTYuMjUzOTA3bC02OS4zMzIwMzEtNjkuMzMyMDMxYy04LjM0Mzc1LTguMzM5ODQzLTguMzQzNzUtMjEuODI0MjE5IDAtMzAuMTY0MDYyIDguMzM5ODQzLTguMzQzNzUgMjEuODIwMzEyLTguMzQzNzUgMzAuMTY0MDYyIDBsNTQuMjUgNTQuMjUgMTIzLjU4NTkzOC0xMjMuNTgyMDMxYzguMzM5ODQzLTguMzQzNzUgMjEuODIwMzEyLTguMzQzNzUgMzAuMTY0MDYyIDB6bTAgMCIgZmlsbD0iI2ZhZmFmYSIvPjwvc3ZnPg=='
-                                                                }
-                                                            />
+                                                            >Default</span>
                                                         </ShouldRender>                                                        
                                                     </span>
                                                 </div>
@@ -101,10 +100,16 @@ class IncidentPrioritiesListClass extends React.Component {
                                                         className="Button bs-ButtonLegacy"
                                                         type="button"
                                                         onClick={() =>
-                                                            this.props.updateDefaultIncidentSettings(
-                                                                projectId,
-                                                                incidentPriority._id
-                                                            )
+                                                            this.props.openModal(
+                                                                {
+                                                                    id: uuidv4(),
+                                                                    content: DataPathHoC(SetDefaultIncidentPriority,{
+                                                                        incidentPriorityName: incidentPriority.name,
+                                                                        incidentPriorityId: incidentPriority._id,
+                                                                        projectId: projectId                                                                        
+                                                                    })
+                                                                }
+                                                            )                                                           
                                                         }
                                                     >
                                                         <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
