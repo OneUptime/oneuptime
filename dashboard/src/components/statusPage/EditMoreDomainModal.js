@@ -14,6 +14,8 @@ import {
     uploadPrivateKey,
     removeCertFile,
     removePrivateKeyFile,
+    uploadCertFileSuccess,
+    uploadPrivateKeySuccess,
 } from '../../actions/statusPage';
 import { createDomain, updateDomain } from '../../actions/domain';
 import { Validate, SHOULD_LOG_ANALYTICS } from '../../config';
@@ -27,6 +29,14 @@ function validate(_values) {
 
 class EditMoreDomainModal extends React.Component {
     componentDidMount() {
+        const {
+            domain,
+            uploadCertFileSuccess,
+            uploadPrivateKeySuccess,
+        } = this.props;
+        uploadCertFileSuccess(domain.cert);
+        uploadPrivateKeySuccess(domain.privateKey);
+
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -590,6 +600,8 @@ EditMoreDomainModal.propTypes = {
     updateDomain: PropTypes.func,
     domain: PropTypes.object,
     formValues: PropTypes.object,
+    uploadCertFileSuccess: PropTypes.func,
+    uploadPrivateKeySuccess: PropTypes.func,
 };
 
 const EditMoreDomainForm = reduxForm({
@@ -609,6 +621,8 @@ const mapDispatchToProps = dispatch =>
             removePrivateKeyFile,
             createDomain,
             updateDomain,
+            uploadCertFileSuccess,
+            uploadPrivateKeySuccess,
         },
         dispatch
     );
@@ -627,7 +641,8 @@ const mapStateToProps = state => {
         statusPageId: state.modal.modals[0].statusPageId,
         projectId: state.modal.modals[0].projectId,
         formValues:
-            state.form.EditMoreDomainForm && state.form.EditMoreDomainForm.values,
+            state.form.EditMoreDomainForm &&
+            state.form.EditMoreDomainForm.values,
         requesting: state.statusPage.updateDomain.requesting,
         updateDomainError: state.statusPage.updateDomain.error,
         certFile: state.statusPage.certFile,
