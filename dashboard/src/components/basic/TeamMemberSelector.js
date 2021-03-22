@@ -38,6 +38,7 @@ const TeamMemberSelector = ({
         projectGroups.groups && projectGroups.groups,
         form[policyIndex].teams[teamIndex].teamMembers
     );
+    //console.log(allowedGroups, groups, 'consoling groups and allowed groups')
 
     const allowedOptionsForDropdown =
         renderType === 'team'
@@ -169,8 +170,8 @@ function makeAllowedTeamMembers(teamMembers = [], subProjectTeam = []) {
 function makeAllowedGroups(groups = [], projectGroups = []) {
     const validGroup = projectGroups.filter(group => group.groupId);
     if (validGroup.length === 0) return groups;
-    const filteredGroups = groups.filter(group =>
-        validGroup.some(grp => grp.groupId !== group._id)
+    const filteredGroups = groups.filter(
+        group => !validGroup.some(grp => grp.groupId === group._id)
     );
     return filteredGroups;
 }
