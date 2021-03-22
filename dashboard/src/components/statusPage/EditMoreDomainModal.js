@@ -71,10 +71,13 @@ class EditMoreDomainModal extends React.Component {
             projectId,
             statusPageId,
             domain: values.domain,
-            cert: certFile.file,
-            privateKey: privateKeyFile.file,
             domainId: domain._id,
         };
+
+        if (values.enableHttps) {
+            data.cert = certFile.file;
+            data.privateKey = privateKeyFile.file;
+        }
 
         updateDomain(data).then(() => {
             if (!this.props.updateDomainError) {
