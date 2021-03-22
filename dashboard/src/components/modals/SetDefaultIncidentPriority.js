@@ -20,8 +20,8 @@ class SetDefaultIncidentPriority extends Component {
         const {data} = this.props;
         const incidentPriorityId = data.incidentPriorityId;              
         this.props
-            .updateDefaultIncidentSettings(this.props.currentProject._id, incidentPriorityId );
-        this.props.closeThisDialog();            
+            .updateDefaultIncidentSettings(this.props.currentProject._id, incidentPriorityId )
+            .then(()=>this.props.closeThisDialog());                    
     }
 
     handleKeyBoard = e => {
@@ -76,7 +76,8 @@ class SetDefaultIncidentPriority extends Component {
                                             className="bs-Button bs-DeprecatedButton bs-Button--white btn__modal"
                                             type="button"
                                             onClick={() => this.handleSubmit()}                                            
-                                            id="SetDefaultIncidentPriority"                                            
+                                            id="SetDefaultIncidentPriority" 
+                                            autoFocus={true}                                           
                                         >
                                             <span>OK</span>
                                             <span className="create-btn__keycode">

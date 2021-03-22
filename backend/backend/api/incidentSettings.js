@@ -53,11 +53,12 @@ router.put('/:projectId/setDefault', getUser, isAuthorized, async function(req, 
             _id: incidentPriority,
         });
 
-        if (!priority)
+        if (!priority){
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: "Incident priority doesn't exist.",
             });
+        }            
             const defaultPrioritySetting = await IncidentSettingsService.updateOne(
                 {
                     projectId,
@@ -65,7 +66,8 @@ router.put('/:projectId/setDefault', getUser, isAuthorized, async function(req, 
                 {                    
                     incidentPriority,
                 }
-            );              
+            );  
+            console.log("Default P: ", defaultPrioritySetting);
             return sendItemResponse(req, res, defaultPrioritySetting);
         }catch(error){
             return sendErrorResponse(req, res, error);

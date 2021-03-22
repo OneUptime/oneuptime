@@ -90,6 +90,7 @@ export const updateDefaultIncidentSettings = (
                 dispatch(updateBasicIncidentSettingsFailure(errors(error)));
             }
         )
+        return promise;
     }
 };
 
