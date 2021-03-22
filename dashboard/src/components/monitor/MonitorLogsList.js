@@ -1044,7 +1044,6 @@ function mapStateToProps(state, props) {
                 newData.jobData = {
                     jobStat: initialData.jobData.jobStat,
                     healthyJobData: initialData.jobData.healthyJobData,
-                    unhealthyJobs: initialData.jobData.unhealthyJobs,
                     unhealthyJobData: initialData.jobData.unhealthyJobData,
                 };
                 newData.serviceData = initialData.serviceData;
