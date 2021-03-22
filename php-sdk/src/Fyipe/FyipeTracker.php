@@ -175,6 +175,8 @@ class FyipeTracker
         $errorObj = $this->utilObj->getExceptionStackTrace($exception);
 
         $this->manageErrorObject($errorObj);
+
+        throw $exception;
     }
     public function setUpErrorHandler($errno, $errstr, $errfile, $errline)
     {
