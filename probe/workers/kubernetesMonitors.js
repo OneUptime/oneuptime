@@ -74,10 +74,12 @@ module.exports = {
                                         ) {
                                             unhealthyPods.push({
                                                 podName: item.metadata.name,
+                                                podNamespace:
+                                                    item.metadata.namespace,
+                                                podStatus: item.status.phase,
                                                 podCreationTimestamp:
                                                     item.metadata
                                                         .creationTimestamp,
-                                                podStatus: item.status.phase,
                                                 podRestart:
                                                     item.status &&
                                                     item.status
@@ -88,14 +90,12 @@ module.exports = {
                                                               .containerStatuses[0]
                                                               .restartCount
                                                         : 0,
-                                                podNamespace:
-                                                    item.metadata.namespace,
                                                 podResourceVersion:
                                                     item.metadata
                                                         .resourceVersion,
+                                                podUid: item.metadata.uid,
                                                 podSelfLink:
                                                     item.metadata.selfLink,
-                                                podUid: item.metadata.uid,
                                                 podConditions:
                                                     item.status.conditions,
                                                 podContainerStatuses:
@@ -106,10 +106,12 @@ module.exports = {
                                         } else {
                                             healthyPods.push({
                                                 podName: item.metadata.name,
+                                                podNamespace:
+                                                    item.metadata.namespace,
+                                                podStatus: item.status.phase,
                                                 podCreationTimestamp:
                                                     item.metadata
                                                         .creationTimestamp,
-                                                podStatus: item.status.phase,
                                                 podRestart:
                                                     item.status &&
                                                     item.status
@@ -120,14 +122,12 @@ module.exports = {
                                                               .containerStatuses[0]
                                                               .restartCount
                                                         : 0,
-                                                podNamespace:
-                                                    item.metadata.namespace,
                                                 podResourceVersion:
                                                     item.metadata
                                                         .resourceVersion,
+                                                podUid: item.metadata.uid,
                                                 podSelfLink:
                                                     item.metadata.selfLink,
-                                                podUid: item.metadata.uid,
                                                 podConditions:
                                                     item.status.conditions,
                                                 podContainerStatuses:
@@ -147,9 +147,11 @@ module.exports = {
 
                                         allPods.push({
                                             podName: item.metadata.name,
+                                            podNamespace:
+                                                item.metadata.namespace,
+                                            podStatus: item.status.phase,
                                             podCreationTimestamp:
                                                 item.metadata.creationTimestamp,
-                                            podStatus: item.status.phase,
                                             podRestart:
                                                 item.status &&
                                                 item.status.containerStatuses &&
@@ -158,12 +160,10 @@ module.exports = {
                                                           .containerStatuses[0]
                                                           .restartCount
                                                     : 0,
-                                            podNamespace:
-                                                item.metadata.namespace,
                                             podResourceVersion:
                                                 item.metadata.resourceVersion,
-                                            podSelfLink: item.metadata.selfLink,
                                             podUid: item.metadata.uid,
+                                            podSelfLink: item.metadata.selfLink,
                                             podConditions:
                                                 item.status.conditions,
                                             podContainerStatuses:
@@ -199,18 +199,18 @@ module.exports = {
                                         ) {
                                             runningJobs.push({
                                                 jobName: item.metadata.name,
+                                                jobNamespace:
+                                                    item.metadata.namespace,
                                                 jobStatus: 'running',
                                                 jobCreationTimestamp:
                                                     item.metadata
                                                         .creationTimestamp,
-                                                jobNamespace:
-                                                    item.metadata.namespace,
                                                 jobResourceVersion:
                                                     item.metadata
                                                         .resourceVersion,
+                                                jobUid: item.metadata.uid,
                                                 jobSelfLink:
                                                     item.metadata.selfLink,
-                                                jobUid: item.metadata.uid,
                                                 jobConditions:
                                                     item.status.conditions,
                                             });
@@ -220,18 +220,18 @@ module.exports = {
                                         ) {
                                             succeededJobs.push({
                                                 jobName: item.metadata.name,
+                                                jobNamespace:
+                                                    item.metadata.namespace,
                                                 jobStatus: 'succeeded',
                                                 jobCreationTimestamp:
                                                     item.metadata
                                                         .creationTimestamp,
-                                                jobNamespace:
-                                                    item.metadata.namespace,
                                                 jobResourceVersion:
                                                     item.metadata
                                                         .resourceVersion,
+                                                jobUid: item.metadata.uid,
                                                 jobSelfLink:
                                                     item.metadata.selfLink,
-                                                jobUid: item.metadata.uid,
                                                 jobConditions:
                                                     item.status.conditions,
                                             });
@@ -241,36 +241,36 @@ module.exports = {
                                         ) {
                                             failedJobs.push({
                                                 jobName: item.metadata.name,
+                                                jobNamespace:
+                                                    item.metadata.namespace,
                                                 jobStatus: 'failed',
                                                 jobCreationTimestamp:
                                                     item.metadata
                                                         .creationTimestamp,
-                                                jobNamespace:
-                                                    item.metadata.namespace,
                                                 jobResourceVersion:
                                                     item.metadata
                                                         .resourceVersion,
+                                                jobUid: item.metadata.uid,
                                                 jobSelfLink:
                                                     item.metadata.selfLink,
-                                                jobUid: item.metadata.uid,
                                                 jobConditions:
                                                     item.status.conditions,
                                             });
                                         } else {
                                             failedJobs.push({
                                                 jobName: item.metadata.name,
+                                                jobNamespace:
+                                                    item.metadata.namespace,
                                                 jobStatus: 'failed',
                                                 jobCreationTimestamp:
                                                     item.metadata
                                                         .creationTimestamp,
-                                                jobNamespace:
-                                                    item.metadata.namespace,
                                                 jobResourceVersion:
                                                     item.metadata
                                                         .resourceVersion,
+                                                jobUid: item.metadata.uid,
                                                 jobSelfLink:
                                                     item.metadata.selfLink,
-                                                jobUid: item.metadata.uid,
                                                 jobConditions:
                                                     item.status.conditions,
                                             });
@@ -334,23 +334,23 @@ module.exports = {
                                             unhealthyDeployments.push({
                                                 deploymentName:
                                                     item.metadata.name,
+                                                deploymentNamespace:
+                                                    item.metadata.namespace,
+                                                deploymentCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
                                                 readyDeployment:
                                                     item.status.readyReplicas ||
                                                     0,
                                                 desiredDeployment:
                                                     item.status.replicas,
-                                                deploymentCreationTimestamp:
-                                                    item.metadata
-                                                        .creationTimestamp,
-                                                deploymentNamespace:
-                                                    item.metadata.namespace,
                                                 deploymentResourceVersion:
                                                     item.metadata
                                                         .resourceVersion,
-                                                deploymentSelfLink:
-                                                    item.metadata.selfLink,
                                                 deploymentUid:
                                                     item.metadata.uid,
+                                                deploymentSelfLink:
+                                                    item.metadata.selfLink,
                                                 deploymentConditions:
                                                     item.status.conditions,
                                             });
@@ -358,22 +358,22 @@ module.exports = {
                                             healthyDeployments.push({
                                                 deploymentName:
                                                     item.metadata.name,
+                                                deploymentNamespace:
+                                                    item.metadata.namespace,
+                                                deploymentCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
                                                 readyDeployment:
                                                     item.status.readyReplicas,
                                                 desiredDeployment:
                                                     item.status.replicas,
-                                                deploymentCreationTimestamp:
-                                                    item.metadata
-                                                        .creationTimestamp,
-                                                deploymentNamespace:
-                                                    item.metadata.namespace,
                                                 deploymentResourceVersion:
                                                     item.metadata
                                                         .resourceVersion,
-                                                deploymentSelfLink:
-                                                    item.metadata.selfLink,
                                                 deploymentUid:
                                                     item.metadata.uid,
+                                                deploymentSelfLink:
+                                                    item.metadata.selfLink,
                                                 deploymentConditions:
                                                     item.status.conditions,
                                             });
@@ -381,19 +381,19 @@ module.exports = {
 
                                         allDeployments.push({
                                             deploymentName: item.metadata.name,
+                                            deploymentNamespace:
+                                                item.metadata.namespace,
+                                            deploymentCreationTimestamp:
+                                                item.metadata.creationTimestamp,
                                             readyDeployment:
                                                 item.status.readyReplicas || 0,
                                             desiredDeployment:
                                                 item.status.replicas,
-                                            deploymentCreationTimestamp:
-                                                item.metadata.creationTimestamp,
-                                            deploymentNamespace:
-                                                item.metadata.namespace,
                                             deploymentResourceVersion:
                                                 item.metadata.resourceVersion,
+                                            deploymentUid: item.metadata.uid,
                                             deploymentSelfLink:
                                                 item.metadata.selfLink,
-                                            deploymentUid: item.metadata.uid,
                                             deploymentConditions:
                                                 item.status.conditions,
                                         });
@@ -431,62 +431,62 @@ module.exports = {
                                             unhealthyStatefulsets.push({
                                                 statefulsetName:
                                                     item.metadata.name,
+                                                statefulsetNamespace:
+                                                    item.metadata.namespace,
+                                                statefulsetCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
                                                 readyStatefulsets:
                                                     item.status.readyReplicas ||
                                                     0,
                                                 desiredStatefulsets:
                                                     item.status.replicas,
-                                                statefulsetCreationTimestamp:
-                                                    item.metadata
-                                                        .creationTimestamp,
-                                                statefulsetNamespace:
-                                                    item.metadata.namespace,
                                                 statefulsetResourceVersion:
                                                     item.metadata
                                                         .resourceVersion,
-                                                statefulsetSelfLink:
-                                                    item.metadata.selfLink,
                                                 statefulsetUid:
                                                     item.metadata.uid,
+                                                statefulsetSelfLink:
+                                                    item.metadata.selfLink,
                                             });
                                         } else {
                                             healthyStatefulsets.push({
                                                 statefulsetName:
                                                     item.metadata.name,
+                                                statefulsetNamespace:
+                                                    item.metadata.namespace,
+                                                statefulsetCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
                                                 readyStatefulsets:
                                                     item.status.readyReplicas,
                                                 desiredStatefulsets:
                                                     item.status.replicas,
-                                                statefulsetCreationTimestamp:
-                                                    item.metadata
-                                                        .creationTimestamp,
-                                                statefulsetNamespace:
-                                                    item.metadata.namespace,
                                                 statefulsetResourceVersion:
                                                     item.metadata
                                                         .resourceVersion,
-                                                statefulsetSelfLink:
-                                                    item.metadata.selfLink,
                                                 statefulsetUid:
                                                     item.metadata.uid,
+                                                statefulsetSelfLink:
+                                                    item.metadata.selfLink,
                                             });
                                         }
 
                                         allStatefulset.push({
                                             statefulsetName: item.metadata.name,
+                                            statefulsetNamespace:
+                                                item.metadata.namespace,
+                                            statefulsetCreationTimestamp:
+                                                item.metadata.creationTimestamp,
                                             readyStatefulsets:
                                                 item.status.readyReplicas || 0,
                                             desiredStatefulsets:
                                                 item.status.replicas,
-                                            statefulsetCreationTimestamp:
-                                                item.metadata.creationTimestamp,
-                                            statefulsetNamespace:
-                                                item.metadata.namespace,
                                             statefulsetResourceVersion:
                                                 item.metadata.resourceVersion,
+                                            statefulsetUid: item.metadata.uid,
                                             statefulsetSelfLink:
                                                 item.metadata.selfLink,
-                                            statefulsetUid: item.metadata.uid,
                                         });
                                     });
                                     const statefulsetData = {
