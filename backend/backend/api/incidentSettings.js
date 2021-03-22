@@ -33,6 +33,47 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     }
 });
 
+router.put('/:projectId/setDefault', getUser, isAuthorized, async function(req, res){
+    const {projectId} = req.params;
+    const {incidentPriority} = req.body;
+    if (!projectId)
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Project Id must be present.',
+        });
+    if (!incidentPriority)
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Incident priority must be present.',
+        });
+
+    try{
+        // Update Default Incident Priority
+        const priority = await IncidentPrioritiesService.findOne({
+            _id: incidentPriority,
+        });
+
+        if (!priority){
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: "Incident priority doesn't exist.",
+            });
+        }            
+            const defaultPrioritySetting = await IncidentSettingsService.updateOne(
+                {
+                    projectId,
+                },
+                {                    
+                    incidentPriority,
+                }
+            );  
+            console.log("Default P: ", defaultPrioritySetting);
+            return sendItemResponse(req, res, defaultPrioritySetting);
+        }catch(error){
+            return sendErrorResponse(req, res, error);
+        }
+});
+
 router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
     const { projectId } = req.params;
     const { title, description, incidentPriority } = req.body;
