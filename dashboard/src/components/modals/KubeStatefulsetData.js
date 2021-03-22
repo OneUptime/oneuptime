@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
+import moment from 'moment';
 
 class KubeStatefulsetData extends React.Component {
     componentDidMount() {
@@ -52,7 +53,7 @@ class KubeStatefulsetData extends React.Component {
     render() {
         const { data } = this.props;
         const statefulsetData = data.data;
-        const logTitle = data.title;
+        const logTitle = data.data['statefulsetName'];
 
         const dataKeys = Object.keys(statefulsetData);
 
@@ -65,7 +66,7 @@ class KubeStatefulsetData extends React.Component {
                 <div className="bs-BIM">
                     <div
                         className="bs-Modal"
-                        style={{ width: 'fit-content', minWidth: 450 }}
+                        style={{ width: '100%', maxWidth: 650 }}
                     >
                         <ClickOutside onClickOutside={this.handleCloseModal}>
                             <div className="bs-Modal-header">
@@ -94,13 +95,42 @@ class KubeStatefulsetData extends React.Component {
                                             className="bs-ObjectList-rows"
                                         >
                                             {dataKeys.map(key => {
+                                                let output = moment(
+                                                    statefulsetData[key]
+                                                );
+                                                if (
+                                                    output.isValid() &&
+                                                    key !==
+                                                        'readyStatefulsets' &&
+                                                    key !==
+                                                        'desiredStatefulsets' &&
+                                                    key !==
+                                                        'statefulsetResourceVersion' &&
+                                                    key !== 'statefulsetName'
+                                                ) {
+                                                    output = output.format(
+                                                        'LLL'
+                                                    );
+                                                } else {
+                                                    output = String(
+                                                        statefulsetData[key]
+                                                    );
+                                                }
                                                 return (
                                                     <div
                                                         key={key}
-                                                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                                                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow"
                                                         style={{
                                                             backgroundColor:
                                                                 'white',
+                                                            height: 60,
+                                                            borderBottom:
+                                                                '1px solid #cfd7df80',
+                                                            display: 'flex',
+                                                            justifyContent:
+                                                                'space-between',
+                                                            alignItems:
+                                                                'center',
                                                         }}
                                                         id={`statefulsetData_item`}
                                                     >
@@ -122,13 +152,11 @@ class KubeStatefulsetData extends React.Component {
                                                                 style={{
                                                                     textAlign:
                                                                         'right',
+                                                                    whiteSpace:
+                                                                        'normal',
                                                                 }}
                                                             >
-                                                                {
-                                                                    statefulsetData[
-                                                                        key
-                                                                    ]
-                                                                }
+                                                                {output}
                                                             </div>
                                                         </div>
                                                     </div>

@@ -63,7 +63,7 @@ class KubeStatefulset extends React.Component {
                 <div className="bs-BIM">
                     <div
                         className="bs-Modal"
-                        style={{ width: 'fit-content', minWidth: 450 }}
+                        style={{ width: '100%', maxWidth: 600 }}
                     >
                         <ClickOutside onClickOutside={this.handleCloseModal}>
                             <div className="bs-Modal-header">
@@ -97,14 +97,21 @@ class KubeStatefulset extends React.Component {
                                                     statefulsetData.length > 0
                                                 }
                                             >
-                                                <header className="bs-ObjectList-row bs-ObjectList-row--header">
+                                                <header
+                                                    className="bs-ObjectList-row bs-ObjectList-row--header"
+                                                    style={{
+                                                        display: 'flex',
+                                                        justifyContent:
+                                                            'space-between',
+                                                        alignItems: 'center',
+                                                    }}
+                                                >
                                                     <div className="bs-ObjectList-cell">
                                                         Statefulset Name
                                                     </div>
                                                     <div
                                                         className="bs-ObjectList-cell"
                                                         style={{
-                                                            marginRight: '10px',
                                                             textAlign: 'right',
                                                         }}
                                                     >
@@ -117,10 +124,18 @@ class KubeStatefulset extends React.Component {
                                                     (data, index) => (
                                                         <div
                                                             key={data._id}
-                                                            className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                                                            className="scheduled-event-list-item bs-ObjectList-row db-UserListRow"
                                                             style={{
                                                                 backgroundColor:
                                                                     'white',
+                                                                height: 60,
+                                                                display: 'flex',
+                                                                borderBottom:
+                                                                    '1px solid #cfd7df80',
+                                                                justifyContent:
+                                                                    'space-between',
+                                                                alignItems:
+                                                                    'center',
                                                                 cursor:
                                                                     'pointer',
                                                             }}
@@ -155,6 +170,8 @@ class KubeStatefulset extends React.Component {
                                                                     style={{
                                                                         textAlign:
                                                                             'right',
+                                                                        whiteSpace:
+                                                                            'normal',
                                                                     }}
                                                                 >
                                                                     {
