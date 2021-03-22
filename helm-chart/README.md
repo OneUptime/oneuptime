@@ -87,7 +87,7 @@ cd ..
 
 ```
 cd ./helm-chart/public
-#IMPORTANT: change the version of the dependent chart at `/helm-chart/public/fyipe/Chart.yaml`
+#IMPORTANT: change the version of the dependent chart at `/helm-chart/public/fyipe/Chart.yaml`. This should be the version field (and NOT appVersion) in Chart.yaml of the dependency.
 
 # Run this command.
 helm dependency update fyipe
