@@ -777,6 +777,20 @@ module.exports = {
                 publicKey: process.env.PUSHNOTIFICATION_PUBLIC_KEY, // URL Safe Base64 Encoded Public Key
                 privateKey: process.env.PUSHNOTIFICATION_PRIVATE_KEY, // URL Safe Base64 Encoded Private Key
             },
+            headers: {
+                'access-control-allow-headers':
+                    'content-encoding,encryption,crypto-key,ttl,encryption-key,content-type,authorization',
+                'access-control-allow-methods': 'POST',
+                'access-control-allow-origin': '*',
+                'access-control-expose-headers': 'location,www-authenticate',
+                'cache-control': 'max-age=86400',
+                'content-type': 'application/json',
+                server: 'nginx',
+                'strict-transport-security':
+                    'max-age=31536000;includeSubDomains',
+                'content-length': '179',
+                connection: 'Close',
+            },
         };
 
         console.log('PUSHNOTIFICATION_URL', process.env.PUSHNOTIFICATION_URL);
