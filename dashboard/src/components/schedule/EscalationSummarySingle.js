@@ -145,7 +145,7 @@ const EscalationSummarySingle = ({
                                         className="Box-root Margin-right--16 pointer"
                                     >
                                         <img
-                                            src="/dashboard/assets/img/group.jpg"
+                                            src="/dashboard/assets/img/group-image.png"
                                             key={''}
                                             className="userIcon"
                                             alt=""
