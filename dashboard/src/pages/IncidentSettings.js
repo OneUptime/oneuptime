@@ -120,7 +120,6 @@ class IncidentSettings extends React.Component {
     render() {
         const {
             location: { pathname },
-            match,
         } = this.props;
         const { skip, limit, count } = this.props.incidentPrioritiesList;
         const canPaginateForward =
@@ -359,14 +358,20 @@ class IncidentSettings extends React.Component {
                             <TabPanel>
                                 <Fade>
                                     <IncidentCommunicationSla
-                                        projectId={match.params.projectId}
+                                        projectId={
+                                            this.props.currentProject &&
+                                            this.props.currentProject._id
+                                        }
                                     />
                                 </Fade>
                             </TabPanel>
                             <TabPanel>
                                 <Fade>
                                     <IncidentCustomFields
-                                        projectId={match.params.projectId}
+                                        projectId={
+                                            this.props.currentProject &&
+                                            this.props.currentProject._id
+                                        }
                                     />
                                 </Fade>
                             </TabPanel>
@@ -393,7 +398,6 @@ IncidentSettings.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
-    match: PropTypes.object,
     fetchCustomFields: PropTypes.func,
 };
 const mapStateToProps = state => {

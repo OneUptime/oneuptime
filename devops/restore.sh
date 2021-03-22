@@ -27,7 +27,6 @@ function HELP (){
   echo " -l       File path on local system where file will be restored from. Default value - $FILE_PATH"
   echo " -n       Database name. Default value 'fyipe'"
   echo " -p       Database password. Default value 'password'"
-  echo " -r       Helm release name. Default value 'fi'" 
   echo " -u       Set database username. Default value 'fyipe'."
   echo ""
   echo " -h       Help."

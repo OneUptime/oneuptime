@@ -22,7 +22,7 @@ describe('FyipeLogger', function() {
 
     before(function(done) {
         this.timeout(60000);
-        sleep(30000).then(() => {
+        sleep(5000).then(() => {
             user.email = generateRandomBusinessEmail();
             request
                 .post('/user/signup')
