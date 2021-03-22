@@ -286,22 +286,6 @@ export class Setting extends Component {
                                                                                             'fit-content',
                                                                                     }}
                                                                                 />
-                                                                                <button
-                                                                                    id={`editDomain_${index}`}
-                                                                                    title="edit"
-                                                                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit Margin-left--8"
-                                                                                    type="button"
-                                                                                    onClick={() =>
-                                                                                        this.editDomain(
-                                                                                            statusPageId,
-                                                                                            domain
-                                                                                        )
-                                                                                    }
-                                                                                >
-                                                                                    <span>
-                                                                                        Edit
-                                                                                    </span>
-                                                                                </button>
                                                                             </div>
                                                                             <p
                                                                                 className="bs-Fieldset-explanation"
@@ -415,7 +399,7 @@ export class Setting extends Component {
                                                                                         style={{
                                                                                             padding: 0,
                                                                                             marginRight:
-                                                                                                '15px',
+                                                                                                '5px',
                                                                                         }}
                                                                                     >
                                                                                         <button
@@ -431,6 +415,43 @@ export class Setting extends Component {
                                                                                             <span>
                                                                                                 Verify
                                                                                                 domain
+                                                                                            </span>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </ShouldRender>
+                                                                                <ShouldRender
+                                                                                    if={
+                                                                                        this
+                                                                                            .props
+                                                                                            .domains &&
+                                                                                        this
+                                                                                            .props
+                                                                                            .domains
+                                                                                            .length >
+                                                                                            0
+                                                                                    }
+                                                                                >
+                                                                                    <div
+                                                                                        className="bs-Fieldset-row"
+                                                                                        style={{
+                                                                                            padding: 0,
+                                                                                            marginRight: 5,
+                                                                                        }}
+                                                                                    >
+                                                                                        <button
+                                                                                            id={`editDomain_${index}`}
+                                                                                            title="edit"
+                                                                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                                                                                            type="button"
+                                                                                            onClick={() =>
+                                                                                                this.editDomain(
+                                                                                                    statusPageId,
+                                                                                                    domain
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            <span>
+                                                                                                Edit
                                                                                             </span>
                                                                                         </button>
                                                                                     </div>
