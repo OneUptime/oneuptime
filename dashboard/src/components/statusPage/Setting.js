@@ -504,6 +504,8 @@ export class Setting extends Component {
                                                                                 className="bs-Fieldset-fields"
                                                                                 style={{
                                                                                     marginTop: 5,
+                                                                                    flexDirection:
+                                                                                        'row',
                                                                                 }}
                                                                             >
                                                                                 {domain &&
@@ -511,7 +513,12 @@ export class Setting extends Component {
                                                                                 !domain
                                                                                     .domainVerificationToken
                                                                                     .verified ? (
-                                                                                    <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                    <div
+                                                                                        className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                                                        style={{
+                                                                                            marginRight: 10,
+                                                                                        }}
+                                                                                    >
                                                                                         <span
                                                                                             className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap pointer"
                                                                                             onClick={e => {
@@ -529,6 +536,24 @@ export class Setting extends Component {
                                                                                     <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                         <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
                                                                                             Verified
+                                                                                        </span>
+                                                                                    </div>
+                                                                                )}
+                                                                                {domain &&
+                                                                                domain.cert &&
+                                                                                domain.privateKey ? (
+                                                                                    <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                                                            HTTPS
+                                                                                            enabled
+                                                                                        </span>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap pointer">
+                                                                                            HTTPS
+                                                                                            not
+                                                                                            enabled
                                                                                         </span>
                                                                                     </div>
                                                                                 )}
