@@ -1,9 +1,8 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { reduxForm, Field } from 'redux-form';
+import { reduxForm } from 'redux-form';
 import { v4 as uuidv4 } from 'uuid';
-import { RenderField } from '../basic/RenderField';
 // import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
@@ -250,7 +249,12 @@ export class Setting extends Component {
                                                                     subProject
                                                                 ) ? (
                                                                     <div className="bs-Fieldset-row">
-                                                                        <label className="bs-Fieldset-label">
+                                                                        <label
+                                                                            className="bs-Fieldset-label"
+                                                                            style={{
+                                                                                paddingTop: 0,
+                                                                            }}
+                                                                        >
                                                                             Your
                                                                             Status
                                                                             Page
@@ -259,33 +263,16 @@ export class Setting extends Component {
                                                                             at
                                                                         </label>
 
-                                                                        <div className="bs-Fieldset-fields">
+                                                                        <div className="bs-Fieldset-fields Text-fontSize--16 Text-fontWeight--medium">
                                                                             <div
                                                                                 style={{
                                                                                     width:
                                                                                         '100%',
-                                                                                    display:
-                                                                                        'flex',
                                                                                 }}
                                                                             >
-                                                                                <Field
-                                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                                    component={
-                                                                                        RenderField
-                                                                                    }
-                                                                                    type="text"
-                                                                                    name={
-                                                                                        domain._id
-                                                                                    }
-                                                                                    id={
-                                                                                        domain._id
-                                                                                    }
-                                                                                    placeholder="domain"
-                                                                                    parentStyle={{
-                                                                                        maxWidth:
-                                                                                            'fit-content',
-                                                                                    }}
-                                                                                />
+                                                                                {
+                                                                                    domain.domain
+                                                                                }
                                                                             </div>
                                                                             <p
                                                                                 className="bs-Fieldset-explanation"
@@ -550,7 +537,7 @@ export class Setting extends Component {
                                                                                     </div>
                                                                                 ) : (
                                                                                     <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap pointer">
+                                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
                                                                                             HTTPS
                                                                                             not
                                                                                             enabled
