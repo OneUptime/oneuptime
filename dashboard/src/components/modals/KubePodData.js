@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
+import moment from 'moment';
 
 class KubePodData extends React.Component {
     componentDidMount() {
@@ -46,13 +47,155 @@ class KubePodData extends React.Component {
                 return 'Self Link';
             case 'podUid':
                 return 'UID';
+            case 'image':
+                return 'Container Image';
+            case 'ready':
+                return 'Container Ready';
+            case 'started':
+                return 'Container Started';
+            case 'name':
+                return 'Container Name';
+            case 'finishedAt':
+                return 'Finished At';
+            case 'reason':
+                return 'Reason';
+            case 'startedAt':
+                return 'Started At';
         }
+    };
+
+    handleContainer = (podData, key) => {
+        return podData[key].map((container, index) => {
+            const dataKeys = Object.keys(container);
+            return (
+                <div
+                    key={index}
+                    style={{
+                        borderBottom: '1px solid #cfd7df80',
+                    }}
+                >
+                    {dataKeys.map(key => {
+                        if (
+                            key === 'containerID' ||
+                            key === 'imageID' ||
+                            key === 'lastState' ||
+                            key === 'restartCount' ||
+                            key === 'name'
+                        ) {
+                            return null;
+                        }
+                        if (key === 'state') {
+                            const containerKeys = Object.keys(container[key]);
+                            return containerKeys.map(eachKey => {
+                                const stateObj = container[key][eachKey];
+                                const valueKeys = Object.keys(stateObj);
+
+                                return valueKeys.map(key => {
+                                    let output = moment(stateObj[key]);
+                                    if (output.isValid()) {
+                                        output = output.format('LLL');
+                                    } else {
+                                        output = String(stateObj[key]);
+                                    }
+                                    if (
+                                        key === 'finishedAt' ||
+                                        key === 'reason' ||
+                                        key === 'startedAt'
+                                    ) {
+                                        return (
+                                            <div
+                                                key={key}
+                                                className="scheduled-event-list-item bs-ObjectList-row db-UserListRow"
+                                                style={{
+                                                    backgroundColor: 'white',
+                                                    height: 60,
+                                                    display: 'flex',
+                                                    justifyContent:
+                                                        'space-between',
+                                                    alignItems: 'center',
+                                                }}
+                                                id={`podData_item`}
+                                            >
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div
+                                                        className="bs-ObjectList-cell-row"
+                                                        style={{
+                                                            fontWeight: 500,
+                                                        }}
+                                                    >
+                                                        {this.handleKey(key)}
+                                                    </div>
+                                                </div>
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div
+                                                        className="bs-ObjectList-cell-row"
+                                                        style={{
+                                                            whiteSpace:
+                                                                'normal',
+                                                        }}
+                                                    >
+                                                        {output}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    return null;
+                                });
+                            });
+                        }
+
+                        let output = moment(container[key]);
+                        if (output.isValid()) {
+                            output = output.format('LLL');
+                        } else {
+                            output = String(container[key]);
+                        }
+
+                        return (
+                            <div
+                                key={key}
+                                className="scheduled-event-list-item bs-ObjectList-row db-UserListRow"
+                                style={{
+                                    backgroundColor: 'white',
+                                    height: 60,
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                }}
+                                id={`podData_item`}
+                            >
+                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                    <div
+                                        className="bs-ObjectList-cell-row"
+                                        style={{
+                                            fontWeight: 500,
+                                        }}
+                                    >
+                                        {this.handleKey(key)}
+                                    </div>
+                                </div>
+                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                    <div
+                                        className="bs-ObjectList-cell-row"
+                                        style={{ whiteSpace: 'normal' }}
+                                    >
+                                        {output}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        });
     };
 
     render() {
         const { data } = this.props;
         const podData = data.data;
-        const logTitle = data.title;
+        const logTitle = data.data['podName'];
 
         const dataKeys = Object.keys(podData);
 
@@ -65,7 +208,7 @@ class KubePodData extends React.Component {
                 <div className="bs-BIM">
                     <div
                         className="bs-Modal"
-                        style={{ width: 'fit-content', minWidth: 450 }}
+                        style={{ width: '100%', maxWidth: 650 }}
                     >
                         <ClickOutside onClickOutside={this.handleCloseModal}>
                             <div className="bs-Modal-header">
@@ -94,20 +237,89 @@ class KubePodData extends React.Component {
                                             className="bs-ObjectList-rows"
                                         >
                                             {dataKeys.map(key => {
+                                                let output = moment(
+                                                    podData[key]
+                                                );
                                                 if (
-                                                    key === 'podConditions' ||
-                                                    key ===
-                                                        'podContainerStatuses'
+                                                    output.isValid() &&
+                                                    key !== 'podRestart' &&
+                                                    key !== 'podName' &&
+                                                    key !== 'podResourceVersion'
                                                 ) {
+                                                    output = output.format(
+                                                        'LLL'
+                                                    );
+                                                } else {
+                                                    output = String(
+                                                        podData[key]
+                                                    );
+                                                }
+
+                                                if (key === 'podConditions') {
                                                     return null;
+                                                }
+                                                if (
+                                                    key ===
+                                                    'podContainerStatuses'
+                                                ) {
+                                                    return (
+                                                        <>
+                                                            <div
+                                                                key={key}
+                                                                className="scheduled-event-list-item bs-ObjectList-row db-UserListRow"
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        'white',
+                                                                    height: 60,
+                                                                    borderBottom:
+                                                                        '1px solid #cfd7df80',
+                                                                    display:
+                                                                        'flex',
+                                                                    justifyContent:
+                                                                        'space-between',
+                                                                    alignItems:
+                                                                        'center',
+                                                                }}
+                                                                id={`podData_item`}
+                                                            >
+                                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                    <div
+                                                                        className="bs-ObjectList-cell-row"
+                                                                        style={{
+                                                                            fontWeight: 500,
+                                                                        }}
+                                                                    >
+                                                                        List of
+                                                                        All Pod
+                                                                        Container
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                    <div className="bs-ObjectList-cell-row"></div>
+                                                                </div>
+                                                            </div>
+                                                            {this.handleContainer(
+                                                                podData,
+                                                                key
+                                                            )}
+                                                        </>
+                                                    );
                                                 }
                                                 return (
                                                     <div
                                                         key={key}
-                                                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                                                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow"
                                                         style={{
                                                             backgroundColor:
                                                                 'white',
+                                                            height: 60,
+                                                            borderBottom:
+                                                                '1px solid #cfd7df80',
+                                                            display: 'flex',
+                                                            justifyContent:
+                                                                'space-between',
+                                                            alignItems:
+                                                                'center',
                                                         }}
                                                         id={`podData_item`}
                                                     >
@@ -127,11 +339,11 @@ class KubePodData extends React.Component {
                                                             <div
                                                                 className="bs-ObjectList-cell-row"
                                                                 style={{
-                                                                    textAlign:
-                                                                        'right',
+                                                                    whiteSpace:
+                                                                        'normal',
                                                                 }}
                                                             >
-                                                                {podData[key]}
+                                                                {output}
                                                             </div>
                                                         </div>
                                                     </div>
