@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
+import moment from 'moment';
 
 class KubeDeploymentData extends React.Component {
     componentDidMount() {
@@ -46,13 +47,84 @@ class KubeDeploymentData extends React.Component {
                 return 'UID';
             case 'deploymentNamespace':
                 return 'Namespace';
+            case 'lastTransitionTime':
+                return 'Last Transition Time';
+            case 'lastUpdateTime':
+                return 'Last Update Time';
+            case 'message':
+                return 'Message';
+            case 'reason':
+                return 'Reason';
+            case 'status':
+                return 'Status';
+            case 'type':
+                return 'Type';
         }
+    };
+
+    handleCondition = (deploymentData, key) => {
+        return deploymentData[key].map((condition, index) => {
+            const dataKeys = Object.keys(condition);
+            return (
+                <div
+                    key={index}
+                    style={{
+                        borderBottom: '1px solid #cfd7df80',
+                    }}
+                >
+                    {dataKeys.map(key => {
+                        let output = moment(condition[key]);
+                        if (output.isValid()) {
+                            output = output.format('LLL');
+                        } else {
+                            output = String(condition[key]);
+                        }
+
+                        return (
+                            <div
+                                key={key}
+                                className="scheduled-event-list-item bs-ObjectList-row db-UserListRow"
+                                style={{
+                                    backgroundColor: 'white',
+                                    height: 60,
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                }}
+                                id={`deploymentData_item`}
+                            >
+                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                    <div
+                                        className="bs-ObjectList-cell-row"
+                                        style={{
+                                            fontWeight: 500,
+                                        }}
+                                    >
+                                        {this.handleKey(key)}
+                                    </div>
+                                </div>
+                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                    <div
+                                        className="bs-ObjectList-cell-row"
+                                        style={{
+                                            whiteSpace: 'normal',
+                                        }}
+                                    >
+                                        {output}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        });
     };
 
     render() {
         const { data } = this.props;
         const deploymentData = data.data;
-        const logTitle = data.title;
+        const logTitle = data.data['deploymentName'];
 
         const dataKeys = Object.keys(deploymentData);
 
@@ -65,7 +137,7 @@ class KubeDeploymentData extends React.Component {
                 <div className="bs-BIM">
                     <div
                         className="bs-Modal"
-                        style={{ width: 'fit-content', minWidth: 450 }}
+                        style={{ width: '100%', maxWidth: 650 }}
                     >
                         <ClickOutside onClickOutside={this.handleCloseModal}>
                             <div className="bs-Modal-header">
@@ -98,15 +170,84 @@ class KubeDeploymentData extends React.Component {
                                                     key ===
                                                     'deploymentConditions'
                                                 ) {
-                                                    return null;
+                                                    return (
+                                                        <>
+                                                            <div
+                                                                key={key}
+                                                                className="scheduled-event-list-item bs-ObjectList-row db-UserListRow"
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        'white',
+                                                                    height: 60,
+                                                                    borderBottom:
+                                                                        '1px solid #cfd7df80',
+                                                                    display:
+                                                                        'flex',
+                                                                    justifyContent:
+                                                                        'space-between',
+                                                                    alignItems:
+                                                                        'center',
+                                                                }}
+                                                                id={`podData_item`}
+                                                            >
+                                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                    <div
+                                                                        className="bs-ObjectList-cell-row"
+                                                                        style={{
+                                                                            fontWeight: 500,
+                                                                        }}
+                                                                    >
+                                                                        List of
+                                                                        All
+                                                                        Deployment
+                                                                        Conditions
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                    <div className="bs-ObjectList-cell-row"></div>
+                                                                </div>
+                                                            </div>
+                                                            {this.handleCondition(
+                                                                deploymentData,
+                                                                key
+                                                            )}
+                                                        </>
+                                                    );
+                                                }
+
+                                                let output = moment(
+                                                    deploymentData[key]
+                                                );
+                                                if (
+                                                    output.isValid() &&
+                                                    key !== 'readyDeployment' &&
+                                                    key !==
+                                                        'desiredDeployment' &&
+                                                    key !== 'deploymentName'
+                                                ) {
+                                                    output = output.format(
+                                                        'LLL'
+                                                    );
+                                                } else {
+                                                    output = String(
+                                                        deploymentData[key]
+                                                    );
                                                 }
                                                 return (
                                                     <div
                                                         key={key}
-                                                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                                                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow"
                                                         style={{
                                                             backgroundColor:
                                                                 'white',
+                                                            height: 60,
+                                                            borderBottom:
+                                                                '1px solid #cfd7df80',
+                                                            display: 'flex',
+                                                            justifyContent:
+                                                                'space-between',
+                                                            alignItems:
+                                                                'center',
                                                         }}
                                                         id={`deploymentData_item`}
                                                     >
@@ -126,15 +267,11 @@ class KubeDeploymentData extends React.Component {
                                                             <div
                                                                 className="bs-ObjectList-cell-row"
                                                                 style={{
-                                                                    textAlign:
-                                                                        'right',
+                                                                    whiteSpace:
+                                                                        'normal',
                                                                 }}
                                                             >
-                                                                {
-                                                                    deploymentData[
-                                                                        key
-                                                                    ]
-                                                                }
+                                                                {output}
                                                             </div>
                                                         </div>
                                                     </div>
