@@ -25,7 +25,7 @@ module.exports = {
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitorId',
-                    select: '_id name type',
+                    select: '_id name type slug',
                     populate: { path: 'componentId', select: '_id name' },
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
