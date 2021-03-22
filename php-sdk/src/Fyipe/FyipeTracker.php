@@ -78,9 +78,8 @@ class FyipeTracker
 
     private function setUpOptions($options)
     {
-        foreach ($options as $option) {
-            $key = key($option);
-            $value = $option->$key;
+        if(gettype($options) != "object") return; // ignore passed option if it is not an object
+        foreach ($options as $key => $value) {
             // proceed with current key if it is not in the config keys
             if (!in_array($key, $this->configKeys)) {
                 // if key is allowed in options
