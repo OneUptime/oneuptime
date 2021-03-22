@@ -1,2 +1,5 @@
 test.html
 /node_modules
+
+/build
+/dist

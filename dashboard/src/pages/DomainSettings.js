@@ -12,8 +12,12 @@ import Domains from '../components/domains/Domains';
 
 class DomainSettings extends React.Component {
     ready = () => {
-        const { fetchCustomFields, match } = this.props;
-        fetchCustomFields(match.params.projectId, 0, 10);
+        const { fetchCustomFields } = this.props;
+        fetchCustomFields(
+            this.props.currentProject && this.props.currentProject._id,
+            0,
+            10
+        );
     };
 
     componentWillMount() {
@@ -23,7 +27,6 @@ class DomainSettings extends React.Component {
     render() {
         const {
             location: { pathname },
-            match,
         } = this.props;
 
         return (
@@ -37,7 +40,12 @@ class DomainSettings extends React.Component {
                         <BreadCrumbItem route={pathname} name="Domains" />
 
                         <div>
-                            <Domains projectId={match.params.projectId} />
+                            <Domains
+                                projectId={
+                                    this.props.currentProject &&
+                                    this.props.currentProject._id
+                                }
+                            />
                         </div>
                     </div>
                 </Fade>
@@ -49,8 +57,8 @@ class DomainSettings extends React.Component {
 DomainSettings.displayName = 'DomainSettings';
 DomainSettings.propTypes = {
     location: PropTypes.object.isRequired,
-    match: PropTypes.object,
     fetchCustomFields: PropTypes.func,
+    currentProject: PropTypes.object.isRequired,
 };
 const mapStateToProps = state => {
     return {

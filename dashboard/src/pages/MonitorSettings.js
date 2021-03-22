@@ -18,8 +18,12 @@ class MonitorSettings extends React.Component {
     };
 
     ready = () => {
-        const { fetchCustomFields, match } = this.props;
-        fetchCustomFields(match.params.projectId, 0, 10);
+        const { fetchCustomFields } = this.props;
+        fetchCustomFields(
+            this.props.currentProject && this.props.currentProject._id,
+            0,
+            10
+        );
     };
 
     componentWillMount() {
@@ -36,8 +40,7 @@ class MonitorSettings extends React.Component {
 
     render() {
         const {
-            location: { pathname },
-            match,
+            location: { pathname }
         } = this.props;
 
         return (
@@ -86,14 +89,20 @@ class MonitorSettings extends React.Component {
                                 <TabPanel>
                                     <Fade>
                                         <MonitorSla
-                                            projectId={match.params.projectId}
+                                            projectId={
+                                                this.props.currentProject &&
+                                                this.props.currentProject._id
+                                            }
                                         />
                                     </Fade>
                                 </TabPanel>
                                 <TabPanel>
                                     <Fade>
                                         <MonitorCustomFields
-                                            projectId={match.params.projectId}
+                                            projectId={
+                                                this.props.currentProject &&
+                                                this.props.currentProject._id
+                                            }
                                         />
                                     </Fade>
                                 </TabPanel>
@@ -109,8 +118,8 @@ class MonitorSettings extends React.Component {
 MonitorSettings.displayName = 'MonitorSettings';
 MonitorSettings.propTypes = {
     location: PropTypes.object.isRequired,
-    match: PropTypes.object,
     fetchCustomFields: PropTypes.func,
+    currentProject: PropTypes.object,
 };
 const mapStateToProps = state => {
     return {
