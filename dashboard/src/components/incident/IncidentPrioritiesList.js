@@ -11,8 +11,7 @@ import SetDefaultIncidentPriority from '../modals/SetDefaultIncidentPriority'
 import DataPathHoC from '../DataPathHoC';
 
 class IncidentPrioritiesListClass extends React.Component {
-    render() {       
-        const projectId = this.props.currentProject._id;        
+    render() {        
         return (
             <div
                 id="incidentPrioritiesList"
@@ -199,11 +198,7 @@ IncidentPrioritiesListClass.propTypes = {
     openModal: PropTypes.func.isRequired,
     selectedIncidentPriority: PropTypes.string.isRequired,
 };
-const mapStateToProps = state =>{
-    return{
-        currentProject: state.project.currentProject,
-    }
-}
+
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
@@ -214,6 +209,6 @@ const mapDispatchToProps = dispatch =>
     );
 
 export const IncidentPrioritiesList = connect(
-    mapStateToProps,
+    null,
     mapDispatchToProps
 )(IncidentPrioritiesListClass);
