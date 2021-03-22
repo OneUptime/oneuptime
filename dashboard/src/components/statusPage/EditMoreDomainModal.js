@@ -17,7 +17,7 @@ import {
     uploadCertFileSuccess,
     uploadPrivateKeySuccess,
 } from '../../actions/statusPage';
-import { createDomain, updateDomain } from '../../actions/domain';
+import { updateDomain } from '../../actions/domain';
 import { Validate, SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from '../../analytics';
 
@@ -619,7 +619,6 @@ const mapDispatchToProps = dispatch =>
             uploadPrivateKey,
             removeCertFile,
             removePrivateKeyFile,
-            createDomain,
             updateDomain,
             uploadCertFileSuccess,
             uploadPrivateKeySuccess,
