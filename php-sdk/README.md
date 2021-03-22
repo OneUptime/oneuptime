@@ -9,8 +9,7 @@ A fyipe application logger that can be used to send logs about your applications
 Via Composer
 
 ```
-$ cd project
-$ composer require fyipe/sdk
+$ composer require fyipe/log-php
 ```
 
 <a name="module_api"></a>
@@ -21,7 +20,7 @@ $ composer require fyipe/sdk
 use Fyipe\FyipeLogger;
 
 // constructor
-$logger = new Fyipe\FyipeLogger(
+$logger = new FyipeLogger(
     'API_URL', // https://fyipe.com/api
     'APPLICATION_LOG_ID',
     'APPLICATION_LOG_KEY'
@@ -48,13 +47,13 @@ var_dump($response);
 // alternatively, tags can be added to the logged item.
 $item = 'This is a simple log';
 // using a tag string
-$tag = 'server-side-error'
+$tag = 'server-side-error';
 $response = $logger->log($item, $tag);
 // response after logging a request
 var_dump($response);
 
 // Using an array of strings
-$tags = ['error', 'server']
+$tags = ['error', 'server'];
 $response = $logger->log($item, $tags);
 // response after logging a request
 var_dump($response);

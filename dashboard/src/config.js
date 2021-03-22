@@ -1257,12 +1257,6 @@ import Fyipe from 'fyipe';
                                 
 // If your env supports require                  
 const Fyipe = require('fyipe');
-
-// set up tracking configurations                    
-const options = {                    
-    maxTimeline: 10, 
-    captureCodeSnippet: true,                   
-};
                                                     
 // constructor                    
 const logger = new Fyipe.Logger(
@@ -1296,19 +1290,27 @@ logger.log(item); // returns a promise
                     install: '50px',
                     usage: '500px',
                 },
-                errorTracking:
-                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                errorTracking: {
+                    installation: {
+                        package: 'Composer Install',
+                        command: `
+$ composer require fyipe/log-php`,
+                    },
+                    usage: `
+use Fyipe\\FyipeLogger;
+                    `,
+                },
                 logs: {
                     installation: {
                         package: 'Composer Install',
                         command: `
-$ composer require fyipe/sdk`,
+$ composer require fyipe/log-php`,
                     },
                     usage: `
 use Fyipe\\FyipeLogger;
                 
 // constructor
-$logger = new Fyipe\\FyipeLogger(                    
+$logger = new FyipeLogger(                    
     '${apiUrl ? apiUrl : 'API_URL'}',
     '${
         applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
