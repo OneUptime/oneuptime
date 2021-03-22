@@ -12,7 +12,6 @@ module.exports = {
             });
             MailService.sendLoginEmail(
                 user.email,
-                clientIP,
                 ipLocation,
                 result,
                 user.twoFactorEnabled,
