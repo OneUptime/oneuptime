@@ -28,3 +28,6 @@ yarn-error.log*
 /*.ext
 /*.pem
 /*.srl
+/credentials
+/credentials/*.crt
+/credentials/*.key
