@@ -16,7 +16,7 @@ const applicationLogSchema = new Schema({
         ref: 'ResourceCategory',
         index: true,
     },
-    showLibary: {
+    showQuickStart: {
         type: Boolean,
         default: true,
     },

@@ -317,7 +317,7 @@ router.put(
         }
         data.createdById = req.user ? req.user.id : null;
 
-        if (!data.name && data.showLibary === undefined) {
+        if (!data.name && data.showQuickStart === undefined) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'New Application Log Name is required.',
@@ -350,7 +350,7 @@ router.put(
             existingApplicationLog &&
             existingApplicationLog.length > 0 &&
             data.resourceCategory != '' &&
-            data.showLibary === undefined
+            data.showQuickStart === undefined
         ) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -363,8 +363,8 @@ router.put(
         if (data.name) {
             applicationLogUpdate.name = data.name;
         }
-        if (data.showLibary !== undefined) {
-            applicationLogUpdate.showLibary = data.showLibary;
+        if (data.showQuickStart !== undefined) {
+            applicationLogUpdate.showQuickStart = data.showQuickStart;
         }
 
         let unsetData;
