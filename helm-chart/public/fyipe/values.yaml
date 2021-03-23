@@ -27,7 +27,9 @@ statusPage:
       tls:
         enabled: false
         crt: 
-        key: 
+        key:
+  cert: # certificate for a custom domain
+  key: # private key for a custom domain
 
 ##################################################################################  
 ## Important: Fyipe Values. More information in the Readme.md 
@@ -236,6 +238,8 @@ disableSignup: false
 # What protocol is backend running on. Takes in values like 'http:' or 'https:'
 backendProtocol: 
 
+# Status page domain to add to CNAME to work with custom domains
+statusPageDomain:
 
 # Push notificaitons. 
 # Generate public and pivate key for push notifications. 

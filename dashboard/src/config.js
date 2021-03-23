@@ -54,6 +54,8 @@ export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
 
 export const IS_LOCALHOST = isLocalhost;
 
+export const STATUSPAGE_DOMAIN = env('STATUSPAGE_DOMAIN');
+
 export const User = {
     getAccessToken() {
         return localStorage.getItem('access_token');
