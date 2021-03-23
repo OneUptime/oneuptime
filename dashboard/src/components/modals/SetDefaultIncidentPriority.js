@@ -44,7 +44,7 @@ class SetDefaultIncidentPriority extends Component {
                     tabIndex={-1}
                     style={{ marginTop: 40 }}
                 >
-                    <div className="bs-BIM">
+                    <div className="bs-BIM" id="priorityDefaultModal">
                         <div className="bs-Modal bs-Modal--medium">
                             <ClickOutside onClickOutside={closeThisDialog}>
                                 <div className="bs-Modal-header">

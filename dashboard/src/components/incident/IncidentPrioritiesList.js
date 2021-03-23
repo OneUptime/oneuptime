@@ -70,6 +70,7 @@ class IncidentPrioritiesListClass extends React.Component {
                                                         {incidentPriority.name} 
                                                         <ShouldRender if={ this.props.selectedIncidentPriority === incidentPriority._id}>                                                           
                                                             <span
+                                                                id={`priority_${incidentPriority.name}_${index}_default`}
                                                                 style={{
                                                                     marginLeft: 10,
                                                                     padding: '5px',                                                                    
@@ -95,7 +96,7 @@ class IncidentPrioritiesListClass extends React.Component {
                                                 }}
                                             >
                                                     <button
-                                                        id={`priorityEdit_${incidentPriority.name}_${index}`}
+                                                        id={`priorityDefault_${incidentPriority.name}_${index}`}
                                                         className="Button bs-ButtonLegacy"
                                                         type="button"
                                                         onClick={() =>
