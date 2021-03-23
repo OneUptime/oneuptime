@@ -122,7 +122,7 @@ class TrackerTest extends TestCase
         $options = new stdClass();
         $options->maxTimeline = -5;
 
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, [$options]);
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, 'error');
         $timeline = $tracker->getTimeline();
@@ -132,7 +132,7 @@ class TrackerTest extends TestCase
         $options = new stdClass();
         $options->maxTimeline = 2;
 
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, [$options]);
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
 
         $customTimeline2 = new stdClass();
         $customTimeline2->category = 'logout';
@@ -366,7 +366,7 @@ class TrackerTest extends TestCase
     public function test_should_add_code_capture_to_stack_trace_when_flag_is_passed_in_options() {
         $options = new stdClass();
         $options->captureCodeSnippet = true;
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, [$options]);
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
 
         $errorMessageObj = 'Object Error Found';
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
@@ -379,7 +379,7 @@ class TrackerTest extends TestCase
     public function test_should_add_code_capture_and_confirm_data_type_of_fields_added_to_frame() {
         $options = new stdClass();
         $options->captureCodeSnippet = true;
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, [$options]);
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
 
         $errorMessageObj = 'Object Error Found';
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
@@ -393,7 +393,7 @@ class TrackerTest extends TestCase
     public function test_should_not_add_code_capture_to_stack_trace_when_flag_is_passed_in_options() {
         $options = new stdClass();
         $options->captureCodeSnippet = false;
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, [$options]);
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
 
         $errorMessageObj = 'Object Error Found';
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
@@ -407,7 +407,7 @@ class TrackerTest extends TestCase
     public function test_should_add_code_capture_to_stack_trace_by_default_when_unwanted_flag_is_passed_in_options() {
         $options = new stdClass();
         $options->captureCodeSnippet = "hello"; // sdk expects a true or false but it defaults to true if wrong value is sent
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, [$options]);
+        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
 
         $errorMessageObj = 'Object Error Found';
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
