@@ -208,7 +208,7 @@ export class MonitorTitle extends Component {
                                     You need to install an agent on your server,
                                     please{' '}
                                     <a
-                                        href="https://www.npmjs.com/package/fyipe-server-monitor"
+                                        href="https://www.npmjs.com/package/fyipe"
                                         rel="noopener noreferrer"
                                         target="_blank"
                                         style={{
