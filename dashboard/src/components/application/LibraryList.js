@@ -4,7 +4,9 @@ import PropTypes from 'prop-types';
 import { RenderSelect } from '../basic/RenderSelect';
 import { Field, reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import AceCodeEditor from '../basic/AceCodeEditor';
+import { editApplicationLog } from '../../actions/applicationLog';
 
 function renderLibraries() {
     const list = logLibraries.getLibraries().map(library => {
@@ -94,89 +96,117 @@ const LibraryList = ({
     library,
     errorTracker,
     applicationLog,
-}) => (
-    <div tabIndex="0" className="Box-root Margin-vertical--12">
-        <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
-            <div className="Box-root">
-                <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                    <div className="Box-root">
-                        <span className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-lineHeight--28">
-                            <span> {title} Libraries</span>
-                        </span>
-                        <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"></span>
+    currentProject,
+    editApplicationLog,
+}) => {
+    const handleLibaryClose = () => {
+        const postObj = { showLibary: false };
+
+        editApplicationLog(
+            currentProject._id,
+            applicationLog.componentId._id,
+            applicationLog._id,
+            postObj
+        );
+    };
+    return (
+        <div tabIndex="0" className="Box-root Margin-vertical--12">
+            <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
+                <div
+                    className="Box-root"
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                    }}
+                >
+                    <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                        <div className="Box-root">
+                            <span className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-lineHeight--28">
+                                <span> {title} Libraries</span>
+                            </span>
+                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"></span>
+                        </div>
+                        <div>{renderLibraries()}</div>
                     </div>
-                    <div>{renderLibraries()}</div>
+                    <div className="bs-ContentSection-content Box-root Padding-horizontal--20 Padding-vertical--16">
+                        <span
+                            className="incident-close-button"
+                            onClick={handleLibaryClose}
+                        ></span>
+                    </div>
                 </div>
-            </div>
-            <div className="Box-root">
-                <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-direction--column ">
-                    <div className="Box-root">
-                        <span className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-lineHeight--28 Padding-horizontal--20">
-                            <span> Quick Start</span>
-                        </span>
-                        <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"></span>
-                    </div>
-                    <form id="form-quick-start">
-                        <div
-                            className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
-                            style={{ boxShadow: 'none' }}
-                        >
-                            <div>
-                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                    <fieldset className="bs-Fieldset">
-                                        <div className="bs-Fieldset-rows">
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">
-                                                    Available Libraries
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <Field
-                                                        className="db-select-nw"
-                                                        component={RenderSelect}
-                                                        name="library"
-                                                        id="library"
-                                                        placeholder="Choose Library"
-                                                        options={[
-                                                            {
-                                                                value: '',
-                                                                label:
-                                                                    'Select library',
-                                                            },
-                                                            ...(logLibraries.getQuickStarts() &&
-                                                            logLibraries.getQuickStarts()
-                                                                .length > 0
-                                                                ? logLibraries
-                                                                      .getQuickStarts()
-                                                                      .map(
-                                                                          library => ({
-                                                                              value:
-                                                                                  library.id,
-                                                                              label:
-                                                                                  library.language,
-                                                                          })
-                                                                      )
-                                                                : []),
-                                                        ]}
-                                                    />
+                <div className="Box-root">
+                    <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-direction--column ">
+                        <div className="Box-root">
+                            <span className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-lineHeight--28 Padding-horizontal--20">
+                                <span> Quick Start</span>
+                            </span>
+                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"></span>
+                        </div>
+                        <form id="form-quick-start">
+                            <div
+                                className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
+                                style={{ boxShadow: 'none' }}
+                            >
+                                <div>
+                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                        <fieldset className="bs-Fieldset">
+                                            <div className="bs-Fieldset-rows">
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">
+                                                        Available Libraries
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <Field
+                                                            className="db-select-nw"
+                                                            component={
+                                                                RenderSelect
+                                                            }
+                                                            name="library"
+                                                            id="library"
+                                                            placeholder="Choose Library"
+                                                            options={[
+                                                                {
+                                                                    value: '',
+                                                                    label:
+                                                                        'Select library',
+                                                                },
+                                                                ...(logLibraries.getQuickStarts() &&
+                                                                logLibraries.getQuickStarts()
+                                                                    .length > 0
+                                                                    ? logLibraries
+                                                                          .getQuickStarts()
+                                                                          .map(
+                                                                              library => ({
+                                                                                  value:
+                                                                                      library.id,
+                                                                                  label:
+                                                                                      library.language,
+                                                                              })
+                                                                          )
+                                                                    : []),
+                                                            ]}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </fieldset>
+                                        </fieldset>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </form>
-                    {renderLanguageQuickStart(
-                        library,
-                        type,
-                        errorTracker,
-                        applicationLog
-                    )}
+                        </form>
+                        {renderLanguageQuickStart(
+                            library,
+                            type,
+                            errorTracker,
+                            applicationLog
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 LibraryList.displayName = 'LibraryList';
 const LibraryListForm = new reduxForm({
@@ -190,16 +220,28 @@ LibraryList.propTypes = {
     type: PropTypes.string,
     errorTracker: PropTypes.object,
     applicationLog: PropTypes.object,
+    currentProject: PropTypes.object,
+    editApplicationLog: PropTypes.func,
 };
+
+const mapDispatchToProps = dispatch =>
+    bindActionCreators(
+        {
+            editApplicationLog,
+        },
+        dispatch
+    );
 const mapStateToProps = state => {
     const initialValues = {
         library: 'js',
     };
+    const currentProject = state.project.currentProject;
     return {
         initialValues,
+        currentProject,
         library: state.form.QuickStart
             ? state.form.QuickStart.values.library
             : '',
     };
 };
-export default connect(mapStateToProps)(LibraryListForm);
+export default connect(mapStateToProps, mapDispatchToProps)(LibraryListForm);

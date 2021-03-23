@@ -316,7 +316,8 @@ router.put(
             });
         }
         data.createdById = req.user ? req.user.id : null;
-        if (!data.name) {
+
+        if (!data.name && data.showLibary === undefined) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'New Application Log Name is required.',
@@ -348,7 +349,8 @@ router.put(
         if (
             existingApplicationLog &&
             existingApplicationLog.length > 0 &&
-            data.resourceCategory != ''
+            data.resourceCategory != '' &&
+            data.showLibary === undefined
         ) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -357,9 +359,13 @@ router.put(
         }
 
         // application Log is valid
-        const applicationLogUpdate = {
-            name: data.name,
-        };
+        const applicationLogUpdate = {};
+        if (data.name) {
+            applicationLogUpdate.name = data.name;
+        }
+        if (data.showLibary !== undefined) {
+            applicationLogUpdate.showLibary = data.showLibary;
+        }
 
         let unsetData;
         if (!data.resourceCategory || data.resourceCategory === '') {

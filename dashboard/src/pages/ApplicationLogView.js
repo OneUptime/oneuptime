@@ -73,11 +73,13 @@ class ApplicationLogView extends Component {
                         <LoadingState />
                     </ShouldRender>
                     <ShouldRender if={this.props.applicationLog[0]}>
-                        <LibraryList
-                            title="Log Container"
-                            type="logs"
-                            applicationLog={this.props.applicationLog[0]}
-                        />
+                        {applicationLog[0] && applicationLog[0].showLibary ? (
+                            <LibraryList
+                                title="Log Container"
+                                type="logs"
+                                applicationLog={this.props.applicationLog[0]}
+                            />
+                        ) : null}
                         <div>
                             <ApplicationLogDetail
                                 componentId={componentId}
@@ -145,6 +147,7 @@ ApplicationLogView.propTypes = {
         PropTypes.shape({
             _id: PropTypes.string,
             name: PropTypes.string,
+            showLibary: PropTypes.bool,
         })
     ),
 };
