@@ -1297,7 +1297,27 @@ logger.log(item); // returns a promise
 $ composer require fyipe/log-php`,
                     },
                     usage: `
-use Fyipe\\FyipeLogger;
+use Fyipe\\FyipeTracker;
+
+// set up tracking configurations                    
+$options->maxTimeline = 50;
+$options->captureCodeSnippet: true;     
+
+// constructor                    
+$tracker = new FyipeTracker(                    
+    '${apiUrl ? apiUrl : 'API_URL'}',
+    '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
+    '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
+    $options // Optional Field
+);
+
+// capturing error exception manually and sent to your fyipe dashboard
+try {
+    // your code logic
+    NonExistingMethodCall();
+} catch (Exception $error) {
+    $tracker->captureException($error);
+}
                     `,
                 },
                 logs: {
