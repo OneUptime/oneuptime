@@ -14,7 +14,7 @@ $ composer require fyipe/log-php
 
 <a name="module_api"></a>
 
-## Basic Usage
+## Basic Usage for Logging
 
 ```php
 use Fyipe\FyipeLogger;
@@ -59,6 +59,61 @@ $response = $logger->log($item, $tags);
 var_dump($response);
 ```
 
+## Basic Usage for Tracking
+
+```php
+use Fyipe\FyipeTracker;
+
+// set up tracking configurations, this is entirely optional
+$option->maxTimeline = 5; // determine the maximum number of items allowed as timeline elements
+$option->captureCodeSnippet = true; // determine if you want the library to scan your code base for the error code snippet
+// constructor
+$tracker = new FyipeTracker(
+    'API_URL', // https://fyipe.com/api
+    'ERROR_TRACKER_ID',
+    'ERROR_TRACKER_KEY',
+    $option // optional
+);
+
+// capturing a timeline manually
+$timelineContent->account = 'debit';
+$timelineContent->amount = '6000.00';
+$timelineContent->userId = 471;
+$tracker->addToTimeline('payment', $timelineContent, 'info');
+
+// setting custom tags
+$tracker->setTag('category', 'QA Tester'); // a single tag
+
+// multiple tags
+$tags = [];
+
+// create two tags
+$tagOne->key = 'type';
+$tagOne->value = 'notification';
+$tagTwo->key = 'location';
+$tagTwo->value = 'Oslo';
+
+// add the two items to the array
+array_push($tags, $tagOne, $tagTwo);
+
+// setting the array of tags
+$tracker->setTags($tags)
+
+// capturing errors in a try and catch
+try {
+    // some code that might fail
+} catch(Exception $e) {
+    $tracker->captureException($e); // this is sent to your fyipe dashboard
+}
+
+// capturing errors using the message signature
+$tracker->captureMessage('some error text');
+
+// capturing errors authomatically
+
+NonExistingMethod(); // calling this will trigger an error and its sent to your fyipe dashboard
+```
+
 ## API Documentation
 
 Main API to send logs to the server.
@@ -68,12 +123,21 @@ Main API to send logs to the server.
 -   [Fyipe Application Logger](#fyipe-application-logger)
     -   [Installation](#installation)
         -   [Composer Install](#composer-install)
-    -   [Basic Usage](#basic-usage)
+    -   [Basic Usage for Logging](#basic-usage-for-logging)
+    -   [Basic Usage for Tracking](#basic-usage-for-tracking)
     -   [API Documentation](#api-documentation)
         -   [new FyipeLogger($apiUrl, $applicationId, \$applicationKey)](#new-fyipeloggerapiurl-applicationid-applicationkey)
             -   [$logger->log($log, \$tags)](#logger-loglog-tags)
             -   [$logger->warning($warning, \$tags)](#logger-warningwarning-tags)
             -   [$logger->error($error, \$tags)](#logger-errorerror-tags)
+        -   [new FyipeTracker($apiUrl, $errorTrackerId, $errorTrackerKey, $option)](#new-fyipetrackerapiurl-errortrackerid-errortrackerkey-option)
+            -   [\$options](#options)
+            -   [$tracker->setTag($key, \$value)](#tracker-settagkey-value)
+            -   [$tracker->setTags([$key, \$value])](#tracker-settagskey-value)
+            -   [$tracker->setFingerprint($fingerprint)](#tracker-setfingerprintfingerprint)
+            -   [$tracker->addToTimeline($category, $content, $type)](#tracker-addtotimelinecategory-content-type)
+            -   [$tracker->captureMessage($message)](#tracker-capturemessagemessage)
+            -   [$tracker->captureException($error)](#tracker-captureexceptionerror)
     -   [Contribution](#contribution)
 
 <a name="logger_api--logger"></a>
@@ -126,6 +190,99 @@ Logs a request of type `error` to the server.
 | ------- | ------------------------------------------ | ----------------------------------------------------------- |
 | \$error | <code>string</code> \| <code>Object</code> | The content to the logged on the server.                    |
 | \$tags  | <code>string</code> \| <code>Array</code>  | The tag(s) to be attached to the logged item on the server. |
+
+<a name="tracker_api--tracker"></a>
+
+### new FyipeTracker($apiUrl, $errorTrackerId, $errorTrackerKey, $option)
+
+Create a constructor from the class, which will be used to track errors sent to the server.
+
+**Kind**: Constructor
+**Returns**: <code>null</code>
+
+| Param             | Type                | Description                                 |
+| ----------------- | ------------------- | ------------------------------------------- |
+| \$apiUrl          | <code>string</code> | The Server URL.                             |
+| \$errorTrackerId  | <code>string</code> | The Error Tracker ID.                       |
+| \$errorTrackerKey | <code>string</code> | The Error Trakcer Key.                      |
+| \$option          | <code>object</code> | The options to be considred by the tracker. |
+
+#### \$options
+
+| Param                | Type                 | Description                                                                                           |
+| -------------------- | -------------------- | ----------------------------------------------------------------------------------------------------- |
+| \$maxTimeline        | <code>int</code>     | The total amount of timeline that should be captured, defaults to 5                                   |
+| \$captureCodeSnippet | <code>boolean</code> | When set as `true` stack traces are automatically attached to all error sent to your fyipe dashboard. |
+
+#### $tracker->setTag($key, \$value)
+
+Set tag for the error to be sent to the server.
+
+**Kind**: method of [<code>new Fyipe\FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>null</code>
+
+| Param   | Type                | Description            |
+| ------- | ------------------- | ---------------------- |
+| \$key   | <code>string</code> | The key for the tag.   |
+| \$value | <code>string</code> | The value for the tag. |
+
+#### $tracker->setTags([$key, \$value])
+
+Set multiple tags for the error to be sent to the server. Takes in an array
+
+**Kind**: method of [<code>new Fyipe\FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>null</code>
+
+| Param   | Type                | Description            |
+| ------- | ------------------- | ---------------------- |
+| \$key   | <code>string</code> | The key for the tag.   |
+| \$value | <code>string</code> | The value for the tag. |
+
+#### $tracker->setFingerprint($fingerprint)
+
+Set fingerprint for the next error to be captured.
+
+**Kind**: method of [<code>new Fyipe\FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>null</code>
+
+| Param         | Type                                                 | Description                                                   |
+| ------------- | ---------------------------------------------------- | ------------------------------------------------------------- |
+| \$fingerprint | <code>string</code> \| <code>array of strings</code> | The set of string used to group error messages on the server. |
+
+#### $tracker->addToTimeline($category, $content, $type)
+
+Add a custom timeline element to the next error to be sent to the server
+
+**Kind**: method of [<code>new Fyipe\FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>null</code>
+
+| Param      | Type                                       | Description                         |
+| ---------- | ------------------------------------------ | ----------------------------------- |
+| \$category | <code>string</code>                        | The category of the timeline event. |
+| \$content  | <code>string</code> \| <code>Object</code> | The content of the timeline event.  |
+| \$type     | <code>string</code>                        | The type of timeline event.         |
+
+#### $tracker->captureMessage($message)
+
+Capture a custom error message to be sent to the server
+
+**Kind**: method of [<code>new Fyipe\FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>Promise</code>
+
+| Param     | Type                | Description                           |
+| --------- | ------------------- | ------------------------------------- |
+| \$message | <code>string</code> | The message to be sent to the server. |
+
+#### $tracker->captureException($error)
+
+Capture a custom error object to be sent to the server
+
+**Kind**: method of [<code>new Fyipe\FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>Promise</code>
+
+| Param   | Type                | Description                                |
+| ------- | ------------------- | ------------------------------------------ |
+| \$error | <code>object</code> | The Error Object to be sent to the server. |
 
 ## Contribution
 
