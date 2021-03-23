@@ -59,21 +59,18 @@ const updateBasicIncidentSettingsFailure = payload => ({
     payload,
 });
 
-export const updateDefaultIncidentSettings = (
-    projectId,
-    incidentPriority
-) => {
-    return function(dispatch){
-        const promise = putApi(`incidentSettings/${projectId}/setDefault`,{
-            incidentPriority
+export const updateDefaultIncidentSettings = (projectId, incidentPriority) => {
+    return function(dispatch) {
+        const promise = putApi(`incidentSettings/${projectId}/setDefault`, {
+            incidentPriority,
         });
         dispatch(updateBasicIncidentSettingsRequest());
         promise.then(
-            function(incidentDefaultSetting){
+            function(incidentDefaultSetting) {
                 dispatch(
                     updateBasicIncidentSettingsSuccess(
                         incidentDefaultSetting.data
-                    ) 
+                    )
                 );
             },
             function(error) {
@@ -89,9 +86,9 @@ export const updateDefaultIncidentSettings = (
                 }
                 dispatch(updateBasicIncidentSettingsFailure(errors(error)));
             }
-        )
+        );
         return promise;
-    }
+    };
 };
 
 export const updateBasicIncidentSettings = (

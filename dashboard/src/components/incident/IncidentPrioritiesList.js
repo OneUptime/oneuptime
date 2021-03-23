@@ -5,13 +5,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { connect } from 'react-redux';
 import MessageBox from '../modals/MessageBox';
 import { openModal } from '../../actions/modal';
-import {updateDefaultIncidentSettings} from '../../actions/incidentBasicsSettings'
 import ShouldRender from '../basic/ShouldRender';
-import SetDefaultIncidentPriority from '../modals/SetDefaultIncidentPriority'
+import SetDefaultIncidentPriority from '../modals/SetDefaultIncidentPriority';
 import DataPathHoC from '../DataPathHoC';
 
 class IncidentPrioritiesListClass extends React.Component {
-    render() {        
+    render() {
         return (
             <div
                 id="incidentPrioritiesList"
@@ -67,19 +66,31 @@ class IncidentPrioritiesListClass extends React.Component {
                                                             color: `rgba(${incidentPriority.color.r},${incidentPriority.color.g},${incidentPriority.color.b},${incidentPriority.color.a})`,
                                                         }}
                                                     >
-                                                        {incidentPriority.name} 
-                                                        <ShouldRender if={ this.props.selectedIncidentPriority === incidentPriority._id}>                                                           
+                                                        {incidentPriority.name}
+                                                        <ShouldRender
+                                                            if={
+                                                                this.props
+                                                                    .selectedIncidentPriority ===
+                                                                incidentPriority._id
+                                                            }
+                                                        >
                                                             <span
                                                                 id={`priority_${incidentPriority.name}_${index}_default`}
                                                                 style={{
                                                                     marginLeft: 10,
-                                                                    padding: '5px',                                                                    
-                                                                    color: 'green',
-                                                                    border: '1px solid green',
-                                                                    borderRadius: '25px'
+                                                                    padding:
+                                                                        '5px',
+                                                                    color:
+                                                                        'green',
+                                                                    border:
+                                                                        '1px solid green',
+                                                                    borderRadius:
+                                                                        '25px',
                                                                 }}
-                                                            >Default</span>
-                                                        </ShouldRender>                                                        
+                                                            >
+                                                                Default
+                                                            </span>
+                                                        </ShouldRender>
                                                     </span>
                                                 </div>
                                             </div>
@@ -89,37 +100,50 @@ class IncidentPrioritiesListClass extends React.Component {
                                                 className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexEnd"
                                                 style={{ marginRight: '5px' }}
                                             >
-                                            <ShouldRender if={this.props.selectedIncidentPriority !== incidentPriority._id}>
-                                            <div className="Box-root"
-                                                style={{
-                                                    marginRight:'10px'
-                                                }}
-                                            >
-                                                    <button
-                                                        id={`priorityDefault_${incidentPriority.name}_${index}`}
-                                                        className="Button bs-ButtonLegacy"
-                                                        type="button"
-                                                        onClick={() =>
-                                                            this.props.openModal(
-                                                                {
-                                                                    id: uuidv4(),
-                                                                    content: DataPathHoC(SetDefaultIncidentPriority,{
-                                                                        incidentPriorityName: incidentPriority.name,
-                                                                        incidentPriorityId: incidentPriority._id                                                                                                                                              
-                                                                    })
-                                                                }
-                                                            )                                                           
-                                                        }
+                                                <ShouldRender
+                                                    if={
+                                                        this.props
+                                                            .selectedIncidentPriority !==
+                                                        incidentPriority._id
+                                                    }
+                                                >
+                                                    <div
+                                                        className="Box-root"
+                                                        style={{
+                                                            marginRight: '10px',
+                                                        }}
                                                     >
-                                                        <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                            <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                                <span>
-                                                                    Set as Default
+                                                        <button
+                                                            id={`priorityDefault_${incidentPriority.name}_${index}`}
+                                                            className="Button bs-ButtonLegacy"
+                                                            type="button"
+                                                            onClick={() =>
+                                                                this.props.openModal(
+                                                                    {
+                                                                        id: uuidv4(),
+                                                                        content: DataPathHoC(
+                                                                            SetDefaultIncidentPriority,
+                                                                            {
+                                                                                incidentPriorityName:
+                                                                                    incidentPriority.name,
+                                                                                incidentPriorityId:
+                                                                                    incidentPriority._id,
+                                                                            }
+                                                                        ),
+                                                                    }
+                                                                )
+                                                            }
+                                                        >
+                                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                    <span>
+                                                                        Set as
+                                                                        Default
+                                                                    </span>
                                                                 </span>
-                                                            </span>
-                                                        </div>
-                                                    </button>
-                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    </div>
                                                 </ShouldRender>
                                                 <div className="Box-root">
                                                     <button
@@ -140,7 +164,7 @@ class IncidentPrioritiesListClass extends React.Component {
                                                             </span>
                                                         </div>
                                                     </button>
-                                                </div>                                                
+                                                </div>
                                                 <div className="Box-root Margin-left--8">
                                                     <button
                                                         id={`priorityDelete_${incidentPriority.name}_${index}`}
@@ -193,8 +217,7 @@ class IncidentPrioritiesListClass extends React.Component {
 IncidentPrioritiesListClass.displayName = 'IncidentPrioritiesList';
 IncidentPrioritiesListClass.propTypes = {
     incidentPrioritiesList: PropTypes.array.isRequired,
-    handleEditIncidentPriority: PropTypes.func.isRequired,
-    updateDefaultIncidentSettings: PropTypes.func.isRequired,
+    handleEditIncidentPriority: PropTypes.func.isRequired,    
     handleDeleteIncidentPriority: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
     selectedIncidentPriority: PropTypes.string.isRequired,
@@ -203,8 +226,7 @@ IncidentPrioritiesListClass.propTypes = {
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            openModal, 
-            updateDefaultIncidentSettings
+            openModal,            
         },
         dispatch
     );

@@ -80,7 +80,7 @@ export class Links extends Component {
         }
     };
 
-    handleRemoveFooterLink = (index) => {
+    handleRemoveFooterLink = index => {
         const { links } = this.props.initialValues;
         const newLinks = [...links];
         newLinks.splice(index, 1);

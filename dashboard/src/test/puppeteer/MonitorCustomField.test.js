@@ -41,7 +41,7 @@ describe('Monitor Custom Field', () => {
                 password: data.password,
             };
             // user
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
         });
 
         done();

@@ -53,7 +53,6 @@ router.get(
     }
 );
 
-
 //Route: GET
 //Description: get application security logs in a component
 //Params: req.params -> {projectId, componentId}

@@ -37,7 +37,7 @@ describe('Sub-Project API', () => {
             };
 
             // user
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
         });
 
         done();
@@ -101,9 +101,11 @@ describe('Member Restriction', () => {
                 };
 
                 // user
-                await init.registerUser(user, page);                
+                await init.registerUser(user, page);
                 await init.renameProject(newProjectName, page);
-                await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle0' });
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
                 await init.addUserToProject(
                     {
                         email: teamEmail,
@@ -130,9 +132,14 @@ describe('Member Restriction', () => {
         'should show unauthorised modal to a team member who is not an admin or owner of the project',
         async done => {
             await cluster.execute(null, async ({ page }) => {
-                await init.registerAndLoggingTeamMember({ email: teamEmail, password }, page) // The team member has to register first before logging in.
-                
-                await page.goto(utils.DASHBOARD_URL,{waitUntil:'networkidle0'})                
+                await init.registerAndLoggingTeamMember(
+                    { email: teamEmail, password },
+                    page
+                ); // The team member has to register first before logging in.
+
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
@@ -158,7 +165,10 @@ describe('Member Restriction', () => {
         'should show unauthorised modal to a team member who is not an admin of the project trying to perform any action subproject list',
         async done => {
             await cluster.execute(null, async ({ page }) => {
-                await init.loginUser({ email: projectOwnerMail, password }, page);
+                await init.loginUser(
+                    { email: projectOwnerMail, password },
+                    page
+                );
 
                 await init.growthPlanUpgrade(page);
                 await page.goto(utils.DASHBOARD_URL, {
@@ -168,7 +178,7 @@ describe('Member Restriction', () => {
                 await init.addSubProject(subProjectName, page);
                 await init.logout(page);
 
-                await init.loginUser({ email: teamEmail, password }, page);                
+                await init.loginUser({ email: teamEmail, password }, page);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
@@ -188,5 +198,5 @@ describe('Member Restriction', () => {
             done();
         },
         operationTimeOut
-     );
+    );
 });

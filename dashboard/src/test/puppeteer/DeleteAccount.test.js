@@ -36,7 +36,7 @@ describe('Profile -> Delete Account Component test', () => {
 
         // Register user
         return await cluster.execute(null, async ({ page }) => {
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
         });
     });
 
@@ -91,11 +91,11 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#btn_delete_account');
                 await page.waitForSelector('#btn_confirm_delete');
                 await page.click('#btn_confirm_delete');
-                
-                let projectDeletion = await page.waitForSelector(
+
+                const projectDeletion = await page.waitForSelector(
                     '#projectDeletion'
                 );
-                
+
                 expect(projectDeletion).toBeDefined();
             });
         },
@@ -137,12 +137,12 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.waitForSelector('#btn_delete_account');
                 await page.click('#btn_delete_account');
                 await page.waitForSelector('#btn_confirm_delete');
-                await page.click('#btn_confirm_delete');                
+                await page.click('#btn_confirm_delete');
 
-                let projectDeletion = await page.waitForSelector(
+                const projectDeletion = await page.waitForSelector(
                     '#projectDeletion'
                 );
-                
+
                 expect(projectDeletion).toBeDefined();
             });
         },
@@ -166,7 +166,9 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click(`div[title="${role}"]`);
                 await page.waitForSelector('#confirmRoleChange');
                 await page.click('#confirmRoleChange');
-                await page.waitForSelector('#confirmRoleChange',{hidden:true});                
+                await page.waitForSelector('#confirmRoleChange', {
+                    hidden: true,
+                });
 
                 // Switch projects and change member role -> Owner
                 await init.switchProject(projectName, page);
@@ -178,7 +180,9 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click(`div[title="${role}"]`);
                 await page.waitForSelector('#confirmRoleChange');
                 await page.click('#confirmRoleChange');
-                await page.waitForSelector('#confirmRoleChange',{hidden:true});                 
+                await page.waitForSelector('#confirmRoleChange', {
+                    hidden: true,
+                });
 
                 // Navigate to profile page and delete account
                 await page.waitForSelector('#profile-menu');
@@ -191,10 +195,10 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#btn_delete_account');
                 await page.waitForSelector('#btn_confirm_delete');
                 await page.click('#btn_confirm_delete');
-                let projectDeletion = await page.waitForSelector(
+                const projectDeletion = await page.waitForSelector(
                     '#projectDeletion'
                 );
-                
+
                 expect(projectDeletion).toBeDefined();
             });
         },
@@ -220,7 +224,7 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#btn_confirm_delete');
                 await page.waitForSelector('#deleteMyAccount');
                 await page.type('#deleteMyAccount', 'delete my account');
-                await page.click('#btn_confirm_delete');                
+                await page.click('#btn_confirm_delete');
                 await page.waitForNavigation();
                 const url = await page.url();
                 expect(url).toEqual(`${utils.ACCOUNTS_URL}/accounts/login`);

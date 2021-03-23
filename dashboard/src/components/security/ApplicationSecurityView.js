@@ -37,15 +37,34 @@ const ApplicationSecurityView = ({
         openModal({
             id: applicationSecurityId,
             content: DeleteApplicationSecurity,
-            propArr: [{ projectId, componentId, applicationSecurityId, applicationSecuritySlug }],
+            propArr: [
+                {
+                    projectId,
+                    componentId,
+                    applicationSecurityId,
+                    applicationSecuritySlug,
+                },
+            ],
         });
     };
 
-    const handleEdit = ({ projectId, componentId, applicationSecurityId, applicationSecuritySlug }) => {
+    const handleEdit = ({
+        projectId,
+        componentId,
+        applicationSecurityId,
+        applicationSecuritySlug,
+    }) => {
         openModal({
             id: applicationSecurityId,
             content: EditApplicationSecurity,
-            propArr: [{ projectId, componentId, applicationSecurityId, applicationSecuritySlug }],
+            propArr: [
+                {
+                    projectId,
+                    componentId,
+                    applicationSecurityId,
+                    applicationSecuritySlug,
+                },
+            ],
         });
     };
 
