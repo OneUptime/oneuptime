@@ -115,9 +115,9 @@ include:
   - '/ci/spec/php-sdk/deploy.yaml'
 
   # JAVA-SDK
-  # - '/ci/spec/java-sdk/audit.yaml'
-  # - '/ci/spec/java-sdk/build-n-test.yaml'
-  # - '/ci/spec/java-sdk/deploy.yaml'
+  - '/ci/spec/java-sdk/audit.yaml'
+  - '/ci/spec/java-sdk/build-n-test.yaml'
+  - '/ci/spec/java-sdk/deploy.yaml'
 
-  # # HARAKA
-  # - '/ci/spec/haraka/deploy.yaml'
+  # HARAKA
+  - '/ci/spec/haraka/deploy.yaml'
