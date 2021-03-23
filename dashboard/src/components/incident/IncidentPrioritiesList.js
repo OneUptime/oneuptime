@@ -5,7 +5,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { connect } from 'react-redux';
 import MessageBox from '../modals/MessageBox';
 import { openModal } from '../../actions/modal';
-import { updateDefaultIncidentSettings } from '../../actions/incidentBasicsSettings';
 import ShouldRender from '../basic/ShouldRender';
 import SetDefaultIncidentPriority from '../modals/SetDefaultIncidentPriority';
 import DataPathHoC from '../DataPathHoC';
@@ -218,8 +217,7 @@ class IncidentPrioritiesListClass extends React.Component {
 IncidentPrioritiesListClass.displayName = 'IncidentPrioritiesList';
 IncidentPrioritiesListClass.propTypes = {
     incidentPrioritiesList: PropTypes.array.isRequired,
-    handleEditIncidentPriority: PropTypes.func.isRequired,
-    updateDefaultIncidentSettings: PropTypes.func.isRequired,
+    handleEditIncidentPriority: PropTypes.func.isRequired,    
     handleDeleteIncidentPriority: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
     selectedIncidentPriority: PropTypes.string.isRequired,
@@ -228,8 +226,7 @@ IncidentPrioritiesListClass.propTypes = {
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            openModal,
-            updateDefaultIncidentSettings,
+            openModal,            
         },
         dispatch
     );
