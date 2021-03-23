@@ -224,7 +224,8 @@ describe('Incident Settings API', () => {
                 await init.navigateToComponentDetails(
                     componentName,                    
                     page
-                );                
+                );   
+                // selector refactoring             
                 const incidentTitleSelector =
                     '#incidentTitle';
                 const incidentDescriptionSelector =
