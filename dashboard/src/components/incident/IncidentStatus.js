@@ -406,7 +406,10 @@ export class IncidentStatus extends Component {
             return valueTxt;
         };
 
-        const teamMembers = this.getOnCallTeamMembers();
+        let teamMembers = this.getOnCallTeamMembers();
+        if(!teamMembers){
+            teamMembers = [];
+        }
         const team = teamMembers.filter(member => member.userId);
         return (
             <>
