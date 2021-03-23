@@ -161,7 +161,7 @@ export class AlertChargesList extends Component {
                                                                     '/' +
                                                                     alertCharge
                                                                         .monitorId
-                                                                        .componentId +
+                                                                        .componentSlug +
                                                                     '/monitoring/' +
                                                                     alertCharge
                                                                         .monitorId
@@ -199,7 +199,7 @@ export class AlertChargesList extends Component {
                                                                     '/' +
                                                                     alertCharge
                                                                         .monitorId
-                                                                        .componentId +
+                                                                        .componentSlug +
                                                                     '/incidents/' +
                                                                     alertCharge
                                                                         .incidentId

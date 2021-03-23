@@ -28,7 +28,7 @@ export class MonitorViewDeleteBox extends Component {
             projectId
         );
         history.push(
-            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/monitoring`
+            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/monitoring`
         );
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -135,7 +135,7 @@ const mapStateToProps = state => {
 
 MonitorViewDeleteBox.propTypes = {
     currentProject: PropTypes.object.isRequired,
-    componentId: PropTypes.string.isRequired,
+    componentSlug: PropTypes.string.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     monitorState: PropTypes.object.isRequired,

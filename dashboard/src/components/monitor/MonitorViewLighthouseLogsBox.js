@@ -274,6 +274,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
                         monitor={this.props.monitor}
                         prevClicked={this.prevClicked}
                         nextClicked={this.nextClicked}
+                        componentSlug={this.props.componentSlug}
                     />
                 </div>
             </div>
@@ -285,6 +286,7 @@ MonitorViewLighthouseLogsBox.displayName = 'MonitorViewLighthouseLogsBox';
 
 MonitorViewLighthouseLogsBox.propTypes = {
     componentId: PropTypes.string.isRequired,
+    componentSlug: PropTypes.string,
     currentProject: PropTypes.object,
     monitor: PropTypes.object.isRequired,
     editMonitor: PropTypes.func,

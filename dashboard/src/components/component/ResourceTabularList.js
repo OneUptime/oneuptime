@@ -23,8 +23,8 @@ class ResourceTabularList extends Component {
         };
     }
     generateUrlLink(componentResource) {
-        const { currentProject, componentId } = this.props;
-        const baseUrl = `/dashboard/project/${currentProject.slug}/${componentId}/`;
+        const { currentProject, componentSlug } = this.props;
+        const baseUrl = `/dashboard/project/${currentProject.slug}/${componentSlug}/`;
         let route = '';
         switch (componentResource.type) {
             case 'website monitor':
@@ -523,7 +523,7 @@ function mapStateToProps(state, props) {
 ResourceTabularList.propTypes = {
     componentResource: PropTypes.object,
     currentProject: PropTypes.object,
-    componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     monitors: PropTypes.array,
     probes: PropTypes.array,
     animateSidebar: PropTypes.func,

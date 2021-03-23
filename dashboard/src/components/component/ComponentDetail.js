@@ -235,6 +235,9 @@ export class ComponentDetail extends Component {
                                                 componentId={
                                                     this.props.component._id
                                                 }
+                                                componentSlug={
+                                                    this.props.component.slug
+                                                }
                                                 componentResources={
                                                     this.props
                                                         .componentResources

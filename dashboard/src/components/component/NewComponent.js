@@ -59,8 +59,8 @@ class NewComponent extends Component {
         }
     }
 
-    viewCreatedComponent = (slug, componentId) => {
-        history.push(`/dashboard/project/${slug}/${componentId}/monitoring`);
+    viewCreatedComponent = (slug, componentSlug) => {
+        history.push(`/dashboard/project/${slug}/${componentSlug}/monitoring`);
     };
 
     submitForm = values => {
@@ -97,7 +97,7 @@ class NewComponent extends Component {
                     }
                     this.viewCreatedComponent(
                         this.props.currentProject.slug,
-                        componentId
+                        this.props.componentSlug,
                     );
                 },
                 error => {
@@ -379,11 +379,19 @@ const mapStateToProps = (state, ownProps) => {
     const subProject = selector(state, 'subProject_1000');
 
     if (ownProps.edit) {
-        const componentId = ownProps.match
+        const componentSlug = ownProps.match
             ? ownProps.match.params
-                ? ownProps.match.params.componentId
+                ? ownProps.match.params.componentSlug
                 : null
             : null;
+        let component;
+        state.component.componentList.components.forEach(item => {
+            item.components.forEach(c => {
+                if (String(c.slug) === String(componentSlug)) {
+                    component = c;
+                }
+            });
+        });
         return {
             component: state.component,
             currentProject: state.project.currentProject,
@@ -391,7 +399,8 @@ const mapStateToProps = (state, ownProps) => {
             subProject,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
-            componentId,
+            componentId: component && component._id,
+            componentSlug: component && component.slug,
         };
     } else {
         return {
@@ -421,6 +430,7 @@ NewComponent.propTypes = {
     editComponentProp: PropTypes.object,
     edit: PropTypes.bool,
     name: PropTypes.string,
+    componentSlug: PropTypes.string,
     subProjects: PropTypes.array,
     showUpgradeForm: PropTypes.func,
 };

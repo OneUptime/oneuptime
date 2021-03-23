@@ -14,6 +14,7 @@ export function ApplicationLogList(props) {
                         componentId={props.componentId}
                         index={applicationLog._id}
                         key={applicationLog._id}
+                        componentSlug={props.componentSlug}
                     />
                 </div>
             )

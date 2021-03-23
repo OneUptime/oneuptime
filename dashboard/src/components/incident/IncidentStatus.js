@@ -296,8 +296,8 @@ export class IncidentStatus extends Component {
         const incidentIdNumber = this.props.incident
             ? this.props.incident.idNumber
             : '';
-        const componentId = this.props.incident
-            ? this.props.incident.monitorId.componentId._id
+        const componentSlug = this.props.componentSlug
+            ? this.props.componentSlug
             : '';
         const homeRoute = this.props.currentProject
             ? '/dashboard/project/' + this.props.currentProject.slug
@@ -306,14 +306,14 @@ export class IncidentStatus extends Component {
             ? '/dashboard/project/' +
               this.props.currentProject.slug +
               '/' +
-              componentId +
+              componentSlug +
               '/monitoring'
             : '';
         const incidentRoute = this.props.currentProject
             ? '/dashboard/project/' +
               this.props.currentProject.slug +
               '/' +
-              componentId +
+              componentSlug +
               '/incidents/' +
               this.props.incident._idNumber
             : '';
@@ -730,7 +730,7 @@ export class IncidentStatus extends Component {
                                                                             .currentProject
                                                                             .slug +
                                                                         '/' +
-                                                                        componentId +
+                                                                        componentSlug +
                                                                         '/monitoring'
                                                                     }
                                                                     id="backToComponentView"
@@ -759,7 +759,7 @@ export class IncidentStatus extends Component {
                                                                             .currentProject
                                                                             .slug +
                                                                         '/' +
-                                                                        componentId +
+                                                                        componentSlug +
                                                                         '/monitoring/' +
                                                                         this
                                                                             .props
@@ -2243,7 +2243,7 @@ export class IncidentStatus extends Component {
                                         onClick={() => {
                                             setTimeout(() => {
                                                 history.push(
-                                                    `/dashboard/project/${this.props.currentProject.slug}/${componentId}/incidents/${incidentIdNumber}`
+                                                    `/dashboard/project/${this.props.currentProject.slug}/${componentSlug}/incidents/${incidentIdNumber}`
                                                 );
                                                 this.props.animateSidebar(
                                                     false
@@ -2387,6 +2387,7 @@ const EditIncidentStatusForm = reduxForm({
 const selector = formValueSelector('IncidentStatusForm');
 const mapStateToProps = (state, ownProps) => {
     const incident = ownProps.incident;
+    const { componentSlug }=ownProps.match.params;
     const initialValues = {
         title: incident.title,
         description: incident.description,
@@ -2407,6 +2408,7 @@ const mapStateToProps = (state, ownProps) => {
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
         initialValues,
         description,
+        componentSlug,
         incidentPriority,
     };
 };
@@ -2444,6 +2446,7 @@ IncidentStatus.propTypes = {
     projectId: PropTypes.string,
     description: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     route: PropTypes.string,
     incidentRequest: PropTypes.object.isRequired,
     multipleIncidentRequest: PropTypes.object,

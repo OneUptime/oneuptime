@@ -79,6 +79,7 @@ class ApplicationSecurityDetail extends Component {
             applicationSecurity,
             projectId,
             componentId,
+            componentSlug,
             applicationSecurityId,
             applicationSecuritySlug,
             isRequesting,
@@ -148,6 +149,7 @@ class ApplicationSecurityDetail extends Component {
                         applicationSecuritySlug={applicationSecuritySlug}
                         isRequesting={isRequesting}
                         applicationSecurity={applicationSecurity}
+                        componentSlug={componentSlug}
                     />
                 </ShouldRender>
                 <ShouldRender
@@ -174,6 +176,7 @@ class ApplicationSecurityDetail extends Component {
                         componentId={componentId}
                         applicationSecurityId={applicationSecurityId}
                         applicationSecuritySlug={applicationSecuritySlug}
+                        componentSlug={componentSlug}
                     />
                 </ShouldRender>
                 <ShouldRender
@@ -200,6 +203,7 @@ ApplicationSecurityDetail.displayName = 'Application Security Detail';
 ApplicationSecurityDetail.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     applicationSecurityId: PropTypes.string,
     applicationSecuritySlug: PropTypes.string,
     applicationSecurity: PropTypes.object,
@@ -248,12 +252,12 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, ownProps) => {
-    const { componentId, applicationSecuritySlug } = ownProps.match.params;
+    const { componentSlug, applicationSecuritySlug } = ownProps.match.params;
     const components = [];
     // filter to get the actual component
     state.component.componentList.components.map(item =>
         item.components.map(component => {
-            if (String(component._id) === String(componentId)) {
+            if (String(component.slug) === String(componentSlug)) {
                 components.push(component);
             }
             return component;
@@ -263,7 +267,8 @@ const mapStateToProps = (state, ownProps) => {
         state.project.currentProject && state.project.currentProject._id;
     return {
         projectId,
-        componentId,
+        componentId: components[0] && components[0]._id,
+        componentSlug: components[0] && components[0].slug,
         applicationSecuritySlug,
         applicationSecurity: state.security.applicationSecurity,
         isRequesting: state.security.getApplication.requesting,

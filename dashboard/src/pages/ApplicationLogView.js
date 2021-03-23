@@ -24,9 +24,7 @@ class ApplicationLogView extends Component {
         }
     }
     ready = () => {
-        const componentId = this.props.match.params.componentId
-            ? this.props.match.params.componentId
-            : null;
+        const componentId = this.props.component && this.props.component._id;
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
@@ -83,6 +81,10 @@ class ApplicationLogView extends Component {
                                 componentId={componentId}
                                 index={this.props.applicationLog[0]?._id}
                                 isDetails={true}
+                                componentSlug={
+                                    this.props.component &&
+                                    this.props.component.slug
+                                }
                             />
                         </div>
 
@@ -90,6 +92,10 @@ class ApplicationLogView extends Component {
                             <ApplicationLogViewDeleteBox
                                 componentId={this.props.componentId}
                                 applicationLog={this.props.applicationLog[0]}
+                                componentSlug={
+                                    this.props.component &&
+                                    this.props.component.slug
+                                }
                             />
                         </div>
                     </ShouldRender>
@@ -105,11 +111,11 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators({ fetchApplicationLogs }, dispatch);
 };
 const mapStateToProps = (state, props) => {
-    const { componentId, applicationLogSlug } = props.match.params;
+    const { componentSlug, applicationLogSlug } = props.match.params;
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
+            if (String(c.slug) === String(componentSlug)) {
                 component = c;
             }
         });
@@ -118,7 +124,7 @@ const mapStateToProps = (state, props) => {
         applicationLog => applicationLog.slug === applicationLogSlug
     );
     return {
-        componentId,
+        componentId: component && component._id,
         applicationLog,
         component,
         currentProject: state.project.currentProject,
@@ -135,7 +141,6 @@ ApplicationLogView.propTypes = {
         })
     ),
     componentId: PropTypes.string,
-    match: PropTypes.object,
     fetchApplicationLogs: PropTypes.func,
     currentProject: PropTypes.oneOfType([
         PropTypes.object,
