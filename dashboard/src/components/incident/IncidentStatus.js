@@ -1556,6 +1556,7 @@ export class IncidentStatus extends Component {
                                                                     }
                                                                 >
                                                                     <span
+                                                                        id="incidentTitle"
                                                                         className="value"
                                                                         onClick={
                                                                             this
@@ -1691,6 +1692,7 @@ export class IncidentStatus extends Component {
                                                                     }
                                                                 >
                                                                     <p
+                                                                        id="incidentDescription"
                                                                         onClick={
                                                                             this
                                                                                 .props
@@ -2048,6 +2050,7 @@ export class IncidentStatus extends Component {
                                                                             }
                                                                         >
                                                                             <span
+                                                                                id="incidentPriority"
                                                                                 onClick={
                                                                                     this
                                                                                         .props
