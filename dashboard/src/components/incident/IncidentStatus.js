@@ -249,17 +249,26 @@ export class IncidentStatus extends Component {
             (this.props.incident && this.props.incident.monitorId)
                 ? this.props.incident.monitorId._id
                 : '';
-        const escalation = this.props.escalations
+        let escalation = this.props.escalations
             ? this.props.escalations.find(
                   escalation =>
-                      escalation.scheduleId &&
-                      escalation.scheduleId.monitorIds &&
-                      escalation.scheduleId.monitorIds.length > 0 &&
-                      escalation.scheduleId.monitorIds.some(
-                          monitor => monitor._id === monitorId
-                      )
+                      escalation.scheduleId && escalation.scheduleId.isDefault
               )
             : null;
+        if (!escalation) {
+            escalation = this.props.escalations
+                ? this.props.escalations.find(
+                      escalation =>
+                          escalation.scheduleId &&
+                          escalation.scheduleId.monitorIds &&
+                          escalation.scheduleId.monitorIds.length > 0 &&
+                          escalation.scheduleId.monitorIds.some(
+                              monitor => monitor._id === monitorId
+                          )
+                  )
+                : null;
+        }
+
         return escalation && escalation.teams && escalation.teams[0]
             ? escalation.teams[0].teamMembers
             : null;
