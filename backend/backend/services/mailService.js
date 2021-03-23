@@ -385,18 +385,17 @@ const _this = {
     },
     sendLoginEmail: async function(
         userEmail,
-        ip,
         location,
         deviceObj,
         twoFactorEnabled,
-        status,
+        status
     ) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
         let locations;
         let device;
-        let statusMessage
+        let statusMessage;
         const os = deviceObj && deviceObj.os && deviceObj.os.name;
         const browser = deviceObj && deviceObj.client && deviceObj.client.name;
         if (location.city && location.country) {
@@ -418,10 +417,10 @@ const _this = {
         } else {
             device = 'Unknown Device';
         }
-        if(status === "successful"){
-            statusMessage = "a successful"
-        }else{
-            statusMessage = "an unsuccessful"
+        if (status === 'successful') {
+            statusMessage = 'a successful';
+        } else {
+            statusMessage = 'an unsuccessful';
         }
 
         try {
@@ -439,11 +438,11 @@ const _this = {
                     homeURL: global.homeHost,
                     userEmail,
                     dashboardURL: global.dashboardHost,
-                    ip,
+                    ip: location.ip,
                     locations,
                     device,
                     twoFactorEnabled,
-                    statusMessage
+                    statusMessage,
                 },
             };
 
@@ -497,7 +496,7 @@ const _this = {
                                 homeURL: global.homeHost,
                                 userEmail,
                                 dashboardURL: global.dashboardHost,
-                                ip,
+                                ip: location.ip,
                                 locations,
                                 device,
                                 twoFactorEnabled,

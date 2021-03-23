@@ -1,5 +1,3 @@
-[![npm](https://img.shields.io/npm/v/fyipe-server-monitor)](https://www.npmjs.com/package/fyipe-server-monitor)
-
 # Fyipe Server Monitor
 
 A fyipe shell package that monitor's server resources - disk, memory and CPU percentage - used.
@@ -9,14 +7,14 @@ A fyipe shell package that monitor's server resources - disk, memory and CPU per
 You can install to use on the CLI:
 
 ```bash
-$ npm install -g fyipe-server-monitor
+$ npm install -g fyipe
 ```
 
 You can install to use in your project:
 
 ```bash
 $ cd project
-$ npm install fyipe-server-monitor
+$ npm install fyipe
 ```
 
 ## CLI Usage
@@ -24,10 +22,10 @@ $ npm install fyipe-server-monitor
 You can use on the CLI:
 
 ```bash
-$ fyipe-server-monitor
+$ fyipe server-monitor
 ```
 
--   Run `fyipe-server-monitor`.
+-   Run `fyipe server-monitor`.
 -   Enter your Project ID, API URL, and API key - Get these from your Fyipe Dashboard.
 -   Select Server Monitor from the list of Server Monitors.
 -   Server will be pinged every minute and the data stored in your project.
@@ -35,13 +33,13 @@ $ fyipe-server-monitor
 You can also use it like this:
 
 ```bash
-$ fyipe-server-monitor --project-id 5d64d59cae46131619708309 --api-url https://fyipe.com/api --api-key b02798c0-c898-11e9-9f14-4963dc67e2ab --monitor-id 5d7775e9f14a531364ba6917
+$ fyipe server-monitor --project-id 5d64d59cae46131619708309 --api-url https://fyipe.com/api --api-key b02798c0-c898-11e9-9f14-4963dc67e2ab --monitor-id 5d7775e9f14a531364ba6917
 ```
 
 Or run as a daemon (requires `sudo` or admin privileges):
 
 ```bash
-$ fyipe-server-monitor --daemon --project-id 5d64d59cae46131619708309 --api-url https://fyipe.com/api --api-key b02798c0-c898-11e9-9f14-4963dc67e2ab --monitor-id 5d7775e9f14a531364ba6917
+$ fyipe server-monitor --daemon --project-id 5d64d59cae46131619708309 --api-url https://fyipe.com/api --api-key b02798c0-c898-11e9-9f14-4963dc67e2ab --monitor-id 5d7775e9f14a531364ba6917
 ```
 
 You can use the following commands with the daemon: `start`, `restart`, `stop`, and `uninstall`.
@@ -49,32 +47,32 @@ You can use the following commands with the daemon: `start`, `restart`, `stop`, 
 Run to start the stopped daemon (requires `sudo` or admin privileges):
 
 ```bash
-$ fyipe-server-monitor --daemon start
+$ fyipe server-monitor --daemon start
 ```
 
 Run to restart the running daemon (requires `sudo` or admin privileges):
 
 ```bash
-$ fyipe-server-monitor --daemon restart
+$ fyipe server-monitor --daemon restart
 ```
 
 Run to stop the running daemon (requires `sudo` or admin privileges):
 
 ```bash
-$ fyipe-server-monitor --daemon stop
+$ fyipe server-monitor --daemon stop
 ```
 
 Run to stop and uninstall the running daemon (requires `sudo` or admin privileges):
 
 ```bash
-$ fyipe-server-monitor --daemon uninstall
+$ fyipe server-monitor --daemon uninstall
 ```
 
 Run to check for logs and errors:
 
 ```bash
-$ fyipe-server-monitor --daemon logs
-$ fyipe-server-monitor --daemon errors
+$ fyipe server-monitor --daemon logs
+$ fyipe server-monitor --daemon errors
 ```
 
 A complete log of the daemon can be found in these directories:
@@ -114,9 +112,10 @@ Services created by the daemon are similar to most other services running on Win
 ## Programmatic Usage
 
 ```javascript
-const serverMonitor = require('fyipe-server-monitor');
+const Fyipe = require('fyipe');
+const ServerMonitor = Fyipe.ServerMonitor;
 
-const monitor = serverMonitor({
+const monitor = ServerMonitor({
     projectId: '5d64d59cae46131619708309',
     // (optional) If you have installed Fyipe Platform on your server,
     // this should be your API URL
@@ -153,7 +152,7 @@ Main API to authenticate user, start and stop server monitoring.
 
 **Author**: HackerBay, Inc.
 
--   [Fyipe Server Monitor](#fyipe-server-monitor)
+-   [Fyipe Server Monitor](#fyipe server-monitor)
     -   [Installation](#installation)
     -   [CLI Usage](#cli-usage)
     -   [Basic Usage](#basic-usage)

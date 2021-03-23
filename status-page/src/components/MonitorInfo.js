@@ -387,7 +387,7 @@ class MonitorInfo extends Component {
         const upDays = timeBlock.length;
 
         const block = [];
-        if (selectedCharts.uptime)
+        if (selectedCharts && selectedCharts.uptime)
             for (let i = 0; i < range; i++) {
                 block.unshift(
                     <BlockChart
@@ -426,53 +426,94 @@ class MonitorInfo extends Component {
             primaryText.color = `rgba(${colors.primaryText.r}, ${colors.primaryText.g}, ${colors.primaryText.b}, ${colors.primaryText.a})`;
             if (monitorStatus === 'degraded') {
                 status.backgroundColor = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`; // "degraded-status";
+                status.font = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`; // "degraded-status";
             } else if (monitorStatus === 'online') {
                 status.backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`; // "online-status";
+                status.font = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`; // "online-status";
             } else if (monitorStatus === 'offline') {
                 status.backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`; // "red-downtime";
+                status.font = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`; // "red-downtime";
             } else {
                 status.backgroundColor = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b})`; // "grey-disabled";
+                status.font = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b})`; // "grey-disabled";
             }
         }
 
         return (
             <>
                 <ShouldRender if={this.props.theme}>
-                    <div className="op-div border-top">
+                    <>
                         <div className="op-disp">
                             <div className="op-info">
-                                <div className="collecion_item">
-                                    <span style={status}></span>
-                                    <span
-                                        className="uptime-stat-name"
-                                        style={{
-                                            paddingRight: '0px',
-                                            ...subheading,
-                                        }}
-                                    >
-                                        {monitor.name}
-                                    </span>
-                                </div>
-                                <div className="tooltip">
+                                <div className="ba-resource">
                                     <ShouldRender
-                                        if={selectedCharts.description}
+                                        if={isGroupedByMonitorCategory}
                                     >
-                                        <span className="ques_mark">?</span>
-                                        <span className="tooltiptext tooltip1">
-                                            {selectedCharts.description}
-                                        </span>
+                                        <div
+                                            id={`monitorCategory_${monitor.name}`}
+                                            style={monitorCategoryStyle}
+                                        >
+                                            <span>
+                                                {resourceCategory
+                                                    ? resourceCategory.name
+                                                    : 'Uncategorized'}
+                                            </span>
+                                        </div>
                                     </ShouldRender>
+                                    <div className="ba-flex">
+                                        <div className="collecion_item">
+                                            <span
+                                                className="uptime-stat-name"
+                                                style={{
+                                                    paddingRight: '0px',
+                                                    ...subheading,
+                                                }}
+                                            >
+                                                {monitor.name}
+                                            </span>
+                                        </div>
+                                        <div className="tooltip">
+                                            <ShouldRender
+                                                if={
+                                                    selectedCharts &&
+                                                    selectedCharts.description
+                                                }
+                                            >
+                                                <span className="ques_mark">
+                                                    ?
+                                                </span>
+                                                <span className="tooltiptext tooltip1">
+                                                    {selectedCharts &&
+                                                        selectedCharts.description}
+                                                </span>
+                                            </ShouldRender>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div>Operational</div>
+                            <div
+                                style={{
+                                    color:
+                                        status.font === 'rgba(108, 219, 86)'
+                                            ? 'rgb(73, 195, 177)'
+                                            : status.font,
+                                    textTransform: 'capitalize',
+                                }}
+                            >
+                                {monitorStatus === 'online'
+                                    ? 'operational'
+                                    : monitorStatus}
+                            </div>
                         </div>
-                        <ShouldRender if={selectedCharts.uptime}>
+                        <ShouldRender
+                            if={selectedCharts && selectedCharts.uptime}
+                        >
                             <div
                                 className="uptime-graph-section dashboard-uptime-graph ma-t-20"
                                 id={this.props.id}
                                 ref={this.container}
                             >
-                                {selectedCharts.uptime && (
+                                {selectedCharts && selectedCharts.uptime && (
                                     <div
                                         ref={this.scrollWrapper}
                                         className="block-chart"
@@ -494,15 +535,58 @@ class MonitorInfo extends Component {
                                     </div>
                                 )}
                                 <div className="alerts_days">
-                                    <div>{range} days ago</div>
-                                    <div className="spacer"></div>
-                                    <div>{uptime}% uptime</div>
-                                    <div className="spacer"></div>
-                                    <div>Today</div>
+                                    <div
+                                        style={
+                                            subheading.color ===
+                                            'rgba(76, 76, 76, 1)'
+                                                ? { color: '#aaaaaa' }
+                                                : subheading
+                                        }
+                                    >
+                                        {range} days ago
+                                    </div>
+                                    <div
+                                        style={
+                                            subheading.color ===
+                                            'rgba(76, 76, 76, 1)'
+                                                ? { color: '#aaaaaa' }
+                                                : subheading
+                                        }
+                                        className="spacer"
+                                    ></div>
+                                    <div
+                                        style={
+                                            subheading.color ===
+                                            'rgba(76, 76, 76, 1)'
+                                                ? { color: '#aaaaaa' }
+                                                : subheading
+                                        }
+                                    >
+                                        {uptime}% uptime
+                                    </div>
+                                    <div
+                                        style={
+                                            subheading.color ===
+                                            'rgba(76, 76, 76, 1)'
+                                                ? { color: '#aaaaaa' }
+                                                : subheading
+                                        }
+                                        className="spacer"
+                                    ></div>
+                                    <div
+                                        style={
+                                            subheading.color ===
+                                            'rgba(76, 76, 76, 1)'
+                                                ? { color: '#aaaaaa' }
+                                                : subheading
+                                        }
+                                    >
+                                        Today
+                                    </div>
                                 </div>
                             </div>
                         </ShouldRender>
-                    </div>
+                    </>
                 </ShouldRender>
 
                 <ShouldRender if={!this.props.theme}>
@@ -531,9 +615,11 @@ class MonitorInfo extends Component {
                                     </div>
                                 </ShouldRender>
                                 <div style={{ display: 'flex' }}>
-                                    <div>
-                                        <span style={status}></span>
-                                    </div>
+                                    <ShouldRender if={!this.props.theme}>
+                                        <div>
+                                            <span style={status}></span>
+                                        </div>
+                                    </ShouldRender>
                                     <div>
                                         <span
                                             className="uptime-stat-name"
@@ -552,7 +638,8 @@ class MonitorInfo extends Component {
                                                 wordWrap: 'break-word',
                                             }}
                                         >
-                                            {selectedCharts.description}
+                                            {selectedCharts &&
+                                                selectedCharts.description}
                                         </div>
                                     </div>
                                 </div>
@@ -568,9 +655,10 @@ class MonitorInfo extends Component {
                                 </span>
                             </div>
                         </div>
-                        {selectedCharts.uptime && (
+                        {selectedCharts && selectedCharts.uptime && (
                             <div
                                 ref={this.scrollWrapper}
+                                ƒ
                                 className="block-chart"
                                 style={{
                                     overflowX: this.props.theme

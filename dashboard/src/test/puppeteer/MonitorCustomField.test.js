@@ -41,8 +41,7 @@ describe('Monitor Custom Field', () => {
                 password: data.password,
             };
             // user
-            await init.registerUser(user, page);
-            await init.loginUser(user, page);
+            await init.registerUser(user, page);            
         });
 
         done();
@@ -80,6 +79,8 @@ describe('Monitor Custom Field', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#monitor', { visible: true });
                 await page.click('#monitor');
                 await page.reload({
@@ -126,6 +127,8 @@ describe('Monitor Custom Field', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#monitor', { visible: true });
                 await page.click('#monitor');
                 await page.reload({

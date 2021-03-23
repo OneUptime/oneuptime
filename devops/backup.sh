@@ -10,9 +10,13 @@ FYIPE_DB_PASSWORD='password'
 FYIPE_DB_NAME='fyipedb'
 CURRENT_DATE=$(date +%s)
 CURRENT_USER=$(whoami)
-BACKUP_PATH="/Users/$CURRENT_USER/Documents/backup"
+BACKUP_PATH=~/Documents/backup 
 BACKUP_RETAIN_DAYS=14
 TODAY=`date +"%d%b%Y"`
+
+red=`tput setaf 1`
+green=`tput setaf 2`
+reset=`tput sgr 0`
 
 function HELP (){
   echo ""
@@ -140,16 +144,16 @@ if sudo kubectl exec fi-mongodb-primary-0 -- mongodump --uri="mongodb://$FYIPE_D
     echo "Copying backup from server to local computer. This will take some time...."
     echo ""
     if sudo kubectl cp fi-mongodb-primary-0:tmp/fyipedata.archive "$BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"; then
-      echo "File Saved: $BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"
+      echo ${green}"File Saved: $BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"${reset}
       echo ""
       BACKUP_SUCCESS
     
     else
-      echo "Failure, exit status: $?"
+      echo ${red}"Failure, exit status: $?" ${reset}
       BACKUP_FAIL_LOCAL
     fi    
 else
-     echo "Failure, exit status: $"
+     echo  ${red}"Failure, exit status: $"${reset}
      BACKUP_FAIL_SERVER
 fi
 

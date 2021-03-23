@@ -59,6 +59,41 @@ const updateBasicIncidentSettingsFailure = payload => ({
     payload,
 });
 
+export const updateDefaultIncidentSettings = (
+    projectId,
+    incidentPriority
+) => {
+    return function(dispatch){
+        const promise = putApi(`incidentSettings/${projectId}/setDefault`,{
+            incidentPriority
+        });
+        dispatch(updateBasicIncidentSettingsRequest());
+        promise.then(
+            function(incidentDefaultSetting){
+                dispatch(
+                    updateBasicIncidentSettingsSuccess(
+                        incidentDefaultSetting.data
+                    ) 
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateBasicIncidentSettingsFailure(errors(error)));
+            }
+        )
+        return promise;
+    }
+};
+
 export const updateBasicIncidentSettings = (
     projectId,
     title,

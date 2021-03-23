@@ -80,10 +80,11 @@ export class Links extends Component {
         }
     };
 
-    handleRemoveFooterLink = linkName => {
-        let { links } = this.props.initialValues;
-        links = links.filter(item => item.name !== linkName);
-        this.submitForm({ links });
+    handleRemoveFooterLink = (index) => {
+        const { links } = this.props.initialValues;
+        const newLinks = [...links];
+        newLinks.splice(index, 1);
+        this.submitForm({ links: newLinks });
     };
 
     render() {

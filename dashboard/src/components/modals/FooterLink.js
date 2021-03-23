@@ -25,15 +25,14 @@ class CreateFooterLink extends Component {
     }
 
     submitForm = footerLinkValues => {
-        const { submitForm, footerName } = this.props.data;
-        let values = this.props.links;
+        const { submitForm, footerName, index } = this.props.data;
+        const values = this.props.links;
 
         if (footerName) {
-            values = values.filter(
-                obj => obj.name !== this.props.data.footerName
-            );
+            values[index] = footerLinkValues;
+        } else {
+            values.push(footerLinkValues);
         }
-        values.push(footerLinkValues);
         submitForm({ links: values });
     };
 
@@ -140,6 +139,7 @@ class CreateFooterLink extends Component {
                                                     className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
                                                     style={{
                                                         marginTop: '10px',
+                                                        width: '208px',
                                                     }}
                                                 >
                                                     <div className="Box-root Margin-right--8">

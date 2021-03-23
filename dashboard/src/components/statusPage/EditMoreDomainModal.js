@@ -14,8 +14,10 @@ import {
     uploadPrivateKey,
     removeCertFile,
     removePrivateKeyFile,
+    uploadCertFileSuccess,
+    uploadPrivateKeySuccess,
 } from '../../actions/statusPage';
-import { createDomain, updateDomain } from '../../actions/domain';
+import { updateDomain } from '../../actions/domain';
 import { Validate, SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from '../../analytics';
 
@@ -27,6 +29,14 @@ function validate(_values) {
 
 class EditMoreDomainModal extends React.Component {
     componentDidMount() {
+        const {
+            domain,
+            uploadCertFileSuccess,
+            uploadPrivateKeySuccess,
+        } = this.props;
+        uploadCertFileSuccess(domain.cert);
+        uploadPrivateKeySuccess(domain.privateKey);
+
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -61,10 +71,13 @@ class EditMoreDomainModal extends React.Component {
             projectId,
             statusPageId,
             domain: values.domain,
-            cert: certFile.file,
-            privateKey: privateKeyFile.file,
             domainId: domain._id,
         };
+
+        if (values.enableHttps) {
+            data.cert = certFile.file;
+            data.privateKey = privateKeyFile.file;
+        }
 
         updateDomain(data).then(() => {
             if (!this.props.updateDomainError) {
@@ -151,6 +164,7 @@ class EditMoreDomainModal extends React.Component {
             statusPageId,
             certFile,
             privateKeyFile,
+            formValues,
         } = this.props;
 
         return (
@@ -230,200 +244,272 @@ class EditMoreDomainModal extends React.Component {
                                                 </div>
                                             </div>
                                         </fieldset>
-                                        <fieldset>
+                                        <div
+                                            className="bs-Fieldset-row"
+                                            style={{ padding: '0px 20px' }}
+                                        >
+                                            <label className="bs-Fieldset-label">
+                                                <span></span>
+                                            </label>
                                             <div
-                                                className="bs-Fieldset-row"
+                                                className="bs-Fieldset-fields bs-Fieldset-fields--wide"
                                                 style={{ padding: 0 }}
                                             >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="cert"
-                                                >
-                                                    <span>Certificate</span>
-                                                </label>
-                                                <div style={{ width: '100%' }}>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
-                                                        <div>
-                                                            <label
-                                                                className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
-                                                                type="button"
-                                                            >
-                                                                <ShouldRender
-                                                                    if={
-                                                                        !certFile.file
-                                                                    }
-                                                                >
-                                                                    <span className="bs-Button--icon bs-Button--new"></span>
-                                                                    <span>
-                                                                        Upload
-                                                                        Certificate
-                                                                        File
-                                                                    </span>
-                                                                </ShouldRender>
+                                                <div
+                                                    className="Box-root"
+                                                    style={{
+                                                        height: '5px',
+                                                    }}
+                                                ></div>
+                                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                    <label className="Checkbox">
+                                                        <Field
+                                                            component="input"
+                                                            type="checkbox"
+                                                            name="enableHttps"
+                                                            className="Checkbox-source"
+                                                            id="enableHttps"
+                                                        />
+                                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                            <div className="Checkbox-target Box-root">
+                                                                <div className="Checkbox-color Box-root"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div
+                                                            className="Box-root"
+                                                            style={{
+                                                                paddingLeft:
+                                                                    '5px',
+                                                            }}
+                                                        >
+                                                            <span>
+                                                                Enable HTTPS
+                                                            </span>
+                                                            <label className="bs-Fieldset-explanation">
+                                                                <span></span>
+                                                            </label>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <ShouldRender
+                                            if={
+                                                formValues &&
+                                                formValues.enableHttps
+                                            }
+                                        >
+                                            <>
+                                                <fieldset>
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{ padding: 0 }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            htmlFor="cert"
+                                                        >
+                                                            <span>
+                                                                Certificate
+                                                            </span>
+                                                        </label>
+                                                        <div
+                                                            style={{
+                                                                width: '100%',
+                                                            }}
+                                                        >
+                                                            <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                                                                <div>
+                                                                    <label
+                                                                        className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                        type="button"
+                                                                    >
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                !certFile.file
+                                                                            }
+                                                                        >
+                                                                            <span className="bs-Button--icon bs-Button--new"></span>
+                                                                            <span>
+                                                                                Upload
+                                                                                Certificate
+                                                                                File
+                                                                            </span>
+                                                                        </ShouldRender>
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                certFile.file
+                                                                            }
+                                                                        >
+                                                                            <span className="bs-Button--icon bs-Button--edit"></span>
+                                                                            <span>
+                                                                                Change
+                                                                                Certificate
+                                                                                File
+                                                                            </span>
+                                                                        </ShouldRender>
+                                                                        <div className="bs-FileUploadButton-inputWrap">
+                                                                            <Field
+                                                                                className="bs-FileUploadButton-input"
+                                                                                component={
+                                                                                    UploadFile
+                                                                                }
+                                                                                name="certFile"
+                                                                                id="certFile"
+                                                                                onChange={
+                                                                                    this
+                                                                                        .changeCertFile
+                                                                                }
+                                                                                disabled={
+                                                                                    certFile.requesting
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    </label>
+                                                                </div>
                                                                 <ShouldRender
                                                                     if={
                                                                         certFile.file
                                                                     }
                                                                 >
-                                                                    <span className="bs-Button--icon bs-Button--edit"></span>
-                                                                    <span>
-                                                                        Change
-                                                                        Certificate
-                                                                        File
-                                                                    </span>
+                                                                    <div
+                                                                        style={{
+                                                                            padding:
+                                                                                '0',
+                                                                            display:
+                                                                                'block',
+                                                                        }}
+                                                                    >
+                                                                        <button
+                                                                            className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                            type="button"
+                                                                            onClick={
+                                                                                this
+                                                                                    .removeCertFile
+                                                                            }
+                                                                            disabled={
+                                                                                certFile.requesting
+                                                                            }
+                                                                        >
+                                                                            <span className="bs-Button--icon bs-Button--delete"></span>
+                                                                            <span>
+                                                                                Remove
+                                                                                Certificate
+                                                                                File
+                                                                            </span>
+                                                                        </button>
+                                                                    </div>
                                                                 </ShouldRender>
-                                                                <div className="bs-FileUploadButton-inputWrap">
-                                                                    <Field
-                                                                        className="bs-FileUploadButton-input"
-                                                                        component={
-                                                                            UploadFile
-                                                                        }
-                                                                        name="certFile"
-                                                                        id="certFile"
-                                                                        onChange={
-                                                                            this
-                                                                                .changeCertFile
-                                                                        }
-                                                                        disabled={
-                                                                            certFile.requesting
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                            </label>
-                                                        </div>
-                                                        <ShouldRender
-                                                            if={certFile.file}
-                                                        >
-                                                            <div
-                                                                style={{
-                                                                    padding:
-                                                                        '0',
-                                                                    display:
-                                                                        'block',
-                                                                }}
-                                                            >
-                                                                <button
-                                                                    className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
-                                                                    type="button"
-                                                                    onClick={
-                                                                        this
-                                                                            .removeCertFile
-                                                                    }
-                                                                    disabled={
-                                                                        certFile.requesting
-                                                                    }
-                                                                >
-                                                                    <span className="bs-Button--icon bs-Button--delete"></span>
-                                                                    <span>
-                                                                        Remove
-                                                                        Certificate
-                                                                        File
-                                                                    </span>
-                                                                </button>
                                                             </div>
-                                                        </ShouldRender>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </fieldset>
-                                        <fieldset>
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="cert"
-                                                >
-                                                    <span>Private Key</span>
-                                                </label>
-                                                <div style={{ width: '100%' }}>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
-                                                        <div>
-                                                            <label
-                                                                className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
-                                                                type="button"
-                                                            >
-                                                                <ShouldRender
-                                                                    if={
-                                                                        !privateKeyFile.file
-                                                                    }
-                                                                >
-                                                                    <span className="bs-Button--icon bs-Button--new"></span>
-                                                                    <span>
-                                                                        Upload
-                                                                        Private
-                                                                        Key
-                                                                    </span>
-                                                                </ShouldRender>
+                                                </fieldset>
+                                                <fieldset>
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{ padding: 0 }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            htmlFor="cert"
+                                                        >
+                                                            <span>
+                                                                Private Key
+                                                            </span>
+                                                        </label>
+                                                        <div
+                                                            style={{
+                                                                width: '100%',
+                                                            }}
+                                                        >
+                                                            <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                                                                <div>
+                                                                    <label
+                                                                        className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                        type="button"
+                                                                    >
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                !privateKeyFile.file
+                                                                            }
+                                                                        >
+                                                                            <span className="bs-Button--icon bs-Button--new"></span>
+                                                                            <span>
+                                                                                Upload
+                                                                                Private
+                                                                                Key
+                                                                            </span>
+                                                                        </ShouldRender>
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                privateKeyFile.file
+                                                                            }
+                                                                        >
+                                                                            <span className="bs-Button--icon bs-Button--edit"></span>
+                                                                            <span>
+                                                                                Change
+                                                                                Private
+                                                                                Key
+                                                                            </span>
+                                                                        </ShouldRender>
+                                                                        <div className="bs-FileUploadButton-inputWrap">
+                                                                            <Field
+                                                                                className="bs-FileUploadButton-input"
+                                                                                component={
+                                                                                    UploadFile
+                                                                                }
+                                                                                name="privateKeyFile"
+                                                                                id="privateKeyFile"
+                                                                                onChange={
+                                                                                    this
+                                                                                        .changePrivateKey
+                                                                                }
+                                                                                disabled={
+                                                                                    privateKeyFile.requesting
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    </label>
+                                                                </div>
                                                                 <ShouldRender
                                                                     if={
                                                                         privateKeyFile.file
                                                                     }
                                                                 >
-                                                                    <span className="bs-Button--icon bs-Button--edit"></span>
-                                                                    <span>
-                                                                        Change
-                                                                        Private
-                                                                        Key
-                                                                    </span>
+                                                                    <div
+                                                                        style={{
+                                                                            padding:
+                                                                                '0',
+                                                                            display:
+                                                                                'block',
+                                                                        }}
+                                                                    >
+                                                                        <button
+                                                                            className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                            type="button"
+                                                                            onClick={
+                                                                                this
+                                                                                    .removePrivateKeyFile
+                                                                            }
+                                                                            disabled={
+                                                                                privateKeyFile.requesting
+                                                                            }
+                                                                        >
+                                                                            <span className="bs-Button--icon bs-Button--delete"></span>
+                                                                            <span>
+                                                                                Remove
+                                                                                Private
+                                                                                Key
+                                                                            </span>
+                                                                        </button>
+                                                                    </div>
                                                                 </ShouldRender>
-                                                                <div className="bs-FileUploadButton-inputWrap">
-                                                                    <Field
-                                                                        className="bs-FileUploadButton-input"
-                                                                        component={
-                                                                            UploadFile
-                                                                        }
-                                                                        name="privateKeyFile"
-                                                                        id="privateKeyFile"
-                                                                        onChange={
-                                                                            this
-                                                                                .changePrivateKey
-                                                                        }
-                                                                        disabled={
-                                                                            privateKeyFile.requesting
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                            </label>
-                                                        </div>
-                                                        <ShouldRender
-                                                            if={
-                                                                privateKeyFile.file
-                                                            }
-                                                        >
-                                                            <div
-                                                                style={{
-                                                                    padding:
-                                                                        '0',
-                                                                    display:
-                                                                        'block',
-                                                                }}
-                                                            >
-                                                                <button
-                                                                    className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
-                                                                    type="button"
-                                                                    onClick={
-                                                                        this
-                                                                            .removePrivateKeyFile
-                                                                    }
-                                                                    disabled={
-                                                                        privateKeyFile.requesting
-                                                                    }
-                                                                >
-                                                                    <span className="bs-Button--icon bs-Button--delete"></span>
-                                                                    <span>
-                                                                        Remove
-                                                                        Private
-                                                                        Key
-                                                                    </span>
-                                                                </button>
                                                             </div>
-                                                        </ShouldRender>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </fieldset>
+                                                </fieldset>
+                                            </>
+                                        </ShouldRender>
                                     </div>
                                 </div>
                                 <div className="bs-Modal-footer">
@@ -516,10 +602,13 @@ EditMoreDomainModal.propTypes = {
     removePrivateKeyFile: PropTypes.func,
     updateDomain: PropTypes.func,
     domain: PropTypes.object,
+    formValues: PropTypes.object,
+    uploadCertFileSuccess: PropTypes.func,
+    uploadPrivateKeySuccess: PropTypes.func,
 };
 
-const AddMoreDomainForm = reduxForm({
-    form: 'AddMoreDomainForm',
+const EditMoreDomainForm = reduxForm({
+    form: 'EditMoreDomainForm',
     enableReinitialize: false,
     destroyOnUnmount: true,
     validate,
@@ -533,8 +622,9 @@ const mapDispatchToProps = dispatch =>
             uploadPrivateKey,
             removeCertFile,
             removePrivateKeyFile,
-            createDomain,
             updateDomain,
+            uploadCertFileSuccess,
+            uploadPrivateKeySuccess,
         },
         dispatch
     );
@@ -544,12 +634,17 @@ const mapStateToProps = state => {
     const initialValues = {
         domain: domainObj.domain,
     };
+    initialValues.enableHttps =
+        domainObj.domain && domainObj.cert && domainObj.privateKey
+            ? true
+            : false;
 
     return {
         statusPageId: state.modal.modals[0].statusPageId,
         projectId: state.modal.modals[0].projectId,
         formValues:
-            state.form.monitorSlaForm && state.form.monitorSlaForm.values,
+            state.form.EditMoreDomainForm &&
+            state.form.EditMoreDomainForm.values,
         requesting: state.statusPage.updateDomain.requesting,
         updateDomainError: state.statusPage.updateDomain.error,
         certFile: state.statusPage.certFile,
@@ -559,4 +654,4 @@ const mapStateToProps = state => {
     };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(AddMoreDomainForm);
+export default connect(mapStateToProps, mapDispatchToProps)(EditMoreDomainForm);

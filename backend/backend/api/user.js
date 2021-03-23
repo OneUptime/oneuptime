@@ -450,7 +450,11 @@ router.post('/login', async function(req, res) {
     try {
         const data = req.body;
         const clientIP =
-            req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+            (typeof req.headers['x-forwarded-for'] === 'string' &&
+                req.headers['x-forwarded-for'].split(',')[0]) ||
+            req.connection?.remoteAddress ||
+            req.socket?.remoteAddress ||
+            req.connection?.socket?.remoteAddress;
 
         if (!data.email) {
             return sendErrorResponse(req, res, {
@@ -1484,6 +1488,18 @@ router.delete('/:userId/delete', getUser, async function(req, res) {
             });
         const deletedUser = await UserService.deleteBy({ _id: userId }, userId);
         return sendItemResponse(req, res, { user: deletedUser });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/:token/email', async function(req, res) {
+    try {
+        const token = await VerificationTokenModel.findOne({
+            token: req.params.token,
+        }).populate('userId', 'email');
+
+        return sendItemResponse(req, res, { token });
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

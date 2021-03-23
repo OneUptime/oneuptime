@@ -33,7 +33,7 @@ class ErrorEventView extends Component {
             ? this.props.currentProject._id
             : null;
         const errorTrackerId = this.props.errorTracker
-            ? this.props.errorTracker._id
+            ? this.props.errorTracker[0]._id
             : null;
         const errorEventId = this.props.match.params.errorEventId
             ? this.props.match.params.errorEventId
@@ -152,7 +152,11 @@ const mapDispatchToProps = dispatch => {
     );
 };
 const mapStateToProps = (state, ownProps) => {
-    const { componentId, errorTrackerSlug, errorEventId } = ownProps.match.params;
+    const {
+        componentId,
+        errorTrackerSlug,
+        errorEventId,
+    } = ownProps.match.params;
     const currentErrorEvent = state.errorTracker.currentErrorEvent;
     const currentErrorEventId =
         currentErrorEvent !== errorEventId ? errorEventId : currentErrorEvent;

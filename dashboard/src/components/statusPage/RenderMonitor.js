@@ -66,7 +66,7 @@ let RenderMonitor = ({
     const { type = null } = !!selectedMonitor && selectedMonitor;
 
     const resetSelectedCharts = () => {
-        dispatch(change('StatuspageMonitors', `${monitor}.uptime`, true));
+        dispatch(change('StatuspageMonitors', `${monitor}.uptime`, false));
         dispatch(change('StatuspageMonitors', `${monitor}.memory`, false));
         dispatch(change('StatuspageMonitors', `${monitor}.cpu`, false));
         dispatch(change('StatuspageMonitors', `${monitor}.storage`, false));

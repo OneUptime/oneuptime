@@ -9,12 +9,16 @@ const applicationLogSchema = new Schema({
         index: true,
     }, //which component this application log belongs to.
     name: String,
-    slug:String,
+    slug: String,
     key: String,
     resourceCategory: {
         type: Schema.Types.ObjectId,
         ref: 'ResourceCategory',
         index: true,
+    },
+    showQuickStart: {
+        type: Boolean,
+        default: true,
     },
     createdById: { type: String, ref: 'User', index: true }, //userId.
     createdAt: {

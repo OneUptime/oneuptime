@@ -25,7 +25,7 @@ module.exports = {
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitorId',
-                    select: '_id name type',
+                    select: '_id name type slug',
                     populate: { path: 'componentId', select: '_id name' },
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
@@ -65,7 +65,11 @@ module.exports = {
                 let errorMsg;
                 if (data.customFields && data.customFields.length > 0) {
                     for (const field of data.customFields) {
-                        if (field.uniqueField) {
+                        if (
+                            field.uniqueField &&
+                            field.fieldValue &&
+                            field.fieldValue.trim()
+                        ) {
                             const incident = await _this.findOneBy({
                                 customFields: {
                                     $elemMatch: {
@@ -261,6 +265,16 @@ module.exports = {
             return incident;
         } catch (error) {
             ErrorService.log('incidentService.deleteBy', error);
+            throw error;
+        }
+    },
+
+    getIncidentId: async function(query) {
+        try {
+            const incident = await IncidentModel.findOne(query);
+            return incident;
+        } catch (error) {
+            ErrorService.log('incidentService.getIncidentId', error);
             throw error;
         }
     },

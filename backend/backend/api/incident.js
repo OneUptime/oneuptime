@@ -29,6 +29,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const subscriberAlertService = require('../services/subscriberAlertService');
 const onCallScheduleStatusService = require('../services/onCallScheduleStatusService');
 const Services = require('../utils/services');
+const { lessThan } = require('../utils/DateTime');
 
 // Route
 // Description: Creating incident.
@@ -277,8 +278,12 @@ router.get(
         // Call the IncidentService.
 
         try {
+            let incidentId = await IncidentService.getIncidentId({
+                idNumber: req.params.incidentId,
+            });
+            incidentId = incidentId._id;
             const incident = await IncidentService.findOneBy({
-                _id: req.params.incidentId,
+                _id: incidentId,
             });
             return sendItemResponse(req, res, incident);
         } catch (error) {
@@ -562,6 +567,9 @@ router.post(
         try {
             const data = req.body;
             const incidentId = req.params.incidentId;
+            const { idNumber } = await IncidentService.getIncidentId({
+                _id: incidentId,
+            });
             const projectId = req.params.projectId;
             const userId = req.user.id;
             if (!data.content) {
@@ -771,6 +779,7 @@ router.post(
                     );
                     incidentMessage = {
                         type: data.type,
+                        idNumber,
                         data: await Services.rearrangeDuty(filteredMsg),
                     };
                 } else {
@@ -817,6 +826,9 @@ router.delete(
     async function(req, res) {
         try {
             const { incidentId, incidentMessageId, projectId } = req.params;
+            const { idNumber } = await IncidentService.getIncidentId({
+                _id: incidentId,
+            });
             const checkMsg = await IncidentMessageService.findOneBy({
                 _id: incidentMessageId,
             });
@@ -890,6 +902,7 @@ router.delete(
                     );
                     result = {
                         type: checkMsg.type,
+                        idNumber,
                         data: await Services.rearrangeDuty(filteredMsg),
                     };
                 }
@@ -916,7 +929,11 @@ router.get(
         }
         try {
             let incidentMessages, result;
-            const incidentId = req.params.incidentId;
+            const idNumber = req.params.incidentId;
+            let incidentId = await IncidentService.getIncidentId({
+                idNumber,
+            });
+            incidentId = incidentId._id;
             const projectId = req.params.projectId;
             if (type === 'investigation') {
                 incidentMessages = await IncidentMessageService.findBy(

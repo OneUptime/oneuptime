@@ -1,27 +1,49 @@
-# !/bin/sh
+#!/bin/sh
+
 
 IP_ADDRESS=1
+FYIPE_DB_USERNAME='fyipe'
+FYIPE_DB_PASSWORD='password'
+FYIPE_DB_NAME='fyipedb'
+BACKUP_RETAIN_DAYS=14
+BACKUP_PATH=~/Documents/backup 
+
+red=`tput setaf 1`
+green=`tput setaf 2`
+reset=`tput sgr 0`
 
 function HELP (){
   echo ""
   echo "Fyipe DB backup command line documentation."
   echo ""
-  echo "all arguments are optional and have a default value when not set"
+  echo "optional arguments have a default value when not set"
   echo ""
-  echo " -a      IP address of remote server."
+  echo " -a       IP address of remote server. (Compulsory)"
+  echo " -l       Backup path on local system where backup file will be stored. Default value - $BACKUP_PATH"
+  echo " -n       Database name. Default value 'fyipedb'"
+  echo " -p       Database password. Default value 'password'"
+  echo " -u       Set database username. Default value 'fyipe'."
+  echo " -t       Backup retain days. Number of days backup is kept before it is deleted. Default value '14'"
   echo ""
-  echo " -h       Help."
+  echo " -h      Help."
   echo ""
   exit 1
 }
 
-
 # PASS IN ARGUMENTS
-while getopts ":a:v" opt; do
+while getopts ":a:l:p:n:t:u:h" opt; do
   case $opt in
     a) IP_ADDRESS="$OPTARG"
     ;;
-    v) KUBECTL_VERSION="$OPTARG"
+    l) BACKUP_PATH="$OPTARG"
+    ;;
+    p) FYIPE_DB_PASSWORD="$OPTARG"
+    ;;
+    n) FYIPE_DB_NAME="$OPTARG"
+    ;;
+    t) BACKUP_RETAIN_DAYS="$OPTARG"
+    ;;
+    u) FYIPE_DB_USERNAME="$OPTARG"
     ;;
     h) HELP
        ;;
@@ -37,25 +59,67 @@ if [[ $IP_ADDRESS == 1 ]]
 then
   HELP
 else
-
-
-  #Install Docker and setup registry and insecure access to it.
+ 
+  #Step 1: Install Docker and setup registry and insecure access to it.
   if [[ ! $(which kubectl) ]]
   then
-      #Install Kubectl
-      echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
-      curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-      echo "RUNNING COMMAND: chmod +x ./kubectl"
-      chmod +x ./kubectl
-      echo "RUNNING COMMAND: sudo mv ./kubectl /usr/local/bin/kubectl"
-      sudo mv ./kubectl /usr/local/bin/kubectl
+    #Install Kubectl
+    echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+    curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+    echo "RUNNING COMMAND: chmod +x ./kubectl"
+    chmod +x ./kubectl
+    echo "RUNNING COMMAND: sudo mv ./kubectl /usr/local/bin/kubectl"
+    sudo mv ./kubectl /usr/local/bin/kubectl
   fi
 
-  # STEP 2: create directories
+  #  STEP 2: create directories
   mkdir -p ~/.kube
-  mkdir -p ~/Documents/backup
+  mkdir -p ${BACKUP_PATH}
 
-  # STEP: copy remote kube config and replace local
-  scp root@${IP_ADDRESS}:~/.kube/config ~/.kube
+  #  STEP 3: copy remote kube config and replace local
+  if scp root@${IP_ADDRESS}:~/.kube/config ~/.kube
+    then echo "Copied .kube config file"
+    else 
+    echo ${red}'Could not copy .kube file from remote server. Please manually copy the file to '$HOME/.kube/config ${reset}
+  fi
+
+  # STEP 4 : create service file for backup
+  echo '
+[Unit]
+Description=Fyipe database backup
+        
+[Service]
+ExecStart=bash '"$HOME"'/fyipe_bk_files/backup.sh -u '${FYIPE_DB_USERNAME}' -p '${FYIPE_DB_PASSWORD}' -n '${FYIPE_DB_NAME}' -l '${BACKUP_PATH}' -t '${BACKUP_RETAIN_DAYS}'
+
+' > /etc/systemd/system/backup.service
+
+
+#Step 5: Set up timer to run service every 12 hours
+echo '
+[Unit]
+Description= 12 hours Fyipe backup
+Requires=backup.service
+
+[Timer]
+Unit=backup.service
+OnCalendar=*-*-* 00,12:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+' > /etc/systemd/system/backup.timer
+
+  # STEP 6: make files.sh executable
+  chmod +x "$HOME"/fyipe_bk_files/backup.sh
+
+  chmod +x "$HOME"/fyipe_bk_files/restore.sh
+
+  # STEP 7: Start timer
+  sudo systemctl daemon-reload
+
+  sudo systemctl enable backup.timer
+
+  sudo systemctl start backup.timer
+
 fi
 

@@ -8,6 +8,7 @@
         "chai": "^4.2.0",
         "chai-http": "^4.3.0",
         "custom-env": "^2.0.1",
+        "dotenv": "^8.2.0",
         "express": "^4.17.1",
         "history": "^4.7.2",
         "markdown-to-jsx": "^6.11.4",
