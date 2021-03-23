@@ -153,7 +153,9 @@ describe('Subscribers Alert logs API', () => {
                     page
                 );
 
-                await page.waitForSelector(`#monitorCreateIncident_${monitorName}`);
+                await page.waitForSelector(
+                    `#monitorCreateIncident_${monitorName}`
+                );
                 await page.click(`#monitorCreateIncident_${monitorName}`);
                 await page.waitForSelector('#incidentType');
                 await init.selectByText('#incidentType', 'offline', page);
@@ -162,7 +164,7 @@ describe('Subscribers Alert logs API', () => {
                 await page.waitForSelector('#notificationscroll');
                 await page.click('#viewIncident-0');
                 await page.waitForSelector('#incident_0');
-                
+
                 await page.reload({ waitUntil: 'networkidle0' });
                 await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
                 await page.waitForSelector('#subscriberAlertTable tbody tr');

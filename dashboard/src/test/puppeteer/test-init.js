@@ -83,11 +83,12 @@ module.exports = {
             page.waitForNavigation(),
         ]);
     },
-    registerAndLoggingTeamMember: async function(user, page){
+    registerAndLoggingTeamMember: async function(user, page) {
         const { email, password } = user;
-        await page.goto(utils.ACCOUNTS_URL + '/register'), {
-            waitUntil: 'networkidle0'
-        }
+        await page.goto(utils.ACCOUNTS_URL + '/register'),
+            {
+                waitUntil: 'networkidle0',
+            };
         // Registration
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
@@ -103,10 +104,12 @@ module.exports = {
         await page.click('input[name=confirmPassword]');
         await page.type('input[name=confirmPassword]', password);
         await page.click('button[type=submit]'),
-        await page.waitForSelector('#success-step');
-        
+            await page.waitForSelector('#success-step');
+
         // Login
-        await page.goto(utils.ACCOUNTS_URL + '/login',{waitUntil:'networkidle0'});
+        await page.goto(utils.ACCOUNTS_URL + '/login', {
+            waitUntil: 'networkidle0',
+        });
         await page.waitForSelector('#login-form');
         await page.click('input[name=email]');
         await page.type('input[name=email]', email);

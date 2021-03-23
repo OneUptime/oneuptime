@@ -28,7 +28,6 @@ const RenderTeams = ({ fields, subProjectId, policyIndex, rotateBy }) => {
                                 policyIndex={policyIndex}
                                 teamIndex={i}
                             />
-
                             <ShouldRender if={fields.length > 1}>
                                 <div className="bs-Fieldset-row">
                                     <label className="bs-Fieldset-label"></label>

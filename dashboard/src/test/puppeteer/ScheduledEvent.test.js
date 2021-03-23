@@ -39,7 +39,7 @@ describe('Scheduled event', () => {
             };
 
             // user
-            await init.registerUser(user, page);        
+            await init.registerUser(user, page);
             // Create component
             await init.addComponent(componentName, page);
             await init.addMonitorToComponent(
@@ -83,7 +83,7 @@ describe('Scheduled event', () => {
                 await init.selectByText('#monitorfield_0', componentName, page); // "ComponentName / MonitorName" is in the dropdown. Using only ComponentName selects both
                 await page.click('#addMoreMonitor');
                 await page.waitForSelector('#monitorfield_1');
-                await init.selectByText('#monitorfield_1', componentName, page); 
+                await init.selectByText('#monitorfield_1', componentName, page);
                 await page.click('#description');
                 await page.type(
                     '#description',
@@ -175,7 +175,9 @@ describe('Scheduled event', () => {
                     '.scheduled-event-list-item'
                 );
 
-                expect(scheduledMaintenanceList.length).toBeGreaterThanOrEqual(1);
+                expect(scheduledMaintenanceList.length).toBeGreaterThanOrEqual(
+                    1
+                );
             });
             done();
         },
@@ -214,7 +216,9 @@ describe('Scheduled event', () => {
                         document.querySelector('.scheduled-event-name')
                             .textContent
                 );
-                expect(eventName).toBe(utils.capitalize(newScheduledMaintenanceName));
+                expect(eventName).toBe(
+                    utils.capitalize(newScheduledMaintenanceName)
+                );
             });
             done();
         },

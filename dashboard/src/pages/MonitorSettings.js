@@ -40,7 +40,7 @@ class MonitorSettings extends React.Component {
 
     render() {
         const {
-            location: { pathname }
+            location: { pathname },
         } = this.props;
 
         return (

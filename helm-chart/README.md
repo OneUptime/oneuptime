@@ -17,13 +17,13 @@ helm install fi ./helm-chart/public/fyipe --namespace default
 ### Install on staging
 
 ```
-helm install -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe --namespace default
+helm install -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe --namespace default
 ```
 
 ### Install on production
 
 ```
-helm install -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe --namespace default
+helm install -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe --namespace default
 ```
 
 ### Update Cluster
@@ -87,7 +87,7 @@ cd ..
 
 ```
 cd ./helm-chart/public
-#IMPORTANT: change the version of the dependent chart at `/helm-chart/public/fyipe/Chart.yaml`
+#IMPORTANT: change the version of the dependent chart at `/helm-chart/public/fyipe/Chart.yaml`. This should be the version field (and NOT appVersion) in Chart.yaml of the dependency.
 
 # Run this command.
 helm dependency update fyipe

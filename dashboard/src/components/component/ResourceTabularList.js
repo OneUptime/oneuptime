@@ -54,7 +54,6 @@ class ResourceTabularList extends Component {
                 break;
         }
         return `${baseUrl}${route}/${componentResource.slug}`;
-        
     }
     generateResourceStatus(componentResource) {
         let statusColor = 'slate';

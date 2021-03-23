@@ -30,6 +30,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const uuid = require('uuid');
+const defaultStatusPageColors = require('../config/statusPageColors');
 
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
@@ -165,6 +166,29 @@ router.put(
     }
 );
 
+//reset status page colors to default colors
+router.put(
+    '/:projectId/:statusPageId/resetColors',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        const { projectId, statusPageId } = req.params;
+        const defaultBrandColor = defaultStatusPageColors.default;
+        try {
+            // response should be an updated statusPage
+            const response = await StatusPageService.updateOneBy(
+                {
+                    _id: statusPageId,
+                    projectId,
+                },
+                { colors: defaultBrandColor }
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 /**
  * @description updates a particular domain from statuspage collection
  * @param {string} projectId id of the project

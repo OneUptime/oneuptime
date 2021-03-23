@@ -182,10 +182,12 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            let name = data.name;
-            name = slugify(name);
-            name = `${name}-${generate('1234567890', 8)}`;
-            data.slug = name.toLowerCase();
+            if (data.name) {
+                let name = data.name;
+                name = slugify(name);
+                name = `${name}-${generate('1234567890', 8)}`;
+                data.slug = name.toLowerCase();
+            }
             let applicationLog = await ApplicationLogModel.findOneAndUpdate(
                 query,
                 { $set: data },

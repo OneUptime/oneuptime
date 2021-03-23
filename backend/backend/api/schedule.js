@@ -382,17 +382,17 @@ router.post(
                         });
                     }
 
-                    const teamMemberUserIds = team.teamMembers.map(
-                        member => member.userId
-                    );
+                    const teamMemberUserIds = team.teamMembers
+                        .map(member => member.userId)
+                        .filter(team => team !== undefined);
 
                     for (const teamMember of team.teamMembers) {
                         const data = {};
-                        if (!teamMember.userId) {
+                        if (!teamMember.userId && !teamMember.groupId) {
                             return sendErrorResponse(req, res, {
                                 code: 400,
                                 message:
-                                    'Please add team members to your on-call schedule ' +
+                                    'Please add team members or group to your on-call schedule ' +
                                     (req.body.length > 1
                                         ? ' in Escalation Policy ' +
                                           escalationPolicyCount
@@ -401,6 +401,7 @@ router.post(
                         }
 
                         if (
+                            teamMember.userId &&
                             teamMemberUserIds.filter(
                                 userId => userId == teamMember.userId
                             ).length > 1
@@ -415,7 +416,6 @@ router.post(
                                         : ''),
                             });
                         }
-
                         if (
                             teamMember.startTime &&
                             typeof teamMember.startTime === 'string'
@@ -431,12 +431,20 @@ router.post(
                         ) {
                             teamMember.endTime = new Date(teamMember.endTime);
                         }
-
-                        data.userId = teamMember.userId;
-                        data.startTime = teamMember.startTime;
-                        data.endTime = teamMember.endTime;
-                        data.timezone = teamMember.timezone;
-                        teamMembers.push(data);
+                        if (teamMember.userId) {
+                            data.userId = teamMember.userId;
+                            data.startTime = teamMember.startTime;
+                            data.endTime = teamMember.endTime;
+                            data.timezone = teamMember.timezone;
+                            teamMembers.push(data);
+                        }
+                        if (teamMember.groupId) {
+                            data.groupId = teamMember.groupId;
+                            data.startTime = teamMember.startTime;
+                            data.endTime = teamMember.endTime;
+                            data.timezone = teamMember.timezone;
+                            teamMembers.push(data);
+                        }
                     }
 
                     rotationData.teamMembers = teamMembers;

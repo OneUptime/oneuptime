@@ -65,7 +65,11 @@ module.exports = {
                 let errorMsg;
                 if (data.customFields && data.customFields.length > 0) {
                     for (const field of data.customFields) {
-                        if (field.uniqueField) {
+                        if (
+                            field.uniqueField &&
+                            field.fieldValue &&
+                            field.fieldValue.trim()
+                        ) {
                             const incident = await _this.findOneBy({
                                 customFields: {
                                     $elemMatch: {

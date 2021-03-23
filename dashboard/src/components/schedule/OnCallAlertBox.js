@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { reduxForm, FieldArray, arrayPush } from 'redux-form';
 import { withRouter } from 'react-router';
 import { getEscalation, addEscalation } from '../../actions/schedule';
+import { getProjectGroups } from '../../actions/group';
 import { subProjectTeamLoading } from '../../actions/team';
 import { RenderEscalation } from './RenderEscalation';
 import { Validate } from '../../config';
@@ -110,9 +111,10 @@ function validate(values) {
 
 export class OnCallAlertBox extends Component {
     componentDidMount() {
-        const { subProjectId, scheduleId } = this.props;
+        const { subProjectId, scheduleId, getProjectGroups } = this.props;
         this.props.getEscalation(subProjectId, scheduleId);
         this.props.subProjectTeamLoading(subProjectId);
+        getProjectGroups(subProjectId, 0, 0, true);
     }
     submitForm = async values => {
         const { subProjectId, scheduleId } = this.props;
@@ -269,6 +271,7 @@ OnCallAlertBox.propTypes = {
     scheduleId: PropTypes.string.isRequired,
     subProjectId: PropTypes.string.isRequired,
     subProjectTeamLoading: PropTypes.func.isRequired,
+    getProjectGroups: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -279,6 +282,7 @@ const mapDispatchToProps = dispatch =>
             addEscalation,
             subProjectTeamLoading,
             pushArray: arrayPush,
+            getProjectGroups,
         },
         dispatch
     );
