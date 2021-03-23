@@ -51,7 +51,7 @@ class ApplicationSecurityDetail extends Component {
             getGitCredentials({ projectId });
         }
     }
-    componentDidMount(){
+    componentDidMount() {
         const {
             projectId,
             componentId,
