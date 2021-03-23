@@ -438,8 +438,7 @@ describe('Incident Settings API', () => {
 
                 const newDefaultPriority = await page.waitForSelector(`span#priorityDefault_${customPriority}_1_default`,{visible:true});
                 newDefaultPriority = await newDefaultPriority.getProperty('innerText');
-                newDefaultPriority = await newDefaultPriority.jsonValue();
-                console.log("The New Default", newDefaultPriority);
+                newDefaultPriority = await newDefaultPriority.jsonValue();                
                 expect(newDefaultPriority).toMatch('Default');
             })
         },
