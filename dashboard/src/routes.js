@@ -610,7 +610,7 @@ export const groups = [
                         shortcut: 's+k',
                     },
                     {
-                        title: 'Groups',
+                        title: 'Team Groups',
                         path: '/dashboard/project/:slug/settings/groups',
                         icon: 'docker',
                         visible: true,

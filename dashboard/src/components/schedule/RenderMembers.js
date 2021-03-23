@@ -19,7 +19,6 @@ let RenderMembers = ({
         <ul>
             {fields.map((inputarray, i) => {
                 const memberValue = policyRotation.teamMembers[i];
-
                 return (
                     <RenderMember
                         memberValue={memberValue}

@@ -57,6 +57,10 @@ class Groups extends Component {
                             limit={project.groups.limit}
                             project={project.project}
                             parentProject={true}
+                            subProjects={
+                                this.props.projectGroups &&
+                                this.props.projectGroups.length > 1
+                            }
                         />
                     );
                 } else {
