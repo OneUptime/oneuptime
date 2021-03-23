@@ -60,6 +60,11 @@ spec:
           targetPort: {{ .Values.host.statusPagePort }}
     selector:
         app: {{ printf "%s-%s" .Release.Name "status"  }}
+    {{- if .Values.saas.isSaasService }}
+    # Load balancer becasue we need to expose Status page on different domains. 
+    type: LoadBalancer
+    {{- else}}
     type: ClusterIP
+    {{- end }}
 ---
 ########################################
