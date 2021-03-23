@@ -166,6 +166,8 @@ mongodb:
 ## For minikube, set this to NodePort, elsewhere use LoadBalancer
 ##
 nginx-ingress-controller:
+  defaultBackend:
+    enabled: false
   service:
     type: LoadBalancer
   proxySetHeaders:
