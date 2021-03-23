@@ -241,6 +241,7 @@ disableSignup: false
 backendProtocol: 
 
 # Status page domain to add to CNAME to work with custom domains
+# Status page CNAME to display whcih customers will set on the cusom domain tab of status page.
 statusPageDomain:
 
 # Push notificaitons. 
@@ -255,5 +256,4 @@ pushNotification:
     url: "https://fyipe-test.com"
 
 
-# Status page CNAME to display whcih customers will set on the cusom domain tab of status page. 
-statusPageDomain: ""
+ 
