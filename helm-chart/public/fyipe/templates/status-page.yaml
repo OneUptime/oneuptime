@@ -30,15 +30,22 @@ spec:
                     {{- if .Values.saas.isSaasService }}
                     - name: IS_SAAS_SERVICE
                       value: 'true'
+                    - name: STATUSPAGE_CERT
+                      value: {{ .Values.statusPage.cert }}
+                    - name: STATUSPAGE_PRIVATEKEY
+                      value: {{ .Values.statusPage.key }}
                     {{- end }}
                     {{- if .Values.backendProtocol }}
                     - name: BACKEND_PROTOCOL
                       value: {{ .Values.backendProtocol }}
                     {{- end }}
                   ports:
-                      - containerPort: {{ .Values.host.statusPagePort }}
-                        hostPort: {{ .Values.host.statusPagePort }}
-                        name: {{ printf "%s-%s" .Release.Name "status"  }}
+                      - containerPort: {{ .Values.host.statusPageHttpPort }}
+                        hostPort: {{ .Values.host.statusPageHttpPort }}
+                        name: {{ printf "%s-%s" .Release.Name "status-http"  }}
+                      - containerPort: {{ .Values.host.statusPageHttpsPort }}
+                        hostPort: {{ .Values.host.statusPageHttpsPort }}
+                        name: {{ printf "%s-%s" .Release.Name "status-https"  }}
             restartPolicy: {{ .Values.image.restartPolicy }}
 ---
 apiVersion: v1
@@ -52,10 +59,19 @@ metadata:
     namespace: {{ .Release.Namespace }}
 spec:
     ports:
-        - port: {{ .Values.host.statusPageServicePort }}
-          targetPort: {{ .Values.host.statusPagePort }}
+        - port: {{ .Values.host.statusPageHttpServicePort }}
+          name: "http"
+          targetPort: {{ .Values.host.statusPageHttpPort }}
+        - port: {{ .Values.host.statusPageHttpsServicePort }}
+          name: "https"
+          targetPort: {{ .Values.host.statusPageHttpsPort }}
     selector:
         app: {{ printf "%s-%s" .Release.Name "status"  }}
+    {{- if .Values.saas.isSaasService }}
+    # Load balancer becasue we need to expose Status page on different domains. 
+    type: LoadBalancer
+    {{- else}}
     type: ClusterIP
+    {{- end }}
 ---
 ########################################

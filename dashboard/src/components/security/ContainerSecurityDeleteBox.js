@@ -8,13 +8,25 @@ import { openModal } from '../../actions/modal';
 import DeleteContainerSecurity from '../modals/DeleteContainerSecurity';
 
 export class ContainerSecurityDeleteBox extends Component {
-    handleDelete = ({ projectId, componentId, containerSecurityId, containerSecuritySlug }) => {
+    handleDelete = ({
+        projectId,
+        componentId,
+        containerSecurityId,
+        containerSecuritySlug,
+    }) => {
         const { openModal } = this.props;
 
         openModal({
             id: containerSecurityId,
             content: DeleteContainerSecurity,
-            propArr: [{ projectId, componentId, containerSecurityId,containerSecuritySlug }],
+            propArr: [
+                {
+                    projectId,
+                    componentId,
+                    containerSecurityId,
+                    containerSecuritySlug,
+                },
+            ],
         });
     };
 
@@ -54,7 +66,7 @@ export class ContainerSecurityDeleteBox extends Component {
                                                 projectId,
                                                 componentId,
                                                 containerSecurityId,
-                                                containerSecuritySlug
+                                                containerSecuritySlug,
                                             })
                                         }
                                     >

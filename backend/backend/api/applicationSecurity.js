@@ -162,7 +162,6 @@ router.get(
     }
 );
 
-
 //Route: GET
 //Description: get a particular application security in a component by ApplicationSecuritySlug
 //Param: req.params -> {projectId, componentId, applicationSecuritySlug}
@@ -193,7 +192,6 @@ router.get(
         }
     }
 );
-
 
 //Route: GET
 //Description: get all application security in a component

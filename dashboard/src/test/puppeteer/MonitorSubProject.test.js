@@ -98,7 +98,7 @@ describe('Monitor API With SubProjects', () => {
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 const user = { email: newEmail, password: newPassword };
-                await init.loginUser(user, page);              
+                await init.loginUser(user, page);
                 // Switch to invited project for new user
                 // await init.switchProject(subProjectName, page); // Commented because project already switched to
                 // await page.goto(utils.DASHBOARD_URL);
@@ -127,7 +127,7 @@ describe('Monitor API With SubProjects', () => {
                 await init.loginUser(user, page);
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
-                // switch to invited project for new user          
+                // switch to invited project for new user
                 await page.waitForSelector('#monitors');
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');

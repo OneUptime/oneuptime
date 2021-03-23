@@ -9,8 +9,12 @@ const errorTrackerSchema = new Schema({
         index: true,
     }, //which component this error tracker belongs to.
     name: String,
-    slug:String,
+    slug: String,
     key: String,
+    showQuickStart: {
+        type: Boolean,
+        default: true,
+    },
     resourceCategory: {
         type: Schema.Types.ObjectId,
         ref: 'ResourceCategory',
