@@ -53,6 +53,8 @@ deploy_production_php-sdk:
         - sudo apt-get install -y composer
         - sudo npm install -g json composer-version
         - git init
+        - git config --global user.email "gitlab-runner@gitlab-shell-runner.com"
+        - git config --global user.name "Gitlab Runner"
         - git add .
         - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
         - git checkout -f master
