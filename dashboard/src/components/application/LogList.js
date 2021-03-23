@@ -43,6 +43,23 @@ class LogList extends Component {
             );
         });
     };
+
+    openModalFunc = content => {
+        this.props.openModal({
+            id: this.state.viewJsonModalId,
+            content: DataPathHoC(ViewJsonLogs, {
+                viewJsonModalId: this.state.viewJsonModalId,
+                jsonLog: content,
+                title: `Logs for ${
+                    this.props.applicationLog
+                        ? this.props.applicationLog.name
+                        : 'Unknown'
+                }`,
+                rootName: 'content',
+            }),
+        });
+    };
+
     render() {
         socket.on(`createLog-${this.props.applicationLogId}`, data => {
             this.props.getLogSuccess(data);
@@ -158,6 +175,9 @@ class LogList extends Component {
                                             }_${i}`}
                                             key={log._id}
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
+                                            onClick={() =>
+                                                this.openModalFunc(log.content)
+                                            }
                                         >
                                             <td
                                                 id="placeholder-right"
@@ -310,34 +330,8 @@ class LogList extends Component {
                                                                                         className="bs-Button bs-DeprecatedButton db-Trends-editButton Flex-flex"
                                                                                         type="button"
                                                                                         onClick={() =>
-                                                                                            this.props.openModal(
-                                                                                                {
-                                                                                                    id: this
-                                                                                                        .state
-                                                                                                        .viewJsonModalId,
-                                                                                                    content: DataPathHoC(
-                                                                                                        ViewJsonLogs,
-                                                                                                        {
-                                                                                                            viewJsonModalId: this
-                                                                                                                .state
-                                                                                                                .viewJsonModalId,
-                                                                                                            jsonLog:
-                                                                                                                log.content,
-                                                                                                            title: `Logs for ${
-                                                                                                                this
-                                                                                                                    .props
-                                                                                                                    .applicationLog
-                                                                                                                    ? this
-                                                                                                                          .props
-                                                                                                                          .applicationLog
-                                                                                                                          .name
-                                                                                                                    : 'Unknown'
-                                                                                                            }`,
-                                                                                                            rootName:
-                                                                                                                'content',
-                                                                                                        }
-                                                                                                    ),
-                                                                                                }
+                                                                                            this.openModalFunc(
+                                                                                                log.content
                                                                                             )
                                                                                         }
                                                                                     >
