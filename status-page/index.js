@@ -4,7 +4,6 @@ const app = express();
 
 const https = require('https');
 const http = require('http');
-const net = require('net');
 const tls = require('tls');
 const fs = require('fs');
 const fetch = require('node-fetch');
@@ -95,7 +94,24 @@ function decodeAndSave(content, filePath) {
     });
 }
 
-async function createServer(opts, handler) {
+function createDir(dirPath) {
+    return new Promise((resolve, reject) => {
+        const workPath = path.resolve(process.cwd(), 'src', dirPath);
+        if (fs.existsSync(workPath)) {
+            resolve(workPath);
+        }
+
+        fs.mkdir(workPath, error => {
+            if (error) reject(error);
+            resolve(workPath);
+        });
+    });
+}
+
+// using an IIFE here because we have an asynchronous code we want to run as we start the server
+// and since we can't await outside an async function, we had to use an IIFE to handle that
+(async function() {
+    await createDir('credentials');
     // decode base64 of the cert and private key
     // store the value to disc
     const cert = process.env.STATUSPAGE_CERT;
@@ -193,49 +209,12 @@ async function createServer(opts, handler) {
             }
         },
     };
-
-    const server = net.createServer(socket => {
-        socket.once('data', buffer => {
-            // Pause the socket
-            socket.pause();
-
-            // Determine if this is an HTTP(s) request
-            const byte = buffer[0];
-
-            let protocol;
-            if (byte === 22) {
-                protocol = 'https';
-            } else if (32 < byte && byte < 127) {
-                protocol = 'http';
-            }
-
-            const proxy = server[protocol];
-            if (proxy) {
-                // Push the buffer back onto the front of the data stream
-                socket.unshift(buffer);
-
-                // Emit the socket to the HTTP(s) server
-                proxy.emit('connection', socket);
-            }
-
-            // As of NodeJS 10.x the socket must be
-            // resumed asynchronously or the socket
-            // connection hangs, potentially crashing
-            // the process. Prior to NodeJS 10.x
-            // the socket may be resumed synchronously.
-            process.nextTick(() => socket.resume());
-        });
-    });
-
-    server.http = http.createServer(handler);
-    server.https = https.createServer(options, handler);
-    return server;
-}
-
-const PORT = process.env.PORT || 3006;
-createServer({}, app).then(server => {
-    return server.listen(PORT, () =>
+    http.createServer(app).listen(3006, () =>
         // eslint-disable-next-line no-console
-        console.log('server running on port ', PORT)
+        console.log('Server running on port 3006')
     );
-});
+    https
+        .createServer(options, app)
+        // eslint-disable-next-line no-console
+        .listen(3007, () => console.log('Server running on port 3007'));
+})();
