@@ -8,7 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
-import { IS_LOCALHOST, IS_SAAS_SERVICE } from '../../config';
+import { IS_LOCALHOST, IS_SAAS_SERVICE, STATUSPAGE_DOMAIN } from '../../config';
 import { verifyDomain, deleteDomain } from '../../actions/domain';
 import { openModal, closeModal } from '../../actions/modal';
 import VerifyDomainModal from './VerifyDomainModal';
@@ -306,8 +306,10 @@ export class Setting extends Component {
                                                                                 {IS_SAAS_SERVICE &&
                                                                                     !IS_LOCALHOST && (
                                                                                         <span>
-                                                                                            Add
-                                                                                            statuspage.fyipeapp.com
+                                                                                            Add{' '}
+                                                                                            {
+                                                                                                STATUSPAGE_DOMAIN
+                                                                                            }{' '}
                                                                                             to
                                                                                             your
                                                                                             CNAME.

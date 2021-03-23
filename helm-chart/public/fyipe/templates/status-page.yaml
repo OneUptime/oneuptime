@@ -30,6 +30,10 @@ spec:
                     {{- if .Values.saas.isSaasService }}
                     - name: IS_SAAS_SERVICE
                       value: 'true'
+                    - name: STATUSPAGE_CERT
+                      value: {{ .Values.statusPage.cert }}
+                    - name: STATUSPAGE_PRIVATEKEY
+                      value: {{ .Values.statusPage.key }}
                     {{- end }}
                     {{- if .Values.backendProtocol }}
                     - name: BACKEND_PROTOCOL
