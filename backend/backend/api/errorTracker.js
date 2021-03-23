@@ -195,7 +195,7 @@ router.put(
             });
         }
         data.createdById = req.user ? req.user.id : null;
-        if (!data.name) {
+        if (!data.name && data.showQuickStart === undefined) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'New Error Tracker Name is required.',
@@ -227,7 +227,8 @@ router.put(
         if (
             existingErrorTracking &&
             existingErrorTracking.length > 0 &&
-            data.resourceCategory != ''
+            data.resourceCategory != '' &&
+            data.showQuickStart === undefined
         ) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -236,9 +237,13 @@ router.put(
         }
 
         // Error Tracker is valid
-        const errorTrackerUpdate = {
-            name: data.name,
-        };
+        const errorTrackerUpdate = {};
+        if (data.name) {
+            errorTrackerUpdate.name = data.name;
+        }
+        if (data.showQuickStart !== undefined) {
+            errorTrackerUpdate.showQuickStart = data.showQuickStart;
+        }
 
         let unsetData;
         if (!data.resourceCategory || data.resourceCategory === '') {
