@@ -220,12 +220,13 @@ describe('Incident Settings API', () => {
         'Should substitute variables in title, description when an incident is created',
         async () => {
             return await cluster.execute(null, async ({ page }) => {                
-                // Since the incident was created in the previous test and it is only one, navigating to component details still gives access to the created incident
+                // Since the incident was created in the previous test and it is only one, navigating to component details still gives access to the created incident. 
+                //And this will avoid using fragile selector to navigate to the incident page since the incident name is out of this test scope
                 await init.navigateToComponentDetails(
                     componentName,                    
                     page
                 );   
-                // selector refactoring             
+                // selectors refactoring             
                 const incidentTitleSelector =
                     '#incidentTitle';
                 const incidentDescriptionSelector =
