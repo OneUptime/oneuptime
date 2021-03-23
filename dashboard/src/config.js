@@ -1299,7 +1299,8 @@ $ composer require fyipe/log-php`,
                     usage: `
 use Fyipe\\FyipeTracker;
 
-// set up tracking configurations                    
+// set up tracking configurations    
+$options = new stdClass();                
 $options->maxTimeline = 50;
 $options->captureCodeSnippet: true;     
 

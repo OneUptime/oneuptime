@@ -1,6 +1,6 @@
-# Fyipe Application Logger
+# Fyipe SDK
 
-A fyipe application logger that can be used to send logs about your applications created on your fypie dashboard
+A fyipe sdk for application logger that can be used to send logs about your applications created on your fypie dashboard which can also used for error tracking
 
 ## Installation
 
@@ -65,6 +65,7 @@ var_dump($response);
 use Fyipe\FyipeTracker;
 
 // set up tracking configurations, this is entirely optional
+$option = new stdClass();
 $option->maxTimeline = 5; // determine the maximum number of items allowed as timeline elements
 $option->captureCodeSnippet = true; // determine if you want the library to scan your code base for the error code snippet
 // constructor
@@ -76,6 +77,7 @@ $tracker = new FyipeTracker(
 );
 
 // capturing a timeline manually
+$timelineContent = new stdClass();
 $timelineContent->account = 'debit';
 $timelineContent->amount = '6000.00';
 $timelineContent->userId = 471;
@@ -88,8 +90,10 @@ $tracker->setTag('category', 'QA Tester'); // a single tag
 $tags = [];
 
 // create two tags
+$tagOne = new stdClass();
 $tagOne->key = 'type';
 $tagOne->value = 'notification';
+$tagTwo = new stdClass();
 $tagTwo->key = 'location';
 $tagTwo->value = 'Oslo';
 
@@ -97,7 +101,7 @@ $tagTwo->value = 'Oslo';
 array_push($tags, $tagOne, $tagTwo);
 
 // setting the array of tags
-$tracker->setTags($tags)
+$tracker->setTags($tags);
 
 // capturing errors in a try and catch
 try {
@@ -120,7 +124,7 @@ Main API to send logs to the server.
 
 **Author**: HackerBay, Inc.
 
--   [Fyipe Application Logger](#fyipe-application-logger)
+-   [Fyipe SDK](#fyipe-sdk)
     -   [Installation](#installation)
         -   [Composer Install](#composer-install)
     -   [Basic Usage for Logging](#basic-usage-for-logging)
