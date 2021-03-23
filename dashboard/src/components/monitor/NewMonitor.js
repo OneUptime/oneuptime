@@ -1226,7 +1226,7 @@ class NewMonitor extends Component {
                                                                             value:
                                                                                 'agentless',
                                                                             label:
-                                                                                'Agentless',
+                                                                                'Agentless (with SSH)',
                                                                         },
                                                                     ]}
                                                                 ></Field>
