@@ -778,7 +778,6 @@ module.exports = {
         });
 
         const identification = userData.identification;
-        console.log('IDENTIFICATION::', identification);
 
         const options = {
             vapidDetails: {
@@ -787,16 +786,6 @@ module.exports = {
                 privateKey: process.env.PUSHNOTIFICATION_PRIVATE_KEY, // URL Safe Base64 Encoded Private Key
             },
         };
-
-        console.log('PUSHNOTIFICATION_URL', process.env.PUSHNOTIFICATION_URL);
-        console.log(
-            'PUSHNOTIFICATION_PUBLIC_KEY',
-            process.env.PUSHNOTIFICATION_PUBLIC_KEY
-        );
-        console.log(
-            'PUSHNOTIFICATION_PRIVATE_KEY',
-            process.env.PUSHNOTIFICATION_PRIVATE_KEY
-        );
 
         if (pushProgress) {
             pushMessage = `Reminder ${pushProgress.current}/${pushProgress.total}: `;
@@ -839,8 +828,6 @@ module.exports = {
                     });
                 })
                 .catch(async e => {
-                    console.log('ERROR FROM PUSH::', e);
-                    console.log(e);
                     return await _this.create({
                         projectId: incident.projectId,
                         monitorId: monitor._id,

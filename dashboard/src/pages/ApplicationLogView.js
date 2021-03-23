@@ -90,7 +90,8 @@ class ApplicationLogView extends Component {
                         <LoadingState />
                     </ShouldRender>
                     <ShouldRender if={this.props.applicationLog[0]}>
-                        {applicationLog[0] && applicationLog[0].showQuickStart ? (
+                        {applicationLog[0] &&
+                        applicationLog[0].showQuickStart ? (
                             <LibraryList
                                 title="Log Container"
                                 type="logs"
