@@ -33,7 +33,6 @@ deploy_staging_js-sdk:
         refs:
             - master
             - hotfix-master
-            - feature-error-tracking
     environment:
         name: staging
 
@@ -70,6 +69,5 @@ deploy_production_js-sdk:
         refs:
             - release
             - hotfix-release
-            - feature-error-tracking
     environment:
         name: production
