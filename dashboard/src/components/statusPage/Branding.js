@@ -17,6 +17,7 @@ import {
     createBannerCache,
     resetBannerCache,
     setStatusPageColors,
+    resetBrandingColors,
 } from '../../actions/statusPage';
 import { RenderField } from '../basic/RenderField';
 import { RenderTextArea } from '../basic/RenderTextArea';
@@ -138,6 +139,12 @@ export class Branding extends Component {
         }
     };
 
+    resetBrandColors = () => {
+        const { _id } = this.props.statusPage.status;
+        let { projectId } = this.props.statusPage.status;
+        projectId = projectId ? projectId._id || projectId : null;
+        this.props.resetBrandingColors(projectId, _id);
+    };
     removeImageHandler = e => {
         const values = {};
         const { _id } = this.props.statusPage.status;
@@ -715,7 +722,11 @@ export class Branding extends Component {
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                             <span className="db-SettingsForm-footerMessage">
                                 <ShouldRender
-                                    if={this.props.statusPage.branding.error}
+                                    if={
+                                        this.props.statusPage.branding.error ||
+                                        this.props.statusPage
+                                            .resetBrandingColors.error
+                                    }
                                 >
                                     <div className="bs-Tail-copy">
                                         <div
@@ -727,10 +738,11 @@ export class Branding extends Component {
                                             </div>
                                             <div className="Box-root">
                                                 <span style={{ color: 'red' }}>
-                                                    {
+                                                    {this.props.statusPage
+                                                        .branding.error ||
                                                         this.props.statusPage
-                                                            .branding.error
-                                                    }
+                                                            .resetBrandingColors
+                                                            .error}
                                                 </span>
                                             </div>
                                         </div>
@@ -739,6 +751,22 @@ export class Branding extends Component {
                             </span>
 
                             <div>
+                                <button
+                                    id="saveBranding"
+                                    className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                    disabled={
+                                        this.props.statusPage
+                                            .resetBrandingColors.requesting
+                                    }
+                                    onClick={this.resetBrandColors}
+                                >
+                                    {!this.props.statusPage.resetBrandingColors
+                                        .requesting && (
+                                        <span>Reset Colors</span>
+                                    )}
+                                    {this.props.statusPage.resetBrandingColors
+                                        .requesting && <FormLoader />}
+                                </button>
                                 <button
                                     id="saveBranding"
                                     className="bs-Button bs-DeprecatedButton bs-Button--blue"
@@ -794,6 +822,7 @@ Branding.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     fetchProjectStatusPage: PropTypes.func.isRequired,
+    resetBrandingColors: PropTypes.func.isRequired,
 };
 
 const BrandingForm = reduxForm({
@@ -817,6 +846,7 @@ const mapDispatchToProps = dispatch => {
             updateStatusPageBrandingSuccess,
             updateStatusPageBrandingError,
             fetchProjectStatusPage,
+            resetBrandingColors,
         },
         dispatch
     );
