@@ -42,10 +42,10 @@ spec:
                   ports:
                       - containerPort: {{ .Values.host.statusPageHttpPort }}
                         hostPort: {{ .Values.host.statusPageHttpPort }}
-                        name: {{ printf "%s-%s" .Release.Name "status"  }}
+                        name: {{ printf "%s-%s" .Release.Name "status-http"  }}
                       - containerPort: {{ .Values.host.statusPageHttpsPort }}
                         hostPort: {{ .Values.host.statusPageHttpsPort }}
-                        name: {{ printf "%s-%s" .Release.Name "status"  }}
+                        name: {{ printf "%s-%s" .Release.Name "status-https"  }}
             restartPolicy: {{ .Values.image.restartPolicy }}
 ---
 apiVersion: v1
@@ -60,8 +60,10 @@ metadata:
 spec:
     ports:
         - port: {{ .Values.host.statusPageHttpServicePort }}
+          name: "http"
           targetPort: {{ .Values.host.statusPageHttpPort }}
         - port: {{ .Values.host.statusPageHttpsServicePort }}
+          name: "https"
           targetPort: {{ .Values.host.statusPageHttpsPort }}
     selector:
         app: {{ printf "%s-%s" .Release.Name "status"  }}
