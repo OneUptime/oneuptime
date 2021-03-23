@@ -398,23 +398,6 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                     message: 'Please enter a valid URL.',
                 });
             }
-            let counter = 0;
-            for (let j = 0; j < data.links.length; j++) {
-                if (data.links[i].name == data.links[j].name) {
-                    counter++;
-                }
-                if (data.links[i].url == data.links[j].url) {
-                    counter++;
-                }
-            }
-            if (counter > 2) {
-                {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'Duplicate name or url present. Please check.',
-                    });
-                }
-            }
         }
     }
 
