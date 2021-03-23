@@ -8,14 +8,14 @@ IMPORTANT: After Installation Steps
 
 To access your Fyipe app from steps below:
 
-{{- if eq (index .Values "nginx-ingress-controller" "service" "type") "LoadBalancer" }}
+{{- if eq (index .Values "ingress-nginx" "service" "type") "LoadBalancer" }}
 ============================================ 
 Make sure external IP's are assigned. 
 ============================================ 
 
 Please run these commands to get Fyipe URL
 
-$ kubectl get svc {{ .Release.Name }}-nginx-ingress-controller --namespace={{ .Release.Namespace }}
+$ kubectl get svc {{ .Release.Name }}-ingress-nginx --namespace={{ .Release.Namespace }}
 
 NOTE: It may take a few minutes for the LoadBalancer IP to be available. 
 If the load balancer did not assign an external IP yet (if the IP is still pending). 
@@ -25,7 +25,7 @@ Retry this command after few mins.
 Sign Up
 ============================================
 
-{{- if eq (index .Values "nginx-ingress-controller" "service" "type") "LoadBalancer" }}
+{{- if eq (index .Values "ingress-nginx" "service" "type") "LoadBalancer" }}
 Go to the External IP (generated from step 1) from your browser and sign up a new admin account. 
 {{- else}}
 Go to the External IP of your server from your browser and sign up a new admin account. 

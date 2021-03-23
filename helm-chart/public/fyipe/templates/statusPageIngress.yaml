@@ -1,7 +1,7 @@
 ############----STATUS-PAGE-INGRESS--#####################################
 {{- if .Values.fyipe.hosts.host1.host }} 
 {{- range $key, $value := $.Values.statusPage.hosts }}
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
@@ -28,9 +28,12 @@ spec:
     {{- end }}
         paths:
           - path: /
+            pathType: ImplementationSpecific
             backend:
-              serviceName: {{ printf "%s-%s" $.Release.Name "status"  }}
-              servicePort: 80
+              service:
+                name: {{ printf "%s-%s" $.Release.Name "status"  }}
+                port:
+                  number: 80
 ---
 {{- end }}
 {{- end }}
