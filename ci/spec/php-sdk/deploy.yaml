@@ -56,8 +56,7 @@ deploy_production_php-sdk:
         - git add .
         - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
         - git checkout -f master
-        - chmod +x ../ci/scripts/version-setup.sh
-        - ../ci/scripts/version-setup.sh
+        - git merge staging
         - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/sdk"'
         - git add .
