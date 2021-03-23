@@ -57,6 +57,8 @@ encryptionKey: pg#K^C$-)IGOg6DYXDGq2jdmfws0MiR7
 backendProtocol: 'https'
 
 # domain for staging status page
+# Status page CNAME to display to customers
+# To be shown on the cusom domain tab of status page.
 statusPageDomain: 'staging-statuspage.fyipe.com'
 
 haraka:

@@ -40,8 +40,11 @@ spec:
                       value: {{ .Values.backendProtocol }}
                     {{- end }}
                   ports:
-                      - containerPort: {{ .Values.host.statusPagePort }}
-                        hostPort: {{ .Values.host.statusPagePort }}
+                      - containerPort: {{ .Values.host.statusPageHttpPort }}
+                        hostPort: {{ .Values.host.statusPageHttpPort }}
+                        name: {{ printf "%s-%s" .Release.Name "status"  }}
+                      - containerPort: {{ .Values.host.statusPageHttpsPort }}
+                        hostPort: {{ .Values.host.statusPageHttpsPort }}
                         name: {{ printf "%s-%s" .Release.Name "status"  }}
             restartPolicy: {{ .Values.image.restartPolicy }}
 ---
@@ -56,8 +59,10 @@ metadata:
     namespace: {{ .Release.Namespace }}
 spec:
     ports:
-        - port: {{ .Values.host.statusPageServicePort }}
-          targetPort: {{ .Values.host.statusPagePort }}
+        - port: {{ .Values.host.statusPageHttpServicePort }}
+          targetPort: {{ .Values.host.statusPageHttpPort }}
+        - port: {{ .Values.host.statusPageHttpsServicePort }}
+          targetPort: {{ .Values.host.statusPageHttpsPort }}
     selector:
         app: {{ printf "%s-%s" .Release.Name "status"  }}
     {{- if .Values.saas.isSaasService }}

@@ -199,7 +199,8 @@ host:
   backendPort: 3002
   homePort: 1444
   licensingPort: 3004
-  statusPagePort: 3006
+  statusPageHttpPort: 3006
+  statusPageHttpsPort: 3007
   dashboardPort: 3000
   accountsPort: 3003
   helmChartPort: 3423
@@ -212,7 +213,8 @@ host:
   backendServicePort: 80
   homeServicePort: 80
   apiDocsServicePort: 80
-  statusPageServicePort: 80
+  statusPageHttpServicePort: 80
+  statusPageHttpsServicePort: 443
   dashboardServicePort: 80
   accountsServicePort: 80
   adminDashboardServicePort: 80
