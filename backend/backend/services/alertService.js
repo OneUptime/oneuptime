@@ -786,7 +786,6 @@ module.exports = {
                 privateKey: process.env.PUSHNOTIFICATION_PRIVATE_KEY, // URL Safe Base64 Encoded Private Key
             },
         };
-        
 
         if (pushProgress) {
             pushMessage = `Reminder ${pushProgress.current}/${pushProgress.total}: `;
@@ -828,7 +827,7 @@ module.exports = {
                         alertProgress: pushProgress,
                     });
                 })
-                .catch(async e => {                   
+                .catch(async e => {
                     return await _this.create({
                         projectId: incident.projectId,
                         monitorId: monitor._id,
