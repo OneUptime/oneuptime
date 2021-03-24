@@ -174,13 +174,6 @@ function createDir(dirPath) {
                         fetchCredential(apiHost, privateKey, privateKeyPath),
                     ]);
 
-                    cb(
-                        null,
-                        tls.createSecureContext({
-                            key: fs.readFileSync(privateKeyPath),
-                            cert: fs.readFileSync(certPath),
-                        })
-                    );
                     console.log(
                         '******* DEBUGGING KEY *********',
                         fs.readFileSync(privateKeyPath)
@@ -188,6 +181,13 @@ function createDir(dirPath) {
                     console.log(
                         '******* DEBUGGING CERT *********',
                         fs.readFileSync(certPath)
+                    );
+                    cb(
+                        null,
+                        tls.createSecureContext({
+                            key: fs.readFileSync(privateKeyPath),
+                            cert: fs.readFileSync(certPath),
+                        })
                     );
                 } else {
                     cb(
