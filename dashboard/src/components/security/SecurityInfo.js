@@ -340,7 +340,6 @@ SecurityInfo.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     applicationSecuritySlug: PropTypes.string,
-    containerSecuritySlug: PropTypes.string,
     applicationSecurityLog: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
