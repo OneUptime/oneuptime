@@ -450,11 +450,8 @@ router.post('/login', async function(req, res) {
     try {
         const data = req.body;
         const clientIP =
-            (typeof req.headers['x-forwarded-for'] === 'string' &&
-                req.headers['x-forwarded-for'].split(',')[0]) ||
-            req.connection?.remoteAddress ||
-            req.socket?.remoteAddress ||
-            req.connection?.socket?.remoteAddress;
+            req.headers['x-forwarded-for'].split(',')[0] ||
+            req.connection.remoteAddress;
 
         if (!data.email) {
             return sendErrorResponse(req, res, {
