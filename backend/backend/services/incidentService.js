@@ -295,7 +295,7 @@ module.exports = {
                 .populate('probes.probeId')
                 .populate({
                     path: 'monitorId',
-                    select: '_id name',
+                    select: '_id name slug',
                     populate: { path: 'componentId', select: '_id name' },
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
@@ -354,7 +354,7 @@ module.exports = {
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitorId',
-                    select: '_id name',
+                    select: '_id name slug',
                     populate: { path: 'componentId', select: '_id name' },
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
