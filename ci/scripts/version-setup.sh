@@ -23,5 +23,4 @@ version init-script
 version licensing
 version helm-chart
 version js-sdk
-version php-sdk
 version .
