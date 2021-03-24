@@ -1,6 +1,10 @@
 package io.hackerbay.fyipe;
 
+import com.google.gson.JsonObject;
+import io.hackerbay.fyipe.model.Timeline;
 import io.hackerbay.fyipe.model.TrackerOption;
+
+import java.util.ArrayList;
 
 public class FyipeTracker {
     private String apiUrl;
@@ -56,5 +60,13 @@ public class FyipeTracker {
     private String getEventId()
     {
         return this.eventId;
+    }
+    public void addToTimeline(String category, JsonObject content, String type) {
+        Timeline timeline = new Timeline(category, content, type);
+
+        this.fyipeListener.logCustomTimelineEvent(timeline);
+    }
+    public ArrayList<Timeline> getTimeline() {
+        return this.fyipeListener.getTimeline();
     }
 }
