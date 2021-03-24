@@ -34,7 +34,7 @@ class ErrorTracking extends Component {
         socket.removeListener(`createErrorTracker-${this.props.componentId}`);
     }
     ready = () => {
-        const { componentId } = this.props.match.params;
+        const componentId = this.props.component && this.props.component._id;
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
@@ -47,7 +47,9 @@ class ErrorTracking extends Component {
             document.title = this.props.currentProject.name + ' Dashboard';
             socket.on(`createErrorTracker-${this.props.componentId}`, data => {
                 history.push(
-                    `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/error-trackers/${data.slug}`
+                    `/dashboard/project/${this.props.currentProject.slug}/${this
+                        .props.component &&
+                        this.props.component.slug}/error-trackers/${data.slug}`
                 );
             });
         }
@@ -141,7 +143,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 const mapStateToProps = (state, ownProps) => {
-    const { componentId } = ownProps.match.params;
+    const { componentSlug } = ownProps.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     const currentProject = state.project.currentProject;
@@ -151,7 +153,7 @@ const mapStateToProps = (state, ownProps) => {
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
+            if (String(c.slug) === String(componentSlug)) {
                 component = c;
             }
         });
@@ -174,7 +176,7 @@ const mapStateToProps = (state, ownProps) => {
     return {
         currentProject,
         component,
-        componentId,
+        componentId: component && component._id,
         errorTracker,
         tutorialStat,
     };
@@ -187,6 +189,5 @@ ErrorTracking.propTypes = {
     fetchErrorTrackers: PropsType.func,
     tutorialStat: PropsType.object,
     errorTracker: PropsType.object,
-    match: PropsType.object,
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorTracking);

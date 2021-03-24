@@ -378,6 +378,13 @@ class DashboardView extends Component {
                                                                     this.props
                                                                         .componentId
                                                                 }
+                                                                componentSlug={
+                                                                    this.props
+                                                                        .component &&
+                                                                    this.props
+                                                                        .component
+                                                                        .slug
+                                                                }
                                                             />
                                                         </RenderIfSubProjectAdmin>
                                                         <RenderIfSubProjectMember>
@@ -499,14 +506,14 @@ const mapDispatchToProps = dispatch => {
 };
 
 const mapStateToProps = (state, props) => {
-    const { componentId } = props.match.params;
+    const { componentSlug } = props.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     const monitor = state.monitor;
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
+            if (String(c.slug) === String(componentSlug)) {
                 component = c;
             }
         });
@@ -514,7 +521,7 @@ const mapStateToProps = (state, props) => {
 
     monitor.monitorsList.monitors.forEach(item => {
         item.monitors = item.monitors.filter(
-            monitor => monitor.componentId._id === componentId
+            monitor => monitor.componentId._id === component._id
         );
     });
 
@@ -546,7 +553,7 @@ const mapStateToProps = (state, props) => {
 
     return {
         monitor,
-        componentId,
+        componentId: component && component._id,
         currentProject: state.project.currentProject,
         incidents: state.incident.unresolvedincidents.incidents,
         monitors: state.monitor.monitorsList.monitors,

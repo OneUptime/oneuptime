@@ -152,11 +152,11 @@ ComponentSettingsAdvanced.propTypes = {
 };
 
 const mapStateToProps = (state, ownProps) => {
-    const { componentId } = ownProps.match.params;
+    const { componentSlug } = ownProps.match.params;
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
+            if (String(c.slug) === String(componentSlug)) {
                 component = c;
             }
         });

@@ -79,6 +79,7 @@ class ErrorEventDetail extends Component {
             errorTrackerSlug,
             deleteErrorTrackerIssue,
             currentProject,
+            componentSlug,
         } = this.props;
         const promise = deleteErrorTrackerIssue(
             projectId,
@@ -87,7 +88,7 @@ class ErrorEventDetail extends Component {
             issue._id
         );
         history.push(
-            `/dashboard/project/${currentProject.slug}/${componentId}/error-trackers/${errorTrackerSlug}`
+            `/dashboard/project/${currentProject.slug}/${componentSlug}/error-trackers/${errorTrackerSlug}`
         );
 
         return promise;
@@ -222,6 +223,7 @@ ErrorEventDetail.propTypes = {
     ignoreErrorEvent: PropTypes.func,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     errorTrackerId: PropTypes.string,
     errorTrackerSlug: PropTypes.string,
     errorTrackerIssue: PropTypes.object,

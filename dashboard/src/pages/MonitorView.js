@@ -497,6 +497,15 @@ class MonitorView extends React.Component {
                                                                                             .monitor
                                                                                             ._id
                                                                                     }
+                                                                                    componentSlug={
+                                                                                        this
+                                                                                            .props
+                                                                                            .component &&
+                                                                                        this
+                                                                                            .props
+                                                                                            .component
+                                                                                            .slug
+                                                                                    }
                                                                                 />
                                                                             </ShouldRender>
                                                                             <ShouldRender
@@ -582,6 +591,15 @@ class MonitorView extends React.Component {
                                                                                         this
                                                                                             .props
                                                                                             .monitor
+                                                                                    }
+                                                                                    componentSlug={
+                                                                                        this
+                                                                                            .props
+                                                                                            .component &&
+                                                                                        this
+                                                                                            .props
+                                                                                            .component
+                                                                                            .slug
                                                                                     }
                                                                                 />
                                                                             </div>
@@ -764,6 +782,15 @@ class MonitorView extends React.Component {
                                                                                             .props
                                                                                             .monitor
                                                                                     }
+                                                                                    componentSlug={
+                                                                                        this
+                                                                                            .props
+                                                                                            .component &&
+                                                                                        this
+                                                                                            .props
+                                                                                            .component
+                                                                                            .slug
+                                                                                    }
                                                                                 />
                                                                             </div>
                                                                             <div className="Box-root Margin-bottom--12">
@@ -804,7 +831,7 @@ class MonitorView extends React.Component {
 
 const mapStateToProps = (state, props) => {
     const scheduleWarning = [];
-    const { componentId, monitorSlug } = props.match.params;
+    const { componentSlug, monitorSlug } = props.match.params;
     const schedules = state.schedule.schedules;
     state.schedule.subProjectSchedules.forEach(item => {
         item.schedules.forEach(item => {
@@ -817,7 +844,7 @@ const mapStateToProps = (state, props) => {
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
+            if (String(c.slug) === String(componentSlug)) {
                 component = c;
             }
         });
@@ -1005,14 +1032,14 @@ const mapStateToProps = (state, props) => {
         scheduleWarning,
         projectId,
         monitorId,
+        component,
         slug: state.project.currentProject && state.project.currentProject.slug,
-        componentId,
+        componentId: component && component._id,
         monitor,
         edit: state.monitor.monitorsList.editMode ? true : false,
         initialValues,
         currentMonitorCriteria,
         match: props.match,
-        component,
         probeList: state.probe.probes,
         currentProject: state.project.currentProject,
         requestingIncidentSla:
@@ -1055,9 +1082,7 @@ MonitorView.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    component: PropTypes.shape({
-        name: PropTypes.string,
-    }),
+    component: PropTypes.object,
     getProbes: PropTypes.func.isRequired,
     probeList: PropTypes.object,
     currentProject: PropTypes.object.isRequired,

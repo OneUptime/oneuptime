@@ -300,14 +300,14 @@ class IncidentLog extends React.Component {
 }
 
 const mapStateToProps = (state, props) => {
-    const { componentId } = props.match.params;
+    const { componentSlug } = props.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     let subProjects = state.subProject.subProjects.subProjects;
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
+            if (String(c.slug) === String(componentSlug)) {
                 component = c;
             }
         });
@@ -337,7 +337,7 @@ const mapStateToProps = (state, props) => {
         }
     }
     return {
-        componentId,
+        componentId: component && component._id,
         currentProject: state.project.currentProject,
         incidents: state.incident.incidents,
         create: state.incident.newIncident.requesting,
