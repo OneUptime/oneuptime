@@ -115,4 +115,54 @@ public class FyipeTrackerTest {
         assertNotEquals(currentTimeline.get(0).getCategory(), this.sampleTimeline.getCategory()); //category is different from sample category
         assertNotEquals(currentTimeline.get(1).getType(), this.sampleTimeline.getType()); //type is different from sample type
     }
+    @Test
+    public void itShouldAddTags() throws IOException {
+        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        Tag tag = new Tag("user-type", "customer");
+        tracker.setTag(tag);
+        ArrayList<Tag> currentTags = tracker.getTags();
+        assertEquals(1, currentTags.size());
+        assertEquals(tag.getKey(), currentTags.get(0).getKey());
+    }
+    @Test
+    public void itShouldAddMultipleTags() throws IOException {
+        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        ArrayList<Tag> sampleTags = new ArrayList<Tag>();
+        sampleTags.add(new Tag("Content", "Audio"));
+        sampleTags.add(new Tag("Attribute", "Beautiful"));
+        sampleTags.add(new Tag("platform", "iOS"));
+
+        tracker.setTags(sampleTags);
+        ArrayList<Tag> currentTags = tracker.getTags();
+
+        assertEquals(sampleTags.size(), currentTags.size());
+    }
+    @Test
+    public void itShouldOverwriteExistingKeysToAvoidDuplicateTags() throws IOException {
+        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        ArrayList<Tag> sampleTags = new ArrayList<Tag>();
+        Tag tagA = new Tag("Content", "Audio");
+        sampleTags.add(tagA);
+
+        Tag tagB = new Tag("location", "Warsaw");
+        sampleTags.add(tagB);
+
+        Tag tagC = new Tag("Content", "Video"); // this exist so it should overwrite
+        sampleTags.add(tagC);
+
+        Tag tagD = new Tag("platform", "Electron Desktop");
+        sampleTags.add(tagD);
+
+        Tag tagE = new Tag("location", "Kent"); // this exist so it should overwrite
+        sampleTags.add(tagE);
+
+        tracker.setTags(sampleTags);
+        ArrayList<Tag> currentTags = tracker.getTags();
+
+        assertEquals(3, currentTags.size()); // only 3 unique tags
+        assertEquals(tagC.getKey(), currentTags.get(0).getKey()); // content will be key
+        assertEquals(tagC.getValue(), currentTags.get(0).getValue()); // video will be value
+        assertEquals(tagA.getKey(), currentTags.get(0).getKey()); // content will be key
+        assertNotEquals(tagA.getValue(), currentTags.get(0).getValue()); // audio wont be the value
+    }
 }

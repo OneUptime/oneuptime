@@ -91,14 +91,12 @@ public class FyipeTracker {
             this.tags.add(newTag);
         }
     }
-
     public void setTags(ArrayList<Tag> tags) {
         Iterator<Tag> tagIterator = tags.iterator();
         while (tagIterator.hasNext()) {
             this.setTag(tagIterator.next());
         }
     }
-
     public ArrayList<Tag> getTags() {
         return this.tags;
     }
