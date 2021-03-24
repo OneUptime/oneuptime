@@ -174,78 +174,38 @@ function createDir(dirPath) {
                         fetchCredential(apiHost, privateKey, privateKeyPath),
                     ]);
 
-                    console.log(
-                        '******* DEBUGGING KEY *********',
-                        fs.readFileSync(privateKeyPath)
-                    );
-                    console.log(
-                        '******* DEBUGGING CERT *********',
-                        fs.readFileSync(certPath)
-                    );
-                    cb(
+                    return cb(
                         null,
                         tls.createSecureContext({
                             key: fs.readFileSync(privateKeyPath),
                             cert: fs.readFileSync(certPath),
                         })
                     );
-                } else {
-                    cb(
-                        null,
-                        tls.createSecureContext({
-                            cert: fs.readFileSync(
-                                path.resolve(
-                                    process.cwd(),
-                                    'src',
-                                    'credentials',
-                                    'certificate.crt'
-                                )
-                            ),
-                            key: fs.readFileSync(
-                                path.resolve(
-                                    process.cwd(),
-                                    'src',
-                                    'credentials',
-                                    'private.key'
-                                )
-                            ),
-                        })
-                    );
                 }
             }
-            console.log('***** DEBUGGING: RES *******', res);
 
-            // if (certPath && privateKeyPath) {
-            //     cb(
-            //         null,
-            //         tls.createSecureContext({
-            //             key: fs.readFileSync(privateKeyPath),
-            //             cert: fs.readFileSync(certPath),
-            //         })
-            //     );
-            // } else {
-            //     cb(
-            //         null,
-            //         tls.createSecureContext({
-            //             cert: fs.readFileSync(
-            //                 path.resolve(
-            //                     process.cwd(),
-            //                     'src',
-            //                     'credentials',
-            //                     'certificate.crt'
-            //                 )
-            //             ),
-            //             key: fs.readFileSync(
-            //                 path.resolve(
-            //                     process.cwd(),
-            //                     'src',
-            //                     'credentials',
-            //                     'private.key'
-            //                 )
-            //             ),
-            //         })
-            //     );
-            // }
+            // default for custom domains without cert/key credentials
+            return cb(
+                null,
+                tls.createSecureContext({
+                    cert: fs.readFileSync(
+                        path.resolve(
+                            process.cwd(),
+                            'src',
+                            'credentials',
+                            'certificate.crt'
+                        )
+                    ),
+                    key: fs.readFileSync(
+                        path.resolve(
+                            process.cwd(),
+                            'src',
+                            'credentials',
+                            'private.key'
+                        )
+                    ),
+                })
+            );
         },
     };
     http.createServer(app).listen(3006, () =>
