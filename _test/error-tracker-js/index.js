@@ -10,8 +10,8 @@ const options = {
 // constructor                    
 const tracker = new fyipe.ErrorTracker(                    
     'https://staging.fyipe.com/api',
-    '6050f9c65039a2001285d874',
-    'f713e405-c4d4-481f-bf00-2afae72a7267',
+    '605bad70ae110c0013e14005',
+    'cb4b107a-7f28-464d-9fda-32715fa4cd68',
     options // Optional Field
 );
          
