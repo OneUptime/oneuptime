@@ -176,9 +176,12 @@ function createDir(dirPath) {
 
                     console.log(
                         '******* DEBUGGING KEY *********',
-                        privateKeyPath
+                        fs.readFileSync(privateKeyPath)
                     );
-                    console.log('******* DEBUGGING CERT *********', certPath);
+                    console.log(
+                        '******* DEBUGGING CERT *********',
+                        fs.readFileSync(certPath)
+                    );
                     cb(
                         null,
                         tls.createSecureContext({
