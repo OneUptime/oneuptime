@@ -211,7 +211,7 @@ export class ComponentDetail extends Component {
                                             '/dashboard/project/' +
                                                 currentProject.slug +
                                                 '/' +
-                                                component._id +
+                                                component.slug +
                                                 '/monitoring'
                                         );
                                         this.props.animateSidebar(false);

@@ -25,7 +25,7 @@ export class IncidentDeleteBox extends Component {
             this.props.incident.projectId._id || this.props.incident.projectId;
         const incidentId = this.props.incident._id;
         const monitorSlug = this.props.monitorSlug;
-        const componentSlug = this.props.component.slug;
+        const componentSlug = this.props.componentSlug;
 
         const promise = this.props.deleteIncident(projectId, incidentId);
         promise.then(() => {
@@ -129,7 +129,7 @@ IncidentDeleteBox.propTypes = {
     deleting: PropTypes.bool.isRequired,
     monitorSlug: PropTypes.string,
     currentProject: PropTypes.object,
-    component: PropTypes.string,
+    componentSlug: PropTypes.string,
 };
 
 export default withRouter(

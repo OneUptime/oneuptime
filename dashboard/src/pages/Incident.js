@@ -525,7 +525,7 @@ class Incident extends React.Component {
                         </TabPanel>
                         <TabPanel>
                             <Fade>
-                                <RenderIfSubProjectAdmin>           
+                                <RenderIfSubProjectAdmin>
                                     <IncidentDeleteBox
                                         incident={this.props.incident}
                                         deleting={this.props.deleting}
@@ -533,7 +533,10 @@ class Incident extends React.Component {
                                             this.props.currentProject
                                         }
                                         monitorSlug={this.props.monitor.slug}
-                                        component={this.props.component}
+                                        componentSlug={
+                                            this.props.component &&
+                                            this.props.component.slug
+                                        }
                                         componentId={this.props.componentId}
                                     />
                                 </RenderIfSubProjectAdmin>

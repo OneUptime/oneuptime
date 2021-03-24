@@ -1014,6 +1014,7 @@ export default function incident(state = initialState, action) {
                                     monitorId: {
                                         ...incident.monitorId,
                                         name: action.payload.name,
+                                        slug: action.payload.slug,
                                     },
                                 };
                             } else {

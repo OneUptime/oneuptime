@@ -296,9 +296,16 @@ export class IncidentStatus extends Component {
         const incidentIdNumber = this.props.incident
             ? this.props.incident.idNumber
             : '';
-        const componentSlug = this.props.componentSlug
-            ? this.props.componentSlug
-            : '';
+        const componentSlug = this
+        .props
+        .incident
+        .monitorId
+        .componentId ?this
+        .props
+        .incident
+        .monitorId
+        .componentId
+        .slug : '';
         const homeRoute = this.props.currentProject
             ? '/dashboard/project/' + this.props.currentProject.slug
             : '';
@@ -2387,7 +2394,6 @@ const EditIncidentStatusForm = reduxForm({
 const selector = formValueSelector('IncidentStatusForm');
 const mapStateToProps = (state, ownProps) => {
     const incident = ownProps.incident;
-    const { componentSlug }=ownProps.match.params;
     const initialValues = {
         title: incident.title,
         description: incident.description,
@@ -2408,7 +2414,6 @@ const mapStateToProps = (state, ownProps) => {
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
         initialValues,
         description,
-        componentSlug,
         incidentPriority,
     };
 };
@@ -2446,7 +2451,6 @@ IncidentStatus.propTypes = {
     projectId: PropTypes.string,
     description: PropTypes.string,
     componentId: PropTypes.string,
-    componentSlug: PropTypes.string,
     route: PropTypes.string,
     incidentRequest: PropTypes.object.isRequired,
     multipleIncidentRequest: PropTypes.object,
