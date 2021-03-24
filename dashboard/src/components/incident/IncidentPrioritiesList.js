@@ -74,22 +74,18 @@ class IncidentPrioritiesListClass extends React.Component {
                                                                 incidentPriority._id
                                                             }
                                                         >
-                                                            <span
-                                                                id={`priority_${incidentPriority.name}_${index}_default`}
+                                                            <div                                                                
                                                                 style={{
-                                                                    marginLeft: 10,
-                                                                    padding:
-                                                                        '5px',
-                                                                    color:
-                                                                        'green',
-                                                                    border:
-                                                                        '1px solid green',
-                                                                    borderRadius:
-                                                                        '25px',
+                                                                    marginLeft: 5,
                                                                 }}
+                                                                className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
                                                             >
-                                                                Default
-                                                            </span>
+                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                    <span
+                                                                        id={`priority_${incidentPriority.name}_${index}_default`}
+                                                                    >Default</span>
+                                                                </span>
+                                                            </div>
                                                         </ShouldRender>
                                                     </span>
                                                 </div>
