@@ -300,7 +300,7 @@ module.exports = {
                 .populate({
                     path: 'monitorId',
                     select: '_id name slug',
-                    populate: { path: 'componentId', select: '_id name' },
+                    populate: { path: 'componentId', select: '_id name slug' },
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
@@ -359,7 +359,7 @@ module.exports = {
                 .populate({
                     path: 'monitorId',
                     select: '_id name slug',
-                    populate: { path: 'componentId', select: '_id name' },
+                    populate: { path: 'componentId', select: '_id name slug' },
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
