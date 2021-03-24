@@ -170,6 +170,6 @@ exit                                            # This is important.
 kubectl exec -it fi-mongodb-primary-0 mongo
 use fyipedb
 db.auth('fyipe','password')
-db.users.find({email: 'admin@fyipe.com',}) # Master admin user. Should be already signed up.
+db.users.find({email: 'admin@fyipe.com'}) # Master admin user. Should be already signed up.
 db.users.update({email: 'admin@fyipe.com'}, {$set:{ role: 'master-admin'}}) # Update the user
 ```

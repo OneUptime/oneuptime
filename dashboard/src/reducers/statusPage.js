@@ -82,6 +82,9 @@ import {
     DUPLICATE_STATUSPAGE_SUCCESS,
     DUPLICATE_STATUSPAGE_FAILURE,
     DUPLICATE_STATUSPAGE_RESET,
+    RESET_BRANDING_COLORS_REQUEST,
+    RESET_BRANDING_COLORS_SUCCESS,
+    RESET_BRANDING_COLORS_FAILURE,
 } from '../constants/statusPage';
 
 import {
@@ -220,6 +223,11 @@ const INITIAL_STATE = {
         error: null,
     },
     resetEmbeddedCss: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    resetBrandingColors: {
         requesting: false,
         success: false,
         error: null,
@@ -636,7 +644,6 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     success: false,
                 },
             });
-
         case UPDATE_PRIVATE_STATUSPAGE_RESET:
             return Object.assign({}, state, {
                 ...INITIAL_STATE,
@@ -1254,6 +1261,32 @@ export default function statusPage(state = INITIAL_STATE, action) {
         case SHOW_DUPLICATE_STATUSPAGE:
             return Object.assign({}, state, {
                 showDuplicateStatusPage: action.payload,
+            });
+
+        case RESET_BRANDING_COLORS_REQUEST:
+            return Object.assign({}, state, {
+                resetBrandingColors: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case RESET_BRANDING_COLORS_SUCCESS:
+            return Object.assign({}, state, {
+                resetBrandingColors: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                colors: action.payload.colors,
+            });
+        case RESET_BRANDING_COLORS_FAILURE:
+            return Object.assign({}, state, {
+                resetBrandingColors: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
             });
 
         case 'CERT_FILE_REQUEST':

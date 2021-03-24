@@ -1115,6 +1115,58 @@ export function updateStatusPageEmbeddedCss(projectId, data) {
     };
 }
 
+//reset branding colors
+export function resetBrandingColorsRequest() {
+    return {
+        type: types.RESET_BRANDING_COLORS_REQUEST,
+    };
+}
+
+export function resetBrandingColorsSuccess(colors) {
+    return {
+        type: types.RESET_BRANDING_COLORS_SUCCESS,
+        payload: colors,
+    };
+}
+
+export function resetBrandingColorsError(error) {
+    return {
+        type: types.RESET_BRANDING_COLORS_FAILURE,
+        payload: error,
+    };
+}
+
+// Calls the API to reset colors.
+export function resetBrandingColors(projectId, statusPageId) {
+    return function(dispatch) {
+        const promise = putApi(
+            `statusPage/${projectId}/${statusPageId}/resetColors`
+        );
+        dispatch(resetBrandingColorsRequest());
+        promise.then(
+            function(response) {
+                const colors = response.data;
+                dispatch(resetBrandingColorsSuccess(colors));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(resetBrandingColorsError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
 //Update status page embedded css
 
 export function resetStatusPageEmbeddedCssRequest() {

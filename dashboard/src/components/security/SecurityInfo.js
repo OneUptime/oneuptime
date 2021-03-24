@@ -52,7 +52,7 @@ const SecurityInfo = ({
     };
 
     const more = () => {
-        const securitySlug = containerSecuritySlug || applicationSecuritySlug; 
+        const securitySlug = containerSecuritySlug || applicationSecuritySlug;
 
         type =
             (type === 'container' && 'container') ||
@@ -340,6 +340,7 @@ SecurityInfo.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     applicationSecuritySlug: PropTypes.string,
+    containerSecuritySlug: PropTypes.string,
     applicationSecurityLog: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),

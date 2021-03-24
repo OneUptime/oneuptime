@@ -7,7 +7,7 @@ import { connect } from 'react-redux';
 import PropsType from 'prop-types';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { logEvent } from '../analytics';
-import { fetchErrorTrackers } from '../actions/errorTracker';
+import { fetchErrorTrackers, editErrorTracker } from '../actions/errorTracker';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
@@ -30,6 +30,19 @@ class ErrorTrackingView extends Component {
             : null;
 
         this.props.fetchErrorTrackers(projectId, componentId);
+    };
+    handleCloseQuickStart = () => {
+        const postObj = { showQuickStart: false };
+        const { errorTracker, editErrorTracker } = this.props;
+        const projectId = this.props.currentProject
+            ? this.props.currentProject._id
+            : null;
+        editErrorTracker(
+            projectId,
+            errorTracker[0].componentId._id,
+            errorTracker[0]._id,
+            postObj
+        );
     };
     render() {
         const {
@@ -62,11 +75,16 @@ class ErrorTrackingView extends Component {
                         <LoadingState />
                     </ShouldRender>
                     <ShouldRender if={errorTracker && errorTracker[0]}>
-                        <LibraryList
-                            title="Error Tracking"
-                            type="errorTracking"
-                            errorTracker={errorTracker[0]}
-                        />
+                        {errorTracker &&
+                        errorTracker[0] &&
+                        errorTracker[0].showQuickStart ? (
+                            <LibraryList
+                                title="Error Tracking"
+                                type="errorTracking"
+                                errorTracker={errorTracker[0]}
+                                close={this.handleCloseQuickStart}
+                            />
+                        ) : null}
                         <div>
                             <ErrorTrackerDetail
                                 componentId={component?._id}
@@ -94,6 +112,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             fetchErrorTrackers,
+            editErrorTracker,
         },
         dispatch
     );
@@ -124,5 +143,6 @@ ErrorTrackingView.propTypes = {
     location: PropsType.object,
     fetchErrorTrackers: PropsType.func,
     errorTracker: PropsType.array,
+    editErrorTracker: PropsType.func,
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorTrackingView);

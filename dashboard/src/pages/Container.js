@@ -153,7 +153,6 @@ class Container extends Component {
                                                                         projectId={
                                                                             projectId
                                                                         }
-
                                                                         componentId={
                                                                             componentId
                                                                         }

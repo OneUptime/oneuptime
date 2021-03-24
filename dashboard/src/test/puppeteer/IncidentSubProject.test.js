@@ -77,11 +77,19 @@ describe('Incident API With SubProjects', () => {
                     },
                     page
                 );
-                // This navigates to component details as well as creates monitor                
+                // This navigates to component details as well as creates monitor
                 // add new montor to parent project
-                await init.addNewMonitorToComponent(page, componentName, projectMonitorName);
+                await init.addNewMonitorToComponent(
+                    page,
+                    componentName,
+                    projectMonitorName
+                );
                 // add new monitor to sub-project
-                await init.addNewMonitorToComponent(page, componentName, projectMonitorName1);                             
+                await init.addNewMonitorToComponent(
+                    page,
+                    componentName,
+                    projectMonitorName1
+                );
 
                 // Navigate to details page of monitor
                 await init.navigateToComponentDetails(componentName, page);

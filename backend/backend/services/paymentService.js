@@ -302,8 +302,8 @@ module.exports = {
                 throw error;
             } else {
                 let trial_end_date;
-                if(subscription.trial_end !== null){
-                    trial_end_date = subscription.trial_end
+                if (subscription.trial_end !== null) {
+                    trial_end_date = subscription.trial_end;
                 }
 
                 for (let i = 0; i < subscription.items.data.length; i++) {

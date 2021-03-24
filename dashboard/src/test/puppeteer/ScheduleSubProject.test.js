@@ -156,7 +156,7 @@ describe('Schedule API With SubProjects', () => {
                         data.scheduleName,
                         data.subProjectName,
                         page
-                    );                    
+                    );
                     await page.waitForSelector(
                         `#schedule_count_${data.subProjectName}`
                     );
@@ -194,7 +194,7 @@ describe('Schedule API With SubProjects', () => {
                         scheduleName,
                         data.subProjectName,
                         page
-                    );                    
+                    );
                 }
             } else {
                 // await cluster.waitForOne();

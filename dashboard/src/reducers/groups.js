@@ -7,6 +7,7 @@ const initialState = {
     deleteGroup: { requesting: false, success: false, error: null },
     updateGroup: { requesting: {}, success: false, error: null },
     groups: [],
+    oncallDuty: [],
 };
 
 export default function groups(state = initialState, action) {
@@ -146,6 +147,7 @@ export default function groups(state = initialState, action) {
                     success: true,
                     error: null,
                 },
+                oncallDuty: action.payload,
                 groups: state.groups.map(projectGroup => {
                     const projectId = action.payload.groups[0].projectId._id;
                     if (projectGroup.project.id === projectId) {
