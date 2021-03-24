@@ -41,7 +41,7 @@ class ApplicationLogDetail extends Component {
             this.props.index
         );
         history.push(
-            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/application-log`
+            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/application-log`
         );
         // crashing the application
         // if (SHOULD_LOG_ANALYTICS) {
@@ -96,12 +96,12 @@ class ApplicationLogDetail extends Component {
         // }
     };
     viewMore = () => {
-        const { currentProject, componentId, applicationLog } = this.props;
+        const { currentProject, componentSlug, applicationLog } = this.props;
         history.push(
             '/dashboard/project/' +
                 currentProject.slug +
                 '/' +
-                componentId +
+                componentSlug +
                 '/application-logs/' +
                 applicationLog.slug
         );
@@ -364,6 +364,7 @@ function mapStateToProps(state, ownProps) {
 
 ApplicationLogDetail.propTypes = {
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     index: PropTypes.string,
     applicationLog: PropTypes.object,
     currentProject: PropTypes.object,

@@ -305,9 +305,16 @@ export class IncidentStatus extends Component {
         const incidentIdNumber = this.props.incident
             ? this.props.incident.idNumber
             : '';
-        const componentId = this.props.incident
-            ? this.props.incident.monitorId.componentId._id
-            : '';
+        const componentSlug = this
+        .props
+        .incident
+        .monitorId
+        .componentId ?this
+        .props
+        .incident
+        .monitorId
+        .componentId
+        .slug : '';
         const homeRoute = this.props.currentProject
             ? '/dashboard/project/' + this.props.currentProject.slug
             : '';
@@ -315,14 +322,14 @@ export class IncidentStatus extends Component {
             ? '/dashboard/project/' +
               this.props.currentProject.slug +
               '/' +
-              componentId +
+              componentSlug +
               '/monitoring'
             : '';
         const incidentRoute = this.props.currentProject
             ? '/dashboard/project/' +
               this.props.currentProject.slug +
               '/' +
-              componentId +
+              componentSlug +
               '/incidents/' +
               this.props.incident._idNumber
             : '';
@@ -406,7 +413,10 @@ export class IncidentStatus extends Component {
             return valueTxt;
         };
 
-        const teamMembers = this.getOnCallTeamMembers();
+        let teamMembers = this.getOnCallTeamMembers();
+        if(!teamMembers){
+            teamMembers = [];
+        }
         const team = teamMembers.filter(member => member.userId);
         return (
             <>
@@ -739,7 +749,7 @@ export class IncidentStatus extends Component {
                                                                             .currentProject
                                                                             .slug +
                                                                         '/' +
-                                                                        componentId +
+                                                                        componentSlug +
                                                                         '/monitoring'
                                                                     }
                                                                     id="backToComponentView"
@@ -768,7 +778,7 @@ export class IncidentStatus extends Component {
                                                                             .currentProject
                                                                             .slug +
                                                                         '/' +
-                                                                        componentId +
+                                                                        componentSlug +
                                                                         '/monitoring/' +
                                                                         this
                                                                             .props
@@ -2255,7 +2265,7 @@ export class IncidentStatus extends Component {
                                         onClick={() => {
                                             setTimeout(() => {
                                                 history.push(
-                                                    `/dashboard/project/${this.props.currentProject.slug}/${componentId}/incidents/${incidentIdNumber}`
+                                                    `/dashboard/project/${this.props.currentProject.slug}/${componentSlug}/incidents/${incidentIdNumber}`
                                                 );
                                                 this.props.animateSidebar(
                                                     false

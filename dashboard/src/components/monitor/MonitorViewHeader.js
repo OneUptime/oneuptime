@@ -111,7 +111,7 @@ export class MonitorViewHeader extends Component {
             this.props.monitor.projectId._id || this.props.monitor.projectId
         );
         history.push(
-            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/monitoring`
+            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/monitoring`
         );
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -418,7 +418,7 @@ export class MonitorViewHeader extends Component {
 MonitorViewHeader.displayName = 'MonitorViewHeader';
 
 MonitorViewHeader.propTypes = {
-    componentId: PropTypes.string.isRequired,
+    componentSlug: PropTypes.string.isRequired,
     monitor: PropTypes.object.isRequired,
     editMonitorSwitch: PropTypes.func.isRequired,
     fetchMonitorLogs: PropTypes.func.isRequired,

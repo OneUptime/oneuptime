@@ -87,6 +87,7 @@ class ContainerSecurityDetail extends Component {
             containerSecurity,
             projectId,
             componentId,
+            componentSlug,
             containerSecurityId,
             containerSecuritySlug,
             isRequesting,
@@ -156,6 +157,7 @@ class ContainerSecurityDetail extends Component {
                         containerSecuritySlug={containerSecuritySlug}
                         isRequesting={isRequesting}
                         containerSecurity={containerSecurity}
+                        componentSlug={componentSlug}
                     />
                 </ShouldRender>
                 <ShouldRender
@@ -177,11 +179,12 @@ class ContainerSecurityDetail extends Component {
                         !gettingCredentials
                     }
                 >
-                    <ContainerSecurityDeleteBox
+                    <ContainerSecurityDeleteBox 
                         projectId={projectId}
                         componentId={componentId}
                         containerSecurityId={containerSecurityId}
                         containerSecuritySlug={containerSecuritySlug}
+                        componentSlug={componentSlug}
                     />
                 </ShouldRender>
                 <ShouldRender
@@ -206,6 +209,7 @@ ContainerSecurityDetail.displayName = 'Container Security Detail';
 ContainerSecurityDetail.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     containerSecurityId: PropTypes.string,
     getContainerSecurityLogBySlug: PropTypes.func,
     getContainerSecurityBySlug: PropTypes.func,
@@ -254,12 +258,12 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, ownProps) => {
-    const { componentId, containerSecuritySlug } = ownProps.match.params;
+    const { componentSlug, containerSecuritySlug } = ownProps.match.params;
     const components = [];
     // filter to get the actual component
     state.component.componentList.components.map(item =>
         item.components.map(component => {
-            if (String(component._id) === String(componentId)) {
+            if (String(component.slug) === String(componentSlug)) {
                 components.push(component);
             }
             return component;
@@ -269,7 +273,8 @@ const mapStateToProps = (state, ownProps) => {
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
-        componentId,
+        componentId: components[0] && components[0]._id,
+        componentSlug: components[0] && components[0].slug,
         containerSecuritySlug,
         containerSecurity: state.security.containerSecurity,
         isRequesting: state.security.getContainer.requesting,

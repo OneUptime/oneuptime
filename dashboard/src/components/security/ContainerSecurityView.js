@@ -20,6 +20,7 @@ const ContainerSecurityView = ({
     containerSecuritySlug,
     projectId,
     componentId,
+    componentSlug,
     openModal,
     scanContainerSecurity,
     securityLog,
@@ -43,6 +44,7 @@ const ContainerSecurityView = ({
                     componentId,
                     containerSecurityId,
                     containerSecuritySlug,
+                    componentSlug,
                 },
             ],
         });
@@ -311,6 +313,7 @@ ContainerSecurityView.propTypes = {
     containerSecuritySlug: PropTypes.string,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     openModal: PropTypes.func,
     scanContainerSecurity: PropTypes.func,
     scanning: PropTypes.bool,

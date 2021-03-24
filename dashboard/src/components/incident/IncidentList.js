@@ -215,7 +215,7 @@ export class IncidentList extends Component {
                                                             '/' +
                                                             incident.monitorId
                                                                 .componentId
-                                                                ._id +
+                                                                .slug +
                                                             '/incidents/' +
                                                             incident.idNumber
                                                     );

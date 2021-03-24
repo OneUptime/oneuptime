@@ -24,9 +24,7 @@ class ErrorTrackingView extends Component {
         }
     }
     ready = () => {
-        const componentId = this.props.match.params.componentId
-            ? this.props.match.params.componentId
-            : null;
+        const componentId = this.props.component && this.props.component._id;
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
@@ -92,6 +90,7 @@ class ErrorTrackingView extends Component {
                                 componentId={component?._id}
                                 index={errorTracker[0]?._id}
                                 isDetails={true}
+                                componentSlug={component?.slug}
                             />
                         </div>
 
@@ -119,12 +118,12 @@ const mapDispatchToProps = dispatch => {
     );
 };
 const mapStateToProps = (state, ownProps) => {
-    const { componentId, errorTrackerSlug } = ownProps.match.params;
+    const { componentSlug, errorTrackerSlug } = ownProps.match.params;
     const currentProject = state.project.currentProject;
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
+            if (String(c.slug) === String(componentSlug)) {
                 component = c;
             }
         });
@@ -142,7 +141,6 @@ ErrorTrackingView.propTypes = {
     component: PropsType.object,
     currentProject: PropsType.object,
     location: PropsType.object,
-    match: PropsType.object,
     fetchErrorTrackers: PropsType.func,
     errorTracker: PropsType.array,
     editErrorTracker: PropsType.func,

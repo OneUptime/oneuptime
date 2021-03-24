@@ -69,7 +69,7 @@ class Application extends Component {
 
         socket.on(`createApplicationSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${this.props.slug}/${componentId}/security/application/${data.slug}`
+                `/dashboard/project/${this.props.slug}/${component.slug}/security/application/${data.slug}`
             );
         });
         const applicationSecurities = appSecurities
@@ -148,6 +148,9 @@ class Application extends Component {
                                                                         componentId={
                                                                             componentId
                                                                         }
+                                                                        componentSlug={
+                                                                            component.slug
+                                                                        }
                                                                     />
                                                                 </div>
                                                             </div>
@@ -200,18 +203,18 @@ Application.propTypes = {
 };
 
 const mapStateToProps = (state, ownProps) => {
-    const { componentId } = ownProps.match.params;
+    const { componentSlug } = ownProps.match.params;
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
+            if (String(c.slug) === String(componentSlug)) {
                 component = c;
             }
         });
     });
 
     return {
-        componentId,
+        componentId: component && component._id,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
         slug: state.project.currentProject && state.project.currentProject.slug,

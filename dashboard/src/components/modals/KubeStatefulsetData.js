@@ -47,6 +47,7 @@ class KubeStatefulsetData extends React.Component {
                 return 'Self Link';
             case 'statefulsetUid':
                 return 'UID';
+            // no default
         }
     };
 

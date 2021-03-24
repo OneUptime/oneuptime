@@ -26,9 +26,7 @@ class ErrorEventView extends Component {
         }
     }
     ready = () => {
-        const componentId = this.props.match.params.componentId
-            ? this.props.match.params.componentId
-            : null;
+        const componentId = this.props.component && this.props.component._id;
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
@@ -69,7 +67,7 @@ class ErrorEventView extends Component {
             '/dashboard/project/' +
                 currentProject.slug +
                 '/' +
-                component._id +
+                component.slug +
                 '/error-trackers/' +
                 errorTracker[0].slug +
                 '/events/' +
@@ -123,6 +121,7 @@ class ErrorEventView extends Component {
                             <ErrorEventDetail
                                 errorEvent={errorEvent}
                                 componentId={component && component._id}
+                                componentSlug={component && component.slug}
                                 projectId={currentProject && currentProject._id}
                                 errorTrackerId={
                                     errorTracker[0] && errorTracker[0]._id
@@ -153,7 +152,7 @@ const mapDispatchToProps = dispatch => {
 };
 const mapStateToProps = (state, ownProps) => {
     const {
-        componentId,
+        componentSlug,
         errorTrackerSlug,
         errorEventId,
     } = ownProps.match.params;
@@ -164,7 +163,7 @@ const mapStateToProps = (state, ownProps) => {
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
+            if (String(c.slug) === String(componentSlug)) {
                 component = c;
             }
         });

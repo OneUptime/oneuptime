@@ -20,12 +20,18 @@ class MonitorViewChangeComponentBox extends Component {
         this.state = { changeMonitorComponentModalId: uuidv4() };
     }
 
-    handleMonitorComponentChanged = async (monitor, oldComponentId) => {
+    handleMonitorComponentChanged = async (
+        monitor,
+        oldComponentId,
+        newComponent
+    ) => {
         const { currentProject } = this.props;
 
         const { projectId, _id: monitorId, componentId, slug } = monitor;
 
-        const redirectTo = `/dashboard/project/${currentProject.slug}/${componentId._id}/monitoring/${slug}`;
+        const redirectTo = `/dashboard/project/${
+            currentProject.slug
+        }/${newComponent && newComponent.slug}/monitoring/${slug}`;
         history.push(redirectTo);
 
         if (SHOULD_LOG_ANALYTICS) {
@@ -70,6 +76,7 @@ class MonitorViewChangeComponentBox extends Component {
         }
         const { changeMonitorComponentModalId } = this.state;
         const oldComponentId = this.props.monitor.componentId;
+        const newComponent = this.props.component;
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -105,7 +112,8 @@ class MonitorViewChangeComponentBox extends Component {
                                                 onConfirm: monitor =>
                                                     this.handleMonitorComponentChanged(
                                                         monitor,
-                                                        oldComponentId
+                                                        oldComponentId,
+                                                        newComponent
                                                     ),
                                                 content: DataPathHoC(
                                                     ChangeMonitorComponent,
@@ -142,10 +150,20 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
+    const currentComponentId = props.monitor.componentId;
+    let component;
+    state.component.componentList.components.forEach(item => {
+        item.components.forEach(c => {
+            if (String(c._id) === String(currentComponentId)) {
+                component = c;
+            }
+        });
+    });
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
+        component,
     };
 };
 
@@ -156,6 +174,7 @@ MonitorViewChangeComponentBox.propTypes = {
     monitor: PropTypes.object.isRequired,
     changeMonitorComponent: PropTypes.func.isRequired,
     currentProject: PropTypes.object,
+    component: PropTypes.object,
 };
 
 export default withRouter(
