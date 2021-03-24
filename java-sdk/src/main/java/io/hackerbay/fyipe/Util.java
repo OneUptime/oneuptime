@@ -8,6 +8,11 @@ enum ErrorEventType {
     info,
     warning
 }
+enum ErrorObjectType {
+    message,
+    error,
+    exception
+}
 public class Util {
     private TrackerOption options;
 
