@@ -1,6 +1,7 @@
 package io.hackerbay.fyipe;
 
 import com.google.gson.JsonObject;
+import io.hackerbay.fyipe.model.StackTrace;
 import io.hackerbay.fyipe.model.Tag;
 import io.hackerbay.fyipe.model.Timeline;
 import io.hackerbay.fyipe.model.TrackerOption;
@@ -18,6 +19,7 @@ public class FyipeTracker {
     private String eventId;
     private FyipeListener fyipeListener;
     private ArrayList<Tag> tags = new ArrayList<Tag>();
+    private ArrayList<String> fingerprint = new ArrayList<String>();
 
     public FyipeTracker(String apiUrl, String errorTrackerId, String errorTrackerKey) {
         this(apiUrl, errorTrackerId, errorTrackerKey, null);
@@ -99,5 +101,38 @@ public class FyipeTracker {
     }
     public ArrayList<Tag> getTags() {
         return this.tags;
+    }
+    public void setFingerprint(String value) {
+        this.fingerprint.clear(); // clear existing fingerprint
+        // set string as fingerprint
+        this.fingerprint.add(value);
+    }
+    public void setFingerprint(ArrayList<String> value) {
+        // replace fingerprint array with the new passed array of strings
+        this.fingerprint = value;
+    }
+    public ArrayList<String> getFingerprint(String errorMessage) {
+        // if no fingerprint exist currently
+        if (this.fingerprint.size() < 1) {
+            // set up finger print based on error since none exist
+            this.setFingerprint(errorMessage);
+        }
+        return this.fingerprint;
+    }
+    public void captureMessage(String message) {
+        this.setTag(new Tag("handled","true"));
+        StackTrace messageStackTrace = new StackTrace(message);
+    }
+    public void prepareErrorEvent(String type, StackTrace errorStackTrace) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("message", errorStackTrace.getMessage());
+        // set a last timeline as the error message
+        this.fyipeListener.logErrorEvent(obj, type);
+        // get current timeline
+        ArrayList<Timeline> timeline = this.getTimeline();
+
+        ArrayList<Tag> tags = this.getTags();
+        // get event ID
+        // prepare the event so it can be sent to the server
     }
 }
