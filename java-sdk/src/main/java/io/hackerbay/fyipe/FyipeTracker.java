@@ -1,10 +1,12 @@
 package io.hackerbay.fyipe;
 
 import com.google.gson.JsonObject;
+import io.hackerbay.fyipe.model.Tag;
 import io.hackerbay.fyipe.model.Timeline;
 import io.hackerbay.fyipe.model.TrackerOption;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 
 public class FyipeTracker {
     private String apiUrl;
@@ -15,6 +17,7 @@ public class FyipeTracker {
     private Util util;
     private String eventId;
     private FyipeListener fyipeListener;
+    private ArrayList<Tag> tags = new ArrayList<Tag>();
 
     public FyipeTracker(String apiUrl, String errorTrackerId, String errorTrackerKey) {
         this(apiUrl, errorTrackerId, errorTrackerKey, null);
@@ -68,5 +71,35 @@ public class FyipeTracker {
     }
     public ArrayList<Timeline> getTimeline() {
         return this.fyipeListener.getTimeline();
+    }
+    public void setTag(Tag newTag) {
+        Iterator<Tag> tagIterator = this.tags.iterator();
+        Tag existingTag = null;
+        // find if tag exist with that key
+        while (tagIterator.hasNext()) { // O(n)
+            Tag currentTag = tagIterator.next();
+            if(currentTag.getKey() == newTag.getKey()) {
+                existingTag = currentTag;
+                break;
+            }
+        }
+        if(existingTag != null) {
+            // replace existing tag
+            this.tags.set(this.tags.indexOf(existingTag), newTag);
+        } else {
+            // add new tag
+            this.tags.add(newTag);
+        }
+    }
+
+    public void setTags(ArrayList<Tag> tags) {
+        Iterator<Tag> tagIterator = tags.iterator();
+        while (tagIterator.hasNext()) {
+            this.setTag(tagIterator.next());
+        }
+    }
+
+    public ArrayList<Tag> getTags() {
+        return this.tags;
     }
 }
