@@ -532,7 +532,10 @@ class Incident extends React.Component {
                                         currentProject={
                                             this.props.currentProject
                                         }
-                                        monitorSlug={this.props.monitor.slug}
+                                        monitorSlug={
+                                            this.props.monitor &&
+                                            this.props.monitor.slug
+                                        }
                                         componentSlug={
                                             this.props.component &&
                                             this.props.component.slug
