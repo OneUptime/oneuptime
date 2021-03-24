@@ -1,7 +1,7 @@
 /out
 /target
 /.idea
-log-java.iml
+java-sdk.iml
 .classpath
 .project
 /.settings/org.eclipse.*
