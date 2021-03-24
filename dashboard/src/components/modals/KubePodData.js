@@ -61,6 +61,7 @@ class KubePodData extends React.Component {
                 return 'Reason';
             case 'startedAt':
                 return 'Started At';
+            // no default
         }
     };
 

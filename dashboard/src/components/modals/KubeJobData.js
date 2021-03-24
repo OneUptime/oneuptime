@@ -57,6 +57,7 @@ class KubeJobData extends React.Component {
                 return 'Status';
             case 'type':
                 return 'Type';
+            // no default
         }
     };
 
