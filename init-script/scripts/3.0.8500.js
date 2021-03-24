@@ -5,7 +5,7 @@ const applicationSecurityCollection = 'applicationsecurities';
 
 async function run() {
     const applicationSecurities = await find(applicationSecurityCollection, {
-        deleted: false,
+        slug: { $exists: false }
     });
     for (let i = 0; i < applicationSecurities.length; i++) {
         let { name } = applicationSecurities[i];

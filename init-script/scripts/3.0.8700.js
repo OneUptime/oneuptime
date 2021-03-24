@@ -5,7 +5,7 @@ const logContainerCollection = 'applicationlogs';
 
 async function run() {
     const logContainers = await find(logContainerCollection, {
-        deleted: false,
+        slug: { $exists: false }
     });
     for (let i = 0; i < logContainers.length; i++) {
         let { name } = logContainers[i];
