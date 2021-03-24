@@ -153,8 +153,8 @@ function createDir(dirPath) {
             ).then(res => res.json());
 
             let certPath, privateKeyPath;
-            if (res.data) {
-                const { cert, privateKey } = res.data;
+            if (res) {
+                const { cert, privateKey } = res;
                 if (cert && privateKey) {
                     certPath = path.resolve(
                         process.cwd(),
