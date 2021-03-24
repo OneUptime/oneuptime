@@ -147,7 +147,6 @@ function createDir(dirPath) {
             } else {
                 apiHost = 'http://localhost:3002/api';
             }
-            console.log('******* API HOST *********', apiHost);
 
             const res = await fetch(
                 `${apiHost}/statusPage/tlsCredential?domain=${domain}`
@@ -174,48 +173,79 @@ function createDir(dirPath) {
                         fetchCredential(apiHost, cert, certPath),
                         fetchCredential(apiHost, privateKey, privateKeyPath),
                     ]);
+
+                    cb(
+                        null,
+                        tls.createSecureContext({
+                            key: fs.readFileSync(privateKeyPath),
+                            cert: fs.readFileSync(certPath),
+                        })
+                    );
+                    console.log(
+                        '******* DEBUGGING KEY *********',
+                        fs.readFileSync(privateKeyPath)
+                    );
+                    console.log(
+                        '******* DEBUGGING CERT *********',
+                        fs.readFileSync(certPath)
+                    );
+                } else {
+                    cb(
+                        null,
+                        tls.createSecureContext({
+                            cert: fs.readFileSync(
+                                path.resolve(
+                                    process.cwd(),
+                                    'src',
+                                    'credentials',
+                                    'certificate.crt'
+                                )
+                            ),
+                            key: fs.readFileSync(
+                                path.resolve(
+                                    process.cwd(),
+                                    'src',
+                                    'credentials',
+                                    'private.key'
+                                )
+                            ),
+                        })
+                    );
                 }
             }
             console.log('***** DEBUGGING: RES *******', res);
-            console.log(
-                '******* DEBUGGING KEY *********',
-                fs.readFileSync(privateKeyPath)
-            );
-            console.log(
-                '******* DEBUGGING CERT *********',
-                fs.readFileSync(certPath)
-            );
-            if (certPath && privateKeyPath) {
-                cb(
-                    null,
-                    tls.createSecureContext({
-                        key: fs.readFileSync(privateKeyPath),
-                        cert: fs.readFileSync(certPath),
-                    })
-                );
-            } else {
-                cb(
-                    null,
-                    tls.createSecureContext({
-                        cert: fs.readFileSync(
-                            path.resolve(
-                                process.cwd(),
-                                'src',
-                                'credentials',
-                                'certificate.crt'
-                            )
-                        ),
-                        key: fs.readFileSync(
-                            path.resolve(
-                                process.cwd(),
-                                'src',
-                                'credentials',
-                                'private.key'
-                            )
-                        ),
-                    })
-                );
-            }
+
+            // if (certPath && privateKeyPath) {
+            //     cb(
+            //         null,
+            //         tls.createSecureContext({
+            //             key: fs.readFileSync(privateKeyPath),
+            //             cert: fs.readFileSync(certPath),
+            //         })
+            //     );
+            // } else {
+            //     cb(
+            //         null,
+            //         tls.createSecureContext({
+            //             cert: fs.readFileSync(
+            //                 path.resolve(
+            //                     process.cwd(),
+            //                     'src',
+            //                     'credentials',
+            //                     'certificate.crt'
+            //                 )
+            //             ),
+            //             key: fs.readFileSync(
+            //                 path.resolve(
+            //                     process.cwd(),
+            //                     'src',
+            //                     'credentials',
+            //                     'private.key'
+            //                 )
+            //             ),
+            //         })
+            //     );
+            // }
         },
     };
     http.createServer(app).listen(3006, () =>
