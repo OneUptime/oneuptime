@@ -169,7 +169,7 @@ describe('Resource Category', () => {
                 await page.click('li#resources a');
 
                 const deleteButtonSelector = `button#delete_${utils.resourceCategoryName}`;
-                
+
                 await page.waitForSelector(deleteButtonSelector);
                 await page.click(deleteButtonSelector);
                 await page.waitForSelector('#deleteResourceCategory');
