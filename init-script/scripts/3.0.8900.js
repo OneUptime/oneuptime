@@ -5,7 +5,7 @@ const componentCollection = 'components';
 
 async function run() {
     const components = await find(componentCollection, {
-        slug: { $exists: false }
+        slug: { $exists: false },
     });
     for (let i = 0; i < components.length; i++) {
         let { name } = components[i];

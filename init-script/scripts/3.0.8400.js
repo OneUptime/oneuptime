@@ -5,7 +5,7 @@ const monitorCollection = 'monitors';
 
 async function run() {
     const monitors = await find(monitorCollection, {
-        slug: { $exists: false }
+        slug: { $exists: false },
     });
     for (let i = 0; i < monitors.length; i++) {
         let { name } = monitors[i];

@@ -39,7 +39,7 @@ describe('Resource Category', () => {
             };
 
             // user
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
             // Create Component first
             await init.addComponent(componentName, page);
         });
@@ -168,8 +168,7 @@ describe('Resource Category', () => {
                 await page.waitForSelector('li#resources a');
                 await page.click('li#resources a');
 
-                const deleteButtonSelector =
-                    `button#delete_${utils.resourceCategoryName}`;
+                const deleteButtonSelector = `button#delete_${utils.resourceCategoryName}`;
                 console.log(utils.resourceCategoryName);
                 await page.waitForSelector(deleteButtonSelector);
                 await page.click(deleteButtonSelector);
@@ -219,7 +218,7 @@ describe('Member Restriction', () => {
                 };
 
                 // user
-                await init.registerUser(user, page);              
+                await init.registerUser(user, page);
                 await init.renameProject(newProjectName, page);
                 await page.goto(utils.DASHBOARD_URL);
                 await init.addUserToProject(
@@ -270,7 +269,7 @@ describe('Member Restriction', () => {
                 });
                 await page.click('#createResourceCategoryButton');
                 const modal = await page.waitForSelector('#unauthorisedModal');
-                expect(modal).toBeDefined();                
+                expect(modal).toBeDefined();
             });
             done();
         },
@@ -280,7 +279,7 @@ describe('Member Restriction', () => {
     test(
         'should show unauthorised modal when trying to edit a resource category for a member who is not the admin or owner of the project',
         async done => {
-            await cluster.execute(null, async ({ page }) => {               
+            await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -298,7 +297,6 @@ describe('Member Restriction', () => {
                 await page.click(editBtn);
                 const modal = await page.waitForSelector('#unauthorisedModal');
                 expect(modal).toBeDefined();
-                
             });
             done();
         },
@@ -308,7 +306,7 @@ describe('Member Restriction', () => {
     test(
         'should show unauthorised modal when trying to delete a resource category for a member who is not the admin or owner of the project',
         async done => {
-            await cluster.execute(null, async ({ page }) => {                
+            await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,

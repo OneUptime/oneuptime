@@ -97,7 +97,7 @@ class NewComponent extends Component {
                     }
                     this.viewCreatedComponent(
                         this.props.currentProject.slug,
-                        this.props.componentSlug,
+                        this.props.componentSlug
                     );
                 },
                 error => {
