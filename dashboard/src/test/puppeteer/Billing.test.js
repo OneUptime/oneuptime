@@ -37,7 +37,7 @@ describe('Project Setting: Change Plan', () => {
                 password: data.password,
             };
             // user
-            await init.registerUser(user, page);          
+            await init.registerUser(user, page);
         });
 
         done();
@@ -150,7 +150,9 @@ describe('Project Setting: Change Plan', () => {
 
                 await page.waitForSelector('#confirmBalanceTopUp');
                 await page.click('#confirmBalanceTopUp');
-                await page.waitForSelector('#confirmBalanceTopUp',{hidden:true});
+                await page.waitForSelector('#confirmBalanceTopUp', {
+                    hidden: true,
+                });
 
                 // confirm a pop up comes up and the message is a successful
                 let spanModalElement = await page.waitForSelector(
@@ -167,7 +169,7 @@ describe('Project Setting: Change Plan', () => {
                 // click ok
                 await page.waitForSelector('#modal-ok');
                 await page.click('#modal-ok');
-                await page.waitForSelector('#modal-ok',{hidden:true});
+                await page.waitForSelector('#modal-ok', { hidden: true });
 
                 // confirm the current balance is $20
                 spanBalanceElement = await page.waitForSelector(
@@ -219,7 +221,9 @@ describe('Project Setting: Change Plan', () => {
 
                 await page.waitForSelector('#confirmBalanceTopUp');
                 await page.click('#cancelBalanceTopUp');
-                await page.waitForSelector('#cancelBalanceTopUp',{hidden:true});                
+                await page.waitForSelector('#cancelBalanceTopUp', {
+                    hidden: true,
+                });
 
                 // confirm the current balance is still $0
                 spanBalanceElement = await page.waitForSelector(
@@ -265,9 +269,11 @@ describe('Member Restriction', () => {
                 };
 
                 // user
-                await init.registerUser(user, page);              
+                await init.registerUser(user, page);
                 await init.renameProject(newProjectName, page);
-                await page.goto(utils.DASHBOARD_URL,{waitUntil:'networkidle0'})
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
                 await init.addUserToProject(
                     {
                         email: teamEmail,
@@ -304,8 +310,11 @@ describe('Member Restriction', () => {
                 timeout: 120000,
             });
 
-            await cluster.execute(null, async ({ page }) => {                
-                await init.registerAndLoggingTeamMember({email:teamEmail, password},page)
+            await cluster.execute(null, async ({ page }) => {
+                await init.registerAndLoggingTeamMember(
+                    { email: teamEmail, password },
+                    page
+                );
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,

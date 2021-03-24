@@ -636,7 +636,11 @@ module.exports = {
                                 data.customFields.length > 0
                             ) {
                                 for (const field of data.customFields) {
-                                    if (field.uniqueField) {
+                                    if (
+                                        field.uniqueField &&
+                                        field.fieldValue &&
+                                        field.fieldValue.trim()
+                                    ) {
                                         _incident = await IncidentService.findOneBy(
                                             {
                                                 customFields: {
@@ -739,7 +743,11 @@ module.exports = {
                                 data.customFields.length > 0
                             ) {
                                 for (const field of data.customFields) {
-                                    if (field.uniqueField) {
+                                    if (
+                                        field.uniqueField &&
+                                        field.fieldValue &&
+                                        field.fieldValue.trim()
+                                    ) {
                                         _incident = await IncidentService.findOneBy(
                                             {
                                                 customFields: {
@@ -940,7 +948,11 @@ module.exports = {
                                         data.customFields.length > 0
                                     ) {
                                         for (const field of data.customFields) {
-                                            if (field.uniqueField) {
+                                            if (
+                                                field.uniqueField &&
+                                                field.fieldValue &&
+                                                field.fieldValue.trim()
+                                            ) {
                                                 _incident = await IncidentService.findOneBy(
                                                     {
                                                         customFields: {
@@ -1202,7 +1214,11 @@ module.exports = {
                                         data.customFields.length > 0
                                     ) {
                                         for (const field of data.customFields) {
-                                            if (field.uniqueField) {
+                                            if (
+                                                field.uniqueField &&
+                                                field.fieldValue &&
+                                                field.fieldValue.trim()
+                                            ) {
                                                 _incident = await IncidentService.findOneBy(
                                                     {
                                                         customFields: {

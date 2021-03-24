@@ -29,7 +29,6 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const subscriberAlertService = require('../services/subscriberAlertService');
 const onCallScheduleStatusService = require('../services/onCallScheduleStatusService');
 const Services = require('../utils/services');
-const { lessThan } = require('../utils/DateTime');
 
 // Route
 // Description: Creating incident.

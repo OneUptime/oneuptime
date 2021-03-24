@@ -8,13 +8,27 @@ import { openModal } from '../../actions/modal';
 import DeleteContainerSecurity from '../modals/DeleteContainerSecurity';
 
 export class ContainerSecurityDeleteBox extends Component {
-    handleDelete = ({ projectId, componentId, containerSecurityId, containerSecuritySlug }) => {
+    handleDelete = ({
+        projectId,
+        componentId,
+        containerSecurityId,
+        containerSecuritySlug,
+        componentSlug,
+    }) => {
         const { openModal } = this.props;
 
         openModal({
             id: containerSecurityId,
             content: DeleteContainerSecurity,
-            propArr: [{ projectId, componentId, containerSecurityId,containerSecuritySlug }],
+            propArr: [
+                {
+                    projectId,
+                    componentId,
+                    containerSecurityId,
+                    containerSecuritySlug,
+                    componentSlug,
+                },
+            ],
         });
     };
 
@@ -25,6 +39,7 @@ export class ContainerSecurityDeleteBox extends Component {
             componentId,
             containerSecurityId,
             containerSecuritySlug,
+            componentSlug,
         } = this.props;
 
         return (
@@ -54,7 +69,8 @@ export class ContainerSecurityDeleteBox extends Component {
                                                 projectId,
                                                 componentId,
                                                 containerSecurityId,
-                                                containerSecuritySlug
+                                                containerSecuritySlug,
+                                                componentSlug,
                                             })
                                         }
                                     >
@@ -88,6 +104,7 @@ const mapStateToProps = state => {
 
 ContainerSecurityDeleteBox.propTypes = {
     componentId: PropTypes.string.isRequired,
+    componentSlug: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     containerSecurityId: PropTypes.string.isRequired,
     containerSecuritySlug: PropTypes.string,

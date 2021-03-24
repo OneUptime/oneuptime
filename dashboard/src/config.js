@@ -54,6 +54,9 @@ export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
 
 export const IS_LOCALHOST = isLocalhost;
 
+export const STATUSPAGE_DOMAIN =
+    process.env.STATUSPAGE_DOMAIN || env('STATUSPAGE_DOMAIN');
+
 export const User = {
     getAccessToken() {
         return localStorage.getItem('access_token');
@@ -1257,12 +1260,6 @@ import Fyipe from 'fyipe';
                                 
 // If your env supports require                  
 const Fyipe = require('fyipe');
-
-// set up tracking configurations                    
-const options = {                    
-    maxTimeline: 10, 
-    captureCodeSnippet: true,                   
-};
                                                     
 // constructor                    
 const logger = new Fyipe.Logger(
@@ -1296,19 +1293,48 @@ logger.log(item); // returns a promise
                     install: '50px',
                     usage: '500px',
                 },
-                errorTracking:
-                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                errorTracking: {
+                    installation: {
+                        package: 'Composer Install',
+                        command: `
+$ composer require fyipe/log-php`,
+                    },
+                    usage: `
+use Fyipe\\FyipeTracker;
+
+// set up tracking configurations    
+$options = new stdClass();                
+$options->maxTimeline = 50;
+$options->captureCodeSnippet: true;     
+
+// constructor                    
+$tracker = new FyipeTracker(                    
+    '${apiUrl ? apiUrl : 'API_URL'}',
+    '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
+    '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
+    $options // Optional Field
+);
+
+// capturing error exception manually and sent to your fyipe dashboard
+try {
+    // your code logic
+    NonExistingMethodCall();
+} catch (Exception $error) {
+    $tracker->captureException($error);
+}
+                    `,
+                },
                 logs: {
                     installation: {
                         package: 'Composer Install',
                         command: `
-$ composer require fyipe/sdk`,
+$ composer require fyipe/log-php`,
                     },
                     usage: `
 use Fyipe\\FyipeLogger;
                 
 // constructor
-$logger = new Fyipe\\FyipeLogger(                    
+$logger = new FyipeLogger(                    
     '${apiUrl ? apiUrl : 'API_URL'}',
     '${
         applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'

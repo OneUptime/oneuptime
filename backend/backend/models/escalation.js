@@ -7,7 +7,13 @@ const teamSchema = new Schema({
             startTime: Date,
             endTime: Date,
             timezone: String,
-            userId: { type: String, ref: 'User', index: true },
+            userId: { type: String, ref: 'User', index: true, default: null },
+            groupId: {
+                type: String,
+                ref: 'Groups',
+                index: true,
+                default: null,
+            },
         },
     ],
 });
@@ -37,7 +43,6 @@ const escalationSchema = new Schema({
     teams: { type: [teamSchema], default: null },
     createdAt: { type: Date, default: Date.now },
     deleted: { type: Boolean, default: false },
-
     deletedAt: {
         type: Date,
     },
@@ -51,4 +56,12 @@ escalationSchema.virtual('teams.teamMembers.user', {
     foreignField: '_id',
     justOne: true,
 });
+
+escalationSchema.virtual('teams.teamMembers.groups', {
+    ref: 'Groups',
+    localField: 'teams.teamMembers.groupId',
+    foreignField: '_id',
+    justOne: true,
+});
+
 module.exports = mongoose.model('Escalation', escalationSchema);

@@ -26,7 +26,7 @@ module.exports = {
                 .populate({
                     path: 'monitorId',
                     select: '_id name type slug',
-                    populate: { path: 'componentId', select: '_id name' },
+                    populate: { path: 'componentId', select: '_id name slug' },
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
@@ -65,7 +65,11 @@ module.exports = {
                 let errorMsg;
                 if (data.customFields && data.customFields.length > 0) {
                     for (const field of data.customFields) {
-                        if (field.uniqueField) {
+                        if (
+                            field.uniqueField &&
+                            field.fieldValue &&
+                            field.fieldValue.trim()
+                        ) {
                             const incident = await _this.findOneBy({
                                 customFields: {
                                     $elemMatch: {

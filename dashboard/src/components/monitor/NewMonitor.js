@@ -596,7 +596,7 @@ class NewMonitor extends Component {
                     );
                 }
                 history.push(
-                    `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/monitoring/${data.data.slug}`
+                    `/dashboard/project/${this.props.currentProject.slug}/${this.props.component.slug}/monitoring/${data.data.slug}`
                 );
             });
         } else {
@@ -610,7 +610,7 @@ class NewMonitor extends Component {
                         );
                     }
                     history.push(
-                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/monitoring/${data.data.slug}`
+                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/monitoring/${data.data.slug}`
                     );
                 },
                 error => {
@@ -1226,7 +1226,7 @@ class NewMonitor extends Component {
                                                                             value:
                                                                                 'agentless',
                                                                             label:
-                                                                                'Agentless',
+                                                                                'Agentless (with SSH)',
                                                                         },
                                                                     ]}
                                                                 ></Field>
@@ -2991,6 +2991,7 @@ NewMonitor.propTypes = {
     fetchMonitorsSubscribers: PropTypes.func.isRequired,
     fetchSchedules: PropTypes.func.isRequired,
     editMonitorProp: PropTypes.object,
+    component: PropTypes.object,
     edit: PropTypes.bool,
     name: PropTypes.string,
     type: PropTypes.string,
@@ -3010,7 +3011,7 @@ NewMonitor.propTypes = {
     project: PropTypes.object,
     currentPlanId: PropTypes.string,
     projectId: PropTypes.string,
-    componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     subProjects: PropTypes.array,
     toggleEdit: PropTypes.func,
     logFile: PropTypes.func,

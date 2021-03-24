@@ -211,7 +211,7 @@ export class ComponentDetail extends Component {
                                             '/dashboard/project/' +
                                                 currentProject.slug +
                                                 '/' +
-                                                component._id +
+                                                component.slug +
                                                 '/monitoring'
                                         );
                                         this.props.animateSidebar(false);
@@ -234,6 +234,9 @@ export class ComponentDetail extends Component {
                                             <ResourceTabularList
                                                 componentId={
                                                     this.props.component._id
+                                                }
+                                                componentSlug={
+                                                    this.props.component.slug
                                                 }
                                                 componentResources={
                                                     this.props

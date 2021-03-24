@@ -240,6 +240,7 @@ export class MonitorDetail extends Component {
             probes,
             activeIncident,
             componentId,
+            componentSlug,
         } = this.props;
         const numberOfPage = Math.ceil(
             parseInt(this.props.monitor && this.props.monitor.count) / 3
@@ -561,7 +562,7 @@ export class MonitorDetail extends Component {
                                         '/dashboard/project/' +
                                             currentProject.slug +
                                             '/' +
-                                            componentId +
+                                            componentSlug +
                                             '/monitoring/' +
                                             monitor.slug
                                     );
@@ -807,9 +808,19 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state, props) {
+    const componentId = props.componentId;
+    let component;
+    state.component.componentList.components.forEach(item => {
+        item.components.forEach(c => {
+            if (String(c._id) === String(componentId)) {
+                component = c;
+            }
+        });
+    });
     return {
         monitorState: state.monitor,
+        componentSlug: component && component.slug,
         currentProject: state.project.currentProject,
         create: state.incident.newIncident.requesting,
         activeIncident: state.incident.newIncident.monitorId,
@@ -822,6 +833,7 @@ function mapStateToProps(state) {
 MonitorDetail.propTypes = {
     currentProject: PropTypes.object.isRequired,
     componentId: PropTypes.string.isRequired,
+    componentSlug: PropTypes.string.isRequired,
     monitor: PropTypes.object.isRequired,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     fetchMonitorLogs: PropTypes.func.isRequired,

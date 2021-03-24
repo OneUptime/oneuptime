@@ -438,9 +438,11 @@ class WebsiteMonitorIssues extends React.Component {
 }
 
 const mapStateToProps = (state, props) => {
-    const { componentId, monitorSlug } = props.match.params;
+    const { componentSlug, monitorSlug } = props.match.params;
     const component = state.component.componentList.components.map(item => {
-        return item.components.find(component => component._id === componentId);
+        return item.components.find(
+            component => component.slug === componentSlug
+        );
     });
     const projectId =
         state.project.currentProject && state.project.currentProject._id;

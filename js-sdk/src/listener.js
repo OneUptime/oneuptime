@@ -3,8 +3,7 @@ import FyipeTimelineManager from './timelineManager';
 import Util from './util';
 import Http from 'http';
 import Https from 'https';
-
-class FyipeListiner {
+class FyipeListener {
     constructor(eventId, isWindow, options) {
         this.options = options;
         this.isWindow = isWindow;
@@ -91,9 +90,8 @@ class FyipeListiner {
                             event,
                             this.utilObj.getErrorType().INFO
                         );
-                    } else {
-                        console.log('not logging');
                     }
+                    // not logging cus of timeout
 
                     clearTimeout(_this.keypressTimeout);
 
@@ -261,9 +259,9 @@ class FyipeListiner {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    logErrorEvent(content) {
+    logErrorEvent(content, category = 'exception') {
         const timelineObj = {
-            category: 'exception',
+            category,
             data: {
                 content,
             },
@@ -369,4 +367,4 @@ class FyipeListiner {
         return attributes; // return the final list of attributes
     }
 }
-export default FyipeListiner;
+export default FyipeListener;

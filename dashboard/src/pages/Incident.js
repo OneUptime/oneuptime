@@ -532,10 +532,11 @@ class Incident extends React.Component {
                                         currentProject={
                                             this.props.currentProject
                                         }
-                                        monitorSlug={
-                                            this.props.incident.monitorId.slug
+                                        monitorSlug={this.props.monitor.slug}
+                                        componentSlug={
+                                            this.props.component &&
+                                            this.props.component.slug
                                         }
-                                        component={this.props.component}
                                         componentId={this.props.componentId}
                                     />
                                 </RenderIfSubProjectAdmin>
@@ -631,7 +632,7 @@ const mapStateToProps = (state, props) => {
             defaultSchedule = item.isDefault;
         });
     });
-    const { componentId, incidentId } = props.match.params;
+    const { componentSlug, incidentId } = props.match.params;
     const monitorId =
         state.incident &&
         state.incident.incident &&
@@ -643,7 +644,7 @@ const mapStateToProps = (state, props) => {
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
+            if (String(c.slug) === String(componentSlug)) {
                 component = c;
             }
         });
@@ -672,7 +673,7 @@ const mapStateToProps = (state, props) => {
             ? state.incident.incident.deleteIncident.requesting
             : false,
         component,
-        componentId,
+        componentId: component && component._id,
         requestingDefaultIncidentSla:
             state.incidentSla.defaultIncidentCommunicationSla.requesting,
         defaultIncidentSla:

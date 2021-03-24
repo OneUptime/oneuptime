@@ -5,7 +5,7 @@ import { bindActionCreators } from 'redux';
 import ClickOutside from 'react-click-outside';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import {updateDefaultIncidentSettings} from '../../actions/incidentBasicsSettings';
+import { updateDefaultIncidentSettings } from '../../actions/incidentBasicsSettings';
 
 class SetDefaultIncidentPriority extends Component {
     componentDidMount() {
@@ -17,11 +17,14 @@ class SetDefaultIncidentPriority extends Component {
     }
 
     handleSubmit() {
-        const {data} = this.props;
-        const incidentPriorityId = data.incidentPriorityId;              
+        const { data } = this.props;
+        const incidentPriorityId = data.incidentPriorityId;
         this.props
-            .updateDefaultIncidentSettings(this.props.currentProject._id, incidentPriorityId )
-            .then(()=>this.props.closeThisDialog());                    
+            .updateDefaultIncidentSettings(
+                this.props.currentProject._id,
+                incidentPriorityId
+            )
+            .then(() => this.props.closeThisDialog());
     }
 
     handleKeyBoard = e => {
@@ -35,8 +38,8 @@ class SetDefaultIncidentPriority extends Component {
         }
     };
 
-    render() {        
-        const { closeThisDialog, data } = this.props;        
+    render() {
+        const { closeThisDialog, data } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -44,7 +47,7 @@ class SetDefaultIncidentPriority extends Component {
                     tabIndex={-1}
                     style={{ marginTop: 40 }}
                 >
-                    <div className="bs-BIM">
+                    <div className="bs-BIM" id="priorityDefaultModal">
                         <div className="bs-Modal bs-Modal--medium">
                             <ClickOutside onClickOutside={closeThisDialog}>
                                 <div className="bs-Modal-header">
@@ -56,8 +59,12 @@ class SetDefaultIncidentPriority extends Component {
                                 </div>
                                 <div className="bs-Modal-content">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    You’re setting {data.incidentPriorityName} as default priority.
-                                    What this means is, all new incidents when created will have a {data.incidentPriorityName} priority set to them.
+                                        You’re setting{' '}
+                                        {data.incidentPriorityName} as default
+                                        priority. What this means is, all new
+                                        incidents when created will have a{' '}
+                                        {data.incidentPriorityName} priority set
+                                        to them.
                                     </span>
                                 </div>
                                 <div className="bs-Modal-footer">
@@ -75,9 +82,9 @@ class SetDefaultIncidentPriority extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--white btn__modal"
                                             type="button"
-                                            onClick={() => this.handleSubmit()}                                            
-                                            id="SetDefaultIncidentPriority" 
-                                            autoFocus={true}                                           
+                                            onClick={() => this.handleSubmit()}
+                                            id="SetDefaultIncidentPriority"
+                                            autoFocus={true}
                                         >
                                             <span>OK</span>
                                             <span className="create-btn__keycode">
@@ -85,8 +92,7 @@ class SetDefaultIncidentPriority extends Component {
                                             </span>
                                             <ShouldRender
                                                 if={
-                                                    this.props
-                                                        .updatedIncident
+                                                    this.props.updatedIncident
                                                         .requesting
                                                 }
                                             >
@@ -107,23 +113,25 @@ class SetDefaultIncidentPriority extends Component {
 SetDefaultIncidentPriority.displayName = 'SetDefaultIncidentPriorityFormModal';
 
 SetDefaultIncidentPriority.propTypes = {
-    closeThisDialog: PropTypes.func.isRequired,    
+    updateDefaultIncidentSettings: PropTypes.func.isRequired,
+    closeThisDialog: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
     updatedIncident: PropTypes.object,
-    data: PropTypes.object.isRequired,    
+    data: PropTypes.object.isRequired,
 };
 
-const mapStateToProps = state => {    
+const mapStateToProps = state => {
     return {
-        updatedIncident: state.incidentBasicSettings.updateIncidentBasicSettings,
-        currentProject: state.project.currentProject,        
+        updatedIncident:
+            state.incidentBasicSettings.updateIncidentBasicSettings,
+        currentProject: state.project.currentProject,
     };
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            updateDefaultIncidentSettings
+            updateDefaultIncidentSettings,
         },
         dispatch
     );

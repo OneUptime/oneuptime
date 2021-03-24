@@ -182,9 +182,11 @@ export class MonitorTabularList extends Component {
                                                             .currentProject
                                                             .slug +
                                                         '/' +
-                                                        this.props.componentId +
-                                                        '/monitoring/' +
-                                                        monitor.slug
+                                                        this.props.component &&
+                                                        this.props.component
+                                                            .slug +
+                                                            '/monitoring/' +
+                                                            monitor.slug
                                                 );
                                             }}
                                         >
@@ -458,12 +460,22 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators({}, dispatch);
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state, props) {
+    const { componentSlug } = props.match.params;
+    let component;
+    state.component.componentList.components.forEach(item => {
+        item.components.forEach(c => {
+            if (String(c.slug) === String(componentSlug)) {
+                component = c;
+            }
+        });
+    });
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
         activeProbe: state.monitor.activeProbe,
         probes: state.probe.probes.data,
+        component,
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
     };
@@ -474,7 +486,7 @@ MonitorTabularList.displayName = 'MonitorTabularList';
 MonitorTabularList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
-    componentId: PropTypes.string.isRequired,
+    component: PropTypes.string.isRequired,
     monitors: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
