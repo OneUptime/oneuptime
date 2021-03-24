@@ -78,11 +78,18 @@ Create a constructor from the class, which will be used to track events and exce
 | errorTrackerKey | <code>string</code> | The Error Tracker Key.                              |
 | options         | <code>object</code> | Set of configuration to be used for error tracking. |
 
+#### options
+
+| Param              | Type                 | Description                                                                                           |
+| ------------------ | -------------------- | ----------------------------------------------------------------------------------------------------- |
+| maxTimeline        | <code>int</code>     | The total amount of timeline that should be captured, defaults to 5                                   |
+| captureCodeSnippet | <code>boolean</code> | When set as `true` stack traces are automatically attached to all error sent to your fyipe dashboard. |
+
 #### tracker.setTag(key, value)
 
 Set a tag for the error to be captured.
 
-**Kind**: method of [<code>new ErrorTracker</code>](#logger_api--logger)
+**Kind**: method of [<code>new ErrorTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param | Type                | Description            |
@@ -94,7 +101,7 @@ Set a tag for the error to be captured.
 
 Set an array of tags for the error to be captured.
 
-**Kind**: method of [<code>new ErrorTracker</code>](#logger_api--logger)
+**Kind**: method of [<code>new ErrorTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param | Type                | Description            |
@@ -106,7 +113,7 @@ Set an array of tags for the error to be captured.
 
 Set fingerprint for the next error to be captured.
 
-**Kind**: method of [<code>new ErrorTracker</code>](#logger_api--logger)
+**Kind**: method of [<code>new ErrorTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param       | Type                                                 | Description                                                   |
@@ -117,7 +124,7 @@ Set fingerprint for the next error to be captured.
 
 Add a custom timeline element to the next error to be sent to the server
 
-**Kind**: method of [<code>new ErrorTracker</code>](#logger_api--logger)
+**Kind**: method of [<code>new ErrorTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param    | Type                                       | Description                         |
@@ -130,7 +137,7 @@ Add a custom timeline element to the next error to be sent to the server
 
 Capture a custom error message to be sent to the server
 
-**Kind**: method of [<code>new ErrorTracker</code>](#logger_api--logger)
+**Kind**: method of [<code>new ErrorTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param   | Type                | Description                           |
@@ -141,7 +148,7 @@ Capture a custom error message to be sent to the server
 
 Capture a custom error object to be sent to the server
 
-**Kind**: method of [<code>new ErrorTracker</code>](#logger_api--logger)
+**Kind**: method of [<code>new ErrorTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param | Type                | Description                                |

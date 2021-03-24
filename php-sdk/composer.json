@@ -2,7 +2,7 @@
     "name": "fyipe/sdk",
     "description": "Fyipe SDK package send logs from your applications to your fyipe dashboard.",
     "license": "MIT",
-    "version": "3.0.1",
+    "version": "3.0.9",
     "minimum-stability": "stable",
     "authors": [
         {
@@ -11,9 +11,10 @@
     ],
     "require": {
         "php": "^7.0",
-        "guzzlehttp/guzzle": "~6.0",
+        "guzzlehttp/guzzle": "^7.0",
         "symfony/var-dumper": "^5.1",
-        "fzaninotto/faker": "^1.9"
+        "lrucache/lrucache": "^0.3.0",
+        "fakerphp/faker": "^1.13"
     },
     "require-dev": {
         "mockery/mockery": "^1.0",
