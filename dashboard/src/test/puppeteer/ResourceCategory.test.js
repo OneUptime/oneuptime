@@ -7,6 +7,7 @@ const { Cluster } = require('puppeteer-cluster');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 const componentName = utils.generateRandomString();
+const secondEmail = utils.generateRandomBusinessEmail();
 const teamEmail = utils.generateRandomBusinessEmail();
 const newProjectName = 'Test';
 const resourceCategory = 'stat';
@@ -38,8 +39,7 @@ describe('Resource Category', () => {
             };
 
             // user
-            await init.registerUser(user, page);
-            //await init.loginUser(user, page);
+            await init.registerUser(user, page);            
             // Create Component first
             await init.addComponent(componentName, page);
         });
@@ -191,138 +191,144 @@ describe('Resource Category', () => {
     );
 });
 
-// describe('Member Restriction', () => {
-//     const operationTimeOut = 50000;
+describe('Member Restriction', () => {
+    const operationTimeOut = 50000;
 
-//     let cluster;
+    let cluster;
 
-//     beforeAll(async done => {
-//         jest.setTimeout(200000);
+    beforeAll(async done => {
+        jest.setTimeout(200000);
 
-//         cluster = await Cluster.launch({
-//             concurrency: Cluster.CONCURRENCY_PAGE,
-//             puppeteerOptions: utils.puppeteerLaunchConfig,
-//             puppeteer,
-//             timeout: 120000,
-//         });
+        cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 120000,
+        });
 
-//         cluster.on('taskerror', err => {
-//             throw err;
-//         });
+        cluster.on('taskerror', err => {
+            throw err;
+        });
 
-//         await cluster.execute(
-//             { teamEmail, password },
-//             async ({ page, data }) => {
-//                 const user = {
-//                     email: data.teamEmail,
-//                     password: data.password,
-//                 };
+        await cluster.execute(
+            { secondEmail, password },
+            async ({ page, data }) => {
+                const user = {
+                    email: data.secondEmail,
+                    password: data.password,
+                };
 
-//                 // user
-//                 await init.registerUser(user, page);
-//                 await init.loginUser({ email, password }, page);
-//                 await init.renameProject(newProjectName, page);
-//                 await init.addUserToProject(
-//                     {
-//                         email: teamEmail,
-//                         role: 'Member',
-//                         subProjectName: newProjectName,
-//                     },
-//                     page
-//                 );
-//                 await init.addResourceCategory(resourceCategory, page);
-//                 await init.logout(page);
-//             }
-//         );
+                // user
+                await init.registerUser(user, page);              
+                await init.renameProject(newProjectName, page);
+                await page.goto(utils.DASHBOARD_URL);
+                await init.addUserToProject(
+                    {
+                        email: teamEmail,
+                        role: 'Member',
+                        subProjectName: newProjectName,
+                    },
+                    page
+                );
+                await init.addResourceCategory(resourceCategory, page);
+                await init.logout(page);
+            }
+        );
 
-//         done();
-//     });
+        done();
+    });
 
-//     afterAll(async done => {
-//         await cluster.idle();
-//         await cluster.close();
-//         done();
-//     });
+    afterAll(async done => {
+        await cluster.idle();
+        await cluster.close();
+        done();
+    });
 
-//     test(
-//         'should show unauthorised modal when trying to add a resource category for a member who is not the admin or owner of the project',
-//         async done => {
-//             await cluster.execute(null, async ({ page }) => {
-//                 await init.loginUser({ email: teamEmail, password }, page);
-//                 await init.switchProject(newProjectName, page);
-//                 await page.goto(utils.DASHBOARD_URL);
-//                 await page.waitForSelector('#projectSettings', {
-//                     visible: true,
-//                 });
-//                 await page.click('#projectSettings');
+    test(
+        'should show unauthorised modal when trying to add a resource category for a member who is not the admin or owner of the project',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                // A Subproject user has to register his/her mail before login in.
+                await init.registerAndLoggingTeamMember(
+                    { email: teamEmail, password },
+                    page
+                );
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
 
-//                 await page.waitForSelector('#resources');
-//                 await page.click('#resources');
-//                 await page.waitForSelector('#createResourceCategoryButton', {
-//                     visible: true,
-//                 });
-//                 await page.click('#createResourceCategoryButton');
-//                 const modal = await page.waitForSelector('#unauthorisedModal');
-//                 expect(modal).toBeDefined();
-//                 await init.logout(page);
-//             });
-//             done();
-//         },
-//         operationTimeOut
-//     );
+                await page.waitForSelector('#resources');
+                await page.click('#resources');
+                await page.waitForSelector('#createResourceCategoryButton', {
+                    visible: true,
+                });
+                await page.click('#createResourceCategoryButton');
+                const modal = await page.waitForSelector('#unauthorisedModal');
+                expect(modal).toBeDefined();                
+            });
+            done();
+        },
+        operationTimeOut
+    );
 
-//     test(
-//         'should show unauthorised modal when trying to edit a resource category for a member who is not the admin or owner of the project',
-//         async done => {
-//             await cluster.execute(null, async ({ page }) => {
-//                 await init.loginUser({ email: teamEmail, password }, page);
-//                 await init.switchProject(newProjectName, page);
-//                 await page.goto(utils.DASHBOARD_URL);
-//                 await page.waitForSelector('#projectSettings', {
-//                     visible: true,
-//                 });
-//                 await page.click('#projectSettings');
+    test(
+        'should show unauthorised modal when trying to edit a resource category for a member who is not the admin or owner of the project',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {               
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
 
-//                 await page.waitForSelector('#resources');
-//                 await page.click('#resources');
-//                 const editBtn = `#edit_${resourceCategory}`;
-//                 await page.waitForSelector(editBtn, {
-//                     visible: true,
-//                 });
-//                 await page.click(editBtn);
-//                 const modal = await page.waitForSelector('#unauthorisedModal');
-//                 expect(modal).toBeDefined();
-//                 await init.logout(page);
-//             });
-//             done();
-//         },
-//         operationTimeOut
-//     );
+                await page.waitForSelector('#resources');
+                await page.click('#resources');
+                const editBtn = `#edit_${resourceCategory}`;
+                await page.waitForSelector(editBtn, {
+                    visible: true,
+                });
+                await page.click(editBtn);
+                const modal = await page.waitForSelector('#unauthorisedModal');
+                expect(modal).toBeDefined();
+                
+            });
+            done();
+        },
+        operationTimeOut
+    );
 
-//     test(
-//         'should show unauthorised modal when trying to delete a resource category for a member who is not the admin or owner of the project',
-//         async done => {
-//             await cluster.execute(null, async ({ page }) => {
-//                 await init.loginUser({ email: teamEmail, password }, page);
-//                 await init.switchProject(newProjectName, page);
-//                 await page.goto(utils.DASHBOARD_URL);
-//                 await page.waitForSelector('#projectSettings', {
-//                     visible: true,
-//                 });
-//                 await page.click('#projectSettings');
+    test(
+        'should show unauthorised modal when trying to delete a resource category for a member who is not the admin or owner of the project',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {                
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
 
-//                 await page.waitForSelector('#resources');
-//                 await page.click('#resources');
-//                 const deleteBtn = `#delete_${resourceCategory}`;
-//                 await page.waitForSelector(deleteBtn, {
-//                     visible: true,
-//                 });
-//                 await page.click(deleteBtn);
-//                 const modal = await page.waitForSelector('#unauthorisedModal');
-//                 expect(modal).toBeDefined();
-//             });
-//             done();
-//         },
-//         operationTimeOut
-//     );
-// });
+                await page.waitForSelector('#resources');
+                await page.click('#resources');
+                const deleteBtn = `#delete_${resourceCategory}`;
+                await page.waitForSelector(deleteBtn, {
+                    visible: true,
+                });
+                await page.click(deleteBtn);
+                const modal = await page.waitForSelector('#unauthorisedModal');
+                expect(modal).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+});
