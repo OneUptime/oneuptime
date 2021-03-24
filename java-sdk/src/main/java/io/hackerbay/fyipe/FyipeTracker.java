@@ -8,6 +8,9 @@ public class FyipeTracker {
     private String errorTrackerKey;
     private TrackerOption options;
     private int MAX_ITEMS_ALLOWED_IN_STACK = 100;
+    private Util util;
+    private String eventId;
+    private FyipeListener fyipeListener;
 
     public FyipeTracker(String apiUrl, String errorTrackerId, String errorTrackerKey) {
         this(apiUrl, errorTrackerId, errorTrackerKey, null);
@@ -18,6 +21,14 @@ public class FyipeTracker {
         this.setApiUrl(apiUrl);
         // set up options
         this.setUpOptions(options);
+        util = new Util(this.options);
+        this.setEventId();
+
+        // Initialize Listener for timeline
+        this.fyipeListener = new FyipeListener(this.getEventId(), this.options);
+
+        // TODO set up transporter
+        // TODO set up error listener
     }
 
     private void setApiUrl(String apiUrl){
@@ -39,4 +50,11 @@ public class FyipeTracker {
             this.options = options;
         }
      }
+    private void setEventId() {
+        this.eventId = this.util.generateV4EventId();
+    }
+    private String getEventId()
+    {
+        return this.eventId;
+    }
 }
