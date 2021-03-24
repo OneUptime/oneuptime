@@ -10,7 +10,6 @@ import { openModal, closeModal } from '../../actions/modal';
 import ProbeDetail from '../modals/ProbeDetail';
 import DataPathHoC from '../DataPathHoC';
 import { API_URL } from '../../config';
-import ShouldRender from '../basic/ShouldRender';
 
 export class ProbeList extends Component {
     constructor(props) {
