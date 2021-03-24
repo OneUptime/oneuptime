@@ -22,7 +22,7 @@ class FyipeTimelineManager
     private function addItemToTimeline($item) {
         // get the size of the stack
         if (isset($this->options['maxTimeline']) && (sizeof($this->timeLineStack) === $this->options['maxTimeline'])) {
-            return; // It discards new timline update once maximum is reached
+            return; // It discards new timeline update once maximum is reached
         }
         // add time to it
         $item->timestamp = time();
