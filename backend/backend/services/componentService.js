@@ -118,7 +118,7 @@ module.exports = {
                 let name = data.name;
                 name = slugify(name);
                 name = `${name}-${generate('1234567890', 8)}`;
-                component.slug = name.toLowerCase();
+                data.slug = name.toLowerCase();
             }
             let component = await ComponentModel.findOneAndUpdate(
                 query,
