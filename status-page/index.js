@@ -147,6 +147,7 @@ function createDir(dirPath) {
             } else {
                 apiHost = 'http://localhost:3002/api';
             }
+            console.log('******* API HOST *********', apiHost);
 
             const res = await fetch(
                 `${apiHost}/statusPage/tlsCredential?domain=${domain}`
@@ -175,7 +176,15 @@ function createDir(dirPath) {
                     ]);
                 }
             }
-
+            console.log('***** DEBUGGING: RES *******', res);
+            console.log(
+                '******* DEBUGGING KEY *********',
+                fs.readFileSync(privateKeyPath)
+            );
+            console.log(
+                '******* DEBUGGING CERT *********',
+                fs.readFileSync(certPath)
+            );
             if (certPath && privateKeyPath) {
                 cb(
                     null,
