@@ -1,7 +1,6 @@
 package io.hackerbay.fyipe;
 
 import com.google.gson.JsonObject;
-import com.sun.istack.internal.NotNull;
 import io.hackerbay.fyipe.model.*;
 import io.hackerbay.fyipe.util.ParameterStringBuilder;
 
@@ -121,13 +120,14 @@ public class FyipeTracker {
         }
         return this.fingerprint;
     }
-    public void captureMessage(String message) {
+    public JsonObject captureMessage(String message) throws IOException {
         this.setTag(new Tag("handled","true"));
         StackTrace messageStackTrace = new StackTrace(message);
 
         this.prepareErrorEvent(ErrorObjectType.message.name(), messageStackTrace);
 
-        // TODO send to the server
+        // send to the server
+        return this.sendErrorEventToServer();
     }
     public void captureException(Throwable throwable) {
         // construct the error object
