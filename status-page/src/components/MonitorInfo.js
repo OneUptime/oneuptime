@@ -565,7 +565,9 @@ class MonitorInfo extends Component {
                                                 subheading.color ===
                                                 'rgba(76, 76, 76, 1)'
                                                     ? { color: '#aaaaaa' }
-                                                    : subheading
+                                                    : subheading// //const noOfMonitors = await page.$$eval()
+                                                    // //const noOfMonitors = await page.$$eval('uptime-graph-section dashboard-uptime-graph', elem => elem.length)
+                                                    // console.log('Number of Monitor: ',noOfMonitors);
                                             }
                                         >
                                             {uptime}% uptime
@@ -602,7 +604,7 @@ class MonitorInfo extends Component {
 
                 <ShouldRender if={!this.props.theme}>
                     <div
-                        className="uptime-graph-section dashboard-uptime-graph"
+                        className="uptime-graph-section dashboard-uptime-graph monitorLists"
                         id={this.props.id}
                         ref={this.container}
                     >
