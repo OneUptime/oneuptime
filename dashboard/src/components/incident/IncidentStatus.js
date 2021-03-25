@@ -324,7 +324,7 @@ export class IncidentStatus extends Component {
               '/' +
               componentSlug +
               '/incidents/' +
-              this.props.incident._idNumber
+              this.props.incident.idNumber
             : '';
 
         const showResolveButton = this.props.multipleIncidentRequest
