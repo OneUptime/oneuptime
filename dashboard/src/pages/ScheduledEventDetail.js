@@ -246,7 +246,6 @@ ScheduledEvent.propTypes = {
     requesting: PropTypes.bool,
     fetchScheduledEventNotesInternal: PropTypes.func,
     internalNotesList: PropTypes.object,
-    investigationNotesList: PropTypes.object,
     updateScheduledEventNoteInvestigationSuccess: PropTypes.func,
     updateScheduledEventNoteInternalSuccess: PropTypes.func,
     deleteScheduledEventNoteSuccess: PropTypes.func,

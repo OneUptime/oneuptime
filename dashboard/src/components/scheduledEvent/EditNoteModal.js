@@ -463,7 +463,6 @@ EditNoteModal.propTypes = {
     content: PropTypes.string,
     change: PropTypes.func,
     updateScheduledEventNoteInternal: PropTypes.func,
-    updateScheduledEventNoteInvestigation: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(EditNoteModalForm);
