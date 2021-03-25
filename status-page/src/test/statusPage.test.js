@@ -44,6 +44,7 @@ const degradeIncident = testData.degradeIncident;
 const onlineIncident = testData.onlineIncident;
 const scheduledEventNote = testData.scheduledEventNote;
 const incidentNote = testData.incidentNote;
+const componentName = testData.component;
 
 let today = new Date().toISOString();
 today = moment(today).format();
@@ -101,6 +102,12 @@ describe('Status page monitors check', function() {
 
         authorization = `Basic ${token}`;
 
+        // component creation before monitor is created
+        const componentRequest = await request
+            .post(`/component/${projectId}`)
+            .set('Authorization', authorization)
+            .send(componentName);
+
         const resourceCategoryRequest = await request
             .post(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
@@ -108,6 +115,7 @@ describe('Status page monitors check', function() {
         monitorCategoryId = resourceCategoryRequest.body._id;
         monitorCategoryName = resourceCategoryRequest.body.name;
         monitor.resourceCategory = monitorCategoryId;
+        monitor.componentId = componentRequest.body._id;
 
         const monitorRequest = await request
             .post(`/monitor/${projectId}`)
@@ -165,6 +173,15 @@ describe('Status page monitors check', function() {
             .send({
                 _id: statusPageId,
                 monitorIds: [monitorId],
+            });
+
+        // The tests were written with 'Classic Theme'
+        await request
+            .put(`/statusPage/${projectId}/theme`)
+            .set('Authorization', authorization)
+            .send({
+                theme: 'Classic Theme',
+                statusPageId: statusPageId,
             });
 
         statusPageURL = `http://${statusPageId}.localhost:3006/`;
@@ -278,10 +295,9 @@ describe('Status page monitors check', function() {
         await page.reload({
             waitUntil: 'networkidle0',
         });
+
         const noOfMonitors = await page.evaluate(() => {
-            const monitors = document.getElementsByClassName(
-                'uptime-graph-section dashboard-uptime-graph'
-            );
+            const monitors = document.getElementsByClassName('monitorLists');
             return monitors.length;
         });
         expect(noOfMonitors).to.be.equal(3);
@@ -546,6 +562,15 @@ describe('Private status page check', function() {
             .send(privateStatusPage);
         privateStatusPageId = statusPageRequest.body._id;
 
+        // The tests were written with 'Classic Theme'
+        await request
+            .put(`/statusPage/${projectId}/theme`)
+            .set('Authorization', authorization)
+            .send({
+                theme: 'Classic Theme',
+                statusPageId: privateStatusPageId,
+            });
+
         privateStatusPageURL = `http://${privateStatusPageId}.localhost:3006/`;
 
         newBrowser = await puppeteer.launch({ headless: true });
@@ -657,7 +682,7 @@ describe('Private status page check', function() {
         await page.type('input[name=password]', 'wrongpassword');
         await Promise.all([
             page.click('button[type=submit]'),
-            page.waitFor(5000),
+            page.waitForNavigation(),
         ]);
 
         expect(page.url()).to.be.equal(ACCOUNTS_URL + '/login');
@@ -675,7 +700,7 @@ describe('Private status page check', function() {
         await page.type('input[name=password]', testData.user.password);
         await Promise.all([
             page.click('button[type=submit]'),
-            page.waitFor(10000),
+            page.waitForNavigation(),
         ]);
 
         const monitorName = await page.$eval(

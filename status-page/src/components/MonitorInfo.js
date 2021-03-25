@@ -602,7 +602,7 @@ class MonitorInfo extends Component {
 
                 <ShouldRender if={!this.props.theme}>
                     <div
-                        className="uptime-graph-section dashboard-uptime-graph"
+                        className="uptime-graph-section dashboard-uptime-graph monitorLists"
                         id={this.props.id}
                         ref={this.container}
                     >
