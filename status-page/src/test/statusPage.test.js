@@ -682,7 +682,7 @@ describe('Private status page check', function() {
         await page.type('input[name=password]', 'wrongpassword');
         await Promise.all([
             page.click('button[type=submit]'),
-            page.waitForNavigation(),
+            page.waitForSelector('#login-form'),
         ]);
 
         expect(page.url()).to.be.equal(ACCOUNTS_URL + '/login');
