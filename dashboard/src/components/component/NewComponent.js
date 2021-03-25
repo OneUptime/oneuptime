@@ -87,7 +87,7 @@ class NewComponent extends Component {
             });
         } else {
             this.props.createComponent(postObj.projectId, postObj).then(
-                ({ data: { _id: componentId } }) => {
+                ({ data: { slug: componentSlug } }) => {
                     thisObj.props.reset();
                     if (IS_SAAS_SERVICE) {
                         logEvent(
@@ -97,7 +97,7 @@ class NewComponent extends Component {
                     }
                     this.viewCreatedComponent(
                         this.props.currentProject.slug,
-                        this.props.componentSlug
+                        componentSlug
                     );
                 },
                 error => {
@@ -430,7 +430,6 @@ NewComponent.propTypes = {
     editComponentProp: PropTypes.object,
     edit: PropTypes.bool,
     name: PropTypes.string,
-    componentSlug: PropTypes.string,
     subProjects: PropTypes.array,
     showUpgradeForm: PropTypes.func,
 };
