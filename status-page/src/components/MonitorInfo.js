@@ -534,6 +534,7 @@ class MonitorInfo extends Component {
                                         </div>
                                     </div>
                                 )}
+
                                 <div className="alerts_days">
                                     <div
                                         style={
@@ -552,8 +553,24 @@ class MonitorInfo extends Component {
                                                 ? { color: '#aaaaaa' }
                                                 : subheading
                                         }
-                                        className="spacer"
+                                        className={
+                                            this.props.checkUptime
+                                                ? 'spacer bs-mar-right'
+                                                : 'spacer'
+                                        }
                                     ></div>
+                                    <ShouldRender if={!this.props.checkUptime}>
+                                        <div
+                                            style={
+                                                subheading.color ===
+                                                'rgba(76, 76, 76, 1)'
+                                                    ? { color: '#aaaaaa' }
+                                                    : subheading
+                                            }
+                                        >
+                                            {uptime}% uptime
+                                        </div>
+                                    </ShouldRender>
                                     <div
                                         style={
                                             subheading.color ===
@@ -561,17 +578,11 @@ class MonitorInfo extends Component {
                                                 ? { color: '#aaaaaa' }
                                                 : subheading
                                         }
-                                    >
-                                        {uptime}% uptime
-                                    </div>
-                                    <div
-                                        style={
-                                            subheading.color ===
-                                            'rgba(76, 76, 76, 1)'
-                                                ? { color: '#aaaaaa' }
-                                                : subheading
+                                        className={
+                                            this.props.checkUptime
+                                                ? 'spacer bs-mar-left'
+                                                : 'spacer'
                                         }
-                                        className="spacer"
                                     ></div>
                                     <div
                                         style={
@@ -649,7 +660,10 @@ class MonitorInfo extends Component {
                                     className="percentage"
                                     style={primaryText}
                                 >
-                                    <em>{uptime}%</em> uptime for the last{' '}
+                                    <ShouldRender if={!this.props.checkUptime}>
+                                        <em>{uptime}%</em>{' '}
+                                    </ShouldRender>
+                                    Uptime for the last{' '}
                                     {upDays > range ? range : upDays} day
                                     {upDays > 1 ? 's' : ''}
                                 </span>
@@ -689,6 +703,7 @@ MonitorInfo.displayName = 'UptimeGraphs';
 function mapStateToProps(state) {
     return {
         monitorState: state.status.statusPage.monitorsData,
+        checkUptime: state.status.statusPage.hideUptime,
         activeProbe: state.status.activeProbe,
         probes: state.probe.probes,
         colors: state.status.statusPage.colors,
@@ -718,6 +733,7 @@ MonitorInfo.propTypes = {
     ]),
     isGroupedByMonitorCategory: PropTypes.bool,
     theme: PropTypes.string,
+    checkUptime: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInfo);
