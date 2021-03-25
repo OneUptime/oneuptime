@@ -2,13 +2,13 @@ package io.hackerbay.fyipe.model;
 
 import java.util.Arrays;
 
-public class StringLog {
+public class Log {
     private String content;
     private String applicationLogKey;
     private String type;
     private String [] tags;
 
-    public StringLog(String applicationLogKey, String type, String content, String[] tags) {
+    public Log(String applicationLogKey, String type, String content, String[] tags) {
         this.content = content;
         this.applicationLogKey = applicationLogKey;
         this.type = type;
