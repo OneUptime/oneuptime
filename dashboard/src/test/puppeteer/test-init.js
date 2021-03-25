@@ -654,10 +654,10 @@ module.exports = {
         await page.waitForSelector('input[name=startDate]');
         await page.click('input[name=startDate]');
         await page.click('div.MuiDialogActions-root button:nth-child(2)');
-        await page.waitFor(1000); // needed because of the date picker
+        await page.waitForSelector('div.MuiDialogActions-root button:nth-child(2)',{hidden:true})       
         await page.click('input[name=endDate]');
         await page.click('div.MuiDialogActions-root button:nth-child(2)');
-        await page.waitFor(1000); // needed because of the date picker
+        await page.waitForSelector('div.MuiDialogActions-root button:nth-child(2)',{hidden:true})       
         await page.click('#createScheduledEventButton');
         await page.waitForSelector('.ball-beat', {
             hidden: true,

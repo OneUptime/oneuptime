@@ -110,51 +110,51 @@ describe('Scheduled Event Note', () => {
         operationTimeOut
     );
 
-//     test(
-//         'should edit an investigation note',
-//         async done => {
-//             await cluster.execute(null, async ({ page }) => {
-//                 await page.goto(utils.DASHBOARD_URL);
-//                 await page.waitForSelector('#scheduledEvents', {
-//                     visible: true,
-//                 });
-//                 await page.click('#scheduledEvents');
+    test(
+        'should edit an investigation note',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#scheduledMaintenance', {
+                    visible: true,
+                });
+                await page.click('#scheduledMaintenance');
 
-//                 await page.waitForSelector('#viewScheduledEvent_0', {
-//                     visible: true,
-//                 });
-//                 await page.click('#viewScheduledEvent_0');
-//                 // navigate to the note tab section
-//                 await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
+                await page.waitForSelector('#viewScheduledEvent_0', {
+                    visible: true,
+                });
+                await page.click('#viewScheduledEvent_0');
+                // navigate to the note tab section
+                await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
 
-//                 await page.waitForSelector(
-//                     '#edit_Investigation_incident_message_0',
-//                     { visible: true }
-//                 );
-//                 await page.click('#edit_Investigation_incident_message_0');
-//                 await page.waitForSelector('#update-investigation', {
-//                     visible: true,
-//                 });
-//                 await page.click('#update-investigation', { clickCount: 3 });
-//                 await page.type(
-//                     '#update-investigation',
-//                     'An updated description'
-//                 );
-//                 await page.click('#investigation-updateButton');
-//                 await page.waitForSelector(
-//                     '#form-update-schedule-investigation-message',
-//                     { hidden: true }
-//                 );
-//                 const edited = await page.waitForSelector(
-//                     '#edited_Investigation_incident_message_0',
-//                     { visible: true }
-//                 );
-//                 expect(edited).toBeDefined();
-//             });
-//             done();
-//         },
-//         operationTimeOut
-//     );
+                await page.waitForSelector(
+                    '#edit_Internal_incident_message_0',
+                    { visible: true }
+                );
+                await page.click('#edit_Internal_incident_message_0');
+                await page.waitForSelector('#update-internal', {
+                    visible: true,
+                });
+                await page.click('#update-internal', { clickCount: 3 });
+                await page.type(
+                    '#update-internal',
+                    'An updated description'
+                );
+                await page.click('#internal-updateButton');
+                await page.waitForSelector(
+                    '#form-update-schedule-internal-message',
+                    { hidden: true }
+                );
+                const edited = await page.waitForSelector(
+                    '#edited_Internal_incident_message_0',
+                    { visible: true }
+                );
+                expect(edited).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
 
 //     test(
 //         'should delete an investigation note',
