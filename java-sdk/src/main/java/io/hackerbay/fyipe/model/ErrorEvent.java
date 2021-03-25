@@ -22,4 +22,50 @@ public class ErrorEvent {
         this.errorTrackerKey = errorTrackerKey;
         this.sdk = sdk;
     }
+
+    public String getType() {
+        return type;
+    }
+
+    public ArrayList<Timeline> getTimeline() {
+        return timeline;
+    }
+
+    public StackTrace getException() {
+        return exception;
+    }
+
+    public String getEventId() {
+        return eventId;
+    }
+
+    public ArrayList<Tag> getTags() {
+        return tags;
+    }
+
+    public ArrayList<String> getFingerPrint() {
+        return fingerPrint;
+    }
+
+    public String getErrorTrackerKey() {
+        return errorTrackerKey;
+    }
+
+    public SDK getSdk() {
+        return sdk;
+    }
+
+    @Override
+    public String toString() {
+        return "ErrorEvent{" +
+                "type='" + type + '\'' +
+                ", timeline=" + timeline +
+                ", exception=" + exception +
+                ", eventId='" + eventId + '\'' +
+                ", tags=" + tags +
+                ", fingerPrint=" + fingerPrint +
+                ", errorTrackerKey='" + errorTrackerKey + '\'' +
+                ", sdk=" + sdk +
+                '}';
+    }
 }
