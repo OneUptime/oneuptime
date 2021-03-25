@@ -197,4 +197,27 @@ public class FyipeTrackerTest {
         ErrorEvent errorEvent = tracker.getCurrentEvent();
         assertEquals(errorEvent.getFingerPrint().get(0), fingerprint);
     }
+    @Test
+    public void itShouldCreateAnEventReadyForTheServerUsingCaptureMessage() throws IOException {
+        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+
+        String errorMessage = "This is a test";
+        tracker.captureMessage(errorMessage);
+        ErrorEvent errorEvent = tracker.getCurrentEvent();
+        assertEquals(errorEvent.getType(), ErrorObjectType.message.name());
+        assertEquals(errorEvent.getException().getMessage(), errorMessage);
+    }
+    @Test
+    public void itShouldCreateAnEventReadyForTheServerWhileHavingTheTimelineWithSameEventId() throws IOException {
+        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
+
+        String errorMessage = "This is a test";
+        tracker.captureMessage(errorMessage);
+        ErrorEvent errorEvent = tracker.getCurrentEvent();
+
+        assertEquals(2, errorEvent.getTimeline().size());
+        assertEquals(errorEvent.getEventId(), errorEvent.getTimeline().get(0).getEventId());
+        assertEquals(errorEvent.getException().getMessage(), errorMessage);
+    }
 }
