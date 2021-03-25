@@ -1744,6 +1744,14 @@ margin-left:10px;
   letter-spacing: 1px;
 }
 
+.bs-mar-right {
+  margin-right: 0px;
+}
+
+.bs-mar-left {
+  margin-left: 0px;
+}
+
 @media screen and (max-width: 650px) {
   .innernew {
     width: 90%;
