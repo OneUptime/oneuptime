@@ -165,4 +165,36 @@ public class FyipeTrackerTest {
         assertEquals(tagA.getKey(), currentTags.get(0).getKey()); // content will be key
         assertNotEquals(tagA.getValue(), currentTags.get(0).getValue()); // audio wont be the value
     }
+    @Test
+    public void itShouldCreateFingerprintAsMessageForErrorCaptureWithoutAnyFingerprint() throws IOException {
+        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        String errorMessage = "Uncaught Exception";
+        tracker.captureMessage(errorMessage);
+        ErrorEvent errorEvent = tracker.getCurrentEvent();
+        assertEquals(errorEvent.getFingerPrint().get(0), errorMessage);
+    }
+    @Test
+    public void itShouldUseDefinedFingerprintArrayForErrorCaptureWithFingerprint() throws IOException {
+        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        ArrayList<String> sampleFingerPrint = new ArrayList<>();
+        sampleFingerPrint.add("custom");
+        sampleFingerPrint.add("errors");
+        tracker.setFingerprint(sampleFingerPrint);
+        String errorMessage = "Uncaught Exception";
+        tracker.captureMessage(errorMessage);
+        ErrorEvent errorEvent = tracker.getCurrentEvent();
+        assertNotEquals(errorEvent.getFingerPrint().get(0), errorMessage);
+        assertEquals(errorEvent.getFingerPrint().get(0), sampleFingerPrint.get(0));
+        assertEquals(errorEvent.getFingerPrint().get(1), sampleFingerPrint.get(1));
+    }
+    @Test
+    public void itShouldUseDefinedFingerprintStringForErrorCapturedWithFingerprint() throws IOException {
+        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        String fingerprint = "created to merge";
+        tracker.setFingerprint(fingerprint);
+        String errorMessage = "Uncaught Exception";
+        tracker.captureMessage(errorMessage);
+        ErrorEvent errorEvent = tracker.getCurrentEvent();
+        assertEquals(errorEvent.getFingerPrint().get(0), fingerprint);
+    }
 }
