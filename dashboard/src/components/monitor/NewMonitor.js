@@ -382,7 +382,7 @@ class NewMonitor extends Component {
         const postObj = { data: {}, criteria: {} };
 
         postObj.componentId = thisObj.props.componentId;
-        postObj.projectId = this.props.projectId;
+        postObj.projectId = this.props.project._id;
         postObj.incidentCommunicationSla = values.incidentCommunicationSla;
         postObj.monitorSla = values.monitorSla;
         postObj.name = values[`name_${this.props.index}`];
