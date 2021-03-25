@@ -283,7 +283,9 @@ function mapStateToProps(state, props) {
             monitors: [],
         }
     ).monitors.filter(
-        monitor => monitor.componentId._id === props.component._id
+        monitor =>
+            monitor.componentId &&
+            monitor.componentId._id === props.component._id
     );
     return {
         componentMonitors,
