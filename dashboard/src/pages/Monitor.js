@@ -20,7 +20,10 @@ import {
     fetchMonitorStatuses,
     fetchLighthouseLogs,
 } from '../actions/monitor';
-import { fetchComponentSummary } from '../actions/component';
+import {
+    fetchComponentSummary,
+    addCurrentComponent,
+} from '../actions/component';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
 import { getProbes } from '../actions/probe';
@@ -46,9 +49,15 @@ class DashboardView extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR LIST'
             );
         }
+        if (this.props.component) {
+            this.props.addCurrentComponent(this.props.component);
+        }
     }
 
     componentDidUpdate(prevProps) {
+        if (prevProps.component !== this.props.component) {
+            this.props.addCurrentComponent(this.props.component);
+        }
         if (prevProps.monitor.monitorsList.monitors.length === 0) {
             this.props.monitor.monitorsList.monitors.forEach(subProject => {
                 if (subProject.monitors.length > 0) {
@@ -500,6 +509,7 @@ const mapDispatchToProps = dispatch => {
             fetchTutorial,
             getProbes,
             fetchComponentSummary,
+            addCurrentComponent,
         },
         dispatch
     );
@@ -553,7 +563,9 @@ const mapStateToProps = (state, props) => {
 
     return {
         monitor,
-        componentId: component && component._id,
+        componentId:
+            state.component.currentComponent &&
+            state.component.currentComponent._id,
         currentProject: state.project.currentProject,
         incidents: state.incident.unresolvedincidents.incidents,
         monitors: state.monitor.monitorsList.monitors,
@@ -592,6 +604,7 @@ DashboardView.propTypes = {
     fetchLighthouseLogs: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     getProbes: PropTypes.func,
+    addCurrentComponent: PropTypes.func,
     startDate: PropTypes.object,
     endDate: PropTypes.object,
     location: PropTypes.shape({
