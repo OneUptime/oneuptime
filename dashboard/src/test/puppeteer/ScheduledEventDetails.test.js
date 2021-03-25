@@ -156,41 +156,41 @@ describe('Scheduled Event Note', () => {
         operationTimeOut
     );
 
-//     test(
-//         'should delete an investigation note',
-//         async done => {
-//             await cluster.execute(null, async ({ page }) => {
-//                 await page.goto(utils.DASHBOARD_URL);
-//                 await page.waitForSelector('#scheduledEvents', {
-//                     visible: true,
-//                 });
-//                 await page.click('#scheduledEvents');
+    test(
+        'should delete an investigation note',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#scheduledMaintenance', {
+                    visible: true,
+                });
+                await page.click('#scheduledMaintenance');
 
-//                 await page.waitForSelector('#viewScheduledEvent_0', {
-//                     visible: true,
-//                 });
-//                 await page.click('#viewScheduledEvent_0');
-//                 // navigate to the note tab section
-//                 await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
-//                 await page.waitForSelector(
-//                     '#delete_Investigation_incident_message_0',
-//                     { visible: true }
-//                 );
-//                 await page.click('#delete_Investigation_incident_message_0');
-//                 await page.waitForSelector('#deleteNote', { visible: true });
-//                 await page.click('#deleteNote');
-//                 await page.waitForSelector('#deleteNote', { hidden: true });
+                await page.waitForSelector('#viewScheduledEvent_0', {
+                    visible: true,
+                });
+                await page.click('#viewScheduledEvent_0');
+                // navigate to the note tab section
+                await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
+                await page.waitForSelector(
+                    '#delete_Internal_incident_message_0',
+                    { visible: true }
+                );
+                await page.click('#delete_Internal_incident_message_0');
+                await page.waitForSelector('#deleteNote', { visible: true });
+                await page.click('#deleteNote');
+                await page.waitForSelector('#deleteNote', { hidden: true });
 
-//                 const note = await page.waitForSelector(
-//                     '#delete_Investigation_incident_message_0',
-//                     { hidden: true }
-//                 );
-//                 expect(note).toBeNull();
-//             });
-//             done();
-//         },
-//         operationTimeOut
-//     );
+                const note = await page.waitForSelector(
+                    '#delete_Internal_incident_message_0',
+                    { hidden: true }
+                );
+                expect(note).toBeNull();
+            });
+            done();
+        },
+        operationTimeOut
+    );
 
 //     test(
 //         'should create an internal note',
