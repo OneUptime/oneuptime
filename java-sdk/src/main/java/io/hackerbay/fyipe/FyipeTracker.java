@@ -1,11 +1,10 @@
 package io.hackerbay.fyipe;
 
 import com.google.gson.JsonObject;
-import io.hackerbay.fyipe.model.StackTrace;
-import io.hackerbay.fyipe.model.Tag;
-import io.hackerbay.fyipe.model.Timeline;
-import io.hackerbay.fyipe.model.TrackerOption;
+import io.hackerbay.fyipe.model.*;
+import io.hackerbay.fyipe.util.ParameterStringBuilder;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -20,6 +19,8 @@ public class FyipeTracker {
     private FyipeListener fyipeListener;
     private ArrayList<Tag> tags = new ArrayList<Tag>();
     private ArrayList<String> fingerprint = new ArrayList<String>();
+    private SDK sdk;
+    private ErrorEvent errorEvent;
 
     public FyipeTracker(String apiUrl, String errorTrackerId, String errorTrackerKey) {
         this(apiUrl, errorTrackerId, errorTrackerKey, null);
@@ -122,6 +123,8 @@ public class FyipeTracker {
     public void captureMessage(String message) {
         this.setTag(new Tag("handled","true"));
         StackTrace messageStackTrace = new StackTrace(message);
+
+        this.prepareErrorEvent(ErrorObjectType.message.name(), messageStackTrace);
     }
     public void prepareErrorEvent(String type, StackTrace errorStackTrace) {
         JsonObject obj = new JsonObject();
@@ -132,7 +135,52 @@ public class FyipeTracker {
         ArrayList<Timeline> timeline = this.getTimeline();
 
         ArrayList<Tag> tags = this.getTags();
+        ArrayList<String> fingerPrint = this.getFingerprint(errorStackTrace.getMessage());
         // get event ID
         // prepare the event so it can be sent to the server
+        this.errorEvent = new ErrorEvent(
+                type,
+                timeline,
+                errorStackTrace,
+                this.getEventId(),
+                tags,
+                fingerPrint,
+                this.errorTrackerKey,
+                this.getSdk()
+        );
+        System.out.println(this.errorEvent);
+    }
+
+    public SDK getSdk() {
+        return sdk;
+    }
+
+    public void setSdk(SDK sdk) {
+        // TODO proper setting of SDK
+    }
+    public ErrorEvent getCurrentEvent() {
+        return errorEvent;
+    }
+    private JsonObject sendErrorEventToServer() throws IOException {
+        FyipeTransport apiTransport = new FyipeTransport(this.apiUrl);
+        String errorEventBody = ParameterStringBuilder.getErrorEventRequestString(this.getCurrentEvent());
+        JsonObject response = apiTransport.sendErrorEventToServer(errorEventBody);
+
+        // generate a new event Id
+        this.setEventId();
+        // clear the timeline after a successful call to the server
+        this.clear(this.getEventId());
+
+        return response;
+    }
+
+    private void clear(String newEventId)
+    {
+        // clear tags
+        this.tags.clear();
+        // clear fingerprint
+        this.fingerprint.clear();
+        // clear timeline
+        this.fyipeListener.clearTimeline(newEventId);
     }
 }
