@@ -24,7 +24,7 @@ class ErrorTrackingView extends Component {
         }
     }
     ready = () => {
-        const componentId = this.props.component && this.props.component._id;
+        const componentId = this.props.componentId;
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
@@ -133,6 +133,8 @@ const mapStateToProps = (state, ownProps) => {
     );
     return {
         currentProject,
+        componentId:  state.component.currentComponent &&
+        state.component.currentComponent._id,
         component,
         errorTracker,
     };
@@ -144,5 +146,6 @@ ErrorTrackingView.propTypes = {
     fetchErrorTrackers: PropsType.func,
     errorTracker: PropsType.array,
     editErrorTracker: PropsType.func,
+    componentId:PropsType.string, 
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorTrackingView);

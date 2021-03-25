@@ -27,7 +27,7 @@ class ApplicationLogView extends Component {
         }
     }
     ready = () => {
-        const componentId = this.props.component && this.props.component._id;
+        const componentId = this.props.componentId;
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
@@ -102,10 +102,7 @@ class ApplicationLogView extends Component {
                                 componentId={componentId}
                                 index={this.props.applicationLog[0]?._id}
                                 isDetails={true}
-                                componentSlug={
-                                    this.props.component &&
-                                    this.props.component.slug
-                                }
+                            componentSlug={ this.props.componentSlug}
                             />
                         </div>
 
@@ -113,10 +110,7 @@ class ApplicationLogView extends Component {
                             <ApplicationLogViewDeleteBox
                                 componentId={this.props.componentId}
                                 applicationLog={this.props.applicationLog[0]}
-                                componentSlug={
-                                    this.props.component &&
-                                    this.props.component.slug
-                                }
+                                componentSlug={ this.props.componentSlug}
                             />
                         </div>
                     </ShouldRender>
@@ -148,8 +142,11 @@ const mapStateToProps = (state, props) => {
         applicationLog => applicationLog.slug === applicationLogSlug
     );
     return {
-        componentId: component && component._id,
+        componentId:
+            state.component.currentComponent &&
+            state.component.currentComponent._id,
         applicationLog,
+        componentSlug,
         component,
         currentProject: state.project.currentProject,
     };
@@ -165,6 +162,7 @@ ApplicationLogView.propTypes = {
         })
     ),
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     fetchApplicationLogs: PropTypes.func,
     currentProject: PropTypes.oneOfType([
         PropTypes.object,

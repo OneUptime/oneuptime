@@ -30,6 +30,7 @@ import {
     FETCH_COMPONENT_SUMMARY_FAILURE,
     FETCH_COMPONENT_SUMMARY_RESET,
     SHOW_DELETE_MODAL,
+    ADD_CURRENT_COMPONENT,
     HIDE_DELETE_MODAL,
 } from '../constants/component';
 
@@ -40,6 +41,7 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
     },
+    currentComponent: null,
     newComponent: {
         component: null,
         error: null,
@@ -88,6 +90,7 @@ export default function component(state = INITIAL_STATE, action) {
                     success: false,
                     component: null,
                 },
+                currentComponent: action.payload,
                 componentList: {
                     ...state.componentList,
 
@@ -158,6 +161,7 @@ export default function component(state = INITIAL_STATE, action) {
         case CREATE_COMPONENT_RESET:
             return Object.assign({}, state, {
                 newComponent: INITIAL_STATE.newComponent,
+                currentComponent: null,
             });
 
         case CREATE_COMPONENT_REQUEST:
@@ -267,6 +271,7 @@ export default function component(state = INITIAL_STATE, action) {
                     error: null,
                     success: false,
                 },
+                currentComponent: action.payload,
             });
 
         case EDIT_COMPONENT_FAILURE:
@@ -382,6 +387,7 @@ export default function component(state = INITIAL_STATE, action) {
                     error: null,
                     loading: false,
                 },
+                currentComponent: null,
             });
 
         case ADD_SEAT_SUCCESS:
@@ -522,6 +528,11 @@ export default function component(state = INITIAL_STATE, action) {
                     requesting: true,
                     success: false,
                 },
+            });
+
+        case ADD_CURRENT_COMPONENT:
+            return Object.assign({}, state, {
+                currentComponent: action.payload,
             });
 
         default:

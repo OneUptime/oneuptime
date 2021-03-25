@@ -34,7 +34,7 @@ class ErrorTracking extends Component {
         socket.removeListener(`createErrorTracker-${this.props.componentId}`);
     }
     ready = () => {
-        const componentId = this.props.component && this.props.component._id;
+        const componentId = this.props.componentId;
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
@@ -47,9 +47,7 @@ class ErrorTracking extends Component {
             document.title = this.props.currentProject.name + ' Dashboard';
             socket.on(`createErrorTracker-${this.props.componentId}`, data => {
                 history.push(
-                    `/dashboard/project/${this.props.currentProject.slug}/${this
-                        .props.component &&
-                        this.props.component.slug}/error-trackers/${data.slug}`
+                    `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/error-trackers/${data.slug}`
                 );
             });
         }
@@ -175,8 +173,10 @@ const mapStateToProps = (state, ownProps) => {
 
     return {
         currentProject,
+        componentSlug,
         component,
-        componentId: component && component._id,
+        componentId: state.component.currentComponent &&
+        state.component.currentComponent._id,
         errorTracker,
         tutorialStat,
     };
@@ -186,6 +186,7 @@ ErrorTracking.propTypes = {
     currentProject: PropsType.object,
     location: PropsType.object,
     componentId: PropsType.string,
+    componentSlug: PropsType.string,
     fetchErrorTrackers: PropsType.func,
     tutorialStat: PropsType.object,
     errorTracker: PropsType.object,
