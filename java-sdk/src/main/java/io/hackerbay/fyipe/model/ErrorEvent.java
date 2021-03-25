@@ -8,7 +8,7 @@ public class ErrorEvent {
     private StackTrace exception;
     private String eventId;
     private ArrayList<Tag> tags;
-    private ArrayList<String> fingerPrint;
+    private ArrayList<String> fingerprint;
     private String errorTrackerKey;
     private SDK sdk;
 
@@ -18,7 +18,7 @@ public class ErrorEvent {
         this.exception = exception;
         this.eventId = eventId;
         this.tags = tags;
-        this.fingerPrint = fingerPrint;
+        this.fingerprint = fingerPrint;
         this.errorTrackerKey = errorTrackerKey;
         this.sdk = sdk;
     }
@@ -44,7 +44,7 @@ public class ErrorEvent {
     }
 
     public ArrayList<String> getFingerPrint() {
-        return fingerPrint;
+        return fingerprint;
     }
 
     public String getErrorTrackerKey() {
@@ -63,7 +63,7 @@ public class ErrorEvent {
                 ", exception=" + exception +
                 ", eventId='" + eventId + '\'' +
                 ", tags=" + tags +
-                ", fingerPrint=" + fingerPrint +
+                ", fingerPrint=" + fingerprint +
                 ", errorTrackerKey='" + errorTrackerKey + '\'' +
                 ", sdk=" + sdk +
                 '}';
