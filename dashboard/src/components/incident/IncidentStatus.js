@@ -305,16 +305,9 @@ export class IncidentStatus extends Component {
         const incidentIdNumber = this.props.incident
             ? this.props.incident.idNumber
             : '';
-        const componentSlug = this
-        .props
-        .incident
-        .monitorId
-        .componentId ?this
-        .props
-        .incident
-        .monitorId
-        .componentId
-        .slug : '';
+        const componentSlug = this.props.incident.monitorId.componentId
+            ? this.props.incident.monitorId.componentId.slug
+            : '';
         const homeRoute = this.props.currentProject
             ? '/dashboard/project/' + this.props.currentProject.slug
             : '';
@@ -414,7 +407,7 @@ export class IncidentStatus extends Component {
         };
 
         let teamMembers = this.getOnCallTeamMembers();
-        if(!teamMembers){
+        if (!teamMembers) {
             teamMembers = [];
         }
         const team = teamMembers.filter(member => member.userId);

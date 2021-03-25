@@ -110,41 +110,19 @@ export class ProbeList extends Component {
                                     </div>
                                 </td>
                                 <td
-                                    id="placeholder-left"
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell admin-probe-list-table-header"
-                                    style={{
-                                        height: '1px',
-                                        maxWidth: '48px',
-                                        minWidth: '48px',
-                                        width: '48px',
-                                    }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
-                                    </div>
-                                </td>
-                                <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell admin-probe-list-table-header"
                                     style={{ height: '1px', minWidth: '270px' }}
                                 >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                    <div
+                                        className="db-ListViewItem-cellContent Box-root Padding-all--8"
+                                        style={{
+                                            display: 'flex',
+                                            justifyContent: 'center',
+                                        }}
+                                    >
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Status</span>
                                         </span>
-                                    </div>
-                                </td>
-                                <td
-                                    id="placeholder-right"
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{
-                                        height: '1px',
-                                        maxWidth: '48px',
-                                        minWidth: '48px',
-                                        width: '68px',
-                                    }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
                                     </div>
                                 </td>
                                 <td
@@ -190,9 +168,8 @@ export class ProbeList extends Component {
                                     const fileData =
                                         probe && probe.probeImage
                                             ? `${API_URL}/file/${probe.probeImage}`
-                                            : 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+                                            : '/admin/assets/img/no-probe.svg';
                                     let imageTag = <span />;
-
                                     imageTag = (
                                         <img
                                             src={fileData}
@@ -201,6 +178,8 @@ export class ProbeList extends Component {
                                             style={{
                                                 width: '25px',
                                                 height: '25px',
+                                                opacity:
+                                                    !probe.probeImage && '0.3',
                                             }}
                                         />
                                     );
@@ -265,27 +244,18 @@ export class ProbeList extends Component {
                                                 </div>
                                             </td>
                                             <td
-                                                aria-hidden="true"
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{
-                                                    height: '1px',
-                                                    maxWidth: '48px',
-                                                    minWidth: '48px',
-                                                    width: '48px',
-                                                }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        ⁣
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                 style={{ height: '1px' }}
                                             >
                                                 <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <div
+                                                        className="db-ListViewItem-cellContent Box-root Padding-all--8"
+                                                        style={{
+                                                            display: 'flex',
+                                                            justifyContent:
+                                                                'center',
+                                                        }}
+                                                    >
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root Flex-flex">
                                                                 <div className="Box-root Flex-flex">
@@ -304,56 +274,6 @@ export class ProbeList extends Component {
                                                 </div>
                                             </td>
                                             <td
-                                                className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <form onSubmit>
-                                                    <div className="bs-Button bs-DeprecatedButton Margin-left--8">
-                                                        <ShouldRender
-                                                            if={
-                                                                probe.probeImage
-                                                            }
-                                                        >
-                                                            <span className="bs-Button--icon bs-Button--new"></span>
-                                                            <span>
-                                                                Update Image
-                                                            </span>
-                                                        </ShouldRender>
-                                                        <ShouldRender
-                                                            if={
-                                                                !probe.probeImage
-                                                            }
-                                                        >
-                                                            <span className="bs-Button--icon bs-Button--new"></span>
-                                                            <span>
-                                                                Upload Image
-                                                            </span>
-                                                        </ShouldRender>
-                                                        <Field
-                                                            className="bs-FileUploadButton-input"
-                                                            component={
-                                                                UploadFile
-                                                            }
-                                                            name="profilePic"
-                                                            id="profilePic"
-                                                            accept="image/jpeg, image/jpg, image/png"
-                                                            onChange={e =>
-                                                                this.handleChange(
-                                                                    probe,
-                                                                    e
-                                                                )
-                                                            }
-                                                            disabled={
-                                                                updateRequesting &&
-                                                                selectedProbe ===
-                                                                    probe.id
-                                                            }
-                                                            fileInputKey={Math.round()}
-                                                        />
-                                                    </div>
-                                                </form>
-                                            </td>
-                                            <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                 style={{ height: '1px' }}
                                             >
@@ -368,6 +288,53 @@ export class ProbeList extends Component {
                                                                 'flex-end',
                                                         }}
                                                     >
+                                                        <form onSubmit>
+                                                            <div className="bs-Button bs-DeprecatedButton Margin-left--8">
+                                                                <ShouldRender
+                                                                    if={
+                                                                        probe.probeImage
+                                                                    }
+                                                                >
+                                                                    <span className="bs-Button--icon bs-Button--new"></span>
+                                                                    <span>
+                                                                        Update
+                                                                        Image
+                                                                    </span>
+                                                                </ShouldRender>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        !probe.probeImage
+                                                                    }
+                                                                >
+                                                                    <span className="bs-Button--icon bs-Button--new"></span>
+                                                                    <span>
+                                                                        Upload
+                                                                        Image
+                                                                    </span>
+                                                                </ShouldRender>
+                                                                <Field
+                                                                    className="bs-FileUploadButton-input"
+                                                                    component={
+                                                                        UploadFile
+                                                                    }
+                                                                    name="profilePic"
+                                                                    id="profilePic"
+                                                                    accept="image/jpeg, image/jpg, image/png"
+                                                                    onChange={e =>
+                                                                        this.handleChange(
+                                                                            probe,
+                                                                            e
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        updateRequesting &&
+                                                                        selectedProbe ===
+                                                                            probe.id
+                                                                    }
+                                                                    fileInputKey={Math.round()}
+                                                                />
+                                                            </div>
+                                                        </form>
                                                         <button
                                                             id="delete_probe"
                                                             className="bs-Button bs-DeprecatedButton Margin-left--8"

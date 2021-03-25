@@ -153,8 +153,8 @@ function createDir(dirPath) {
             ).then(res => res.json());
 
             let certPath, privateKeyPath;
-            if (res.data) {
-                const { cert, privateKey } = res.data;
+            if (res) {
+                const { cert, privateKey } = res;
                 if (cert && privateKey) {
                     certPath = path.resolve(
                         process.cwd(),
@@ -173,40 +173,39 @@ function createDir(dirPath) {
                         fetchCredential(apiHost, cert, certPath),
                         fetchCredential(apiHost, privateKey, privateKeyPath),
                     ]);
+
+                    return cb(
+                        null,
+                        tls.createSecureContext({
+                            key: fs.readFileSync(privateKeyPath),
+                            cert: fs.readFileSync(certPath),
+                        })
+                    );
                 }
             }
 
-            if (certPath && privateKeyPath) {
-                cb(
-                    null,
-                    tls.createSecureContext({
-                        key: fs.readFileSync(privateKeyPath),
-                        cert: fs.readFileSync(certPath),
-                    })
-                );
-            } else {
-                cb(
-                    null,
-                    tls.createSecureContext({
-                        cert: fs.readFileSync(
-                            path.resolve(
-                                process.cwd(),
-                                'src',
-                                'credentials',
-                                'certificate.crt'
-                            )
-                        ),
-                        key: fs.readFileSync(
-                            path.resolve(
-                                process.cwd(),
-                                'src',
-                                'credentials',
-                                'private.key'
-                            )
-                        ),
-                    })
-                );
-            }
+            // default for custom domains without cert/key credentials
+            return cb(
+                null,
+                tls.createSecureContext({
+                    cert: fs.readFileSync(
+                        path.resolve(
+                            process.cwd(),
+                            'src',
+                            'credentials',
+                            'certificate.crt'
+                        )
+                    ),
+                    key: fs.readFileSync(
+                        path.resolve(
+                            process.cwd(),
+                            'src',
+                            'credentials',
+                            'private.key'
+                        )
+                    ),
+                })
+            );
         },
     };
     http.createServer(app).listen(3006, () =>

@@ -5,7 +5,7 @@ const errortrackerCollection = 'errortrackers';
 
 async function run() {
     const errorTrackers = await find(errortrackerCollection, {
-        deleted: false,
+        slug: { $exists: false },
     });
     for (let i = 0; i < errorTrackers.length; i++) {
         let { name } = errorTrackers[i];

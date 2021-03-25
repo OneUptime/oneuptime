@@ -179,7 +179,7 @@ class ContainerSecurityDetail extends Component {
                         !gettingCredentials
                     }
                 >
-                    <ContainerSecurityDeleteBox 
+                    <ContainerSecurityDeleteBox
                         projectId={projectId}
                         componentId={componentId}
                         containerSecurityId={containerSecurityId}

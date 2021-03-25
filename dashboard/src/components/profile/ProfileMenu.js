@@ -16,7 +16,6 @@ import ShouldRender from '../basic/ShouldRender';
 export class ProfileMenu extends Component {
     constructor(props) {
         super(props);
-
         this.state = { aboutId: uuidv4() };
     }
 
