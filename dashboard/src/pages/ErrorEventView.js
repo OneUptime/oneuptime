@@ -26,7 +26,7 @@ class ErrorEventView extends Component {
         }
     }
     ready = () => {
-        const componentId = this.props.component && this.props.component._id;
+        const componentId = this.props.componentId;
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
@@ -52,13 +52,14 @@ class ErrorEventView extends Component {
     navigationLink = errorEventId => {
         const {
             currentProject,
-            component,
             errorTracker,
+            componentId,
+            componentSlug,
             setCurrentErrorEvent,
         } = this.props;
         this.props.fetchErrorEvent(
             currentProject._id,
-            component._id,
+            componentId,
             errorTracker[0]._id,
             errorEventId
         );
@@ -67,7 +68,7 @@ class ErrorEventView extends Component {
             '/dashboard/project/' +
                 currentProject.slug +
                 '/' +
-                component.slug +
+                componentSlug +
                 '/error-trackers/' +
                 errorTracker[0].slug +
                 '/events/' +
@@ -80,6 +81,8 @@ class ErrorEventView extends Component {
             component,
             errorTracker,
             errorEvent,
+            componentSlug,
+            componentId,
             currentProject,
         } = this.props;
 
@@ -120,8 +123,8 @@ class ErrorEventView extends Component {
                         <div>
                             <ErrorEventDetail
                                 errorEvent={errorEvent}
-                                componentId={component && component._id}
-                                componentSlug={component && component.slug}
+                                componentId={componentId}
+                                componentSlug={componentSlug}
                                 projectId={currentProject && currentProject._id}
                                 errorTrackerId={
                                     errorTracker[0] && errorTracker[0]._id
@@ -186,7 +189,11 @@ const mapStateToProps = (state, ownProps) => {
     return {
         currentProject,
         component,
+        componentSlug,
         errorTracker,
+        componentId:
+        state.component.currentComponent &&
+        state.component.currentComponent._id,
         errorEvent,
         currentErrorEvent,
     };
@@ -195,6 +202,8 @@ ErrorEventView.propTypes = {
     component: PropsType.object,
     currentProject: PropsType.object,
     location: PropsType.object,
+    componentSlug: PropsType.string,
+    componentId: PropsType.string,
     match: PropsType.object,
     fetchErrorEvent: PropsType.func,
     errorTracker: PropsType.array,

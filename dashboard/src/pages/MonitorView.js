@@ -1034,7 +1034,8 @@ const mapStateToProps = (state, props) => {
         monitorId,
         component,
         slug: state.project.currentProject && state.project.currentProject.slug,
-        componentId: component && component._id,
+        componentId: state.component.currentComponent &&
+        state.component.currentComponent._id,
         monitor,
         edit: state.monitor.monitorsList.editMode ? true : false,
         initialValues,

@@ -808,19 +808,11 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-function mapStateToProps(state, props) {
-    const componentId = props.componentId;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
-                component = c;
-            }
-        });
-    });
+function mapStateToProps(state) {
     return {
         monitorState: state.monitor,
-        componentSlug: component && component.slug,
+        componentSlug: state.component.currentComponent &&
+        state.component.currentComponent.slug,
         currentProject: state.project.currentProject,
         create: state.incident.newIncident.requesting,
         activeIncident: state.incident.newIncident.monitorId,

@@ -182,9 +182,7 @@ export class MonitorTabularList extends Component {
                                                             .currentProject
                                                             .slug +
                                                         '/' +
-                                                        this.props.component &&
-                                                        this.props.component
-                                                            .slug +
+                                                        this.props.componentSlug +
                                                             '/monitoring/' +
                                                             monitor.slug
                                                 );
@@ -476,6 +474,7 @@ function mapStateToProps(state, props) {
         activeProbe: state.monitor.activeProbe,
         probes: state.probe.probes.data,
         component,
+        componentSlug,
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
     };
@@ -486,7 +485,7 @@ MonitorTabularList.displayName = 'MonitorTabularList';
 MonitorTabularList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
-    component: PropTypes.string.isRequired,
+    componentSlug: PropTypes.string.isRequired,
     monitors: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),

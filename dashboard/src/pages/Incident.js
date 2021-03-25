@@ -537,8 +537,7 @@ class Incident extends React.Component {
                                             this.props.monitor.slug
                                         }
                                         componentSlug={
-                                            this.props.component &&
-                                            this.props.component.slug
+                                            this.props.componentSlug
                                         }
                                         componentId={this.props.componentId}
                                     />
@@ -676,7 +675,9 @@ const mapStateToProps = (state, props) => {
             ? state.incident.incident.deleteIncident.requesting
             : false,
         component,
-        componentId: component && component._id,
+        componentId:  state.component.currentComponent &&
+        state.component.currentComponent._id,
+        componentSlug,
         requestingDefaultIncidentSla:
             state.incidentSla.defaultIncidentCommunicationSla.requesting,
         defaultIncidentSla:
@@ -733,6 +734,7 @@ Incident.propTypes = {
         })
     ),
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     fetchIncidentMessages: PropTypes.func,
     fetchIncidentPriorities: PropTypes.func.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,

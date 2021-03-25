@@ -337,7 +337,8 @@ const mapStateToProps = (state, props) => {
         }
     }
     return {
-        componentId: component && component._id,
+        componentId: state.component.currentComponent &&
+        state.component.currentComponent._id,
         currentProject: state.project.currentProject,
         incidents: state.incident.incidents,
         create: state.incident.newIncident.requesting,

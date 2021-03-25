@@ -5,6 +5,7 @@ import { connect } from 'react-redux';
 import {
     fetchComponents,
     fetchComponentResources,
+    addCurrentComponent
 } from '../../actions/component';
 import { fetchMonitors } from '../../actions/monitor';
 import { closeModal } from '../../actions/modal';
@@ -217,6 +218,7 @@ export class ComponentDetail extends Component {
                                         this.props.animateSidebar(false);
                                     }, 200);
                                     this.props.animateSidebar(true);
+                                    this.props.addCurrentComponent(component);
                                 }}
                             >
                                 View Component
@@ -267,6 +269,7 @@ const mapDispatchToProps = dispatch => {
             closeModal,
             deleteComponent,
             fetchComponents,
+            addCurrentComponent,
             fetchComponentResources,
             fetchMonitors,
             animateSidebar,
@@ -302,6 +305,7 @@ ComponentDetail.propTypes = {
     componentState: PropTypes.object.isRequired,
     deleteComponent: PropTypes.func,
     fetchComponents: PropTypes.func,
+    addCurrentComponent: PropTypes.func,
     projectName: PropTypes.string,
     projectType: PropTypes.string,
     shouldRenderProjectType: PropTypes.bool,

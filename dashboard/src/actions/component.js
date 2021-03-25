@@ -433,3 +433,10 @@ export function resetFetchComponentSummary() {
         type: types.FETCH_COMPONENT_SUMMARY_RESET,
     };
 }
+
+export function addCurrentComponent(currentComponent) {
+    return {
+        type: types.ADD_CURRENT_COMPONENT,
+        payload: currentComponent,
+    };
+}

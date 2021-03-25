@@ -384,14 +384,6 @@ const mapStateToProps = (state, ownProps) => {
                 ? ownProps.match.params.componentSlug
                 : null
             : null;
-        let component;
-        state.component.componentList.components.forEach(item => {
-            item.components.forEach(c => {
-                if (String(c.slug) === String(componentSlug)) {
-                    component = c;
-                }
-            });
-        });
         return {
             component: state.component,
             currentProject: state.project.currentProject,
@@ -399,8 +391,10 @@ const mapStateToProps = (state, ownProps) => {
             subProject,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
-            componentId: component && component._id,
-            componentSlug: component && component.slug,
+            componentId:
+                state.component.currentComponent &&
+                state.component.currentComponent._id,
+            componentSlug,
         };
     } else {
         return {

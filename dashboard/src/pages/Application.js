@@ -63,13 +63,14 @@ class Application extends Component {
             gettingSecurityLogs,
             location: { pathname },
             component,
+            componentSlug,
             scanApplicationSecuritySuccess,
             getApplicationSecuritySuccess,
         } = this.props;
 
         socket.on(`createApplicationSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${this.props.slug}/${component.slug}/security/application/${data.slug}`
+                `/dashboard/project/${this.props.slug}/${componentSlug}/security/application/${data.slug}`
             );
         });
         const applicationSecurities = appSecurities
@@ -149,7 +150,7 @@ class Application extends Component {
                                                                             componentId
                                                                         }
                                                                         componentSlug={
-                                                                            component.slug
+                                                                            componentSlug
                                                                         }
                                                                     />
                                                                 </div>
@@ -183,6 +184,7 @@ Application.displayName = 'Application Security Page';
 
 Application.propTypes = {
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     slug: PropTypes.string,
     projectId: PropTypes.string,
     getApplicationSecurities: PropTypes.func,
@@ -214,7 +216,9 @@ const mapStateToProps = (state, ownProps) => {
     });
 
     return {
-        componentId: component && component._id,
+        componentId:
+            state.component.currentComponent &&
+            state.component.currentComponent._id,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
         slug: state.project.currentProject && state.project.currentProject.slug,
@@ -223,6 +227,7 @@ const mapStateToProps = (state, ownProps) => {
             state.security.getApplicationSecurityLog.requesting,
         gettingApplicationSecurities: state.security.getApplication.requesting,
         component,
+        componentSlug,
     };
 };
 

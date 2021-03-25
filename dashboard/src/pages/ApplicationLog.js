@@ -34,7 +34,7 @@ class ApplicationLog extends Component {
         }
     }
     ready = () => {
-        const componentId = this.props.component && this.props.component._id;
+        const componentId = this.props.componentId;
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
@@ -51,7 +51,7 @@ class ApplicationLog extends Component {
                 `createApplicationLog-${this.props.componentId}`,
                 data => {
                     history.push(
-                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.component.slug}/application-logs/${data.slug}`
+                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/application-logs/${data.slug}`
                     );
                 }
             );
@@ -82,10 +82,7 @@ class ApplicationLog extends Component {
                             applicationLogs={
                                 this.props.applicationLog.applicationLogs
                             }
-                            componentSlug={
-                                this.props.component &&
-                                this.props.component.slug
-                            }
+                            componentSlug={this.props.componentSlug}
                         />
                     </div>
                 </div>
@@ -184,8 +181,11 @@ const mapStateToProps = (state, props) => {
     }
 
     return {
-        componentId: component && component._id,
+        componentId:
+            state.component.currentComponent &&
+            state.component.currentComponent._id,
         component,
+        componentSlug,
         applicationLog,
         currentProject,
         tutorialStat,
@@ -203,6 +203,7 @@ ApplicationLog.propTypes = {
         })
     ),
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     loadPage: PropTypes.func,
     fetchApplicationLogs: PropTypes.func,
     currentProject: PropTypes.oneOfType([

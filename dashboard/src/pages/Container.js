@@ -56,6 +56,7 @@ class Container extends Component {
     render() {
         const {
             componentId,
+            componentSlug,
             projectId,
             containerSecurities: securities,
             gettingContainerSecurities,
@@ -68,7 +69,7 @@ class Container extends Component {
 
         socket.on(`createContainerSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${this.props.slug}/${component.slug}/security/container/${data.slug}`
+                `/dashboard/project/${this.props.slug}/${componentSlug}/security/container/${data.slug}`
             );
         });
 
@@ -157,7 +158,7 @@ class Container extends Component {
                                                                             componentId
                                                                         }
                                                                         componentSlug={
-                                                                            component.slug
+                                                                            componentSlug
                                                                         }
                                                                     />
                                                                 </div>
@@ -192,6 +193,7 @@ Container.displayName = 'Container Security Page';
 Container.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     slug: PropTypes.string,
     containerSecurities: PropTypes.array,
     getContainerSecurities: PropTypes.func,
@@ -225,12 +227,14 @@ const mapStateToProps = (state, ownProps) => {
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
-        componentId: component && component._id,
+        componentId: state.component.currentComponent &&
+        state.component.currentComponent._id,
         slug: state.project.currentProject && state.project.currentProject.slug,
         containerSecurities: state.security.containerSecurities,
         gettingSecurityLogs: state.security.getContainerSecurityLog.requesting,
         gettingContainerSecurities: state.security.getContainer.requesting,
         component,
+        componentSlug,
     };
 };
 
