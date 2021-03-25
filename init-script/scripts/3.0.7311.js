@@ -6,7 +6,6 @@ const statusPageCollection = 'statuspages';
 async function run() {
     const statusPages = await find(statusPageCollection, {
         statusBubbleId: { $exists: false },
-        deleted: false,
     });
 
     for (let i = 0; i < statusPages.length; i++) {

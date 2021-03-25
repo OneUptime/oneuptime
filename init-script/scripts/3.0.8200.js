@@ -4,7 +4,6 @@ const monitorCollection = 'monitors';
 
 async function run() {
     const monitors = await find(monitorCollection, {
-        deleted: false,
         $or: [
             {
                 'criteria.up': {

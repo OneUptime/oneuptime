@@ -4,7 +4,7 @@ const statusPageCollection = 'statuspages';
 
 async function run() {
     const statusPages = await find(statusPageCollection, {
-        theme: { $exists: false },
+        hideUptime: { $exists: false },
     });
 
     for (let i = 0; i < statusPages.length; i++) {
@@ -12,7 +12,7 @@ async function run() {
         await update(
             statusPageCollection,
             { _id: statusPage._id },
-            { theme: 'Classic Theme' }
+            { hideUptime: false }
         );
     }
 }

@@ -66,6 +66,11 @@ const statusSchema = new Schema({
         type: Boolean,
         default: false,
     },
+    // show or hide uptime (%) on the status page
+    hideUptime: {
+        type: Boolean,
+        default: false,
+    },
     description: String,
     copyright: String,
     faviconPath: String,

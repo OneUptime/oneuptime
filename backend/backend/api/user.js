@@ -449,9 +449,14 @@ router.post('/sso/callback', async function(req, res) {
 router.post('/login', async function(req, res) {
     try {
         const data = req.body;
-        const clientIP =
-            req.headers['x-forwarded-for'].split(',')[0] ||
-            req.connection.remoteAddress;
+        let clientIP;
+        if (req.headers['x-forwarded-for']) {
+            clientIP = req.headers['x-forwarded-for'].split(',')[0];
+        } else if (req.connection && req.connection.remoteAddress) {
+            clientIP = req.connection.remoteAddress;
+        } else {
+            clientIP = req.ip;
+        }
 
         if (!data.email) {
             return sendErrorResponse(req, res, {
