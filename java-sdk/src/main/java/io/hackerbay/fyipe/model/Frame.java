@@ -11,6 +11,18 @@ public class Frame {
         this.fileName = fileName;
     }
 
+    public String getMethodName() {
+        return methodName;
+    }
+
+    public int getLineNumber() {
+        return lineNumber;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
     @Override
     public String toString() {
         return "Frame{" +
