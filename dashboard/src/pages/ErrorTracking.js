@@ -148,15 +148,6 @@ const mapStateToProps = (state, ownProps) => {
 
     const errorTracker = state.errorTracker.errorTrackersList;
 
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c.slug) === String(componentSlug)) {
-                component = c;
-            }
-        });
-    });
-
     // try to get custom project tutorial by project ID
     const projectCustomTutorial = state.tutorial[projectId];
 
@@ -174,7 +165,8 @@ const mapStateToProps = (state, ownProps) => {
     return {
         currentProject,
         componentSlug,
-        component,
+        component: state.component &&
+        state.component.currentComponent,
         componentId: state.component.currentComponent &&
         state.component.currentComponent._id,
         errorTracker,

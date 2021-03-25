@@ -118,16 +118,8 @@ const mapDispatchToProps = dispatch => {
     );
 };
 const mapStateToProps = (state, ownProps) => {
-    const { componentSlug, errorTrackerSlug } = ownProps.match.params;
+    const { errorTrackerSlug } = ownProps.match.params;
     const currentProject = state.project.currentProject;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c.slug) === String(componentSlug)) {
-                component = c;
-            }
-        });
-    });
     const errorTracker = state.errorTracker.errorTrackersList.errorTrackers.filter(
         errorTracker => errorTracker.slug === errorTrackerSlug
     );
@@ -135,7 +127,8 @@ const mapStateToProps = (state, ownProps) => {
         currentProject,
         componentId:  state.component.currentComponent &&
         state.component.currentComponent._id,
-        component,
+        component: state.component &&
+        state.component.currentComponent,
         errorTracker,
     };
 };

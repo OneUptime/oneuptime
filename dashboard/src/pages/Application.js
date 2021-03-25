@@ -204,17 +204,7 @@ Application.propTypes = {
     getApplicationSecuritySuccess: PropTypes.func,
 };
 
-const mapStateToProps = (state, ownProps) => {
-    const { componentSlug } = ownProps.match.params;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c.slug) === String(componentSlug)) {
-                component = c;
-            }
-        });
-    });
-
+const mapStateToProps = state => {
     return {
         componentId:
             state.component.currentComponent &&
@@ -226,8 +216,12 @@ const mapStateToProps = (state, ownProps) => {
         gettingSecurityLogs:
             state.security.getApplicationSecurityLog.requesting,
         gettingApplicationSecurities: state.security.getApplication.requesting,
-        component,
-        componentSlug,
+        component:
+            state.component &&
+            state.component.currentComponent,
+        componentSlug:
+            state.component.currentComponent &&
+            state.component.currentComponent.slug,
     };
 };
 

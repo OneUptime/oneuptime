@@ -458,23 +458,16 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators({}, dispatch);
 };
 
-function mapStateToProps(state, props) {
-    const { componentSlug } = props.match.params;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c.slug) === String(componentSlug)) {
-                component = c;
-            }
-        });
-    });
+function mapStateToProps(state) {
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
         activeProbe: state.monitor.activeProbe,
         probes: state.probe.probes.data,
-        component,
-        componentSlug,
+        component: state.component &&
+        state.component.currentComponent,
+        componentSlug: state.component.currentComponent &&
+        state.component.currentComponent.slug,
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
     };
