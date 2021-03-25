@@ -682,7 +682,7 @@ describe('Private status page check', function() {
         await page.type('input[name=password]', 'wrongpassword');
         await Promise.all([
             page.click('button[type=submit]'),
-            page.waitFor(5000),
+            page.waitForNavigation(),
         ]);
 
         expect(page.url()).to.be.equal(ACCOUNTS_URL + '/login');
@@ -700,7 +700,7 @@ describe('Private status page check', function() {
         await page.type('input[name=password]', testData.user.password);
         await Promise.all([
             page.click('button[type=submit]'),
-            page.waitFor(10000),
+            page.waitForNavigation(),
         ]);
 
         const monitorName = await page.$eval(
