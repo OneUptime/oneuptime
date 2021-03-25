@@ -175,7 +175,7 @@ describe('Status page monitors check', function() {
                 monitorIds: [monitorId],
             });
 
-        // The tests were been written with 'Classic Theme'
+        // The tests were written with 'Classic Theme'
         await request
             .put(`/statusPage/${projectId}/theme`)
             .set('Authorization', authorization)
@@ -564,7 +564,7 @@ describe('Private status page check', function() {
             .send(privateStatusPage);
         privateStatusPageId = statusPageRequest.body._id;
 
-        // The tests were been written with 'Classic Theme'
+        // The tests were written with 'Classic Theme'
         await request
             .put(`/statusPage/${projectId}/theme`)
             .set('Authorization', authorization)
