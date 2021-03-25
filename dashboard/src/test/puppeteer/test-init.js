@@ -623,12 +623,12 @@ module.exports = {
             await page.click('#btnCreateSchedule');
         }
     },
-    addScheduledEvent: async function(monitorName, scheduledEventName, page) {
+    addScheduledEvent: async function(monitorName, scheduledEventName, componentName,page) {
         await page.goto(utils.DASHBOARD_URL);
-        await page.waitForSelector('#scheduledEvents', {
+        await page.waitForSelector('#scheduledMaintenance', {
             visible: true,
         });
-        await page.click('#scheduledEvents');
+        await page.click('#scheduledMaintenance');
         await page.waitForSelector('#addScheduledEventButton', {
             visible: true,
         });
@@ -644,7 +644,7 @@ module.exports = {
             await page.click('label[for=selectAllMonitorsBox]');
             await page.click('#addMoreMonitor');
             await page.waitForSelector('#monitorfield_0');
-            await this.selectByText('#monitorfield_0', monitorName, page);
+            await this.selectByText('#monitorfield_0', componentName, page);
         }
         await page.click('#description');
         await page.type(
