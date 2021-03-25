@@ -26,8 +26,8 @@ module.exports = {
         companyPhoneNumber: '+1255609726',
         reference: 'Github',
     },
-    component:{
-        name: 'NewComponent'
+    component: {
+        name: 'NewComponent',
     },
     monitor: {
         name: 'NewMonitor',

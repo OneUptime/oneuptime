@@ -86,7 +86,7 @@ router.put(
 
 router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
     const { projectId } = req.params;
-    const { theme, statusPageId } = req.body;    
+    const { theme, statusPageId } = req.body;
     try {
         const statusPage = await StatusPageService.updateOneBy(
             { projectId, _id: statusPageId },

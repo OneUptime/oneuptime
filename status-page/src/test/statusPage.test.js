@@ -102,11 +102,11 @@ describe('Status page monitors check', function() {
 
         authorization = `Basic ${token}`;
 
-          // component creation before monitor is created
-          const componentRequest = await request
-          .post(`/component/${projectId}`)
-          .set('Authorization', authorization)
-          .send(componentName);         
+        // component creation before monitor is created
+        const componentRequest = await request
+            .post(`/component/${projectId}`)
+            .set('Authorization', authorization)
+            .send(componentName);
 
         const resourceCategoryRequest = await request
             .post(`/resourceCategory/${projectId}`)
@@ -116,11 +116,11 @@ describe('Status page monitors check', function() {
         monitorCategoryName = resourceCategoryRequest.body.name;
         monitor.resourceCategory = monitorCategoryId;
         monitor.componentId = componentRequest.body._id;
-      
+
         const monitorRequest = await request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
-            .send(monitor);        
+            .send(monitor);
         monitorId = monitorRequest.body._id;
         monitorName = monitorRequest.body.name;
         scheduledEventMonitorId = monitorId;
@@ -181,8 +181,8 @@ describe('Status page monitors check', function() {
             .set('Authorization', authorization)
             .send({
                 theme: 'Classic Theme',
-                statusPageId: statusPageId
-            })
+                statusPageId: statusPageId,
+            });
 
         statusPageURL = `http://${statusPageId}.localhost:3006/`;
 
@@ -294,15 +294,13 @@ describe('Status page monitors check', function() {
             });
         await page.reload({
             waitUntil: 'networkidle0',
-        });       
+        });
 
         const noOfMonitors = await page.evaluate(() => {
-            const monitors = document.getElementsByClassName(
-                'monitorLists'                
-            );            
+            const monitors = document.getElementsByClassName('monitorLists');
             return monitors.length;
-        });        
-         expect(noOfMonitors).to.be.equal(3);
+        });
+        expect(noOfMonitors).to.be.equal(3);
 
         const noOfBlockCharts = await page.evaluate(() => {
             const monitors = document.getElementsByClassName('block-chart');
@@ -570,8 +568,8 @@ describe('Private status page check', function() {
             .set('Authorization', authorization)
             .send({
                 theme: 'Classic Theme',
-                statusPageId: privateStatusPageId
-            })
+                statusPageId: privateStatusPageId,
+            });
 
         privateStatusPageURL = `http://${privateStatusPageId}.localhost:3006/`;
 
