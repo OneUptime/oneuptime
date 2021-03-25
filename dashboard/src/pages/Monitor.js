@@ -515,19 +515,13 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-const mapStateToProps = (state, props) => {
-    const { componentSlug } = props.match.params;
+const mapStateToProps = (state) => {
+
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     const monitor = state.monitor;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c.slug) === String(componentSlug)) {
-                component = c;
-            }
-        });
-    });
+    const  component= state.component &&
+    state.component.currentComponent;
 
     monitor.monitorsList.monitors.forEach(item => {
         item.monitors = item.monitors.filter(

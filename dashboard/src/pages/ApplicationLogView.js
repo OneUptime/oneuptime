@@ -130,14 +130,6 @@ const mapDispatchToProps = dispatch => {
 };
 const mapStateToProps = (state, props) => {
     const { componentSlug, applicationLogSlug } = props.match.params;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c.slug) === String(componentSlug)) {
-                component = c;
-            }
-        });
-    });
     const applicationLog = state.applicationLog.applicationLogsList.applicationLogs.filter(
         applicationLog => applicationLog.slug === applicationLogSlug
     );
@@ -147,7 +139,8 @@ const mapStateToProps = (state, props) => {
             state.component.currentComponent._id,
         applicationLog,
         componentSlug,
-        component,
+        component: state.component &&
+        state.component.currentComponent,
         currentProject: state.project.currentProject,
     };
 };

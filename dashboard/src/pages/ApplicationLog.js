@@ -150,21 +150,12 @@ const mapDispatchToProps = dispatch => {
         dispatch
     );
 };
-const mapStateToProps = (state, props) => {
-    const { componentSlug } = props.match.params;
+const mapStateToProps = (state) => {
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     const applicationLog = state.applicationLog.applicationLogsList;
 
     const currentProject = state.project.currentProject;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c.slug) === String(componentSlug)) {
-                component = c;
-            }
-        });
-    });
 
     // try to get custom project tutorial by project ID
     const projectCustomTutorial = state.tutorial[projectId];
@@ -184,8 +175,10 @@ const mapStateToProps = (state, props) => {
         componentId:
             state.component.currentComponent &&
             state.component.currentComponent._id,
-        component,
-        componentSlug,
+        component: state.component &&
+        state.component.currentComponent,
+        componentSlug: state.component.currentComponent &&
+        state.component.currentComponent.slug,
         applicationLog,
         currentProject,
         tutorialStat,

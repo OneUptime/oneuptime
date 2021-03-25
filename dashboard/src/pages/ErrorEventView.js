@@ -163,14 +163,6 @@ const mapStateToProps = (state, ownProps) => {
     const currentErrorEventId =
         currentErrorEvent !== errorEventId ? errorEventId : currentErrorEvent;
     const currentProject = state.project.currentProject;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c.slug) === String(componentSlug)) {
-                component = c;
-            }
-        });
-    });
     const errorTracker = state.errorTracker.errorTrackersList.errorTrackers.filter(
         errorTracker => errorTracker.slug === errorTrackerSlug
     );
@@ -188,12 +180,14 @@ const mapStateToProps = (state, ownProps) => {
     }
     return {
         currentProject,
-        component,
+        component:
+            state.component &&
+            state.component.currentComponent,
         componentSlug,
         errorTracker,
         componentId:
-        state.component.currentComponent &&
-        state.component.currentComponent._id,
+            state.component.currentComponent &&
+            state.component.currentComponent._id,
         errorEvent,
         currentErrorEvent,
     };

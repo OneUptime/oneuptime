@@ -643,14 +643,6 @@ const mapStateToProps = (state, props) => {
         state.incident.incident.incident.monitorId._id
             ? state.incident.incident.incident.monitorId._id
             : null;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c.slug) === String(componentSlug)) {
-                component = c;
-            }
-        });
-    });
     const monitor = state.monitor.monitorsList.monitors
         .map(monitor =>
             monitor.monitors.find(monitor => monitor._id === monitorId)
@@ -674,7 +666,8 @@ const mapStateToProps = (state, props) => {
         deleting: state.incident.incident.deleteIncident
             ? state.incident.incident.deleteIncident.requesting
             : false,
-        component,
+        component: state.component &&
+        state.component.currentComponent,
         componentId:  state.component.currentComponent &&
         state.component.currentComponent._id,
         componentSlug,

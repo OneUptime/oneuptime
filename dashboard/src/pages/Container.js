@@ -215,14 +215,6 @@ Container.propTypes = {
 const mapStateToProps = (state, ownProps) => {
     // ids from url
     const { componentSlug } = ownProps.match.params;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c.slug) === String(componentSlug)) {
-                component = c;
-            }
-        });
-    });
 
     return {
         projectId:
@@ -233,7 +225,8 @@ const mapStateToProps = (state, ownProps) => {
         containerSecurities: state.security.containerSecurities,
         gettingSecurityLogs: state.security.getContainerSecurityLog.requesting,
         gettingContainerSecurities: state.security.getContainer.requesting,
-        component,
+        component: state.component &&
+        state.component.currentComponent,
         componentSlug,
     };
 };
