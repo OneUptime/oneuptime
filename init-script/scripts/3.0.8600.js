@@ -5,7 +5,7 @@ const containerSecurityCollection = 'containersecurities';
 
 async function run() {
     const containerSecurities = await find(containerSecurityCollection, {
-        deleted: false,
+        slug: { $exists: false },
     });
     for (let i = 0; i < containerSecurities.length; i++) {
         let { name } = containerSecurities[i];

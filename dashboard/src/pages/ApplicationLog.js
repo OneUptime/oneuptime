@@ -82,7 +82,10 @@ class ApplicationLog extends Component {
                             applicationLogs={
                                 this.props.applicationLog.applicationLogs
                             }
-                            componentSlug={this.props.component && this.props.component.slug}
+                            componentSlug={
+                                this.props.component &&
+                                this.props.component.slug
+                            }
                         />
                     </div>
                 </div>

@@ -74,7 +74,7 @@ class IncidentPrioritiesListClass extends React.Component {
                                                                 incidentPriority._id
                                                             }
                                                         >
-                                                            <div                                                                
+                                                            <div
                                                                 style={{
                                                                     marginLeft: 5,
                                                                 }}
@@ -83,7 +83,9 @@ class IncidentPrioritiesListClass extends React.Component {
                                                                 <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                     <span
                                                                         id={`priority_${incidentPriority.name}_${index}_default`}
-                                                                    >Default</span>
+                                                                    >
+                                                                        Default
+                                                                    </span>
                                                                 </span>
                                                             </div>
                                                         </ShouldRender>
@@ -213,7 +215,7 @@ class IncidentPrioritiesListClass extends React.Component {
 IncidentPrioritiesListClass.displayName = 'IncidentPrioritiesList';
 IncidentPrioritiesListClass.propTypes = {
     incidentPrioritiesList: PropTypes.array.isRequired,
-    handleEditIncidentPriority: PropTypes.func.isRequired,    
+    handleEditIncidentPriority: PropTypes.func.isRequired,
     handleDeleteIncidentPriority: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
     selectedIncidentPriority: PropTypes.string.isRequired,
@@ -222,7 +224,7 @@ IncidentPrioritiesListClass.propTypes = {
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            openModal,            
+            openModal,
         },
         dispatch
     );
