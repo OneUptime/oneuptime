@@ -148,7 +148,6 @@ public class FyipeTracker {
                 this.errorTrackerKey,
                 this.getSdk()
         );
-        System.out.println(this.errorEvent);
     }
 
     public SDK getSdk() {
