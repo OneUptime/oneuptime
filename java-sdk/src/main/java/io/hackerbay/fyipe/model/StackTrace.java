@@ -18,6 +18,10 @@ public class StackTrace {
         this.lineNumber = lineNumber;
     }
 
+    public ArrayList<Frame> getStackTraceFrame() {
+        return stackTraceFrame;
+    }
+
     public void setStackTraceFrame(ArrayList<Frame> stackTraceFrame) {
         this.stackTraceFrame = stackTraceFrame;
     }
