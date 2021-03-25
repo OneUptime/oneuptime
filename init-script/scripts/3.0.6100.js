@@ -5,7 +5,6 @@ const statusPageCollection = 'statuspages';
 async function run() {
     const statusPages = await find(statusPageCollection, {
         ipWhitelist: { $exists: false },
-        deleted: false,
     });
 
     statusPages.forEach(async statusPage => {

@@ -5,7 +5,6 @@ const incomingRequestCollection = 'incomingrequests';
 async function run() {
     const requests = await find(incomingRequestCollection, {
         filters: { $exists: false },
-        deleted: false,
     });
 
     for (const request of requests) {

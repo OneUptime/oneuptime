@@ -4,7 +4,6 @@ const statusPageCollection = 'statuspages';
 
 async function run() {
     const statusPages = await find(statusPageCollection, {
-        deleted: false,
         hideUptime: { $exists: false },
     });
 

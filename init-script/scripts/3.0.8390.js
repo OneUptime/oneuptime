@@ -4,7 +4,6 @@ const escalationsCollection = 'escalations';
 
 async function run() {
     const escalations = await find(escalationsCollection, {
-        deleted: false,
         pushReminders: { $exists: false },
     });
 

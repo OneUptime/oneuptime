@@ -6,7 +6,6 @@ async function run() {
     // get all monitors that have a monitorCategoryId
     const monitors = await find(monitorCollection, {
         disabled: { $exists: false },
-        deleted: false,
     });
 
     for (const monitor of monitors) {
