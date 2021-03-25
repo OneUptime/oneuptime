@@ -35,7 +35,7 @@ module.exports = {
                     ? project.parentProjectId._id
                     : project._id
                 : timeline.projectId;
-            const { idNumber } = await IncidentService.getIncidentId({
+            const { idNumber } = await IncidentService.findOneBy({
                 _id: timeline.incidentId,
             });
 
