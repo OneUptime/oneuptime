@@ -82,7 +82,9 @@ router.get(
     async function(req, res) {
         try {
             const idNumber = req.params.incidentId;
-            let incidentId = await IncidentService.getIncidentId({
+            const projectId = req.params.projectId;
+            let incidentId = await IncidentService.findOneBy({
+                projectId,
                 idNumber,
             });
             incidentId = incidentId._id;
