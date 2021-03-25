@@ -349,7 +349,6 @@ module.exports = {
         let onCallScheduleStatus = null;
         let escalationId = null;
         let currentEscalationStatus = null;
-
         if (callScheduleStatuses.length === 0) {
             //start with first ecalation policy, and then escalationPolicy will take care of others in escalation policy.
             escalationId = schedule.escalationIds[0];
@@ -557,8 +556,14 @@ module.exports = {
 
         escalation = await EscalationService.findOneBy({ _id: escalation._id });
         const activeTeam = escalation.activeTeam;
-        const groups = activeTeam.teamMembers.map(user => user.groups);
-        const groupUsers = groups.map(group => group.teams);
+        const teamGroup = [];
+        activeTeam.teamMembers.forEach(team => {
+            if (team.groups) {
+                teamGroup.push(team.groups);
+            }
+        });
+
+        const groupUsers = teamGroup.map(group => group.teams);
         const groupUserIds = [].concat
             .apply([], groupUsers)
             .map(id => ({ userId: id }));
