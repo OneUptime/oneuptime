@@ -259,4 +259,31 @@ public class FyipeTrackerTest {
         // confirm their eventId is different
         assertNotEquals(event.get("_id").getAsString(), newEvent.get("_id").getAsString());
     }
+    @Test
+    public void itShouldCreateAnEventThatHasTimelineAndNewEventHavingTimelineAndTags() throws IOException {
+        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        String errorMessage = "Got an error here";
+        String errorObj = "Object Error Thrown";
+        // add timeline to first tracker
+        tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
+        JsonObject event = tracker.captureMessage(errorMessage);
+
+        // add timeline and tag to second tracker
+        tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
+        Tag tag = new Tag("platform", "Twitter");
+        tracker.setTag(tag);
+        JsonObject newEvent = tracker.captureException(new Exception(errorObj));
+
+        // ensure that the first event have a type message, same error message and two timeline (one custom, one generic)
+        assertEquals(event.get("type").getAsString(), ErrorObjectType.message.name());
+        assertEquals(event.getAsJsonObject("content").get("message").getAsString(), errorMessage);
+        assertEquals(2, event.getAsJsonArray("timeline").size());
+        assertEquals(1, event.getAsJsonArray("tags").size()); // the default event tag added
+
+        // ensure that the second event have a type exception, same error message and 2 tags
+        assertEquals(newEvent.get("type").getAsString(), ErrorObjectType.exception.name());
+        assertEquals(newEvent.getAsJsonObject("content").get("message").getAsString(), errorObj);
+        assertEquals(2, newEvent.getAsJsonArray("timeline").size());
+        assertEquals(2, newEvent.getAsJsonArray("tags").size());
+    }
 }
