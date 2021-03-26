@@ -109,8 +109,9 @@ public class FyipeTracker {
         this.fingerprint.add(value);
     }
     public void setFingerprint(ArrayList<String> value) {
+        this.fingerprint.clear();
         // replace fingerprint array with the new passed array of strings
-        this.fingerprint = value;
+        this.fingerprint.addAll(value);
     }
     public ArrayList<String> getFingerprint(String errorMessage) {
         // if no fingerprint exist currently
@@ -129,7 +130,7 @@ public class FyipeTracker {
         // send to the server
         return this.sendErrorEventToServer();
     }
-    public void captureException(Throwable throwable) {
+    public JsonObject captureException(Throwable throwable) throws IOException {
         // construct the error object
         StackTrace formattedStackTrace = this.util.getExceptionStackTrace(throwable);
 
@@ -138,7 +139,8 @@ public class FyipeTracker {
 
         this.prepareErrorEvent(ErrorObjectType.exception.name(), formattedStackTrace);
 
-        // TODO send to the server
+        // send to the server
+        return this.sendErrorEventToServer();
     }
     public void prepareErrorEvent(String type, StackTrace errorStackTrace) {
         JsonObject obj = new JsonObject();
