@@ -145,41 +145,9 @@ span.st-Delink.st-Delink--footer a {
     * # Font
   **/
 
-  /** Modifier: title */
-  body[override] td.st-Font.st-Font--title,
-  body[override] td.st-Font.st-Font--title span,
-  body[override] td.st-Font.st-Font--title a {
-    font-size: 28px !important;
-    line-height: 36px !important;
-  }
-  /** */
 
-  /** Modifier: header */
-  body[override] td.st-Font.st-Font--header,
-  body[override] td.st-Font.st-Font--header span,
-  body[override] td.st-Font.st-Font--header a {
-    font-size: 24px !important;
-    line-height: 32px !important;
-  }
-  /** */
 
-  /** Modifier: body */
-  body[override] td.st-Font.st-Font--body,
-  body[override] td.st-Font.st-Font--body span,
-  body[override] td.st-Font.st-Font--body a {
-    font-size: 18px !important;
-    line-height: 28px !important;
-  }
-  /** */
 
-  /** Modifier: caption */
-  body[override] td.st-Font.st-Font--caption,
-  body[override] td.st-Font.st-Font--caption span,
-  body[override] td.st-Font.st-Font--caption a {
-    font-size: 14px !important;
-    line-height: 20px !important;
-  }
-  /** */
 
   /** Modifier: simplified */
   body[override] table.st-Header.st-Header--simplified td.st-Header-logo {
@@ -190,14 +158,7 @@ span.st-Delink.st-Delink--footer a {
     width: 0 !important;
   }
 
-  /**
-    * # Divider
-  **/
 
-  body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter,
-  body[override] tr.st-Divider td.st-Spacer.st-Spacer--gutter {
-    background-color: #000000;
-  }
 
   /**
     * # Blocks
@@ -690,41 +651,9 @@ body[override] td.st-Spacer.st-Spacer--emailEnd {
   * # Font
 **/
 
-/** Modifier: title */
-body[override] td.st-Font.st-Font--title,
-body[override] td.st-Font.st-Font--title span,
-body[override] td.st-Font.st-Font--title a {
-  font-size: 28px !important;
-  line-height: 36px !important;
-}
-/** */
 
-/** Modifier: header */
-body[override] td.st-Font.st-Font--header,
-body[override] td.st-Font.st-Font--header span,
-body[override] td.st-Font.st-Font--header a {
-  font-size: 24px !important;
-  line-height: 32px !important;
-}
-/** */
 
-/** Modifier: body */
-body[override] td.st-Font.st-Font--body,
-body[override] td.st-Font.st-Font--body span,
-body[override] td.st-Font.st-Font--body a {
-  font-size: 18px !important;
-  line-height: 28px !important;
-}
-/** */
 
-/** Modifier: caption */
-body[override] td.st-Font.st-Font--caption,
-body[override] td.st-Font.st-Font--caption span,
-body[override] td.st-Font.st-Font--caption a {
-  font-size: 14px !important;
-  line-height: 20px !important;
-}
-/** */
 
 /** Modifier: simplified */
 body[override] table.st-Header.st-Header--simplified td.st-Header-logo {
@@ -735,14 +664,7 @@ body[override] table.st-Header.st-Header--simplified td.st-Header-spacing{
   width: 0 !important;
 }
 
-/**
-  * # Divider
-**/
 
-body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter,
-body[override] tr.st-Divider td.st-Spacer.st-Spacer--gutter {
-  background-color: #000000;
-}
 
 /**
   * # Blocks
@@ -1234,41 +1156,9 @@ body[override] td.st-Spacer.st-Spacer--emailEnd {
   * # Font
 **/
 
-/** Modifier: title */
-body[override] td.st-Font.st-Font--title,
-body[override] td.st-Font.st-Font--title span,
-body[override] td.st-Font.st-Font--title a {
-  font-size: 28px !important;
-  line-height: 36px !important;
-}
-/** */
 
-/** Modifier: header */
-body[override] td.st-Font.st-Font--header,
-body[override] td.st-Font.st-Font--header span,
-body[override] td.st-Font.st-Font--header a {
-  font-size: 24px !important;
-  line-height: 32px !important;
-}
-/** */
 
-/** Modifier: body */
-body[override] td.st-Font.st-Font--body,
-body[override] td.st-Font.st-Font--body span,
-body[override] td.st-Font.st-Font--body a {
-  font-size: 18px !important;
-  line-height: 28px !important;
-}
-/** */
 
-/** Modifier: caption */
-body[override] td.st-Font.st-Font--caption,
-body[override] td.st-Font.st-Font--caption span,
-body[override] td.st-Font.st-Font--caption a {
-  font-size: 14px !important;
-  line-height: 20px !important;
-}
-/** */
 
 /** Modifier: simplified */
 body[override] table.st-Header.st-Header--simplified td.st-Header-logo {
@@ -1279,14 +1169,7 @@ body[override] table.st-Header.st-Header--simplified td.st-Header-spacing{
   width: 0 !important;
 }
 
-/**
-  * # Divider
-**/
 
-body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter,
-body[override] tr.st-Divider td.st-Spacer.st-Spacer--gutter {
-  background-color: #000000;
-}
 
 /**
   * # Blocks
@@ -1763,41 +1646,9 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
       * # Font
     **/
     
-    /** Modifier: title */
-    body[override] td.st-Font.st-Font--title,
-    body[override] td.st-Font.st-Font--title span,
-    body[override] td.st-Font.st-Font--title a {
-      font-size: 28px !important;
-      line-height: 36px !important;
-    }
-    /** */
     
-    /** Modifier: header */
-    body[override] td.st-Font.st-Font--header,
-    body[override] td.st-Font.st-Font--header span,
-    body[override] td.st-Font.st-Font--header a {
-      font-size: 24px !important;
-      line-height: 32px !important;
-    }
-    /** */
     
-    /** Modifier: body */
-    body[override] td.st-Font.st-Font--body,
-    body[override] td.st-Font.st-Font--body span,
-    body[override] td.st-Font.st-Font--body a {
-      font-size: 18px !important;
-      line-height: 28px !important;
-    }
-    /** */
     
-    /** Modifier: caption */
-    body[override] td.st-Font.st-Font--caption,
-    body[override] td.st-Font.st-Font--caption span,
-    body[override] td.st-Font.st-Font--caption a {
-      font-size: 14px !important;
-      line-height: 20px !important;
-    }
-    /** */
     
     /** Modifier: simplified */
     body[override] table.st-Header.st-Header--simplified td.st-Header-logo {
@@ -1808,14 +1659,6 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
       width: 0 !important;
     }
     
-    /**
-      * # Divider
-    **/
-    
-    body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter,
-    body[override] tr.st-Divider td.st-Spacer.st-Spacer--gutter {
-      background-color: #000000;
-    }
     
     /**
       * # Blocks
