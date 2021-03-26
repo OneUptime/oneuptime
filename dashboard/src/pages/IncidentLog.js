@@ -28,6 +28,7 @@ import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
+import { fetchComponent } from '../actions/component';
 
 class IncidentLog extends React.Component {
     constructor(props) {
@@ -43,7 +44,8 @@ class IncidentLog extends React.Component {
     }
 
     ready = () => {
-        const { componentId } = this.props;
+        const { componentId, fetchComponent, componentSlug } = this.props;
+        fetchComponent(componentSlug);
         if (componentId) {
             this.props.getComponentIncidents(
                 this.props.currentProject._id,
@@ -56,6 +58,21 @@ class IncidentLog extends React.Component {
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
         this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
     };
+
+    componentDidUpdate(prevProps) {
+        if (
+            String(prevProps.componentSlug) !== String(this.props.componentSlug)
+        ) {
+            this.props.fetchComponent(this.props.componentSlug);
+        }
+
+        if (String(prevProps.componentId) !== String(this.props.componentId)) {
+            this.props.getComponentIncidents(
+                this.props.currentProject._id,
+                this.props.componentId
+            );
+        }
+    }
 
     prevClicked = (projectId, skip, limit) => {
         const { componentId } = this.props;
@@ -299,7 +316,8 @@ class IncidentLog extends React.Component {
     }
 }
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, ownProps) => {
+    const { componentSlug } = ownProps.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     let subProjects = state.subProject.subProjects.subProjects;
@@ -341,6 +359,7 @@ const mapStateToProps = state => {
             state.component && state.component.currentComponent.component,
         modalList: state.modal.modals,
         projectId,
+        componentSlug,
     };
 };
 
@@ -359,6 +378,7 @@ const mapDispatchToProps = dispatch => {
             fetchBasicIncidentSettings,
             getComponentIncidents,
             getProjectComponentIncidents,
+            fetchComponent,
         },
         dispatch
     );
@@ -391,6 +411,11 @@ IncidentLog.propTypes = {
     modalList: PropTypes.array,
     getComponentIncidents: PropTypes.func,
     getProjectComponentIncidents: PropTypes.func,
+    fetchComponent: PropTypes.func,
+    componentSlug: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 
 IncidentLog.displayName = 'IncidentLog';

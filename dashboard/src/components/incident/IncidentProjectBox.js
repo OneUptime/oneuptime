@@ -197,7 +197,6 @@ const IncidentProjectBox = props => {
                     </div>
                 </div>
                 <IncidentList
-                    componentId={props.componentId}
                     incidents={incidents}
                     prevClicked={props.prevClicked}
                     nextClicked={props.nextClicked}
