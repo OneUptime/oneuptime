@@ -299,19 +299,10 @@ class IncidentLog extends React.Component {
     }
 }
 
-const mapStateToProps = (state, props) => {
-    const { componentId } = props.match.params;
+const mapStateToProps = (state) => {
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     let subProjects = state.subProject.subProjects.subProjects;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
-                component = c;
-            }
-        });
-    });
 
     // sort subprojects names for display in alphabetical order
     const subProjectNames =
@@ -337,14 +328,16 @@ const mapStateToProps = (state, props) => {
         }
     }
     return {
-        componentId,
+        componentId: state.component.currentComponent &&
+        state.component.currentComponent._id,
         currentProject: state.project.currentProject,
         incidents: state.incident.incidents,
         create: state.incident.newIncident.requesting,
         subProjects,
         subProjectIncidents: state.incident.incidents.incidents,
         tutorialStat,
-        component,
+        component: state.component &&
+        state.component.currentComponent,
         modalList: state.modal.modals,
         projectId,
     };

@@ -42,14 +42,14 @@ class ErrorTrackerDetail extends Component {
         };
     }
     viewMore = () => {
-        const { currentProject, componentId, errorTracker } = this.props;
+        const { currentProject, componentSlug, errorTracker } = this.props;
         history.push(
             '/dashboard/project/' +
                 currentProject.slug +
                 '/' +
-                componentId +
+                componentSlug +
                 '/error-trackers/' +
-                errorTracker._id
+                errorTracker.slug
         );
     };
     resetErrorTrackerKey = () => {
@@ -82,6 +82,7 @@ class ErrorTrackerDetail extends Component {
         const {
             currentProject,
             componentId,
+            componentSlug,
             errorTracker,
             deleteErrorTracker,
         } = this.props;
@@ -94,7 +95,7 @@ class ErrorTrackerDetail extends Component {
             '/dashboard/project/' +
                 currentProject.slug +
                 '/' +
-                componentId +
+                componentSlug +
                 '/error-tracker'
         );
         return promise;
@@ -255,6 +256,7 @@ class ErrorTrackerDetail extends Component {
             isDetails,
             componentId,
             currentProject,
+            componentSlug,
             openModal,
             teamMembers,
             showComponentWithIssue,
@@ -341,6 +343,7 @@ class ErrorTrackerDetail extends Component {
                                             }
                                             teamMembers={teamMembers}
                                             slug={currentProject.slug}
+                                            componentSlug={componentSlug}
                                         />
                                     </div>
                                 </div>
@@ -360,6 +363,7 @@ ErrorTrackerDetail.propTypes = {
     fetchErrorTrackerIssues: PropTypes.func,
     currentProject: PropTypes.object,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     errorTrackerIssue: PropTypes.object,
     isDetails: PropTypes.bool,
     deleteErrorTracker: PropTypes.func,

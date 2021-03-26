@@ -382,7 +382,7 @@ div.block-chart::-webkit-scrollbar {
 
 .uptime-graphs {
   position: relative;
-  z-index: 10;
+  z-index: 1;
 }
 
 /* .uptime-graph-section {
@@ -629,14 +629,14 @@ div.twitter-link {
 div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60px; position: relative;
              font-size: 13px; }
 
-    div#footer ul { padding-left: 10px; }
+    div#footer ul { padding-left: 0px; }
         div#footer li { display: inline; padding-right: 15px; }
             div#footer a { color: #8898aa; text-decoration: none; }
             div#footer a:hover { color: #4c4c4c; }
 
             div#footer li.last { border: 0; }
 
-    div#footer p { color: #8898aa; position: absolute; right: 10px; top: 26px; }
+    div#footer p { color: #8898aa; position: absolute; right: 10px; }
 
 /******* Tipsy Tooltips ******/
 
@@ -961,7 +961,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
   outline: none;
 }
 .directions{
-  font-size: 15px;
+  font-size: 13px;
   color:#000000;
   margin-bottom: 10px;
 }
@@ -1275,12 +1275,12 @@ margin-left:10px;
 .logo_section {
   width: 100%;
   max-width: 850px;
-  margin: 30px auto 30px auto;
+  margin: 0px auto 30px auto;
   box-sizing: border-box;
 }
 
 .pad-left {
-  padding-left: 40px;
+  padding-top: 15px;
 }
 
 .new-theme {
@@ -1311,7 +1311,7 @@ margin-left:10px;
   border: 1px solid rgba(0,0,0,0.1);
   text-shadow: 0 1px 0 rgb(0 0 0 / 10%);
   margin-bottom: 70px;
-  margin-top: 70px;
+  /* padding-top: 70px; */
   color: white;
   padding: 0.75rem 1.25rem;
   border-radius: 5px;
@@ -1324,6 +1324,9 @@ margin-left:10px;
   max-width: 850px;
   margin: auto;
   margin-bottom: 70px;
+  z-index: 20;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 .font-largest {
@@ -1393,14 +1396,11 @@ margin-left:10px;
 }
 
 .op-div {
-  /* display: flex;
-  justify-content: space-between; */
   padding: 20px;
   border-bottom-width: 1px;
   border-left-width: 1px !important;
   border-right-width: 1px;
   border-top-width: 0px;
-  /* padding: 1.1rem 1.25rem 1rem; */
   border-style: solid;
   border-color: #dfe1df;
 }
@@ -1416,10 +1416,6 @@ margin-left:10px;
 .display-flex {
   display: flex;
   justify-content: space-between;
-}
-
-.border-top {
-  border-top-width: 1px;
 }
 
 .op-div div:nth-child(1) {
@@ -1553,6 +1549,15 @@ margin-left:10px;
   margin-right: 15px;
 }
 
+.ba-resource {
+  display: flex;
+  flex-direction: column;
+}
+
+.ba-flex {
+  display: flex;
+}
+
 .powered {
   width: 90%;
   max-width: 850px;
@@ -1569,6 +1574,8 @@ margin-left:10px;
   width: 100%;
   max-width: 850px;
   box-sizing: border-box;
+  align-items: center;
+  margin-bottom: 70px;
 }
 
 .subscribe_btn {
@@ -1624,6 +1631,7 @@ margin-left:10px;
 
 .list_k {
   margin-right: 6px;
+  text-transform: capitalize;
 }
 
 .big_dot {
@@ -1670,6 +1678,78 @@ margin-left:10px;
 
 .bs-probes {
   margin-bottom: 20px;
+}
+
+.probe_bg {
+  color: #000 !important;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif !important;
+  font-weight: 500;
+}
+
+.btn-group .border-fix:first-child {
+  border-left: 2px solid rgba(170, 170, 170, 0.3);
+}
+.btn-group .border-fix:last-child {
+  border-right: 2px solid rgba(170, 170, 170, 0.3);
+}
+
+.border-fix.new_selected {
+  /* border: 2px solid #49c3b1 !important;
+  border-left: 2px solid #49c3b1 !important;
+  border-right: 2px solid #49c3b1 !important; */
+  background-color: rgba(170, 170, 170, 0.1) !important;
+}
+
+/* Popup subscriber's box */
+.popup-menu-container {
+  position: relative;
+}
+
+.popup-menu {
+  position: absolute;
+  z-index: 2;
+  transform: scale(0);
+  transform-origin: top left;
+  width: 10.5rem;
+  margin-top: 0.5rem;
+  background: #fff;
+  border-radius: 0.5rem;
+}
+
+.shown {
+  transform: scale(1);
+}
+
+.bs-page_desc {
+  font-size: 12px;
+  font-weight: lighter;
+  margin-top: 5px;
+}
+
+.bs-theme-shadow {
+  box-shadow: 1px 5px 10px rgb(0 0 0 / 30%);
+  border-radius: 4px;
+}
+
+.bs-new-bg {
+  background-color: #fff !important;
+}
+
+.bs-theme-btn {
+  background-color: #00bce7;
+  text-transform: uppercase;
+  padding: 8px 12px 7px;
+  font-size: 11px;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif !important;
+  letter-spacing: 1px;
+}
+
+.bs-mar-right {
+  margin-right: 0px;
+}
+
+.bs-mar-left {
+  margin-left: 0px;
 }
 
 @media screen and (max-width: 650px) {

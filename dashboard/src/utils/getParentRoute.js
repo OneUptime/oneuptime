@@ -120,12 +120,12 @@ function getParentRoute(childRoute, projectId = null, type) {
     if (lastNode === 'container' || lastNode === 'application') {
         return urlParts.join('/').concat('/container');
     }
-    if (type === 'applicationSecurityId') {
+    if (type === 'applicationSecuritySlug') {
         const urlParts = childRoute.split('/');
         urlParts.splice(urlParts.indexOf('application') + 1, urlParts.length);
         return urlParts.join('/');
     }
-    if (type === 'containerSecurityId') {
+    if (type === 'containerSecuritySlug') {
         const urlParts = childRoute.split('/');
         urlParts.splice(urlParts.indexOf('container') + 1, urlParts.length);
         return urlParts.join('/');

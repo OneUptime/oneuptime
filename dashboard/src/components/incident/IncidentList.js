@@ -215,9 +215,9 @@ export class IncidentList extends Component {
                                                             '/' +
                                                             incident.monitorId
                                                                 .componentId
-                                                                ._id +
+                                                                .slug +
                                                             '/incidents/' +
-                                                            incident._id
+                                                            incident.idNumber
                                                     );
                                                     this.props.animateSidebar(
                                                         false

@@ -299,7 +299,7 @@ npm test
 
 ## Server Monitor
 
-Please see [Fyipe Server Monitor](https://www.npmjs.com/package/fyipe-server-monitor) for more information on how to use this package.
+Please see [Fyipe Server Monitor](https://github.com/Fyipe/js-sdk/blob/master/docs/server-monitor/README.md) for more information on how to use this package.
 
 ### Dependencies
 

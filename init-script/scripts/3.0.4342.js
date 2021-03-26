@@ -8,7 +8,6 @@ const incidentprioritiesCollection = 'incidentpriorities';
 async function run() {
     const monitors = await find(monitorCollection, {
         pollTime: { $type: 'date' },
-        deleted: false,
     });
     for (let i = 0; i < monitors.length; i++) {
         const monitor = monitors[i];

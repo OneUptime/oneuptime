@@ -27,7 +27,8 @@ class ErrorTrackerViewDeleteBox extends Component {
             errorTracker._id
         );
         history.push(
-            `/dashboard/project/${currentProject.slug}/${componentId}/error-tracker`
+            `/dashboard/project/${currentProject.slug}/${this.props.component &&
+                this.props.component.slug}/error-tracker`
         );
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -97,9 +98,19 @@ class ErrorTrackerViewDeleteBox extends Component {
 const mapDispatchToProps = dispatch =>
     bindActionCreators({ openModal, closeModal, deleteErrorTracker }, dispatch);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
+    const componentId = props.errorTracker.componentId._id;
+    let component;
+    state.component.componentList.components.forEach(item => {
+        item.components.forEach(c => {
+            if (String(c._id) === String(componentId)) {
+                component = c;
+            }
+        });
+    });
     return {
         currentProject: state.project.currentProject,
+        component,
     };
 };
 ErrorTrackerViewDeleteBox.propTypes = {
@@ -107,6 +118,7 @@ ErrorTrackerViewDeleteBox.propTypes = {
     openModal: PropTypes.func,
     currentProject: PropTypes.object,
     deleteErrorTracker: PropTypes.func,
+    component: PropTypes.object,
 };
 ErrorTrackerViewDeleteBox.displayName = 'ErrorTrackerViewDeleteBox';
 export default connect(

@@ -5,6 +5,7 @@ const Schema = mongoose.Schema;
 const containerSecuritySchema = new Schema(
     {
         name: String,
+        slug: { type: String, index: true },
         dockerCredential: {
             type: Schema.Types.ObjectId,
             ref: 'DockerCredential',

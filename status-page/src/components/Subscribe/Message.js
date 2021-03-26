@@ -84,7 +84,7 @@ class Message extends Component {
                 this.props.subscribed.success ? null : (
                     <div className="directions">
                         Get email notifications when an incident is{' '}
-                        <strong>created</strong>.
+                        <b>created</b>.
                     </div>
                 )}
                 <form
@@ -119,7 +119,11 @@ class Message extends Component {
                                 ? 'Close'
                                 : 'Subscribe'
                         }
-                        className="subscribe-btn-full"
+                        className={
+                            this.props.theme
+                                ? 'subscribe-btn-full bs-theme-btn'
+                                : 'subscribe-btn-full'
+                        }
                         id="subscribe-btn-email"
                     ></input>
                 </form>
@@ -168,6 +172,7 @@ Message.propTypes = {
     subscribeUser: PropTypes.func,
     openSubscribeMenu: PropTypes.func,
     userDataReset: PropTypes.func,
+    theme: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Message);

@@ -326,7 +326,6 @@ module.exports = {
 
     sendAlertsToTeamMembersInSchedule: async function({ schedule, incident }) {
         const _this = this;
-        const userId = incident.createdById._id;
         const monitorId = incident.monitorId._id
             ? incident.monitorId._id
             : incident.monitorId;
@@ -350,7 +349,6 @@ module.exports = {
         let onCallScheduleStatus = null;
         let escalationId = null;
         let currentEscalationStatus = null;
-
         if (callScheduleStatuses.length === 0) {
             //start with first ecalation policy, and then escalationPolicy will take care of others in escalation policy.
             escalationId = schedule.escalationIds[0];
@@ -557,8 +555,22 @@ module.exports = {
         const project = await ProjectService.findOneBy({ _id: projectId });
 
         escalation = await EscalationService.findOneBy({ _id: escalation._id });
-
         const activeTeam = escalation.activeTeam;
+        const teamGroup = [];
+        activeTeam.teamMembers.forEach(team => {
+            if (team.groups) {
+                teamGroup.push(team.groups);
+            }
+        });
+
+        const groupUsers = teamGroup.map(group => group.teams);
+        const groupUserIds = [].concat
+            .apply([], groupUsers)
+            .map(id => ({ userId: id }));
+        const filterdUserIds = groupUserIds.filter(user =>
+            activeTeam.teamMembers.some(team => team.userId !== user.userId)
+        );
+
         const currentEscalationStatus =
             onCallScheduleStatus.escalations[
                 onCallScheduleStatus.escalations.length - 1
@@ -601,7 +613,8 @@ module.exports = {
         ] = currentEscalationStatus;
         await onCallScheduleStatus.save();
 
-        for (const teamMember of activeTeam.teamMembers) {
+        const allUsers = [...activeTeam.teamMembers, ...filterdUserIds];
+        for (const teamMember of allUsers) {
             const isOnDuty = await _this.checkIsOnDuty(
                 teamMember.startTime,
                 teamMember.endTime
@@ -768,13 +781,30 @@ module.exports = {
         const userData = await UserService.findOneBy({
             _id: user._id,
         });
+
         const identification = userData.identification;
 
-        webpush.setVapidDetails(
-            process.env.WEBPUSH_EMAIL, // Address or URL for this application
-            process.env.VAPID_PUBLIC_KEY, // URL Safe Base64 Encoded Public Key
-            process.env.VAPID_PRIVATE_KEY // URL Safe Base64 Encoded Private Key
-        );
+        const options = {
+            vapidDetails: {
+                subject: process.env.PUSHNOTIFICATION_URL, // Address or URL for this application
+                publicKey: process.env.PUSHNOTIFICATION_PUBLIC_KEY, // URL Safe Base64 Encoded Public Key
+                privateKey: process.env.PUSHNOTIFICATION_PRIVATE_KEY, // URL Safe Base64 Encoded Private Key
+            },
+            headers: {
+                'access-control-allow-headers':
+                    'content-encoding,encryption,crypto-key,ttl,encryption-key,content-type,authorization',
+                'access-control-allow-methods': 'POST',
+                'access-control-allow-origin': '*',
+                'access-control-expose-headers': 'location,www-authenticate',
+                'cache-control': 'max-age=86400',
+                'content-type': 'application/json',
+                server: 'nginx',
+                'strict-transport-security':
+                    'max-age=31536000;includeSubDomains',
+                'content-length': '179',
+                connection: 'Close',
+            },
+        };
 
         if (pushProgress) {
             pushMessage = `Reminder ${pushProgress.current}/${pushProgress.total}: `;
@@ -793,7 +823,11 @@ module.exports = {
             for (const sub of identification) {
                 promiseFuncs = [
                     ...promiseFuncs,
-                    webpush.sendNotification(sub.subscription, payload),
+                    webpush.sendNotification(
+                        sub.subscription,
+                        payload,
+                        options
+                    ),
                 ];
             }
             return Promise.all(promiseFuncs)

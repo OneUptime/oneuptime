@@ -4,7 +4,7 @@
 
 ```
 sudo kubectl config get-contexts
-sudo kubectl config use-context do-nyc3-fyipe-staging
+sudo kubectl config use-context do-nyc1-fyipe-staging
 ```
 
 # Pods

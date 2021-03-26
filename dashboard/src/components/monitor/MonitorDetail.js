@@ -240,6 +240,7 @@ export class MonitorDetail extends Component {
             probes,
             activeIncident,
             componentId,
+            componentSlug,
         } = this.props;
         const numberOfPage = Math.ceil(
             parseInt(this.props.monitor && this.props.monitor.count) / 3
@@ -468,7 +469,7 @@ export class MonitorDetail extends Component {
                                             You need to install an agent on your
                                             server, please{' '}
                                             <a
-                                                href="https://www.npmjs.com/package/fyipe-server-monitor"
+                                                href="https://github.com/Fyipe/js-sdk/blob/master/docs/server-monitor/README.md"
                                                 rel="noopener noreferrer"
                                                 target="_blank"
                                                 style={{
@@ -561,7 +562,7 @@ export class MonitorDetail extends Component {
                                         '/dashboard/project/' +
                                             currentProject.slug +
                                             '/' +
-                                            componentId +
+                                            componentSlug +
                                             '/monitoring/' +
                                             monitor.slug
                                     );
@@ -810,6 +811,8 @@ const mapDispatchToProps = dispatch => {
 function mapStateToProps(state) {
     return {
         monitorState: state.monitor,
+        componentSlug: state.component.currentComponent &&
+        state.component.currentComponent.slug,
         currentProject: state.project.currentProject,
         create: state.incident.newIncident.requesting,
         activeIncident: state.incident.newIncident.monitorId,
@@ -822,6 +825,7 @@ function mapStateToProps(state) {
 MonitorDetail.propTypes = {
     currentProject: PropTypes.object.isRequired,
     componentId: PropTypes.string.isRequired,
+    componentSlug: PropTypes.string.isRequired,
     monitor: PropTypes.object.isRequired,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     fetchMonitorLogs: PropTypes.func.isRequired,

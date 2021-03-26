@@ -1028,8 +1028,61 @@ const mapDispatchToProps = dispatch => {
 
 function mapStateToProps(state, props) {
     const monitorId = props.monitorId ? props.monitorId : null;
+    const monitorLogs = monitorId ? state.monitor.monitorLogs[monitorId] : {};
+
+    if (monitorLogs) {
+        monitorLogs.logs = monitorLogs.logs.map(log => {
+            if (log.kubernetesLog) {
+                const initialData = { ...log.kubernetesLog };
+                const newData = {};
+                newData.podData = {
+                    podStat: initialData.podData.podStat,
+                    healthyPodData: initialData.podData.healthyPodData,
+                    unhealthyPodData: initialData.podData.unhealthyPodData,
+                    allPodData: initialData.podData.allPodData,
+                };
+                newData.jobData = {
+                    jobStat: initialData.jobData.jobStat,
+                    healthyJobData: initialData.jobData.healthyJobData,
+                    unhealthyJobData: initialData.jobData.unhealthyJobData,
+                };
+                newData.serviceData = initialData.serviceData;
+                newData.deploymentData = {
+                    desiredDeployment:
+                        initialData.deploymentData.desiredDeployment,
+                    readyDeployment: initialData.deploymentData.readyDeployment,
+                    healthy: initialData.deploymentData.healthy,
+                    unhealthy: initialData.deploymentData.unhealthy,
+                    healthyDeploymentData:
+                        initialData.deploymentData.healthyDeploymentData,
+                    unhealthyDeploymentData:
+                        initialData.deploymentData.unhealthyDeploymentData,
+                    allDeploymentData:
+                        initialData.deploymentData.allDeploymentData,
+                };
+                newData.statefulsetData = {
+                    readyStatefulsets:
+                        initialData.statefulsetData.readyStatefulsets,
+                    desiredStatefulsets:
+                        initialData.statefulsetData.desiredStatefulsets,
+                    healthy: initialData.statefulsetData.healthy,
+                    unhealthy: initialData.statefulsetData.unhealthy,
+                    healthyStatefulsetData:
+                        initialData.statefulsetData.healthyStatefulsetData,
+                    unhealthyStatefulsetData:
+                        initialData.statefulsetData.unhealthyStatefulsetData,
+                    allStatefulsetData:
+                        initialData.statefulsetData.allStatefulsetData,
+                };
+
+                log.kubernetesLog = newData;
+            }
+            return log;
+        });
+    }
+
     return {
-        monitorLogs: monitorId ? state.monitor.monitorLogs[monitorId] : {},
+        monitorLogs,
     };
 }
 

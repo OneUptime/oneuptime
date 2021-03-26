@@ -363,15 +363,15 @@ export class ResourceCategories extends Component {
                                                       this.state.page
                                                   } of ${numberOfPages} (${
                                                       this.props.count
-                                                  } Resourse Categor${
-                                                      this.props.count === 1
+                                                  } Resource Categor${
+                                                      this.props.count < 2 // This will cater for '0 Category'
                                                           ? 'y'
                                                           : 'ies'
                                                   })`
                                                 : `${
                                                       this.props.count
-                                                  } Resourse Categor${
-                                                      this.props.count === 1
+                                                  } Resource Categor${
+                                                      this.props.count < 2 // This will cater for '0 Category'
                                                           ? 'y'
                                                           : 'ies'
                                                   }`}

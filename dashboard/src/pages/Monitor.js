@@ -20,7 +20,10 @@ import {
     fetchMonitorStatuses,
     fetchLighthouseLogs,
 } from '../actions/monitor';
-import { fetchComponentSummary } from '../actions/component';
+import {
+    fetchComponentSummary,
+    addCurrentComponent,
+} from '../actions/component';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
 import { getProbes } from '../actions/probe';
@@ -46,9 +49,15 @@ class DashboardView extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR LIST'
             );
         }
+        if (this.props.component) {
+            this.props.addCurrentComponent(this.props.component);
+        }
     }
 
     componentDidUpdate(prevProps) {
+        if (prevProps.component !== this.props.component) {
+            this.props.addCurrentComponent(this.props.component);
+        }
         if (prevProps.monitor.monitorsList.monitors.length === 0) {
             this.props.monitor.monitorsList.monitors.forEach(subProject => {
                 if (subProject.monitors.length > 0) {
@@ -378,6 +387,13 @@ class DashboardView extends Component {
                                                                     this.props
                                                                         .componentId
                                                                 }
+                                                                componentSlug={
+                                                                    this.props
+                                                                        .component &&
+                                                                    this.props
+                                                                        .component
+                                                                        .slug
+                                                                }
                                                             />
                                                         </RenderIfSubProjectAdmin>
                                                         <RenderIfSubProjectMember>
@@ -493,28 +509,23 @@ const mapDispatchToProps = dispatch => {
             fetchTutorial,
             getProbes,
             fetchComponentSummary,
+            addCurrentComponent,
         },
         dispatch
     );
 };
 
-const mapStateToProps = (state, props) => {
-    const { componentId } = props.match.params;
+const mapStateToProps = (state) => {
+
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     const monitor = state.monitor;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
-                component = c;
-            }
-        });
-    });
+    const  component= state.component &&
+    state.component.currentComponent;
 
     monitor.monitorsList.monitors.forEach(item => {
         item.monitors = item.monitors.filter(
-            monitor => monitor.componentId._id === componentId
+            monitor => monitor.componentId._id === component._id
         );
     });
 
@@ -546,7 +557,9 @@ const mapStateToProps = (state, props) => {
 
     return {
         monitor,
-        componentId,
+        componentId:
+            state.component.currentComponent &&
+            state.component.currentComponent._id,
         currentProject: state.project.currentProject,
         incidents: state.incident.unresolvedincidents.incidents,
         monitors: state.monitor.monitorsList.monitors,
@@ -585,6 +598,7 @@ DashboardView.propTypes = {
     fetchLighthouseLogs: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     getProbes: PropTypes.func,
+    addCurrentComponent: PropTypes.func,
     startDate: PropTypes.object,
     endDate: PropTypes.object,
     location: PropTypes.shape({

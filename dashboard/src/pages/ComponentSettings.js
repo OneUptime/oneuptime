@@ -185,20 +185,12 @@ ComponentSettings.propTypes = {
     editingComponent: PropTypes.object,
 };
 
-const mapStateToProps = (state, ownProps) => {
-    const { componentId } = ownProps.match.params;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
-                component = c;
-            }
-        });
-    });
-
+const mapStateToProps = (state) => {
     return {
-        component,
-        initialValues: component,
+        component: state.component &&
+        state.component.currentComponent,
+        initialValues: state.component &&
+        state.component.currentComponent,
         editingComponent: state.component.editComponent,
         projectId:
             state.project.currentProject && state.project.currentProject._id,

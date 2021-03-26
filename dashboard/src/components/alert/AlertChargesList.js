@@ -161,7 +161,7 @@ export class AlertChargesList extends Component {
                                                                     '/' +
                                                                     alertCharge
                                                                         .monitorId
-                                                                        .componentId +
+                                                                        .componentSlug +
                                                                     '/monitoring/' +
                                                                     alertCharge
                                                                         .monitorId
@@ -199,11 +199,11 @@ export class AlertChargesList extends Component {
                                                                     '/' +
                                                                     alertCharge
                                                                         .monitorId
-                                                                        .componentId +
+                                                                        .componentSlug +
                                                                     '/incidents/' +
                                                                     alertCharge
                                                                         .incidentId
-                                                                        ._id
+                                                                        ._idNumber
                                                             );
                                                         }}
                                                         className="Box-root Margin-right--16"

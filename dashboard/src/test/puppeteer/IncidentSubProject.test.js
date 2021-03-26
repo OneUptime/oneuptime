@@ -43,7 +43,9 @@ describe('Incident API With SubProjects', () => {
 
         return await cluster.execute(null, async ({ page }) => {
             await init.registerUser(user, page);
+            await init.logout(page);
             await init.registerUser(newUser, page);
+            await init.logout(page);
         });
     });
 
@@ -75,21 +77,18 @@ describe('Incident API With SubProjects', () => {
                     },
                     page
                 );
-                await init.navigateToComponentDetails(componentName, page);
-
-                // add new monitor to parent project
-                await init.addMonitorToSubProject(
-                    projectMonitorName,
-                    null,
+                // This navigates to component details as well as creates monitor
+                // add new montor to parent project
+                await init.addNewMonitorToComponent(
+                    page,
                     componentName,
-                    page
+                    projectMonitorName
                 );
                 // add new monitor to sub-project
-                await init.addMonitorToSubProject(
-                    projectMonitorName1,
-                    null,
+                await init.addNewMonitorToComponent(
+                    page,
                     componentName,
-                    page
+                    projectMonitorName1
                 );
 
                 // Navigate to details page of monitor

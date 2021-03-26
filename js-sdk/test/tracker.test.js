@@ -31,7 +31,7 @@ describe('Tracker Timeline', function() {
 
     before(function(done) {
         this.timeout(60000);
-        sleep(30000).then(() => {
+        sleep(5000).then(() => {
             user.email = generateSecondRandomBusinessEmail();
             request
                 .post('/user/signup')
@@ -291,7 +291,7 @@ describe('Capture Message', function() {
         const errorMessage = 'This is a test';
         tracker.captureMessage(errorMessage);
         const event = tracker.getCurrentEvent();
-        expect(event.timeline.length).to.equal(1);
+        expect(event.timeline.length).to.equal(2);
         expect(event.eventId).to.equal(event.timeline[0].eventId);
         expect(event.exception.message).to.equal(errorMessage);
     });
@@ -387,16 +387,104 @@ describe('Capture Exception', function() {
             newEvent = evt.data;
         });
 
-        // ensure that the first event have a type message, same error message and one timeline
+        // ensure that the first event have a type message, same error message and two timeline (the custom and the generic one)
         expect(event.type).to.equal('message');
         expect(event.content.message).to.equal(errorMessage);
-        expect(event.timeline).to.have.lengthOf(1);
+        expect(event.timeline).to.have.lengthOf(2);
         expect(event.tags).to.have.lengthOf(1); // the default event tag added
 
-        // ensure that the second event have a type exception, same error message and no timeline
+        // ensure that the second event have a type exception, same error message and one timeline (the generic one)
         expect(newEvent.type).to.equal('exception');
         expect(newEvent.content.message).to.equal(errorMessageObj);
-        expect(newEvent.timeline).to.have.lengthOf(0);
+        expect(newEvent.timeline).to.have.lengthOf(1);
         expect(newEvent.tags).to.have.lengthOf(2); // the default and custom tag
+    });
+});
+describe('SDK Version', function() {
+    it('should contain version number and sdk name in captured message', function() {
+        const tracker = new FyipeTracker(
+            API_URL,
+            errorTracker._id,
+            errorTracker.key
+        );
+        const errorMessage = 'Uncaught Exception';
+        tracker.captureMessage(errorMessage);
+        const event = tracker.getCurrentEvent();
+        expect(event.sdk.name).to.be.a('string');
+        expect(event.sdk.version).to.match(/(([0-9])+\.([0-9])+\.([0-9])+)/); // confirm that the versiion follows the patter XX.XX.XX where X is a non negative integer
+    });
+});
+describe('Code Capture Snippet', function() {
+    it('should add code capture to stack trace when flag is passed in options', async function() {
+        const options = { captureCodeSnippet: true };
+        const tracker = new FyipeTracker(
+            API_URL,
+            errorTracker._id,
+            errorTracker.key,
+            options
+        );
+        let event = null;
+        const errorMessageObj = 'Object Error Found';
+        await tracker.captureException(new Error(errorMessageObj)).then(evt => {
+            event = evt.data;
+        });
+        const incidentFrame = event.content.stacktrace.frames[0];
+        expect(incidentFrame).to.have.property('linesBeforeError');
+        expect(incidentFrame).to.have.property('linesAfterError');
+        expect(incidentFrame).to.have.property('errorLine');
+    });
+    it('should add code capture and confirm data type of fields added to frame', async function() {
+        const options = { captureCodeSnippet: true };
+        const tracker = new FyipeTracker(
+            API_URL,
+            errorTracker._id,
+            errorTracker.key,
+            options
+        );
+        let event = null;
+        const errorMessageObj = 'Object Error Found';
+        await tracker.captureException(new Error(errorMessageObj)).then(evt => {
+            event = evt.data;
+        });
+        const incidentFrame = event.content.stacktrace.frames[0];
+        expect(incidentFrame.errorLine).to.be.a('string');
+        expect(incidentFrame.linesBeforeError).to.be.an('array');
+        expect(incidentFrame.linesAfterError).to.be.an('array');
+    });
+    it('should not add code capture to stack trace when flag is passed in options', async function() {
+        const options = { captureCodeSnippet: false };
+        const tracker = new FyipeTracker(
+            API_URL,
+            errorTracker._id,
+            errorTracker.key,
+            options
+        );
+        let event = null;
+        const errorMessageObj = 'Object Error Found';
+        await tracker.captureException(new Error(errorMessageObj)).then(evt => {
+            event = evt.data;
+        });
+        const incidentFrame = event.content.stacktrace.frames[0];
+        expect(incidentFrame).to.not.have.property('linesBeforeError');
+        expect(incidentFrame).to.not.have.property('linesAfterError');
+        expect(incidentFrame).to.not.have.property('errorLine');
+    });
+    it('should add code capture to stack trace by default when unwanted flag is passed in options', async function() {
+        const options = { captureCodeSnippet: 'heyy' }; // expects a true or false but it defaults to true
+        const tracker = new FyipeTracker(
+            API_URL,
+            errorTracker._id,
+            errorTracker.key,
+            options
+        );
+        let event = null;
+        const errorMessageObj = 'Object Error Found';
+        await tracker.captureException(new Error(errorMessageObj)).then(evt => {
+            event = evt.data;
+        });
+        const incidentFrame = event.content.stacktrace.frames[0];
+        expect(incidentFrame).to.have.property('linesBeforeError');
+        expect(incidentFrame).to.have.property('linesAfterError');
+        expect(incidentFrame).to.have.property('errorLine');
     });
 });

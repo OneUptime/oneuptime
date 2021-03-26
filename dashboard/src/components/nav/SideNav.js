@@ -159,37 +159,37 @@ class SideNav extends Component {
         } = this.props;
         const switchToComponentDetailNav =
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/monitoring/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)*\/monitoring/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/issues/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)*\/issues/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/incident-log/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)*\/incident-log/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)*\/incidents\/([0-9])*/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/application-log/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)*\/application-log/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/container/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)*\/security\/container/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/application/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)*\/security\/application/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)*\/security/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/error-tracker/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)*\/error-tracker/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/settings\/basic/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)*\/settings\/basic/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/settings\/advanced/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)*\/settings\/advanced/
             );
         const switchToProfileNav =
             location.pathname.match(/profile\/settings/) ||
@@ -358,13 +358,13 @@ class SideNav extends Component {
 SideNav.displayName = 'SideNav';
 
 const mapStateToProps = function(state, props) {
-    const { componentId } = props.match.params;
+    const { componentSlug } = props.match.params;
     const allIndividualComponents = state.component.componentList.components.reduce(
         (acc, curr) => acc.concat(curr.components || []),
         []
     );
     const selectedComponent = allIndividualComponents.find(
-        component => component._id === componentId
+        component => component.slug === componentSlug
     );
     const settings = state.profileSettings.profileSetting.data;
     const profilePic = settings ? settings.profilePic : '';

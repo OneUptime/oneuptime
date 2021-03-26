@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { Component } from 'react';
 import { API_URL } from '../../config';
 import { reduxForm, Field } from 'redux-form';
+import { v4 as uuidv4 } from 'uuid';
 import {
     updateStatusPageBranding,
     updateStatusPageBrandingRequest,
@@ -28,6 +29,9 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import ConfirmResetBrandColors from '../modals/ConfirmResetBrandColors';
+import { openModal } from '../../actions/modal';
+import DataPathHoC from '../DataPathHoC';
 
 //Client side validation
 function validate(values) {
@@ -55,6 +59,7 @@ export class Branding extends Component {
     state = {
         displayColorPicker: false,
         currentColorPicker: '',
+        confirmResetModalId: uuidv4(),
     };
 
     handleClick = e => {
@@ -137,7 +142,6 @@ export class Branding extends Component {
             );
         }
     };
-
     removeImageHandler = e => {
         const values = {};
         const { _id } = this.props.statusPage.status;
@@ -266,6 +270,9 @@ export class Branding extends Component {
                 />
             );
         }
+        const { _id } = this.props.statusPage.status;
+        let { projectId } = this.props.statusPage.status;
+        projectId = projectId ? projectId._id || projectId : null;
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -741,6 +748,32 @@ export class Branding extends Component {
                             <div>
                                 <button
                                     id="saveBranding"
+                                    className="bs-Button bs-FileUploadButton bs-Button--new"
+                                    disabled={
+                                        this.props.statusPage
+                                            .resetBrandingColors.requesting
+                                    }
+                                    onClick={e => {
+                                        e.preventDefault();
+                                        return this.props.openModal({
+                                            id: this.state.subProjectModalId,
+                                            content: DataPathHoC(
+                                                ConfirmResetBrandColors,
+                                                {
+                                                    confirmResetModalId: this
+                                                        .state
+                                                        .confirmResetModalId,
+                                                    projectId,
+                                                    statusPageId: _id,
+                                                }
+                                            ),
+                                        });
+                                    }}
+                                >
+                                    <span>Reset Colors to Default</span>
+                                </button>
+                                <button
+                                    id="saveBranding"
                                     className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                     disabled={
                                         this.props.statusPage.branding
@@ -794,6 +827,8 @@ Branding.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     fetchProjectStatusPage: PropTypes.func.isRequired,
+    resetBrandingColors: PropTypes.func.isRequired,
+    openModal: PropTypes.func,
 };
 
 const BrandingForm = reduxForm({
@@ -817,6 +852,7 @@ const mapDispatchToProps = dispatch => {
             updateStatusPageBrandingSuccess,
             updateStatusPageBrandingError,
             fetchProjectStatusPage,
+            openModal,
         },
         dispatch
     );

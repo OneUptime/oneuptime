@@ -369,6 +369,23 @@ module.exports = {
         }
     },
 
+    updateCustomFieldBy: async function(query, data) {
+        try {
+            const incomingRequest = await IncomingRequestModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                { new: true }
+            );
+            return incomingRequest;
+        } catch (error) {
+            ErrorService.log(
+                'incomingRequestService.updateCustomFieldBy',
+                error
+            );
+            throw error;
+        }
+    },
+
     findBy: async function(query, limit, skip) {
         try {
             if (!skip || isNaN(skip)) skip = 0;
@@ -619,7 +636,11 @@ module.exports = {
                                 data.customFields.length > 0
                             ) {
                                 for (const field of data.customFields) {
-                                    if (field.uniqueField) {
+                                    if (
+                                        field.uniqueField &&
+                                        field.fieldValue &&
+                                        field.fieldValue.trim()
+                                    ) {
                                         _incident = await IncidentService.findOneBy(
                                             {
                                                 customFields: {
@@ -722,7 +743,11 @@ module.exports = {
                                 data.customFields.length > 0
                             ) {
                                 for (const field of data.customFields) {
-                                    if (field.uniqueField) {
+                                    if (
+                                        field.uniqueField &&
+                                        field.fieldValue &&
+                                        field.fieldValue.trim()
+                                    ) {
                                         _incident = await IncidentService.findOneBy(
                                             {
                                                 customFields: {
@@ -923,7 +948,11 @@ module.exports = {
                                         data.customFields.length > 0
                                     ) {
                                         for (const field of data.customFields) {
-                                            if (field.uniqueField) {
+                                            if (
+                                                field.uniqueField &&
+                                                field.fieldValue &&
+                                                field.fieldValue.trim()
+                                            ) {
                                                 _incident = await IncidentService.findOneBy(
                                                     {
                                                         customFields: {
@@ -1185,7 +1214,11 @@ module.exports = {
                                         data.customFields.length > 0
                                     ) {
                                         for (const field of data.customFields) {
-                                            if (field.uniqueField) {
+                                            if (
+                                                field.uniqueField &&
+                                                field.fieldValue &&
+                                                field.fieldValue.trim()
+                                            ) {
                                                 _incident = await IncidentService.findOneBy(
                                                     {
                                                         customFields: {
@@ -1271,11 +1304,13 @@ module.exports = {
                     }
                 }
 
+                let created_incidents = new Set(
+                    incidentResponse.map(response => response.idNumber)
+                );
+                created_incidents = [...created_incidents];
                 return {
                     status: 'success',
-                    created_incidents: incidentResponse.map(
-                        response => response.idNumber
-                    ),
+                    created_incidents,
                 };
             }
 

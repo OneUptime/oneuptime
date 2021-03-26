@@ -5,6 +5,7 @@ const Schema = mongoose.Schema;
 const applicationSecuritySchema = new Schema(
     {
         name: String,
+        slug: { type: String, index: true },
         gitRepositoryUrl: String,
         gitCredential: {
             type: Schema.Types.ObjectId,

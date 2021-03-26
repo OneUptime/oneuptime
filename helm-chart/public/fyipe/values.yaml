@@ -27,7 +27,9 @@ statusPage:
       tls:
         enabled: false
         crt: 
-        key: 
+        key:
+  cert: # certificate for a custom domain
+  key: # private key for a custom domain
 
 ##################################################################################  
 ## Important: Fyipe Values. More information in the Readme.md 
@@ -163,16 +165,18 @@ mongodb:
 #   useStatefulSet: true
 
 ## Service Configuration
-## For minikube, set this to NodePort, elsewhere use LoadBalancer
+## For minikube, set service.type to NodePort, elsewhere use LoadBalancer
 ##
-nginx-ingress-controller:
-  service:
+
+ingress-nginx:
+  ingressClass: k8s.io/ingress-nginx
+  service: 
     type: LoadBalancer
+  defaultBackend:
+    enabled: false
   proxySetHeaders:
     X-Forwarded-For: $http_x_forwarded_for
     X-Real-Ip: $http_x_forwarded_for
-  publishService:
-    enabled: true
   config:
     log-format-upstream: '$remote_addr - $http_cf_connecting_ip - $http_x_forwarded_for - $request_id - [$proxy_add_x_forwarded_for] - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_length $request_time [$proxy_upstream_name] $upstream_addr $upstream_response_length $upstream_response_time $upstream_status'
     proxy-protocol: "true"
@@ -195,7 +199,8 @@ host:
   backendPort: 3002
   homePort: 1444
   licensingPort: 3004
-  statusPagePort: 3006
+  statusPageHttpPort: 3006
+  statusPageHttpsPort: 3007
   dashboardPort: 3000
   accountsPort: 3003
   helmChartPort: 3423
@@ -208,7 +213,8 @@ host:
   backendServicePort: 80
   homeServicePort: 80
   apiDocsServicePort: 80
-  statusPageServicePort: 80
+  statusPageHttpServicePort: 80
+  statusPageHttpsServicePort: 443
   dashboardServicePort: 80
   accountsServicePort: 80
   adminDashboardServicePort: 80
@@ -235,3 +241,21 @@ disableSignup: false
 
 # What protocol is backend running on. Takes in values like 'http:' or 'https:'
 backendProtocol: 
+
+# Status page domain to add to CNAME to work with custom domains
+# Status page CNAME to display whcih customers will set on the cusom domain tab of status page.
+statusPageDomain:
+
+# Push notificaitons. 
+# Generate public and pivate key for push notifications. 
+# These are just the test keys. 
+# You can generate them by: 
+# First install the web-push npm package using npm install web-push -g, then run web-push generate-vapid-keys
+
+pushNotification:
+    publicKey: "BD1kb-OchZlXr32bmwpjhoxp_cq-aqK4dWXRDkC5m6Hd9_cvMOUw_bXRFR3pJFGzpEdjQUk5SDdYaXvb7xd-1Dg"
+    privateKey: "WdFZTeXkuoxpsO_KNOtXvhDUc_Ae1rb-WjPv6AVexA4"
+    url: "https://fyipe-test.com"
+
+
+ 

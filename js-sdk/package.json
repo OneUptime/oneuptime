@@ -10,8 +10,10 @@
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "build-dev": "npm run build && npm link",
+        "build-cli": "babel src/cli -d build --copy-files",
+        "build-sdk": "webpack --mode production",
         "test": "mocha --require @babel/polyfill --require @babel/register \"test/**/*.test.js\" \"src/**/*.test.js\"",
-        "build": "webpack --mode production",
+        "build": "npm run build-cli && npm run build-sdk",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='axios,webpack-cli,babel-loader,depcheck,mocha,webpack'"
     },
@@ -25,6 +27,7 @@
     "author": "HackerBay, Inc.",
     "license": "ISC",
     "devDependencies": {
+        "@babel/cli": "^7.13.10",
         "@babel/core": "^7.10.2",
         "@babel/plugin-proposal-class-properties": "^7.10.1",
         "@babel/plugin-proposal-private-methods": "^7.10.1",

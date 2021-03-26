@@ -6,12 +6,15 @@ import fyipe from 'fyipe-staging'
 const options = {
     maxTimeline: 10,
 };
-const tracker = new fyipe.ErrorTracker(
+
+// constructor                    
+const tracker = new fyipe.ErrorTracker(                    
     'https://staging.fyipe.com/api',
-    '6032095890b38500151c0a5c',
-    '15efd1fb-e423-46f8-a2aa-b25710205644',
+    '605bad70ae110c0013e14005',
+    'cb4b107a-7f28-464d-9fda-32715fa4cd68',
     options // Optional Field
 );
+         
 
 // capturing a timeline manually
 tracker.addToTimeline(

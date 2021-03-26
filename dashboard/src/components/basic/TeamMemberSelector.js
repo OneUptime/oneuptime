@@ -18,33 +18,60 @@ const TeamMemberSelector = ({
     form,
     policyIndex,
     teamIndex,
+    projectGroups,
+    renderType,
 }) => {
     const allowedTeamMembers = makeAllowedTeamMembers(
         form[policyIndex].teams[teamIndex].teamMembers,
         subProjectTeam
     );
-
-    const allowedOptionsForDropdown = [
-        { value: '', label: 'Select Team Member...' },
-    ].concat(
-        allowedTeamMembers.map(member => {
-            return {
-                value: member.userId,
-                label: member.name ? member.name : member.email,
-                show: member.role !== 'Viewer',
-            };
-        })
+    const groups =
+        (projectGroups.groups &&
+            projectGroups.groups.map(group => {
+                return {
+                    value: group._id,
+                    label: group.name,
+                };
+            })) ||
+        [];
+    const allowedGroups = makeAllowedGroups(
+        projectGroups.groups && projectGroups.groups,
+        form[policyIndex].teams[teamIndex].teamMembers
     );
+    //console.log(allowedGroups, groups, 'consoling groups and allowed groups')
 
-    const options = [{ value: '', label: 'Select Team Member...' }].concat(
-        subProjectTeam.map(member => {
-            return {
-                value: member.userId,
-                label: member.name ? member.name : member.email,
-                show: member.role !== 'Viewer',
-            };
-        })
-    );
+    const allowedOptionsForDropdown =
+        renderType === 'team'
+            ? [{ value: '', label: 'Select Team Member...' }].concat(
+                  allowedTeamMembers.map(member => {
+                      return {
+                          value: member.userId,
+                          label: member.name ? member.name : member.email,
+                          show: member.role !== 'Viewer',
+                      };
+                  })
+              )
+            : [{ value: '', label: 'Select Group...' }].concat(
+                  allowedGroups.map(group => {
+                      return {
+                          value: group._id,
+                          label: group.name,
+                      };
+                  })
+              );
+
+    const options =
+        renderType === 'team'
+            ? [{ value: '', label: 'Select Team Member...' }].concat(
+                  subProjectTeam.map(member => {
+                      return {
+                          value: member.userId,
+                          label: member.name ? member.name : member.email,
+                          show: member.role !== 'Viewer',
+                      };
+                  })
+              )
+            : [{ value: '', label: 'Select Group...' }].concat(groups);
 
     const filteredOpt = useRef();
     filteredOpt.current = options.filter(opt => opt.value === input.value);
@@ -119,6 +146,8 @@ TeamMemberSelector.propTypes = {
     policyIndex: PropTypes.number.isRequired,
     form: PropTypes.object.isRequired,
     teamIndex: PropTypes.number.isRequired,
+    projectGroups: PropTypes.object,
+    renderType: PropTypes.string,
 };
 
 function makeAllowedTeamMembers(teamMembers = [], subProjectTeam = []) {
@@ -138,6 +167,15 @@ function makeAllowedTeamMembers(teamMembers = [], subProjectTeam = []) {
     return allowedTeamMembers;
 }
 
+function makeAllowedGroups(groups = [], projectGroups = []) {
+    const validGroup = projectGroups.filter(group => group.groupId);
+    if (validGroup.length === 0) return groups;
+    const filteredGroups = groups.filter(
+        group => !validGroup.some(grp => grp.groupId === group._id)
+    );
+    return filteredGroups;
+}
+
 function mapStateToProps(state, props) {
     const selector = formValueSelector('OnCallAlertBox');
     const form = selector(state, 'OnCallAlertBox');
@@ -148,6 +186,7 @@ function mapStateToProps(state, props) {
     return {
         subProjectTeam: subProjectTeam.teamMembers || [],
         form,
+        projectGroups: state.groups.oncallDuty,
     };
 }
 

@@ -277,8 +277,34 @@ router.get(
         // Call the IncidentService.
 
         try {
+            const { projectId, incidentId } = req.params;
             const incident = await IncidentService.findOneBy({
-                _id: req.params.incidentId,
+                projectId,
+                idNumber: incidentId,
+            });
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// Route
+// Description: Getting incident
+// Params:
+// Param 1: req.headers-> {authorization}; req.user-> {id}; req.params-> {incidentIdNumber}
+// Returns: 200: incidents, 400: Error; 500: Server Error.
+router.get(
+    '/:projectId/incidentNumber/:incidentIdNumber',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        // Call the IncidentService.
+
+        try {
+            const incident = await IncidentService.findOneBy({
+                projectId: req.params.projectId,
+                idNumber: req.params.incidentIdNumber,
             });
             return sendItemResponse(req, res, incident);
         } catch (error) {
@@ -293,9 +319,14 @@ router.get(
     isAuthorized,
     async function(req, res) {
         try {
-            const incidentId = req.params.incidentId;
+            const { projectId, incidentId } = req.params;
+
+            const incident = await IncidentService.findOneBy({
+                projectId,
+                idNumber: incidentId,
+            });
             const timeline = await IncidentTimelineService.findBy(
-                { incidentId },
+                { incidentId: incident._id },
                 req.query.skip || 0,
                 req.query.limit || 10
             );
@@ -540,6 +571,9 @@ router.post(
             const data = req.body;
             const incidentId = req.params.incidentId;
             const projectId = req.params.projectId;
+            const { idNumber } = await IncidentService.findOneBy({
+                _id: incidentId,
+            });
             const userId = req.user.id;
             if (!data.content) {
                 return sendErrorResponse(req, res, {
@@ -748,6 +782,7 @@ router.post(
                     );
                     incidentMessage = {
                         type: data.type,
+                        idNumber,
                         data: await Services.rearrangeDuty(filteredMsg),
                     };
                 } else {
@@ -772,11 +807,17 @@ router.get(
     isAuthorized,
     async function(req, res) {
         try {
+            const { projectId, incidentId } = req.params;
+
+            const incident = await IncidentService.findOneBy({
+                projectId,
+                idNumber: incidentId,
+            });
             const {
                 statusPages,
                 count,
             } = await StatusPageService.getStatusPagesForIncident(
-                req.params.incidentId,
+                incident._id,
                 parseInt(req.query.skip) || 0,
                 parseInt(req.query.limit) || 10
             );
@@ -794,6 +835,9 @@ router.delete(
     async function(req, res) {
         try {
             const { incidentId, incidentMessageId, projectId } = req.params;
+            const { idNumber } = await IncidentService.findOneBy({
+                _id: incidentId,
+            });
             const checkMsg = await IncidentMessageService.findOneBy({
                 _id: incidentMessageId,
             });
@@ -867,6 +911,7 @@ router.delete(
                     );
                     result = {
                         type: checkMsg.type,
+                        idNumber,
                         data: await Services.rearrangeDuty(filteredMsg),
                     };
                 }
@@ -893,8 +938,13 @@ router.get(
         }
         try {
             let incidentMessages, result;
-            const incidentId = req.params.incidentId;
+            const idNumber = req.params.incidentId;
             const projectId = req.params.projectId;
+            let incidentId = await IncidentService.findOneBy({
+                projectId,
+                idNumber,
+            });
+            incidentId = incidentId._id;
             if (type === 'investigation') {
                 incidentMessages = await IncidentMessageService.findBy(
                     { incidentId, type },

@@ -5,6 +5,7 @@ import { connect } from 'react-redux';
 import {
     fetchComponents,
     fetchComponentResources,
+    addCurrentComponent
 } from '../../actions/component';
 import { fetchMonitors } from '../../actions/monitor';
 import { closeModal } from '../../actions/modal';
@@ -211,12 +212,13 @@ export class ComponentDetail extends Component {
                                             '/dashboard/project/' +
                                                 currentProject.slug +
                                                 '/' +
-                                                component._id +
+                                                component.slug +
                                                 '/monitoring'
                                         );
                                         this.props.animateSidebar(false);
                                     }, 200);
                                     this.props.animateSidebar(true);
+                                    this.props.addCurrentComponent(component);
                                 }}
                             >
                                 View Component
@@ -234,6 +236,9 @@ export class ComponentDetail extends Component {
                                             <ResourceTabularList
                                                 componentId={
                                                     this.props.component._id
+                                                }
+                                                componentSlug={
+                                                    this.props.component.slug
                                                 }
                                                 componentResources={
                                                     this.props
@@ -264,6 +269,7 @@ const mapDispatchToProps = dispatch => {
             closeModal,
             deleteComponent,
             fetchComponents,
+            addCurrentComponent,
             fetchComponentResources,
             fetchMonitors,
             animateSidebar,
@@ -280,7 +286,9 @@ function mapStateToProps(state, props) {
             monitors: [],
         }
     ).monitors.filter(
-        monitor => monitor.componentId._id === props.component._id
+        monitor =>
+            monitor.componentId &&
+            monitor.componentId._id === props.component._id
     );
     return {
         componentMonitors,
@@ -297,6 +305,7 @@ ComponentDetail.propTypes = {
     componentState: PropTypes.object.isRequired,
     deleteComponent: PropTypes.func,
     fetchComponents: PropTypes.func,
+    addCurrentComponent: PropTypes.func,
     projectName: PropTypes.string,
     projectType: PropTypes.string,
     shouldRenderProjectType: PropTypes.bool,

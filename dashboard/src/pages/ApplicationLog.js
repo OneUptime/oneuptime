@@ -34,9 +34,7 @@ class ApplicationLog extends Component {
         }
     }
     ready = () => {
-        const componentId = this.props.match.params.componentId
-            ? this.props.match.params.componentId
-            : null;
+        const componentId = this.props.componentId;
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
@@ -53,7 +51,7 @@ class ApplicationLog extends Component {
                 `createApplicationLog-${this.props.componentId}`,
                 data => {
                     history.push(
-                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/application-logs/${data._id}`
+                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/application-logs/${data.slug}`
                     );
                 }
             );
@@ -84,6 +82,7 @@ class ApplicationLog extends Component {
                             applicationLogs={
                                 this.props.applicationLog.applicationLogs
                             }
+                            componentSlug={this.props.componentSlug}
                         />
                     </div>
                 </div>
@@ -151,21 +150,12 @@ const mapDispatchToProps = dispatch => {
         dispatch
     );
 };
-const mapStateToProps = (state, props) => {
-    const { componentId } = props.match.params;
+const mapStateToProps = (state) => {
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     const applicationLog = state.applicationLog.applicationLogsList;
 
     const currentProject = state.project.currentProject;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
-                component = c;
-            }
-        });
-    });
 
     // try to get custom project tutorial by project ID
     const projectCustomTutorial = state.tutorial[projectId];
@@ -182,8 +172,13 @@ const mapStateToProps = (state, props) => {
     }
 
     return {
-        componentId,
-        component,
+        componentId:
+            state.component.currentComponent &&
+            state.component.currentComponent._id,
+        component: state.component &&
+        state.component.currentComponent,
+        componentSlug: state.component.currentComponent &&
+        state.component.currentComponent.slug,
         applicationLog,
         currentProject,
         tutorialStat,
@@ -192,7 +187,6 @@ const mapStateToProps = (state, props) => {
 ApplicationLog.propTypes = {
     tutorialStat: PropTypes.object,
     applicationLog: PropTypes.object,
-    match: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
@@ -202,6 +196,7 @@ ApplicationLog.propTypes = {
         })
     ),
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     loadPage: PropTypes.func,
     fetchApplicationLogs: PropTypes.func,
     currentProject: PropTypes.oneOfType([

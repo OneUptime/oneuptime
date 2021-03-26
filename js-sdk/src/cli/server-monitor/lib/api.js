@@ -181,7 +181,8 @@ const ping = (
  * @param {(string | Function)} monitorId - The monitor id or function to resolve monitor id of the server monitor.
  * @return {Object} The server monitor handlers.
  */
-module.exports = (config, apiUrl, apiKey, monitorId) => {
+
+module.exports = function(config, apiUrl, apiKey, monitorId) {
     let pingServer,
         projectId = config,
         interval,

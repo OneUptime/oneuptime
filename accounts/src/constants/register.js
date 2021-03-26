@@ -21,3 +21,5 @@ export const ADD_CARD_FAILED = 'ADD_CARD_FAILED';
 export const ADD_CARD_REQUEST = 'ADD_CARD_REQUEST';
 
 export const SAVE_PLAN_ID = 'SAVE_PLAN_ID';
+
+export const GET_EMAIL_FROM_TOKEN = 'GET_EMAIL_FROM_TOKEN';

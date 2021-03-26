@@ -38,7 +38,6 @@ describe('Monitor SLA', () => {
             };
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
         });
 
         done();
@@ -59,6 +58,8 @@ describe('Monitor SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#monitor', { visible: true });
                 await page.click('#monitor');
 
@@ -96,6 +97,8 @@ describe('Monitor SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#monitor', { visible: true });
                 await page.click('#monitor');
 
@@ -132,6 +135,8 @@ describe('Monitor SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#monitor', { visible: true });
                 await page.click('#monitor');
 
@@ -170,6 +175,8 @@ describe('Monitor SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#monitor', { visible: true });
                 await page.click('#monitor');
 
@@ -208,6 +215,8 @@ describe('Monitor SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#monitor', { visible: true });
                 await page.click('#monitor');
 
@@ -246,6 +255,8 @@ describe('Monitor SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#monitor', { visible: true });
                 await page.click('#monitor');
 
@@ -287,6 +298,8 @@ describe('Monitor SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#monitor', { visible: true });
                 await page.click('#monitor');
 
@@ -328,6 +341,8 @@ describe('Monitor SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#monitor', { visible: true });
                 await page.click('#monitor');
 
@@ -399,6 +414,8 @@ describe('Monitor SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#monitor', { visible: true });
                 await page.click('#monitor');
 

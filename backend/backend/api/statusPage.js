@@ -30,6 +30,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const uuid = require('uuid');
+const defaultStatusPageColors = require('../config/statusPageColors');
 
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
@@ -111,92 +112,83 @@ router.put(
     isAuthorized,
     async (req, res) => {
         const { projectId, statusPageId } = req.params;
-        const subDomain = req.body.domain;
+        const { domain: subDomain, cert, privateKey } = req.body;
 
-        if (Array.isArray(subDomain)) {
-            if (subDomain.length === 0) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Domain is required.',
-                });
-            }
-            for (const element of subDomain) {
-                if (!UtilService.isDomainValid(element.domain)) {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'Domain is not valid.',
-                    });
-                }
-            }
-        } else {
-            if (typeof subDomain !== 'string') {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Domain is not of type string.',
-                });
-            }
+        if (typeof subDomain !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Domain is not of type string.',
+            });
+        }
 
-            if (!UtilService.isDomainValid(subDomain)) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Domain is not valid.',
-                });
-            }
+        if (!UtilService.isDomainValid(subDomain)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Domain is not valid.',
+            });
         }
 
         try {
-            if (Array.isArray(subDomain)) {
-                const response = [];
-                for (const domain of subDomain) {
-                    const belongsToProject = await DomainVerificationService.doesDomainBelongToProject(
-                        projectId,
-                        domain.domain
-                    );
-                    if (!belongsToProject) {
-                        response.push(
-                            await StatusPageService.createDomain(
-                                domain.domain,
-                                projectId,
-                                statusPageId
-                            )
-                        );
-                    } else {
-                        return sendErrorResponse(req, res, {
-                            message: `This domain ${domain.domain} is already associated with another project`,
-                            code: 400,
-                        });
-                    }
-                }
-                return sendItemResponse(
-                    req,
-                    res,
-                    response[response.length - 1]
-                );
-            } else {
-                const doesDomainBelongToProject = await DomainVerificationService.doesDomainBelongToProject(
-                    projectId,
-                    subDomain
-                );
+            const doesDomainBelongToProject = await DomainVerificationService.doesDomainBelongToProject(
+                projectId,
+                subDomain
+            );
 
-                if (doesDomainBelongToProject) {
-                    return sendErrorResponse(req, res, {
-                        message: `This domain ${subDomain} is already associated with another project`,
-                        code: 400,
-                    });
-                }
-                const resp = await StatusPageService.createDomain(
-                    subDomain,
-                    projectId,
-                    statusPageId
-                );
-                return sendItemResponse(req, res, resp);
+            if (doesDomainBelongToProject) {
+                return sendErrorResponse(req, res, {
+                    message: `This domain is already associated with another project`,
+                    code: 400,
+                });
             }
+
+            const doesDomainExist = await StatusPageService.doesDomainExist(
+                subDomain
+            );
+
+            if (doesDomainExist) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: `This custom domain ${subDomain} already exist`,
+                });
+            }
+
+            const resp = await StatusPageService.createDomain(
+                subDomain,
+                projectId,
+                statusPageId,
+                cert,
+                privateKey
+            );
+            return sendItemResponse(req, res, resp);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
     }
 );
 
+//reset status page colors to default colors
+router.put(
+    '/:projectId/:statusPageId/resetColors',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        const { projectId, statusPageId } = req.params;
+        const defaultBrandColor = defaultStatusPageColors.default;
+        try {
+            // response should be an updated statusPage
+            const response = await StatusPageService.updateOneBy(
+                {
+                    _id: statusPageId,
+                    projectId,
+                },
+                { colors: defaultBrandColor }
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 /**
  * @description updates a particular domain from statuspage collection
  * @param {string} projectId id of the project
@@ -210,7 +202,7 @@ router.put(
     isAuthorized,
     async (req, res) => {
         const { projectId, statusPageId, domainId } = req.params;
-        const newDomain = req.body.domain;
+        const { domain: newDomain, cert, privateKey } = req.body;
 
         if (typeof newDomain !== 'string') {
             return sendErrorResponse(req, res, {
@@ -232,7 +224,9 @@ router.put(
                 projectId,
                 statusPageId,
                 domainId,
-                newDomain
+                newDomain,
+                cert,
+                privateKey
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -240,6 +234,93 @@ router.put(
         }
     }
 );
+
+router.post('/:projectId/certFile', async function(req, res) {
+    try {
+        const upload = multer({
+            storage,
+        }).fields([
+            {
+                name: 'cert',
+                maxCount: 1,
+            },
+        ]);
+        upload(req, res, async function(error) {
+            let cert;
+            if (error) {
+                return sendErrorResponse(req, res, error);
+            }
+            if (req.files && req.files.cert && req.files.cert[0].filename) {
+                cert = req.files.cert[0].filename;
+            }
+            return sendItemResponse(req, res, { cert });
+        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/:projectId/privateKeyFile', async function(req, res) {
+    try {
+        const upload = multer({
+            storage,
+        }).fields([
+            {
+                name: 'privateKey',
+                maxCount: 1,
+            },
+        ]);
+        upload(req, res, async function(error) {
+            let privateKey;
+            if (error) {
+                return sendErrorResponse(req, res, error);
+            }
+            if (
+                req.files &&
+                req.files.privateKey &&
+                req.files.privateKey[0].filename
+            ) {
+                privateKey = req.files.privateKey[0].filename;
+            }
+            return sendItemResponse(req, res, { privateKey });
+        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/tlsCredential', async function(req, res) {
+    try {
+        const { domain } = req.query;
+        const user = req.user;
+
+        if (!domain) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'No domain is specified',
+            });
+        }
+
+        const statusPage = await StatusPageService.getStatusPage(
+            { domains: { $elemMatch: { domain } } },
+            user
+        );
+
+        let domainObj;
+        statusPage.domains.forEach(eachDomain => {
+            if (eachDomain.domain === domain) {
+                domainObj = eachDomain;
+            }
+        });
+
+        return sendItemResponse(req, res, {
+            cert: domainObj.cert,
+            privateKey: domainObj.privateKey,
+        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
 
 /**
  * @description deletes a particular domain from statuspage collection
@@ -340,23 +421,6 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                     code: 400,
                     message: 'Please enter a valid URL.',
                 });
-            }
-            let counter = 0;
-            for (let j = 0; j < data.links.length; j++) {
-                if (data.links[i].name == data.links[j].name) {
-                    counter++;
-                }
-                if (data.links[i].url == data.links[j].url) {
-                    counter++;
-                }
-            }
-            if (counter > 2) {
-                {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'Duplicate name or url present. Please check.',
-                    });
-                }
             }
         }
     }
@@ -697,9 +761,11 @@ router.get(
                             limit
                         );
 
+                        const sortMsg = statusPageNote.message.reverse();
+
                         updatedNotes.push({
                             ...note._doc,
-                            message: statusPageNote.message,
+                            message: sortMsg,
                         });
                     }
                 }

@@ -11,6 +11,8 @@ const statusSchema = new Schema({
     domains: [
         {
             domain: String, // complete domain eg status.fyipe.com
+            cert: String, // filename gridfs
+            privateKey: String, // filename gridfs
             domainVerificationToken: {
                 type: Schema.Types.ObjectId,
                 ref: 'DomainVerificationToken',
@@ -36,7 +38,7 @@ const statusSchema = new Schema({
         },
     ],
     links: Array,
-    title: String,
+    title: { type: String, default: 'Status Page' },
     name: String,
     isPrivate: {
         type: Boolean,
@@ -61,6 +63,11 @@ const statusSchema = new Schema({
     },
     // show or hide the probe bar
     hideProbeBar: {
+        type: Boolean,
+        default: false,
+    },
+    // show or hide uptime (%) on the status page
+    hideUptime: {
         type: Boolean,
         default: false,
     },
@@ -109,6 +116,6 @@ const statusSchema = new Schema({
     },
 
     deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
-    theme: { type: String },
+    theme: { type: String, default: 'Clean Theme' },
 });
 module.exports = mongoose.model('StatusPage', statusSchema);
