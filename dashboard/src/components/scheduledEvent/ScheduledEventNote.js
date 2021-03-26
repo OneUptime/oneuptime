@@ -374,9 +374,11 @@ export class ScheduledEventNote extends Component {
                                                       <div className="bs-thread-line-down"></div>
                                                   </ShouldRender>
                                               </div>
-                                          ) : note.event_state &&
-                                            note.event_state !== 'Started' &&
-                                            !note.deleted ? (
+                                          ) : note.deleted ||
+                                            (note.event_state &&
+                                                note.event_state !==
+                                                    'Started' &&
+                                                !note.deleted) ? (
                                               <>
                                                   <ShouldRender
                                                       if={
