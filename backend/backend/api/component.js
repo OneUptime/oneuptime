@@ -338,6 +338,7 @@ router.get(
                     createdAt: elem.createdAt,
                     icon: 'monitor',
                     slug: elem.slug,
+                    component,
                 };
                 // add it to the total resources
                 totalResources.push(newElement);
