@@ -39,6 +39,23 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate('createdById', 'name')
                 .execPopulate();
+            // add note when a scheduled event is created
+
+            await ScheduledEventNoteService.create({
+                content: 'THIS SCHEDULED EVENT HAS BEEN CREATED',
+                scheduledEventId: scheduledEvent._id,
+                createdById: scheduledEvent.createdById._id,
+                type: 'investigation',
+                event_state: 'Created',
+            });
+            // add note automatically for when a scheduled event is starts
+            await ScheduledEventNoteService.create({
+                content: 'THIS SCHEDULED EVENT HAS STARTED',
+                scheduledEventId: scheduledEvent._id,
+                createdById: scheduledEvent.createdById._id,
+                type: 'investigation',
+                event_state: 'Started',
+            });
 
             await RealTimeService.addScheduledEvent(scheduledEvent);
 
