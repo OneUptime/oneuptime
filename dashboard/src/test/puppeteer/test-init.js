@@ -623,7 +623,7 @@ module.exports = {
             await page.click('#btnCreateSchedule');
         }
     },
-    addScheduledEvent: async function(monitorName, scheduledEventName, componentName,page) {
+    addScheduledMaintenance: async function(monitorName, scheduledEventName, componentName,page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#scheduledMaintenance', {
             visible: true,
@@ -644,7 +644,7 @@ module.exports = {
             await page.click('label[for=selectAllMonitorsBox]');
             await page.click('#addMoreMonitor');
             await page.waitForSelector('#monitorfield_0');
-            await this.selectByText('#monitorfield_0', componentName, page);
+            await this.selectByText('#monitorfield_0', componentName, page); // 'Component_Name/Monitor_Name' appears in the dropdown. Using 'componentName' selects the monitor.
         }
         await page.click('#description');
         await page.type(
@@ -794,7 +794,7 @@ module.exports = {
             await page.waitForNavigation({ waitUntil: 'networkidle0' }),
         ]);
     },
-    addScheduledEventNote: async function(
+    addScheduledMaintenanceNote: async function(
         page,
         type,
         eventBtn,
@@ -802,10 +802,10 @@ module.exports = {
         eventState = 'update'
     ) {
         await page.goto(utils.DASHBOARD_URL);
-        await page.waitForSelector('#scheduledEvents', {
+        await page.waitForSelector('#scheduledMaintenance', {
             visible: true,
         });
-        await page.click('#scheduledEvents');
+        await page.click('#scheduledMaintenance');
 
         await page.waitForSelector(`#${eventBtn}`, {
             visible: true,
@@ -821,10 +821,10 @@ module.exports = {
             visible: true,
         });
         await this.selectByText('#event_state', eventState, page);
-        await page.click('#new-investigation');
-        await page.type('#new-investigation', noteDescription);
-        await page.click('#investigation-addButton');
-        await page.waitForSelector('#form-new-schedule-investigation-message', {
+        await page.click('#new-internal');
+        await page.type('#new-internal', noteDescription);
+        await page.click('#internal-addButton');
+        await page.waitForSelector('#form-new-schedule-internal-message', {
             hidden: true,
         });
     },
