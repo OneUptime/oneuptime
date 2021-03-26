@@ -219,14 +219,15 @@ const mapStateToProps = (state, ownProps) => {
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
-        componentId: state.component.currentComponent &&
-        state.component.currentComponent._id,
+        componentId:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
         slug: state.project.currentProject && state.project.currentProject.slug,
         containerSecurities: state.security.containerSecurities,
         gettingSecurityLogs: state.security.getContainerSecurityLog.requesting,
         gettingContainerSecurities: state.security.getContainer.requesting,
-        component: state.component &&
-        state.component.currentComponent,
+        component:
+            state.component && state.component.currentComponent.component,
         componentSlug,
     };
 };

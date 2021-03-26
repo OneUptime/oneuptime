@@ -33,6 +33,7 @@ import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 import { fetchDefaultCommunicationSla } from '../actions/incidentCommunicationSla';
 import secondsToHms from '../utils/secondsToHms';
+import { fetchComponent } from '../actions/component';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -52,6 +53,7 @@ class Incident extends React.Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT');
         }
+        this.props.fetchComponent(this.props.componentSlug);
         this.props.getIncidentByIdNumber(
             this.props.projectId,
             this.props.incidentId
@@ -278,6 +280,7 @@ class Incident extends React.Component {
         const {
             component,
             location: { pathname },
+            requestingComponent,
         } = this.props;
         const monitorId =
             this.props.incident &&
@@ -526,21 +529,23 @@ class Incident extends React.Component {
                         <TabPanel>
                             <Fade>
                                 <RenderIfSubProjectAdmin>
-                                    <IncidentDeleteBox
-                                        incident={this.props.incident}
-                                        deleting={this.props.deleting}
-                                        currentProject={
-                                            this.props.currentProject
-                                        }
-                                        monitorSlug={
-                                            this.props.monitor &&
-                                            this.props.monitor.slug
-                                        }
-                                        componentSlug={
-                                            this.props.componentSlug
-                                        }
-                                        componentId={this.props.componentId}
-                                    />
+                                    {!requestingComponent && (
+                                        <IncidentDeleteBox
+                                            incident={this.props.incident}
+                                            deleting={this.props.deleting}
+                                            currentProject={
+                                                this.props.currentProject
+                                            }
+                                            monitorSlug={
+                                                this.props.monitor &&
+                                                this.props.monitor.slug
+                                            }
+                                            componentSlug={
+                                                this.props.componentSlug
+                                            }
+                                            componentId={this.props.componentId}
+                                        />
+                                    )}
                                 </RenderIfSubProjectAdmin>
                             </Fade>
                         </TabPanel>
@@ -666,10 +671,12 @@ const mapStateToProps = (state, props) => {
         deleting: state.incident.incident.deleteIncident
             ? state.incident.incident.deleteIncident.requesting
             : false,
-        component: state.component &&
-        state.component.currentComponent,
-        componentId:  state.component.currentComponent &&
-        state.component.currentComponent._id,
+        requestingComponent: state.component.currentComponent.requesting,
+        component:
+            state.component && state.component.currentComponent.component,
+        componentId:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
         componentSlug,
         requestingDefaultIncidentSla:
             state.incidentSla.defaultIncidentCommunicationSla.requesting,
@@ -696,6 +703,7 @@ const mapDispatchToProps = dispatch => {
             fetchBasicIncidentSettings,
             fetchIncidentStatusPages,
             fetchDefaultCommunicationSla,
+            fetchComponent,
         },
         dispatch
     );
@@ -743,6 +751,8 @@ Incident.propTypes = {
     type: PropTypes.string,
     incidentId: PropTypes.string,
     projectId: PropTypes.string,
+    fetchComponent: PropTypes.func,
+    requestingComponent: PropTypes.bool,
 };
 
 Incident.displayName = 'Incident';

@@ -181,13 +181,12 @@ const mapStateToProps = (state, ownProps) => {
     return {
         currentProject,
         component:
-            state.component &&
-            state.component.currentComponent,
+            state.component && state.component.currentComponent.component,
         componentSlug,
         errorTracker,
         componentId:
-            state.component.currentComponent &&
-            state.component.currentComponent._id,
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
         errorEvent,
         currentErrorEvent,
     };

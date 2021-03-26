@@ -165,10 +165,11 @@ const mapStateToProps = (state, ownProps) => {
     return {
         currentProject,
         componentSlug,
-        component: state.component &&
-        state.component.currentComponent,
-        componentId: state.component.currentComponent &&
-        state.component.currentComponent._id,
+        component:
+            state.component && state.component.currentComponent.component,
+        componentId:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
         errorTracker,
         tutorialStat,
     };

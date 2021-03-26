@@ -125,10 +125,11 @@ const mapStateToProps = (state, ownProps) => {
     );
     return {
         currentProject,
-        componentId:  state.component.currentComponent &&
-        state.component.currentComponent._id,
-        component: state.component &&
-        state.component.currentComponent,
+        componentId:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
+        component:
+            state.component && state.component.currentComponent.component,
         errorTracker,
     };
 };
@@ -139,6 +140,6 @@ ErrorTrackingView.propTypes = {
     fetchErrorTrackers: PropsType.func,
     errorTracker: PropsType.array,
     editErrorTracker: PropsType.func,
-    componentId:PropsType.string, 
+    componentId: PropsType.string,
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorTrackingView);
