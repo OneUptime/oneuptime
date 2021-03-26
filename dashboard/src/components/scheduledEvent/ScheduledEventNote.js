@@ -168,7 +168,7 @@ export class ScheduledEventNote extends Component {
                                   return (
                                       <>
                                           {note.content &&
-                                          !note.deleted &&
+                                          note.event_state !== 'Deleted' &&
                                           note.event_state !== 'Resolved' &&
                                           note.event_state !== 'Created' &&
                                           note.event_state !== 'Started' ? (
@@ -374,11 +374,12 @@ export class ScheduledEventNote extends Component {
                                                       <div className="bs-thread-line-down"></div>
                                                   </ShouldRender>
                                               </div>
-                                          ) : note.deleted ||
+                                          ) : note.event_state == 'Deleted' ||
                                             (note.event_state &&
                                                 note.event_state !==
                                                     'Started' &&
-                                                !note.deleted) ? (
+                                                note.event_state !==
+                                                    'Deleted') ? (
                                               <>
                                                   <ShouldRender
                                                       if={
@@ -396,7 +397,8 @@ export class ScheduledEventNote extends Component {
                                                       <div
                                                           className={`bs-incident-notes 
                                                                     ${
-                                                                        note.deleted
+                                                                        note.event_state ==
+                                                                        'Deleted'
                                                                             ? 'bs-note-offline'
                                                                             : note.event_state ===
                                                                                   'Resolved' ||
@@ -478,7 +480,8 @@ export class ScheduledEventNote extends Component {
                                                                               <div className="Box-root Flex-flex">
                                                                                   <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                                       {note &&
-                                                                                      note.deleted ? (
+                                                                                      note.event_state ==
+                                                                                          'Deleted' ? (
                                                                                           <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                               <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                                   <span>
@@ -551,7 +554,7 @@ export class ScheduledEventNote extends Component {
                                               </>
                                           ) : note.event_state &&
                                             note.event_state === 'Started' &&
-                                            !note.deleted &&
+                                            note.event_state !== 'Deleted' &&
                                             moment() >=
                                                 moment(eventStartDate) ? (
                                               <>
