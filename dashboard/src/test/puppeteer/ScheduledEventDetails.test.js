@@ -41,8 +41,7 @@ describe('Scheduled Event Note', () => {
             };
 
             // user
-            await init.registerUser(user, page);
-            //await init.loginUser(user, page);
+            await init.registerUser(user, page);            
             // Create component
             await init.addComponent(componentName, page);
             // Create monitor
@@ -222,8 +221,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             };
 
             // user
-            await init.registerUser(user, page);
-            //await init.loginUser(user, page);
+            await init.registerUser(user, page);            
             // Create component and monitor
             await init.addMonitorToComponent(componentName, monitorName, page);
             // Create a scheduled event
