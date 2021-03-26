@@ -23,6 +23,7 @@ let RenderMember = ({
     fields,
     change,
     form,
+    projectGroups,
 }) => {
     const [timeVisible, setTimeVisible] = useState(false);
     const [forcedTimeHide, forceTimeHide] = useState(false);
@@ -63,65 +64,67 @@ let RenderMember = ({
 
     const handleSwitch = val => {
         setType({ [teamIndex.toString() + nameIndex.toString()]: val });
-        if (val === 'team') {
+        if (type === 'team') {
             change('OnCallAlertBox', `${inputarray}.groupId`, '');
         }
-        if (val === 'group') {
+        if (type === 'group') {
             change('OnCallAlertBox', `${inputarray}.userId`, '');
         }
     };
 
     return (
         <li key={nameIndex}>
-            <div className="bs-Fieldset-row">
-                <label className="bs-Fieldset-label">
-                    Select Team Member or Groups
-                </label>
-                <div className="bs-Fieldset-fields">
-                    <span>
-                        <Field
-                            id={`${inputarray}.${
-                                type[
-                                    [
-                                        teamIndex.toString() +
-                                            nameIndex.toString(),
-                                    ]
-                                ] === 'group'
-                                    ? 'groupId'
-                                    : 'userId'
-                            }`}
-                            className="db-select-nw"
-                            type="text"
-                            name={
-                                'team-group' +
-                                teamIndex.toString() +
-                                nameIndex.toString()
-                            }
-                            component={RenderSelect}
-                            placeholder={
-                                type[
-                                    [
-                                        teamIndex.toString() +
-                                            nameIndex.toString(),
-                                    ]
-                                ] === 'group'
-                                    ? 'Groups'
-                                    : 'Team members'
-                            }
-                            options={[
-                                { label: 'Team members', value: 'team' },
-                                { label: 'Groups', value: 'group' },
-                            ]}
-                            onChange={(event, newValue) => {
-                                handleSwitch(newValue);
-                            }}
-                            subProjectId={subProjectId}
-                            policyIndex={policyIndex}
-                            teamIndex={teamIndex}
-                        />
-                    </span>
+            <ShouldRender if={projectGroups && projectGroups.count > 0}>
+                <div className="bs-Fieldset-row">
+                    <label className="bs-Fieldset-label">
+                        Select Team Member or Groups
+                    </label>
+                    <div className="bs-Fieldset-fields">
+                        <span>
+                            <Field
+                                id={`${inputarray}.${
+                                    type[
+                                        [
+                                            teamIndex.toString() +
+                                                nameIndex.toString(),
+                                        ]
+                                    ] === 'group'
+                                        ? 'groupId'
+                                        : 'userId'
+                                }`}
+                                className="db-select-nw"
+                                type="text"
+                                name={
+                                    'team-group' +
+                                    teamIndex.toString() +
+                                    nameIndex.toString()
+                                }
+                                component={RenderSelect}
+                                placeholder={
+                                    type[
+                                        [
+                                            teamIndex.toString() +
+                                                nameIndex.toString(),
+                                        ]
+                                    ] === 'group'
+                                        ? 'Groups'
+                                        : 'Team members'
+                                }
+                                options={[
+                                    { label: 'Team members', value: 'team' },
+                                    { label: 'Groups', value: 'group' },
+                                ]}
+                                onChange={(event, newValue) => {
+                                    handleSwitch(newValue);
+                                }}
+                                subProjectId={subProjectId}
+                                policyIndex={policyIndex}
+                                teamIndex={teamIndex}
+                            />
+                        </span>
+                    </div>
                 </div>
-            </div>
+            </ShouldRender>
             <div className="bs-Fieldset-row">
                 <label className="bs-Fieldset-label">
                     {type[[teamIndex.toString() + nameIndex.toString()]] ===
@@ -330,6 +333,7 @@ function mapStateToProps(state) {
 
     return {
         form,
+        projectGroups: state.groups.oncallDuty,
     };
 }
 RenderMember.propTypes = {
