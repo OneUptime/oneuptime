@@ -392,8 +392,8 @@ const mapStateToProps = (state, ownProps) => {
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
             componentId:
-                state.component.currentComponent &&
-                state.component.currentComponent._id,
+                state.component.currentComponent.component &&
+                state.component.currentComponent.component._id,
             componentSlug,
         };
     } else {

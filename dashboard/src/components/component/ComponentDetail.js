@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import {
     fetchComponents,
     fetchComponentResources,
-    addCurrentComponent
+    addCurrentComponent,
 } from '../../actions/component';
 import { fetchMonitors } from '../../actions/monitor';
 import { closeModal } from '../../actions/modal';

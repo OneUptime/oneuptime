@@ -3,7 +3,10 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { history } from '../../store';
 import { ListLoader } from '../basic/Loader';
-import { fetchComponentResources, addCurrentComponent } from '../../actions/component';
+import {
+    fetchComponentResources,
+    addCurrentComponent,
+} from '../../actions/component';
 import { getMonitorStatus, filterProbeData } from '../../config';
 import { bindActionCreators } from 'redux';
 import threatLevel from '../../utils/threatLevel';
@@ -311,7 +314,9 @@ class ResourceTabularList extends Component {
                                                     this.props.animateSidebar(
                                                         true
                                                     );
-                                                    this.props.addCurrentComponent(componentResource.component);
+                                                    this.props.addCurrentComponent(
+                                                        componentResource.component
+                                                    );
                                                 }}
                                             >
                                                 <td
@@ -528,7 +533,7 @@ ResourceTabularList.propTypes = {
     monitors: PropTypes.array,
     probes: PropTypes.array,
     animateSidebar: PropTypes.func,
-    addCurrentComponent:PropTypes.func,
+    addCurrentComponent: PropTypes.func,
     activeProbe: PropTypes.number,
     componentName: PropTypes.oneOfType([
         PropTypes.string,

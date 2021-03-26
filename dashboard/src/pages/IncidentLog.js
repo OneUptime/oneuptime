@@ -299,7 +299,7 @@ class IncidentLog extends React.Component {
     }
 }
 
-const mapStateToProps = (state) => {
+const mapStateToProps = state => {
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     let subProjects = state.subProject.subProjects.subProjects;
@@ -328,16 +328,17 @@ const mapStateToProps = (state) => {
         }
     }
     return {
-        componentId: state.component.currentComponent &&
-        state.component.currentComponent._id,
+        componentId:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
         currentProject: state.project.currentProject,
         incidents: state.incident.incidents,
         create: state.incident.newIncident.requesting,
         subProjects,
         subProjectIncidents: state.incident.incidents.incidents,
         tutorialStat,
-        component: state.component &&
-        state.component.currentComponent,
+        component:
+            state.component && state.component.currentComponent.component,
         modalList: state.modal.modals,
         projectId,
     };
