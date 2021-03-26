@@ -11,8 +11,6 @@ const password = '1234567890';
 let slaName = 'fxPro';
 const duration = '15';
 const alertTime = '10';
-// const component = 'sampleComponent';
-// const monitor = 'sampleMonitor';
 const component = utils.generateRandomString();
 const monitor = utils.generateRandomString();
 
