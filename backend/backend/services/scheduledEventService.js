@@ -48,7 +48,7 @@ module.exports = {
                 type: 'investigation',
                 event_state: 'Created',
             });
-            // add note automatically for when a scheduled event is starts
+            // add note automatically for scheduled event start
             await ScheduledEventNoteService.create({
                 content: 'THIS SCHEDULED EVENT HAS STARTED',
                 scheduledEventId: scheduledEvent._id,
