@@ -53,7 +53,7 @@ public class FyipeTrackerTest {
         String componentId = response.get("_id").getAsString();
 
         SampleComponent errorTracker = new SampleComponent("Error Tracker For Java Testing");
-        response = apiRequest.makeApiRequest("/application-log/"+projectId+"/"+componentId+"/create", new Gson().toJson(errorTracker), token);
+        response = apiRequest.makeApiRequest("/error-tracker/"+projectId+"/"+componentId+"/create", new Gson().toJson(errorTracker), token);
         this.errorTrackerId = response.get("_id").getAsString();
         this.errorTrackerKey = response.get("key").getAsString();
         JsonObject object = new JsonObject();
@@ -169,9 +169,8 @@ public class FyipeTrackerTest {
     public void itShouldCreateFingerprintAsMessageForErrorCaptureWithoutAnyFingerprint() throws IOException {
         FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         String errorMessage = "Uncaught Exception";
-        tracker.captureMessage(errorMessage);
-        ErrorEvent errorEvent = tracker.getCurrentEvent();
-        assertEquals(errorEvent.getFingerPrint().get(0), errorMessage);
+        JsonObject response = tracker.captureMessage(errorMessage);
+        assertEquals(response.getAsJsonArray("fingerprint").get(0).getAsString(), errorMessage);
     }
     @Test
     public void itShouldUseDefinedFingerprintArrayForErrorCaptureWithFingerprint() throws IOException {
@@ -181,11 +180,11 @@ public class FyipeTrackerTest {
         sampleFingerPrint.add("errors");
         tracker.setFingerprint(sampleFingerPrint);
         String errorMessage = "Uncaught Exception";
-        tracker.captureMessage(errorMessage);
-        ErrorEvent errorEvent = tracker.getCurrentEvent();
-        assertNotEquals(errorEvent.getFingerPrint().get(0), errorMessage);
-        assertEquals(errorEvent.getFingerPrint().get(0), sampleFingerPrint.get(0));
-        assertEquals(errorEvent.getFingerPrint().get(1), sampleFingerPrint.get(1));
+        JsonObject response = tracker.captureMessage(errorMessage);
+        assertNotEquals(response.getAsJsonArray("fingerprint").get(0).getAsString(), errorMessage);
+        assertEquals(response.getAsJsonArray("fingerprint").get(0).getAsString(), sampleFingerPrint.get(0));
+        assertEquals(response.getAsJsonArray("fingerprint").get(1).getAsString(), sampleFingerPrint.get(1));
+
     }
     @Test
     public void itShouldUseDefinedFingerprintStringForErrorCapturedWithFingerprint() throws IOException {
@@ -193,9 +192,8 @@ public class FyipeTrackerTest {
         String fingerprint = "created to merge";
         tracker.setFingerprint(fingerprint);
         String errorMessage = "Uncaught Exception";
-        tracker.captureMessage(errorMessage);
-        ErrorEvent errorEvent = tracker.getCurrentEvent();
-        assertEquals(errorEvent.getFingerPrint().get(0), fingerprint);
+        JsonObject response = tracker.captureMessage(errorMessage);
+        assertEquals(response.getAsJsonArray("fingerprint").get(0).getAsString(), fingerprint);
     }
     @Test
     public void itShouldCreateAnEventReadyForTheServerUsingCaptureMessage() throws IOException {
@@ -213,11 +211,52 @@ public class FyipeTrackerTest {
         tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
 
         String errorMessage = "This is a test";
-        tracker.captureMessage(errorMessage);
+        JsonObject response =tracker.captureMessage(errorMessage);
+
+        assertEquals(2, response.getAsJsonArray("timeline").size());
+        assertEquals(response.getAsJsonArray("timeline").get(0).getAsJsonObject().get("eventId"), response.getAsJsonArray("timeline").get(1).getAsJsonObject().get("eventId") );
+        assertEquals(response.getAsJsonObject("content").get("message").getAsString(), errorMessage);
+    }
+    @Test
+    public void itShouldCreateAnEventReadyForTheServerUsingCaptureException() throws IOException {
+        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        String errorMessage = "Got an error here";
+        tracker.captureException(new Error(errorMessage));
         ErrorEvent errorEvent = tracker.getCurrentEvent();
 
-        assertEquals(2, errorEvent.getTimeline().size());
-        assertEquals(errorEvent.getEventId(), errorEvent.getTimeline().get(0).getEventId());
+        assertEquals(errorEvent.getType(), ErrorObjectType.exception.name());
         assertEquals(errorEvent.getException().getMessage(), errorMessage);
+    }
+    @Test
+    public void itShouldCreateAnEventWithArrayOfStacktrace() throws IOException {
+        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        String errorMessage = "Got an error here";
+        tracker.captureException(new Exception(errorMessage));
+
+        ErrorEvent errorEvent = tracker.getCurrentEvent();
+
+        assertEquals(errorEvent.getType(), ErrorObjectType.exception.name());
+        assertEquals(errorEvent.getException().getMessage(), errorMessage);
+        assertNotEquals(0, errorEvent.getException().getStackTraceFrame().size());
+    }
+    @Test
+    public void itShouldCreateAnEventAndNewEventShouldHaveDifferentId() throws  IOException {
+        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        String errorMessage = "Got an error here";
+        String errorObj = "Object Error Thrown";
+        tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
+        JsonObject event = tracker.captureMessage(errorMessage);
+        tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
+        JsonObject newEvent = tracker.captureException(new Exception(errorObj));
+        // ensure that the first event have a type message, same error message
+        assertEquals(event.get("type").getAsString(), ErrorObjectType.message.name());
+        assertEquals(event.getAsJsonObject("content").get("message").getAsString(), errorMessage);
+
+        // ensure that the second event have a type exception, same error message
+        assertEquals(newEvent.get("type").getAsString(), ErrorObjectType.exception.name());
+        assertEquals(newEvent.getAsJsonObject("content").get("message").getAsString(), errorObj);
+
+        // confirm their eventId is different
+        assertNotEquals(event.get("_id").getAsString(), newEvent.get("_id").getAsString());
     }
 }
