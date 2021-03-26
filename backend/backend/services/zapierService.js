@@ -84,6 +84,49 @@ module.exports = {
             throw error;
         }
     },
+    getIncidentsNotes: async function(projectId) {
+        try {
+            const zapierResponseArray = [];
+            const zapierResponse = {};
+            const _this = this;
+            const project = await ProjectService.findOneBy({ _id: projectId });
+
+            if (project) {
+                zapierResponse.projectName = project.name;
+                zapierResponse.projectId = project._id;
+                const projects = await ProjectService.findBy({
+                    $or: [{ _id: projectId }, { parentProjectId: projectId }],
+                });
+                const projectIds = projects.map(project => project._id);
+                const findquery = {
+                    projectId: { $in: projectIds },
+                };
+                const incidents = await IncidentService.findBy(findquery);
+                const incidentIds = incidents.map(incident => incident._id);
+                const incidentMessages = await IncidentMessageService.findBy({
+                    incidentId: { $in: incidentIds },
+                });
+                await Promise.all(
+                    incidentMessages.map(async incidentNote => {
+                        zapierResponseArray.push(
+                            await _this.mapIncidentToResponse(
+                                '',
+                                zapierResponse,
+                                incidentNote
+                            )
+                        );
+                    })
+                );
+
+                return zapierResponseArray;
+            } else {
+                return [];
+            }
+        } catch (error) {
+            ErrorService.log('ZapierService.getIncidents', error);
+            throw error;
+        }
+    },
 
     getAcknowledgedIncidents: async function(projectId) {
         try {
@@ -428,41 +471,53 @@ module.exports = {
         return zapierResponse;
     },
 
-    mapIncidentToResponse: async function(incident, incidentObj) {
+    mapIncidentToResponse: async function(incident, incidentObj, incidentNote) {
         try {
-            if (incident) {
-                if (incident.acknowledged) {
-                    incidentObj.acknowledgedAt = incident.acknowledgedAt;
-                    incidentObj.acknowledgedBy = incident.acknowledgedBy
-                        ? incident.acknowledgedBy.name
-                        : 'Fyipe';
-                }
-                if (incident.resolved) {
-                    incidentObj.resolvedAt = incident.resolvedAt;
-                    incidentObj.resolvedBy = incident.resolvedBy
-                        ? incident.resolvedBy.name
-                        : 'Fyipe';
-                }
-                incidentObj.id = incident._id;
-                incidentObj.incidentId = incident._id;
-                incidentObj.acknowledged = incident.acknowledged;
-                incidentObj.resolved = incident.resolved;
-                incidentObj.internalNote = incident.internalNote;
-                incidentObj.investigationNote = incident.investigationNote;
-                incidentObj.createdAt = incident.createdAt;
-                incidentObj.createdById = incident.createdById
-                    ? incident.createdById.name
-                    : 'Fyipe';
-                const monitor = await MonitorService.findOneBy({
-                    _id: incident.monitorId,
-                });
-                incidentObj.monitorName = monitor.name;
-                incidentObj.monitorType = monitor.type;
-                incidentObj.monitorData = monitor.data[monitor.type];
-                return incidentObj;
+            if (incidentNote) {
+                incidentObj.content = incidentNote.content;
+                incidentObj.incident_state = incidentNote.incident_state;
+                incidentObj.type = incidentNote.type;
+                incidentObj.createdBy =
+                    incidentNote.createdById && incidentNote.createdById.name;
+                incidentObj.createdAt = incidentNote.createdAt;
+                incidentObj.incidentId =
+                    incidentNote.incidentId && incidentNote.incidentId._id;
+                incidentObj.id = incidentNote._id;
             } else {
-                return;
+                if (incident) {
+                    if (incident.acknowledged) {
+                        incidentObj.acknowledgedAt = incident.acknowledgedAt;
+                        incidentObj.acknowledgedBy = incident.acknowledgedBy
+                            ? incident.acknowledgedBy.name
+                            : 'Fyipe';
+                    }
+                    if (incident.resolved) {
+                        incidentObj.resolvedAt = incident.resolvedAt;
+                        incidentObj.resolvedBy = incident.resolvedBy
+                            ? incident.resolvedBy.name
+                            : 'Fyipe';
+                    }
+                    incidentObj.id = incident._id;
+                    incidentObj.incidentId = incident._id;
+                    incidentObj.acknowledged = incident.acknowledged;
+                    incidentObj.resolved = incident.resolved;
+                    incidentObj.internalNote = incident.internalNote;
+                    incidentObj.investigationNote = incident.investigationNote;
+                    incidentObj.createdAt = incident.createdAt;
+                    incidentObj.createdById = incident.createdById
+                        ? incident.createdById.name
+                        : 'Fyipe';
+                    const monitor = await MonitorService.findOneBy({
+                        _id: incident.monitorId,
+                    });
+                    incidentObj.monitorName = monitor.name;
+                    incidentObj.monitorType = monitor.type;
+                    incidentObj.monitorData = monitor.data[monitor.type];
+                } else {
+                    return;
+                }
             }
+            return incidentObj;
         } catch (error) {
             ErrorService.log('ZapierService.mapIncidentToResponse', error);
             throw error;
@@ -502,7 +557,7 @@ module.exports = {
         }
     },
 
-    pushToZapier: async function(type, incident) {
+    pushToZapier: async function(type, incident, incidentNote) {
         try {
             const _this = this;
             const projectId = incident.projectId._id || incident.projectId;
@@ -528,7 +583,8 @@ module.exports = {
                         if (incident) {
                             zapierResponse = await _this.mapIncidentToResponse(
                                 incident,
-                                zapierResponse
+                                zapierResponse,
+                                incidentNote
                             );
                             axios({
                                 method: 'POST',
@@ -569,3 +625,4 @@ const ZapierModel = require('../models/zapier');
 const IncidentModel = require('../models/incident');
 const NotificationService = require('./notificationService');
 const RealTimeService = require('./realTimeService');
+const IncidentMessageService = require('../services/incidentMessageService');
