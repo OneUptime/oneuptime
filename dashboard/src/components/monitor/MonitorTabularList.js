@@ -182,9 +182,10 @@ export class MonitorTabularList extends Component {
                                                             .currentProject
                                                             .slug +
                                                         '/' +
-                                                        this.props.componentSlug +
-                                                            '/monitoring/' +
-                                                            monitor.slug
+                                                        this.props
+                                                            .componentSlug +
+                                                        '/monitoring/' +
+                                                        monitor.slug
                                                 );
                                             }}
                                         >
@@ -464,10 +465,11 @@ function mapStateToProps(state) {
         currentProject: state.project.currentProject,
         activeProbe: state.monitor.activeProbe,
         probes: state.probe.probes.data,
-        component: state.component &&
-        state.component.currentComponent,
-        componentSlug: state.component.currentComponent &&
-        state.component.currentComponent.slug,
+        component:
+            state.component && state.component.currentComponent.component,
+        componentSlug:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component.slug,
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
     };

@@ -102,7 +102,7 @@ class ApplicationLogView extends Component {
                                 componentId={componentId}
                                 index={this.props.applicationLog[0]?._id}
                                 isDetails={true}
-                            componentSlug={ this.props.componentSlug}
+                                componentSlug={this.props.componentSlug}
                             />
                         </div>
 
@@ -110,7 +110,7 @@ class ApplicationLogView extends Component {
                             <ApplicationLogViewDeleteBox
                                 componentId={this.props.componentId}
                                 applicationLog={this.props.applicationLog[0]}
-                                componentSlug={ this.props.componentSlug}
+                                componentSlug={this.props.componentSlug}
                             />
                         </div>
                     </ShouldRender>
@@ -135,12 +135,12 @@ const mapStateToProps = (state, props) => {
     );
     return {
         componentId:
-            state.component.currentComponent &&
-            state.component.currentComponent._id,
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
         applicationLog,
         componentSlug,
-        component: state.component &&
-        state.component.currentComponent,
+        component:
+            state.component && state.component.currentComponent.component,
         currentProject: state.project.currentProject,
     };
 };

@@ -151,10 +151,10 @@ ComponentSettingsAdvanced.propTypes = {
     }),
 };
 
-const mapStateToProps = (state) => {
+const mapStateToProps = state => {
     return {
-        component:  state.component &&
-        state.component.currentComponent,
+        component:
+            state.component && state.component.currentComponent.component,
         slug: state.project.currentProject && state.project.currentProject.slug,
     };
 };

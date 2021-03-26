@@ -185,12 +185,12 @@ ComponentSettings.propTypes = {
     editingComponent: PropTypes.object,
 };
 
-const mapStateToProps = (state) => {
+const mapStateToProps = state => {
     return {
-        component: state.component &&
-        state.component.currentComponent,
-        initialValues: state.component &&
-        state.component.currentComponent,
+        component:
+            state.component && state.component.currentComponent.component,
+        initialValues:
+            state.component && state.component.currentComponent.component,
         editingComponent: state.component.editComponent,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
