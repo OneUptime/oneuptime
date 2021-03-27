@@ -168,6 +168,7 @@ class BlockChart extends Component {
         const dateId = title.replace(/, | /g, '');
         const extra = ' resize-style';
         let style, classes, content;
+
         if (this.props.theme) {
             style = {
                 outline: 'none',
@@ -179,15 +180,6 @@ class BlockChart extends Component {
                 width: '6px',
             };
             classes = bar + extra;
-        } else {
-            style = {
-                outline: 'none',
-                backgroundColor,
-            };
-            classes = bar;
-        }
-
-        if (this.props.theme) {
             content = (
                 <div className="tooltip">
                     <div
@@ -205,6 +197,11 @@ class BlockChart extends Component {
                 </div>
             );
         } else {
+            style = {
+                outline: 'none',
+                backgroundColor,
+            };
+            classes = bar;
             content = (
                 <div
                     id={`block${this.props.monitorId}${dateId}`}
