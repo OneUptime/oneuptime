@@ -286,6 +286,7 @@ class ApplicationLogDetail extends Component {
                                 applicationLog={applicationLog}
                                 index={applicationLog._id}
                                 componentId={componentId}
+                                componentSlug={this.props.componentSlug}
                             />
                         </ShouldRender>
 

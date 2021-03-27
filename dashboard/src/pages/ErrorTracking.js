@@ -9,6 +9,7 @@ import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import NewErrorTracker from '../components/errorTracker/NewErrorTracker';
 import { fetchErrorTrackers } from '../actions/errorTracker';
+import { fetchComponent } from '../actions/component';
 import { bindActionCreators } from 'redux';
 import { LoadingState } from '../components/basic/Loader';
 import sortByName from '../utils/sortByName';
@@ -33,8 +34,23 @@ class ErrorTracking extends Component {
     componentWillUnmount() {
         socket.removeListener(`createErrorTracker-${this.props.componentId}`);
     }
+    componentDidUpdate(prevProps) {
+        if (
+            String(prevProps.componentSlug) !== String(this.props.componentSlug)
+        ) {
+            this.props.fetchComponent(this.props.componentSlug);
+        }
+
+        if (String(prevProps.componentId) !== String(this.props.componentId)) {
+            this.props.fetchErrorTrackers(
+                this.props.currentProject._id,
+                this.props.componentId
+            );
+        }
+    }
     ready = () => {
-        const componentId = this.props.componentId;
+        const { componentSlug, fetchComponent, componentId } = this.props;
+        fetchComponent(componentSlug);
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
@@ -136,6 +152,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             fetchErrorTrackers,
+            fetchComponent,
         },
         dispatch
     );
@@ -181,6 +198,7 @@ ErrorTracking.propTypes = {
     componentId: PropsType.string,
     componentSlug: PropsType.string,
     fetchErrorTrackers: PropsType.func,
+    fetchComponent: PropsType.func,
     tutorialStat: PropsType.object,
     errorTracker: PropsType.object,
 };
