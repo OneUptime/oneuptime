@@ -5,6 +5,7 @@ import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import { fetchMonitorIssue } from '../actions/monitor';
+import { fetchComponent } from '../actions/component';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -60,8 +61,17 @@ class WebsiteMonitorIssues extends React.Component {
             );
         }
     }
+    componentDidUpdate(prevProps) {
+        if (
+            String(prevProps.componentSlug) !== String(this.props.componentSlug)
+        ) {
+            this.props.fetchComponent(this.props.componentSlug);
+        }
+    }
 
     ready = () => {
+        const { componentSlug, fetchComponent } = this.props;
+        fetchComponent(componentSlug);
         this.props.fetchMonitorIssue(
             this.props.projectId,
             this.props.match.params.issueId
@@ -439,11 +449,6 @@ class WebsiteMonitorIssues extends React.Component {
 
 const mapStateToProps = (state, props) => {
     const { componentSlug, monitorSlug } = props.match.params;
-    const component = state.component.componentList.components.map(item => {
-        return item.components.find(
-            component => component.slug === componentSlug
-        );
-    });
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     const monitorCollection = state.monitor.monitorsList.monitors.find(el => {
@@ -462,10 +467,14 @@ const mapStateToProps = (state, props) => {
         .filter(monitor => monitor)[0];
 
     return {
-        component,
+        component: state.component && state.component.currentComponent.component,
         monitor,
         monitorState: state.monitor,
         projectId,
+        componentSlug,
+        componentId:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
     };
 };
 
@@ -473,6 +482,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             fetchMonitorIssue,
+            fetchComponent,
         },
         dispatch
     );
@@ -480,7 +490,9 @@ const mapDispatchToProps = dispatch => {
 
 WebsiteMonitorIssues.propTypes = {
     fetchMonitorIssue: PropTypes.func,
+    fetchComponent: PropTypes.func,
     match: PropTypes.object,
+    componentSlug: PropTypes.string,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
