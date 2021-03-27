@@ -12,6 +12,9 @@ import {
     fetchErrorEvent,
     setCurrentErrorEvent,
 } from '../actions/errorTracker';
+import {
+    fetchComponent,
+} from '../actions/component';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
@@ -22,6 +25,26 @@ class ErrorEventView extends Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > ERROR TRACKING >  ERROR TRACKING DETAIL > ERROR TRACKING ISSUE DETAIL PAGE'
+            );
+        }
+    }
+    componentDidUpdate(prevProps) {
+        if (
+            String(prevProps.componentSlug) !== String(this.props.componentSlug)
+        ) {
+            this.props.fetchComponent(this.props.componentSlug);
+        }
+
+        if (String(prevProps.componentId) !== String(this.props.componentId)) {
+            this.props.fetchErrorTrackers(
+                this.props.currentProject._id,
+                this.props.componentId
+            );
+            this.props.fetchErrorEvent(
+                this.props.currentProject._id,
+                this.props.componentId,
+                this.props.errorTracker[0]._id,
+                this.props.match.params.errorEventId
             );
         }
     }
@@ -36,6 +59,8 @@ class ErrorEventView extends Component {
         const errorEventId = this.props.match.params.errorEventId
             ? this.props.match.params.errorEventId
             : null;
+        const { componentSlug, fetchComponent } = this.props;
+        fetchComponent(componentSlug);
 
         // fetching error trackers is necessary incase a reload is done on error event details page
         this.props.fetchErrorTrackers(projectId, componentId);
@@ -148,6 +173,7 @@ const mapDispatchToProps = dispatch => {
         {
             fetchErrorEvent,
             fetchErrorTrackers,
+            fetchComponent,
             setCurrentErrorEvent,
         },
         dispatch
@@ -199,6 +225,7 @@ ErrorEventView.propTypes = {
     componentId: PropsType.string,
     match: PropsType.object,
     fetchErrorEvent: PropsType.func,
+    fetchComponent: PropsType.func,
     errorTracker: PropsType.array,
     fetchErrorTrackers: PropsType.func,
     errorEvent: PropsType.object,
