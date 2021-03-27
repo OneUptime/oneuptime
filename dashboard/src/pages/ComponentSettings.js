@@ -10,18 +10,24 @@ import { reduxForm, Field } from 'redux-form';
 import { ValidateField } from '../config';
 import { RenderField } from '../components/basic/RenderField';
 import PropTypes from 'prop-types';
-import { editComponent } from '../actions/component';
+import { editComponent, fetchComponent } from '../actions/component';
 import { bindActionCreators } from 'redux';
+import { history } from '../store';
 
 class ComponentSettings extends Component {
     submitForm = values => {
         if (this.props.initialValues.name === values.name) {
             return;
         }
-
-        this.props.editComponent(this.props.projectId, values);
+        this.props.editComponent(this.props.projectId, values).then(data => {
+            history.push(
+                `/dashboard/project/${this.props.projectSlug}/${data.data.slug}/settings/basic`
+            );
+        });
     };
-
+    componentDidMount() {
+        this.props.fetchComponent(this.props.componentSlug);
+    }
     render() {
         const {
             location: { pathname },
@@ -178,27 +184,34 @@ ComponentSettings.propTypes = {
             name: PropTypes.string,
         })
     ),
+    componentSlug: PropTypes.string,
     handleSubmit: PropTypes.func,
+    fetchComponent: PropTypes.func,
     initialValues: PropTypes.shape({ name: PropTypes.string }),
     editComponent: PropTypes.func.isRequired,
     projectId: PropTypes.string,
+    projectSlug: PropTypes.string,
     editingComponent: PropTypes.object,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state,props) => {
+    const { componentSlug } = props.match.params;
     return {
         component:
             state.component && state.component.currentComponent.component,
+        componentSlug,
         initialValues:
             state.component && state.component.currentComponent.component,
         editingComponent: state.component.editComponent,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
+        projectSlug:
+            state.project.currentProject && state.project.currentProject.slug,
     };
 };
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ editComponent }, dispatch);
+    return bindActionCreators({ editComponent,fetchComponent }, dispatch);
 };
 
 const NewComponentSettings = reduxForm({
