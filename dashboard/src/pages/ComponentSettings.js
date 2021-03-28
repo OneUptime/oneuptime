@@ -194,7 +194,7 @@ ComponentSettings.propTypes = {
     editingComponent: PropTypes.object,
 };
 
-const mapStateToProps = (state,props) => {
+const mapStateToProps = (state, props) => {
     const { componentSlug } = props.match.params;
     return {
         component:
@@ -211,7 +211,7 @@ const mapStateToProps = (state,props) => {
 };
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ editComponent,fetchComponent }, dispatch);
+    return bindActionCreators({ editComponent, fetchComponent }, dispatch);
 };
 
 const NewComponentSettings = reduxForm({
