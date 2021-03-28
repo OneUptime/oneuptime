@@ -14,15 +14,21 @@ let RenderEscalation = ({
     return (
         <ul>
             {fields.map((policy, i) => {
-                const { email, sms, call, rotateBy, rotationInterval } = form[
-                    i
-                ];
+                const {
+                    email,
+                    sms,
+                    call,
+                    push,
+                    rotateBy,
+                    rotationInterval,
+                } = form[i];
 
                 return (
                     <RenderSingleEscalation
                         call={call}
                         email={email}
                         sms={sms}
+                        push={push}
                         rotateBy={rotateBy}
                         rotationInterval={rotationInterval}
                         policy={policy}

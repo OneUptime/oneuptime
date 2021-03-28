@@ -49,6 +49,9 @@ class AddNoteModal extends Component {
             closeModal,
         } = this.props;
         const postObj = {};
+        if (values.external_note) {
+            postObj.external_note = values['external_note'];
+        }
         postObj.content = values[`content`];
         postObj.event_state =
             values[`event_state`] === 'others'
@@ -234,6 +237,48 @@ class AddNoteModal extends Component {
                                                             />
                                                         </div>
                                                     </div>
+                                                </div>
+
+                                                <div
+                                                    className="bs-Fieldset-row bs-post"
+                                                    style={{
+                                                        paddingTop: '0px',
+                                                    }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label bs-Fieldset-row Checkbox"
+                                                        style={{
+                                                            padding: '0px',
+                                                            marginBottom:
+                                                                '15px',
+                                                        }}
+                                                    >
+                                                        <Field
+                                                            component="input"
+                                                            type="checkbox"
+                                                            name={`external_note`}
+                                                            data-test="RetrySettings-failedPaymentsCheckbox"
+                                                            className="Checkbox-source"
+                                                        />
+                                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                            <div className="Checkbox-target Box-root">
+                                                                <div className="Checkbox-color Box-root"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div
+                                                            className="Checkbox-label Box-root"
+                                                            style={{
+                                                                width: '160px',
+                                                            }}
+                                                        >
+                                                            <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Post on
+                                                                    status page
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </label>
                                                 </div>
                                             </fieldset>
                                         </div>

@@ -8,7 +8,8 @@ import { LargeSpinner } from '../basic/Loader';
 import ApplicationSecurityView from './ApplicationSecurityView';
 import {
     getApplicationSecurity,
-    getApplicationSecurityLog,
+    getApplicationSecurityLogBySlug,
+    getApplicationSecurityBySlug,
     scanApplicationSecuritySuccess,
     getApplicationSecuritySuccess,
 } from '../../actions/security';
@@ -26,29 +27,50 @@ const socket = io.connect(API_URL.replace('/api', ''), {
 });
 
 class ApplicationSecurityDetail extends Component {
+    componentDidUpdate(prevProps) {
+        if (prevProps.projectId !== this.props.projectId) {
+            const {
+                projectId,
+                componentId,
+                applicationSecuritySlug,
+                getApplicationSecurityBySlug,
+                getApplicationSecurityLogBySlug,
+                getGitCredentials,
+            } = this.props;
+            // get a particular application security
+            getApplicationSecurityBySlug({
+                projectId,
+                componentId,
+                applicationSecuritySlug,
+            });
+            getApplicationSecurityLogBySlug({
+                projectId,
+                componentId,
+                applicationSecuritySlug,
+            });
+            getGitCredentials({ projectId });
+        }
+    }
     componentDidMount() {
         const {
             projectId,
             componentId,
-            applicationSecurityId,
-            getApplicationSecurity,
-            getApplicationSecurityLog,
+            applicationSecuritySlug,
+            getApplicationSecurityBySlug,
+            getApplicationSecurityLogBySlug,
             getGitCredentials,
         } = this.props;
-
         // get a particular application security
-        getApplicationSecurity({
+        getApplicationSecurityBySlug({
             projectId,
             componentId,
-            applicationSecurityId,
+            applicationSecuritySlug,
         });
-
-        getApplicationSecurityLog({
+        getApplicationSecurityLogBySlug({
             projectId,
             componentId,
-            applicationSecurityId,
+            applicationSecuritySlug,
         });
-
         getGitCredentials({ projectId });
     }
 
@@ -57,7 +79,9 @@ class ApplicationSecurityDetail extends Component {
             applicationSecurity,
             projectId,
             componentId,
+            componentSlug,
             applicationSecurityId,
+            applicationSecuritySlug,
             isRequesting,
             getApplicationError,
             gettingSecurityLog,
@@ -122,8 +146,10 @@ class ApplicationSecurityDetail extends Component {
                         projectId={projectId}
                         componentId={componentId}
                         applicationSecurityId={applicationSecurityId}
+                        applicationSecuritySlug={applicationSecuritySlug}
                         isRequesting={isRequesting}
                         applicationSecurity={applicationSecurity}
+                        componentSlug={componentSlug}
                     />
                 </ShouldRender>
                 <ShouldRender
@@ -149,6 +175,8 @@ class ApplicationSecurityDetail extends Component {
                         projectId={projectId}
                         componentId={componentId}
                         applicationSecurityId={applicationSecurityId}
+                        applicationSecuritySlug={applicationSecuritySlug}
+                        componentSlug={componentSlug}
                     />
                 </ShouldRender>
                 <ShouldRender
@@ -173,10 +201,11 @@ class ApplicationSecurityDetail extends Component {
 ApplicationSecurityDetail.displayName = 'Application Security Detail';
 
 ApplicationSecurityDetail.propTypes = {
-    getApplicationSecurity: PropTypes.func,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     applicationSecurityId: PropTypes.string,
+    applicationSecuritySlug: PropTypes.string,
     applicationSecurity: PropTypes.object,
     isRequesting: PropTypes.bool,
     getApplicationError: PropTypes.oneOfType([
@@ -185,7 +214,8 @@ ApplicationSecurityDetail.propTypes = {
     ]),
     gettingSecurityLog: PropTypes.bool,
     applicationSecurityLog: PropTypes.object,
-    getApplicationSecurityLog: PropTypes.func,
+    getApplicationSecurityLogBySlug: PropTypes.func,
+    getApplicationSecurityBySlug: PropTypes.func,
     getGitCredentials: PropTypes.func,
     gettingCredentials: PropTypes.bool,
     fetchLogError: PropTypes.oneOfType([
@@ -212,7 +242,8 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             getApplicationSecurity,
-            getApplicationSecurityLog,
+            getApplicationSecurityLogBySlug,
+            getApplicationSecurityBySlug,
             getGitCredentials,
             scanApplicationSecuritySuccess,
             getApplicationSecuritySuccess,
@@ -221,24 +252,24 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, ownProps) => {
-    const { componentId, applicationSecurityId } = ownProps.match.params;
-
+    const { componentSlug, applicationSecuritySlug } = ownProps.match.params;
     const components = [];
     // filter to get the actual component
     state.component.componentList.components.map(item =>
         item.components.map(component => {
-            if (String(component._id) === String(componentId)) {
+            if (String(component.slug) === String(componentSlug)) {
                 components.push(component);
             }
             return component;
         })
     );
-
+    const projectId =
+        state.project.currentProject && state.project.currentProject._id;
     return {
-        projectId:
-            state.project.currentProject && state.project.currentProject._id,
-        componentId,
-        applicationSecurityId,
+        projectId,
+        componentId: components[0] && components[0]._id,
+        componentSlug: components[0] && components[0].slug,
+        applicationSecuritySlug,
         applicationSecurity: state.security.applicationSecurity,
         isRequesting: state.security.getApplication.requesting,
         getApplicationError: state.security.getApplication.error,

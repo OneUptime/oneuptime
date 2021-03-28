@@ -19,13 +19,15 @@ class BlockChart extends Component {
 
     requestday = (need, date) => {
         this.props.showIncidentCard(false);
+        const theme = this.props.theme ? true : false;
         if (need) {
             this.props.getStatusPageIndividualNote(
                 this.props.statusData.projectId._id,
                 this.props.monitorId,
                 date,
                 this.props.monitorName,
-                need
+                need,
+                theme
             );
         } else {
             if (this.props.time && this.props.time.emptytime) {
@@ -48,7 +50,8 @@ class BlockChart extends Component {
             this.props.statusData.projectId._id,
             this.props.monitorId,
             date,
-            this.props.monitorName
+            this.props.monitorName,
+            theme
         );
     };
 
@@ -163,17 +166,55 @@ class BlockChart extends Component {
         }
 
         const dateId = title.replace(/, | /g, '');
+        const extra = ' resize-style';
+        let style, classes, content;
 
-        return (
-            <div
-                id={`block${this.props.monitorId}${dateId}`}
-                className={bar}
-                style={{ outline: 'none', backgroundColor: backgroundColor }}
-                title={`${title}
-                ${title1}`}
-                onClick={() => this.requestday(need, this.props.time.date)}
-            ></div>
-        );
+        if (this.props.theme) {
+            style = {
+                outline: 'none',
+                backgroundColor:
+                    backgroundColor === 'rgba(108, 219, 86)'
+                        ? 'rgb(73, 195, 177)'
+                        : backgroundColor,
+                opacity: 1,
+                width: '6px',
+            };
+            classes = bar + extra;
+            content = (
+                <div className="tooltip">
+                    <div
+                        id={`block${this.props.monitorId}${dateId}`}
+                        className={classes}
+                        style={style}
+                        onClick={() =>
+                            this.requestday(need, this.props.time.date)
+                        }
+                    ></div>
+                    <div className="tooltiptext-chart">
+                        <div>{title}</div>
+                        <div>{title1}</div>
+                    </div>
+                </div>
+            );
+        } else {
+            style = {
+                outline: 'none',
+                backgroundColor,
+            };
+            classes = bar;
+            content = (
+                <div
+                    id={`block${this.props.monitorId}${dateId}`}
+                    className={classes}
+                    style={style}
+                    title={`${title}
+                    ${title1}`}
+                    onClick={() => this.requestday(need, this.props.time.date)}
+                ></div>
+            );
+        }
+
+        return <>{content}</>;
     }
 }
 
@@ -201,6 +242,7 @@ BlockChart.propTypes = {
     monitorName: PropTypes.any,
     monitorId: PropTypes.any,
     showIncidentCard: PropTypes.func,
+    theme: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(BlockChart);

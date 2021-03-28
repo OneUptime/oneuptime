@@ -55,6 +55,8 @@ import Advanced from './Advanced';
 import ComponentSettings from './ComponentSettings';
 import ComponentSettingsAdvanced from './ComponentSettingsAdvanced';
 import CallRouting from './CallRouting';
+import DomainSettings from './DomainSettings';
+import Groups from './Group';
 
 export default {
     ChangePassword,
@@ -103,4 +105,6 @@ export default {
     ComponentSettingsAdvanced,
     MonitorSettings,
     CallRouting,
+    DomainSettings,
+    Groups,
 };

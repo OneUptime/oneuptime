@@ -245,7 +245,7 @@ export function createNewIncident(
     incidentPriority,
     customFields
 ) {
-    return function(dispatch) {
+    return async function(dispatch) {
         const promise = postApi(`incident/${projectId}/${monitorId}`, {
             monitorId,
             projectId,
@@ -354,6 +354,38 @@ export function getIncident(projectId, incidentId) {
     return function(dispatch) {
         let promise = null;
         promise = getApi(`incident/${projectId}/incident/${incidentId}`);
+        dispatch(incidentRequest(promise));
+
+        promise.then(
+            function(incident) {
+                dispatch(incidentSuccess(incident.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(incidentError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+// Calls the API to get the incident to show using idNumber
+export function getIncidentByIdNumber(projectId, incidentIdNumber) {
+    return function(dispatch) {
+        let promise = null;
+        promise = getApi(
+            `incident/${projectId}/incidentNumber/${incidentIdNumber}`
+        );
         dispatch(incidentRequest(promise));
 
         promise.then(
@@ -826,7 +858,7 @@ export function setInternalNote(projectId, incidentId, body) {
                 if (incidents.data.type === 'internal') {
                     dispatch(
                         fetchIncidentMessagesSuccess({
-                            incidentId,
+                            incidentId: incidents.data.idNumber,
                             incidentMessages: incidents.data.data,
                             count: incidents.data.data.length,
                             type: incidents.data.type,
@@ -1014,7 +1046,7 @@ export function deleteIncidentMessage(
                 if (incidentMessage.data.type === 'internal') {
                     dispatch(
                         fetchIncidentMessagesSuccess({
-                            incidentId,
+                            incidentId: incidentMessage.data.idNumber,
                             incidentMessages: incidentMessage.data.data,
                             count: incidentMessage.data.data.length,
                             type: incidentMessage.data.type,

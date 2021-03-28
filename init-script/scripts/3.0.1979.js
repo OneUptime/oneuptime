@@ -13,7 +13,6 @@ async function run() {
         const monitors = await find(monitorCollection, {
             projectId: project._id,
             componentId: undefined,
-            deleted: false,
         });
 
         for (let i = 0; i < monitors.length; i++) {

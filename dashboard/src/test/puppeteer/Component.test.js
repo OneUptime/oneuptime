@@ -41,7 +41,6 @@ describe('Components', () => {
 
         return await cluster.execute(null, async ({ page }) => {
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
         });
     });
 
@@ -275,9 +274,11 @@ describe('Components', () => {
                 await init.navigateToComponentDetails(componentName, page);
 
                 await page.waitForSelector('#form-new-monitor');
+                await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
-                await init.selectByText('#type', 'url', page);
+                await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
+                await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.$eval('button[type=submit]', e => e.click());
 
@@ -310,9 +311,11 @@ describe('Components', () => {
                 await init.navigateToComponentDetails(componentName, page);
                 const newMonitorName = `another-${monitorName}`;
                 await page.waitForSelector('#form-new-monitor');
+                await page.click('input[id=name]');
                 await page.type('input[id=name]', newMonitorName);
-                await init.selectByText('#type', 'url', page);
+                await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
+                await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.$eval('button[type=submit]', e => e.click());
 
@@ -385,7 +388,8 @@ describe('Components', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
-                await page.$eval('#logs', e => e.click());
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
 
                 // Fill and submit New Application  log form
                 await page.waitForSelector('#form-new-application-log');
@@ -421,9 +425,11 @@ describe('Components', () => {
                 await page.$eval('button[type=submit]', e => e.click());
 
                 await page.waitForSelector('#form-new-monitor');
+                await page.click('input[id=name]');
                 await page.type('input[id=name]', newMonitorName);
-                await init.selectByText('#type', 'url', page);
+                await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
+                await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.$eval('button[type=submit]', e => e.click());
                 await page.waitForSelector(`#cb${newMonitorName}`, {
@@ -434,7 +440,6 @@ describe('Components', () => {
                 await page.waitForSelector('#components');
                 await page.$eval('#components', e => e.click());
 
-                await page.waitForTimeout(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector('#component0', { visible: true });
@@ -491,10 +496,11 @@ describe('Components', () => {
                 await monitorPage.bringToFront();
 
                 await monitorPage.waitForSelector(
-                    `#createIncident_${monitorName}`
+                    `#monitorCreateIncident_${monitorName}`
                 );
-                await monitorPage.$eval(`#createIncident_${monitorName}`, e =>
-                    e.click()
+                await monitorPage.$eval(
+                    `#monitorCreateIncident_${monitorName}`,
+                    e => e.click()
                 );
                 await monitorPage.waitForSelector('#createIncident');
                 await init.selectByText(
@@ -583,7 +589,6 @@ describe('Components', () => {
                 await page.waitForSelector('#components');
                 await page.$eval('#components', e => e.click());
 
-                await page.waitForTimeout(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector(`#count_${componentName}`);
@@ -728,9 +733,12 @@ describe('Components', () => {
                     newMonitorName,
                     page
                 );
-                await page.waitForSelector(`#createIncident_${newMonitorName}`);
-                await page.$eval(`#createIncident_${newMonitorName}`, e =>
-                    e.click()
+                await page.waitForSelector(
+                    `#monitorCreateIncident_${newMonitorName}`
+                );
+                await page.$eval(
+                    `#monitorCreateIncident_${newMonitorName}`,
+                    e => e.click()
                 );
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);

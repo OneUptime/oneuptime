@@ -382,7 +382,7 @@ class NewMonitor extends Component {
         const postObj = { data: {}, criteria: {} };
 
         postObj.componentId = thisObj.props.componentId;
-        postObj.projectId = this.props.projectId;
+        postObj.projectId = this.props.project._id;
         postObj.incidentCommunicationSla = values.incidentCommunicationSla;
         postObj.monitorSla = values.monitorSla;
         postObj.name = values[`name_${this.props.index}`];
@@ -565,7 +565,7 @@ class NewMonitor extends Component {
         if (this.props.edit) {
             const { monitorId } = this.props;
             postObj._id = this.props.editMonitorProp._id;
-            this.props.editMonitor(postObj.projectId, postObj).then(() => {
+            this.props.editMonitor(postObj.projectId, postObj).then(data => {
                 this.props.toggleEdit(false);
                 thisObj.props.destroy();
                 if (monitorId === this.props.editMonitorProp._id) {
@@ -595,6 +595,9 @@ class NewMonitor extends Component {
                         values
                     );
                 }
+                history.push(
+                    `/dashboard/project/${this.props.currentProject.slug}/${this.props.component.slug}/monitoring/${data.data.slug}`
+                );
             });
         } else {
             this.props.createMonitor(postObj.projectId, postObj).then(
@@ -607,7 +610,7 @@ class NewMonitor extends Component {
                         );
                     }
                     history.push(
-                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/monitoring/${data.data._id}`
+                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/monitoring/${data.data.slug}`
                     );
                 },
                 error => {
@@ -1223,7 +1226,7 @@ class NewMonitor extends Component {
                                                                             value:
                                                                                 'agentless',
                                                                             label:
-                                                                                'Agentless',
+                                                                                'Agentless (with SSH)',
                                                                         },
                                                                     ]}
                                                                 ></Field>
@@ -2883,11 +2886,18 @@ const mapStateToProps = (state, ownProps) => {
             : '';
 
     if (ownProps.edit) {
-        const monitorId = ownProps.match
-            ? ownProps.match.params
-                ? ownProps.match.params.monitorId
-                : null
-            : null;
+        const { monitorSlug } = ownProps.match.params;
+        const monitorCollection = state.monitor.monitorsList.monitors.find(
+            el => {
+                return projectId === el._id;
+            }
+        );
+        const currentMonitor =
+            monitorCollection &&
+            monitorCollection.monitors.find(el => {
+                return el.slug === monitorSlug;
+            });
+        const monitorId = currentMonitor && currentMonitor._id;
         return {
             monitor: state.monitor,
             currentProject: state.project.currentProject,
@@ -2981,6 +2991,7 @@ NewMonitor.propTypes = {
     fetchMonitorsSubscribers: PropTypes.func.isRequired,
     fetchSchedules: PropTypes.func.isRequired,
     editMonitorProp: PropTypes.object,
+    component: PropTypes.object,
     edit: PropTypes.bool,
     name: PropTypes.string,
     type: PropTypes.string,
@@ -3000,7 +3011,7 @@ NewMonitor.propTypes = {
     project: PropTypes.object,
     currentPlanId: PropTypes.string,
     projectId: PropTypes.string,
-    componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     subProjects: PropTypes.array,
     toggleEdit: PropTypes.func,
     logFile: PropTypes.func,

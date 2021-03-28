@@ -30,7 +30,11 @@ import {
     FETCH_COMPONENT_SUMMARY_FAILURE,
     FETCH_COMPONENT_SUMMARY_RESET,
     SHOW_DELETE_MODAL,
+    ADD_CURRENT_COMPONENT,
     HIDE_DELETE_MODAL,
+    FETCH_COMPONENT_REQUEST,
+    FETCH_COMPONENT_SUCCESS,
+    FETCH_COMPONENT_FAILURE,
 } from '../constants/component';
 
 const INITIAL_STATE = {
@@ -39,6 +43,12 @@ const INITIAL_STATE = {
         error: null,
         requesting: false,
         success: false,
+    },
+    currentComponent: {
+        requesting: false,
+        error: null,
+        success: false,
+        component: null,
     },
     newComponent: {
         component: null,
@@ -87,6 +97,10 @@ export default function component(state = INITIAL_STATE, action) {
                     error: null,
                     success: false,
                     component: null,
+                },
+                currentComponent: {
+                    ...state.currentComponent,
+                    component: action.payload,
                 },
                 componentList: {
                     ...state.componentList,
@@ -158,6 +172,7 @@ export default function component(state = INITIAL_STATE, action) {
         case CREATE_COMPONENT_RESET:
             return Object.assign({}, state, {
                 newComponent: INITIAL_STATE.newComponent,
+                currentComponent: INITIAL_STATE.currentComponent,
             });
 
         case CREATE_COMPONENT_REQUEST:
@@ -266,6 +281,10 @@ export default function component(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: false,
+                },
+                currentComponent: {
+                    ...state.currentComponent,
+                    component: action.payload,
                 },
             });
 
@@ -382,6 +401,7 @@ export default function component(state = INITIAL_STATE, action) {
                     error: null,
                     loading: false,
                 },
+                currentComponent: INITIAL_STATE.currentComponent,
             });
 
         case ADD_SEAT_SUCCESS:
@@ -523,6 +543,48 @@ export default function component(state = INITIAL_STATE, action) {
                     success: false,
                 },
             });
+
+        case ADD_CURRENT_COMPONENT:
+            console.log('***** action payload *******', action.payload);
+            return Object.assign({}, state, {
+                currentComponent: {
+                    ...state.currentComponent,
+                    component: action.payload,
+                },
+            });
+
+        case FETCH_COMPONENT_REQUEST:
+            return {
+                ...state,
+                currentComponent: {
+                    ...state.currentComponent,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            };
+
+        case FETCH_COMPONENT_SUCCESS:
+            return {
+                ...state,
+                currentComponent: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    component: action.payload,
+                },
+            };
+
+        case FETCH_COMPONENT_FAILURE:
+            return {
+                ...state,
+                currentComponent: {
+                    ...state.currentComponent,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
 
         default:
             return state;

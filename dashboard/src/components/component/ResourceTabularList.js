@@ -3,7 +3,10 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { history } from '../../store';
 import { ListLoader } from '../basic/Loader';
-import { fetchComponentResources } from '../../actions/component';
+import {
+    fetchComponentResources,
+    addCurrentComponent,
+} from '../../actions/component';
 import { getMonitorStatus, filterProbeData } from '../../config';
 import { bindActionCreators } from 'redux';
 import threatLevel from '../../utils/threatLevel';
@@ -23,8 +26,8 @@ class ResourceTabularList extends Component {
         };
     }
     generateUrlLink(componentResource) {
-        const { currentProject, componentId } = this.props;
-        const baseUrl = `/dashboard/project/${currentProject.slug}/${componentId}/`;
+        const { currentProject, componentSlug } = this.props;
+        const baseUrl = `/dashboard/project/${currentProject.slug}/${componentSlug}/`;
         let route = '';
         switch (componentResource.type) {
             case 'website monitor':
@@ -53,7 +56,7 @@ class ResourceTabularList extends Component {
             default:
                 break;
         }
-        return `${baseUrl}${route}/${componentResource._id}`;
+        return `${baseUrl}${route}/${componentResource.slug}`;
     }
     generateResourceStatus(componentResource) {
         let statusColor = 'slate';
@@ -106,15 +109,24 @@ class ResourceTabularList extends Component {
                         );
                     }
                 }
+                if (
+                    typeof this.props.monitorLogsRequest[
+                        componentResource._id
+                    ] === 'undefined' ||
+                    this.props.monitorLogsRequest[componentResource._id]
+                ) {
+                    indicator = <ListLoader />;
+                } else {
+                    indicator = (
+                        <StatusIndicator
+                            status={monitorStatus}
+                            resourceName={componentResource.name}
+                            monitorName={monitor && monitor.name}
+                        />
+                    );
+                    statusDescription = monitorStatus;
+                }
 
-                indicator = (
-                    <StatusIndicator
-                        status={monitorStatus}
-                        resourceName={componentResource.name}
-                        monitorName={monitor && monitor.name}
-                    />
-                );
-                statusDescription = monitorStatus;
                 break;
             case 'application security':
                 // get application security status
@@ -302,6 +314,9 @@ class ResourceTabularList extends Component {
                                                     this.props.animateSidebar(
                                                         true
                                                     );
+                                                    this.props.addCurrentComponent(
+                                                        componentResource.component
+                                                    );
                                                 }}
                                             >
                                                 <td
@@ -484,6 +499,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             fetchComponentResources,
+            addCurrentComponent,
             animateSidebar,
         },
         dispatch
@@ -506,21 +522,24 @@ function mapStateToProps(state, props) {
         monitors,
         probes: state.probe.probes.data,
         activeProbe: state.monitor.activeProbe,
+        monitorLogsRequest: state.monitor.monitorLogsRequest,
     };
 }
 
 ResourceTabularList.propTypes = {
     componentResource: PropTypes.object,
     currentProject: PropTypes.object,
-    componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     monitors: PropTypes.array,
     probes: PropTypes.array,
     animateSidebar: PropTypes.func,
+    addCurrentComponent: PropTypes.func,
     activeProbe: PropTypes.number,
     componentName: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    monitorLogsRequest: PropTypes.object,
 };
 
 ResourceTabularList.defaultProps = {

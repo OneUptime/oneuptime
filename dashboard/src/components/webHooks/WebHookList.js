@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import WebHookItem from './WebHookItem';
+import { User } from '../../config';
 import { WebHookTableHeader } from './WebHookRow';
 import {
     getWebHook,
@@ -15,20 +16,14 @@ import {
 import { ListLoader } from '../basic/Loader';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { history } from '../../store';
 
 class WebHookList extends React.Component {
     ready() {
         const { getWebHook } = this.props;
-        let { projectId } = this.props;
-        if (!projectId) {
-            projectId = history.location.pathname
-                .split('project/')[1]
-                .split('/')[0];
-            getWebHook(projectId);
-        } else {
-            getWebHook(projectId);
-        }
+        const { projectId } = this.props;
+
+        getWebHook(projectId);
+
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > WEBHOOKS');
         }
@@ -252,7 +247,9 @@ const mapStateToProps = state => ({
     page: state.webHooks.pages,
     isRequesting: state.webHooks.webHook.requesting,
     currentProject: state.project.currentProject,
-    projectId: state.project.currentProject && state.project.currentProject._id,
+    projectId:
+        (state.project.currentProject && state.project.currentProject._id) ||
+        User.getCurrentProjectId(),
     monitor: state.monitor,
 });
 

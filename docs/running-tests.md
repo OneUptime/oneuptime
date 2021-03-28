@@ -147,6 +147,7 @@ There are two types of admin dashboard test, saas and enterprise test.
 -   Helm Chart
 -   Api Docs
 -   Licensing
+-   Probe
 
 To run saas test, add the following line in the `.env` file in the backend project (`app/backend/.env`), accounts project (`app/accounts/.env`), and admin dashboard project (`app/admin-dashboard/.env`); this line is not required to run enterprise test:
 
@@ -169,6 +170,9 @@ sudo docker build -t fyipeproject/helm-chart ./helm-chart
 sudo docker run --name helm-chart --env-file ./helm-chart/.env -p 3423:3423 -d fyipeproject/helm-chart
 sudo docker build -t fyipeproject/api-docs ./api-docs
 sudo docker run --name api-docs --env-file ./api-docs/.env -p 1445:1445 -d fyipeproject/api-docs
+sudo docker build -t fyipeproject/probe ./probe
+sudo docker run --name probe-1 --env-file ./probe/.env -e PORT=3024 -e PROBE_NAME='Probe 1' -e PROBE_KEY=test-key    --net=host -d fyipeproject/probe
+sudo docker run --name probe-2 --env-file ./probe/.env -e PORT=3025 -e PROBE_NAME='Probe 2' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe
 sudo docker build -t fyipeproject/admin-dashboard ./admin-dashboard
 sudo docker run --name admin-dashboard --env-file ./admin-dashboard/.env -p 3100:3100 -d fyipeproject/admin-dashboard
 ```
@@ -295,7 +299,7 @@ npm test
 
 ## Server Monitor
 
-Please see [Fyipe Server Monitor](https://www.npmjs.com/package/fyipe-server-monitor) for more information on how to use this package.
+Please see [Fyipe Server Monitor](https://github.com/Fyipe/js-sdk/blob/master/docs/server-monitor/README.md) for more information on how to use this package.
 
 ### Dependencies
 

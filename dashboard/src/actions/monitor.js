@@ -513,6 +513,76 @@ export function disableMonitorFailure(error) {
     };
 }
 
+// Change monitor's parent component
+export const changeMonitorComponent = (
+    projectId,
+    monitorId,
+    newComponentId
+) => {
+    return async dispatch => {
+        try {
+            dispatch(changeMonitorComponentRequest(monitorId));
+            const monitor = await postApi(
+                `monitor/${projectId}/changeComponent/${monitorId}`,
+                {
+                    newComponentId,
+                }
+            );
+
+            dispatch(
+                changeMonitorComponentSuccess({
+                    monitorId: monitor.data._id,
+                    newComponentId: monitor.data.componentId,
+                })
+            );
+
+            return monitor;
+        } catch (err) {
+            let error = { ...err };
+            if (error && error.response && error.response.data)
+                error = error.response.data;
+            if (error && error.data) {
+                error = error.data;
+            }
+            if (error && error.message) {
+                error = error.message;
+            } else {
+                error = 'Network Error';
+            }
+            dispatch(changeMonitorComponentFailure(error));
+
+            // rethrow the error?
+        }
+    };
+};
+
+export const changeMonitorComponentRequest = monitorId => {
+    return {
+        type: types.CHANGE_MONITOR_COMPONENT_REQUEST,
+        payload: monitorId,
+    };
+};
+
+export const changeMonitorComponentSuccess = ({
+    monitorId,
+    newComponentId,
+}) => {
+    return {
+        type: types.CHANGE_MONITOR_COMPONENT_SUCCESS,
+        payload: {
+            monitorId,
+            newComponentId,
+        },
+    };
+};
+
+export const changeMonitorComponentFailure = error => {
+    return {
+        type: types.CHANGE_MONITOR_COMPONENT_FAILURE,
+        payload: error,
+    };
+};
+
 //Fetch Incidents of monitors
 //props -> {name: '', type, data -> { data.url}}
 export function fetchMonitorsIncidents(projectId, monitorId, skip, limit) {
@@ -644,7 +714,7 @@ export function fetchMonitorLogs(projectId, monitorId, startDate, endDate) {
             `monitor/${projectId}/monitorLog/${monitorId}`,
             { startDate, endDate }
         );
-        dispatch(fetchMonitorLogsRequest());
+        dispatch(fetchMonitorLogsRequest(monitorId));
         dispatch(updateDateRange(startDate, endDate));
 
         promise.then(
@@ -684,9 +754,10 @@ export function updateDateRange(startDate, endDate) {
     };
 }
 
-export function fetchMonitorLogsRequest() {
+export function fetchMonitorLogsRequest(payload) {
     return {
         type: types.FETCH_MONITOR_LOGS_REQUEST,
+        payload,
     };
 }
 

@@ -25,8 +25,8 @@ module.exports = {
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitorId',
-                    select: '_id name type',
-                    populate: { path: 'componentId', select: '_id name' },
+                    select: '_id name type slug',
+                    populate: { path: 'componentId', select: '_id name slug' },
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
@@ -61,6 +61,37 @@ module.exports = {
                     project && project.users && project.users.length
                         ? project.users.map(({ userId }) => userId)
                         : [];
+
+                let errorMsg;
+                if (data.customFields && data.customFields.length > 0) {
+                    for (const field of data.customFields) {
+                        if (
+                            field.uniqueField &&
+                            field.fieldValue &&
+                            field.fieldValue.trim()
+                        ) {
+                            const incident = await _this.findOneBy({
+                                customFields: {
+                                    $elemMatch: {
+                                        fieldName: field.fieldName,
+                                        fieldType: field.fieldType,
+                                        fieldValue: field.fieldValue,
+                                    },
+                                },
+                            });
+
+                            if (incident) {
+                                errorMsg = `The field ${field.fieldName} must be unique for all incidents`;
+                            }
+                        }
+                    }
+                }
+
+                if (errorMsg) {
+                    const error = new Error(errorMsg);
+                    error.code = 400;
+                    throw error;
+                }
 
                 if (monitor) {
                     let incident = new IncidentModel();
@@ -258,8 +289,8 @@ module.exports = {
                 .populate('probes.probeId')
                 .populate({
                     path: 'monitorId',
-                    select: '_id name',
-                    populate: { path: 'componentId', select: '_id name' },
+                    select: '_id name slug',
+                    populate: { path: 'componentId', select: '_id name slug' },
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
@@ -292,6 +323,15 @@ module.exports = {
                 data.manuallyCreated ||
                 (oldIncident && oldIncident.manuallyCreated) ||
                 false;
+
+            if (
+                data.reason &&
+                Array.isArray(data.reason) &&
+                data.reason.length > 0
+            ) {
+                data.reason = data.reason.join('\n');
+            }
+
             let updatedIncident = await IncidentModel.findOneAndUpdate(
                 query,
                 {
@@ -308,8 +348,8 @@ module.exports = {
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitorId',
-                    select: '_id name',
-                    populate: { path: 'componentId', select: '_id name' },
+                    select: '_id name slug',
+                    populate: { path: 'componentId', select: '_id name slug' },
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
@@ -479,6 +519,7 @@ module.exports = {
                     createdById: userId,
                     type: 'investigation',
                     incident_state: 'Acknowledged',
+                    post_statuspage: true,
                 });
 
                 const downtimestring = IncidentUtilitiy.calculateHumanReadableDownTime(
@@ -641,6 +682,7 @@ module.exports = {
                 createdById: userId,
                 type: 'investigation',
                 incident_state: 'Resolved',
+                post_statuspage: true,
             });
 
             await IncidentTimelineService.create({
@@ -834,6 +876,25 @@ module.exports = {
                 'incidentService.sendIncidentResolvedNotification',
                 error
             );
+            throw error;
+        }
+    },
+
+    sendIncidentNoteAdded: async function(projectId, incident, data) {
+        try {
+            await SlackService.sendIncidentNoteNotification(
+                projectId,
+                incident,
+                data
+            );
+
+            await MsTeamsService.sendIncidentNoteNotification(
+                projectId,
+                incident,
+                data
+            );
+        } catch (error) {
+            ErrorService.log('incidentService.sendIncidentNoteAdded', error);
             throw error;
         }
     },

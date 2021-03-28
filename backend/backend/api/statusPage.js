@@ -11,6 +11,7 @@ const ProbeService = require('../services/probeService');
 const UtilService = require('../services/utilService');
 const RealTimeService = require('../services/realTimeService');
 const DomainVerificationService = require('../services/domainVerificationService');
+const IncidentService = require('../services/incidentService');
 
 const router = express.Router();
 const validUrl = require('valid-url');
@@ -30,6 +31,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const uuid = require('uuid');
+const defaultStatusPageColors = require('../config/statusPageColors');
 
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
@@ -83,6 +85,25 @@ router.put(
     }
 );
 
+router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
+    const { projectId } = req.params;
+    const { theme, statusPageId } = req.body;
+    try {
+        const statusPage = await StatusPageService.updateOneBy(
+            { projectId, _id: statusPageId },
+            { theme }
+        );
+        const updatedStatusPage = await StatusPageService.getStatusPage(
+            { _id: statusPageId },
+            req.user.id
+        );
+        await RealTimeService.statusPageEdit(updatedStatusPage);
+        return sendItemResponse(req, res, statusPage);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 // Route Description: Creates a domain and domainVerificationToken
 // req.params -> {projectId, statusPageId}; req.body -> {domain}
 // Returns: response updated status page, error message
@@ -92,88 +113,83 @@ router.put(
     isAuthorized,
     async (req, res) => {
         const { projectId, statusPageId } = req.params;
-        const subDomain = req.body.domain;
+        const { domain: subDomain, cert, privateKey } = req.body;
 
-        if (Array.isArray(subDomain)) {
-            if (subDomain.length === 0) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Domain is required.',
-                });
-            }
-            for (const element of subDomain) {
-                if (!UtilService.isDomainValid(element.domain)) {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'Domain is not valid.',
-                    });
-                }
-            }
-        } else {
-            if (typeof subDomain !== 'string') {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Domain is not of type string.',
-                });
-            }
+        if (typeof subDomain !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Domain is not of type string.',
+            });
+        }
 
-            if (!UtilService.isDomainValid(subDomain)) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Domain is not valid.',
-                });
-            }
+        if (!UtilService.isDomainValid(subDomain)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Domain is not valid.',
+            });
         }
 
         try {
-            if (Array.isArray(subDomain)) {
-                const response = [];
-                for (const domain of subDomain) {
-                    const belongsToProject = await DomainVerificationService.doesDomainBelongToProject(
-                        projectId,
-                        domain.domain
-                    );
-                    if (!belongsToProject) {
-                        response.push(
-                            await StatusPageService.createDomain(
-                                domain.domain,
-                                projectId,
-                                statusPageId
-                            )
-                        );
-                    }
-                }
-                return sendItemResponse(
-                    req,
-                    res,
-                    response[response.length - 1]
-                );
-            } else {
-                const doesDomainBelongToProject = await DomainVerificationService.doesDomainBelongToProject(
-                    projectId,
-                    subDomain
-                );
+            const doesDomainBelongToProject = await DomainVerificationService.doesDomainBelongToProject(
+                projectId,
+                subDomain
+            );
 
-                if (doesDomainBelongToProject) {
-                    return sendErrorResponse(req, res, {
-                        message:
-                            'This domain is already associated with another project',
-                        code: 400,
-                    });
-                }
-                const resp = await StatusPageService.createDomain(
-                    subDomain,
-                    projectId,
-                    statusPageId
-                );
-                return sendItemResponse(req, res, resp);
+            if (doesDomainBelongToProject) {
+                return sendErrorResponse(req, res, {
+                    message: `This domain is already associated with another project`,
+                    code: 400,
+                });
             }
+
+            const doesDomainExist = await StatusPageService.doesDomainExist(
+                subDomain
+            );
+
+            if (doesDomainExist) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: `This custom domain ${subDomain} already exist`,
+                });
+            }
+
+            const resp = await StatusPageService.createDomain(
+                subDomain,
+                projectId,
+                statusPageId,
+                cert,
+                privateKey
+            );
+            return sendItemResponse(req, res, resp);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
     }
 );
 
+//reset status page colors to default colors
+router.put(
+    '/:projectId/:statusPageId/resetColors',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        const { projectId, statusPageId } = req.params;
+        const defaultBrandColor = defaultStatusPageColors.default;
+        try {
+            // response should be an updated statusPage
+            const response = await StatusPageService.updateOneBy(
+                {
+                    _id: statusPageId,
+                    projectId,
+                },
+                { colors: defaultBrandColor }
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 /**
  * @description updates a particular domain from statuspage collection
  * @param {string} projectId id of the project
@@ -187,7 +203,7 @@ router.put(
     isAuthorized,
     async (req, res) => {
         const { projectId, statusPageId, domainId } = req.params;
-        const newDomain = req.body.domain;
+        const { domain: newDomain, cert, privateKey } = req.body;
 
         if (typeof newDomain !== 'string') {
             return sendErrorResponse(req, res, {
@@ -209,7 +225,9 @@ router.put(
                 projectId,
                 statusPageId,
                 domainId,
-                newDomain
+                newDomain,
+                cert,
+                privateKey
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -217,6 +235,93 @@ router.put(
         }
     }
 );
+
+router.post('/:projectId/certFile', async function(req, res) {
+    try {
+        const upload = multer({
+            storage,
+        }).fields([
+            {
+                name: 'cert',
+                maxCount: 1,
+            },
+        ]);
+        upload(req, res, async function(error) {
+            let cert;
+            if (error) {
+                return sendErrorResponse(req, res, error);
+            }
+            if (req.files && req.files.cert && req.files.cert[0].filename) {
+                cert = req.files.cert[0].filename;
+            }
+            return sendItemResponse(req, res, { cert });
+        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/:projectId/privateKeyFile', async function(req, res) {
+    try {
+        const upload = multer({
+            storage,
+        }).fields([
+            {
+                name: 'privateKey',
+                maxCount: 1,
+            },
+        ]);
+        upload(req, res, async function(error) {
+            let privateKey;
+            if (error) {
+                return sendErrorResponse(req, res, error);
+            }
+            if (
+                req.files &&
+                req.files.privateKey &&
+                req.files.privateKey[0].filename
+            ) {
+                privateKey = req.files.privateKey[0].filename;
+            }
+            return sendItemResponse(req, res, { privateKey });
+        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/tlsCredential', async function(req, res) {
+    try {
+        const { domain } = req.query;
+        const user = req.user;
+
+        if (!domain) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'No domain is specified',
+            });
+        }
+
+        const statusPage = await StatusPageService.getStatusPage(
+            { domains: { $elemMatch: { domain } } },
+            user
+        );
+
+        let domainObj;
+        statusPage.domains.forEach(eachDomain => {
+            if (eachDomain.domain === domain) {
+                domainObj = eachDomain;
+            }
+        });
+
+        return sendItemResponse(req, res, {
+            cert: domainObj.cert,
+            privateKey: domainObj.privateKey,
+        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
 
 /**
  * @description deletes a particular domain from statuspage collection
@@ -317,23 +422,6 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                     code: 400,
                     message: 'Please enter a valid URL.',
                 });
-            }
-            let counter = 0;
-            for (let j = 0; j < data.links.length; j++) {
-                if (data.links[i].name == data.links[j].name) {
-                    counter++;
-                }
-                if (data.links[i].url == data.links[j].url) {
-                    counter++;
-                }
-            }
-            if (counter > 2) {
-                {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'Duplicate name or url present. Please check.',
-                    });
-                }
             }
         }
     }
@@ -651,6 +739,7 @@ router.get(
     checkUser,
     ipWhitelist,
     async function(req, res) {
+        let result;
         const statusPageId = req.params.statusPageId;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 5;
@@ -663,7 +752,30 @@ router.get(
             );
             const notes = response.notes;
             const count = response.count;
-            return sendListResponse(req, res, notes, count);
+            const updatedNotes = [];
+            if (parseInt(limit) === 15) {
+                if (notes.length > 0) {
+                    for (const note of notes) {
+                        const statusPageNote = await StatusPageService.getIncidentNotes(
+                            { incidentId: note._id, postOnStatusPage: true },
+                            skip,
+                            limit
+                        );
+
+                        const sortMsg = statusPageNote.message.reverse();
+
+                        updatedNotes.push({
+                            ...note._doc,
+                            message: sortMsg,
+                        });
+                    }
+                }
+                result = formatNotes(updatedNotes);
+                result = checkDuplicateDates(result);
+            } else {
+                result = notes;
+            }
+            return sendListResponse(req, res, result, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -675,10 +787,15 @@ router.get('/:projectId/incident/:incidentId', checkUser, async function(
     res
 ) {
     try {
-        const { incidentId } = req.params;
+        const { incidentId, projectId } = req.params;
+
+        const incidentData = await IncidentService.findOneBy({
+            projectId,
+            idNumber: incidentId,
+        });
 
         const incident = await StatusPageService.getIncident({
-            _id: incidentId,
+            _id: incidentData._id,
         });
         return sendItemResponse(req, res, incident);
     } catch (error) {
@@ -691,11 +808,16 @@ router.get('/:projectId/:incidentId/incidentNotes', checkUser, async function(
     res
 ) {
     try {
-        const { incidentId } = req.params;
+        const { incidentId, projectId } = req.params;
+
+        const incident = await IncidentService.findOneBy({
+            projectId,
+            idNumber: incidentId,
+        });
         const { skip, limit, postOnStatusPage } = req.query;
 
         const response = await StatusPageService.getIncidentNotes(
-            { incidentId, postOnStatusPage },
+            { incidentId: incident._id, postOnStatusPage },
             skip,
             limit
         );
@@ -712,6 +834,7 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
 ) {
     let date = req.query.date;
     date = new Date(date);
+    const theme = req.query.theme;
     const start = new Date(
         date.getFullYear(),
         date.getMonth(),
@@ -744,7 +867,25 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
             skip,
             limit
         );
-        const notes = response.investigationNotes;
+        let notes = response.investigationNotes;
+        if (theme) {
+            const updatedNotes = [];
+            if (notes.length > 0) {
+                for (const note of notes) {
+                    const statusPageNote = await StatusPageService.getIncidentNotes(
+                        { incidentId: note._id, postOnStatusPage: true },
+                        skip,
+                        0
+                    );
+
+                    updatedNotes.push({
+                        ...note._doc,
+                        message: statusPageNote.message,
+                    });
+                }
+                notes = updatedNotes;
+            }
+        }
         const count = response.count;
         return sendListResponse(req, res, notes, count);
     } catch (error) {
@@ -760,6 +901,7 @@ router.get(
         const statusPageId = req.params.statusPageId;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 5;
+        const theme = req.query.theme;
         try {
             // Call the StatusPageService.
             const response = await StatusPageService.getEvents(
@@ -767,8 +909,27 @@ router.get(
                 skip,
                 limit
             );
-            const events = response.events;
+            let events = response.events;
             const count = response.count;
+            if ((theme && typeof theme === 'boolean') || theme === 'true') {
+                const updatedEvents = [];
+                if (events.length > 0) {
+                    for (const event of events) {
+                        const statusPageEvent = await StatusPageService.getEventNotes(
+                            {
+                                scheduledEventId: event._id,
+                                type: 'investigation',
+                            }
+                        );
+                        updatedEvents.push({
+                            ...event,
+                            notes: statusPageEvent.notes,
+                        });
+                    }
+                    events = formatNotes(updatedEvents);
+                    events = checkDuplicateDates(events);
+                }
+            }
             return sendListResponse(req, res, events, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -829,6 +990,7 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
 
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 5;
+    const theme = req.query.theme;
 
     const currentDate = moment().format();
     const query = {
@@ -848,8 +1010,23 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
             skip,
             limit
         );
-        const events = response.scheduledEvents;
+        let events = response.scheduledEvents;
         const count = response.count;
+        if ((theme && typeof theme === 'boolean') || theme === 'true') {
+            const updatedEvents = [];
+            if (events.length > 0) {
+                for (const event of events) {
+                    const statusPageEvent = await StatusPageService.getEventNotes(
+                        { scheduledEventId: event._id, type: 'investigation' }
+                    );
+                    updatedEvents.push({
+                        ...event,
+                        notes: statusPageEvent.notes,
+                    });
+                }
+                events = updatedEvents;
+            }
+        }
         return sendListResponse(req, res, events, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -975,14 +1152,19 @@ router.get('/:projectId/timeline/:incidentId', checkUser, async function(
     res
 ) {
     try {
-        const { incidentId } = req.params;
+        const { incidentId, projectId } = req.params;
+
+        const incidentData = await IncidentService.findOneBy({
+            projectId,
+            idNumber: incidentId,
+        });
         // setting limit to one
         // since the frontend only need the last content (current content)
         // of incident timeline
         const { skip = 0, limit = 1 } = req.query;
 
         const timeline = await IncidentTimelineService.findBy(
-            { incidentId },
+            { incidentId: incidentData._id },
             skip,
             limit
         );
@@ -1012,5 +1194,89 @@ router.get(
         }
     }
 );
+
+const formatNotes = (data = []) => {
+    const resultData = [];
+    const numberToDisplay = checkDuplicateDates(data, true);
+
+    if (
+        data[0] &&
+        !(
+            moment(data[0].createdAt).format('YYYY-MM-DD') ===
+            moment().format('YYYY-MM-DD')
+        )
+    ) {
+        data.unshift({ createdAt: new Date().toISOString() });
+    }
+
+    if (!data[0]) data[0] = { createdAt: new Date().toISOString() };
+
+    let prev_obj = data[0];
+
+    for (let i = 1; i < data.length + 1; i++) {
+        resultData.push(prev_obj);
+
+        const current_obj = data[i];
+        if (!current_obj) break;
+
+        const prev_date = new Date(prev_obj.createdAt).getDate();
+        const curr_date = new Date(current_obj.createdAt).getDate();
+
+        const diff = prev_date - curr_date - 1;
+
+        if (diff > 0) {
+            for (let i = 0; i < diff; i++) {
+                const time = new Date().setDate(prev_date - i - 1);
+                const created_date = new Date(time).toISOString();
+
+                const new_obj = { createdAt: created_date };
+                resultData.push(new_obj);
+            }
+        }
+
+        prev_obj = current_obj;
+    }
+
+    const prev_date = new Date(prev_obj.createdAt).getDate();
+    const fields_left = numberToDisplay - resultData.length;
+
+    for (let i = 0; i < fields_left; i++) {
+        const time = new Date().setDate(prev_date - i - 1);
+        const created_date = new Date(time).toISOString();
+
+        const new_obj = { createdAt: created_date };
+        resultData.push(new_obj);
+
+        prev_obj = new_obj;
+    }
+
+    return resultData;
+};
+
+function checkDuplicateDates(items, bool) {
+    const track = {};
+
+    const result = [];
+
+    for (const item of items) {
+        const date = String(item.createdAt).slice(0, 10);
+
+        if (!track[date]) {
+            item.style = true;
+            track[date] = date;
+        } else {
+            item.style = false;
+        }
+
+        result.push(item);
+    }
+    if (!bool) {
+        return result;
+    } else {
+        const specificNumberToDisplay = 15;
+        const falseCount = result.filter(num => !num.style).length;
+        return specificNumberToDisplay + falseCount;
+    }
+}
 
 module.exports = router;

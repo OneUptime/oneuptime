@@ -10,6 +10,7 @@ const componentSchema = new Schema({
     },
 
     name: String,
+    slug: { type: String, index: true },
 
     createdById: { type: String, ref: 'User', index: true },
     createdAt: {

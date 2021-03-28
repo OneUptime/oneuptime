@@ -182,9 +182,9 @@ export class MonitorLighthouseLogsList extends Component {
                                                                       .slug +
                                                                   '/' +
                                                                   this.props
-                                                                      .componentId +
+                                                                      .componentSlug +
                                                                   '/monitoring/' +
-                                                                  monitor._id +
+                                                                  monitor.slug +
                                                                   '/issues/' +
                                                                   log._id
                                                           )
@@ -720,7 +720,7 @@ MonitorLighthouseLogsList.propTypes = {
     closeModal: PropTypes.func.isRequired,
     deleteSiteUrl: PropTypes.func.isRequired,
     currentProject: PropTypes.object,
-    componentId: PropTypes.string.isRequired,
+    componentSlug: PropTypes.string.isRequired,
 };
 
 export default connect(

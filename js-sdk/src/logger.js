@@ -1,23 +1,18 @@
 import axios from 'axios';
 class Logger {
-    #applicationLogId;
-    #applicationLogKey;
-    #apiUrl;
     constructor(apiUrl, applicationLogId, applicationLogKey) {
         this._setApplicationLogId(applicationLogId);
         this._setApiUrl(apiUrl);
         this._setApplicationLogKey(applicationLogKey);
     }
     _setApplicationLogId(applicationLogId) {
-        this.#applicationLogId = applicationLogId;
+        this.applicationLogId = applicationLogId;
     }
     _setApplicationLogKey(applicationLogKey) {
-        this.#applicationLogKey = applicationLogKey;
+        this.applicationLogKey = applicationLogKey;
     }
     _setApiUrl(apiUrl) {
-        this.#apiUrl = `${apiUrl}/application-log/${
-            this.#applicationLogId
-        }/log`;
+        this.apiUrl = `${apiUrl}/application-log/${this.applicationLogId}/log`;
     }
 
     async log(data, tags = null) {
@@ -72,7 +67,7 @@ class Logger {
     _makeApiRequest(data, logType, tags = null) {
         const requestData = {
             content: data,
-            applicationLogKey: this.#applicationLogKey,
+            applicationLogKey: this.applicationLogKey,
             type: logType,
         };
         if (tags) {
@@ -80,7 +75,7 @@ class Logger {
         }
         return new Promise((resolve, reject) => {
             axios
-                .post(this.#apiUrl, requestData)
+                .post(this.apiUrl, requestData)
                 .then(res => {
                     resolve(res);
                 })

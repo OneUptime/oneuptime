@@ -49,10 +49,10 @@ export class SidebarNavItem extends Component {
         return route.path
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':subProjectId', match.params.subProjectId)
-            .replace(':componentId', match.params.componentId)
-            .replace(':monitorId', match.params.monitorId)
-            .replace(':applicationLogId', match.params.applicationLogId)
-            .replace(':errorTrackerId', match.params.errorTrackerId);
+            .replace(':componentSlug', match.params.componentSlug)
+            .replace(':monitor', match.params.monitorSlug)
+            .replace(':applicationLogSlug', match.params.applicationLogSlug)
+            .replace(':errorTrackerSlug', match.params.errorTrackerSlug);
     };
     handleShowMore = () => {
         this.props.toggleProjectSettingsMore(!this.props.toggleMoreBtn);
@@ -61,11 +61,11 @@ export class SidebarNavItem extends Component {
         const { match, currentProject } = this.props;
         const subRoutePath = subRoute.path
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
-            .replace(':componentId', match.params.componentId)
+            .replace(':componentSlug', match.params.componentSlug)
             .replace(/:issueId/, match.params.issueId)
             .replace(/:scheduleId/, match.params.scheduleId)
             .replace(/:incidentId/, match.params.incidentId)
-            .replace(/:monitorId/, match.params.monitorId);
+            .replace(/:monitorSlug/, match.params.monitorSlug);
         const projectSettingsSubRoutes =
             subRoute.title === 'Monitor' ||
             subRoute.title === 'Incident Settings' ||
@@ -76,7 +76,9 @@ export class SidebarNavItem extends Component {
             subRoute.title === 'Probe' ||
             subRoute.title === 'Git Credentials' ||
             subRoute.title === 'Docker Credentials' ||
-            subRoute.title === 'Resources';
+            subRoute.title === 'Resources' ||
+            subRoute.title === 'Domains' ||
+            subRoute.title === 'Team Groups';
         if (projectSettingsSubRoutes) {
             if (match.url === subRoutePath) {
                 this.props.toggleProjectSettingsMore(true);
@@ -107,40 +109,40 @@ export class SidebarNavItem extends Component {
         const path = route.path
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':subProjectId', match.params.subProjectId)
-            .replace(':componentId', match.params.componentId)
-            .replace(':monitorId', match.params.monitorId)
-            .replace(':applicationLogId', match.params.applicationLogId)
-            .replace(':errorTrackerId', match.params.errorTrackerId);
+            .replace(':componentSlug', match.params.componentSlug)
+            .replace(':monitorSlug', match.params.monitorSlug)
+            .replace(':applicationLogSlug', match.params.applicationLogSlug)
+            .replace(':errorTrackerSlug', match.params.errorTrackerSlug);
         const isLinkActive =
             location.pathname === path ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/subProject\/([0-9]|[a-z])*\/status-page\/([0-9]|[a-z])*/
+                /project\/([A-Za-z0-9-]+)\/subProject\/([A-Za-z0-9-]+)\/status-page\/([0-9]|[a-z]+)/
             ) &&
                 route.title === 'Status Pages') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/subProject\/([0-9]|[a-z])*\/schedule\/([0-9]|[a-z])*/
+                /project\/([A-Za-z0-9-]+)\/subProject\/([A-Za-z0-9-]+)\/schedule\/([0-9]|[a-z]+)/
             ) &&
                 route.title === 'On-Call Duty') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/monitors\/([0-9]|[a-z])*/
+                /project\/([A-Za-z0-9-]+)\/monitors\/([A-Za-z0-9-]+)/
             ) &&
                 route.title === 'Monitors') ||
-            (location.pathname.match(/project\/([A-Za-z0-9-]+)\/components*/) &&
+            (location.pathname.match(/project\/([A-Za-z0-9-]+)\/components/) &&
                 route.title === 'Components') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/monitoring*/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/monitoring/
             ) &&
                 route.title === 'Monitors') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
             ) &&
                 route.title === 'Incident Log') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/application-log*/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/application-log/
             ) &&
                 route.title === 'Logs') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security/
             ) &&
                 route.title === 'Security') ||
             (location.pathname.match(
@@ -154,7 +156,7 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(/project\/([A-Za-z0-9-]+)\/consulting/) &&
                 route.title === 'Consulting & Services') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/error-track*/
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/error-track/
             ) &&
                 route.title === 'Error Tracking');
 
@@ -163,46 +165,49 @@ export class SidebarNavItem extends Component {
             newPath = newPath.replace(/:issueId/, match.params.issueId);
             newPath = newPath.replace(/:scheduleId/, match.params.scheduleId);
             newPath = newPath.replace(/:incidentId/, match.params.incidentId);
-            newPath = newPath.replace(/:monitorId/, match.params.monitorId);
-            newPath = newPath.replace(/:componentId/, match.params.componentId);
+            newPath = newPath.replace(/:monitorSlug/, match.params.monitorSlug);
             newPath = newPath.replace(
-                /:applicationLogId/,
-                match.params.applicationLogId
+                /:componentSlug/,
+                match.params.componentSlug
             );
             newPath = newPath.replace(
-                /:errorTrackerId/,
-                match.params.errorTrackerId
+                /:applicationLogSlug/,
+                match.params.applicationLogSlug
+            );
+            newPath = newPath.replace(
+                /:errorTrackerSlug/,
+                match.params.errorTrackerSlug
             );
 
             const response =
                 newPath === match.url
                     ? true
                     : (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
+                          /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
                       ) &&
                           link.title === 'Incident') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/container/
+                          /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security\/container/
                       ) &&
                           link.title === 'Container') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/application/
+                          /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security\/application/
                       ) &&
                           link.title === 'Application') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/application\/([0-9]|[a-z])*/
+                          /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security\/application\/([A-Za-z0-9-]+)/
                       ) &&
                           link.title === 'Application Detail') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/container\/([0-9]|[a-z])*/
+                          /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security\/container\/([A-Za-z0-9-]+)/
                       ) &&
                           link.title === 'Container Detail') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/settings\/advanced/
+                          /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/settings\/advanced/
                       ) &&
                           link.title === 'Advanced') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/settings\/basic/
+                          /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/settings\/basic/
                       ) &&
                           link.title === 'Basic')
                     ? true
@@ -213,7 +218,7 @@ export class SidebarNavItem extends Component {
         const isSubLinkActive = route.subRoutes.some(link =>
             link.title === 'Status Page' &&
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/sub-project\/([0-9]|[a-z])*\/status-page\/([0-9]|[a-z])*/
+                /project\/([A-Za-z0-9-]+)\/sub-project\/([A-Za-z0-9-]+)\/status-page\/([0-9]|[a-z]+)/
             )
                 ? true
                 : false
@@ -221,7 +226,7 @@ export class SidebarNavItem extends Component {
         const isScheduleLinkActive = route.subRoutes.some(link =>
             link.title === 'Schedule' &&
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/sub-project\/([0-9]|[a-z])*\/schedule\/([0-9]|[a-z])*/
+                /project\/([A-Za-z0-9-]+)\/sub-project\/([A-Za-z0-9-]+)\/schedule\/([0-9]|[a-z]+)/
             )
                 ? true
                 : false
@@ -329,7 +334,7 @@ export class SidebarNavItem extends Component {
                                 schedule={schedule}
                                 active={match.url}
                                 onLoad={title => loadPage(title)}
-                                componentId={match.params.componentId}
+                                componentSlug={match.params.componentSlug}
                                 showMore={toggleMoreBtn}
                                 handleShowMore={
                                     this.props.toggleProjectSettingsMore
@@ -347,7 +352,7 @@ export class SidebarNavItem extends Component {
         schedule,
         active,
         onLoad,
-        componentId,
+        componentSlug,
         showMore,
         handleShowMore,
     }) {
@@ -377,35 +382,37 @@ export class SidebarNavItem extends Component {
                 child.title === 'Probe' ||
                 child.title === 'Git Credentials' ||
                 child.title === 'Docker Credentials' ||
-                child.title === 'Resources';
+                child.title === 'Resources' ||
+                child.title === 'Domains' ||
+                child.title === 'Team Groups';
             if (removedLinks.some(link => link === child.title)) return null;
 
             if (child.visible) {
                 let link = child.path
                     .replace(':slug', slug)
-                    .replace(':componentId', componentId);
+                    .replace(':componentSlug', componentSlug);
                 link =
                     schedule && schedule._id
                         ? link.replace(':scheduleId', schedule._id)
                         : link;
                 const incidentLogLink = active.match(
-                    /project\/([A-Za-z0-9-]+)\/incidents\/([0-9]|[a-z])*/
+                    /project\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
                 )
                     ? active
                     : false;
 
                 const applicationDetailLink = active.match(
-                    /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/application*/
+                    /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security\/application/
                 )
                     ? active
                     : false;
                 const containerDetailLink = active.match(
-                    /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/container*/
+                    /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security\/container/
                 )
                     ? active
                     : false;
                 const scheduledEventDetailLink = active.match(
-                    /project\/([A-Za-z0-9-]+)\/scheduledEvents\/([0-9]|[a-z])*/
+                    /project\/([A-Za-z0-9-]+)\/scheduledEvents\/([0-9]|[a-z]+)/
                 )
                     ? active
                     : false;

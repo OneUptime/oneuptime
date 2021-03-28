@@ -24,7 +24,7 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate({
                     path: 'scheduleId',
-                    select: 'name',
+                    select: 'name isDefault',
                     populate: { path: 'monitorIds', select: 'name' },
                 })
                 .populate({
@@ -49,8 +49,12 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate({
                     path: 'scheduleId',
-                    select: 'name',
+                    select: 'name isDefault',
                     populate: { path: 'monitorIds', select: 'name' },
+                })
+                .populate({
+                    path: 'teams.teamMembers.groups',
+                    select: 'teams name',
                 })
                 .populate({
                     path: 'teams.teamMembers.user',
@@ -77,9 +81,11 @@ module.exports = {
                 call: data.call,
                 email: data.email,
                 sms: data.sms,
+                push: data.push,
                 callReminders: data.callReminders,
                 smsReminders: data.smsReminders,
                 emailReminders: data.emailReminders,
+                pushReminders: data.pushReminders,
                 rotateBy: data.rotateBy,
                 rotationInterval: data.rotationInterval,
                 firstRotationOn: data.firstRotationOn,
@@ -88,6 +94,7 @@ module.exports = {
                 scheduleId: data.scheduleId,
                 createdById: data.createdById,
                 teams: data.teams,
+                groups: data.groups,
             });
 
             const escalation = await escalationModel.save();
@@ -327,7 +334,6 @@ function computeActiveTeams(escalation) {
         const activeTeamRotationEndTime = moment(
             activeTeamRotationStartTime
         ).add(rotationInterval, rotateBy);
-
         const activeTeam = {
             _id: teams[activeTeamIndex]._id,
             teamMembers: teams[activeTeamIndex].teamMembers,

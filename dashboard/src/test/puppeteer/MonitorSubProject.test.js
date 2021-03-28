@@ -111,6 +111,7 @@ describe('Monitor API With SubProjects', () => {
 
                 const newMonitorForm = await page.$('#form-new-monitor');
                 expect(newMonitorForm).toEqual(null);
+                await init.logout(page);
             });
 
             done();
@@ -131,7 +132,7 @@ describe('Monitor API With SubProjects', () => {
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', subProjectMonitorName);
-                await init.selectByText('#type', 'url', page);
+                await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
@@ -172,7 +173,7 @@ describe('Monitor API With SubProjects', () => {
                     await page.waitForSelector('#form-new-monitor');
                     await page.click('input[id=name]');
                     await page.type('input[id=name]', data.monitorName);
-                    await init.selectByText('#type', 'manual', page);
+                    await page.click('[data-testId=type_manual]');
                     await page.click('button[type=submit]');
                     await page.waitForSelector(
                         `#monitor-title-${data.monitorName}`,
@@ -271,7 +272,7 @@ describe('Monitor API With SubProjects', () => {
                     await page.waitForSelector('#form-new-monitor');
                     await page.click('input[id=name]');
                     await page.type('input[id=name]', data.monitorName);
-                    await init.selectByText('#type', 'manual', page);
+                    await page.click('[data-testId=type_manual]');
                     await page.click('#addMonitorButton');
                     await page.waitForSelector('.ball-beat', { hidden: true });
                     await page.waitForSelector('#cbMonitors', {
@@ -283,7 +284,7 @@ describe('Monitor API With SubProjects', () => {
                     });
                     await page.click('input[id=name]');
                     await page.type('input[id=name]', `${data.monitorName}1`);
-                    await init.selectByText('#type', 'manual', page);
+                    await page.click('[data-testId=type_manual]');
                     await page.click('#addMonitorButton');
                     await page.waitForSelector('.ball-beat', { hidden: true });
                     await page.waitForSelector('#cbMonitors', {

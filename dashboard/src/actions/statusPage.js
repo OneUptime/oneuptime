@@ -67,6 +67,131 @@ export function cancelAddMoreDomain() {
     };
 }
 
+// upload cert file
+export function uploadCertFileRequest() {
+    return {
+        type: 'CERT_FILE_REQUEST',
+    };
+}
+
+export function uploadCertFileSuccess(filename) {
+    return {
+        type: 'CERT_FILE_SUCCESS',
+        payload: filename,
+    };
+}
+
+export function uploadCertFileFailure(error) {
+    return {
+        type: 'CERT_FILE_ERROR',
+        payload: error,
+    };
+}
+
+export function removeCertFile() {
+    return {
+        type: 'REMOVE_CERT_FILE',
+    };
+}
+
+export function uploadCertFile(projectId, file) {
+    return function(dispatch) {
+        const data = new FormData();
+        if (file) {
+            data.append('cert', file);
+
+            const promise = postApi(`statusPage/${projectId}/certFile`, data);
+            dispatch(uploadCertFileRequest());
+            promise.then(
+                function(response) {
+                    const data = response.data;
+                    dispatch(uploadCertFileSuccess(data.cert));
+                    return data;
+                },
+                function(error) {
+                    if (error && error.response && error.response.data)
+                        error = error.response.data;
+                    if (error && error.data) {
+                        error = error.data;
+                    }
+                    if (error && error.message) {
+                        error = error.message;
+                    } else {
+                        error = 'Network Error';
+                    }
+                    dispatch(uploadCertFileFailure(error));
+                }
+            );
+
+            return promise;
+        }
+    };
+}
+
+// upload private key file
+export function uploadPrivateKeyRequest() {
+    return {
+        type: 'PRIVATE_KEY_REQUEST',
+    };
+}
+
+export function uploadPrivateKeySuccess(filename) {
+    return {
+        type: 'PRIVATE_KEY_SUCCESS',
+        payload: filename,
+    };
+}
+
+export function uploadPrivateKeyFailure(error) {
+    return {
+        type: 'PRIVATE_KEY_ERROR',
+        payload: error,
+    };
+}
+
+export function removePrivateKeyFile() {
+    return {
+        type: 'REMOVE_PRIVATE_KEY',
+    };
+}
+
+export function uploadPrivateKey(projectId, file) {
+    return function(dispatch) {
+        const data = new FormData();
+        if (file) {
+            data.append('privateKey', file);
+
+            const promise = postApi(
+                `statusPage/${projectId}/privateKeyFile`,
+                data
+            );
+            dispatch(uploadPrivateKeyRequest());
+            promise.then(
+                function(response) {
+                    const data = response.data;
+                    dispatch(uploadPrivateKeySuccess(data.privateKey));
+                    return data;
+                },
+                function(error) {
+                    if (error && error.response && error.response.data)
+                        error = error.response.data;
+                    if (error && error.data) {
+                        error = error.data;
+                    }
+                    if (error && error.message) {
+                        error = error.message;
+                    } else {
+                        error = 'Network Error';
+                    }
+                    dispatch(uploadPrivateKeyFailure(error));
+                }
+            );
+
+            return promise;
+        }
+    };
+}
+
 //Update status page setting
 
 export function updateStatusPageSettingRequest() {
@@ -312,6 +437,27 @@ export function updateStatusPageNameError(error) {
     };
 }
 
+// Update status page theme
+export function updateStatusPageThemeRequest() {
+    return {
+        type: types.UPDATE_STATUSPAGE_THEME_REQUEST,
+    };
+}
+
+export function updateStatusPageThemeSuccess(statusPage) {
+    return {
+        type: types.UPDATE_STATUSPAGE_THEME_SUCCESS,
+        payload: statusPage,
+    };
+}
+
+export function updateStatusPageThemeError(error) {
+    return {
+        type: types.UPDATE_STATUSPAGE_THEME_FAILURE,
+        payload: error,
+    };
+}
+
 // Calls the API to update branding.
 export function updateStatusPageBranding(projectId, values) {
     return function(dispatch) {
@@ -358,6 +504,35 @@ export function updateStatusPageBranding(projectId, values) {
                     error = 'Network Error';
                 }
                 dispatch(updateStatusPageBrandingError(errors(error)));
+            }
+        );
+        return promise;
+    };
+}
+
+// Calls the API to update the theme
+export function updateTheme(projectId, data) {
+    return function(dispatch) {
+        const promise = putApi(`statusPage/${projectId}/theme`, data);
+        dispatch(updateStatusPageThemeRequest());
+
+        promise.then(
+            function(response) {
+                const statusPage = response.data;
+                dispatch(updateStatusPageThemeSuccess(statusPage));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateStatusPageThemeError(errors(error)));
             }
         );
         return promise;
@@ -933,6 +1108,58 @@ export function updateStatusPageEmbeddedCss(projectId, data) {
                     error = 'Network Error';
                 }
                 dispatch(updateStatusPageEmbeddedCssError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+//reset branding colors
+export function resetBrandingColorsRequest() {
+    return {
+        type: types.RESET_BRANDING_COLORS_REQUEST,
+    };
+}
+
+export function resetBrandingColorsSuccess(colors) {
+    return {
+        type: types.RESET_BRANDING_COLORS_SUCCESS,
+        payload: colors,
+    };
+}
+
+export function resetBrandingColorsError(error) {
+    return {
+        type: types.RESET_BRANDING_COLORS_FAILURE,
+        payload: error,
+    };
+}
+
+// Calls the API to reset colors.
+export function resetBrandingColors(projectId, statusPageId) {
+    return function(dispatch) {
+        const promise = putApi(
+            `statusPage/${projectId}/${statusPageId}/resetColors`
+        );
+        dispatch(resetBrandingColorsRequest());
+        promise.then(
+            function(response) {
+                const colors = response.data;
+                dispatch(resetBrandingColorsSuccess(colors));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(resetBrandingColorsError(errors(error)));
             }
         );
 

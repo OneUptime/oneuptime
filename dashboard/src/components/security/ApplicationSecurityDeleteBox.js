@@ -8,13 +8,27 @@ import { openModal } from '../../actions/modal';
 import DeleteApplicationSecurity from '../modals/DeleteApplicationSecurity';
 
 export class ApplicationSecurityDeleteBox extends Component {
-    handleDelete = ({ projectId, componentId, applicationSecurityId }) => {
+    handleDelete = ({
+        projectId,
+        componentId,
+        applicationSecurityId,
+        applicationSecuritySlug,
+        componentSlug,
+    }) => {
         const { openModal } = this.props;
 
         openModal({
             id: applicationSecurityId,
             content: DeleteApplicationSecurity,
-            propArr: [{ projectId, componentId, applicationSecurityId }],
+            propArr: [
+                {
+                    projectId,
+                    componentId,
+                    applicationSecurityId,
+                    applicationSecuritySlug,
+                    componentSlug,
+                },
+            ],
         });
     };
 
@@ -24,6 +38,8 @@ export class ApplicationSecurityDeleteBox extends Component {
             projectId,
             componentId,
             applicationSecurityId,
+            applicationSecuritySlug,
+            componentSlug,
         } = this.props;
 
         return (
@@ -53,6 +69,8 @@ export class ApplicationSecurityDeleteBox extends Component {
                                                 projectId,
                                                 componentId,
                                                 applicationSecurityId,
+                                                applicationSecuritySlug,
+                                                componentSlug,
                                             })
                                         }
                                     >
@@ -86,8 +104,10 @@ const mapStateToProps = state => {
 
 ApplicationSecurityDeleteBox.propTypes = {
     componentId: PropTypes.string.isRequired,
+    componentSlug: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     applicationSecurityId: PropTypes.string.isRequired,
+    applicationSecuritySlug: PropTypes.string,
     openModal: PropTypes.func.isRequired,
     deleting: PropTypes.bool,
 };

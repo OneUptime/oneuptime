@@ -57,6 +57,10 @@ export const API_DOCS_URL = docsUrl;
 
 export const IS_SAAS_SERVICE = booleanParser(env('IS_SAAS_SERVICE'));
 
+export const IS_INTERNAL_SMTP_DEPLOYED = booleanParser(
+    env('INTERNAL_SMTP_SERVER')
+);
+
 export const IS_THIRD_PARTY_BILLING =
     env('IS_THIRD_PARTY_BILLING') === 'true' ? true : false;
 
@@ -162,6 +166,17 @@ export const Validate = {
             return true;
         }
         return false;
+    },
+    numberGreaterThanZero(number) {
+        if (typeof number === 'string' && number.length === 0) {
+            return false;
+        }
+
+        if (number && !isNaN(number) && number > 0) {
+            return true;
+        } else {
+            return false;
+        }
     },
 
     isStrongPassword(password) {

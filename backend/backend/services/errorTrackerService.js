@@ -38,6 +38,10 @@ module.exports = {
             if (resourceCategory) {
                 errorTracker.resourceCategory = data.resourceCategory;
             }
+            let name = data.name;
+            name = slugify(name);
+            name = `${name}-${generate('1234567890', 8)}`;
+            errorTracker.slug = name.toLowerCase();
             const savedErrorTracker = await errorTracker.save();
             errorTracker = await _this.findOneBy({
                 _id: savedErrorTracker._id,
@@ -178,6 +182,12 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
+            if (data.name) {
+                let name = data.name;
+                name = slugify(name);
+                name = `${name}-${generate('1234567890', 8)}`;
+                data.slug = name.toLowerCase();
+            }
             let errorTracker = await ErrorTrackerModel.findOneAndUpdate(
                 query,
                 { $set: data },
@@ -215,3 +225,5 @@ const ResourceCategoryService = require('./resourceCategoryService');
 const RealTimeService = require('./realTimeService');
 const NotificationService = require('./notificationService');
 const uuid = require('uuid');
+const generate = require('nanoid/generate');
+const slugify = require('slugify');

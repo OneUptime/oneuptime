@@ -42,7 +42,6 @@ describe('Scheduled Event Note', () => {
 
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
             // Create component
             await init.addComponent(componentName, page);
             // Create monitor
@@ -52,8 +51,13 @@ describe('Scheduled Event Note', () => {
                 page,
                 componentName
             );
-            // Create a scheduled event
-            await init.addScheduledEvent(monitorName, scheduledEventName, page);
+            // Create a scheduled maintenance
+            await init.addScheduledMaintenance(
+                monitorName,
+                scheduledEventName,
+                componentName,
+                page
+            );
         });
 
         done();
@@ -66,141 +70,14 @@ describe('Scheduled Event Note', () => {
     });
 
     test(
-        'should create an investigation note',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#scheduledEvents', {
-                    visible: true,
-                });
-                await page.click('#scheduledEvents');
-
-                await page.waitForSelector('#viewScheduledEvent_0', {
-                    visible: true,
-                });
-                await page.click('#viewScheduledEvent_0');
-                // navigate to the note tab section
-                await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
-                await page.waitForSelector('#add-investigation-message', {
-                    visible: true,
-                });
-                await page.click('#add-investigation-message');
-                await page.waitForSelector('#event_state', {
-                    visible: true,
-                });
-                await init.selectByText('#event_state', 'investigating', page);
-                await page.click('#new-investigation');
-                await page.type(
-                    '#new-investigation',
-                    'Some random description'
-                );
-                await page.click('#investigation-addButton');
-                await page.waitForSelector(
-                    '#form-new-schedule-investigation-message',
-                    { hidden: true }
-                );
-                const note = await page.waitForSelector(
-                    '#Investigation_incident_message_0',
-                    { visible: true }
-                );
-                expect(note).toBeDefined();
-            });
-            done();
-        },
-        operationTimeOut
-    );
-
-    test(
-        'should edit an investigation note',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#scheduledEvents', {
-                    visible: true,
-                });
-                await page.click('#scheduledEvents');
-
-                await page.waitForSelector('#viewScheduledEvent_0', {
-                    visible: true,
-                });
-                await page.click('#viewScheduledEvent_0');
-                // navigate to the note tab section
-                await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
-
-                await page.waitForSelector(
-                    '#edit_Investigation_incident_message_0',
-                    { visible: true }
-                );
-                await page.click('#edit_Investigation_incident_message_0');
-                await page.waitForSelector('#update-investigation', {
-                    visible: true,
-                });
-                await page.click('#update-investigation', { clickCount: 3 });
-                await page.type(
-                    '#update-investigation',
-                    'An updated description'
-                );
-                await page.click('#investigation-updateButton');
-                await page.waitForSelector(
-                    '#form-update-schedule-investigation-message',
-                    { hidden: true }
-                );
-                const edited = await page.waitForSelector(
-                    '#edited_Investigation_incident_message_0',
-                    { visible: true }
-                );
-                expect(edited).toBeDefined();
-            });
-            done();
-        },
-        operationTimeOut
-    );
-
-    test(
-        'should delete an investigation note',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#scheduledEvents', {
-                    visible: true,
-                });
-                await page.click('#scheduledEvents');
-
-                await page.waitForSelector('#viewScheduledEvent_0', {
-                    visible: true,
-                });
-                await page.click('#viewScheduledEvent_0');
-                // navigate to the note tab section
-                await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
-                await page.waitForSelector(
-                    '#delete_Investigation_incident_message_0',
-                    { visible: true }
-                );
-                await page.click('#delete_Investigation_incident_message_0');
-                await page.waitForSelector('#deleteNote', { visible: true });
-                await page.click('#deleteNote');
-                await page.waitForSelector('#deleteNote', { hidden: true });
-
-                const note = await page.waitForSelector(
-                    '#delete_Investigation_incident_message_0',
-                    { hidden: true }
-                );
-                expect(note).toBeNull();
-            });
-            done();
-        },
-        operationTimeOut
-    );
-
-    test(
         'should create an internal note',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#scheduledEvents', {
+                await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
                 });
-                await page.click('#scheduledEvents');
+                await page.click('#scheduledMaintenance');
 
                 await page.waitForSelector('#viewScheduledEvent_0', {
                     visible: true,
@@ -215,12 +92,12 @@ describe('Scheduled Event Note', () => {
                 await page.waitForSelector('#event_state', {
                     visible: true,
                 });
-                await init.selectByText('#event_state', 'update', page);
+                await init.selectByText('#event_state', 'investigating', page);
                 await page.click('#new-internal');
                 await page.type('#new-internal', 'Some random description');
                 await page.click('#internal-addButton');
                 await page.waitForSelector(
-                    '#form-new-schedule-internal-message',
+                    '#form-new-schedule-investigation-message',
                     { hidden: true }
                 );
                 const note = await page.waitForSelector(
@@ -239,10 +116,10 @@ describe('Scheduled Event Note', () => {
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#scheduledEvents', {
+                await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
                 });
-                await page.click('#scheduledEvents');
+                await page.click('#scheduledMaintenance');
 
                 await page.waitForSelector('#viewScheduledEvent_0', {
                     visible: true,
@@ -250,6 +127,7 @@ describe('Scheduled Event Note', () => {
                 await page.click('#viewScheduledEvent_0');
                 // navigate to the note tab section
                 await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
+
                 await page.waitForSelector(
                     '#edit_Internal_incident_message_0',
                     { visible: true }
@@ -281,10 +159,10 @@ describe('Scheduled Event Note', () => {
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#scheduledEvents', {
+                await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
                 });
-                await page.click('#scheduledEvents');
+                await page.click('#scheduledMaintenance');
 
                 await page.waitForSelector('#viewScheduledEvent_0', {
                     visible: true,
@@ -311,15 +189,16 @@ describe('Scheduled Event Note', () => {
         },
         operationTimeOut
     );
+    // Deleted three tests that repeated
 });
 
-describe('Scheduled Event Note ==> Pagination and Deletion', () => {
+describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
     const operationTimeOut = 50000;
 
     let cluster;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(2000000);
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
@@ -341,17 +220,21 @@ describe('Scheduled Event Note ==> Pagination and Deletion', () => {
 
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
             // Create component and monitor
             await init.addMonitorToComponent(componentName, monitorName, page);
             // Create a scheduled event
-            await init.addScheduledEvent(monitorName, scheduledEventName, page);
+            await init.addScheduledMaintenance(
+                monitorName,
+                scheduledEventName,
+                componentName,
+                page
+            );
             // create multiple notes
             for (let i = 0; i < 15; i++) {
                 const noteDescription = utils.generateRandomString();
-                await init.addScheduledEventNote(
+                await init.addScheduledMaintenanceNote(
                     page,
-                    'investigation',
+                    'internal',
                     'viewScheduledEvent_0',
                     noteDescription
                 );
@@ -368,14 +251,14 @@ describe('Scheduled Event Note ==> Pagination and Deletion', () => {
     });
 
     test(
-        'should load first 10 scheduled event note => investigation note',
+        'should load first 10 scheduled maintenance note => internal note',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#scheduledEvents', {
+                await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
                 });
-                await page.click('#scheduledEvents');
+                await page.click('#scheduledMaintenance');
 
                 await page.waitForSelector('#viewScheduledEvent_0', {
                     visible: true,
@@ -384,7 +267,7 @@ describe('Scheduled Event Note ==> Pagination and Deletion', () => {
                 // navigate to the note tab section
                 await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
                 const tenthItem = await page.waitForSelector(
-                    '#Investigation_incident_message_9',
+                    '#Internal_incident_message_9',
                     { visible: true }
                 );
                 expect(tenthItem).toBeDefined();
@@ -395,14 +278,14 @@ describe('Scheduled Event Note ==> Pagination and Deletion', () => {
     );
 
     test(
-        'should load the remaining 5 scheduled event note => investigation note',
+        'should load the remaining 5 scheduled maintenance note => internal note',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#scheduledEvents', {
+                await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
                 });
-                await page.click('#scheduledEvents');
+                await page.click('#scheduledMaintenance');
 
                 await page.waitForSelector('#viewScheduledEvent_0', {
                     visible: true,
@@ -414,11 +297,11 @@ describe('Scheduled Event Note ==> Pagination and Deletion', () => {
                 await page.click('#nextBtn');
 
                 const fifthItem = await page.waitForSelector(
-                    '#Investigation_incident_message_4',
+                    '#Internal_incident_message_4',
                     { visible: true }
                 );
                 const sixthItem = await page.waitForSelector(
-                    '#Investigation_incident_message_5',
+                    '#Internal_incident_message_5',
                     { hidden: true }
                 );
 
@@ -430,14 +313,14 @@ describe('Scheduled Event Note ==> Pagination and Deletion', () => {
         operationTimeOut
     );
     test(
-        'should visit the advance section and delete the schedule event',
+        'should visit the advance section and delete the schedule maintenance',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#scheduledEvents', {
+                await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
                 });
-                await page.click('#scheduledEvents');
+                await page.click('#scheduledMaintenance');
 
                 await page.waitForSelector('#viewScheduledEvent_0', {
                     visible: true,

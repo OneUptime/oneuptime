@@ -60,6 +60,7 @@ import {
     FETCH_LAST_INCIDENT_TIMELINES_FAILURE,
     SHOW_EVENT_CARD,
     SHOW_INCIDENT_CARD,
+    NEW_THEME_NOTES_SUCCESS,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -156,6 +157,12 @@ const INITIAL_STATE = {
     },
     showEventCard: false,
     showIncidentCard: true,
+    newThemeIncidentNotes: {
+        notes: [],
+        requesting: false,
+        error: null,
+        success: false,
+    },
 };
 
 export default (state = INITIAL_STATE, action) => {
@@ -313,6 +320,19 @@ export default (state = INITIAL_STATE, action) => {
                 },
             });
 
+        case NEW_THEME_NOTES_SUCCESS:
+            return Object.assign({}, state, {
+                newThemeIncidentNotes: {
+                    error: null,
+                    notes:
+                        action.payload && action.payload.data
+                            ? action.payload.data
+                            : [],
+                    requesting: false,
+                    success: true,
+                },
+            });
+
         case STATUSPAGE_NOTES_FAILURE:
             return Object.assign({}, state, {
                 notes: {
@@ -349,12 +369,43 @@ export default (state = INITIAL_STATE, action) => {
         case 'ADD_INCIDENT_NOTE': {
             let addToIncident = false;
             let notes = [...state.incidentNotes.notes];
+            const noteData = state.notes.notes,
+                result = [];
+            const check = noteData.find(
+                note =>
+                    String(note._id) === String(action.payload.incidentId._id)
+            );
             if (
                 String(state.incident.incident._id) ===
                 String(action.payload.incidentId._id)
             ) {
                 addToIncident = true;
                 notes = [action.payload, ...notes];
+            }
+            if (check && noteData) {
+                let oneNote;
+                noteData.forEach(item => {
+                    if (
+                        String(item._id) ===
+                        String(action.payload.incidentId._id)
+                    ) {
+                        const messageLog =
+                            item.message && item.message.length > 0
+                                ? item.message
+                                : [];
+                        oneNote = {
+                            ...item,
+                            message: [...messageLog, action.payload],
+                        };
+                    }
+                });
+                noteData.forEach(elem => {
+                    if (String(elem._id) === String(oneNote._id)) {
+                        elem = oneNote;
+                    }
+                    result.push(elem);
+                });
+                notes = result;
             }
 
             return {
@@ -365,6 +416,10 @@ export default (state = INITIAL_STATE, action) => {
                     count: addToIncident
                         ? state.incidentNotes.count + 1
                         : state.incidentNotes.count,
+                },
+                notes: {
+                    ...state.notes,
+                    notes: notes,
                 },
             };
         }
@@ -1276,7 +1331,7 @@ export default (state = INITIAL_STATE, action) => {
         case 'INCIDENT_CREATED': {
             let incidentFound = false;
             const statusPageMonitorIds = state.statusPage.monitors.map(
-                monitorData => String(monitorData.monitor)
+                monitorData => String(monitorData.monitor._id)
             );
             let notes = state.notes.notes.map(note => {
                 if (String(note._id) === String(action.payload._id)) {

@@ -449,8 +449,14 @@ router.post('/sso/callback', async function(req, res) {
 router.post('/login', async function(req, res) {
     try {
         const data = req.body;
-        const clientIP =
-            req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        let clientIP;
+        if (req.headers['x-forwarded-for']) {
+            clientIP = req.headers['x-forwarded-for'].split(',')[0];
+        } else if (req.connection && req.connection.remoteAddress) {
+            clientIP = req.connection.remoteAddress;
+        } else {
+            clientIP = req.ip;
+        }
 
         if (!data.email) {
             return sendErrorResponse(req, res, {
@@ -481,10 +487,12 @@ router.post('/login', async function(req, res) {
         }
 
         // Call the UserService
+        const userAgent = req.get('user-agent');
         const user = await UserService.login(
             data.email,
             data.password,
-            clientIP
+            clientIP,
+            userAgent
         );
 
         let authUserObj;
@@ -915,6 +923,22 @@ router.put('/profile', getUser, async function(req, res) {
 });
 
 // Route
+// Description: Turns on or off Push Notification
+// Params:
+// Param 1: req.headers-> {authorization}; req.user-> {id};
+// Returns: 200: Success, 400: Error; 500: Server Error.
+router.put('/push-notification', getUser, async function(req, res) {
+    try {
+        const userId = req.user ? req.user.id : null;
+        const data = req.body;
+        const user = await UserService.updatePush({ userId, data });
+        return sendItemResponse(req, res, user);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Route
 // Description: Turns on or off 2FA.
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
@@ -1117,6 +1141,7 @@ router.get('/profile', getUser, async function(req, res) {
             tempEmail: user.tempEmail || null,
             tempAlertPhoneNumber: user.tempAlertPhoneNumber || null,
             role: user.role || null,
+            identification: user.identification,
         };
         return sendItemResponse(req, res, userObj);
     } catch (error) {
@@ -1465,6 +1490,18 @@ router.delete('/:userId/delete', getUser, async function(req, res) {
             });
         const deletedUser = await UserService.deleteBy({ _id: userId }, userId);
         return sendItemResponse(req, res, { user: deletedUser });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/:token/email', async function(req, res) {
+    try {
+        const token = await VerificationTokenModel.findOne({
+            token: req.params.token,
+        }).populate('userId', 'email');
+
+        return sendItemResponse(req, res, { token });
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

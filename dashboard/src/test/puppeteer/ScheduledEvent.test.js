@@ -9,8 +9,8 @@ const password = '1234567890';
 
 const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
-const scheduledEventName = utils.generateRandomString();
-const newScheduledEventName = utils.generateRandomString();
+const scheduleMaintenanceName = utils.generateRandomString();
+const newScheduledMaintenanceName = utils.generateRandomString();
 
 describe('Scheduled event', () => {
     const operationTimeOut = 50000;
@@ -40,7 +40,6 @@ describe('Scheduled event', () => {
 
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
             // Create component
             await init.addComponent(componentName, page);
             await init.addMonitorToComponent(
@@ -63,10 +62,10 @@ describe('Scheduled event', () => {
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#scheduledEvents', {
+                await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
                 });
-                await page.click('#scheduledEvents');
+                await page.click('#scheduledMaintenance');
                 await page.waitForSelector('#addScheduledEventButton', {
                     visible: true,
                 });
@@ -77,14 +76,14 @@ describe('Scheduled event', () => {
                 });
                 await page.waitForSelector('#name');
                 await page.click('#name');
-                await page.type('#name', scheduledEventName);
+                await page.type('#name', scheduleMaintenanceName);
                 await page.click('label[for=selectAllMonitorsBox]');
                 await page.click('#addMoreMonitor');
                 await page.waitForSelector('#monitorfield_0');
-                await init.selectByText('#monitorfield_0', monitorName, page);
+                await init.selectByText('#monitorfield_0', componentName, page); // "ComponentName / MonitorName" is in the dropdown. Using only ComponentName selects both
                 await page.click('#addMoreMonitor');
                 await page.waitForSelector('#monitorfield_1');
-                await init.selectByText('#monitorfield_1', monitorName, page);
+                await init.selectByText('#monitorfield_1', componentName, page);
                 await page.click('#description');
                 await page.type(
                     '#description',
@@ -124,10 +123,10 @@ describe('Scheduled event', () => {
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#scheduledEvents', {
+                await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
                 });
-                await page.click('#scheduledEvents');
+                await page.click('#scheduledMaintenance');
                 await page.waitForSelector('#addScheduledEventButton', {
                     visible: true,
                 });
@@ -138,11 +137,11 @@ describe('Scheduled event', () => {
                 });
                 await page.waitForSelector('#name');
                 await page.click('#name');
-                await page.type('#name', scheduledEventName);
+                await page.type('#name', scheduleMaintenanceName);
                 await page.click('label[for=selectAllMonitorsBox]');
                 await page.click('#addMoreMonitor');
                 await page.waitForSelector('#monitorfield_0');
-                await init.selectByText('#monitorfield_0', monitorName, page);
+                await init.selectByText('#monitorfield_0', componentName, page);
                 await page.click('#description');
                 await page.type(
                     '#description',
@@ -172,11 +171,13 @@ describe('Scheduled event', () => {
                 await page.waitForSelector('.scheduled-event-list-item', {
                     visible: true,
                 });
-                const scheduledEventList = await page.$$(
+                const scheduledMaintenanceList = await page.$$(
                     '.scheduled-event-list-item'
                 );
 
-                expect(scheduledEventList.length).toBeGreaterThanOrEqual(1);
+                expect(scheduledMaintenanceList.length).toBeGreaterThanOrEqual(
+                    1
+                );
             });
             done();
         },
@@ -188,10 +189,10 @@ describe('Scheduled event', () => {
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#scheduledEvents', {
+                await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
                 });
-                await page.click('#scheduledEvents');
+                await page.click('#scheduledMaintenance');
                 await page.waitForSelector('#editCredentialBtn_0', {
                     visible: true,
                 });
@@ -201,7 +202,7 @@ describe('Scheduled event', () => {
                 });
                 await page.waitForSelector('#name');
                 await page.click('#name', { clickCount: 3 });
-                await page.type('#name', newScheduledEventName);
+                await page.type('#name', newScheduledMaintenanceName);
                 await page.click('#updateScheduledEventButton');
                 await page.waitForSelector('#editScheduledEventForm', {
                     hidden: true,
@@ -215,7 +216,9 @@ describe('Scheduled event', () => {
                         document.querySelector('.scheduled-event-name')
                             .textContent
                 );
-                expect(eventName).toBe(utils.capitalize(newScheduledEventName));
+                expect(eventName).toBe(
+                    utils.capitalize(newScheduledMaintenanceName)
+                );
             });
             done();
         },
@@ -227,10 +230,10 @@ describe('Scheduled event', () => {
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#scheduledEvents', {
+                await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
                 });
-                await page.click('#scheduledEvents');
+                await page.click('#scheduledMaintenance');
 
                 await page.waitForSelector('#deleteCredentialBtn_0', {
                     visible: true,

@@ -42,7 +42,9 @@ describe('Project Settings', () => {
 
                 // user
                 await init.registerUser(user, page);
+                await init.logout(page);
                 await init.registerUser(memberUser, page);
+                await init.logout(page);
                 await init.loginUser({ email, password }, page);
                 await init.renameProject(newProjectName, page);
                 await init.addUserToProject(
@@ -53,6 +55,7 @@ describe('Project Settings', () => {
                     },
                     page
                 );
+                await page.waitForSelector('#added_team_members');
                 await init.logout(page);
             }
         );

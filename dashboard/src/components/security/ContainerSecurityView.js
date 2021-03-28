@@ -17,8 +17,10 @@ import threatLevel from '../../utils/threatLevel';
 const ContainerSecurityView = ({
     isRequesting,
     containerSecurityId,
+    containerSecuritySlug,
     projectId,
     componentId,
+    componentSlug,
     openModal,
     scanContainerSecurity,
     securityLog,
@@ -27,19 +29,44 @@ const ContainerSecurityView = ({
     scanError,
     activeContainerSecurity,
 }) => {
-    const handleDelete = ({ projectId, componentId, containerSecurityId }) => {
+    const handleDelete = ({
+        projectId,
+        componentId,
+        containerSecurityId,
+        containerSecuritySlug,
+    }) => {
         openModal({
             id: containerSecurityId,
             content: DeleteContainerSecurity,
-            propArr: [{ projectId, componentId, containerSecurityId }],
+            propArr: [
+                {
+                    projectId,
+                    componentId,
+                    containerSecurityId,
+                    containerSecuritySlug,
+                    componentSlug,
+                },
+            ],
         });
     };
 
-    const handleEdit = ({ projectId, componentId, containerSecurityId }) => {
+    const handleEdit = ({
+        projectId,
+        componentId,
+        containerSecurityId,
+        containerSecuritySlug,
+    }) => {
         openModal({
             id: containerSecurityId,
             content: EditContainerSecurity,
-            propArr: [{ projectId, componentId, containerSecurityId }],
+            propArr: [
+                {
+                    projectId,
+                    componentId,
+                    containerSecurityId,
+                    containerSecuritySlug,
+                },
+            ],
         });
     };
 
@@ -212,6 +239,7 @@ const ContainerSecurityView = ({
                                             projectId,
                                             componentId,
                                             containerSecurityId,
+                                            containerSecuritySlug,
                                         })
                                     }
                                 >
@@ -226,6 +254,7 @@ const ContainerSecurityView = ({
                                             projectId,
                                             componentId,
                                             containerSecurityId,
+                                            containerSecuritySlug,
                                         })
                                     }
                                 >
@@ -281,8 +310,10 @@ ContainerSecurityView.displayName = 'Container Security View';
 ContainerSecurityView.propTypes = {
     isRequesting: PropTypes.bool,
     containerSecurityId: PropTypes.string,
+    containerSecuritySlug: PropTypes.string,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     openModal: PropTypes.func,
     scanContainerSecurity: PropTypes.func,
     scanning: PropTypes.bool,

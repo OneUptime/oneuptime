@@ -605,3 +605,54 @@ export function setTwoFactorAuth(enabled) {
         payload: enabled,
     };
 }
+
+//fetching user login history
+// Update user twoFactorAuthToken
+export function fetchUserHistoryRequest() {
+    return {
+        type: types.FETCH_USER_LOGIN_HISTORY_REQUEST,
+    };
+}
+
+export function fetchUserHistorySuccess(payload) {
+    return {
+        type: types.FETCH_USER_LOGIN_HISTORY_SUCCESS,
+        payload: payload,
+    };
+}
+
+export function fetchUserHistoryError(error) {
+    return {
+        type: types.FETCH_USER_LOGIN_HISTORY_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchUserloginHistory(userId, skip, limit = 10) {
+    return function(dispatch) {
+        const promise = getApi(`history/${userId}?skip=${skip}&limit=${limit}`);
+        dispatch(fetchUserHistoryRequest());
+        promise.then(
+            function(response) {
+                const payload = response.data;
+                dispatch(fetchUserHistorySuccess(payload));
+                return payload;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchUserHistoryError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}

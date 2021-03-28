@@ -7,7 +7,13 @@ const teamSchema = new Schema({
             startTime: Date,
             endTime: Date,
             timezone: String,
-            userId: { type: String, ref: 'User', index: true },
+            userId: { type: String, ref: 'User', index: true, default: null },
+            groupId: {
+                type: String,
+                ref: 'Groups',
+                index: true,
+                default: null,
+            },
         },
     ],
 });
@@ -23,6 +29,7 @@ const escalationSchema = new Schema({
     callReminders: { type: Number, default: null },
     emailReminders: { type: Number, default: null },
     smsReminders: { type: Number, default: null },
+    pushReminders: { type: Number, default: null },
     rotateBy: { type: String, default: null },
     rotationInterval: { type: Number, default: null },
     firstRotationOn: Date,
@@ -30,12 +37,12 @@ const escalationSchema = new Schema({
     call: { type: Boolean, default: false },
     email: { type: Boolean, default: false },
     sms: { type: Boolean, default: false },
+    push: { type: Boolean, default: false },
     createdById: { type: String, ref: 'User', default: null, index: true },
     scheduleId: { type: String, ref: 'Schedule', default: null },
     teams: { type: [teamSchema], default: null },
     createdAt: { type: Date, default: Date.now },
     deleted: { type: Boolean, default: false },
-
     deletedAt: {
         type: Date,
     },
@@ -49,4 +56,12 @@ escalationSchema.virtual('teams.teamMembers.user', {
     foreignField: '_id',
     justOne: true,
 });
+
+escalationSchema.virtual('teams.teamMembers.groups', {
+    ref: 'Groups',
+    localField: 'teams.teamMembers.groupId',
+    foreignField: '_id',
+    justOne: true,
+});
+
 module.exports = mongoose.model('Escalation', escalationSchema);

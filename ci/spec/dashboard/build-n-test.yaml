@@ -29,7 +29,7 @@ test_dashboard:
         - sudo docker run --env-file ./dashboard/.env -e IS_SAAS_SERVICE=true -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
         - sudo docker ps
         - npm i
-        - cd server-monitor
+        - cd js-sdk
         - npm ci
         - cd ..
         - cd dashboard

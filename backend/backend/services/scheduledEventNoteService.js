@@ -103,8 +103,6 @@ module.exports = {
 
             if (!query) query = {};
 
-            if (!query.deleted) query.deleted = false;
-
             const eventMessage = await ScheduledEventNoteModel.find(query)
                 .limit(limit)
                 .skip(skip)
@@ -124,7 +122,6 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            query.deleted = false;
             const count = await ScheduledEventNoteModel.countDocuments(query);
             return count;
         } catch (error) {

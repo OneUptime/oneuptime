@@ -26,6 +26,11 @@ module.exports = {
                     path: 'meta.incidentId',
                     model: 'Incident',
                     select: '_id idNumber',
+                })
+                .populate({
+                    path: 'meta.componentId',
+                    model: 'Component',
+                    select: '_id slug',
                 });
             return notifications;
         } catch (error) {
@@ -179,6 +184,11 @@ module.exports = {
                     path: 'meta.incidentId',
                     model: 'Incident',
                     select: '_id idNumber',
+                })
+                .populate({
+                    path: 'meta.componentId',
+                    model: 'Component',
+                    select: '_id slug',
                 });
             return notification;
         } catch (error) {

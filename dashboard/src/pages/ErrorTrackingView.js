@@ -7,7 +7,8 @@ import { connect } from 'react-redux';
 import PropsType from 'prop-types';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { logEvent } from '../analytics';
-import { fetchErrorTrackers } from '../actions/errorTracker';
+import { fetchErrorTrackers, editErrorTracker } from '../actions/errorTracker';
+import { fetchComponent } from '../actions/component';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
@@ -23,15 +24,42 @@ class ErrorTrackingView extends Component {
             );
         }
     }
+    componentDidUpdate(prevProps) {
+        if (
+            String(prevProps.componentSlug) !== String(this.props.componentSlug)
+        ) {
+            this.props.fetchComponent(this.props.componentSlug);
+        }
+
+        if (String(prevProps.componentId) !== String(this.props.componentId)) {
+            this.props.fetchErrorTrackers(
+                this.props.currentProject._id,
+                this.props.componentId
+            );
+        }
+    }
     ready = () => {
-        const componentId = this.props.match.params.componentId
-            ? this.props.match.params.componentId
-            : null;
+        const { componentSlug, fetchComponent, componentId } = this.props;
+        fetchComponent(componentSlug);
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
-
-        this.props.fetchErrorTrackers(projectId, componentId);
+        if (projectId && componentId) {
+            this.props.fetchErrorTrackers(projectId, componentId);
+        }
+    };
+    handleCloseQuickStart = () => {
+        const postObj = { showQuickStart: false };
+        const { errorTracker, editErrorTracker } = this.props;
+        const projectId = this.props.currentProject
+            ? this.props.currentProject._id
+            : null;
+        editErrorTracker(
+            projectId,
+            errorTracker[0].componentId._id,
+            errorTracker[0]._id,
+            postObj
+        );
     };
     render() {
         const {
@@ -64,16 +92,22 @@ class ErrorTrackingView extends Component {
                         <LoadingState />
                     </ShouldRender>
                     <ShouldRender if={errorTracker && errorTracker[0]}>
-                        <LibraryList
-                            title="Error Tracking"
-                            type="errorTracking"
-                            errorTracker={errorTracker[0]}
-                        />
+                        {errorTracker &&
+                        errorTracker[0] &&
+                        errorTracker[0].showQuickStart ? (
+                            <LibraryList
+                                title="Error Tracking"
+                                type="errorTracking"
+                                errorTracker={errorTracker[0]}
+                                close={this.handleCloseQuickStart}
+                            />
+                        ) : null}
                         <div>
                             <ErrorTrackerDetail
                                 componentId={component?._id}
                                 index={errorTracker[0]?._id}
                                 isDetails={true}
+                                componentSlug={component?.slug}
                             />
                         </div>
 
@@ -95,36 +129,38 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             fetchErrorTrackers,
+            editErrorTracker,
+            fetchComponent,
         },
         dispatch
     );
 };
 const mapStateToProps = (state, ownProps) => {
-    const { componentId, errorTrackerId } = ownProps.match.params;
+    const { errorTrackerSlug, componentSlug } = ownProps.match.params;
     const currentProject = state.project.currentProject;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
-                component = c;
-            }
-        });
-    });
     const errorTracker = state.errorTracker.errorTrackersList.errorTrackers.filter(
-        errorTracker => errorTracker._id === errorTrackerId
+        errorTracker => errorTracker.slug === errorTrackerSlug
     );
     return {
         currentProject,
-        component,
+        componentId:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
+        component:
+            state.component && state.component.currentComponent.component,
         errorTracker,
+        componentSlug,
     };
 };
 ErrorTrackingView.propTypes = {
     component: PropsType.object,
     currentProject: PropsType.object,
     location: PropsType.object,
-    match: PropsType.object,
     fetchErrorTrackers: PropsType.func,
+    componentSlug: PropsType.string,
+    fetchComponent: PropsType.func,
     errorTracker: PropsType.array,
+    editErrorTracker: PropsType.func,
+    componentId: PropsType.string,
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorTrackingView);

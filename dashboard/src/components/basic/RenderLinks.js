@@ -123,6 +123,7 @@ const RenderLinks = ({
                                                                 {
                                                                     footerName:
                                                                         link.name,
+                                                                    index: i,
                                                                     submitForm: submitForm,
                                                                     statusPage: statusPage,
                                                                 }
@@ -153,7 +154,7 @@ const RenderLinks = ({
                                                                 return new Promise(
                                                                     resolve => {
                                                                         removeFooterLink(
-                                                                            link.name
+                                                                            i
                                                                         );
                                                                         resolve(
                                                                             true

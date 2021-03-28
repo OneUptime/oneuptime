@@ -423,7 +423,7 @@ class EventBox extends Component {
                                         No monitors was added to this project.{' '}
                                         {parentProjectId ? (
                                             <Link
-                                                to={`/dashboard/project/${this.props.currentProject.slug}/components`}
+                                                to={`/dashboard/project/${this.props.slug}/components`}
                                                 style={{
                                                     textDecoration: 'underline',
                                                 }}
@@ -432,7 +432,7 @@ class EventBox extends Component {
                                             </Link>
                                         ) : (
                                             <Link
-                                                to={`/dashboard/project/${this.props.currentProject.slug}/components`}
+                                                to={`/dashboard/project/${this.props.slug}/components`}
                                                 style={{
                                                     textDecoration: 'underline',
                                                 }}
@@ -578,6 +578,7 @@ EventBox.propTypes = {
     limit: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     count: PropTypes.number,
     name: PropTypes.string,
+    slug: PropTypes.string,
     scheduledEvents: PropTypes.array,
     profileSettings: PropTypes.object,
     error: PropTypes.object,
@@ -625,6 +626,7 @@ const mapStateToProps = (state, ownProps) => {
     return {
         monitors,
         pages: state.scheduledEvent.pages,
+        slug: state.project.currentProject && state.project.currentProject.slug,
     };
 };
 

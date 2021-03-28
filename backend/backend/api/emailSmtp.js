@@ -19,7 +19,7 @@ const UserService = require('../services/userService');
 router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         let data = req.body;
-        if (!data.internalSmtp) {
+        if (data.smtpToUse === 'customSmtp') {
             if (!data.user) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -61,10 +61,22 @@ router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
                     message: 'from is required.',
                 });
             }
-        } else {
-            const internalData = await MailService.getSmtpSettings();
-            data = { ...data, ...internalData };
+
+            data.internalSmtp = false;
+        } else if (data.smtpToUse === 'internalSmtp') {
+            data = {
+                ...data,
+                internalSmtp: true,
+                user: process.env.INTERNAL_SMTP_USER,
+                pass: process.env.INTERNAL_SMTP_PASSWORD,
+                host: process.env.INTERNAL_SMTP_SERVER,
+                port: process.env.INTERNAL_SMTP_PORT,
+                from: process.env.INTERNAL_SMTP_FROM,
+                name: process.env.INTERNAL_SMTP_NAME,
+                secure: false,
+            };
         }
+
         let response = await MailService.testSmtpConfig(data);
         response = { message: 'Email sent successfully' };
         return sendItemResponse(req, res, response);

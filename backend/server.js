@@ -129,6 +129,7 @@ app.use(
 );
 app.use(['/alert', '/api/alert'], require('./backend/api/alert'));
 app.use(['/user', '/api/user'], require('./backend/api/user'));
+app.use(['/history', '/api/history'], require('./backend/api/loginHistory'));
 app.use(['/token', '/api/token'], require('./backend/api/token'));
 app.use(['/team', '/api/team'], require('./backend/api/team'));
 app.use(['/project', '/api/project'], require('./backend/api/project'));
@@ -271,6 +272,8 @@ app.use(
     ['/callRouting', '/api/callRouting'],
     require('./backend/api/callRouting')
 );
+app.use(['/group', '/api/group'], require('./backend/api/groups'));
+
 app.set('port', process.env.PORT || 3002);
 
 const server = http.listen(app.get('port'), function() {

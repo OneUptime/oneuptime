@@ -232,6 +232,7 @@ class TwoFactorAuthModal extends Component {
                                                                             margin:
                                                                                 '0 auto',
                                                                         }}
+                                                                        id="qr-code"
                                                                     />
                                                                 ) : (
                                                                     <ListLoader />

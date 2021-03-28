@@ -144,6 +144,7 @@ module.exports = {
                     {
                         $set: {
                             monitorId: data.monitorId,
+                            'data.webHookName': data.webHookName,
                             'data.endpoint': data.endpoint,
                             'data.monitorId': data.monitorId,
                             'data.endpointType': data.endpointType,
@@ -153,6 +154,8 @@ module.exports = {
                                 data.incidentResolved,
                             'notificationOptions.incidentAcknowledged':
                                 data.incidentAcknowledged,
+                            'notificationOptions.incidentNoteAdded':
+                                data.incidentNoteAdded,
                         },
                     },
                     { new: true }

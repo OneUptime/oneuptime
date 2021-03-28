@@ -13,7 +13,7 @@ const router = express.Router();
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
-        const { fieldName, fieldType } = req.body;
+        const { fieldName, fieldType, uniqueField } = req.body;
 
         if (!fieldName || !fieldName.trim()) {
             const error = new Error('Field name is required');
@@ -43,6 +43,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             projectId,
             fieldName,
             fieldType,
+            uniqueField,
         });
         return sendItemResponse(req, res, customField);
     } catch (error) {
@@ -77,7 +78,7 @@ router.put('/:projectId/:customFieldId', getUser, isAuthorized, async function(
 ) {
     try {
         const { projectId, customFieldId } = req.params;
-        const { fieldName, fieldType } = req.body;
+        const { fieldName, fieldType, uniqueField } = req.body;
 
         if (!fieldName || !fieldName.trim()) {
             const error = new Error('Field name is required');
@@ -108,6 +109,7 @@ router.put('/:projectId/:customFieldId', getUser, isAuthorized, async function(
             {
                 fieldName,
                 fieldType,
+                uniqueField,
             }
         );
         return sendItemResponse(req, res, customField);

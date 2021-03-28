@@ -19,6 +19,9 @@ import {
     UPDATE_STATUSPAGE_BRANDING_SUCCESS,
     UPDATE_STATUSPAGE_BRANDING_FAILURE,
     UPDATE_STATUSPAGE_BRANDING_RESET,
+    UPDATE_STATUSPAGE_THEME_REQUEST,
+    UPDATE_STATUSPAGE_THEME_SUCCESS,
+    UPDATE_STATUSPAGE_THEME_FAILURE,
     UPDATE_STATUSPAGE_NAME_FAILURE,
     UPDATE_STATUSPAGE_NAME_REQUEST,
     UPDATE_STATUSPAGE_NAME_RESET,
@@ -79,6 +82,9 @@ import {
     DUPLICATE_STATUSPAGE_SUCCESS,
     DUPLICATE_STATUSPAGE_FAILURE,
     DUPLICATE_STATUSPAGE_RESET,
+    RESET_BRANDING_COLORS_REQUEST,
+    RESET_BRANDING_COLORS_SUCCESS,
+    RESET_BRANDING_COLORS_FAILURE,
 } from '../constants/statusPage';
 
 import {
@@ -220,6 +226,28 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
         error: null,
+    },
+    resetBrandingColors: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    theme: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    certFile: {
+        requesting: false,
+        success: false,
+        error: null,
+        file: null,
+    },
+    privateKeyFile: {
+        requesting: false,
+        success: false,
+        error: null,
+        file: null,
     },
 };
 
@@ -616,7 +644,6 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     success: false,
                 },
             });
-
         case UPDATE_PRIVATE_STATUSPAGE_RESET:
             return Object.assign({}, state, {
                 ...INITIAL_STATE,
@@ -689,6 +716,36 @@ export default function statusPage(state = INITIAL_STATE, action) {
         case UPDATE_STATUSPAGE_BRANDING_RESET:
             return Object.assign({}, state, {
                 ...INITIAL_STATE,
+            });
+
+        // update theme
+        case UPDATE_STATUSPAGE_THEME_REQUEST:
+            return Object.assign({}, state, {
+                theme: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case UPDATE_STATUSPAGE_THEME_SUCCESS:
+            status = action.payload;
+            return Object.assign({}, state, {
+                theme: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                status,
+            });
+
+        case UPDATE_STATUSPAGE_THEME_FAILURE:
+            return Object.assign({}, state, {
+                theme: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
             });
 
         // update status page name
@@ -1205,6 +1262,116 @@ export default function statusPage(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 showDuplicateStatusPage: action.payload,
             });
+
+        case RESET_BRANDING_COLORS_REQUEST:
+            return Object.assign({}, state, {
+                resetBrandingColors: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case RESET_BRANDING_COLORS_SUCCESS:
+            return Object.assign({}, state, {
+                resetBrandingColors: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                colors: action.payload.colors,
+            });
+        case RESET_BRANDING_COLORS_FAILURE:
+            return Object.assign({}, state, {
+                resetBrandingColors: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case 'CERT_FILE_REQUEST':
+            return {
+                ...state,
+                certFile: {
+                    ...state.certFile,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case 'CERT_FILE_SUCCESS':
+            return {
+                ...state,
+                certFile: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    file: action.payload,
+                },
+            };
+
+        case 'CERT_FILE_ERROR':
+            return {
+                ...state,
+                certFile: {
+                    ...state.certFile,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case 'REMOVE_CERT_FILE':
+            return {
+                ...state,
+                certFile: {
+                    ...state.certFile,
+                    file: null,
+                },
+            };
+
+        case 'PRIVATE_KEY_REQUEST':
+            return {
+                ...state,
+                privateKeyFile: {
+                    ...state.privateKeyFile,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case 'PRIVATE_KEY_SUCCESS':
+            return {
+                ...state,
+                privateKeyFile: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    file: action.payload,
+                },
+            };
+
+        case 'PRIVATE_KEY_ERROR':
+            return {
+                ...state,
+                privateKeyFile: {
+                    ...state.privateKeyFile,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case 'REMOVE_PRIVATE_KEY':
+            return {
+                ...state,
+                privateKeyFile: {
+                    ...state.privateKeyFile,
+                    file: null,
+                },
+            };
 
         default:
             return state;

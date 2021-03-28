@@ -31,6 +31,29 @@ router.get(
 );
 
 //Route: GET
+//Description: get an application security log by slug
+//Params: req.params -> {projectId, componentId, applicationSecuritySlug}
+//returns: response -> {sendItemResponse, sendErrorResponse}
+router.get(
+    '/:projectId/:componentId/applicationSecuritySlug/logs/:applicationSecuritySlug',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { applicationSecuritySlug, componentId } = req.params;
+
+            const securityLog = await ApplicationSecurityLogService.findOneBy({
+                slug: applicationSecuritySlug,
+                componentId,
+            });
+            return sendItemResponse(req, res, securityLog);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+//Route: GET
 //Description: get application security logs in a component
 //Params: req.params -> {projectId, componentId}
 //returns: response -> {sendItemResponse, sendErrorResponse}

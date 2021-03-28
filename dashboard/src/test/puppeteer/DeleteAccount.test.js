@@ -37,7 +37,6 @@ describe('Profile -> Delete Account Component test', () => {
         // Register user
         return await cluster.execute(null, async ({ page }) => {
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
         });
     });
 
@@ -92,8 +91,12 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#btn_delete_account');
                 await page.waitForSelector('#btn_confirm_delete');
                 await page.click('#btn_confirm_delete');
-                const deleteButton = await page.$('#deleteMyAccount');
-                expect(deleteButton).toEqual(null);
+
+                const projectDeletion = await page.waitForSelector(
+                    '#projectDeletion'
+                );
+
+                expect(projectDeletion).toBeDefined();
             });
         },
         operationTimeOut
@@ -135,8 +138,12 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#btn_delete_account');
                 await page.waitForSelector('#btn_confirm_delete');
                 await page.click('#btn_confirm_delete');
-                const deleteButton = await page.$('#deleteMyAccount');
-                expect(deleteButton).toEqual(null);
+
+                const projectDeletion = await page.waitForSelector(
+                    '#projectDeletion'
+                );
+
+                expect(projectDeletion).toBeDefined();
             });
         },
         operationTimeOut
@@ -157,7 +164,11 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('button[title="Change Role"]');
                 await page.waitForSelector(`div[title="${role}"]`);
                 await page.click(`div[title="${role}"]`);
-                await page.waitForTimeout(2000);
+                await page.waitForSelector('#confirmRoleChange');
+                await page.click('#confirmRoleChange');
+                await page.waitForSelector('#confirmRoleChange', {
+                    hidden: true,
+                });
 
                 // Switch projects and change member role -> Owner
                 await init.switchProject(projectName, page);
@@ -167,7 +178,11 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('button[title="Change Role"]');
                 await page.waitForSelector(`div[title="${role}"]`);
                 await page.click(`div[title="${role}"]`);
-                await page.waitForTimeout(2000);
+                await page.waitForSelector('#confirmRoleChange');
+                await page.click('#confirmRoleChange');
+                await page.waitForSelector('#confirmRoleChange', {
+                    hidden: true,
+                });
 
                 // Navigate to profile page and delete account
                 await page.waitForSelector('#profile-menu');
@@ -180,8 +195,11 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#btn_delete_account');
                 await page.waitForSelector('#btn_confirm_delete');
                 await page.click('#btn_confirm_delete');
-                const deleteButton = await page.$('#btn_confirm_delete');
-                expect(deleteButton).toEqual(null);
+                const projectDeletion = await page.waitForSelector(
+                    '#projectDeletion'
+                );
+
+                expect(projectDeletion).toBeDefined();
             });
         },
         operationTimeOut
@@ -207,10 +225,6 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.waitForSelector('#deleteMyAccount');
                 await page.type('#deleteMyAccount', 'delete my account');
                 await page.click('#btn_confirm_delete');
-                await page.waitForSelector(
-                    "button[class='bs-Button btn__modal']"
-                );
-                await page.click("button[class='bs-Button btn__modal']");
                 await page.waitForNavigation();
                 const url = await page.url();
                 expect(url).toEqual(`${utils.ACCOUNTS_URL}/accounts/login`);

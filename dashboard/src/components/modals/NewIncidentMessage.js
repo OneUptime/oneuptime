@@ -36,7 +36,7 @@ class NewIncidentMessage extends Component {
             errors.name = 'Incident State is required.';
         }
         if (
-            values[`incident_state`] === 'others' &&
+            values[`incident_state`] === 'Others' &&
             !ValidateField.text(values[`custom_incident_state`])
         ) {
             errors.name = 'Custom Incident State is required.';
@@ -57,7 +57,7 @@ class NewIncidentMessage extends Component {
         }
         postObj.content = values[`content`];
         postObj.incident_state =
-            values[`incident_state`] === 'others'
+            values[`incident_state`] === 'Others'
                 ? values[`custom_incident_state`]
                 : values[`incident_state`];
         let mode = 'NEW';
@@ -200,19 +200,19 @@ class NewIncidentMessage extends Component {
                                                             options={[
                                                                 {
                                                                     value:
-                                                                        'investigating',
+                                                                        'Investigating',
                                                                     label:
                                                                         'Investigating',
                                                                 },
                                                                 {
                                                                     value:
-                                                                        'update',
+                                                                        'Update',
                                                                     label:
                                                                         'Update',
                                                                 },
                                                                 {
                                                                     value:
-                                                                        'others',
+                                                                        'Others',
                                                                     label:
                                                                         'Others',
                                                                 },
@@ -224,7 +224,7 @@ class NewIncidentMessage extends Component {
                                                 <ShouldRender
                                                     if={
                                                         incident_state ===
-                                                        'others'
+                                                        'Others'
                                                     }
                                                 >
                                                     <div className="bs-Fieldset-row">
@@ -533,13 +533,13 @@ const mapStateToProps = (state, ownProps) => {
     let initialValues = null;
 
     if (ownProps.data.incidentMessage) {
-        const isCustomState = !['investigating', 'update'].includes(
+        const isCustomState = !['Investigating', 'Update'].includes(
             ownProps.data.incidentMessage.incident_state
         );
         initialValues = {
             content: ownProps.data.incidentMessage.content,
             incident_state: isCustomState
-                ? 'others'
+                ? 'Others'
                 : ownProps.data.incidentMessage.incident_state,
             custom_incident_state: isCustomState
                 ? ownProps.data.incidentMessage.incident_state
@@ -548,7 +548,7 @@ const mapStateToProps = (state, ownProps) => {
     } else {
         initialValues = {
             content: '',
-            incident_state: 'update',
+            incident_state: 'Update',
             custom_incident_state: '',
         };
     }

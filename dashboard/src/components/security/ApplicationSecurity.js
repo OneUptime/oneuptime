@@ -6,8 +6,10 @@ import SecurityInfo from './SecurityInfo';
 const ApplicationSecurity = ({
     name,
     applicationSecurityId,
+    applicationSecuritySlug,
     projectId,
     componentId,
+    componentSlug,
     applicationSecurityLogs,
 }) => {
     let securityLog = {};
@@ -31,9 +33,11 @@ const ApplicationSecurity = ({
                     name={name}
                     projectId={projectId}
                     componentId={componentId}
+                    applicationSecuritySlug={applicationSecuritySlug}
                     applicationSecurityId={applicationSecurityId}
                     type="application"
                     applicationSecurityLog={securityLog}
+                    componentSlug={componentSlug}
                 />
             </div>
         </div>
@@ -45,8 +49,10 @@ ApplicationSecurity.displayName = 'Application Security';
 ApplicationSecurity.propTypes = {
     name: PropTypes.string,
     applicationSecurityId: PropTypes.string,
+    applicationSecuritySlug: PropTypes.string,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     applicationSecurityLogs: PropTypes.array,
 };
 

@@ -6,8 +6,10 @@ import SecurityInfo from './SecurityInfo';
 const ContainerSecurity = ({
     name,
     containerSecurityId,
+    containerSecuritySlug,
     projectId,
     componentId,
+    componentSlug,
     containerSecurityLogs,
 }) => {
     let securityLog = {};
@@ -32,8 +34,10 @@ const ContainerSecurity = ({
                     projectId={projectId}
                     componentId={componentId}
                     containerSecurityId={containerSecurityId}
+                    containerSecuritySlu={containerSecuritySlug}
                     type="container"
                     containerSecurityLog={securityLog}
+                    componentSlug={componentSlug}
                 />
             </div>
         </div>
@@ -45,8 +49,10 @@ ContainerSecurity.displayName = 'Container Security';
 ContainerSecurity.propTypes = {
     name: PropTypes.string,
     containerSecurityId: PropTypes.string,
+    containerSecuritySlug: PropTypes.string,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     containerSecurityLogs: PropTypes.array,
 };
 

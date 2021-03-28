@@ -22,9 +22,15 @@ RUN npm install -g eslint
 # Bundle app source
 COPY . /usr/src/app
 
+RUN npm run build
+
 # Expose ports.
-#   - 3006: Fyipe Status Page
+#   - 3006: HTTP Fyipe Status Page
 EXPOSE 3006
+
+# Expose ports.
+#   - 3007: HTTPS Fyipe Status Page
+EXPOSE 3007
 
 #Run the app
 CMD [ "npm", "start" ]

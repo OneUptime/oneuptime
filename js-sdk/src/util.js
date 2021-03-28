@@ -2,10 +2,8 @@ import { readFile } from 'fs';
 import * as LRUMap from 'lru_map';
 const CONTENT_CACHE = new LRUMap.default.LRUMap(100);
 class Util {
-    #options;
-
     constructor(options) {
-        this.#options = options;
+        this.options = options;
     }
     getErrorType() {
         return {
@@ -78,7 +76,7 @@ class Util {
 
         // check if  readFile is supported before attempting to read file, this currently works on only NODE
         // check if user opted in for getting code snippet before getting it
-        if (readFile && this.#options.captureCodeSnippet) {
+        if (readFile && this.options.captureCodeSnippet) {
             obj = await this._getErrorCodeSnippet(obj);
         }
         return obj;

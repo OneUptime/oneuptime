@@ -217,6 +217,32 @@ module.exports = {
         }
     },
 
+    updatePush: async function({ userId, data }) {
+        try {
+            const user = await UserModel.findOne({ _id: userId });
+            const checkExist = await user.identification.find(
+                user => String(user.userAgent) === String(data.userAgent)
+            );
+            if (!data.checked) {
+                const findIndex = await user.identification.findIndex(
+                    user => String(user.userAgent) === String(data.userAgent)
+                );
+                await user.identification.splice(findIndex, 1);
+                await user.save();
+            } else {
+                if (!checkExist) {
+                    await user.identification.push(data);
+                    await user.save();
+                }
+            }
+            const userData = await UserModel.findOne({ _id: userId });
+            return userData;
+        } catch (error) {
+            ErrorService.log('userService.updatePush', error);
+            throw error;
+        }
+    },
+
     closeTutorialBy: async function(query, type, data, projectId) {
         try {
             if (!query) query = {};
@@ -327,7 +353,7 @@ module.exports = {
                         );
                     }
                     let verificationToken;
-                    if (user.role !== 'master-admin' && !customerId) {
+                    if (user.role !== 'master-admin' || !customerId) {
                         verificationToken = await _this.sendToken(
                             user,
                             user.email
@@ -489,7 +515,7 @@ module.exports = {
     //Param 1: email: User email.
     //Param 2: password: User password.
     //Returns: promise.
-    login: async function(email, password, clientIP) {
+    login: async function(email, password, clientIP, userAgent) {
         try {
             const _this = this;
             let user = null;
@@ -531,9 +557,6 @@ module.exports = {
                     ErrorService.log('userService.login', error);
                     throw error;
                 } else {
-                    const ipLocation = await _this.getUserIpLocation(clientIP);
-                    await LoginIPLog.create({ userId: user._id, ipLocation });
-
                     if (user.paymentFailedDate && IS_SAAS_SERVICE) {
                         // calculate number of days the subscription renewal has failed.
                         const oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
@@ -593,9 +616,21 @@ module.exports = {
                         }
 
                         if (res) {
+                            LoginHistoryService.create(
+                                user,
+                                clientIP,
+                                userAgent,
+                                'successful'
+                            );
                             return user;
                         } else {
                             const error = new Error('Password is incorrect.');
+                            LoginHistoryService.create(
+                                user,
+                                clientIP,
+                                userAgent,
+                                'incorrect password'
+                            );
                             error.code = 400;
                             ErrorService.log('userService.login', error);
                             throw error;
@@ -928,7 +963,6 @@ module.exports = {
 const bcrypt = require('bcrypt');
 const constants = require('../config/constants.json');
 const UserModel = require('../models/user');
-const LoginIPLog = require('../models/loginIPLog');
 const util = require('./utilService.js');
 const randToken = require('rand-token');
 const PaymentService = require('./paymentService');
@@ -945,3 +979,4 @@ const MailService = require('../services/mailService');
 const AirtableService = require('./airtableService');
 const speakeasy = require('speakeasy');
 const { hotp } = require('otplib');
+const LoginHistoryService = require('./loginHistoryService');

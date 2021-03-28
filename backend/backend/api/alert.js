@@ -6,6 +6,7 @@
 
 const express = require('express');
 const alertService = require('../services/alertService');
+const IncidentService = require('../services/incidentService');
 const alertChargeService = require('../services/alertChargeService');
 const path = require('path');
 const fs = require('fs');
@@ -80,7 +81,13 @@ router.get(
     isAuthorized,
     async function(req, res) {
         try {
-            const incidentId = req.params.incidentId;
+            const idNumber = req.params.incidentId;
+            const projectId = req.params.projectId;
+            let incidentId = await IncidentService.findOneBy({
+                projectId,
+                idNumber,
+            });
+            incidentId = incidentId._id;
             const skip = req.query.skip || 0;
             const limit = req.query.limit || 10;
             const alerts = await alertService.findBy({

@@ -7,7 +7,8 @@ import ShouldRender from '../basic/ShouldRender';
 import { LargeSpinner } from '../basic/Loader';
 import {
     getContainerSecurity,
-    getContainerSecurityLog,
+    getContainerSecurityBySlug,
+    getContainerSecurityLogBySlug,
     scanContainerSecuritySuccess,
     getContainerSecuritySuccess,
 } from '../../actions/security';
@@ -26,28 +27,56 @@ const socket = io.connect(API_URL.replace('/api', ''), {
 });
 
 class ContainerSecurityDetail extends Component {
+    componentDidUpdate(prevProps) {
+        if (prevProps.projectId !== this.props.projectId) {
+            const {
+                projectId,
+                componentId,
+                containerSecuritySlug,
+                getContainerSecurityBySlug,
+                getContainerSecurityLogBySlug,
+                getDockerCredentials,
+            } = this.props;
+
+            // get a particular container security
+            getContainerSecurityBySlug({
+                projectId,
+                componentId,
+                containerSecuritySlug,
+            });
+
+            // get a container security log
+            getContainerSecurityLogBySlug({
+                projectId,
+                componentId,
+                containerSecuritySlug,
+            });
+
+            getDockerCredentials({ projectId });
+        }
+    }
     componentDidMount() {
         const {
             projectId,
             componentId,
-            containerSecurityId,
-            getContainerSecurity,
-            getContainerSecurityLog,
+            containerSecuritySlug,
+            getContainerSecurityBySlug,
+            getContainerSecurityLogBySlug,
             getDockerCredentials,
         } = this.props;
 
         // get a particular container security
-        getContainerSecurity({
+        getContainerSecurityBySlug({
             projectId,
             componentId,
-            containerSecurityId,
+            containerSecuritySlug,
         });
 
         // get a container security log
-        getContainerSecurityLog({
+        getContainerSecurityLogBySlug({
             projectId,
             componentId,
-            containerSecurityId,
+            containerSecuritySlug,
         });
 
         getDockerCredentials({ projectId });
@@ -58,7 +87,9 @@ class ContainerSecurityDetail extends Component {
             containerSecurity,
             projectId,
             componentId,
+            componentSlug,
             containerSecurityId,
+            containerSecuritySlug,
             isRequesting,
             getContainerError,
             containerSecurityLog,
@@ -123,8 +154,10 @@ class ContainerSecurityDetail extends Component {
                         projectId={projectId}
                         componentId={componentId}
                         containerSecurityId={containerSecurityId}
+                        containerSecuritySlug={containerSecuritySlug}
                         isRequesting={isRequesting}
                         containerSecurity={containerSecurity}
+                        componentSlug={componentSlug}
                     />
                 </ShouldRender>
                 <ShouldRender
@@ -150,6 +183,8 @@ class ContainerSecurityDetail extends Component {
                         projectId={projectId}
                         componentId={componentId}
                         containerSecurityId={containerSecurityId}
+                        containerSecuritySlug={containerSecuritySlug}
+                        componentSlug={componentSlug}
                     />
                 </ShouldRender>
                 <ShouldRender
@@ -172,17 +207,19 @@ class ContainerSecurityDetail extends Component {
 ContainerSecurityDetail.displayName = 'Container Security Detail';
 
 ContainerSecurityDetail.propTypes = {
-    getContainerSecurity: PropTypes.func,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     containerSecurityId: PropTypes.string,
+    getContainerSecurityLogBySlug: PropTypes.func,
+    getContainerSecurityBySlug: PropTypes.func,
+    containerSecuritySlug: PropTypes.string,
     containerSecurity: PropTypes.object,
     isRequesting: PropTypes.bool,
     getContainerError: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
-    getContainerSecurityLog: PropTypes.func,
     containerSecurityLog: PropTypes.object,
     gettingSecurityLog: PropTypes.bool,
     getDockerCredentials: PropTypes.func,
@@ -211,7 +248,8 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             getContainerSecurity,
-            getContainerSecurityLog,
+            getContainerSecurityLogBySlug,
+            getContainerSecurityBySlug,
             getDockerCredentials,
             scanContainerSecuritySuccess,
             getContainerSecuritySuccess,
@@ -220,13 +258,12 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, ownProps) => {
-    const { componentId, containerSecurityId } = ownProps.match.params;
-
+    const { componentSlug, containerSecuritySlug } = ownProps.match.params;
     const components = [];
     // filter to get the actual component
     state.component.componentList.components.map(item =>
         item.components.map(component => {
-            if (String(component._id) === String(componentId)) {
+            if (String(component.slug) === String(componentSlug)) {
                 components.push(component);
             }
             return component;
@@ -236,8 +273,9 @@ const mapStateToProps = (state, ownProps) => {
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
-        componentId,
-        containerSecurityId,
+        componentId: components[0] && components[0]._id,
+        componentSlug: components[0] && components[0].slug,
+        containerSecuritySlug,
         containerSecurity: state.security.containerSecurity,
         isRequesting: state.security.getContainer.requesting,
         getContainerError: state.security.getContainer.error,

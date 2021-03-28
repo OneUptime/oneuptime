@@ -5,7 +5,6 @@ const monitorCollection = 'monitors';
 async function run() {
     const monitors = await find(monitorCollection, {
         variables: { $exists: false },
-        deleted: false,
     });
 
     monitors.forEach(async monitor => {

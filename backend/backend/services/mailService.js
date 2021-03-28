@@ -28,6 +28,16 @@ const options = {
     extName: '.hbs',
 };
 
+// handlebars helper function
+// checks for equality
+Handlebars.registerHelper('if_eq', function(a, b, opts) {
+    if (a == b) {
+        return opts.fn(this);
+    } else {
+        return opts.inverse(this);
+    }
+});
+
 const _this = {
     getProjectSmtpSettings: async projectId => {
         let user,
@@ -38,7 +48,7 @@ const _this = {
             name,
             secure,
             internalSmtp,
-            backupSmtp,
+            customSmtp,
             backupConfig;
         const smtpDb = await EmailSmtpService.findOneBy({
             projectId,
@@ -67,7 +77,7 @@ const _this = {
             name = globalSettings.name;
             secure = globalSettings.secure;
             internalSmtp = globalSettings.internalSmtp;
-            backupSmtp = globalSettings.backupSmtp;
+            customSmtp = globalSettings.customSmtp;
             backupConfig = globalSettings.backupConfig;
         }
 
@@ -80,7 +90,7 @@ const _this = {
             name,
             secure,
             internalSmtp,
-            backupSmtp,
+            customSmtp,
             backupConfig,
         };
     },
@@ -176,18 +186,18 @@ const _this = {
             document &&
             document.value &&
             document.value.internalSmtp &&
-            document.value.backupSmtp
+            document.value.customSmtp
         ) {
             return {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASSWORD,
-                host: process.env.SMTP_SERVER,
-                port: process.env.SMTP_PORT,
-                from: process.env.SMTP_FROM,
-                name: process.env.SMTP_NAME,
+                user: process.env.INTERNAL_SMTP_USER,
+                pass: process.env.INTERNAL_SMTP_PASSWORD,
+                host: process.env.INTERNAL_SMTP_SERVER,
+                port: process.env.INTERNAL_SMTP_PORT,
+                from: process.env.INTERNAL_SMTP_FROM,
+                name: process.env.INTERNAL_SMTP_NAME,
                 'email-enabled': document.value['email-enabled'],
                 internalSmtp: document.value.internalSmtp,
-                backupSmtp: document.value.backupSmtp,
+                customSmtp: document.value.customSmtp,
                 backupConfig: {
                     user: document.value.email,
                     pass: document.value.password,
@@ -201,12 +211,12 @@ const _this = {
             };
         } else if (document && document.value && document.value.internalSmtp) {
             return {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASSWORD,
-                host: process.env.SMTP_SERVER,
-                port: process.env.SMTP_PORT,
-                from: process.env.SMTP_FROM,
-                name: process.env.SMTP_NAME,
+                user: process.env.INTERNAL_SMTP_USER,
+                pass: process.env.INTERNAL_SMTP_PASSWORD,
+                host: process.env.INTERNAL_SMTP_SERVER,
+                port: process.env.INTERNAL_SMTP_PORT,
+                from: process.env.INTERNAL_SMTP_FROM,
+                name: process.env.INTERNAL_SMTP_NAME,
                 'email-enabled': document.value['email-enabled'],
                 internalSmtp: document.value.internalSmtp,
             };
@@ -247,10 +257,15 @@ const _this = {
     // Param 1: userEmail: Email of user
     // Returns: promise
     sendSignupMail: async function(userEmail, name) {
-        let accountMail = await _this.getSmtpSettings();
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
+            let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: userEmail,
@@ -275,6 +290,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -290,14 +306,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = {
                             ...accountMail.backupConfig,
                         };
@@ -325,6 +343,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -338,6 +357,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -358,18 +378,197 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
+            });
+            throw error;
+        }
+    },
+    sendLoginEmail: async function(
+        userEmail,
+        location,
+        deviceObj,
+        twoFactorEnabled,
+        status
+    ) {
+        let mailOptions = {};
+        let EmailBody;
+        let smtpServer;
+        let locations;
+        let device;
+        let statusMessage;
+        const os = deviceObj && deviceObj.os && deviceObj.os.name;
+        const browser = deviceObj && deviceObj.client && deviceObj.client.name;
+        if (location.city && location.country) {
+            locations = `${location.city}, ${location.country}.`;
+        } else if (!location.city && location.country) {
+            locations = `${location.country}.`;
+        } else if (location.city && !location.country) {
+            locations = `${location.city}.`;
+        } else {
+            locations = 'Unknown Location';
+        }
+
+        if (os && browser) {
+            device = `${browser} on ${os}.`;
+        } else if (!os && browser) {
+            device = `${browser} on an Unknown Device.`;
+        } else if (os && !browser) {
+            device = `unknown browser on ${os}`;
+        } else {
+            device = 'Unknown Device';
+        }
+        if (status === 'successful') {
+            statusMessage = 'a successful';
+        } else {
+            statusMessage = 'an unsuccessful';
+        }
+
+        try {
+            let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
+            mailOptions = {
+                from: `"${accountMail.name}" <${accountMail.from}>`,
+                to: userEmail,
+                subject: `New login to Fyipe from ${device}`,
+                template: 'user_login_body',
+                context: {
+                    homeURL: global.homeHost,
+                    userEmail,
+                    dashboardURL: global.dashboardHost,
+                    ip: location.ip,
+                    locations,
+                    device,
+                    twoFactorEnabled,
+                    statusMessage,
+                },
+            };
+
+            const mailer = await _this.createMailer({});
+            EmailBody = await _this.getEmailBody(mailOptions);
+
+            if (!mailer) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.',
+                    content: EmailBody,
+                    error: 'Email not enabled.',
+                    smtpServer,
+                });
+                return;
+            }
+
+            let info = {};
+            try {
+                info = await mailer.sendMail(mailOptions);
+
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Success',
+                    content: EmailBody,
+                    smtpServer,
+                });
+            } catch (error) {
+                if (error.code === 'ECONNECTION') {
+                    if (
+                        accountMail.internalSmtp &&
+                        accountMail.customSmtp &&
+                        !isEmpty(accountMail.backupConfig)
+                    ) {
+                        smtpServer = accountMail.backupConfig.host;
+                        accountMail = {
+                            ...accountMail.backupConfig,
+                        };
+                        mailOptions = {
+                            from: `"${accountMail.name}" <${accountMail.from}>`,
+                            to: userEmail,
+                            subject: `New login to Fyipe from ${device}`,
+                            template: 'user_login_body',
+                            context: {
+                                homeURL: global.homeHost,
+                                userEmail,
+                                dashboardURL: global.dashboardHost,
+                                ip: location.ip,
+                                locations,
+                                device,
+                                twoFactorEnabled,
+                                statusMessage,
+                            },
+                        };
+
+                        const mailer = await _this.createMailer(accountMail);
+                        EmailBody = await _this.getEmailBody(mailOptions);
+
+                        if (!mailer) {
+                            await EmailStatusService.create({
+                                from: mailOptions.from,
+                                to: mailOptions.to,
+                                subject: mailOptions.subject,
+                                template: mailOptions.template,
+                                status: 'Email not enabled.',
+                                content: EmailBody,
+                                error: 'Email not enabled.',
+                                smtpServer,
+                            });
+                            return;
+                        }
+
+                        info = await mailer.sendMail(mailOptions);
+
+                        await EmailStatusService.create({
+                            from: mailOptions.from,
+                            to: mailOptions.to,
+                            subject: mailOptions.subject,
+                            template: mailOptions.template,
+                            status: 'Success',
+                            content: EmailBody,
+                            smtpServer,
+                        });
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    throw error;
+                }
+            }
+
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error',
+                content: EmailBody,
+                error: error.message,
+                smtpServer,
             });
             throw error;
         }
     },
     // Automated email sent when a user deletes a project
     sendDeleteProjectEmail: async function({ userEmail, name, projectName }) {
-        let accountMail = await _this.getSmtpSettings();
-        accountMail.name = 'Fyipe Support';
-        accountMail.from = 'support@fyipe.com';
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
+            let accountMail = await _this.getSmtpSettings();
+            accountMail.name = 'Fyipe Support';
+            accountMail.from = 'support@fyipe.com';
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: userEmail,
@@ -395,6 +594,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -410,14 +610,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = {
                             ...accountMail.backupConfig,
                         };
@@ -449,6 +651,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -462,6 +665,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -482,6 +686,7 @@ const _this = {
                 status: error.message,
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -489,8 +694,13 @@ const _this = {
     sendVerifyEmail: async function(tokenVerifyURL, name, email) {
         let mailOptions = {};
         let EmailBody;
-        let accountMail = await _this.getSmtpSettings();
+        let smtpServer;
         try {
+            let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -513,6 +723,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -528,14 +739,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = {
                             ...accountMail.backupConfig,
                         };
@@ -562,6 +775,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -575,6 +789,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -595,6 +810,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -603,6 +819,10 @@ const _this = {
         let mailOptions = {};
         let EmailBody;
         let accountMail = await _this.getSmtpSettings();
+        let smtpServer = 'internal';
+        if (!accountMail.internalSmtp) {
+            smtpServer = accountMail.host;
+        }
         try {
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
@@ -649,6 +869,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -664,14 +885,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = {
                             ...accountMail.backupConfig,
                         };
@@ -723,6 +946,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -736,6 +960,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -756,6 +981,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -765,6 +991,10 @@ const _this = {
         let mailOptions = {};
         let EmailBody;
         let accountMail = await _this.getSmtpSettings();
+        let smtpServer = 'internal';
+        if (!accountMail.internalSmtp) {
+            smtpServer = accountMail.host;
+        }
         try {
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
@@ -788,6 +1018,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -803,14 +1034,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = {
                             ...accountMail.backupConfig,
                         };
@@ -837,6 +1070,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -850,6 +1084,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -870,6 +1105,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -878,6 +1114,7 @@ const _this = {
     sendRequestDemoEmail: async function(to) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             if (!to) {
                 const error = new Error('Email not found');
@@ -885,6 +1122,10 @@ const _this = {
                 throw error;
             } else {
                 let accountMail = await _this.getSmtpSettings();
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
                 mailOptions = {
                     from: `"${accountMail.name}" <${accountMail.from}>`,
                     cc: 'noreply@fyipe.com',
@@ -904,6 +1145,7 @@ const _this = {
                         status: 'Email not enabled.',
                         content: EmailBody,
                         error: 'Email not enabled.',
+                        smtpServer,
                     });
                     return;
                 }
@@ -919,14 +1161,16 @@ const _this = {
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
+                        smtpServer,
                     });
                 } catch (error) {
                     if (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
-                            accountMail.backupSmtp &&
+                            accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
                             mailOptions = {
@@ -950,6 +1194,7 @@ const _this = {
                                     status: 'Email not enabled.',
                                     content: EmailBody,
                                     error: 'Email not enabled.',
+                                    smtpServer,
                                 });
                                 return;
                             }
@@ -963,6 +1208,7 @@ const _this = {
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
+                                smtpServer,
                             });
                         } else {
                             throw error;
@@ -984,6 +1230,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -992,6 +1239,7 @@ const _this = {
     sendWhitepaperEmail: async function(to, whitepaperName) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             if (!to || whitepaperName) {
                 const error = new Error('Email or Whitepaper found');
@@ -1014,6 +1262,10 @@ const _this = {
                     throw error;
                 } else {
                     let accountMail = await _this.getSmtpSettings();
+                    smtpServer = 'internal';
+                    if (!accountMail.internalSmtp) {
+                        smtpServer = accountMail.host;
+                    }
                     mailOptions = {
                         from: `"${accountMail.name}" <${accountMail.from}>`,
                         cc: 'noreply@fyipe.com',
@@ -1037,6 +1289,7 @@ const _this = {
                             status: 'Email not enabled.',
                             content: EmailBody,
                             error: 'Email not enabled.',
+                            smtpServer,
                         });
                         return;
                     }
@@ -1052,14 +1305,16 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } catch (error) {
                         if (error.code === 'ECONNECTION') {
                             if (
                                 accountMail.internalSmtp &&
-                                accountMail.backupSmtp &&
+                                accountMail.customSmtp &&
                                 !isEmpty(accountMail.backupConfig)
                             ) {
+                                smtpServer = accountMail.backupConfig.host;
                                 accountMail = { ...accountMail.backupConfig };
 
                                 mailOptions = {
@@ -1089,6 +1344,7 @@ const _this = {
                                         status: 'Email not enabled.',
                                         content: EmailBody,
                                         error: 'Email not enabled.',
+                                        smtpServer,
                                     });
                                     return;
                                 }
@@ -1102,6 +1358,7 @@ const _this = {
                                     template: mailOptions.template,
                                     status: 'Success',
                                     content: EmailBody,
+                                    smtpServer,
                                 });
                             } else {
                                 throw error;
@@ -1125,6 +1382,7 @@ const _this = {
                     status: 'Error',
                     content: EmailBody,
                     error: error.message,
+                    smtpServer,
                 });
             }
             throw error;
@@ -1140,8 +1398,13 @@ const _this = {
     sendForgotPasswordMail: async function(forgotPasswordURL, email) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -1163,6 +1426,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -1178,14 +1442,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -1209,6 +1475,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -1222,6 +1489,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -1242,6 +1510,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -1254,8 +1523,13 @@ const _this = {
     sendResetPasswordConfirmMail: async function(email) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -1277,6 +1551,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -1292,14 +1567,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -1323,6 +1600,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -1336,6 +1614,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -1356,6 +1635,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -1373,8 +1653,13 @@ const _this = {
     ) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -1398,6 +1683,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -1413,14 +1699,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -1446,6 +1734,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -1459,6 +1748,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -1482,6 +1772,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -1494,8 +1785,13 @@ const _this = {
     ) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -1519,6 +1815,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -1534,14 +1831,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -1567,6 +1866,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -1580,6 +1880,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -1603,6 +1904,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -1615,8 +1917,13 @@ const _this = {
     ) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -1639,6 +1946,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -1654,14 +1962,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -1687,6 +1997,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -1700,6 +2011,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -1723,6 +2035,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -1735,8 +2048,13 @@ const _this = {
     ) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -1760,6 +2078,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -1775,14 +2094,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -1809,6 +2130,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -1822,6 +2144,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -1845,6 +2168,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -1853,8 +2177,13 @@ const _this = {
     sendNewStatusPageViewerMail: async function(project, addedByUser, email) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -1878,6 +2207,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -1893,14 +2223,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -1926,6 +2258,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -1939,6 +2272,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -1959,6 +2293,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -1972,8 +2307,13 @@ const _this = {
     ) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -1999,6 +2339,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -2014,14 +2355,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -2049,6 +2392,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -2062,6 +2406,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -2082,6 +2427,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -2094,8 +2440,13 @@ const _this = {
     ) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -2120,6 +2471,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -2135,14 +2487,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -2170,6 +2524,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -2183,6 +2538,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -2206,6 +2562,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -2218,8 +2575,13 @@ const _this = {
     ) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -2244,6 +2606,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -2259,14 +2622,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -2294,6 +2659,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -2307,6 +2673,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -2330,6 +2697,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -2369,8 +2737,13 @@ const _this = {
     }) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getProjectSmtpSettings(projectId);
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             let iconColor = '#94c800';
             let incidentShow = 'Offline';
             let subject;
@@ -2432,6 +2805,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -2447,14 +2821,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -2499,6 +2875,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -2512,6 +2889,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -2532,6 +2910,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -2563,6 +2942,7 @@ const _this = {
     ) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
@@ -2587,6 +2967,10 @@ const _this = {
             let smtpSettings = await _this.getProjectSmtpSettings(
                 incident.projectId
             );
+            smtpServer = 'internal';
+            if (!smtpSettings.internalSmtp) {
+                smtpServer = smtpSettings.host;
+            }
             const privateMailer = await _this.createMailer(smtpSettings);
             if (replyAddress) {
                 mailOptions = {
@@ -2623,6 +3007,7 @@ const _this = {
                     }),
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -2641,14 +3026,16 @@ const _this = {
                         replyTo: mailOptions.replyTo,
                     }),
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         smtpSettings.internalSmtp &&
-                        smtpSettings.backupSmtp &&
+                        smtpSettings.customSmtp &&
                         !isEmpty(smtpSettings.backupConfig)
                     ) {
+                        smtpServer = smtpSettings.backupConfig.host;
                         smtpSettings = { ...smtpSettings.backupConfig };
                         const privateMailer = await _this.createMailer(
                             smtpSettings
@@ -2688,6 +3075,7 @@ const _this = {
                                 }),
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -2704,6 +3092,7 @@ const _this = {
                                 replyTo: mailOptions.replyTo,
                             }),
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -2728,6 +3117,7 @@ const _this = {
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -2757,8 +3147,13 @@ const _this = {
     }) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getProjectSmtpSettings(projectId);
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -2799,6 +3194,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -2814,14 +3210,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -2864,6 +3262,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -2877,6 +3276,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -2897,6 +3297,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -2925,8 +3326,13 @@ const _this = {
     }) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getProjectSmtpSettings(projectId);
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -2966,6 +3372,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -2981,14 +3388,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -3030,6 +3439,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -3043,6 +3453,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -3062,6 +3473,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -3094,6 +3506,7 @@ const _this = {
     ) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
@@ -3119,6 +3532,10 @@ const _this = {
             let smtpSettings = await _this.getProjectSmtpSettings(
                 incident.projectId
             );
+            smtpServer = 'internal';
+            if (!smtpSettings.internalSmtp) {
+                smtpServer = smtpSettings.host;
+            }
             const privateMailer = await _this.createMailer(smtpSettings);
             if (replyAddress) {
                 mailOptions = {
@@ -3155,6 +3572,7 @@ const _this = {
                     }),
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -3173,14 +3591,16 @@ const _this = {
                         replyTo: mailOptions.replyTo,
                     }),
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         smtpSettings.internalSmtp &&
-                        smtpSettings.backupSmtp &&
+                        smtpSettings.customSmtp &&
                         !isEmpty(smtpSettings.backupConfig)
                     ) {
+                        smtpServer = smtpSettings.backupConfig.host;
                         smtpSettings = { ...smtpSettings.backupConfig };
 
                         const privateMailer = await _this.createMailer(
@@ -3221,6 +3641,7 @@ const _this = {
                                 }),
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -3237,6 +3658,7 @@ const _this = {
                                 replyTo: mailOptions.replyTo,
                             }),
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -3260,6 +3682,7 @@ const _this = {
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -3292,6 +3715,7 @@ const _this = {
     ) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
@@ -3316,6 +3740,10 @@ const _this = {
             let smtpSettings = await _this.getProjectSmtpSettings(
                 incident.projectId
             );
+            smtpServer = 'internal';
+            if (!smtpSettings.internalSmtp) {
+                smtpServer = smtpSettings.host;
+            }
             const privateMailer = await _this.createMailer(smtpSettings);
             mailOptions = {
                 from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
@@ -3341,14 +3769,16 @@ const _this = {
                         replyTo: mailOptions.replyTo,
                     }),
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         smtpSettings.internalSmtp &&
-                        smtpSettings.backupSmtp &&
+                        smtpSettings.customSmtp &&
                         !isEmpty(smtpSettings.backupConfig)
                     ) {
+                        smtpServer = smtpSettings.backupConfig.host;
                         smtpSettings = { ...smtpSettings.backupConfig };
 
                         const privateMailer = await _this.createMailer(
@@ -3377,6 +3807,7 @@ const _this = {
                                 replyTo: mailOptions.replyTo,
                             }),
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -3401,6 +3832,7 @@ const _this = {
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -3433,6 +3865,7 @@ const _this = {
     ) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
@@ -3458,6 +3891,10 @@ const _this = {
             let smtpSettings = await _this.getProjectSmtpSettings(
                 incident.projectId
             );
+            smtpServer = 'internal';
+            if (!smtpSettings.internalSmtp) {
+                smtpServer = smtpSettings.host;
+            }
             const privateMailer = await _this.createMailer(smtpSettings);
             if (replyAddress) {
                 mailOptions = {
@@ -3496,6 +3933,7 @@ const _this = {
                     }),
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -3514,14 +3952,16 @@ const _this = {
                         replyTo: mailOptions.replyTo,
                     }),
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         smtpSettings.internalSmtp &&
-                        smtpSettings.backupSmtp &&
+                        smtpSettings.customSmtp &&
                         !isEmpty(smtpSettings.backupConfig)
                     ) {
+                        smtpServer = smtpSettings.backupConfig.host;
                         smtpSettings = { ...smtpSettings.backupConfig };
 
                         const privateMailer = await _this.createMailer(
@@ -3564,6 +4004,7 @@ const _this = {
                                 }),
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -3580,6 +4021,7 @@ const _this = {
                                 replyTo: mailOptions.replyTo,
                             }),
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -3604,6 +4046,7 @@ const _this = {
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -3612,6 +4055,10 @@ const _this = {
     testSmtpConfig: async function(data) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer = 'internal';
+        if (!data.internalSmtp) {
+            smtpServer = data.host;
+        }
         try {
             const privateMailer = await _this.createMailer(data);
             mailOptions = {
@@ -3621,6 +4068,7 @@ const _this = {
                 template: 'smtp_test',
                 context: {
                     homeURL: global.homeHost,
+                    smtpServer,
                     ...data,
                 },
             };
@@ -3634,71 +4082,20 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
-            let info = {};
-            try {
-                info = await privateMailer.sendMail(mailOptions);
-
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        data.internalSmtp &&
-                        data.backupSmtp &&
-                        !isEmpty(data.backupConfig)
-                    ) {
-                        data = { ...data, ...data.backupConfig };
-                        const privateMailer = await _this.createMailer(data);
-                        mailOptions = {
-                            from: `"${data.name}" <${data.from}>`,
-                            to: data.email,
-                            subject: 'Email Smtp Settings Test',
-                            template: 'smtp_test',
-                            context: {
-                                homeURL: global.homeHost,
-                                ...data,
-                            },
-                        };
-                        EmailBody = await _this.getEmailBody(mailOptions);
-                        if (!privateMailer) {
-                            await EmailStatusService.create({
-                                from: mailOptions.from,
-                                to: mailOptions.to,
-                                subject: mailOptions.subject,
-                                template: mailOptions.template,
-                                status: 'Email not enabled.',
-                                content: EmailBody,
-                                error: 'Email not enabled.',
-                            });
-                            return;
-                        }
-
-                        info = await privateMailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                        });
-                    } else {
-                        throw error;
-                    }
-                } else {
-                    throw error;
-                }
-            }
+            const info = await privateMailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success',
+                content: EmailBody,
+                smtpServer,
+            });
 
             return info;
         } catch (error) {
@@ -3713,6 +4110,7 @@ const _this = {
                     status: 'Error',
                     content: EmailBody,
                     err: err.message,
+                    smtpServer,
                 });
                 err.code = 400;
             } else if (error.code === 'ECONNECTION') {
@@ -3727,6 +4125,7 @@ const _this = {
                     status: 'Error',
                     content: EmailBody,
                     err: err.message,
+                    smtpServer,
                 });
                 err.code = 400;
             } else {
@@ -3739,6 +4138,7 @@ const _this = {
                     status: 'Error',
                     content: EmailBody,
                     err: err.message,
+                    smtpServer,
                 });
                 err.code = 400;
             }
@@ -3751,6 +4151,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw err;
         }
@@ -3759,8 +4160,13 @@ const _this = {
     sendChangePlanMail: async function(projectName, oldPlan, newPlan, email) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -3786,6 +4192,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -3801,14 +4208,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -3836,6 +4245,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -3849,6 +4259,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -3869,6 +4280,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -3877,8 +4289,13 @@ const _this = {
     sendCreateProjectMail: async function(projectName, email) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
 
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
@@ -3903,6 +4320,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -3918,14 +4336,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -3951,6 +4371,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -3964,6 +4385,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -3984,6 +4406,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -3992,8 +4415,13 @@ const _this = {
     sendCreateSubProjectMail: async function(subProjectName, email) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -4016,6 +4444,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -4031,14 +4460,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -4063,6 +4494,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -4076,6 +4508,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -4096,6 +4529,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -4109,8 +4543,13 @@ const _this = {
     ) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: 'support@fyipe.com',
@@ -4135,6 +4574,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -4150,14 +4590,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -4186,6 +4628,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -4199,6 +4642,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -4219,6 +4663,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -4232,8 +4677,13 @@ const _this = {
     ) {
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -4258,6 +4708,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -4273,14 +4724,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
                         mailOptions = {
@@ -4307,6 +4760,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -4320,6 +4774,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -4340,6 +4795,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -4368,10 +4824,15 @@ const _this = {
         incidentSlaTimeline,
         incidentSlaRemaining,
     }) {
-        let smtpSettings = await _this.getProjectSmtpSettings(projectId);
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
+            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
+            smtpServer = 'internal';
+            if (!smtpSettings.internalSmtp) {
+                smtpServer = smtpSettings.host;
+            }
             mailOptions = {
                 from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                 to: userEmail,
@@ -4404,6 +4865,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -4419,14 +4881,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         smtpSettings.internalSmtp &&
-                        smtpSettings.backupSmtp &&
+                        smtpSettings.customSmtp &&
                         !isEmpty(smtpSettings.backupConfig)
                     ) {
+                        smtpServer = smtpSettings.backupConfig.host;
                         smtpSettings = { ...smtpSettings.backupConfig };
 
                         mailOptions = {
@@ -4461,6 +4925,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -4473,6 +4938,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -4493,6 +4959,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -4510,10 +4977,15 @@ const _this = {
         reason,
         incidentSlaTimeline,
     }) {
-        let smtpSettings = await _this.getProjectSmtpSettings(projectId);
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
+            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
+            smtpServer = 'internal';
+            if (!smtpSettings.internalSmtp) {
+                smtpServer = smtpSettings.host;
+            }
             mailOptions = {
                 from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                 to: userEmail,
@@ -4544,6 +5016,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -4559,14 +5032,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         smtpSettings.internalSmtp &&
-                        smtpSettings.backupSmtp &&
+                        smtpSettings.customSmtp &&
                         !isEmpty(smtpSettings.backupConfig)
                     ) {
+                        smtpServer = smtpSettings.backupConfig.host;
                         smtpSettings = { ...smtpSettings.backupConfig };
 
                         mailOptions = {
@@ -4599,6 +5074,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -4612,6 +5088,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -4632,6 +5109,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -4643,12 +5121,17 @@ const _this = {
         userEmail,
         projectUrl,
     }) {
-        let accountMail = await _this.getSmtpSettings();
-        accountMail.name = 'Fyipe Support';
-        accountMail.from = 'support@fyipe.com';
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
+            let accountMail = await _this.getSmtpSettings();
+            accountMail.name = 'Fyipe Support';
+            accountMail.from = 'support@fyipe.com';
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: userEmail,
@@ -4676,6 +5159,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -4691,14 +5175,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
                         accountMail.name = 'Fyipe Support';
                         accountMail.from = 'support@fyipe.com';
@@ -4730,6 +5216,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -4743,6 +5230,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -4766,6 +5254,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }
@@ -4776,12 +5265,17 @@ const _this = {
         name,
         userEmail,
     }) {
-        let accountMail = await _this.getSmtpSettings();
-        accountMail.name = 'Fyipe Support';
-        accountMail.from = 'support@fyipe.com';
         let mailOptions = {};
         let EmailBody;
+        let smtpServer;
         try {
+            let accountMail = await _this.getSmtpSettings();
+            accountMail.name = 'Fyipe Support';
+            accountMail.from = 'support@fyipe.com';
+            smtpServer = 'internal';
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: userEmail,
@@ -4808,6 +5302,7 @@ const _this = {
                     status: 'Email not enabled.',
                     content: EmailBody,
                     error: 'Email not enabled.',
+                    smtpServer,
                 });
                 return;
             }
@@ -4823,14 +5318,16 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Success',
                     content: EmailBody,
+                    smtpServer,
                 });
             } catch (error) {
                 if (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
-                        accountMail.backupSmtp &&
+                        accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
                         accountMail.name = 'Fyipe Support';
                         accountMail.from = 'support@fyipe.com';
@@ -4862,6 +5359,7 @@ const _this = {
                                 status: 'Email not enabled.',
                                 content: EmailBody,
                                 error: 'Email not enabled.',
+                                smtpServer,
                             });
                             return;
                         }
@@ -4875,6 +5373,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
+                            smtpServer,
                         });
                     } else {
                         throw error;
@@ -4898,6 +5397,7 @@ const _this = {
                 status: 'Error',
                 content: EmailBody,
                 error: error.message,
+                smtpServer,
             });
             throw error;
         }

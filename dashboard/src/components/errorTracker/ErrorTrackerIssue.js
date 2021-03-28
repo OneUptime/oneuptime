@@ -19,14 +19,20 @@ function getComponentBadge(componentName) {
 }
 getComponentBadge.displayName = 'getComponentBadge';
 
-function viewMore(slug, componentId, errorTrackerId, errorEventId) {
+function viewMore(
+    slug,
+    componentId,
+    componentSlug,
+    errorTrackerSlug,
+    errorEventId
+) {
     return history.push(
         '/dashboard/project/' +
             slug +
             '/' +
-            componentId +
+            componentSlug +
             '/error-trackers/' +
-            errorTrackerId +
+            errorTrackerSlug +
             '/events/' +
             errorEventId
     );
@@ -37,6 +43,7 @@ function isSelected(selectedErrorEvents, id) {
 function ErrorTrackerIssue({
     componentId,
     errorTrackerIssue,
+    componentSlug,
     errorTracker,
     selectErrorEvent,
     selectedErrorEvents,
@@ -85,7 +92,8 @@ function ErrorTrackerIssue({
                     viewMore(
                         slug,
                         componentId,
-                        errorTracker._id,
+                        componentSlug,
+                        errorTracker.slug,
                         errorTrackerIssue.latestId
                     )
                 }
@@ -314,6 +322,7 @@ ErrorTrackerIssue.propTypes = {
     errorTracker: PropTypes.object,
     errorTrackerIssue: PropTypes.object,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     selectErrorEvent: PropTypes.func,
     selectedErrorEvents: PropTypes.array,
     openEventMemberModal: PropTypes.func,

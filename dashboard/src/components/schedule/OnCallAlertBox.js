@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { reduxForm, FieldArray, arrayPush } from 'redux-form';
 import { withRouter } from 'react-router';
 import { getEscalation, addEscalation } from '../../actions/schedule';
+import { getProjectGroups } from '../../actions/group';
 import { subProjectTeamLoading } from '../../actions/team';
 import { RenderEscalation } from './RenderEscalation';
 import { Validate } from '../../config';
@@ -66,6 +67,21 @@ function validate(values) {
                         'This should be greater than 0';
                     alertArrayErrors[i] = repeatErrors;
                 }
+
+                if (values.OnCallAlertBox[i].pushReminders === '') {
+                    repeatErrors.pushReminders =
+                        'Please enter how many reminders to send.';
+                    alertArrayErrors[i] = repeatErrors;
+                } else if (
+                    !Validate.number(values.OnCallAlertBox[i].pushReminders)
+                ) {
+                    repeatErrors.pushReminders = 'This should be a number.';
+                    alertArrayErrors[i] = repeatErrors;
+                } else if (values.OnCallAlertBox[i].pushReminders <= 0) {
+                    repeatErrors.pushReminders =
+                        'This should be greater than 0';
+                    alertArrayErrors[i] = repeatErrors;
+                }
             }
             values.OnCallAlertBox[i] &&
                 values.OnCallAlertBox[i].teams &&
@@ -95,9 +111,10 @@ function validate(values) {
 
 export class OnCallAlertBox extends Component {
     componentDidMount() {
-        const { subProjectId, scheduleId } = this.props;
+        const { subProjectId, scheduleId, getProjectGroups } = this.props;
         this.props.getEscalation(subProjectId, scheduleId);
         this.props.subProjectTeamLoading(subProjectId);
+        getProjectGroups(subProjectId, 0, 0, true);
     }
     submitForm = async values => {
         const { subProjectId, scheduleId } = this.props;
@@ -117,9 +134,11 @@ export class OnCallAlertBox extends Component {
                     callReminders: 3,
                     smsReminders: 3,
                     emailReminders: 3,
+                    pushReminders: 3,
                     email: true,
                     sms: false,
                     call: false,
+                    push: false,
                     rotateBy: '',
                     rotationInterval: '',
                     firstRotationOn: '',
@@ -252,6 +271,7 @@ OnCallAlertBox.propTypes = {
     scheduleId: PropTypes.string.isRequired,
     subProjectId: PropTypes.string.isRequired,
     subProjectTeamLoading: PropTypes.func.isRequired,
+    getProjectGroups: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -262,6 +282,7 @@ const mapDispatchToProps = dispatch =>
             addEscalation,
             subProjectTeamLoading,
             pushArray: arrayPush,
+            getProjectGroups,
         },
         dispatch
     );
@@ -284,9 +305,11 @@ const mapStateToProps = (state, props) => {
                       callReminders: '3',
                       smsReminders: '3',
                       emailReminders: '3',
+                      pushReminders: '3',
                       email: true,
                       sms: false,
                       call: false,
+                      push: false,
                       teams: [
                           {
                               teamMembers: [
