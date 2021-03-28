@@ -71,7 +71,10 @@ class NewApplicationLog extends Component {
                     postObj
                 )
                 .then(
-                    (data) => {
+                    data => {
+                        history.push(
+                            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/application-logs/${data.data.slug}`
+                        );
                         thisObj.props.reset();
                         thisObj.props.closeCreateApplicationLogModal();
                         if (SHOULD_LOG_ANALYTICS) {
@@ -80,9 +83,6 @@ class NewApplicationLog extends Component {
                                 values
                             );
                         }
-                        history.push(
-                            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/application-logs/${data.data.slug}`
-                        );
                     },
                     error => {
                         if (error && error.message) {
