@@ -38,7 +38,7 @@ describe('Incident Communication SLA', () => {
                 password: data.password,
             };
             // user
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
         });
 
         done();
@@ -73,7 +73,7 @@ describe('Incident Communication SLA', () => {
                 });
                 await page.$$eval('ul#customTabList > li', elems =>
                     elems[2].click()
-                );                
+                );
 
                 await page.waitForSelector('#addIncidentSlaBtn', {
                     visible: true,
@@ -123,7 +123,7 @@ describe('Incident Communication SLA', () => {
                 });
                 await page.$$eval('ul#customTabList > li', elems =>
                     elems[2].click()
-                ); 
+                );
 
                 await page.waitForSelector('#addIncidentSlaBtn', {
                     visible: true,
@@ -173,7 +173,7 @@ describe('Incident Communication SLA', () => {
                 });
                 await page.$$eval('ul#customTabList > li', elems =>
                     elems[2].click()
-                ); 
+                );
 
                 await page.waitForSelector('#addIncidentSlaBtn', {
                     visible: true,
@@ -223,7 +223,7 @@ describe('Incident Communication SLA', () => {
                 });
                 await page.$$eval('ul#customTabList > li', elems =>
                     elems[2].click()
-                ); 
+                );
 
                 await page.waitForSelector('#addIncidentSlaBtn', {
                     visible: true,
