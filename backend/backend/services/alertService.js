@@ -1070,7 +1070,7 @@ module.exports = {
                 const reason = incident.reason;
                 const componentId = incident.monitorId.componentId._id;
                 const componentName = incident.monitorId.componentId.name;
-                const incidentUrl = `${global.dashboardHost}/project/${projectId}/${componentId}/incidents/${incident._id}`;
+                const incidentUrl = `${global.dashboardHost}/project/${projectId}/${componentId}/incidents/${incident.idNumber}`;
                 let incidentSlaTimeline =
                     incidentCommunicationSla.duration * 60;
                 incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
