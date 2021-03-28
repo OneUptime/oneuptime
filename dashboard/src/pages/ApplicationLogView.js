@@ -12,6 +12,7 @@ import {
     fetchApplicationLogs,
     editApplicationLog,
 } from '../actions/applicationLog';
+import { fetchComponent } from '../actions/component';
 import ApplicationLogDetail from '../components/application/ApplicationLogDetail';
 import ApplicationLogViewDeleteBox from '../components/application/ApplicationLogViewDeleteBox';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -27,13 +28,28 @@ class ApplicationLogView extends Component {
         }
     }
     ready = () => {
-        const componentId = this.props.componentId;
+        const { componentSlug, fetchComponent, componentId } = this.props;
+        fetchComponent(componentSlug);
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
-
         this.props.fetchApplicationLogs(projectId, componentId);
     };
+
+    componentDidUpdate(prevProps) {
+        if (
+            String(prevProps.componentSlug) !== String(this.props.componentSlug)
+        ) {
+            this.props.fetchComponent(this.props.componentSlug);
+        }
+
+        if (String(prevProps.componentId) !== String(this.props.componentId)) {
+            this.props.fetchApplicationLogs(
+                this.props.currentProject._id,
+                this.props.componentId
+            );
+        }
+    }
 
     handleCloseQuickStart = () => {
         const postObj = { showQuickStart: false };
@@ -124,7 +140,7 @@ ApplicationLogView.displayName = 'ApplicationLogView';
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { fetchApplicationLogs, editApplicationLog },
+        { fetchApplicationLogs, editApplicationLog, fetchComponent },
         dispatch
     );
 };
@@ -155,6 +171,7 @@ ApplicationLogView.propTypes = {
         })
     ),
     componentId: PropTypes.string,
+    fetchComponent: PropTypes.func,
     componentSlug: PropTypes.string,
     fetchApplicationLogs: PropTypes.func,
     currentProject: PropTypes.oneOfType([

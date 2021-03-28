@@ -623,7 +623,12 @@ module.exports = {
             await page.click('#btnCreateSchedule');
         }
     },
-    addScheduledMaintenance: async function(monitorName, scheduledEventName, componentName,page) {
+    addScheduledMaintenance: async function(
+        monitorName,
+        scheduledEventName,
+        componentName,
+        page
+    ) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#scheduledMaintenance', {
             visible: true,
@@ -654,10 +659,16 @@ module.exports = {
         await page.waitForSelector('input[name=startDate]');
         await page.click('input[name=startDate]');
         await page.click('div.MuiDialogActions-root button:nth-child(2)');
-        await page.waitForSelector('div.MuiDialogActions-root button:nth-child(2)',{hidden:true})       
+        await page.waitForSelector(
+            'div.MuiDialogActions-root button:nth-child(2)',
+            { hidden: true }
+        );
         await page.click('input[name=endDate]');
         await page.click('div.MuiDialogActions-root button:nth-child(2)');
-        await page.waitForSelector('div.MuiDialogActions-root button:nth-child(2)',{hidden:true})       
+        await page.waitForSelector(
+            'div.MuiDialogActions-root button:nth-child(2)',
+            { hidden: true }
+        );
         await page.click('#createScheduledEventButton');
         await page.waitForSelector('.ball-beat', {
             hidden: true,

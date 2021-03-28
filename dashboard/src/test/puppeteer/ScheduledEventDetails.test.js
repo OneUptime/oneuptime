@@ -41,7 +41,7 @@ describe('Scheduled Event Note', () => {
             };
 
             // user
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
             // Create component
             await init.addComponent(componentName, page);
             // Create monitor
@@ -52,7 +52,12 @@ describe('Scheduled Event Note', () => {
                 componentName
             );
             // Create a scheduled maintenance
-            await init.addScheduledMaintenance(monitorName, scheduledEventName,componentName, page);
+            await init.addScheduledMaintenance(
+                monitorName,
+                scheduledEventName,
+                componentName,
+                page
+            );
         });
 
         done();
@@ -89,10 +94,7 @@ describe('Scheduled Event Note', () => {
                 });
                 await init.selectByText('#event_state', 'investigating', page);
                 await page.click('#new-internal');
-                await page.type(
-                    '#new-internal',
-                    'Some random description'
-                );
+                await page.type('#new-internal', 'Some random description');
                 await page.click('#internal-addButton');
                 await page.waitForSelector(
                     '#form-new-schedule-investigation-message',
@@ -135,10 +137,7 @@ describe('Scheduled Event Note', () => {
                     visible: true,
                 });
                 await page.click('#update-internal', { clickCount: 3 });
-                await page.type(
-                    '#update-internal',
-                    'An updated description'
-                );
+                await page.type('#update-internal', 'An updated description');
                 await page.click('#internal-updateButton');
                 await page.waitForSelector(
                     '#form-update-schedule-internal-message',
@@ -191,8 +190,7 @@ describe('Scheduled Event Note', () => {
         operationTimeOut
     );
     // Deleted three tests that repeated
-    
- });
+});
 
 describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
     const operationTimeOut = 50000;
@@ -221,11 +219,16 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             };
 
             // user
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
             // Create component and monitor
             await init.addMonitorToComponent(componentName, monitorName, page);
             // Create a scheduled event
-            await init.addScheduledMaintenance(monitorName, scheduledEventName, componentName,page);
+            await init.addScheduledMaintenance(
+                monitorName,
+                scheduledEventName,
+                componentName,
+                page
+            );
             // create multiple notes
             for (let i = 0; i < 15; i++) {
                 const noteDescription = utils.generateRandomString();

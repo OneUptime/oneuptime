@@ -128,6 +128,7 @@ class ApplicationLog extends Component {
                                         index={2000}
                                         formKey="NewApplicationLogForm"
                                         componentId={this.props.componentId}
+                                        componentSlug={this.props.componentSlug}
                                     />
                                 </div>
                             </ShouldRender>
