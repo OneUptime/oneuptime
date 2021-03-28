@@ -35,7 +35,7 @@ describe('Incident Priority API', () => {
                 email,
                 password,
             };
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
         });
     });
 
@@ -215,7 +215,9 @@ describe('Incident Priority API', () => {
                     incidentPrioritiesCount,
                     e => e.textContent
                 );
-                expect(incidentsCountBeforeDeletion).toEqual('Page 1 of 1 (3 Priorities)');
+                expect(incidentsCountBeforeDeletion).toEqual(
+                    'Page 1 of 1 (3 Priorities)'
+                );
                 const deleteButtonLastRowIndentifier = `#priorityDelete_${newPriorityName}_2`;
                 await page.click(deleteButtonLastRowIndentifier);
                 await page.waitForSelector('#RemoveIncidentPriority');
@@ -238,7 +240,9 @@ describe('Incident Priority API', () => {
                     incidentPrioritiesCount,
                     e => e.textContent
                 );
-                expect(incidentsCountAfterDeletion).toEqual('Page 1 of 1 (2 Priorities)');
+                expect(incidentsCountAfterDeletion).toEqual(
+                    'Page 1 of 1 (2 Priorities)'
+                );
             });
         },
         operationTimeOut
@@ -275,7 +279,9 @@ describe('Incident Priority API', () => {
                     incidentPrioritiesCountIdentifier,
                     e => e.textContent
                 );
-                expect(incidentPrioritiesCount).toMatch('Page 1 of 1 (2 Priorities');
+                expect(incidentPrioritiesCount).toMatch(
+                    'Page 1 of 1 (2 Priorities'
+                );
 
                 for (let i = 0; i < 11; i++) {
                     await page.waitForSelector('#addNewPriority');
@@ -309,21 +315,25 @@ describe('Incident Priority API', () => {
 
                 await page.waitForSelector('#btnNext');
                 await page.click('#btnNext');
-                await page.waitForSelector(incidentPrioritiesCountIdentifier);                
+                await page.waitForSelector(incidentPrioritiesCountIdentifier);
                 incidentPrioritiesCount = await page.$eval(
                     incidentPrioritiesCountIdentifier,
                     e => e.textContent
                 );
-                expect(incidentPrioritiesCount).toMatch('Page 2 of 2 (13 Priorities)');
+                expect(incidentPrioritiesCount).toMatch(
+                    'Page 2 of 2 (13 Priorities)'
+                );
 
                 await page.waitForSelector('#btnPrev');
                 await page.click('#btnPrev');
-                await page.waitForSelector(incidentPrioritiesCountIdentifier);                
+                await page.waitForSelector(incidentPrioritiesCountIdentifier);
                 incidentPrioritiesCount = await page.$eval(
                     incidentPrioritiesCountIdentifier,
                     e => e.textContent
                 );
-                expect(incidentPrioritiesCount).toMatch('Page 1 of 2 (13 Priorities)');
+                expect(incidentPrioritiesCount).toMatch(
+                    'Page 1 of 2 (13 Priorities)'
+                );
             });
         },
         operationTimeOut

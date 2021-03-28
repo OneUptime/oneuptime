@@ -12,9 +12,7 @@ import {
     fetchApplicationLogs,
     editApplicationLog,
 } from '../actions/applicationLog';
-import {
-    fetchComponent,
-} from '../actions/component';
+import { fetchComponent } from '../actions/component';
 import ApplicationLogDetail from '../components/application/ApplicationLogDetail';
 import ApplicationLogViewDeleteBox from '../components/application/ApplicationLogViewDeleteBox';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -142,7 +140,7 @@ ApplicationLogView.displayName = 'ApplicationLogView';
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { fetchApplicationLogs, editApplicationLog,fetchComponent },
+        { fetchApplicationLogs, editApplicationLog, fetchComponent },
         dispatch
     );
 };

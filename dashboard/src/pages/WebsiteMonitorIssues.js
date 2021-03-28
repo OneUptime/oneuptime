@@ -467,7 +467,8 @@ const mapStateToProps = (state, props) => {
         .filter(monitor => monitor)[0];
 
     return {
-        component: state.component && state.component.currentComponent.component,
+        component:
+            state.component && state.component.currentComponent.component,
         monitor,
         monitorState: state.monitor,
         projectId,

@@ -12,9 +12,7 @@ import {
     fetchErrorEvent,
     setCurrentErrorEvent,
 } from '../actions/errorTracker';
-import {
-    fetchComponent,
-} from '../actions/component';
+import { fetchComponent } from '../actions/component';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';

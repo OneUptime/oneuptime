@@ -71,7 +71,7 @@ class NewApplicationLog extends Component {
                     postObj
                 )
                 .then(
-                    (data) => {
+                    data => {
                         thisObj.props.reset();
                         thisObj.props.closeCreateApplicationLogModal();
                         if (SHOULD_LOG_ANALYTICS) {
