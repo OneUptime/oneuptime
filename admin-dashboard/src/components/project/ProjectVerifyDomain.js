@@ -67,7 +67,10 @@ class ProjectVerifyDomain extends Component {
                     style={{ marginTop: 40 }}
                 >
                     <div className="bs-BIM">
-                        <div className="bs-Modal bs-Modal--large">
+                        <div
+                            className="bs-Modal bs-Modal--large"
+                            style={{ maxWidth: 'none' }}
+                        >
                             <ClickOutside
                                 onClickOutside={this.handleCloseModal}
                             >
