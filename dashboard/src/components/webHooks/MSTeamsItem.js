@@ -54,7 +54,7 @@ class MSTeamsItem extends React.Component {
                                     overflow: 'hidden',
                                 }}
                             >
-                                <span>{webHookName}</span>
+                                <span  id={`msteam_${webHookName}`}>{webHookName}</span>
                             </div>
                         </span>
                     </div>

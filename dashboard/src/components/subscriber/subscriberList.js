@@ -265,7 +265,7 @@ export class SubscriberList extends Component {
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root Flex-flex">
                                                                 <div className="Box-root Flex-flex">
-                                                                    <div id="subscriber_email" className="contact db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                    <div id="subscriber_contact" className="contact db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                         {(subscriber.contactWebhook && (
                                                                             <div className="db-ListViewItem-link">
                                                                                 <div className="Badge Badge--color--yellow Box-background--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2 Margin-right--4">
@@ -434,13 +434,10 @@ export class SubscriberList extends Component {
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {subscribers && subscribers.count
-                                        ? subscribers.count +
-                                          (subscribers && subscribers.count > 1
-                                              ? ' Subscribers'
-                                              : ' Subscriber')
-                                        : null}
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">                                    
+                                        <ShouldRender if={subscribers && subscribers.count}>
+                                            <span id="numberOfSubscribers">{subscribers.count}</span>{' '}{subscribers && subscribers.count > 1 ? 'Subscribers':'Subscriber'}
+                                        </ShouldRender>
                                 </span>
                             </span>
                         </span>

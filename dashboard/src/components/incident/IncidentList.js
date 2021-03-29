@@ -942,7 +942,7 @@ export class IncidentList extends Component {
                                             {this.props.incidents.count > 1 ?'total incidents' :'Incident'}   </ShouldRender>)
                                     </ShouldRender>
                                     <ShouldRender if={!(numberOfPages > 0)}>
-                                       <span id="numberOfIncidents">{this.props.incidents.count}</span>{' '}{this.props.incidents.count > 1 ?'total incidents' :'Incident'}
+                                       <span id="numberOfIncidents">{this.props.incidents.count}{' '}{this.props.incidents.count > 1 ?'total incidents' :'Incident'}</span>
                                     </ShouldRender>
                                 </span>
                             </span>
