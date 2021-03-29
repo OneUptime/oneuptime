@@ -811,8 +811,9 @@ const mapDispatchToProps = dispatch => {
 function mapStateToProps(state) {
     return {
         monitorState: state.monitor,
-        componentSlug: state.component.currentComponent &&
-        state.component.currentComponent.slug,
+        componentSlug:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component.slug,
         currentProject: state.project.currentProject,
         create: state.incident.newIncident.requesting,
         activeIncident: state.incident.newIncident.monitorId,

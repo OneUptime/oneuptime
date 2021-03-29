@@ -128,6 +128,7 @@ class ApplicationLog extends Component {
                                         index={2000}
                                         formKey="NewApplicationLogForm"
                                         componentId={this.props.componentId}
+                                        componentSlug={this.props.componentSlug}
                                     />
                                 </div>
                             </ShouldRender>
@@ -150,7 +151,7 @@ const mapDispatchToProps = dispatch => {
         dispatch
     );
 };
-const mapStateToProps = (state) => {
+const mapStateToProps = state => {
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     const applicationLog = state.applicationLog.applicationLogsList;
@@ -173,12 +174,13 @@ const mapStateToProps = (state) => {
 
     return {
         componentId:
-            state.component.currentComponent &&
-            state.component.currentComponent._id,
-        component: state.component &&
-        state.component.currentComponent,
-        componentSlug: state.component.currentComponent &&
-        state.component.currentComponent.slug,
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
+        component:
+            state.component && state.component.currentComponent.component,
+        componentSlug:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component.slug,
         applicationLog,
         currentProject,
         tutorialStat,

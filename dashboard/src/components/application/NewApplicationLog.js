@@ -6,6 +6,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
+import { history } from '../../store';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { bindActionCreators } from 'redux';
@@ -70,7 +71,10 @@ class NewApplicationLog extends Component {
                     postObj
                 )
                 .then(
-                    () => {
+                    data => {
+                        history.push(
+                            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/application-logs/${data.data.slug}`
+                        );
                         thisObj.props.reset();
                         thisObj.props.closeCreateApplicationLogModal();
                         if (SHOULD_LOG_ANALYTICS) {
@@ -363,6 +367,7 @@ NewApplicationLog.propTypes = {
     applicationLog: PropTypes.object,
     handleSubmit: PropTypes.func.isRequired,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     requesting: PropTypes.bool,
     currentProject: PropTypes.object,
     edit: PropTypes.bool,

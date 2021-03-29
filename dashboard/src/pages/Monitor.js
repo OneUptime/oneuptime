@@ -20,10 +20,7 @@ import {
     fetchMonitorStatuses,
     fetchLighthouseLogs,
 } from '../actions/monitor';
-import {
-    fetchComponentSummary,
-    addCurrentComponent,
-} from '../actions/component';
+import { fetchComponentSummary, fetchComponent } from '../actions/component';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
 import { getProbes } from '../actions/probe';
@@ -49,15 +46,10 @@ class DashboardView extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR LIST'
             );
         }
-        if (this.props.component) {
-            this.props.addCurrentComponent(this.props.component);
-        }
+        this.props.fetchComponent(this.props.componentSlug);
     }
 
     componentDidUpdate(prevProps) {
-        if (prevProps.component !== this.props.component) {
-            this.props.addCurrentComponent(this.props.component);
-        }
         if (prevProps.monitor.monitorsList.monitors.length === 0) {
             this.props.monitor.monitorsList.monitors.forEach(subProject => {
                 if (subProject.monitors.length > 0) {
@@ -173,7 +165,16 @@ class DashboardView extends Component {
             document.head.appendChild(scriptElement);
         }
 
-        let allMonitors = this.props.monitor.monitorsList.monitors
+        const monitor = this.props.monitor;
+        if (component && component._id) {
+            monitor.monitorsList.monitors.forEach(item => {
+                item.monitors = item.monitors.filter(
+                    monitor => monitor.componentId._id === component._id
+                );
+            });
+        }
+
+        let allMonitors = monitor.monitorsList.monitors
             .map(monitor => monitor.monitors)
             .flat();
 
@@ -509,25 +510,19 @@ const mapDispatchToProps = dispatch => {
             fetchTutorial,
             getProbes,
             fetchComponentSummary,
-            addCurrentComponent,
+            fetchComponent,
         },
         dispatch
     );
 };
 
-const mapStateToProps = (state) => {
-
+const mapStateToProps = (state, ownProps) => {
+    const { componentSlug } = ownProps.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     const monitor = state.monitor;
-    const  component= state.component &&
-    state.component.currentComponent;
-
-    monitor.monitorsList.monitors.forEach(item => {
-        item.monitors = item.monitors.filter(
-            monitor => monitor.componentId._id === component._id
-        );
-    });
+    const component =
+        state.component && state.component.currentComponent.component;
 
     let subProjects = state.subProject.subProjects.subProjects;
 
@@ -558,8 +553,8 @@ const mapStateToProps = (state) => {
     return {
         monitor,
         componentId:
-            state.component.currentComponent &&
-            state.component.currentComponent._id,
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
         currentProject: state.project.currentProject,
         incidents: state.incident.unresolvedincidents.incidents,
         monitors: state.monitor.monitorsList.monitors,
@@ -569,6 +564,7 @@ const mapStateToProps = (state) => {
         component,
         tutorialStat,
         componentSummaryObj: state.component.componentSummary,
+        componentSlug,
     };
 };
 
@@ -598,7 +594,6 @@ DashboardView.propTypes = {
     fetchLighthouseLogs: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     getProbes: PropTypes.func,
-    addCurrentComponent: PropTypes.func,
     startDate: PropTypes.object,
     endDate: PropTypes.object,
     location: PropTypes.shape({
@@ -614,6 +609,8 @@ DashboardView.propTypes = {
     tutorialStat: PropTypes.object,
     fetchComponentSummary: PropTypes.func,
     componentSummaryObj: PropTypes.object,
+    fetchComponent: PropTypes.func,
+    componentSlug: PropTypes.string,
 };
 
 DashboardView.displayName = 'DashboardView';

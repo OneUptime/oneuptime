@@ -320,6 +320,7 @@ class ErrorTrackerDetail extends Component {
                                             errorTracker={errorTracker}
                                             index={errorTracker._id}
                                             componentId={componentId}
+                                            componentSlug={componentSlug}
                                         />
                                     </ShouldRender>
 
@@ -424,6 +425,9 @@ function mapStateToProps(state, ownProps) {
     return {
         errorTracker: currentErrorTracker[0],
         currentProject: state.project.currentProject,
+        componentSlug:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component.slug,
         errorTrackerIssue,
         editMode: currentErrorTracker[0].editMode,
         startDate,

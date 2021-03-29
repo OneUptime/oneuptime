@@ -49,7 +49,7 @@ let RenderMember = ({
         });
     };
 
-    useEffect(updateTypeOnMount, [memberValue, inputarray]);
+    useEffect(updateTypeOnMount, [inputarray]);
 
     const memberHasCallTimes = !!(memberValue.startTime && memberValue.endTime);
     const showTimes = memberHasCallTimes ? !forcedTimeHide : timeVisible;
@@ -64,10 +64,10 @@ let RenderMember = ({
 
     const handleSwitch = val => {
         setType({ [teamIndex.toString() + nameIndex.toString()]: val });
-        if (type === 'team') {
+        if (val === 'team') {
             change('OnCallAlertBox', `${inputarray}.groupId`, '');
         }
-        if (type === 'group') {
+        if (val === 'group') {
             change('OnCallAlertBox', `${inputarray}.userId`, '');
         }
     };
@@ -346,6 +346,7 @@ RenderMember.propTypes = {
     inputarray: PropTypes.string.isRequired,
     change: PropTypes.func,
     form: PropTypes.object,
+    projectGroups: PropTypes.array,
 };
 
 RenderMember = connect(mapStateToProps, mapDispatchToProps)(RenderMember);

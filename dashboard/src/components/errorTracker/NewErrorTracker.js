@@ -4,6 +4,7 @@ import { ValidateField } from '../../config';
 import { Field, reduxForm, formValueSelector } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import { history } from '../../store';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { logEvent } from '../../analytics';
@@ -61,7 +62,10 @@ class NewErrorTracker extends Component {
                 errorTracker._id,
                 postObj
             ).then(
-                () => {
+                data => {
+                    history.push(
+                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/error-trackers/${data.data.slug}`
+                    );
                     thisObj.props.reset();
                     if (SHOULD_LOG_ANALYTICS) {
                         logEvent(
@@ -353,6 +357,7 @@ NewErrorTracker.propTypes = {
     errorTracker: PropTypes.object,
     handleSubmit: PropTypes.func.isRequired,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     requesting: PropTypes.bool,
     currentProject: PropTypes.object,
     edit: PropTypes.bool,

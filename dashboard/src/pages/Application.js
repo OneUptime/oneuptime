@@ -207,8 +207,8 @@ Application.propTypes = {
 const mapStateToProps = state => {
     return {
         componentId:
-            state.component.currentComponent &&
-            state.component.currentComponent._id,
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
         slug: state.project.currentProject && state.project.currentProject.slug,
@@ -217,11 +217,10 @@ const mapStateToProps = state => {
             state.security.getApplicationSecurityLog.requesting,
         gettingApplicationSecurities: state.security.getApplication.requesting,
         component:
-            state.component &&
-            state.component.currentComponent,
+            state.component && state.component.currentComponent.component,
         componentSlug:
-            state.component.currentComponent &&
-            state.component.currentComponent.slug,
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component.slug,
     };
 };
 

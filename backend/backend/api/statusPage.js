@@ -11,6 +11,7 @@ const ProbeService = require('../services/probeService');
 const UtilService = require('../services/utilService');
 const RealTimeService = require('../services/realTimeService');
 const DomainVerificationService = require('../services/domainVerificationService');
+const IncidentService = require('../services/incidentService');
 
 const router = express.Router();
 const validUrl = require('valid-url');
@@ -786,10 +787,15 @@ router.get('/:projectId/incident/:incidentId', checkUser, async function(
     res
 ) {
     try {
-        const { incidentId } = req.params;
+        const { incidentId, projectId } = req.params;
+
+        const incidentData = await IncidentService.findOneBy({
+            projectId,
+            idNumber: incidentId,
+        });
 
         const incident = await StatusPageService.getIncident({
-            _id: incidentId,
+            _id: incidentData._id,
         });
         return sendItemResponse(req, res, incident);
     } catch (error) {
@@ -802,11 +808,16 @@ router.get('/:projectId/:incidentId/incidentNotes', checkUser, async function(
     res
 ) {
     try {
-        const { incidentId } = req.params;
+        const { incidentId, projectId } = req.params;
+
+        const incident = await IncidentService.findOneBy({
+            projectId,
+            idNumber: incidentId,
+        });
         const { skip, limit, postOnStatusPage } = req.query;
 
         const response = await StatusPageService.getIncidentNotes(
-            { incidentId, postOnStatusPage },
+            { incidentId: incident._id, postOnStatusPage },
             skip,
             limit
         );
@@ -1141,14 +1152,19 @@ router.get('/:projectId/timeline/:incidentId', checkUser, async function(
     res
 ) {
     try {
-        const { incidentId } = req.params;
+        const { incidentId, projectId } = req.params;
+
+        const incidentData = await IncidentService.findOneBy({
+            projectId,
+            idNumber: incidentId,
+        });
         // setting limit to one
         // since the frontend only need the last content (current content)
         // of incident timeline
         const { skip = 0, limit = 1 } = req.query;
 
         const timeline = await IncidentTimelineService.findBy(
-            { incidentId },
+            { incidentId: incidentData._id },
             skip,
             limit
         );

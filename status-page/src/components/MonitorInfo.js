@@ -672,14 +672,10 @@ class MonitorInfo extends Component {
                         {selectedCharts && selectedCharts.uptime && (
                             <div
                                 ref={this.scrollWrapper}
-                                ƒ
                                 className="block-chart"
                                 style={{
                                     overflowX: this.props.theme
                                         ? 'none'
-                                        : 'scroll',
-                                    overflow: this.props.theme
-                                        ? 'visible'
                                         : 'scroll',
                                 }}
                             >
