@@ -17,6 +17,7 @@ import { addProjectNote, fetchProject, paginate } from '../actions/project';
 import { IS_SAAS_SERVICE } from '../config';
 import { fetchProjectTeam } from '../actions/project';
 import ProjectBalance from '../components/project/ProjectBalance';
+import ProjectDomain from '../components/project/ProjectDomain';
 
 class Project extends Component {
     componentDidMount() {
@@ -128,6 +129,16 @@ class Project extends Component {
                                                                 10
                                                             ? true
                                                             : false
+                                                    }
+                                                />
+                                            </div>
+                                            <div className="Box-root Margin-bottom--12">
+                                                <ProjectDomain
+                                                    projectId={
+                                                        this.props
+                                                            .currentProject &&
+                                                        this.props
+                                                            .currentProject._id
                                                     }
                                                 />
                                             </div>
