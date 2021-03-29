@@ -81,7 +81,9 @@ module.exports = {
         projectId,
         statusPageId,
         cert,
-        privateKey
+        privateKey,
+        enableHttps,
+        autoProvisioning
     ) {
         let createdDomain = {};
 
@@ -125,6 +127,8 @@ module.exports = {
                         domain: subDomain,
                         cert,
                         privateKey,
+                        enableHttps,
+                        autoProvisioning,
                         domainVerificationToken:
                             createdDomain._id || existingBaseDomain._id,
                     },
@@ -154,7 +158,9 @@ module.exports = {
         domainId,
         newDomain,
         cert,
-        privateKey
+        privateKey,
+        enableHttps,
+        autoProvisioning
     ) {
         let createdDomain = {};
         const _this = this;
@@ -194,6 +200,8 @@ module.exports = {
                 if (String(eachDomain._id) === String(domainId)) {
                     eachDomain.cert = cert;
                     eachDomain.privateKey = privateKey;
+                    eachDomain.enableHttps = enableHttps;
+                    eachDomain.autoProvisioning = autoProvisioning;
                     if (eachDomain.domain !== newDomain) {
                         doesDomainExist = await _this.doesDomainExist(
                             newDomain
