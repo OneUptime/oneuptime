@@ -39,8 +39,8 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate('createdById', 'name')
                 .execPopulate();
-            // add note when a scheduled event is created
 
+            // add note when a scheduled event is created
             await ScheduledEventNoteService.create({
                 content: 'THIS SCHEDULED EVENT HAS BEEN CREATED',
                 scheduledEventId: scheduledEvent._id,
@@ -48,6 +48,7 @@ module.exports = {
                 type: 'investigation',
                 event_state: 'Created',
             });
+
             // add note automatically for scheduled event start
             await ScheduledEventNoteService.create({
                 content: 'THIS SCHEDULED EVENT HAS STARTED',
