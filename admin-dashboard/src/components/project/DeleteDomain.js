@@ -160,6 +160,11 @@ DeleteDomain.propTypes = {
     fetchProjectDomains: PropTypes.func,
     data: PropTypes.object,
     domainId: PropTypes.string,
+    deleteError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    isRequesting: PropTypes.bool,
 };
 
 const mapStateToProps = state => {
