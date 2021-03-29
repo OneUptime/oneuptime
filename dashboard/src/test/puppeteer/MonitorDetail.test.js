@@ -110,18 +110,22 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector('#closeIncident_0', {
                     visible: true,
                 });
-                await page.$eval('#closeIncident_0', elem => elem.click());
-
-                const selector = 'tr.incidentListItem';
-                await page.waitForSelector(selector);
-                expect((await page.$$(selector)).length).toEqual(1);
-
-                const selector1 = 'tr.incidentListItem:first-of-type';
+                await page.$eval('#closeIncident_0', elem => elem.click());   
+                
+                await page.waitForSelector(
+                    '#numberOfIncidents'
+                );
+                
+                let selector = await page.$eval('#numberOfIncidents', elem => elem.textContent);
+                expect(selector).toMatch('1');                
+                
+                await page.waitForSelector(`#name_${priorityName}`,{visible:true});
+                const selector1 = `#name_${priorityName}`;
                 const rowContent = await page.$eval(
                     selector1,
                     e => e.textContent
                 );
-                expect(rowContent).toContain(priorityName);
+                expect(rowContent).toMatch(priorityName);
             });
         },
         operationTimeOut
@@ -173,274 +177,277 @@ describe('Monitor Detail API', () => {
     //     operationTimeOut
     // );
 
-    // test(
-    //     'Should navigate to monitor details and open the incident creation pop up',
-    //     async () => {
-    //         return await cluster.execute(null, async ({ page }) => {
-    //             // Navigate to Monitor details
-    //             await init.navigateToMonitorDetails(
-    //                 componentName,
-    //                 monitorName,
-    //                 page
-    //             );
+    test(
+        'Should navigate to monitor details and open the incident creation pop up',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
 
-    //             // tab the create incident button over thee monitor view header
-    //             await page.waitForSelector(
-    //                 `#monitorCreateIncident_${monitorName}`
-    //             );
-    //             await page.$eval(`#monitorCreateIncident_${monitorName}`, e =>
-    //                 e.click()
-    //             );
-    //             await page.waitForSelector('#incidentTitleLabel');
-    //             let spanElement = await page.waitForSelector(
-    //                 `#incidentTitleLabel`
-    //             );
-    //             spanElement = await spanElement.getProperty('innerText');
-    //             spanElement = await spanElement.jsonValue();
-    //             spanElement.should.be.exactly('Create New Incident');
-    //         });
-    //     },
-    //     operationTimeOut
-    // );
+                // tab the create incident button over thee monitor view header
+                await page.waitForSelector(
+                    `#monitorCreateIncident_${monitorName}`
+                );
+                await page.$eval(`#monitorCreateIncident_${monitorName}`, e =>
+                    e.click()
+                );
+                await page.waitForSelector('#incidentTitleLabel');
+                let spanElement = await page.waitForSelector(
+                    `#incidentTitleLabel`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly('Create New Incident');
+            });
+        },
+        operationTimeOut
+    );
 
-    // test(
-    //     'Should navigate to monitor details and get list of incidents and paginate incidents',
-    //     async () => {
-    //         // expect.assertions(2);
-    //         return await cluster.execute(null, async ({ page }) => {
-    //             // Navigate to Monitor details
-    //             await init.navigateToMonitorDetails(
-    //                 componentName,
-    //                 monitorName,
-    //                 page
-    //             );
+    test(
+        'Should navigate to monitor details and get list of incidents and paginate incidents',
+        async () => {
+            // expect.assertions(2);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
 
-    //             const nextSelector = await page.waitForSelector('#btnNext');
-    //             await nextSelector.click();
+                const nextSelector = await page.waitForSelector('#btnNext');
+                await nextSelector.click();
 
-    //             let incidentRows = await page.$$('tr.incidentListItem');
-    //             let countIncidents = incidentRows.length;
+                 let incidentRows = '#numberOfIncidents';
+                // let countIncidents = incidentRows.length;
 
-    //             expect(countIncidents).toEqual(1);
+                // expect(countIncidents).toEqual(1);
+                let countIncidents =  await page.$eval(incidentRows, elem => elem.textContent);
+                expect(countIncidents).toEqual('1');
 
-    //             const prevSelector = await page.waitForSelector('#btnPrev');
-    //             await prevSelector.click();
 
-    //             incidentRows = await page.$$('tr.incidentListItem');
-    //             countIncidents = incidentRows.length;
+                const prevSelector = await page.waitForSelector('#btnPrev');
+                await prevSelector.click();
 
-    //             expect(countIncidents).toEqual(1);
-    //         });
-    //     },
-    //     operationTimeOut
-    // );
+                incidentRows = '#numberOfIncidents';
+                countIncidents = await page.$eval(incidentRows, elem => elem.textContent);
+                expect(countIncidents).toEqual('1');
+                
+            });
+        },
+        operationTimeOut
+    );
 
-    // test(
-    //     'Should delete an incident and redirect to the monitor page',
-    //     async () => {
-    //         return await cluster.execute(null, async ({ page }) => {
-    //             // Navigate to Monitor details
-    //             await init.navigateToMonitorDetails(
-    //                 componentName,
-    //                 monitorName,
-    //                 page
-    //             );
-    //             // await page.waitForTimeout(5000);
-    //             const selector = `#incident_${monitorName}_0`;
-    //             await page.waitForSelector(selector);
-    //             await page.$eval(selector, e => e.click());
-    //             // await page.waitForTimeout(5000);
+    test(
+        'Should delete an incident and redirect to the monitor page',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+                // await page.waitForTimeout(5000);
+                const selector = `#incident_${monitorName}_0`;
+                await page.waitForSelector(selector);
+                await page.$eval(selector, e => e.click());
+                // await page.waitForTimeout(5000);
 
-    //             // click on advance option tab
-    //             await init.gotoTab(utils.incidentTabIndexes.ADVANCE, page);
+                // click on advance option tab
+                await init.gotoTab(utils.incidentTabIndexes.ADVANCE, page);
 
-    //             await page.waitForSelector('#deleteIncidentButton');
-    //             await page.$eval('#deleteIncidentButton', e => e.click());
-    //             // await page.waitForTimeout(5000);
-    //             await page.waitForSelector('#confirmDeleteIncident', {
-    //                 visible: true,
-    //             });
-    //             await page.$eval('#confirmDeleteIncident', e => e.click());
-    //             await page.waitForSelector(`#cb${monitorName}`, {
-    //                 visible: true,
-    //             });
-    //             // await page.waitForNavigation();
+                await page.waitForSelector('#deleteIncidentButton');
+                await page.$eval('#deleteIncidentButton', e => e.click());
+                // await page.waitForTimeout(5000);
+                await page.waitForSelector('#confirmDeleteIncident', {
+                    visible: true,
+                });
+                await page.$eval('#confirmDeleteIncident', e => e.click());
+                await page.waitForSelector(`#cb${monitorName}`, {
+                    visible: true,
+                });
+                // await page.waitForNavigation();
 
-    //             // click on basic tab
-    //             await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
+                // click on basic tab
+                await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
 
-    //             let incidentCountSpanElement = await page.waitForSelector(
-    //                 `#incident_count`
-    //             );
-    //             incidentCountSpanElement = await incidentCountSpanElement.getProperty(
-    //                 'innerText'
-    //             );
-    //             incidentCountSpanElement = await incidentCountSpanElement.jsonValue();
+                let incidentCountSpanElement = await page.waitForSelector(
+                    `#numberOfIncidents`
+                );
+                incidentCountSpanElement = await incidentCountSpanElement.getProperty(
+                    'innerText'
+                );
+                incidentCountSpanElement = await incidentCountSpanElement.jsonValue();
 
-    //             expect(incidentCountSpanElement).toMatch('0 Incident');
-    //         });
-    //     },
-    //     operationTimeOut
-    // );
+                expect(incidentCountSpanElement).toMatch('0 Incident');
+            });
+        },
+        operationTimeOut
+    );
 
-    // test(
-    //     'Should navigate to monitor details and create a new subscriber',
-    //     async () => {
-    //         // expect.assertions(1);
-    //         return await cluster.execute(null, async ({ page }) => {
-    //             // Navigate to Monitor details
-    //             await init.navigateToMonitorDetails(
-    //                 componentName,
-    //                 monitorName,
-    //                 page
-    //             );
+    test(
+        'Should navigate to monitor details and create a new subscriber',
+        async () => {
+            // expect.assertions(1);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
 
-    //             // click on subscribers tab
-    //             await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
+                // click on subscribers tab
+                await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
 
-    //             const addButtonSelector = '#addSubscriberButton';
-    //             await page.waitForSelector(addButtonSelector);
-    //             await page.$eval(addButtonSelector, e => e.click());
+                const addButtonSelector = '#addSubscriberButton';
+                await page.waitForSelector(addButtonSelector);
+                await page.$eval(addButtonSelector, e => e.click());
 
-    //             await page.waitForSelector('#alertViaId');
+                await page.waitForSelector('#alertViaId');
 
-    //             await init.selectByText('#alertViaId', 'email', page);
-    //             await page.type('input[name=email]', subscriberEmail);
-    //             await page.$eval('#createSubscriber', e => e.click());
-    //             await page.waitForSelector('#createSubscriber', {
-    //                 hidden: true,
-    //             });
+                await init.selectByText('#alertViaId', 'email', page);
+                await page.type('input[name=email]', subscriberEmail);
+                await page.$eval('#createSubscriber', e => e.click());
+                await page.waitForSelector('#createSubscriber', {
+                    hidden: true,
+                });
 
-    //             const createdSubscriberSelector =
-    //                 '#subscribersList > tbody > tr.subscriber-list-item .contact';
+                const createdSubscriberSelector =
+                    '#subscriber';
 
-    //             await page.waitForSelector(createdSubscriberSelector);
+                await page.waitForSelector(createdSubscriberSelector);
 
-    //             const createdSubscriberEmail = await page.$eval(
-    //                 createdSubscriberSelector,
-    //                 el => el.textContent
-    //             );
+                const createdSubscriberEmail = await page.$eval(
+                    createdSubscriberSelector,
+                    el => el.textContent
+                );
 
-    //             expect(createdSubscriberEmail).toEqual(subscriberEmail);
-    //         });
-    //     },
-    //     operationTimeOut
-    // );
+                expect(createdSubscriberEmail).toEqual(subscriberEmail);
+            });
+        },
+        operationTimeOut
+    );
 
-    // test(
-    //     'Should navigate to monitor details and get list of subscribers and paginate subscribers',
-    //     async () => {
-    //         return await cluster.execute(null, async ({ page }) => {
-    //             // Navigate to Monitor details
-    //             await init.navigateToMonitorDetails(
-    //                 componentName,
-    //                 monitorName,
-    //                 page
-    //             );
+    test(
+        'Should navigate to monitor details and get list of subscribers and paginate subscribers',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
 
-    //             // click on subscribers tab
-    //             await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
-    //             const addButtonSelector = '#addSubscriberButton';
-    //             await page.waitForSelector(addButtonSelector);
+                // click on subscribers tab
+                await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
+                const addButtonSelector = '#addSubscriberButton';
+                await page.waitForSelector(addButtonSelector);
 
-    //             for (let i = 0; i < 5; i++) {
-    //                 await page.$eval(addButtonSelector, e => e.click());
-    //                 await page.waitForSelector('#alertViaId');
-    //                 await init.selectByText('#alertViaId', 'email', page);
-    //                 await page.type(
-    //                     'input[name=email]',
-    //                     utils.generateRandomBusinessEmail()
-    //                 );
-    //                 await page.$eval('#createSubscriber', e => e.click());
-    //                 await page.waitForSelector('#createSubscriber', {
-    //                     hidden: true,
-    //                 });
-    //             }
+                for (let i = 0; i < 5; i++) {
+                    await page.$eval(addButtonSelector, e => e.click());
+                    await page.waitForSelector('#alertViaId');
+                    await init.selectByText('#alertViaId', 'email', page);
+                    await page.type(
+                        'input[name=email]',
+                        utils.generateRandomBusinessEmail()
+                    );
+                    await page.$eval('#createSubscriber', e => e.click());
+                    await page.waitForSelector('#createSubscriber', {
+                        hidden: true,
+                    });
+                }
 
-    //             const createdSubscriberSelector =
-    //                 '#subscribersList > tbody > tr.subscriber-list-item';
+                const createdSubscriberSelector =
+                    '#subscribersList > tbody > tr.subscriber-list-item';
 
-    //             await page.waitForSelector(createdSubscriberSelector);
+                await page.waitForSelector(createdSubscriberSelector);
 
-    //             let subscriberRows = await page.$$(createdSubscriberSelector);
-    //             let countSubscribers = subscriberRows.length;
+                let subscriberRows = await page.$$(createdSubscriberSelector);
+                let countSubscribers = subscriberRows.length;
 
-    //             expect(countSubscribers).toEqual(5);
+                expect(countSubscribers).toEqual(5);
 
-    //             const nextSelector = await page.$('#btnNextSubscriber');
-    //             await nextSelector.click();
-    //             await page.waitForSelector('.ball-beat', { visible: true });
-    //             await page.waitForSelector('.ball-beat', { hidden: true });
+                const nextSelector = await page.$('#btnNextSubscriber');
+                await nextSelector.click();
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
 
-    //             await page.waitForSelector(createdSubscriberSelector);
+                await page.waitForSelector(createdSubscriberSelector);
 
-    //             subscriberRows = await page.$$(createdSubscriberSelector);
-    //             countSubscribers = subscriberRows.length;
+                subscriberRows = await page.$$(createdSubscriberSelector);
+                countSubscribers = subscriberRows.length;
 
-    //             expect(countSubscribers).toEqual(1);
+                expect(countSubscribers).toEqual(1);
 
-    //             const prevSelector = await page.$('#btnPrevSubscriber');
-    //             await prevSelector.click();
-    //             await page.waitForSelector('.ball-beat', { visible: true });
-    //             await page.waitForSelector('.ball-beat', { hidden: true });
-    //             await page.waitForSelector(createdSubscriberSelector);
+                const prevSelector = await page.$('#btnPrevSubscriber');
+                await prevSelector.click();
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
+                await page.waitForSelector(createdSubscriberSelector);
 
-    //             subscriberRows = await page.$$(createdSubscriberSelector);
-    //             countSubscribers = subscriberRows.length;
+                subscriberRows = await page.$$(createdSubscriberSelector);
+                countSubscribers = subscriberRows.length;
 
-    //             expect(countSubscribers).toEqual(5);
-    //         });
-    //     },
-    //     operationTimeOut
-    // );
+                expect(countSubscribers).toEqual(5);
+            });
+        },
+        operationTimeOut
+    );
 
-    // //MS Teams
-    // test(
-    //     'Should navigate to monitor details and create a msteams webhook',
-    //     async () => {
-    //         expect.assertions(1);
-    //         return await cluster.execute(null, async ({ page }) => {
-    //             // Navigate to Monitor details
-    //             await init.navigateToMonitorDetails(
-    //                 componentName,
-    //                 monitorName,
-    //                 page
-    //             );
+    //MS Teams
+    test(
+        'Should navigate to monitor details and create a msteams webhook',
+        async () => {
+            expect.assertions(1);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
 
-    //             // click on integrations tab
-    //             await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
+                // click on integrations tab
+                await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
 
-    //             const addButtonSelector = '#addMsTeamsButton';
-    //             await page.waitForSelector(addButtonSelector);
-    //             await page.$eval(addButtonSelector, e => e.click());
+                const addButtonSelector = '#addMsTeamsButton';
+                await page.waitForSelector(addButtonSelector);
+                await page.$eval(addButtonSelector, e => e.click());
 
-    //             await page.waitForSelector('#endpoint');
+                await page.waitForSelector('#endpoint');
 
-    //             await page.type('#endpoint', webhookEndpoint);
+                await page.type('#endpoint', webhookEndpoint);
 
-    //             await page.evaluate(() => {
-    //                 document
-    //                     .querySelector('input[name=incidentCreated]')
-    //                     .click();
-    //             });
+                await page.evaluate(() => {
+                    document
+                        .querySelector('input[name=incidentCreated]')
+                        .click();
+                });
 
-    //             const createdWebhookSelector =
-    //                 '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+                const createdWebhookSelector =
+                    '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
 
-    //             await page.$eval('#createMsTeams', e => e.click());
-    //             await page.waitForSelector('#createMsTeams', { hidden: true });
-    //             await page.waitForSelector(createdWebhookSelector);
+                await page.$eval('#createMsTeams', e => e.click());
+                await page.waitForSelector('#createMsTeams', { hidden: true });
+                await page.waitForSelector(createdWebhookSelector);
 
-    //             const createdWebhookEndpoint = await page.$eval(
-    //                 createdWebhookSelector,
-    //                 el => el.textContent
-    //             );
+                const createdWebhookEndpoint = await page.$eval(
+                    createdWebhookSelector,
+                    el => el.textContent
+                );
 
-    //             expect(createdWebhookEndpoint).toEqual(webhookEndpoint);
-    //         });
-    //     },
-    //     operationTimeOut
-    // );
+                expect(createdWebhookEndpoint).toEqual(webhookEndpoint);
+            });
+        },
+        operationTimeOut
+    );
 
     // test(
     //     'Should navigate to monitor details and update a msteams webhook',

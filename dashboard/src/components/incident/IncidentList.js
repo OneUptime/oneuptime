@@ -9,6 +9,7 @@ import { history } from '../../store';
 import { markAsRead } from '../../actions/notification';
 import { animateSidebar } from '../../actions/animateSidebar';
 import { API_URL } from '../../config';
+import ShouldRender from '../basic/ShouldRender';
 
 export class IncidentList extends Component {
     render() {
@@ -449,6 +450,7 @@ export class IncidentList extends Component {
                                                                 style={{
                                                                     color: `rgba(${incident.incidentPriority.color.r},${incident.incidentPriority.color.g},${incident.incidentPriority.color.b},${incident.incidentPriority.color.a})`,
                                                                 }}
+                                                                id={`name_${incident.incidentPriority.name}`}
                                                             >
                                                                 {
                                                                     incident
@@ -932,25 +934,16 @@ export class IncidentList extends Component {
                                 <span
                                     id={`incident_count`}
                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
-                                >
-                                    {numberOfPages > 0
-                                        ? `Page ${
-                                              this.props.page
-                                          } of ${numberOfPages} (${
-                                              incidents
-                                                  ? this.props.incidents.count +
-                                                    (this.props.incidents
-                                                        .count > 1
-                                                        ? ' total Incidents'
-                                                        : ' Incident')
-                                                  : null
-                                          })`
-                                        : incidents
-                                        ? this.props.incidents.count +
-                                          (this.props.incidents.count > 1
-                                              ? ' total Incidents'
-                                              : ' Incident')
-                                        : null}
+                                >                                    
+                                    <ShouldRender if={numberOfPages > 0}>
+                                        Page {this.props.page} of {numberOfPages} {' '}
+                                         (<ShouldRender if={incidents}>
+                                             <span id="numberOfIncidents">{this.props.incidents.count}</span>{' '}
+                                            {this.props.incidents.count > 1 ?'total incidents' :'Incident'}   </ShouldRender>)
+                                    </ShouldRender>
+                                    <ShouldRender if={!(numberOfPages > 0)}>
+                                       <span id="numberOfIncidents">{this.props.incidents.count}</span>{' '}{this.props.incidents.count > 1 ?'total incidents' :'Incident'}
+                                    </ShouldRender>
                                 </span>
                             </span>
                         </span>

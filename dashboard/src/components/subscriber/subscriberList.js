@@ -265,7 +265,7 @@ export class SubscriberList extends Component {
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root Flex-flex">
                                                                 <div className="Box-root Flex-flex">
-                                                                    <div className="contact db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                    <div id="subscriber_email" className="contact db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                         {(subscriber.contactWebhook && (
                                                                             <div className="db-ListViewItem-link">
                                                                                 <div className="Badge Badge--color--yellow Box-background--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2 Margin-right--4">
