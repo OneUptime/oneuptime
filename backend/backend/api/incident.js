@@ -1056,7 +1056,7 @@ router.get(
                 title_message: 'Incident Resolved',
                 body_message: 'Your incident is now resolved.',
                 action: 'resolve',
-                dashboard_url: global.dashboardHost,
+                dashboard_url: global.dashboardHost + '/dashboard',
             });
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -1087,7 +1087,7 @@ router.get(
                 title_message: 'Incident Acknowledged',
                 body_message: 'Your incident is now acknowledged',
                 action: 'acknowledge',
-                dashboard_url: global.dashboardHost,
+                dashboard_url: global.dashboardHost + '/dashboard',
             });
         } catch (error) {
             return sendErrorResponse(req, res, error);
