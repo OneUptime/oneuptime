@@ -26,7 +26,7 @@ const puppeteerLaunchConfig = {
 
 const user = faker.helpers.createCard();
 const cvv = '542';
-const expiryDate = '09/2020';
+const expiryDate = '09/2020'
 
 /**
  * @param {string} val : The value to be parsed.
