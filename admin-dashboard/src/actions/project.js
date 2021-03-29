@@ -876,3 +876,142 @@ export const changePlan = (
         dispatch(changePlanFailure(errorMsg));
     }
 };
+
+export function fetchProjectDomainsRequest() {
+    return {
+        type: types.PROJECT_DOMAIN_REQUEST,
+    };
+}
+
+export function fetchProjectDomainsSuccess(payload) {
+    return {
+        type: types.PROJECT_DOMAIN_SUCCESS,
+        payload,
+    };
+}
+
+export function fetchProjectDomainsFailure(error) {
+    return {
+        type: types.PROJECT_DOMAIN_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchProjectDomains(projectId, skip = 0, limit = 10) {
+    return async function(dispatch) {
+        dispatch(fetchProjectDomainsRequest());
+
+        try {
+            const response = await getApi(
+                `domainVerificationToken/${projectId}/domains?skip=${skip}&limit=${limit}`
+            );
+            dispatch(fetchProjectDomainsSuccess(response.data));
+            return response.data;
+        } catch (error) {
+            const errorMessage =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(fetchProjectDomainsFailure(errorMessage));
+        }
+    };
+}
+
+export function deleteProjectDomainRequest() {
+    return {
+        type: types.DELETE_PROJECT_DOMAIN_REQUEST,
+    };
+}
+
+export function deleteProjectDomainSuccess(payload) {
+    return {
+        type: types.DELETE_PROJECT_DOMAIN_SUCCESS,
+        payload,
+    };
+}
+
+export function deleteProjectDomainFailure(error) {
+    return {
+        type: types.DELETE_PROJECT_DOMAIN_FAILURE,
+        payload: error,
+    };
+}
+
+export function deleteProjectDomain({ projectId, domainId }) {
+    return async function(dispatch) {
+        dispatch(deleteProjectDomainRequest());
+
+        try {
+            const response = await deleteApi(
+                `domainVerificationToken/${projectId}/domain/${domainId}`
+            );
+            dispatch(deleteProjectDomainSuccess(response.data));
+            return response.data;
+        } catch (error) {
+            const errorMessage =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(deleteProjectDomainFailure(errorMessage));
+        }
+    };
+}
+
+export function verifyProjectDomainRequest() {
+    return {
+        type: types.VERIFY_PROJECT_DOMAIN_REQUEST,
+    };
+}
+
+export function verifyProjectDomainSuccess(payload) {
+    return {
+        type: types.VERIFY_PROJECT_DOMAIN_SUCCESS,
+        payload,
+    };
+}
+
+export function verifyProjectDomainFailure(error) {
+    return {
+        type: types.VERIFY_PROJECT_DOMAIN_FAILURE,
+        payload: error,
+    };
+}
+
+export function resetVerifyProjectDomain() {
+    return {
+        type: types.RESET_VERIFY_PROJECT_DOMAIN,
+    };
+}
+
+export function verifyProjectDomain({ projectId, domainId, data }) {
+    return async function(dispatch) {
+        dispatch(verifyProjectDomainRequest());
+
+        try {
+            const response = await putApi(
+                `domainVerificationToken/${projectId}/verify/${domainId}`,
+                data
+            );
+            dispatch(verifyProjectDomainSuccess(response.data));
+            return response.data;
+        } catch (error) {
+            const errorMessage =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(verifyProjectDomainFailure(errorMessage));
+        }
+    };
+}
