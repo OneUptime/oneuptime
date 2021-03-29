@@ -893,6 +893,8 @@ module.exports = {
                 incident,
                 data
             );
+
+            await ZapierService.pushToZapier('incident_note', incident, data);
         } catch (error) {
             ErrorService.log('incidentService.sendIncidentNoteAdded', error);
             throw error;
