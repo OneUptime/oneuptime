@@ -23,15 +23,12 @@ class MonitorViewChangeComponentBox extends Component {
     handleMonitorComponentChanged = async (
         monitor,
         oldComponentId,
-        newComponent
     ) => {
         const { currentProject } = this.props;
 
         const { projectId, _id: monitorId, componentId, slug } = monitor;
 
-        const redirectTo = `/dashboard/project/${
-            currentProject.slug
-        }/${newComponent && newComponent.slug}/monitoring/${slug}`;
+        const redirectTo = `/dashboard/project/${currentProject.slug}/${monitor.componentId.slug}/monitoring/${slug}`;
         history.push(redirectTo);
 
         if (SHOULD_LOG_ANALYTICS) {

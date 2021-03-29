@@ -2213,6 +2213,7 @@ export class IncidentStatus extends Component {
                                                                         <div
                                                                             className="Box-root Margin-right--16 pointer"
                                                                             key={
+                                                                                member.user &&
                                                                                 member
                                                                                     .user
                                                                                     ._id
@@ -2224,12 +2225,13 @@ export class IncidentStatus extends Component {
                                                                                 alt=""
                                                                             />
                                                                             <span>
-                                                                                {member
-                                                                                    .user
-                                                                                    .name ??
-                                                                                    member
+                                                                                {member.user &&
+                                                                                    (member
                                                                                         .user
-                                                                                        .email}
+                                                                                        .name ??
+                                                                                        member
+                                                                                            .user
+                                                                                            .email)}
                                                                             </span>
                                                                         </div>
                                                                     )
