@@ -359,6 +359,15 @@ ProjectDomain.propTypes = {
     projectId: PropTypes.string,
     fetchProjectDomains: PropTypes.func,
     openModal: PropTypes.func,
+    projectDomain: PropTypes.object,
+    count: PropTypes.number,
+    limit: PropTypes.number,
+    skip: PropTypes.number,
+    error: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    requesting: PropTypes.bool,
 };
 
 const mapDispatchToProps = dispatch =>
