@@ -309,6 +309,7 @@ ProjectVerifyDomain.propTypes = {
     fetchProjectDomains: PropTypes.func,
     verifyProjectDomain: PropTypes.func,
     resetVerifyProjectDomain: PropTypes.func,
+    domain: PropTypes.string,
 };
 
 export default connect(
