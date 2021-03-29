@@ -128,10 +128,7 @@ export class ScheduledEventNote extends Component {
                             {type.toLowerCase() === 'investigation' ? (
                                 <span>Tell us more about what went wrong.</span>
                             ) : (
-                                <span>
-                                    Internal Notes about this incident. This is
-                                    only visible to your team.
-                                </span>
+                                <span>Notes about this incident.</span>
                             )}
                         </p>
                     </div>
