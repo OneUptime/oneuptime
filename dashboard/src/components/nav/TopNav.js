@@ -142,7 +142,7 @@ class TopContent extends Component {
                             marginRight: '3px',
                         }}
                     />
-                    <span className={topNavCardClass}>
+                    <span className={topNavCardClass} id="activeIncidentsText">
                         <ShouldRender
                             if={incidentCounter && incidentCounter > 0}
                         >
