@@ -146,7 +146,7 @@ const incidentTabIndexes = {
     ALERT_LOGS: 4,
     INCIDENT_TIMELINE: 6,
     INCIDENT_NOTES: 8,
-    ADVANCE: 6,
+    ADVANCE: 6, // Now in react-tab-6 id
 };
 const scheduleEventTabIndexes = {
     BASIC: 0,

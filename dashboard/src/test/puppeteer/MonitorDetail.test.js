@@ -372,7 +372,7 @@ describe('Monitor Detail API', () => {
                     elem => elem.textContent
                 );
                 let countSubscribers = subscriberRows;
-
+                // Total number of subscribers is rendered and not first 5.
                 expect(countSubscribers).toEqual('6');
 
                 const nextSelector = await page.$('#btnNextSubscriber');
@@ -427,6 +427,7 @@ describe('Monitor Detail API', () => {
 
                 await page.waitForSelector('#endpoint');
 
+                // Name is required to submit a msteams webhook AND only name is rendered. webHookEndPoint only shows when edit button is clicked.
                 await page.type('#webHookName', webHookName);
                 await page.type('#endpoint', webhookEndpoint);
 
