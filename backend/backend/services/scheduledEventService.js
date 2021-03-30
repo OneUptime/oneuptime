@@ -3,6 +3,7 @@ const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
 const RealTimeService = require('./realTimeService');
 const ScheduledEventNoteService = require('./scheduledEventNoteService');
+const moment = require('moment');
 
 module.exports = {
     create: async function({ projectId }, data) {
@@ -49,14 +50,18 @@ module.exports = {
                 event_state: 'Created',
             });
 
-            // add note automatically for scheduled event start
-            await ScheduledEventNoteService.create({
-                content: 'THIS SCHEDULED EVENT HAS STARTED',
-                scheduledEventId: scheduledEvent._id,
-                createdById: scheduledEvent.createdById._id,
-                type: 'investigation',
-                event_state: 'Started',
-            });
+            //Create event start note immediately if start time equal to create time
+            let currentTime = moment();
+            let startTime = moment(scheduledEvent.startDate);
+            if (startTime <= currentTime) {
+                await ScheduledEventNoteService.create({
+                    content: 'THIS SCHEDULED EVENT HAS STARTED',
+                    scheduledEventId: scheduledEvent._id,
+                    createdById: scheduledEvent.createdById._id,
+                    type: 'investigation',
+                    event_state: 'Started',
+                });
+            }
 
             await RealTimeService.addScheduledEvent(scheduledEvent);
 
@@ -424,6 +429,55 @@ module.exports = {
         } catch (error) {
             ErrorService.log(
                 'scheduledEventService.resolveScheduledEvent',
+                error
+            );
+            throw error;
+        }
+    },
+    /**
+     * @description Create Started note for all schedule events
+     */
+    createScheduledEventStartedNote: async function() {
+        try {
+            //fetch events
+            let scheduledEventList = await this.findBy(
+                { deleted: false },
+                0,
+                0
+            );
+
+            //fetch start time of all events
+            scheduledEventList.map(async scheduledEvent => {
+                let scheduledEventId = scheduledEvent._id;
+                let startTime = moment(scheduledEvent.startDate);
+                let currentTime = moment();
+
+                //Start time exceeded
+                if (currentTime >= startTime) {
+                    // fetch scheduleNotes for started note
+                    let scheduledEventNoteList = await ScheduledEventNoteService.findBy(
+                        {
+                            scheduledEventId,
+                            event_state: 'Started',
+                        }
+                    );
+                    if (
+                        scheduledEventNoteList &&
+                        scheduledEventNoteList.length === 0
+                    ) {
+                        await ScheduledEventNoteService.create({
+                            content: 'THIS SCHEDULED EVENT HAS STARTED',
+                            scheduledEventId,
+                            createdById: scheduledEvent.createdById._id,
+                            type: 'investigation',
+                            event_state: 'Started',
+                        });
+                    }
+                }
+            });
+        } catch (error) {
+            ErrorService.log(
+                'scheduledEventService.createScheduledEventStartedNote',
                 error
             );
             throw error;
