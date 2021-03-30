@@ -19,9 +19,9 @@ keywords:
 home: https://fyipe.com
 dependencies:
 # https://github.com/kubernetes/ingress-nginx/tree/master/charts/ingress-nginx
-- name: ingress-nginx
-  version: "3.24.0"
-  repository: "https://kubernetes.github.io/ingress-nginx"
+- name: nginx-ingress-controller
+  repository: https://charts.bitnami.com/bitnami
+  version: "6.0.1"
 - name: mongodb
   version: "7.8.10"
   repository: "https://charts.bitnami.com/bitnami"

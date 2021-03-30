@@ -5,6 +5,7 @@ const incidentTrigger = require('./triggers/incident');
 const monitorTrigger = require('./triggers/monitors');
 const acknowledgeTrigger = require('./triggers/acknowledge');
 const incidentsTrigger = require('./triggers/incidents');
+const incidentNoteTrigger = require('./triggers/incidentNote');
 // import actions
 const createIncidentAction = require('./actions/createIncident');
 const acknowledgeLastIncidentAction = require('./actions/acknowledgeLastIncident');
@@ -46,6 +47,7 @@ const App = {
         [monitorTrigger.key]: monitorTrigger,
         [acknowledgeTrigger.key]: acknowledgeTrigger,
         [incidentsTrigger.key]: incidentsTrigger,
+        [incidentNoteTrigger.key]: incidentNoteTrigger,
     },
 
     // If you want your searches to show up, you better include it here!

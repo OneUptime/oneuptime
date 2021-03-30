@@ -27,7 +27,6 @@ class ChangeMonitorComponent extends React.Component {
         const projectId = data.monitor.projectId._id;
         const monitorId = data.monitor._id;
         const { newComponentId } = values;
-
         changeMonitorComponent(projectId, monitorId, newComponentId).then(
             response => {
                 if (!this.props.changeMonitorComponentError) {
