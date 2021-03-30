@@ -74,6 +74,11 @@ const initialState = {
     },
     fetchIncidentTimelineRequest: false,
     incidentMessages: {},
+    hideIncident: {
+        error: null,
+        success: false,
+        requesting: false,
+    },
 };
 
 export default function incident(state = initialState, action) {
@@ -112,6 +117,28 @@ export default function incident(state = initialState, action) {
                 incident: {
                     ...state.incident,
                     incident: action.payload,
+                },
+            };
+        }
+
+        case types.HIDE_INCIDENT_FAILED: {
+            return {
+                ...state,
+                hideIncident: {
+                    error: action.payload,
+                    success: false,
+                    requesting: false,
+                },
+            };
+        }
+
+        case types.HIDE_INCIDENT_SUCCESS: {
+            return {
+                ...state,
+                hideIncident: {
+                    error: null,
+                    success: true,
+                    requesting: false,
                 },
             };
         }
