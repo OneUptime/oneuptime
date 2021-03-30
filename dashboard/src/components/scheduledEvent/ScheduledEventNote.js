@@ -89,7 +89,6 @@ export class ScheduledEventNote extends Component {
             projectId,
             scheduledEventId,
             fetchScheduledEventNotesInternal,
-
             skip,
             type,
         } = this.props;
@@ -116,21 +115,19 @@ export class ScheduledEventNote extends Component {
                       this.props.scheduledEventId + 'investigation'
                   ]
                 : this.props.pages[this.props.scheduledEventId + 'internal'];
+
         return (
             <div className="Box-root">
                 <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                            <span>Notes</span>
+                            <span>Event Timeline</span>
                         </span>
                         <p>
                             {type.toLowerCase() === 'investigation' ? (
                                 <span>Tell us more about what went wrong.</span>
                             ) : (
-                                <span>
-                                    Internal Notes about this incident. This is
-                                    only visible to your team.
-                                </span>
+                                <span>Notes about this incident.</span>
                             )}
                         </p>
                     </div>
@@ -158,11 +155,19 @@ export class ScheduledEventNote extends Component {
                     <div className="bs-thread-container">
                         {notes && notes.length > 0
                             ? notes.map((note, i) => {
+                                  const eventStartDate =
+                                      this.props.scheduledEvent &&
+                                      this.props.scheduledEvent.startDate
+                                          ? this.props.scheduledEvent.startDate
+                                          : note.createdAt;
+
                                   return (
                                       <>
                                           {note.content &&
-                                          !note.deleted &&
-                                          note.event_state !== 'Resolved' ? (
+                                          note.event_state !== 'Deleted' &&
+                                          note.event_state !== 'Resolved' &&
+                                          note.event_state !== 'Created' &&
+                                          note.event_state !== 'Started' ? (
                                               <div
                                                   key={i}
                                                   id={`${type}_incident_message_${i}`}
@@ -270,10 +275,9 @@ export class ScheduledEventNote extends Component {
                                                                       }}
                                                                   >
                                                                       <Markdown>
-                                                                          {note.content +
-                                                                              ' (' +
-                                                                              note.type +
-                                                                              ' note)'}
+                                                                          {
+                                                                              note.content
+                                                                          }
                                                                       </Markdown>
                                                                   </span>
                                                               </div>
@@ -366,9 +370,14 @@ export class ScheduledEventNote extends Component {
                                                       <div className="bs-thread-line-down"></div>
                                                   </ShouldRender>
                                               </div>
-                                          ) : note.deleted ||
-                                            (note.event_state &&
-                                                !note.deleted) ? (
+                                          ) : note.event_state &&
+                                            (note.event_state === 'Deleted' ||
+                                                note.event_state ===
+                                                    'Started' ||
+                                                note.event_state ===
+                                                    'Created' ||
+                                                note.event_state ===
+                                                    'Resolved') ? (
                                               <>
                                                   <ShouldRender if={i !== 0}>
                                                       <div className="bs-thread-line-up bs-ex-up"></div>
@@ -377,10 +386,15 @@ export class ScheduledEventNote extends Component {
                                                       <div
                                                           className={`bs-incident-notes 
                                                                     ${
-                                                                        note.deleted
+                                                                        note.event_state ===
+                                                                        'Deleted'
                                                                             ? 'bs-note-offline'
                                                                             : note.event_state ===
-                                                                              'Resolved'
+                                                                                  'Resolved' ||
+                                                                              note.event_state ===
+                                                                                  'Created' ||
+                                                                              note.event_state ===
+                                                                                  'Started'
                                                                             ? 'bs-note-resolved'
                                                                             : null
                                                                     }`}
@@ -434,9 +448,13 @@ export class ScheduledEventNote extends Component {
                                                                               '600',
                                                                       }}
                                                                   >
-                                                                      {note
-                                                                          .createdById
-                                                                          .name
+                                                                      {note.event_state ===
+                                                                      'Started'
+                                                                          ? 'Fyipe'
+                                                                          : note.createdById &&
+                                                                            note
+                                                                                .createdById
+                                                                                .name
                                                                           ? note
                                                                                 .createdById
                                                                                 .name
@@ -457,7 +475,8 @@ export class ScheduledEventNote extends Component {
                                                                               <div className="Box-root Flex-flex">
                                                                                   <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                                       {note &&
-                                                                                      note.deleted ? (
+                                                                                      note.event_state ===
+                                                                                          'Deleted' ? (
                                                                                           <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                               <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                                   <span>
@@ -466,10 +485,14 @@ export class ScheduledEventNote extends Component {
                                                                                                   </span>
                                                                                               </span>
                                                                                           </div>
-                                                                                      ) : note &&
-                                                                                        note.event_state &&
+                                                                                      ) : (note &&
+                                                                                            note.event_state &&
+                                                                                            note.event_state ===
+                                                                                                'Resolved') ||
                                                                                         note.event_state ===
-                                                                                            'Resolved' ? (
+                                                                                            'Created' ||
+                                                                                        note.event_state ===
+                                                                                            'Started' ? (
                                                                                           <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                               <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                                   <span>
@@ -498,7 +521,24 @@ export class ScheduledEventNote extends Component {
                                                           </div>
                                                           <div>
                                                               <span>
-                                                                  {currentTimeZone
+                                                                  {note.event_state ===
+                                                                  'Started'
+                                                                      ? currentTimeZone
+                                                                          ? momentTz(
+                                                                                eventStartDate
+                                                                            )
+                                                                                .tz(
+                                                                                    currentTimeZone
+                                                                                )
+                                                                                .format(
+                                                                                    'lll'
+                                                                                )
+                                                                          : moment(
+                                                                                eventStartDate
+                                                                            ).format(
+                                                                                'lll'
+                                                                            )
+                                                                      : currentTimeZone
                                                                       ? momentTz(
                                                                             note.createdAt
                                                                         )
@@ -622,6 +662,7 @@ ScheduledEventNote.propTypes = {
     openModal: PropTypes.func,
     projectId: PropTypes.string.isRequired,
     scheduledEventId: PropTypes.string.isRequired,
+    scheduledEvent: PropTypes.object,
     fetchScheduledEventNotesInternal: PropTypes.func,
     skip: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     limit: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),

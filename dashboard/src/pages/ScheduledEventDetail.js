@@ -130,7 +130,7 @@ class ScheduledEvent extends Component {
                                         Basic
                                     </Tab>
                                     <Tab className={'custom-tab custom-tab-3'}>
-                                        Notes
+                                        Timeline
                                     </Tab>
                                     <Tab className={'custom-tab custom-tab-3'}>
                                         Advanced Options
@@ -198,6 +198,9 @@ class ScheduledEvent extends Component {
                                                                     }
                                                                     scheduledEventId={
                                                                         scheduledEventId
+                                                                    }
+                                                                    scheduledEvent={
+                                                                        scheduledEvent
                                                                     }
                                                                     skip={
                                                                         internalNotesList.skip
