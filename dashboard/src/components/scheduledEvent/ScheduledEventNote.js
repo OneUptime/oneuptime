@@ -448,9 +448,13 @@ export class ScheduledEventNote extends Component {
                                                                               '600',
                                                                       }}
                                                                   >
-                                                                      {note
-                                                                          .createdById
-                                                                          .name
+                                                                      {note.event_state ===
+                                                                      'Started'
+                                                                          ? 'Fyipe'
+                                                                          : note.createdById &&
+                                                                            note
+                                                                                .createdById
+                                                                                .name
                                                                           ? note
                                                                                 .createdById
                                                                                 .name
