@@ -450,7 +450,7 @@ describe('Monitor Detail API', () => {
                 const createdWebhookName = await page.$eval(
                     createdWebhookSelector,
                     el => el.textContent
-                );                
+                );
                 expect(createdWebhookName).toEqual(webHookName);
             });
         },
@@ -638,6 +638,7 @@ describe('Monitor Detail API', () => {
 
                 await page.waitForSelector('#endpoint');
 
+                await page.type('#webHookName', webHookName);
                 await page.type('#endpoint', webhookEndpoint);
 
                 await page.evaluate(() => {
@@ -646,18 +647,18 @@ describe('Monitor Detail API', () => {
                         .click();
                 });
 
-                const createdWebhookSelector =
-                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+                //Only the NAME is rendered as well as the ACTIONS to be performed.
+                const createdWebhookSelector = `#name_slack_${webHookName}`;
 
                 await page.$eval('#createSlack', e => e.click());
                 await page.waitForSelector('#createSlack', { hidden: true });
                 await page.waitForSelector(createdWebhookSelector);
 
-                const createdWebhookEndpoint = await page.$eval(
+                const createdWebhookName = await page.$eval(
                     createdWebhookSelector,
                     el => el.textContent
                 );
-                expect(createdWebhookEndpoint).toEqual(webhookEndpoint);
+                expect(createdWebhookName).toEqual(webHookName);
             });
         },
         operationTimeOut
@@ -677,33 +678,33 @@ describe('Monitor Detail API', () => {
                 // click on integrations tab
                 await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
 
-                const existingWebhookSelector =
-                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+                const existingWebhookSelector = `#name_slack_${webHookName}`;
 
                 await page.waitForSelector(existingWebhookSelector);
 
-                const existingWebhookEndpoint = await page.$eval(
+                const existingWebhookName = await page.$eval(
                     existingWebhookSelector,
                     el => el.textContent
                 );
 
-                expect(existingWebhookEndpoint).toEqual(webhookEndpoint);
+                expect(existingWebhookName).toEqual(webHookName);
 
-                const editWebhookButtonSelector =
-                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(1)';
+                const editWebhookButtonSelector = `#edit_slack_${webHookName}`;
                 await page.$eval(editWebhookButtonSelector, e => e.click());
 
                 const newWebhookEndpoint = utils.generateRandomWebsite();
+                await page.click('#webHookName', { clickCount: 3 });
+                await page.type('#webHookName', newWebHookName);
                 await page.click('#endpoint', { clickCount: 3 });
                 await page.type('#endpoint', newWebhookEndpoint);
                 await page.$eval('#slackUpdate', e => e.click());
                 await page.waitForSelector('#slackUpdate', { hidden: true });
-                await page.waitForSelector(existingWebhookSelector);
-                const updatedWebhookEndpoint = await page.$eval(
-                    existingWebhookSelector,
+                await page.waitForSelector(`#name_slack_${newWebHookName}`);
+                const updatedWebhookName = await page.$eval(
+                    `#name_slack_${newWebHookName}`,
                     el => el.textContent
                 );
-                expect(updatedWebhookEndpoint).toEqual(newWebhookEndpoint);
+                expect(updatedWebhookName).toEqual(newWebHookName);
             });
         },
         operationTimeOut
@@ -722,8 +723,7 @@ describe('Monitor Detail API', () => {
                 );
                 // click on integrations tab
                 await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
-                const createdWebhookSelector =
-                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+                const createdWebhookSelector = '.slack-list';
                 await page.waitForSelector(createdWebhookSelector);
 
                 let webhookRows = await page.$$(createdWebhookSelector);
@@ -731,8 +731,7 @@ describe('Monitor Detail API', () => {
 
                 expect(countWebhooks).toEqual(1);
 
-                const deleteWebhookButtonSelector =
-                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(2)';
+                const deleteWebhookButtonSelector = `#delete_slack_${newWebHookName}`;
                 await page.$eval(deleteWebhookButtonSelector, e => e.click());
 
                 await page.waitForSelector('#slackDelete');
@@ -767,6 +766,10 @@ describe('Monitor Detail API', () => {
                     await page.$eval(addButtonSelector, e => e.click());
                     await page.waitForSelector('#endpoint');
 
+                    await page.type(
+                        '#webHookName',
+                        utils.generateRandomString()
+                    );
                     await page.type('#endpoint', utils.generateRandomWebsite());
                     await page.evaluate(() => {
                         document
@@ -779,11 +782,15 @@ describe('Monitor Detail API', () => {
                     });
                 }
 
-                await page.reload({ waitUntil: 'networkidle0' });
+                //await page.reload({ waitUntil: 'networkidle0' });
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
                 await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
 
-                const createdWebhookSelector =
-                    '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+                const createdWebhookSelector = '.slack-list';
                 await page.waitForSelector(createdWebhookSelector);
 
                 let webhookRows = await page.$$(createdWebhookSelector);
@@ -796,6 +803,7 @@ describe('Monitor Detail API', () => {
                 await nextSelector.click();
                 await page.waitForSelector('.ball-beat', { visible: true });
                 await page.waitForSelector('.ball-beat', { hidden: true });
+
                 await page.waitForSelector(createdWebhookSelector);
 
                 webhookRows = await page.$$(createdWebhookSelector);
@@ -808,6 +816,7 @@ describe('Monitor Detail API', () => {
                 await prevSelector.click();
                 await page.waitForSelector('.ball-beat', { visible: true });
                 await page.waitForSelector('.ball-beat', { hidden: true });
+
                 await page.waitForSelector(createdWebhookSelector);
 
                 webhookRows = await page.$$(createdWebhookSelector);
@@ -837,7 +846,6 @@ describe('Monitor Detail API', () => {
                 await page.$eval(addButtonSelector, e => e.click());
 
                 await page.waitForSelector('#endpoint');
-
                 await page.type('#endpoint', webhookEndpoint);
                 await init.selectByText('#endpointType', 'GET', page);
 
@@ -847,8 +855,7 @@ describe('Monitor Detail API', () => {
                         .click();
                 });
 
-                const createdWebhookSelector =
-                    '#webhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+                const createdWebhookSelector = '#webhook_name';
 
                 await page.$eval('#createWebhook', e => e.click());
                 await page.waitForSelector('#createWebhook', { hidden: true });
@@ -900,11 +907,11 @@ describe('Monitor Detail API', () => {
                 }
 
                 await page.reload({ waitUntil: 'networkidle0' });
+
                 // click on integrations tab
                 await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
 
-                const createdWebhookSelector =
-                    '#webhookList > tbody > tr.webhook-list-item';
+                const createdWebhookSelector = '.webhook-list';
                 await page.waitForSelector(createdWebhookSelector);
 
                 let webhookRows = await page.$$(createdWebhookSelector);
@@ -949,7 +956,7 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector('#form-new-monitor');
                 await page.$eval('input[id=name]', e => e.click());
                 await page.type('input[id=name]', urlMonitorName);
-                await init.selectByText('#type', 'url', page);
+                await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
                 await page.$eval('#url', e => e.click());
                 await page.type('#url', 'https://google.com');
@@ -964,10 +971,7 @@ describe('Monitor Detail API', () => {
                     page
                 );
 
-                // await page.waitForTimeout(200000);
-
-                const createdLighthouseLogsSelector =
-                    '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem > td:nth-child(1) > div > span > div > span';
+                const createdLighthouseLogsSelector = '.lighthouseLogsListItem';
                 await page.waitForSelector(createdLighthouseLogsSelector, {
                     visible: true,
                     timeout: 200000,
@@ -1008,8 +1012,7 @@ describe('Monitor Detail API', () => {
                     hidden: true,
                 });
 
-                const createdLighthouseLogsSelector =
-                    '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem';
+                const createdLighthouseLogsSelector = '.lighthouseLogsListItem';
                 await page.waitForSelector(createdLighthouseLogsSelector);
 
                 const lighthouseLogsRows = await page.$$(
@@ -1042,13 +1045,12 @@ describe('Monitor Detail API', () => {
                 );
                 await page.waitForSelector('#websiteUrlDelete');
                 await page.$eval('#websiteUrlDelete', e => e.click());
-                // await page.waitForTimeout(5000);
+
                 await page.waitForSelector('#websiteUrlDelete', {
                     hidden: true,
                 });
 
-                const createdLighthouseLogsSelector =
-                    '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem';
+                const createdLighthouseLogsSelector = '.lighthouseLogsListItem';
                 await page.waitForSelector(createdLighthouseLogsSelector);
 
                 const lighthouseLogsRows = await page.$$(
@@ -1142,11 +1144,10 @@ describe('Monitor Detail API', () => {
                     page
                 );
 
-                const createdLighthouseLogsSelector =
-                    '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem > td:nth-child(1) > div > span > div > span';
+                const createdLighthouseLogsSelector = '.lighthouseLogsListItem';
                 await page.waitForSelector(createdLighthouseLogsSelector);
                 await page.$eval(createdLighthouseLogsSelector, e => e.click());
-                await page.waitForTimeout(5000);
+                await page.waitForSelector('#lighthouse-performance');
 
                 let lighthousePerformanceElement = await page.waitForSelector(
                     `#lighthouse-performance`
@@ -1194,7 +1195,7 @@ describe('Monitor Detail API', () => {
                 lighthousePwaElement.should.endWith('%');
 
                 const websiteIssuesSelector =
-                    '#performance #websiteIssuesList > tbody > tr.websiteIssuesListItem';
+                    '#performance #websiteIssuesList > tbody >tr.websiteIssuesListItem';
                 await page.waitForSelector(websiteIssuesSelector);
 
                 const websiteIssuesRows = await page.$$(websiteIssuesSelector);
