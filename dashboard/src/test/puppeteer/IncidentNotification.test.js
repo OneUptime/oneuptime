@@ -37,10 +37,11 @@ describe('Incident Created test', () => {
         });
 
         // Register user
-        return await cluster.execute(null, async ({ page }) => {            
+        return await cluster.execute(null, async ({ page }) => {
+            // Rearranging it makes the 'user' automaticaaly logged in after registrations
             await init.registerUser(user1, page);
             await init.logout(page);
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
         });
     });
 

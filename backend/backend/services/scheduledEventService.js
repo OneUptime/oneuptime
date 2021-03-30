@@ -51,8 +51,8 @@ module.exports = {
             });
 
             //Create event start note immediately if start time equal to create time
-            let currentTime = moment();
-            let startTime = moment(scheduledEvent.startDate);
+            const currentTime = moment();
+            const startTime = moment(scheduledEvent.startDate);
             if (startTime <= currentTime) {
                 await ScheduledEventNoteService.create({
                     content: 'THIS SCHEDULED EVENT HAS STARTED',
@@ -438,10 +438,10 @@ module.exports = {
      */
     createScheduledEventStartedNote: async function() {
         try {
-            let currentTime = moment();
+            const currentTime = moment();
 
             //fetch events that have started
-            let scheduledEventList = await this.findBy(
+            const scheduledEventList = await this.findBy(
                 { startDate: { $lte: currentTime }, deleted: false },
                 0,
                 0
@@ -449,8 +449,8 @@ module.exports = {
 
             //fetch event notes without started note and create
             scheduledEventList.map(async scheduledEvent => {
-                let scheduledEventId = scheduledEvent._id;
-                let scheduledEventNoteList = await ScheduledEventNoteService.findBy(
+                const scheduledEventId = scheduledEvent._id;
+                const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
                     {
                         scheduledEventId,
                         event_state: 'Started',
