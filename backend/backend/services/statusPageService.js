@@ -432,6 +432,13 @@ module.exports = {
 
             if (!query) query = {};
             const statuspages = await _this.findBy(query, 0, limit);
+            const checkHideResolved = statuspages[0].hideResolvedIncident;
+            let option = {};
+            if (checkHideResolved) {
+                option = {
+                    resolved: false,
+                };
+            }
 
             const withMonitors = statuspages.filter(
                 statusPage => statusPage.monitors.length
@@ -442,12 +449,18 @@ module.exports = {
                 : [];
             if (monitorIds && monitorIds.length) {
                 const notes = await IncidentService.findBy(
-                    { monitorId: { $in: monitorIds } },
+                    {
+                        monitorId: { $in: monitorIds },
+                        hideIncident: false,
+                        ...option,
+                    },
                     limit,
                     skip
                 );
                 const count = await IncidentService.countBy({
                     monitorId: { $in: monitorIds },
+                    hideIncident: false,
+                    ...option,
                 });
 
                 return { notes, count };
