@@ -934,15 +934,27 @@ export class IncidentList extends Component {
                                 <span
                                     id={`incident_count`}
                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
-                                >                                    
+                                >
                                     <ShouldRender if={numberOfPages > 0}>
-                                        Page {this.props.page} of {numberOfPages} {' '}
-                                         (<ShouldRender if={incidents}>
-                                             <span id="numberOfIncidents">{this.props.incidents.count}</span>{' '}
-                                            {this.props.incidents.count > 1 ?'total incidents' :'Incident'}   </ShouldRender>)
+                                        Page {this.props.page} of{' '}
+                                        {numberOfPages} (
+                                        <ShouldRender if={incidents}>
+                                            <span id="numberOfIncidents">
+                                                {this.props.incidents.count}
+                                            </span>{' '}
+                                            {this.props.incidents.count > 1
+                                                ? 'total incidents'
+                                                : 'Incident'}{' '}
+                                        </ShouldRender>
+                                        )
                                     </ShouldRender>
                                     <ShouldRender if={!(numberOfPages > 0)}>
-                                       <span id="numberOfIncidents">{this.props.incidents.count}{' '}{this.props.incidents.count > 1 ?'total incidents' :'Incident'}</span>
+                                        <span id="numberOfIncidents">
+                                            {this.props.incidents.count}{' '}
+                                            {this.props.incidents.count > 1
+                                                ? 'total incidents'
+                                                : 'Incident'}
+                                        </span>
                                     </ShouldRender>
                                 </span>
                             </span>

@@ -582,16 +582,14 @@ module.exports = {
         await page.waitForSelector('ul#customTabList > li', {
             visible: true,
         });
-        await page.$$eval('ul#customTabList > li', elems =>
-            elems[1].click()
-        );
-       
+        await page.$$eval('ul#customTabList > li', elems => elems[1].click());
+
         await page.waitForSelector('#addNewPriority');
         await page.click('#addNewPriority');
         await page.waitForSelector('#CreateIncidentPriority');
         await page.type('input[name=name]', incidentPriority);
         await page.click('#CreateIncidentPriority');
-        await page.waitForSelector('#CreateIncidentPriority',{hidden: true});
+        await page.waitForSelector('#CreateIncidentPriority', { hidden: true });
     },
     addStatusPageToProject: async function(statusPageName, projectName, page) {
         const createStatusPageSelector = await page.$(
