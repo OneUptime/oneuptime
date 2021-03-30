@@ -8,6 +8,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
 import { changeMonitorComponent } from '../../actions/monitor';
+import { addCurrentComponent } from '../../actions/component';
 import DataPathHoC from '../DataPathHoC';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
@@ -20,10 +21,7 @@ class MonitorViewChangeComponentBox extends Component {
         this.state = { changeMonitorComponentModalId: uuidv4() };
     }
 
-    handleMonitorComponentChanged = async (
-        monitor,
-        oldComponentId,
-    ) => {
+    handleMonitorComponentChanged = async (monitor, oldComponentId) => {
         const { currentProject } = this.props;
 
         const { projectId, _id: monitorId, componentId, slug } = monitor;
@@ -42,7 +40,7 @@ class MonitorViewChangeComponentBox extends Component {
                 }
             );
         }
-
+        this.props.addCurrentComponent(this.props.component);
         this.props.closeModal({
             id: this.state.changeMonitorComponentModalId,
         });
@@ -143,16 +141,16 @@ MonitorViewChangeComponentBox.displayName = 'MonitorViewChangeComponentBox';
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { openModal, closeModal, changeMonitorComponent },
+        { openModal, closeModal, changeMonitorComponent, addCurrentComponent },
         dispatch
     );
 
 const mapStateToProps = (state, props) => {
-    const currentComponentId = props.monitor.componentId;
+    const { componentSlug } = props.match.params;
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
-            if (String(c._id) === String(currentComponentId)) {
+            if (String(c.slug) === String(componentSlug)) {
                 component = c;
             }
         });
@@ -161,6 +159,7 @@ const mapStateToProps = (state, props) => {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
         component,
+        componentSlug,
     };
 };
 
@@ -170,6 +169,7 @@ MonitorViewChangeComponentBox.propTypes = {
     monitorState: PropTypes.object.isRequired,
     monitor: PropTypes.object.isRequired,
     changeMonitorComponent: PropTypes.func.isRequired,
+    addCurrentComponent: PropTypes.func.isRequired,
     currentProject: PropTypes.object,
     component: PropTypes.object,
 };
