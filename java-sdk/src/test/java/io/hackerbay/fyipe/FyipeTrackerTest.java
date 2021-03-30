@@ -286,4 +286,13 @@ public class FyipeTrackerTest {
         assertEquals(2, newEvent.getAsJsonArray("timeline").size());
         assertEquals(2, newEvent.getAsJsonArray("tags").size());
     }
+    @Test
+    public void itShouldContainVersionNumberAndSdkNameInCapturedMessage() throws IOException {
+        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        String errorMessage = "Got an error here";
+        tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
+        JsonObject event = tracker.captureMessage(errorMessage);
+        assertEquals("java-sdk", event.getAsJsonObject("sdk").get("name").getAsString());
+    }
+
 }
