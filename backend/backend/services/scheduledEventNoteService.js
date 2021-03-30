@@ -133,6 +133,7 @@ module.exports = {
         try {
             const data = {
                 deleted: true,
+                event_state: 'Deleted',
                 deletedAt: Date.now(),
                 deletedById: userId,
             };
