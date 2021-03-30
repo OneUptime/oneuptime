@@ -3,6 +3,7 @@ package io.hackerbay.fyipe;
 import com.google.gson.JsonObject;
 import io.hackerbay.fyipe.model.*;
 import io.hackerbay.fyipe.util.ParameterStringBuilder;
+import io.hackerbay.fyipe.util.PluginReader;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,10 +23,10 @@ public class FyipeTracker {
     private SDK sdk;
     private ErrorEvent errorEvent;
 
-    public FyipeTracker(String apiUrl, String errorTrackerId, String errorTrackerKey) {
+    public FyipeTracker(String apiUrl, String errorTrackerId, String errorTrackerKey) throws IOException {
         this(apiUrl, errorTrackerId, errorTrackerKey, null);
     }
-    public FyipeTracker(String apiUrl, String errorTrackerId, String errorTrackerKey,  TrackerOption options) {
+    public FyipeTracker(String apiUrl, String errorTrackerId, String errorTrackerKey,  TrackerOption options) throws IOException {
         this.errorTrackerId = errorTrackerId;
         this.errorTrackerKey = errorTrackerKey;
         this.setApiUrl(apiUrl);
@@ -36,6 +37,9 @@ public class FyipeTracker {
 
         // Initialize Listener for timeline
         this.fyipeListener = new FyipeListener(this.getEventId(), this.options);
+
+        // set up sdk
+        this.setSdk();
 
         // TODO set up transporter
         // TODO set up error listener
@@ -170,8 +174,12 @@ public class FyipeTracker {
         return sdk;
     }
 
-    public void setSdk(SDK sdk) {
-        // TODO proper setting of SDK
+    public void setSdk() throws IOException {
+        // proper setting of SDK
+        PluginReader reader = new PluginReader("properties-from-pom.properties");
+        String name = reader.getProperty("name");
+        String version = reader.getProperty("version");
+        this.sdk = new SDK(name, version);
     }
     public ErrorEvent getCurrentEvent() {
         return errorEvent;
