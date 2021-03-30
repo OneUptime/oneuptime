@@ -438,39 +438,34 @@ module.exports = {
      */
     createScheduledEventStartedNote: async function() {
         try {
-            //fetch events
+            let currentTime = moment();
+
+            //fetch events that have started
             let scheduledEventList = await this.findBy(
-                { deleted: false },
+                { startDate: { $lte: currentTime }, deleted: false },
                 0,
                 0
             );
 
-            //fetch start time of all events
+            //fetch event notes without started note and create
             scheduledEventList.map(async scheduledEvent => {
                 let scheduledEventId = scheduledEvent._id;
-                let startTime = moment(scheduledEvent.startDate);
-                let currentTime = moment();
-
-                //Start time exceeded
-                if (currentTime >= startTime) {
-                    // fetch scheduleNotes for started note
-                    let scheduledEventNoteList = await ScheduledEventNoteService.findBy(
-                        {
-                            scheduledEventId,
-                            event_state: 'Started',
-                        }
-                    );
-                    if (
-                        scheduledEventNoteList &&
-                        scheduledEventNoteList.length === 0
-                    ) {
-                        await ScheduledEventNoteService.create({
-                            content: 'THIS SCHEDULED EVENT HAS STARTED',
-                            scheduledEventId,
-                            type: 'investigation',
-                            event_state: 'Started',
-                        });
+                let scheduledEventNoteList = await ScheduledEventNoteService.findBy(
+                    {
+                        scheduledEventId,
+                        event_state: 'Started',
                     }
+                );
+                if (
+                    scheduledEventNoteList &&
+                    scheduledEventNoteList.length === 0
+                ) {
+                    await ScheduledEventNoteService.create({
+                        content: 'THIS SCHEDULED EVENT HAS STARTED',
+                        scheduledEventId,
+                        type: 'investigation',
+                        event_state: 'Started',
+                    });
                 }
             });
         } catch (error) {
