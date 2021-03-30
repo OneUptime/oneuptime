@@ -450,7 +450,7 @@ describe('Monitor Detail API', () => {
                 const createdWebhookName = await page.$eval(
                     createdWebhookSelector,
                     el => el.textContent
-                );                
+                );
                 expect(createdWebhookName).toEqual(webHookName);
             });
         },

@@ -20,10 +20,7 @@ class MonitorViewChangeComponentBox extends Component {
         this.state = { changeMonitorComponentModalId: uuidv4() };
     }
 
-    handleMonitorComponentChanged = async (
-        monitor,
-        oldComponentId,
-    ) => {
+    handleMonitorComponentChanged = async (monitor, oldComponentId) => {
         const { currentProject } = this.props;
 
         const { projectId, _id: monitorId, componentId, slug } = monitor;

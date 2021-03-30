@@ -4,8 +4,6 @@ import ShouldRender from '../basic/ShouldRender';
 import { hideIncident } from '../../actions/incident';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import StateManager from 'react-select';
-
 class HideIncidentBox extends Component {
     handleChange = e => {
         const { incident, currentProject, hideIncident } = this.props;
@@ -99,9 +97,10 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators({ hideIncident }, dispatch);
 
 HideIncidentBox.propTypes = {
-    handleSubmit: PropTypes.func,
     hideIncident: PropTypes.func,
     hideIncidentError: PropTypes.string,
+    incident: PropTypes.object,
+    currentProject: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(HideIncidentBox);
