@@ -89,7 +89,6 @@ export class ScheduledEventNote extends Component {
             projectId,
             scheduledEventId,
             fetchScheduledEventNotesInternal,
-
             skip,
             type,
         } = this.props;
@@ -371,23 +370,16 @@ export class ScheduledEventNote extends Component {
                                                       <div className="bs-thread-line-down"></div>
                                                   </ShouldRender>
                                               </div>
-                                          ) : note.event_state === 'Deleted' ||
-                                            (note.event_state &&
-                                                note.event_state !==
-                                                    'Started' &&
-                                                note.event_state !==
-                                                    'Deleted') ? (
+                                          ) : note.event_state &&
+                                            (note.event_state === 'Deleted' ||
+                                                note.event_state ===
+                                                    'Started' ||
+                                                note.event_state ===
+                                                    'Created' ||
+                                                note.event_state ===
+                                                    'Resolved') ? (
                                               <>
-                                                  <ShouldRender
-                                                      if={
-                                                          i !== 0 &&
-                                                          (moment() >=
-                                                              moment(
-                                                                  eventStartDate
-                                                              ) ||
-                                                              notes.length > 2)
-                                                      }
-                                                  >
+                                                  <ShouldRender if={i !== 0}>
                                                       <div className="bs-thread-line-up bs-ex-up"></div>
                                                   </ShouldRender>
                                                   <div className="bs-note-display-flex">
@@ -400,7 +392,9 @@ export class ScheduledEventNote extends Component {
                                                                             : note.event_state ===
                                                                                   'Resolved' ||
                                                                               note.event_state ===
-                                                                                  'Created'
+                                                                                  'Created' ||
+                                                                              note.event_state ===
+                                                                                  'Started'
                                                                             ? 'bs-note-resolved'
                                                                             : null
                                                                     }`}
@@ -492,7 +486,9 @@ export class ScheduledEventNote extends Component {
                                                                                             note.event_state ===
                                                                                                 'Resolved') ||
                                                                                         note.event_state ===
-                                                                                            'Created' ? (
+                                                                                            'Created' ||
+                                                                                        note.event_state ===
+                                                                                            'Started' ? (
                                                                                           <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                               <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                                   <span>
@@ -521,7 +517,24 @@ export class ScheduledEventNote extends Component {
                                                           </div>
                                                           <div>
                                                               <span>
-                                                                  {currentTimeZone
+                                                                  {note.event_state ===
+                                                                  'Started'
+                                                                      ? currentTimeZone
+                                                                          ? momentTz(
+                                                                                eventStartDate
+                                                                            )
+                                                                                .tz(
+                                                                                    currentTimeZone
+                                                                                )
+                                                                                .format(
+                                                                                    'lll'
+                                                                                )
+                                                                          : moment(
+                                                                                eventStartDate
+                                                                            ).format(
+                                                                                'lll'
+                                                                            )
+                                                                      : currentTimeZone
                                                                       ? momentTz(
                                                                             note.createdAt
                                                                         )
@@ -533,136 +546,6 @@ export class ScheduledEventNote extends Component {
                                                                             )
                                                                       : moment(
                                                                             note.createdAt
-                                                                        ).format(
-                                                                            'lll'
-                                                                        )}
-                                                              </span>
-                                                          </div>
-                                                      </div>
-                                                  </div>
-
-                                                  <ShouldRender
-                                                      if={
-                                                          notes.length - 1 !== i
-                                                      }
-                                                  >
-                                                      <div className="bs-thread-line-down bs-ex-down"></div>
-                                                  </ShouldRender>
-                                              </>
-                                          ) : note.event_state &&
-                                            note.event_state === 'Started' &&
-                                            note.event_state !== 'Deleted' &&
-                                            moment() >=
-                                                moment(eventStartDate) ? (
-                                              <>
-                                                  <ShouldRender if={i !== 0}>
-                                                      <div className="bs-thread-line-up bs-ex-up"></div>
-                                                  </ShouldRender>
-                                                  <div className="bs-note-display-flex">
-                                                      <div
-                                                          className={`bs-incident-notes bs-note-resolved`}
-                                                      ></div>
-                                                      <div className="bs-incident-notes-content">
-                                                          <div className="bs-note-display-flex bs-mob-block">
-                                                              <div>
-                                                                  Reported by
-                                                              </div>
-                                                              <div
-                                                                  className="Box-root Margin-right--16 bs-note-7"
-                                                                  style={{
-                                                                      cursor:
-                                                                          'pointer',
-                                                                      marginLeft:
-                                                                          '6px',
-                                                                  }}
-                                                                  onClick={() => {
-                                                                      if (
-                                                                          note.createdById
-                                                                      ) {
-                                                                          history.push(
-                                                                              '/dashboard/profile/' +
-                                                                                  note
-                                                                                      .createdById
-                                                                                      ._id
-                                                                          );
-                                                                      }
-                                                                  }}
-                                                              >
-                                                                  <img
-                                                                      src={
-                                                                          note.createdById &&
-                                                                          note
-                                                                              .createdById
-                                                                              .name
-                                                                              ? '/dashboard/assets/img/profile-user.svg'
-                                                                              : '/dashboard/assets/img/Fyipe.svg'
-                                                                      }
-                                                                      className="userIcon"
-                                                                      alt=""
-                                                                      style={{
-                                                                          marginBottom:
-                                                                              '-5px',
-                                                                      }}
-                                                                  />
-                                                                  <span
-                                                                      style={{
-                                                                          fontWeight:
-                                                                              note.probeId &&
-                                                                              '600',
-                                                                      }}
-                                                                  >
-                                                                      {note
-                                                                          .createdById
-                                                                          .name
-                                                                          ? note
-                                                                                .createdById
-                                                                                .name
-                                                                          : 'Unknown User'}
-                                                                  </span>
-                                                              </div>
-
-                                                              <div
-                                                                  className="db-ListViewItem-link"
-                                                                  style={{
-                                                                      width:
-                                                                          '0%',
-                                                                  }}
-                                                              >
-                                                                  <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
-                                                                      <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                          <div className="Box-root Flex-flex">
-                                                                              <div className="Box-root Flex-flex">
-                                                                                  <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                                      <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                          <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                              <span>
-                                                                                                  {
-                                                                                                      note.content
-                                                                                                  }
-                                                                                              </span>
-                                                                                          </span>
-                                                                                      </div>
-                                                                                  </div>
-                                                                              </div>
-                                                                          </div>
-                                                                      </span>
-                                                                  </div>
-                                                              </div>
-                                                          </div>
-                                                          <div>
-                                                              <span>
-                                                                  {currentTimeZone
-                                                                      ? momentTz(
-                                                                            eventStartDate
-                                                                        )
-                                                                            .tz(
-                                                                                currentTimeZone
-                                                                            )
-                                                                            .format(
-                                                                                'lll'
-                                                                            )
-                                                                      : moment(
-                                                                            eventStartDate
                                                                         ).format(
                                                                             'lll'
                                                                         )}
