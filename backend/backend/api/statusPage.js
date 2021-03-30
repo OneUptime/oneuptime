@@ -926,7 +926,6 @@ router.get(
                             notes: statusPageEvent.notes,
                         });
                     }
-                    events = formatNotes(updatedEvents);
                     events = checkDuplicateDates(events);
                 }
             }
