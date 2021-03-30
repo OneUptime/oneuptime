@@ -54,7 +54,9 @@ class SlackItem extends React.Component {
                                     overflow: 'hidden',
                                 }}
                             >
-                                <span id={`name_slack_${webHookName}`}>{webHookName}</span>
+                                <span id={`name_slack_${webHookName}`}>
+                                    {webHookName}
+                                </span>
                             </div>
                         </span>
                     </div>
