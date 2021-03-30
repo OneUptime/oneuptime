@@ -812,6 +812,17 @@ module.exports = {
             pushMessage = '';
         }
 
+        console.log('PUSHNOTIFICATION_URL::', process.env.PUSHNOTIFICATION_URL);
+        console.log(
+            'PUSHNOTIFICATION_PUBLIC_KEY::',
+            process.env.PUSHNOTIFICATION_PUBLIC_KEY
+        );
+        console.log(
+            'PUSHNOTIFICATION_PRIVATE_KEY::',
+            process.env.PUSHNOTIFICATION_PRIVATE_KEY
+        );
+        console.log('IDENTIFICATION::', identification);
+
         // Create payload
         const title = `${pushMessage}Incident #${incident.idNumber} is created`;
         const body = `Please acknowledge or resolve this incident on Fyipe Dashboard.`;
