@@ -2876,9 +2876,6 @@ const mapStateToProps = (state, ownProps) => {
         }
     }
 
-    // if (projectId === null)
-    // projectId = ownProps.currentProject && ownProps.currentProject._id;
-
     const currentPlanId =
         state.project &&
         state.project.currentProject &&
