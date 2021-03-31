@@ -3,8 +3,12 @@ package io.hackerbay.fyipe;
 import io.hackerbay.fyipe.model.Frame;
 import io.hackerbay.fyipe.model.StackTrace;
 import io.hackerbay.fyipe.model.TrackerOption;
+import io.hackerbay.fyipe.util.FileReader;
 
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.UUID;
 enum ErrorEventType {
     error,
@@ -18,6 +22,8 @@ enum ErrorObjectType {
 }
 public class Util {
     private TrackerOption options;
+    private HashMap contentCache = new HashMap(100);
+    private FileReader fileReader = new FileReader();
 
     
     public Util(TrackerOption options) {
@@ -43,20 +49,53 @@ public class Util {
         );
         stackTrace.setStackTraceFrame(this.buildFrame(stackTraceElement));
 
+        // TODO check for code capture and action
+        this.getErrorCodeSnippet(stackTrace);
         return stackTrace;
     }
     private ArrayList<Frame> buildFrame(StackTraceElement[] stackTraceElements) {
         ArrayList<Frame> frameArrayList = new ArrayList<>();
-        for (int i = 0; i < stackTraceElements.length; i++) {
+        System.out.println(stackTraceElements[0].getClassName());
+        System.out.println(stackTraceElements[1].getClassName());
+        Arrays.asList(stackTraceElements).stream().forEach(e -> {
+            String className = e.getClassName().replace(".", "/");
+            URL u = getClass().getResource(className+ ".java");
+            if(u == null) {
+                u = getClass().getClassLoader().getResource(className+ ".class");
+            }
             frameArrayList.add(
                     new Frame(
-                            stackTraceElements[i].getMethodName(),
-                            stackTraceElements[i].getLineNumber(),
-                            stackTraceElements[i].getFileName()
+                            e.getMethodName(),
+                            e.getLineNumber(),
+                            u.toString()
                     )
             );
-        }
+
+        });
+
         return  frameArrayList;
+    }
+    private void getErrorCodeSnippet(StackTrace stackTrace) {
+        ArrayList<Frame> frameArrayList = stackTrace.getStackTraceFrame();
+        this.getFrameContent(frameArrayList.get(0));
+        // TODO get content related to each frame
+
+        // TODO update content of each frame
+    }
+    private Frame getFrameContent(Frame frame) {
+        System.out.println(frame);
+        Boolean isFile = false;
+        // check what it starts with
+        isFile = frame.getFileName().startsWith("file");
+        if(isFile) {
+            String fileName = frame.getFileName().substring(5);
+//            fileName = fileName.replace(".java", ".class");
+            // TODO try to get the file from the cache
+            String content = fileReader.readFile(fileName);
+            System.out.println("content" + content);
+        }
+
+        return frame;
     }
     
 }
