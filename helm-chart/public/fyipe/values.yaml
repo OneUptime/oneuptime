@@ -168,19 +168,24 @@ mongodb:
 ## For minikube, set service.type to NodePort, elsewhere use LoadBalancer
 ##
 
-ingress-nginx:
-  ingressClass: k8s.io/ingress-nginx
-  service: 
-    type: LoadBalancer
+## Service Configuration
+## For minikube, set this to NodePort, elsewhere use LoadBalancer
+##
+nginx-ingress-controller:
   defaultBackend:
     enabled: false
+  service:
+    type: LoadBalancer
   proxySetHeaders:
     X-Forwarded-For: $http_x_forwarded_for
     X-Real-Ip: $http_x_forwarded_for
+  publishService:
+    enabled: true
   config:
     log-format-upstream: '$remote_addr - $http_cf_connecting_ip - $http_x_forwarded_for - $request_id - [$proxy_add_x_forwarded_for] - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_length $request_time [$proxy_upstream_name] $upstream_addr $upstream_response_length $upstream_response_time $upstream_status'
     proxy-protocol: "true"
     real-ip-header: "X-Forwarded-For"
+
 
   ##################################################################################
 

@@ -34,6 +34,7 @@ import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 import { fetchDefaultCommunicationSla } from '../actions/incidentCommunicationSla';
 import secondsToHms from '../utils/secondsToHms';
 import { fetchComponent } from '../actions/component';
+import HideIncidentBox from '../components/incident/HideIncidentBox';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -530,21 +531,31 @@ class Incident extends React.Component {
                             <Fade>
                                 <RenderIfSubProjectAdmin>
                                     {!requestingComponent && (
-                                        <IncidentDeleteBox
-                                            incident={this.props.incident}
-                                            deleting={this.props.deleting}
-                                            currentProject={
-                                                this.props.currentProject
-                                            }
-                                            monitorSlug={
-                                                this.props.monitor &&
-                                                this.props.monitor.slug
-                                            }
-                                            componentSlug={
-                                                this.props.componentSlug
-                                            }
-                                            componentId={this.props.componentId}
-                                        />
+                                        <>
+                                            <HideIncidentBox
+                                                incident={this.props.incident}
+                                                currentProject={
+                                                    this.props.currentProject
+                                                }
+                                            />
+                                            <IncidentDeleteBox
+                                                incident={this.props.incident}
+                                                deleting={this.props.deleting}
+                                                currentProject={
+                                                    this.props.currentProject
+                                                }
+                                                monitorSlug={
+                                                    this.props.monitor &&
+                                                    this.props.monitor.slug
+                                                }
+                                                componentSlug={
+                                                    this.props.componentSlug
+                                                }
+                                                componentId={
+                                                    this.props.componentId
+                                                }
+                                            />
+                                        </>
                                     )}
                                 </RenderIfSubProjectAdmin>
                             </Fade>

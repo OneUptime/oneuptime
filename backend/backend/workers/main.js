@@ -3,8 +3,9 @@ const cron = require('node-cron');
 const escalationPolicy = require('./escalationPolicy');
 const serverMonitorCron = require('./serverMonitor');
 const subscription = require('./subscription');
+const scheduledEventService = require('../services/scheduledEventService');
 
-// Generate a random number betwen 1 and 50 and use that to run cron jobs.
+// Generate a random number between 1 and 50 and use that to run cron jobs.
 // This is done because there will be many instances of backend in production, and one instance of backend
 // should run at a random second every minute so they dont collide.
 const cronMinuteStartTime = Math.floor(Math.random() * 50);
@@ -30,6 +31,13 @@ cron.schedule('0 0 * * *', () => {
         () => subscription.handleUnpaidSubscription(),
         subscriptionCronMinutesStartTime * 1000
     );
+});
+
+// ScheduledEvent: Create 'Started' Notes at event start time
+cron.schedule('* * * * *', () => {
+    setTimeout(() => {
+        scheduledEventService.createScheduledEventStartedNote();
+    }, cronMinuteStartTime * 1000);
 });
 
 // IoT Monitor: This cron runs every minute

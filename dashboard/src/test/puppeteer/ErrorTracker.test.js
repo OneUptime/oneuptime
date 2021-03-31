@@ -35,7 +35,6 @@ describe('Error Trackers', () => {
 
         return await cluster.execute(null, async ({ page }) => {
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
         });
     });
 
@@ -128,11 +127,8 @@ describe('Error Trackers', () => {
                     page
                 );
                 await page.click('button[type=submit]');
-                // goto the details page
-                await page.waitForSelector(
-                    `#more-details-${newErrorTrackerName}`
-                );
-                await page.click(`#more-details-${newErrorTrackerName}`);
+                // As soon as an error tracker with a resource category is created, it automatically navigates to the details page
+
                 // confirm the category shows in the details page.
                 await page.waitForSelector(`#${newErrorTrackerName}-badge`, {
                     visible: true,
@@ -209,7 +205,10 @@ describe('Error Trackers', () => {
                 await page.waitForSelector(`#edit_${errorTrackerName}`);
                 await page.click(`#edit_${errorTrackerName}`);
 
-                await page.waitForTimeout(5000);
+                await page.waitForSelector(
+                    `#error-tracker-edit-title-${errorTrackerName}`,
+                    { visible: true }
+                );
                 let spanElement = await page.waitForSelector(
                     `#error-tracker-edit-title-${errorTrackerName}`
                 );
@@ -468,6 +467,8 @@ describe('Error Trackers', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
 
                 await page.waitForSelector('li#resources a');
                 await page.click('li#resources a');
@@ -476,7 +477,10 @@ describe('Error Trackers', () => {
                 await page.click(`#delete_${categoryName}`);
                 await page.waitForSelector('#deleteResourceCategory');
                 await page.click('#deleteResourceCategory');
-                await page.waitForTimeout(5000);
+
+                await page.waitForSelector('#deleteResourceCategory', {
+                    hidden: true,
+                });
 
                 // go back to log details and confirm it is not there anymore
                 const spanElementBadge = await page.$(

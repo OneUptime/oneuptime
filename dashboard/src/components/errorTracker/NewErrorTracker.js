@@ -19,6 +19,24 @@ import { RenderSelect } from '../basic/RenderSelect';
 const selector = formValueSelector('NewErrorTracker');
 
 class NewErrorTracker extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Enter':
+                if(document.getElementById('editErrorTrackerButton'))
+                    return document.getElementById('editErrorTrackerButton').click();
+                else
+                    return false;
+            default:
+                return false;
+        }
+    };
     submitForm = values => {
         const thisObj = this;
         const postObj = {};

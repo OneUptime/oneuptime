@@ -125,7 +125,19 @@ class NewMonitor extends Component {
         this.props.setFileInputKey(new Date());
         this.props.setConfigInputKey(new Date());
         this.setHttpRequestLink(link);
+        window.addEventListener('keydown', this.handleKeyBoard);
     }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Enter':
+                if (document.getElementById('addMonitorButton'))
+                    return document.getElementById('addMonitorButton').click();
+                else return false;
+            default:
+                return false;
+        }
+    };
 
     componentDidUpdate(prevProps) {
         const { monitor, editMonitorProp } = this.props;
@@ -382,7 +394,7 @@ class NewMonitor extends Component {
         const postObj = { data: {}, criteria: {} };
 
         postObj.componentId = thisObj.props.componentId;
-        postObj.projectId = this.props.project._id;
+        postObj.projectId = this.props.projectId;
         postObj.incidentCommunicationSla = values.incidentCommunicationSla;
         postObj.monitorSla = values.monitorSla;
         postObj.name = values[`name_${this.props.index}`];
@@ -653,6 +665,7 @@ class NewMonitor extends Component {
         if (this.props.edit) {
             this.cancelEdit();
         }
+    window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
     openAdvance = () => {
@@ -2875,8 +2888,6 @@ const mapStateToProps = (state, ownProps) => {
             }
         }
     }
-    if (projectId === null)
-        projectId = ownProps.currentProject && ownProps.currentProject._id;
 
     const currentPlanId =
         state.project &&

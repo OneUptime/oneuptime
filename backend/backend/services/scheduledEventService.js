@@ -3,6 +3,7 @@ const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
 const RealTimeService = require('./realTimeService');
 const ScheduledEventNoteService = require('./scheduledEventNoteService');
+const moment = require('moment');
 
 module.exports = {
     create: async function({ projectId }, data) {
@@ -39,6 +40,27 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate('createdById', 'name')
                 .execPopulate();
+
+            // add note when a scheduled event is created
+            await ScheduledEventNoteService.create({
+                content: 'THIS SCHEDULED EVENT HAS BEEN CREATED',
+                scheduledEventId: scheduledEvent._id,
+                createdById: scheduledEvent.createdById._id,
+                type: 'investigation',
+                event_state: 'Created',
+            });
+
+            //Create event start note immediately if start time equal to create time
+            const currentTime = moment();
+            const startTime = moment(scheduledEvent.startDate);
+            if (startTime <= currentTime) {
+                await ScheduledEventNoteService.create({
+                    content: 'THIS SCHEDULED EVENT HAS STARTED',
+                    scheduledEventId: scheduledEvent._id,
+                    type: 'investigation',
+                    event_state: 'Started',
+                });
+            }
 
             await RealTimeService.addScheduledEvent(scheduledEvent);
 
@@ -406,6 +428,49 @@ module.exports = {
         } catch (error) {
             ErrorService.log(
                 'scheduledEventService.resolveScheduledEvent',
+                error
+            );
+            throw error;
+        }
+    },
+    /**
+     * @description Create Started note for all schedule events
+     */
+    createScheduledEventStartedNote: async function() {
+        try {
+            const currentTime = moment();
+
+            //fetch events that have started
+            const scheduledEventList = await this.findBy(
+                { startDate: { $lte: currentTime }, deleted: false },
+                0,
+                0
+            );
+
+            //fetch event notes without started note and create
+            scheduledEventList.map(async scheduledEvent => {
+                const scheduledEventId = scheduledEvent._id;
+                const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
+                    {
+                        scheduledEventId,
+                        event_state: 'Started',
+                    }
+                );
+                if (
+                    scheduledEventNoteList &&
+                    scheduledEventNoteList.length === 0
+                ) {
+                    await ScheduledEventNoteService.create({
+                        content: 'THIS SCHEDULED EVENT HAS STARTED',
+                        scheduledEventId,
+                        type: 'investigation',
+                        event_state: 'Started',
+                    });
+                }
+            });
+        } catch (error) {
+            ErrorService.log(
+                'scheduledEventService.createScheduledEventStartedNote',
                 error
             );
             throw error;
