@@ -382,7 +382,7 @@ class NewMonitor extends Component {
         const postObj = { data: {}, criteria: {} };
 
         postObj.componentId = thisObj.props.componentId;
-        postObj.projectId = this.props.project._id;
+        postObj.projectId = this.props.projectId;
         postObj.incidentCommunicationSla = values.incidentCommunicationSla;
         postObj.monitorSla = values.monitorSla;
         postObj.name = values[`name_${this.props.index}`];
@@ -2875,8 +2875,6 @@ const mapStateToProps = (state, ownProps) => {
             }
         }
     }
-    if (projectId === null)
-        projectId = ownProps.currentProject && ownProps.currentProject._id;
 
     const currentPlanId =
         state.project &&
