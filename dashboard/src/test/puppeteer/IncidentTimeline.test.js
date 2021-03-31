@@ -101,7 +101,7 @@ describe('Incident Timeline API', () => {
                 await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                     e.click()
                 );
-                //Incident Timeline is now directly below 'BASIC' tab.
+                //Incident Notes Tab has been refactored. It functionality is now in 'Incident Timeline' which is below the BASIC tab.
 
                 // fill investigation message thread form
                 await page.waitForSelector(`#add-${type}-message`, {
