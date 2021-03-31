@@ -125,7 +125,19 @@ class NewMonitor extends Component {
         this.props.setFileInputKey(new Date());
         this.props.setConfigInputKey(new Date());
         this.setHttpRequestLink(link);
+        window.addEventListener('keydown', this.handleKeyBoard);
     }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Enter':
+                if (document.getElementById('addMonitorButton'))
+                    return document.getElementById('addMonitorButton').click();
+                else return false;
+            default:
+                return false;
+        }
+    };
 
     componentDidUpdate(prevProps) {
         const { monitor, editMonitorProp } = this.props;
@@ -653,6 +665,7 @@ class NewMonitor extends Component {
         if (this.props.edit) {
             this.cancelEdit();
         }
+    window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
     openAdvance = () => {
