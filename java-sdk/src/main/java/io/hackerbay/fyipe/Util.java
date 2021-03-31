@@ -50,7 +50,7 @@ public class Util {
         stackTrace.setStackTraceFrame(this.buildFrame(stackTraceElement));
 
         // TODO check for code capture and action
-        this.getErrorCodeSnippet(stackTrace);
+//        this.getErrorCodeSnippet(stackTrace);
         return stackTrace;
     }
     private ArrayList<Frame> buildFrame(StackTraceElement[] stackTraceElements) {
