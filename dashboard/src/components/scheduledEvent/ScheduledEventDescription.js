@@ -294,7 +294,7 @@ function ScheduledEventDescription({
                                                                         <span>
                                                                             Resolve
                                                                             this
-                                                                            maintenance
+                                                                            event
                                                                         </span>
                                                                     </label>
                                                                 </ShouldRender>
