@@ -42,10 +42,6 @@ describe('Monitor Detail API', () => {
 
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
-            // await page.waitForTimeout(1000);
-            // await page.goto(utils.DASHBOARD_URL);
-            // add new monitor to component on parent project
             await init.addMonitorToComponent(componentName, monitorName, page);
         });
     });
@@ -85,8 +81,8 @@ describe('Monitor Detail API', () => {
                     hidden: true,
                 });
 
-                const createdSubscriberSelector =
-                    '#subscribersList > tbody > tr.subscriber-list-item';
+                const createdSubscriberSelector = '.subscriber-list-item';
+                // '#subscribersList > tbody > tr.subscriber-list-item';
                 await page.waitForSelector(createdSubscriberSelector);
                 const subscriberRows = await page.$$(createdSubscriberSelector);
                 const countSubscribers = subscriberRows.length;
@@ -157,8 +153,8 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector('#importCsvButton', {
                     hidden: true,
                 });
-                const createdSubscriberSelector =
-                    '#subscribersList > tbody > tr.subscriber-list-item';
+                const createdSubscriberSelector = '.subscriber-list-item';
+
                 await page.waitForSelector(createdSubscriberSelector);
                 const subscriberRows = await page.$$(createdSubscriberSelector);
                 const countSubscribers = subscriberRows.length;
@@ -195,8 +191,8 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector('#importCsvButton', {
                     hidden: true,
                 });
-                const createdSubscriberSelector =
-                    '#subscribersList > tbody > tr.subscriber-list-item';
+                const createdSubscriberSelector = '.subscriber-list-item';
+
                 await page.waitForSelector(createdSubscriberSelector);
                 const subscriberRows = await page.$$(createdSubscriberSelector);
                 const countSubscribers = subscriberRows.length;
@@ -220,8 +216,8 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector('#react-tabs-2');
                 await page.click('#react-tabs-2');
 
-                let initialSubscribers =
-                    '#subscribersList > tbody > tr.subscriber-list-item';
+                let initialSubscribers = '.subscriber-list-item';
+
                 await page.waitForSelector(initialSubscribers);
                 initialSubscribers = await page.$$(initialSubscribers);
                 const initialCount = initialSubscribers.length;
@@ -235,8 +231,8 @@ describe('Monitor Detail API', () => {
                 });
                 await page.waitForSelector('#subscribersList');
 
-                let finalSubscribers =
-                    '#subscribersList > tbody > tr.subscriber-list-item';
+                let finalSubscribers = '.subscriber-list-item';
+
                 await page.waitForSelector(finalSubscribers);
                 finalSubscribers = await page.$$(finalSubscribers);
                 const finalCount = finalSubscribers.length;
@@ -262,8 +258,8 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector('#react-tabs-2');
                 await page.click('#react-tabs-2');
 
-                let initialSubscribers =
-                    '#subscribersList > tbody > tr.subscriber-list-item';
+                let initialSubscribers = '.subscriber-list-item';
+
                 await page.waitForSelector(initialSubscribers);
                 initialSubscribers = await page.$$(initialSubscribers);
                 const initialCount = initialSubscribers.length;
@@ -274,8 +270,8 @@ describe('Monitor Detail API', () => {
                 await page.click('#cancelDeleteSubscriber');
                 await page.waitForSelector('#subscribersList');
 
-                let finalSubscribers =
-                    '#subscribersList > tbody > tr.subscriber-list-item';
+                let finalSubscribers = '.subscriber-list-item';
+
                 await page.waitForSelector(finalSubscribers);
                 finalSubscribers = await page.$$(finalSubscribers);
                 const finalCount = finalSubscribers.length;
