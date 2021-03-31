@@ -175,7 +175,7 @@ describe('Incident Timeline API', () => {
                     hidden: true,
                 });
                 await page.reload({ waitUntil: 'networkidle0' });
-                //Incident Timeline is now directly below 'BASIC' tab
+                //Incident Notes Tab has been refactored. It functionality is now in 'Incident Timeline' which is below the BASIC tab.
                 await page.waitForSelector(
                     `#content_${type}_incident_message_0`,
                     { visible: true }
