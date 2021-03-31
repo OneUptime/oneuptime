@@ -42,7 +42,8 @@ public class FyipeTracker {
         this.setSdk();
 
         // TODO set up transporter
-        // TODO set up error listener
+        // set up error listener
+        this.setUpErrorEventListener();
     }
 
     private void setApiUrl(String apiUrl){
@@ -63,7 +64,7 @@ public class FyipeTracker {
             }
             this.options = options;
         }
-     }
+    }
     private void setEventId() {
         this.eventId = this.util.generateV4EventId();
     }
@@ -145,6 +146,20 @@ public class FyipeTracker {
 
         // send to the server
         return this.sendErrorEventToServer();
+    }
+    private void setUpErrorEventListener() {
+        Thread.setDefaultUncaughtExceptionHandler(
+                new Thread.UncaughtExceptionHandler() {
+                    @Override
+                    public void uncaughtException(Thread t, Throwable e) {
+                        try {
+                            captureException(e);
+                        } catch (IOException ioException) {
+                            ioException.printStackTrace();
+                        }
+                    }
+                }
+        );
     }
     public void prepareErrorEvent(String type, StackTrace errorStackTrace) {
         JsonObject obj = new JsonObject();
