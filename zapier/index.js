@@ -14,6 +14,7 @@ const acknowledgeAllIncidentsAction = require('./actions/acknowledgeAllIncidents
 const resolveAllIncidentsAction = require('./actions/resolveAllIncidents');
 const acknowledgeIncidentAction = require('./actions/acknowledgeIncident');
 const resolveIncidentAction = require('./actions/resolveIncident');
+const createIncidentNoteAction = require('./actions/createIncidentNote');
 
 // To include the API key on all outbound requests, simply define a function here.
 // It runs runs before each request is sent out, allowing you to make tweaks to the request in a centralized spot.
@@ -62,6 +63,7 @@ const App = {
         [resolveAllIncidentsAction.key]: resolveAllIncidentsAction,
         [acknowledgeIncidentAction.key]: acknowledgeIncidentAction,
         [resolveIncidentAction.key]: resolveIncidentAction,
+        [createIncidentNoteAction.key]: createIncidentNoteAction,
     },
 };
 

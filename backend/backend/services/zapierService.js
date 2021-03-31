@@ -123,11 +123,33 @@ module.exports = {
                 return [];
             }
         } catch (error) {
-            ErrorService.log('ZapierService.getIncidents', error);
+            ErrorService.log('ZapierService.getIncidentNote', error);
             throw error;
         }
     },
+    createIncidentNote: async function(data) {
+        try {
+            const zapierResponse = {};
+            const incidentNoteArr = [];
+            await Promise.all(
+                data.incidents.map(async incidentId => {
+                    let incidentMessage = new IncidentMessageModel();
+                    incidentMessage.incidentId = incidentId;
+                    incidentMessage.createdByZapier = true;
+                    incidentMessage = await incidentMessage.save();
+                    IncidentService.refreshInterval(incidentId);
+                    await RealTimeService.addIncidentNote(incidentMessage);
 
+                    incidentNoteArr.push(incidentMessage);
+                })
+            );
+            zapierResponse.incidentMessage = incidentNoteArr;
+            return zapierResponse;
+        } catch (error) {
+            ErrorService.log('ZapierService.createIncidentNote', error);
+            throw error;
+        }
+    },
     getAcknowledgedIncidents: async function(projectId) {
         try {
             const zapierResponseArray = [];
@@ -626,3 +648,4 @@ const IncidentModel = require('../models/incident');
 const NotificationService = require('./notificationService');
 const RealTimeService = require('./realTimeService');
 const IncidentMessageService = require('../services/incidentMessageService');
+const IncidentMessageModel = require('../models/incidentMessage');
