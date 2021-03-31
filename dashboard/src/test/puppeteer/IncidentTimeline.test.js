@@ -40,14 +40,12 @@ describe('Incident Timeline API', () => {
             };
             // user
             await init.registerUser(user, page);
-            //await init.loginUser(user, page);
 
             // rename default project
             await init.renameProject(projectName, page);
 
             // Create component
             await init.addComponent(componentName, page);
-            // await init.navigateToComponentDetails(componentName, page);
 
             // add new monitor to project
             await page.waitForSelector('#form-new-monitor', { visible: true });
@@ -103,12 +101,6 @@ describe('Incident Timeline API', () => {
                 await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                     e.click()
                 );
-
-                // click on incident notes tab
-                // await init.gotoTab(
-                //     utils.incidentTabIndexes.INCIDENT_NOTES,
-                //     page
-                // );
 
                 // fill investigation message thread form
                 await page.waitForSelector(`#add-${type}-message`, {
@@ -167,11 +159,7 @@ describe('Incident Timeline API', () => {
                     e.click()
                 );
 
-                // click on incident notes tab
-                // await init.gotoTab(
-                //     utils.incidentTabIndexes.INCIDENT_NOTES,
-                //     page
-                // );
+                //Incident Timeline is now directly below 'BASIC' tab.
 
                 await page.waitForSelector(`#edit_${type}_incident_message_0`);
                 await page.click(`#edit_${type}_incident_message_0`);
@@ -186,12 +174,7 @@ describe('Incident Timeline API', () => {
                     hidden: true,
                 });
                 await page.reload({ waitUntil: 'networkidle0' });
-                // click on incident notes tab
-                // await init.gotoTab(
-                //     utils.incidentTabIndexes.INCIDENT_NOTES,
-                //     page
-                // );
-
+                //Incident Timeline is now directly below 'BASIC' tab
                 await page.waitForSelector(
                     `#content_${type}_incident_message_0`,
                     { visible: true }
@@ -406,11 +389,9 @@ describe('Incident Timeline API', () => {
                     hidden: true,
                 });
             }
-
-            // click on timeline tab
             await page.reload({ waitUntil: 'networkidle0' });
 
-            //Incident Timeline is npw directly below 'BASIC' tab and it does not have 'Prev' and 'Next' button.
+            //Incident Timeline is now directly below 'BASIC' tab and it does not have 'Prev' and 'Next' button.
             await page.waitForSelector('.internal-list');
             const incidentTimelineRow = await page.$$('.internal-list');
             const countIncidentTimelines = incidentTimelineRow.length;

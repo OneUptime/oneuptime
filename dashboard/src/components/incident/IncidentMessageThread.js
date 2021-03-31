@@ -193,7 +193,6 @@ export class IncidentMessageThread extends Component {
 
                                                             <div className="Margin-left--30">
                                                                 <span
-                                                                    className="investigation-list"
                                                                     id={`content_${type}_incident_message_${i}`}
                                                                     style={{
                                                                         display:
