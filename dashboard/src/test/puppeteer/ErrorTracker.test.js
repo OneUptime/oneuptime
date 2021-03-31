@@ -34,7 +34,7 @@ describe('Error Trackers', () => {
         });
 
         return await cluster.execute(null, async ({ page }) => {
-            await init.registerUser(user, page);           
+            await init.registerUser(user, page);
         });
     });
 
@@ -128,7 +128,7 @@ describe('Error Trackers', () => {
                 );
                 await page.click('button[type=submit]');
                 // As soon as an error tracker with a resource category is created, it automatically navigates to the details page
-            
+
                 // confirm the category shows in the details page.
                 await page.waitForSelector(`#${newErrorTrackerName}-badge`, {
                     visible: true,
@@ -204,8 +204,11 @@ describe('Error Trackers', () => {
                 );
                 await page.waitForSelector(`#edit_${errorTrackerName}`);
                 await page.click(`#edit_${errorTrackerName}`);
-                
-                await page.waitForSelector(`#error-tracker-edit-title-${errorTrackerName}`,{visible:true});
+
+                await page.waitForSelector(
+                    `#error-tracker-edit-title-${errorTrackerName}`,
+                    { visible: true }
+                );
                 let spanElement = await page.waitForSelector(
                     `#error-tracker-edit-title-${errorTrackerName}`
                 );
@@ -474,8 +477,10 @@ describe('Error Trackers', () => {
                 await page.click(`#delete_${categoryName}`);
                 await page.waitForSelector('#deleteResourceCategory');
                 await page.click('#deleteResourceCategory');
-                
-                await page.waitForSelector('#deleteResourceCategory',{hidden:true});
+
+                await page.waitForSelector('#deleteResourceCategory', {
+                    hidden: true,
+                });
 
                 // go back to log details and confirm it is not there anymore
                 const spanElementBadge = await page.$(
