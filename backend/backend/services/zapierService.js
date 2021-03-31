@@ -136,8 +136,14 @@ module.exports = {
                     let incidentMessage = new IncidentMessageModel();
                     incidentMessage.incidentId = incidentId;
                     incidentMessage.createdByZapier = true;
+                    incidentMessage.type = data.type;
+                    incidentMessage.content = data.content;
                     incidentMessage = await incidentMessage.save();
                     IncidentService.refreshInterval(incidentId);
+
+                    incidentMessage = await IncidentMessageService.findOneBy({
+                        _id: incidentMessage._id,
+                    });
                     await RealTimeService.addIncidentNote(incidentMessage);
 
                     incidentNoteArr.push(incidentMessage);

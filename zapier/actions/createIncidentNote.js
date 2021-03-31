@@ -32,6 +32,20 @@ module.exports = {
                 list: true,
                 required: true,
             },
+            {
+                key: 'type',
+                type: 'string',
+                placeholder: 'Enter Incident Type',
+                required: true,
+                label: 'Type',
+            },
+            {
+                key: 'content',
+                type: 'string',
+                placeholder: 'Enter Content',
+                required: true,
+                label: 'Content',
+            },
         ],
         perform: createIncidentNote,
         sample: {

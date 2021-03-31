@@ -12,6 +12,7 @@ const incidentMessageSchema = new Schema({
     type: {
         type: String,
         enum: ['investigation', 'internal'],
+        required: true,
     },
     incident_state: String,
     createdById: { type: String, ref: 'User', index: true }, //userId.
@@ -28,7 +29,6 @@ const incidentMessageSchema = new Schema({
 
     deletedById: { type: String, ref: 'User', index: true },
     postOnStatusPage: { type: Boolean, default: false },
-    createdByZapier: { type: Boolean, default: false },
 });
 
 incidentMessageSchema.virtual('incident', {
