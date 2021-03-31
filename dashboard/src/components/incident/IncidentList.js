@@ -260,8 +260,7 @@ export class IncidentList extends Component {
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        {incident.createdById ===
-                                                        null ? (
+                                                        {!incident.createdById ? (
                                                             incident.createdByZapier ? (
                                                                 <div className="Box-root Margin-right--16">
                                                                     <img
@@ -362,7 +361,8 @@ export class IncidentList extends Component {
                                                                     }}
                                                                 />
                                                                 <span>
-                                                                    {incident
+                                                                    {incident.createdById &&
+                                                                    incident
                                                                         .createdById
                                                                         .name
                                                                         ? incident

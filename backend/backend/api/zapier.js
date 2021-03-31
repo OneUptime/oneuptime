@@ -73,7 +73,7 @@ router.get('/incidents', isAuthorized, async function(req, res) {
     }
 });
 
-router.get('/incident-note', isAuthorized, async function(req, res) {
+router.get('/incident-note', isAuthorized, async function(req, res){
     try {
         const projectId = req.query.projectId;
         // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
@@ -94,6 +94,7 @@ router.post('/incident/incident-note', isAuthorized, async function(req, res) {
         return sendErrorResponse(req, res, error);
     }
 });
+})
 
 router.get('/incident/resolved', isAuthorized, async function(req, res) {
     try {
