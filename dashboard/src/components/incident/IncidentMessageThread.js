@@ -522,6 +522,7 @@ export class IncidentMessageThread extends Component {
                                                                             </div>
                                                                         ) : null}
                                                                         <span
+                                                                            className="internal-list"
                                                                             id={`content_${type}_incident_message_${i}`}
                                                                             style={{
                                                                                 display:
