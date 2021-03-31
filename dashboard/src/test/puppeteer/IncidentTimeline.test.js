@@ -40,7 +40,7 @@ describe('Incident Timeline API', () => {
             };
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
+            //await init.loginUser(user, page);
 
             // rename default project
             await init.renameProject(projectName, page);
@@ -53,7 +53,7 @@ describe('Incident Timeline API', () => {
             await page.waitForSelector('#form-new-monitor', { visible: true });
             await page.$eval('input[id=name]', e => e.click());
             await page.type('input[id=name]', projectMonitorName);
-            await init.selectByText('#type', 'url', page);
+            await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url');
             await page.$eval('#url', e => e.click());
             await page.type('#url', utils.HTTP_TEST_SERVER_URL);
@@ -74,7 +74,7 @@ describe('Incident Timeline API', () => {
         'should create incident in project and add to message to the incident message thread',
         async done => {
             const dashboard = async ({ page }) => {
-                const type = 'investigation';
+                const type = 'internal';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
@@ -105,10 +105,10 @@ describe('Incident Timeline API', () => {
                 );
 
                 // click on incident notes tab
-                await init.gotoTab(
-                    utils.incidentTabIndexes.INCIDENT_NOTES,
-                    page
-                );
+                // await init.gotoTab(
+                //     utils.incidentTabIndexes.INCIDENT_NOTES,
+                //     page
+                // );
 
                 // fill investigation message thread form
                 await page.waitForSelector(`#add-${type}-message`, {
@@ -152,7 +152,7 @@ describe('Incident Timeline API', () => {
         'should edit message related to incident message thread',
         async done => {
             const dashboard = async ({ page }) => {
-                const type = 'investigation';
+                const type = 'internal';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
                 // navigate to monitor details
@@ -168,10 +168,10 @@ describe('Incident Timeline API', () => {
                 );
 
                 // click on incident notes tab
-                await init.gotoTab(
-                    utils.incidentTabIndexes.INCIDENT_NOTES,
-                    page
-                );
+                // await init.gotoTab(
+                //     utils.incidentTabIndexes.INCIDENT_NOTES,
+                //     page
+                // );
 
                 await page.waitForSelector(`#edit_${type}_incident_message_0`);
                 await page.click(`#edit_${type}_incident_message_0`);
@@ -187,10 +187,10 @@ describe('Incident Timeline API', () => {
                 });
                 await page.reload({ waitUntil: 'networkidle0' });
                 // click on incident notes tab
-                await init.gotoTab(
-                    utils.incidentTabIndexes.INCIDENT_NOTES,
-                    page
-                );
+                // await init.gotoTab(
+                //     utils.incidentTabIndexes.INCIDENT_NOTES,
+                //     page
+                // );
 
                 await page.waitForSelector(
                     `#content_${type}_incident_message_0`,
@@ -261,7 +261,8 @@ describe('Incident Timeline API', () => {
                     'innerText'
                 );
                 messageContent = await messageContent.jsonValue();
-                expect(messageContent).toEqual(`${message}`);
+
+                expect(messageContent).toMatch(`${message}`);
             };
 
             await cluster.execute(null, dashboard);
@@ -408,37 +409,12 @@ describe('Incident Timeline API', () => {
 
             // click on timeline tab
             await page.reload({ waitUntil: 'networkidle0' });
-            await init.gotoTab(
-                utils.incidentTabIndexes.INCIDENT_TIMELINE,
-                page
-            );
 
-            await page.waitForSelector('#incidentTimeline tr.incidentListItem');
-            let incidentTimelineRows = await page.$$(
-                '#incidentTimeline tr.incidentListItem'
-            );
-            let countIncidentTimelines = incidentTimelineRows.length;
-
-            expect(countIncidentTimelines).toEqual(10);
-
-            await page.waitForSelector('#btnTimelineNext');
-            await page.$eval('#btnTimelineNext', e => e.click());
-            await page.waitForTimeout(2000);
-            await page.waitForSelector('.ball-beat', { hidden: true });
-            incidentTimelineRows = await page.$$(
-                '#incidentTimeline tr.incidentListItem'
-            );
-            countIncidentTimelines = incidentTimelineRows.length;
-            expect(countIncidentTimelines).toEqual(6);
-
-            await page.$eval('#btnTimelinePrev', e => e.click());
-            await page.waitForTimeout(2000);
-            await page.waitForSelector('.ball-beat', { hidden: true });
-            incidentTimelineRows = await page.$$(
-                '#incidentTimeline tr.incidentListItem'
-            );
-            countIncidentTimelines = incidentTimelineRows.length;
-            expect(countIncidentTimelines).toEqual(10);
+            //Incident Timeline is npw directly below 'BASIC' tab and it does not have 'Prev' and 'Next' button.
+            await page.waitForSelector('.internal-list');
+            const incidentTimelineRow = await page.$$('.internal-list');
+            const countIncidentTimelines = incidentTimelineRow.length;
+            expect(countIncidentTimelines).toEqual(11); // An internal mesage has been exist in the previous test
         });
     }, 300000);
 
@@ -465,18 +441,11 @@ describe('Incident Timeline API', () => {
                     visible: true,
                 });
                 await page.reload({ waitUntil: 'networkidle0' });
-                await init.gotoTab(
-                    utils.incidentTabIndexes.INCIDENT_TIMELINE,
-                    page
-                );
-                await page.waitForSelector(
-                    '#incidentTimeline tr.incidentListItem'
-                );
-                const incidentTimelineRows = await page.$$(
-                    '#incidentTimeline tr.incidentListItem'
-                );
+                // Incident Timeline Tab Does Not Exist Anymore
+                await page.waitForSelector('.internal-list');
+                const incidentTimelineRows = await page.$$('.internal-list');
                 const countIncidentTimelines = incidentTimelineRows.length;
-                expect(countIncidentTimelines).toEqual(10);
+                expect(countIncidentTimelines).toEqual(11);
             });
         },
 
@@ -503,18 +472,11 @@ describe('Incident Timeline API', () => {
                 await page.waitForSelector('#btnResolve_0');
                 await page.click('#btnResolve_0');
                 await page.waitForSelector('#ResolveText_0');
-                await init.gotoTab(
-                    utils.incidentTabIndexes.INCIDENT_TIMELINE,
-                    page
-                );
-                await page.waitForSelector(
-                    '#incidentTimeline tr.incidentListItem'
-                );
-                const incidentTimelineRows = await page.$$(
-                    '#incidentTimeline tr.incidentListItem'
-                );
+                // Incident Timeline Tab Does Not Exist Anymore
+                await page.waitForSelector('.internal-list');
+                const incidentTimelineRows = await page.$$('.internal-list');
                 const countIncidentTimelines = incidentTimelineRows.length;
-                expect(countIncidentTimelines).toEqual(10);
+                expect(countIncidentTimelines).toEqual(11);
             });
         },
 
