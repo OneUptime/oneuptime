@@ -648,7 +648,4 @@ const IncidentModel = require('../models/incident');
 const NotificationService = require('./notificationService');
 const RealTimeService = require('./realTimeService');
 const IncidentMessageService = require('../services/incidentMessageService');
-<<<<<<< HEAD
 const IncidentMessageModel = require('../models/incidentMessage');
-=======
->>>>>>> 0f801b7ee960627f2b2adc6cc165aad689c685a0

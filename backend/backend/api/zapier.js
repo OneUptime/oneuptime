@@ -94,7 +94,6 @@ router.post('/incident/incident-note', isAuthorized, async function(req, res) {
         return sendErrorResponse(req, res, error);
     }
 });
-})
 
 router.get('/incident/resolved', isAuthorized, async function(req, res) {
     try {
