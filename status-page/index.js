@@ -63,7 +63,6 @@ app.use('/.well-known/acme-challenge/:token', async function(req, res) {
     }
     const url = `${apiHost}/ssl/challenge/authorization/${token}`;
     const response = await axios.get(url);
-    console.log('****** KEYAUTHORIZATION RESPONSE ********', response.data);
     res.send(response.data);
 });
 
@@ -166,7 +165,6 @@ function createDir(dirPath) {
             const res = await fetch(
                 `${apiHost}/statusPage/tlsCredential?domain=${domain}`
             ).then(res => res.json());
-            console.log('****** RESPONSE FROM BACKEND IS *********', res);
 
             let certPath, privateKeyPath;
             if (res) {
@@ -198,11 +196,6 @@ function createDir(dirPath) {
                         'src',
                         'credentials',
                         `${certificate.id}.key`
-                    );
-
-                    console.log(
-                        '******** RESPONSE FOR CERTIFICATE/KEY ********',
-                        certificate
                     );
 
                     fs.writeFileSync(certPath, certificate.cert);
