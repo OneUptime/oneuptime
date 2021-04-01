@@ -71,6 +71,8 @@ export function createDomain({
     domain,
     cert,
     privateKey,
+    autoProvisioning,
+    enableHttps,
 }) {
     return async function(dispatch) {
         dispatch(createDomainRequest());
@@ -78,7 +80,7 @@ export function createDomain({
         try {
             const response = await putApi(
                 `statusPage/${projectId}/${statusPageId}/domain`,
-                { domain, cert, privateKey }
+                { domain, cert, privateKey, enableHttps, autoProvisioning }
             );
             dispatch(createDomainSuccess(response.data));
         } catch (error) {
@@ -164,13 +166,15 @@ export function updateDomain({
     domain,
     cert,
     privateKey,
+    enableHttps,
+    autoProvisioning,
 }) {
     return async function(dispatch) {
         dispatch(updateDomainRequest());
         try {
             const response = await putApi(
                 `statusPage/${projectId}/${statusPageId}/${domainId}`,
-                { domain, cert, privateKey }
+                { domain, cert, privateKey, enableHttps, autoProvisioning }
             );
             dispatch(updateDomainSuccess(response.data));
         } catch (error) {
