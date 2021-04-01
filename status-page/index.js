@@ -177,42 +177,44 @@ function createDir(dirPath) {
                     enableHttps,
                     domain,
                 } = res;
+                // have a condition to check for autoProvisioning
+                // if auto provisioning is set
+                // fetch the stored cert/privateKey
+                // cert and private key is a string
+                // store it to a file on disk
+                if (enableHttps && autoProvisioning) {
+                    const url = `${apiHost}/certificate/store/cert/${domain}`;
+                    const certificate = await axios.get(url);
+                    certPath = path.resolve(
+                        process.cwd(),
+                        'src',
+                        'credentials',
+                        `${certificate.id}.crt`
+                    );
+                    privateKeyPath = path.resolve(
+                        process.cwd(),
+                        'src',
+                        'credentials',
+                        `${certificate.id}.key`
+                    );
+
+                    console.log(
+                        '******** RESPONSE FOR CERTIFICATE/KEY ********',
+                        certificate
+                    );
+
+                    fs.writeFileSync(certPath, certificate.cert);
+                    fs.writeFileSync(privateKeyPath, certificate.privKey);
+
+                    return cb(
+                        null,
+                        tls.createSecureContext({
+                            key: fs.readFileSync(privateKeyPath),
+                            cert: fs.readFileSync(certPath),
+                        })
+                    );
+                }
                 if (cert && privateKey) {
-                    // have a condition to check for autoProvisioning
-                    // if auto provisioning is set
-                    // fetch the stored cert/privateKey
-                    // cert and private key is a string
-                    // store it to a file on disk
-                    if (enableHttps && autoProvisioning) {
-                        const url = `${apiHost}/certificate/store/cert/${domain}`;
-                        const certificate = await axios.get(url);
-                        certPath = path.resolve(
-                            process.cwd(),
-                            'src',
-                            'credentials',
-                            `${certificate.id}.crt`
-                        );
-                        privateKeyPath = path.resolve(
-                            process.cwd(),
-                            'src',
-                            'credentials',
-                            `${certificate.id}.key`
-                        );
-
-                        console.log('******** RESPONSE FOR CERTIFICATE/KEY ********', certificate);
-
-                        fs.writeFileSync(certPath, certificate.cert);
-                        fs.writeFileSync(privateKeyPath, certificate.privKey);
-
-                        return cb(
-                            null,
-                            tls.createSecureContext({
-                                key: fs.readFileSync(privateKeyPath),
-                                cert: fs.readFileSync(certPath),
-                            })
-                        );
-                    }
-
                     certPath = path.resolve(
                         process.cwd(),
                         'src',
