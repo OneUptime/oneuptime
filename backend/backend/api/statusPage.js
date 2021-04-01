@@ -1200,7 +1200,7 @@ router.get(
 
 const formatNotes = (data = []) => {
     const resultData = [];
-    const numberToDisplay = checkDuplicateDates(data, true);
+    const limit = checkDuplicateDates(data, true);
 
     if (
         data[0] &&
@@ -1216,32 +1216,43 @@ const formatNotes = (data = []) => {
 
     let prev_obj = data[0];
 
-    for (let i = 1; i < data.length + 1; i++) {
+    let i = 1;
+    while (resultData.length < limit) {
         resultData.push(prev_obj);
 
         const current_obj = data[i];
         if (!current_obj) break;
 
         const prev_date = new Date(prev_obj.createdAt).getDate();
-        const curr_date = new Date(current_obj.createdAt).getDate();
 
-        const diff = prev_date - curr_date - 1;
+        let diff = Math.ceil(
+            (new Date(prev_obj.createdAt) - new Date(current_obj.createdAt)) /
+                (1000 * 60 * 60 * 24)
+        );
 
-        if (diff > 0) {
-            for (let i = 0; i < diff; i++) {
-                const time = new Date().setDate(prev_date - i - 1);
-                const created_date = new Date(time).toISOString();
+        diff =
+            diff >= limit - resultData.length
+                ? limit - resultData.length + 1
+                : diff;
 
-                const new_obj = { createdAt: created_date };
-                resultData.push(new_obj);
-            }
+        for (let k = 0; k < diff - 1; k++) {
+            const time = new Date(prev_obj.createdAt).setDate(
+                prev_date - k - 1
+            );
+            const created_date = new Date(time).toISOString();
+
+            const new_obj = { createdAt: created_date };
+            if (resultData.length < limit) resultData.push(new_obj);
         }
 
         prev_obj = current_obj;
+        i++;
     }
 
+    // Complete the rest of the array
     const prev_date = new Date(prev_obj.createdAt).getDate();
-    const fields_left = numberToDisplay - resultData.length;
+    const fields_left =
+        limit - resultData.length ? limit - resultData.length : 0;
 
     for (let i = 0; i < fields_left; i++) {
         const time = new Date().setDate(prev_date - i - 1);
