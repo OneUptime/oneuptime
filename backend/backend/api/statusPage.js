@@ -868,7 +868,7 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
             limit
         );
         let notes = response.investigationNotes;
-        if (theme) {
+        if ((theme && typeof theme === 'boolean') || theme === 'true') {
             const updatedNotes = [];
             if (notes.length > 0) {
                 for (const note of notes) {
@@ -878,13 +878,16 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
                         0
                     );
 
+                    const sortMsg = statusPageNote.message.reverse();
+
                     updatedNotes.push({
                         ...note._doc,
-                        message: statusPageNote.message,
+                        message: sortMsg,
                     });
                 }
                 notes = updatedNotes;
             }
+            notes = checkDuplicateDates(notes);
         }
         const count = response.count;
         return sendListResponse(req, res, notes, count);
@@ -907,7 +910,8 @@ router.get(
             const response = await StatusPageService.getEvents(
                 { _id: statusPageId },
                 skip,
-                limit
+                limit,
+                theme
             );
             let events = response.events;
             const count = response.count;
