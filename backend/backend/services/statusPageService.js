@@ -125,7 +125,8 @@ module.exports = {
                     // trigger addition of this particular domain
                     // which should pass the acme challenge
                     // acme challenge is to be processed from status page project
-                    const altnames = [subDomain];
+                    const wwwDomain = `www.${subDomain}`;
+                    const altnames = [subDomain, wwwDomain];
 
                     // before adding any domain
                     // check if there's a certificate already created in the store
@@ -240,7 +241,8 @@ module.exports = {
                         // trigger addition of this particular domain
                         // which should pass the acme challenge
                         // acme challenge is to be processed from status page project
-                        const altnames = [eachDomain.domain];
+                        const wwwDomain = `www.${eachDomain.domain}`;
+                        const altnames = [eachDomain.domain, wwwDomain];
 
                         // before adding any domain
                         // check if there's a certificate already created in the store
