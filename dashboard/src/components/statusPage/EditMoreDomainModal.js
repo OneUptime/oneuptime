@@ -72,9 +72,11 @@ class EditMoreDomainModal extends React.Component {
             statusPageId,
             domain: values.domain,
             domainId: domain._id,
+            enableHttps: values.enableHttps,
+            autoProvisioning: values.autoProvisioning,
         };
 
-        if (values.enableHttps) {
+        if (values.enableHttps && !values.autoProvisioning) {
             data.cert = certFile.file;
             data.privateKey = privateKeyFile.file;
         }
@@ -297,6 +299,65 @@ class EditMoreDomainModal extends React.Component {
                                             if={
                                                 formValues &&
                                                 formValues.enableHttps
+                                            }
+                                        >
+                                            <div
+                                                className="bs-Fieldset-row"
+                                                style={{ padding: '0px 20px' }}
+                                            >
+                                                <label className="bs-Fieldset-label">
+                                                    <span></span>
+                                                </label>
+                                                <div
+                                                    className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <div
+                                                        className="Box-root"
+                                                        style={{
+                                                            height: '5px',
+                                                        }}
+                                                    ></div>
+                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                        <label className="Checkbox">
+                                                            <Field
+                                                                component="input"
+                                                                type="checkbox"
+                                                                name="autoProvisioning"
+                                                                className="Checkbox-source"
+                                                                id="autoProvisioning"
+                                                            />
+                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                <div className="Checkbox-target Box-root">
+                                                                    <div className="Checkbox-color Box-root"></div>
+                                                                </div>
+                                                            </div>
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    paddingLeft:
+                                                                        '5px',
+                                                                }}
+                                                            >
+                                                                <span>
+                                                                    Enable
+                                                                    Auto-SSL
+                                                                    Provisioning
+                                                                </span>
+                                                                <label className="bs-Fieldset-explanation">
+                                                                    <span></span>
+                                                                </label>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={
+                                                formValues &&
+                                                formValues.enableHttps &&
+                                                !formValues.autoProvisioning
                                             }
                                         >
                                             <>
@@ -633,11 +694,13 @@ const mapStateToProps = state => {
     const domainObj = state.modal.modals[0].domain;
     const initialValues = {
         domain: domainObj.domain,
+        autoProvisioning: domainObj.autoProvisioning,
+        enableHttps: domainObj.enableHttps,
     };
-    initialValues.enableHttps =
-        domainObj.domain && domainObj.cert && domainObj.privateKey
-            ? true
-            : false;
+    // initialValues.enableHttps =
+    //     domainObj.domain && domainObj.cert && domainObj.privateKey
+    //         ? true
+    //         : false;
 
     return {
         statusPageId: state.modal.modals[0].statusPageId,

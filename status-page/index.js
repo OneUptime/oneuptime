@@ -8,6 +8,7 @@ const tls = require('tls');
 const fs = require('fs');
 const fetch = require('node-fetch');
 const { spawn } = require('child_process');
+const axios = require('axios');
 
 const { NODE_ENV } = process.env;
 
@@ -51,6 +52,20 @@ app.use(
     '/status-page/static/js',
     express.static(path.join(__dirname, 'build/static/js'))
 );
+app.use('/.well-known/acme-challenge/:token', async function(req, res) {
+    // make api call to backend and fetch keyAuthorization
+    const { token } = req.params;
+    let apiHost;
+    if (process.env.FYIPE_HOST) {
+        apiHost = 'https://' + process.env.FYIPE_HOST + '/api';
+    } else {
+        apiHost = 'http://localhost:3002/api';
+    }
+    const url = `${apiHost}/ssl/challenge/authorization/${token}`;
+    const response = await axios.get(url);
+    console.log('****** KEYAUTHORIZATION RESPONSE ********', response.data);
+    res.send(response.data);
+});
 
 app.get('/*', function(req, res) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
@@ -154,8 +169,49 @@ function createDir(dirPath) {
 
             let certPath, privateKeyPath;
             if (res) {
-                const { cert, privateKey } = res;
+                const {
+                    cert,
+                    privateKey,
+                    autoProvisioning,
+                    enableHttps,
+                    domain,
+                } = res;
                 if (cert && privateKey) {
+                    // have a condition to check for autoProvisioning
+                    // if auto provisioning is set
+                    // fetch the stored cert/privateKey
+                    // cert and private key is a string
+                    // store it to a file on disk
+                    if (enableHttps && autoProvisioning) {
+                        const url = `${apiHost}/certificate/store/cert/${domain}`;
+                        const certificate = await axios.get(url);
+                        certPath = path.resolve(
+                            process.cwd(),
+                            'src',
+                            'credentials',
+                            `${certificate.id}.crt`
+                        );
+                        privateKeyPath = path.resolve(
+                            process.cwd(),
+                            'src',
+                            'credentials',
+                            `${certificate.id}.key`
+                        );
+
+                        console.log('******** RESPONSE FOR CERTIFICATE/KEY ********', certificate);
+
+                        fs.writeFileSync(certPath, certificate.cert);
+                        fs.writeFileSync(privateKeyPath, certificate.privKey);
+
+                        return cb(
+                            null,
+                            tls.createSecureContext({
+                                key: fs.readFileSync(privateKeyPath),
+                                cert: fs.readFileSync(certPath),
+                            })
+                        );
+                    }
+
                     certPath = path.resolve(
                         process.cwd(),
                         'src',
