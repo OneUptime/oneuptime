@@ -232,10 +232,12 @@ module.exports = {
                         const altnames = [eachDomain.domain];
 
                         // handle this in the background
-                        greenlock.add({
-                            subject: altnames[0],
-                            altnames: altnames,
-                        });
+                        greenlock
+                            .add({
+                                subject: altnames[0],
+                                altnames: altnames,
+                            })
+                            .then(x => console.log('****** DOMAIN ADDED ******', x));
                     }
                     eachDomain.domainVerificationToken =
                         createdDomain._id || existingBaseDomain._id;
