@@ -32,6 +32,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const uuid = require('uuid');
 const defaultStatusPageColors = require('../config/statusPageColors');
+const SubscriberService = require('../services/subscriberService');
 
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
@@ -1193,6 +1194,25 @@ router.get(
         }
     }
 );
+
+//get subscribers by monitorId in a statuspage
+// req.params-> {projectId, monitorId, statusPageId};
+// Returns: response subscribers, error message
+router.get('/:projectId/monitor/:statusPageId', async function(req, res) {
+    try {
+        const { statusPageId } = req.params;
+        const statusPage = await StatusPageService.findOneBy({
+            _id: statusPageId,
+        });
+        const monitors = statusPage.monitors.map(mon => mon.monitor._id);
+        const subscribers = await SubscriberService.findBy({
+            monitorId: monitors,
+        });
+        return sendItemResponse(req, res, subscribers);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
 
 const formatNotes = (data = []) => {
     const resultData = [];
