@@ -306,6 +306,8 @@ router.post('/:projectId/privateKeyFile', async function(req, res) {
     }
 });
 
+// fetch details about a custom domain
+// to be consumed by the status page
 router.get('/tlsCredential', async function(req, res) {
     try {
         const { domain } = req.query;
@@ -333,6 +335,9 @@ router.get('/tlsCredential', async function(req, res) {
         return sendItemResponse(req, res, {
             cert: domainObj.cert,
             privateKey: domainObj.privateKey,
+            autoProvisioning: domainObj.autoProvisioning,
+            enableHttps: domainObj.enableHttps,
+            domain: domainObj.domain,
         });
     } catch (error) {
         return sendErrorResponse(req, res, error);
