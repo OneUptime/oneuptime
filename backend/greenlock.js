@@ -13,11 +13,11 @@ const greenlock = Gl.create({
     },
     challenges: {
         'http-01': {
-            module: 'fyipe-acme-http-01',
+            module: 'ffyipe-acme-http-01',
         },
     },
     store: {
-        module: 'fyipe-le-store',
+        module: 'ffyipe-le-store',
     },
 });
 
