@@ -531,7 +531,7 @@ module.exports = {
         }
     },
 
-    getEvents: async function(query, skip, limit) {
+    getEvents: async function(query, skip, limit, theme) {
         try {
             const _this = this;
 
@@ -560,17 +560,31 @@ module.exports = {
                 const eventIds = [];
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
-                        const scheduledEvents = await ScheduledEventsService.findBy(
-                            {
-                                'monitors.monitorId': monitorId,
-                                showEventOnStatusPage: true,
-                                startDate: { $lte: currentDate },
-                                endDate: {
-                                    $gte: currentDate,
-                                },
-                                resolved: false,
-                            }
-                        );
+                        let scheduledEvents;
+                        if (
+                            (theme && typeof theme === 'boolean') ||
+                            theme === 'true'
+                        ) {
+                            scheduledEvents = await ScheduledEventsService.findBy(
+                                {
+                                    'monitors.monitorId': monitorId,
+                                    showEventOnStatusPage: true,
+                                    resolved: false,
+                                }
+                            );
+                        } else {
+                            scheduledEvents = await ScheduledEventsService.findBy(
+                                {
+                                    'monitors.monitorId': monitorId,
+                                    showEventOnStatusPage: true,
+                                    startDate: { $lte: currentDate },
+                                    endDate: {
+                                        $gte: currentDate,
+                                    },
+                                    resolved: false,
+                                }
+                            );
+                        }
                         scheduledEvents.map(event => {
                             const id = String(event._id);
                             if (!eventIds.includes(id)) {

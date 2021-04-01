@@ -209,6 +209,15 @@ export class Branding extends Component {
         }
     };
 
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Enter':
+                return document.getElementById('saveBranding').click();
+            default:
+                return false;
+        }
+    };
+
     render() {
         const { handleSubmit } = this.props;
         let faviconImage = <span />;
@@ -274,7 +283,10 @@ export class Branding extends Component {
         let { projectId } = this.props.statusPage.status;
         projectId = projectId ? projectId._id || projectId : null;
         return (
-            <div className="bs-ContentSection Card-root Card-shadow--medium">
+            <div
+                className="bs-ContentSection Card-root Card-shadow--medium"
+                onKeyDown={this.handleKeyBoard}
+            >
                 <div className="Box-root">
                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root">
@@ -747,12 +759,13 @@ export class Branding extends Component {
 
                             <div>
                                 <button
-                                    id="saveBranding"
+                                    id="resetBranding"
                                     className="bs-Button bs-FileUploadButton bs-Button--new"
                                     disabled={
                                         this.props.statusPage
                                             .resetBrandingColors.requesting
                                     }
+                                    type="button"
                                     onClick={e => {
                                         e.preventDefault();
                                         return this.props.openModal({

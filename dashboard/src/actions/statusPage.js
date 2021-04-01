@@ -477,9 +477,9 @@ export function updateStatusPageBranding(projectId, values) {
         } else if (values.banner === '') {
             data.append('banner', values.banner);
         }
-        if (values.title) data.append('title', values.title);
-        if (values.description) data.append('description', values.description);
-        if (values.copyright) data.append('copyright', values.copyright);
+        data.append('title', values.title);
+        data.append('description', values.description);
+        data.append('copyright', values.copyright);
         if (values.colors) data.append('colors', JSON.stringify(values.colors));
 
         if (values._id) data.append('_id', values._id);
