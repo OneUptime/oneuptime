@@ -166,6 +166,7 @@ function createDir(dirPath) {
             const res = await fetch(
                 `${apiHost}/statusPage/tlsCredential?domain=${domain}`
             ).then(res => res.json());
+            console.log('****** RESPONSE FROM BACKEND IS *********', res);
 
             let certPath, privateKeyPath;
             if (res) {
