@@ -127,11 +127,22 @@ module.exports = {
                     // acme challenge is to be processed from status page project
                     const altnames = [subDomain];
 
-                    // handle this in the background
-                    greenlock.add({
-                        subject: altnames[0],
-                        altnames: altnames,
-                    });
+                    // before adding any domain
+                    // check if there's a certificate already created in the store
+                    // if there's none, add the domain to the flow
+                    const certificate = await CertificateStoreService.findOneBy(
+                        {
+                            subject: subDomain,
+                        }
+                    );
+
+                    if (!certificate) {
+                        // handle this in the background
+                        greenlock.add({
+                            subject: altnames[0],
+                            altnames: altnames,
+                        });
+                    }
                 }
 
                 statusPage.domains = [
@@ -231,13 +242,22 @@ module.exports = {
                         // acme challenge is to be processed from status page project
                         const altnames = [eachDomain.domain];
 
-                        // handle this in the background
-                        greenlock
-                            .add({
+                        // before adding any domain
+                        // check if there's a certificate already created in the store
+                        // if there's none, add the domain to the flow
+                        const certificate = await CertificateStoreService.findOneBy(
+                            {
+                                subject: eachDomain.domain,
+                            }
+                        );
+
+                        if (!certificate) {
+                            // handle this in the background
+                            greenlock.add({
                                 subject: altnames[0],
                                 altnames: altnames,
-                            })
-                            .then(x => console.log('****** DOMAIN ADDED ******', x));
+                            });
+                        }
                     }
                     eachDomain.domainVerificationToken =
                         createdDomain._id || existingBaseDomain._id;
@@ -1166,3 +1186,4 @@ const IncidentMessageService = require('./incidentMessageService');
 const moment = require('moment');
 const uuid = require('uuid');
 const greenlock = require('../../greenlock');
+const CertificateStoreService = require('./certificateStoreService');
