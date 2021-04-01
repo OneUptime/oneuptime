@@ -30,6 +30,7 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import Themes from '../components/statusPage/Themes';
+import StatusPageSubscriber from '../components/statusPage/StatusPageSubscriber';
 
 class StatusPage extends Component {
     state = {
@@ -156,6 +157,9 @@ class StatusPage extends Component {
                                     Basic
                                 </Tab>
                                 <Tab className={'custom-tab custom-tab-5'}>
+                                    Subscribers
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-5'}>
                                     Custom Domains
                                 </Tab>
                                 <Tab className={'custom-tab custom-tab-5'}>
@@ -169,7 +173,7 @@ class StatusPage extends Component {
                                 </Tab>
                                 <div
                                     id="tab-slider"
-                                    className="custom-tab-5"
+                                    className="custom-tab-5 status-tab"
                                 ></div>
                             </TabList>
                         </div>
@@ -216,6 +220,18 @@ class StatusPage extends Component {
                                                                         </div>
                                                                     </RenderIfSubProjectAdmin>
                                                                 </Fade>
+                                                            </TabPanel>
+                                                            <TabPanel>
+                                                                <div className="Box-root Margin-bottom--12">
+                                                                    <StatusPageSubscriber
+                                                                        projectId={
+                                                                            projectId
+                                                                        }
+                                                                        statusPage={
+                                                                            status
+                                                                        }
+                                                                    />
+                                                                </div>
                                                             </TabPanel>
                                                             <TabPanel>
                                                                 <Fade>
