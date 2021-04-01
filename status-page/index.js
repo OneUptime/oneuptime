@@ -184,7 +184,9 @@ function createDir(dirPath) {
                 // store it to a file on disk
                 if (enableHttps && autoProvisioning) {
                     const url = `${apiHost}/certificate/store/cert/${domain}`;
-                    const certificate = await axios.get(url);
+                    const response = await axios.get(url);
+                    const certificate = response.data;
+
                     certPath = path.resolve(
                         process.cwd(),
                         'src',
@@ -204,7 +206,7 @@ function createDir(dirPath) {
                     );
 
                     fs.writeFileSync(certPath, certificate.cert);
-                    fs.writeFileSync(privateKeyPath, certificate.privKey);
+                    fs.writeFileSync(privateKeyPath, certificate.privateKeyPem);
 
                     return cb(
                         null,
@@ -214,6 +216,7 @@ function createDir(dirPath) {
                         })
                     );
                 }
+
                 if (cert && privateKey) {
                     certPath = path.resolve(
                         process.cwd(),
