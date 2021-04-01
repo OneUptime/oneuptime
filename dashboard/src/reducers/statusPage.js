@@ -249,6 +249,12 @@ const INITIAL_STATE = {
         error: null,
         file: null,
     },
+    subscribers: {
+        subscribersList: [],
+        requesting: false,
+        success: false,
+        error: null,
+    },
 };
 
 export default function statusPage(state = INITIAL_STATE, action) {
