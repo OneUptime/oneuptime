@@ -1,0 +1,35 @@
+{
+    "name": "fyipe-acme-http-01",
+    "version": "1.0.0",
+    "description": "HTTP Authentication (In-Memory) for Let's Encrypt for Node.js - ACME http-01 challenges for FYIPE",
+    "main": "index.js",
+    "files": [
+        "*.js",
+        "lib",
+        "test.js"
+    ],
+    "scripts": {
+        "test": "node test.js"
+    },
+    "keywords": [
+        "standalone",
+        "memory",
+        "http-01",
+        "letsencrypt",
+        "acme",
+        "greenlock",
+        "fyipe"
+    ],
+    "author": "Jude Ojini <judoc96@gmail.com>",
+    "contributors": [
+        "Jude Ojini <judoc96@gmail.com>"
+    ],
+    "license": "MIT",
+    "devDependencies": {
+        "acme-challenge-test": "^3.3.2",
+        "dotenv": "^8.0.0"
+    },
+    "dependencies": {
+        "axios": "^0.21.1"
+    }
+}
