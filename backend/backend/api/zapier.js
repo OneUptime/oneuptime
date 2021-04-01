@@ -85,6 +85,16 @@ router.get('/incident-note', isAuthorized, async function(req, res) {
     }
 });
 
+router.post('/incident/incident-note', isAuthorized, async function(req, res) {
+    try {
+        const { data } = req.body;
+        const incidentNote = await ZapierService.createIncidentNote(data);
+        return sendItemResponse(req, res, incidentNote);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.get('/incident/resolved', isAuthorized, async function(req, res) {
     try {
         const projectId = req.query.projectId;

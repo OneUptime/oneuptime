@@ -26,12 +26,11 @@ class HideIncidentBox extends Component {
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Hide Incident</span>
+                                    <span>Hide Incident On Status Page</span>
                                 </span>
                                 <p>
                                     <span>
-                                        Hide/show this incident on the status
-                                        page.
+                                        Hide this incident on the status page.
                                     </span>
                                 </p>
                             </div>

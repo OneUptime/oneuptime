@@ -82,7 +82,7 @@ describe('Monitor Detail API', () => {
                 });
 
                 const createdSubscriberSelector = '.subscriber-list-item';
-                
+
                 await page.waitForSelector(createdSubscriberSelector);
                 const subscriberRows = await page.$$(createdSubscriberSelector);
                 const countSubscribers = subscriberRows.length;

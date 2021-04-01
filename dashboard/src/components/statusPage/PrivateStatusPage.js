@@ -899,16 +899,11 @@ export class PrivateStatusPage extends Component {
                                                                         <span>
                                                                             Hide
                                                                             Resolved
-                                                                            incident
+                                                                            Incidents on this Status Page
                                                                         </span>
                                                                         <label className="bs-Fieldset-explanation">
                                                                             <span>
-                                                                                Hide
-                                                                                Resolved
-                                                                                incident
-                                                                                on
-                                                                                status
-                                                                                page
+                                                                                If you enable this checkbox, all of your resolved incidents will not be shown on the status page.
                                                                             </span>
                                                                         </label>
                                                                     </div>

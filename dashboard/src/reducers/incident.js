@@ -882,8 +882,9 @@ export default function incident(state = initialState, action) {
         case 'ADD_INCIDENT_NOTE': {
             let incidentFound = false;
             let incidentMessages = [];
-            if (state.incidentMessages[action.payload.incidentId._id]) {
-                let msg = state.incidentMessages[action.payload.incidentId._id];
+            if (state.incidentMessages[action.payload.incidentId.idNumber]) {
+                let msg =
+                    state.incidentMessages[action.payload.incidentId.idNumber];
                 msg = msg ? msg[action.payload.type] : null;
                 msg = msg ? msg.incidentMessages : null;
                 incidentMessages =
@@ -904,33 +905,37 @@ export default function incident(state = initialState, action) {
                     incidentMessages = [action.payload, ...incidentMessages];
                 }
                 const type =
-                    state.incidentMessages[action.payload.incidentId._id] &&
-                    state.incidentMessages[action.payload.incidentId._id][
+                    state.incidentMessages[
+                        action.payload.incidentId.idNumber
+                    ] &&
+                    state.incidentMessages[action.payload.incidentId.idNumber][
                         action.payload.type
                     ]
-                        ? state.incidentMessages[action.payload.incidentId._id][
-                              action.payload.type
-                          ]
+                        ? state.incidentMessages[
+                              action.payload.incidentId.idNumber
+                          ][action.payload.type]
                         : null;
                 const count =
-                    state.incidentMessages[action.payload.incidentId._id] &&
-                    state.incidentMessages[action.payload.incidentId._id][
+                    state.incidentMessages[
+                        action.payload.incidentId.idNumber
+                    ] &&
+                    state.incidentMessages[action.payload.incidentId.idNumber][
                         action.payload.type
                     ] &&
-                    state.incidentMessages[action.payload.incidentId._id][
+                    state.incidentMessages[action.payload.incidentId.idNumber][
                         action.payload.type
                     ].count
-                        ? state.incidentMessages[action.payload.incidentId._id][
-                              action.payload.type
-                          ].count
+                        ? state.incidentMessages[
+                              action.payload.incidentId.idNumber
+                          ][action.payload.type].count
                         : 0;
                 return {
                     ...state,
                     incidentMessages: {
                         ...state.incidentMessages,
-                        [action.payload.incidentId._id]: {
+                        [action.payload.incidentId.idNumber]: {
                             ...state.incidentMessages[
-                                action.payload.incidentId._id
+                                action.payload.incidentId.idNumber
                             ],
                             [action.payload.type]: {
                                 ...type,
