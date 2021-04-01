@@ -280,9 +280,25 @@ module.exports = {
                 throw error;
             }
 
+            let deletedDomain = null;
             const remainingDomains = statusPage.domains.filter(domain => {
+                if (String(domain._id) === String(domainId)) {
+                    deletedDomain = domain;
+                }
                 return String(domain._id) !== String(domainId);
             });
+
+            // delete any associated certificate (only for auto provisioned ssl)
+            // handle this in the background
+            if (deletedDomain.enableHttps && deletedDomain.autoProvisioning) {
+                greenlock
+                    .remove({ subject: deletedDomain.domain })
+                    .finally(() => {
+                        CertificateStoreService.deleteBy({
+                            subject: deletedDomain.domain,
+                        });
+                    });
+            }
 
             statusPage.domains = remainingDomains;
             return statusPage.save();
