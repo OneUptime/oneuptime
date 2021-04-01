@@ -81,7 +81,9 @@ module.exports = {
         projectId,
         statusPageId,
         cert,
-        privateKey
+        privateKey,
+        enableHttps,
+        autoProvisioning
     ) {
         let createdDomain = {};
 
@@ -119,12 +121,27 @@ module.exports = {
                     ErrorService.log('statusPageService.createDomain', error);
                     throw error;
                 }
+                if (enableHttps && autoProvisioning) {
+                    // trigger addition of this particular domain
+                    // which should pass the acme challenge
+                    // acme challenge is to be processed from status page project
+                    const altnames = [subDomain];
+
+                    // handle this in the background
+                    greenlock.add({
+                        subject: altnames[0],
+                        altnames: altnames,
+                    });
+                }
+
                 statusPage.domains = [
                     ...statusPage.domains,
                     {
                         domain: subDomain,
                         cert,
                         privateKey,
+                        enableHttps,
+                        autoProvisioning,
                         domainVerificationToken:
                             createdDomain._id || existingBaseDomain._id,
                     },
@@ -154,7 +171,9 @@ module.exports = {
         domainId,
         newDomain,
         cert,
-        privateKey
+        privateKey,
+        enableHttps,
+        autoProvisioning
     ) {
         let createdDomain = {};
         const _this = this;
@@ -192,19 +211,34 @@ module.exports = {
             const updatedDomainList = [];
             for (const eachDomain of domainList) {
                 if (String(eachDomain._id) === String(domainId)) {
-                    eachDomain.cert = cert;
-                    eachDomain.privateKey = privateKey;
                     if (eachDomain.domain !== newDomain) {
                         doesDomainExist = await _this.doesDomainExist(
                             newDomain
                         );
                     }
-
                     // if domain exist
                     // break the loop
                     if (doesDomainExist) break;
 
                     eachDomain.domain = newDomain;
+                    eachDomain.cert = cert;
+                    eachDomain.privateKey = privateKey;
+                    eachDomain.enableHttps = enableHttps;
+                    eachDomain.autoProvisioning = autoProvisioning;
+                    if (autoProvisioning && enableHttps) {
+                        // trigger addition of this particular domain
+                        // which should pass the acme challenge
+                        // acme challenge is to be processed from status page project
+                        const altnames = [eachDomain.domain];
+
+                        // handle this in the background
+                        greenlock
+                            .add({
+                                subject: altnames[0],
+                                altnames: altnames,
+                            })
+                            .then(x => console.log('****** DOMAIN ADDED ******', x));
+                    }
                     eachDomain.domainVerificationToken =
                         createdDomain._id || existingBaseDomain._id;
                 }
@@ -1142,3 +1176,4 @@ const ScheduledEventNoteService = require('./scheduledEventNoteService');
 const IncidentMessageService = require('./incidentMessageService');
 const moment = require('moment');
 const uuid = require('uuid');
+const greenlock = require('../../greenlock');

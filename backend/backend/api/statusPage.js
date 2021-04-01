@@ -113,7 +113,13 @@ router.put(
     isAuthorized,
     async (req, res) => {
         const { projectId, statusPageId } = req.params;
-        const { domain: subDomain, cert, privateKey } = req.body;
+        const {
+            domain: subDomain,
+            cert,
+            privateKey,
+            enableHttps,
+            autoProvisioning,
+        } = req.body;
 
         if (typeof subDomain !== 'string') {
             return sendErrorResponse(req, res, {
@@ -158,7 +164,9 @@ router.put(
                 projectId,
                 statusPageId,
                 cert,
-                privateKey
+                privateKey,
+                enableHttps,
+                autoProvisioning
             );
             return sendItemResponse(req, res, resp);
         } catch (error) {
@@ -203,7 +211,13 @@ router.put(
     isAuthorized,
     async (req, res) => {
         const { projectId, statusPageId, domainId } = req.params;
-        const { domain: newDomain, cert, privateKey } = req.body;
+        const {
+            domain: newDomain,
+            cert,
+            privateKey,
+            enableHttps,
+            autoProvisioning,
+        } = req.body;
 
         if (typeof newDomain !== 'string') {
             return sendErrorResponse(req, res, {
@@ -227,7 +241,9 @@ router.put(
                 domainId,
                 newDomain,
                 cert,
-                privateKey
+                privateKey,
+                enableHttps,
+                autoProvisioning
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -290,6 +306,8 @@ router.post('/:projectId/privateKeyFile', async function(req, res) {
     }
 });
 
+// fetch details about a custom domain
+// to be consumed by the status page
 router.get('/tlsCredential', async function(req, res) {
     try {
         const { domain } = req.query;
@@ -317,6 +335,9 @@ router.get('/tlsCredential', async function(req, res) {
         return sendItemResponse(req, res, {
             cert: domainObj.cert,
             privateKey: domainObj.privateKey,
+            autoProvisioning: domainObj.autoProvisioning,
+            enableHttps: domainObj.enableHttps,
+            domain: domainObj.domain,
         });
     } catch (error) {
         return sendErrorResponse(req, res, error);
