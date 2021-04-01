@@ -868,7 +868,7 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
             limit
         );
         let notes = response.investigationNotes;
-        if (theme) {
+        if ((theme && typeof theme === 'boolean') || theme === 'true') {
             const updatedNotes = [];
             if (notes.length > 0) {
                 for (const note of notes) {
@@ -878,13 +878,16 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
                         0
                     );
 
+                    const sortMsg = statusPageNote.message.reverse();
+
                     updatedNotes.push({
                         ...note._doc,
-                        message: statusPageNote.message,
+                        message: sortMsg,
                     });
                 }
                 notes = updatedNotes;
             }
+            notes = checkDuplicateDates(notes);
         }
         const count = response.count;
         return sendListResponse(req, res, notes, count);
@@ -907,7 +910,8 @@ router.get(
             const response = await StatusPageService.getEvents(
                 { _id: statusPageId },
                 skip,
-                limit
+                limit,
+                theme
             );
             let events = response.events;
             const count = response.count;
@@ -1196,7 +1200,7 @@ router.get(
 
 const formatNotes = (data = []) => {
     const resultData = [];
-    const numberToDisplay = checkDuplicateDates(data, true);
+    const limit = checkDuplicateDates(data, true);
 
     if (
         data[0] &&
@@ -1212,32 +1216,43 @@ const formatNotes = (data = []) => {
 
     let prev_obj = data[0];
 
-    for (let i = 1; i < data.length + 1; i++) {
+    let i = 1;
+    while (resultData.length < limit) {
         resultData.push(prev_obj);
 
         const current_obj = data[i];
         if (!current_obj) break;
 
         const prev_date = new Date(prev_obj.createdAt).getDate();
-        const curr_date = new Date(current_obj.createdAt).getDate();
 
-        const diff = prev_date - curr_date - 1;
+        let diff = Math.ceil(
+            (new Date(prev_obj.createdAt) - new Date(current_obj.createdAt)) /
+                (1000 * 60 * 60 * 24)
+        );
 
-        if (diff > 0) {
-            for (let i = 0; i < diff; i++) {
-                const time = new Date().setDate(prev_date - i - 1);
-                const created_date = new Date(time).toISOString();
+        diff =
+            diff >= limit - resultData.length
+                ? limit - resultData.length + 1
+                : diff;
 
-                const new_obj = { createdAt: created_date };
-                resultData.push(new_obj);
-            }
+        for (let k = 0; k < diff - 1; k++) {
+            const time = new Date(prev_obj.createdAt).setDate(
+                prev_date - k - 1
+            );
+            const created_date = new Date(time).toISOString();
+
+            const new_obj = { createdAt: created_date };
+            if (resultData.length < limit) resultData.push(new_obj);
         }
 
         prev_obj = current_obj;
+        i++;
     }
 
+    // Complete the rest of the array
     const prev_date = new Date(prev_obj.createdAt).getDate();
-    const fields_left = numberToDisplay - resultData.length;
+    const fields_left =
+        limit - resultData.length ? limit - resultData.length : 0;
 
     for (let i = 0; i < fields_left; i++) {
         const time = new Date().setDate(prev_date - i - 1);
