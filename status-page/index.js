@@ -63,6 +63,7 @@ app.use('/.well-known/acme-challenge/:token', async function(req, res) {
     }
     const url = `${apiHost}/ssl/challenge/authorization/${token}`;
     const response = await axios.get(url);
+    console.log('****** KEYAUTHORIZATION RESPONSE ********', response.data);
     res.send(response.data);
 });
 
@@ -196,6 +197,8 @@ function createDir(dirPath) {
                             'credentials',
                             `${certificate.id}.key`
                         );
+
+                        console.log('******** RESPONSE FOR CERTIFICATE/KEY ********', certificate);
 
                         fs.writeFileSync(certPath, certificate.cert);
                         fs.writeFileSync(privateKeyPath, certificate.privKey);
