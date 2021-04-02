@@ -1,7 +1,7 @@
 'use strict';
 
 const axios = require('axios');
-const BASE_URL = `https://${process.env.FYIPE_HOST}`;
+const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.FYIPE_HOST}`;
 
 module.exports = {
     create: function(config) {
