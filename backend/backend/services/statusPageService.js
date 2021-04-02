@@ -504,6 +504,13 @@ module.exports = {
 
             if (!query) query = {};
             const statuspages = await _this.findBy(query, 0, limit);
+            const checkHideResolved = statuspages[0].hideResolvedIncident;
+            let option = {};
+            if (checkHideResolved) {
+                option = {
+                    resolved: false,
+                };
+            }
 
             const withMonitors = statuspages.filter(
                 statusPage => statusPage.monitors.length
@@ -514,12 +521,18 @@ module.exports = {
                 : [];
             if (monitorIds && monitorIds.length) {
                 const notes = await IncidentService.findBy(
-                    { monitorId: { $in: monitorIds } },
+                    {
+                        monitorId: { $in: monitorIds },
+                        hideIncident: false,
+                        ...option,
+                    },
                     limit,
                     skip
                 );
                 const count = await IncidentService.countBy({
                     monitorId: { $in: monitorIds },
+                    hideIncident: false,
+                    ...option,
                 });
 
                 return { notes, count };
@@ -590,7 +603,7 @@ module.exports = {
         }
     },
 
-    getEvents: async function(query, skip, limit) {
+    getEvents: async function(query, skip, limit, theme) {
         try {
             const _this = this;
 
@@ -619,17 +632,31 @@ module.exports = {
                 const eventIds = [];
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
-                        const scheduledEvents = await ScheduledEventsService.findBy(
-                            {
-                                'monitors.monitorId': monitorId,
-                                showEventOnStatusPage: true,
-                                startDate: { $lte: currentDate },
-                                endDate: {
-                                    $gte: currentDate,
-                                },
-                                resolved: false,
-                            }
-                        );
+                        let scheduledEvents;
+                        if (
+                            (theme && typeof theme === 'boolean') ||
+                            theme === 'true'
+                        ) {
+                            scheduledEvents = await ScheduledEventsService.findBy(
+                                {
+                                    'monitors.monitorId': monitorId,
+                                    showEventOnStatusPage: true,
+                                    resolved: false,
+                                }
+                            );
+                        } else {
+                            scheduledEvents = await ScheduledEventsService.findBy(
+                                {
+                                    'monitors.monitorId': monitorId,
+                                    showEventOnStatusPage: true,
+                                    startDate: { $lte: currentDate },
+                                    endDate: {
+                                        $gte: currentDate,
+                                    },
+                                    resolved: false,
+                                }
+                            );
+                        }
                         scheduledEvents.map(event => {
                             const id = String(event._id);
                             if (!eventIds.includes(id)) {

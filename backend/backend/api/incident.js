@@ -1037,6 +1037,23 @@ router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(
     }
 });
 
+router.put('/:projectId/:incidentId', getUser, async function(req, res) {
+    try {
+        const { projectId, incidentId } = req.params;
+        const { hideIncident } = req.body;
+        const incident = await IncidentService.updateOneBy(
+            {
+                projectId,
+                _id: incidentId,
+            },
+            { hideIncident }
+        );
+        return sendItemResponse(req, res, incident);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 // Route
 // IMPORTANT: THIS API IS USED IN AN EMAIL.
 // Description: Updating user who resolved incident.

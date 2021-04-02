@@ -139,6 +139,9 @@ class StatusPage extends Component {
                         pageTitle="Status Page"
                         status={pageName}
                     />
+                    <div className="Box-root Margin-bottom--12">
+                        <Header />
+                    </div>
                     <Tabs
                         selectedTabClassName={'custom-tab-selected'}
                         onSelect={tabIndex => this.tabSelected(tabIndex)}
@@ -188,9 +191,6 @@ class StatusPage extends Component {
                                                         >
                                                             <TabPanel>
                                                                 <Fade>
-                                                                    <div className="Box-root Margin-bottom--12">
-                                                                        <Header />
-                                                                    </div>
                                                                     <div className="Box-root Margin-bottom--12">
                                                                         <Basic />
                                                                     </div>

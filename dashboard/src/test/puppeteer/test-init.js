@@ -574,14 +574,22 @@ module.exports = {
         });
         await page.waitForSelector('#projectSettings');
         await page.click('#projectSettings');
+        await page.waitForSelector('#more');
+        await page.click('#more');
         await page.waitForSelector('#incidentSettings');
         await page.click('#incidentSettings');
+        // To navigate to incident Priority tab
+        await page.waitForSelector('ul#customTabList > li', {
+            visible: true,
+        });
+        await page.$$eval('ul#customTabList > li', elems => elems[1].click());
+
         await page.waitForSelector('#addNewPriority');
         await page.click('#addNewPriority');
         await page.waitForSelector('#CreateIncidentPriority');
         await page.type('input[name=name]', incidentPriority);
         await page.click('#CreateIncidentPriority');
-        await page.waitFor(3000);
+        await page.waitForSelector('#CreateIncidentPriority', { hidden: true });
     },
     addStatusPageToProject: async function(statusPageName, projectName, page) {
         const createStatusPageSelector = await page.$(

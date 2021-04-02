@@ -35321,6 +35321,13 @@ padding-left:20px
   flex-direction: row;
 }
 
+.hide_incident {
+  padding-left: 20px;
+  padding-bottom: 20px;
+  margin-top: -13px;
+  display: flex;
+}
+
 @media (max-width: 930px) {
   .bs-incident-notes-content {
     display: block;

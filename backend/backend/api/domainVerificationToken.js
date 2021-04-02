@@ -48,8 +48,15 @@ router.put(
 
 router.get('/:projectId/domains', getUser, isAuthorized, async (req, res) => {
     const { projectId } = req.params;
+    const { skip, limit } = req.query;
     try {
-        const domains = await DomainVerificationService.findBy({ projectId });
+        const domains = await DomainVerificationService.findBy(
+            {
+                projectId,
+            },
+            limit,
+            skip
+        );
         const count = await DomainVerificationService.countBy({ projectId });
 
         return sendListResponse(req, res, domains, count);

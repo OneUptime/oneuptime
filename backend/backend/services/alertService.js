@@ -812,6 +812,17 @@ module.exports = {
             pushMessage = '';
         }
 
+        console.log('PUSHNOTIFICATION_URL::', process.env.PUSHNOTIFICATION_URL);
+        console.log(
+            'PUSHNOTIFICATION_PUBLIC_KEY::',
+            process.env.PUSHNOTIFICATION_PUBLIC_KEY
+        );
+        console.log(
+            'PUSHNOTIFICATION_PRIVATE_KEY::',
+            process.env.PUSHNOTIFICATION_PRIVATE_KEY
+        );
+        console.log('IDENTIFICATION::', identification);
+
         // Create payload
         const title = `${pushMessage}Incident #${incident.idNumber} is created`;
         const body = `Please acknowledge or resolve this incident on Fyipe Dashboard.`;
@@ -907,7 +918,7 @@ module.exports = {
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const ack_url = `${global.apiHost}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
         const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${incident.projectId}/${monitor.componentId._id}/incidents/${incident._id}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -1070,7 +1081,7 @@ module.exports = {
                 const reason = incident.reason;
                 const componentId = incident.monitorId.componentId._id;
                 const componentName = incident.monitorId.componentId.name;
-                const incidentUrl = `${global.dashboardHost}/project/${projectId}/${componentId}/incidents/${incident.idNumber}`;
+                const incidentUrl = `${global.dashboardHost}/project/${projectId}/${componentId}/incidents/${incident._id}`;
                 let incidentSlaTimeline =
                     incidentCommunicationSla.duration * 60;
                 incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
@@ -1853,7 +1864,7 @@ module.exports = {
 
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${incident.projectId}/${monitor.componentId._id}/incidents/${incident._id}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -2160,7 +2171,7 @@ module.exports = {
         });
 
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const view_url = `${global.dashboardHost}/project/${incident.projectId}/${monitor.componentId._id}/incidents/${incident._id}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 

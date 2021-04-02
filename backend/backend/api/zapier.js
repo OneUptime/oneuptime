@@ -73,6 +73,28 @@ router.get('/incidents', isAuthorized, async function(req, res) {
     }
 });
 
+router.get('/incident-note', isAuthorized, async function(req, res) {
+    try {
+        const projectId = req.query.projectId;
+        // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
+        const incidents = await ZapierService.getIncidentsNotes(projectId);
+        // zapier expects this as an item response and not a list response.
+        return sendItemResponse(req, res, incidents);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/incident/incident-note', isAuthorized, async function(req, res) {
+    try {
+        const { data } = req.body;
+        const incidentNote = await ZapierService.createIncidentNote(data);
+        return sendItemResponse(req, res, incidentNote);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.get('/incident/resolved', isAuthorized, async function(req, res) {
     try {
         const projectId = req.query.projectId;

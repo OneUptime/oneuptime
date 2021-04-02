@@ -60,6 +60,16 @@ import {
     PROJECT_BALANCE_UPDATE_REQUEST,
     PROJECT_BALANCE_UPDATE_SUCCESS,
     PROJECT_BALANCE_UPDATE_FAILURE,
+    PROJECT_DOMAIN_REQUEST,
+    PROJECT_DOMAIN_SUCCESS,
+    PROJECT_DOMAIN_FAILURE,
+    DELETE_PROJECT_DOMAIN_REQUEST,
+    DELETE_PROJECT_DOMAIN_SUCCESS,
+    DELETE_PROJECT_DOMAIN_FAILURE,
+    VERIFY_PROJECT_DOMAIN_REQUEST,
+    VERIFY_PROJECT_DOMAIN_SUCCESS,
+    VERIFY_PROJECT_DOMAIN_FAILURE,
+    RESET_VERIFY_PROJECT_DOMAIN,
 } from '../constants/project';
 
 const INITIAL_STATE = {
@@ -150,6 +160,25 @@ const INITIAL_STATE = {
         error: null,
         requesting: false,
         success: false,
+    },
+    projectDomain: {
+        error: null,
+        requesting: false,
+        domains: [],
+        success: false,
+        count: null,
+        limit: null,
+        skip: null,
+    },
+    deleteDomain: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    verifyDomain: {
+        requesting: false,
+        success: false,
+        error: null,
     },
 };
 
@@ -362,6 +391,110 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     deleting: [],
+                },
+            };
+        //project domain
+        case PROJECT_DOMAIN_SUCCESS:
+            return {
+                ...state,
+                projectDomain: {
+                    ...state.projectDomain,
+                    error: null,
+                    requesting: false,
+                    success: true,
+                    domains: action.payload.data,
+                    count: action.payload.count,
+                    limit: action.payload.limit,
+                    skip: action.payload.skip,
+                },
+            };
+        case PROJECT_DOMAIN_REQUEST:
+            return {
+                ...state,
+                projectDomain: {
+                    ...state.projectDomain,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+        case PROJECT_DOMAIN_FAILURE:
+            return {
+                ...state,
+                projectDomain: {
+                    ...state.projectDomain,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+        //delete project domain
+        case DELETE_PROJECT_DOMAIN_REQUEST:
+            return {
+                ...state,
+                deleteDomain: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case DELETE_PROJECT_DOMAIN_FAILURE:
+            return {
+                ...state,
+                deleteDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case DELETE_PROJECT_DOMAIN_SUCCESS:
+            return {
+                ...state,
+                deleteDomain: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            };
+        //verify project domain
+        case VERIFY_PROJECT_DOMAIN_REQUEST:
+            return {
+                ...state,
+                verifyDomain: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case VERIFY_PROJECT_DOMAIN_SUCCESS:
+            return {
+                ...state,
+                verifyDomain: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            };
+
+        case VERIFY_PROJECT_DOMAIN_FAILURE:
+            return {
+                ...state,
+                verifyDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+        case RESET_VERIFY_PROJECT_DOMAIN:
+            return {
+                ...state,
+                verifyDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
                 },
             };
         //users pagination

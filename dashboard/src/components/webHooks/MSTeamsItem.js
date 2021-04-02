@@ -42,7 +42,7 @@ class MSTeamsItem extends React.Component {
         }
 
         return (
-            <tr className="webhook-list-item Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink">
+            <tr className="webhook-list-item Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink msteam-length">
                 <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
                     <div className="db-ListViewItem-cellContent Box-root Padding-vertical--16 Padding-horizontal--8">
                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -54,7 +54,9 @@ class MSTeamsItem extends React.Component {
                                     overflow: 'hidden',
                                 }}
                             >
-                                <span>{webHookName}</span>
+                                <span id={`msteam_${webHookName}`}>
+                                    {webHookName}
+                                </span>
                             </div>
                         </span>
                     </div>
@@ -88,6 +90,7 @@ class MSTeamsItem extends React.Component {
                             <RenderIfAdmin>
                                 <div className="Box-root">
                                     <button
+                                        id={`edit_msteam_${webHookName}`}
                                         className="bs-Button bs-DeprecatedButton"
                                         type="button"
                                         onClick={() =>
@@ -107,6 +110,7 @@ class MSTeamsItem extends React.Component {
                                         <span>Edit</span>
                                     </button>
                                     <button
+                                        id={`delete_msteam_${webHookName}`}
                                         className="bs-Button bs-DeprecatedButton"
                                         type="button"
                                         onClick={() =>
