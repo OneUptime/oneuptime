@@ -55,23 +55,17 @@ public class Util {
     }
     private ArrayList<Frame> buildFrame(StackTraceElement[] stackTraceElements) {
         ArrayList<Frame> frameArrayList = new ArrayList<>();
-        System.out.println(stackTraceElements[0].getClassName());
-        System.out.println(stackTraceElements[1].getClassName());
-        Arrays.asList(stackTraceElements).stream().forEach(e -> {
-            String className = e.getClassName().replace(".", "/");
-            URL u = getClass().getResource(className+ ".java");
-            if(u == null) {
-                u = getClass().getClassLoader().getResource(className+ ".class");
-            }
+        // System.out.println(stackTraceElements[0].getClassName());
+        // System.out.println(stackTraceElements[1].getClassName());
+        for (int i = 0; i < stackTraceElements.length; i++) {
             frameArrayList.add(
                     new Frame(
-                            e.getMethodName(),
-                            e.getLineNumber(),
-                            u.toString()
+                            stackTraceElements[i].getMethodName(),
+                            stackTraceElements[i].getLineNumber(),
+                            stackTraceElements[i].getFileName()
                     )
             );
-
-        });
+        }
 
         return  frameArrayList;
     }
