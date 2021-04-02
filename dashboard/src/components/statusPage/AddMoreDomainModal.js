@@ -332,7 +332,15 @@ class AddMoreDomainModal extends React.Component {
                                                                     Provisioning
                                                                 </span>
                                                                 <label className="bs-Fieldset-explanation">
-                                                                    <span></span>
+                                                                    <span>
+                                                                        Auto-SSL
+                                                                        provisioning
+                                                                        might
+                                                                        take up
+                                                                        to 72
+                                                                        hours to
+                                                                        propagate
+                                                                    </span>
                                                                 </label>
                                                             </div>
                                                         </label>
@@ -673,6 +681,10 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = state => {
+    const initialValues = {
+        enableHttps: true,
+        autoProvisioning: true,
+    };
     return {
         statusPageId: state.modal.modals[0].statusPageId,
         projectId: state.modal.modals[0].projectId,
@@ -682,6 +694,7 @@ const mapStateToProps = state => {
         addDomainError: state.statusPage.addDomain.error,
         certFile: state.statusPage.certFile,
         privateKeyFile: state.statusPage.privateKeyFile,
+        initialValues,
     };
 };
 
