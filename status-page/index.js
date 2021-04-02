@@ -63,7 +63,6 @@ app.use('/.well-known/acme-challenge/:token', async function(req, res) {
     }
     const url = `${apiHost}/ssl/challenge/authorization/${token}`;
     const response = await axios.get(url);
-    console.log('****** KEYAUTHORIZATION RESPONSE ********', response.data);
     res.send(response.data);
 });
 
@@ -166,7 +165,6 @@ function createDir(dirPath) {
             const res = await fetch(
                 `${apiHost}/statusPage/tlsCredential?domain=${domain}`
             ).then(res => res.json());
-            console.log('****** RESPONSE FROM BACKEND IS *********', res);
 
             let certPath, privateKeyPath;
             if (res) {
@@ -186,35 +184,34 @@ function createDir(dirPath) {
                     const url = `${apiHost}/certificate/store/cert/${domain}`;
                     const response = await axios.get(url);
                     const certificate = response.data;
+                    if (response && certificate) {
+                        certPath = path.resolve(
+                            process.cwd(),
+                            'src',
+                            'credentials',
+                            `${certificate.id}.crt`
+                        );
+                        privateKeyPath = path.resolve(
+                            process.cwd(),
+                            'src',
+                            'credentials',
+                            `${certificate.id}.key`
+                        );
 
-                    certPath = path.resolve(
-                        process.cwd(),
-                        'src',
-                        'credentials',
-                        `${certificate.id}.crt`
-                    );
-                    privateKeyPath = path.resolve(
-                        process.cwd(),
-                        'src',
-                        'credentials',
-                        `${certificate.id}.key`
-                    );
+                        fs.writeFileSync(certPath, certificate.cert);
+                        fs.writeFileSync(
+                            privateKeyPath,
+                            certificate.privateKeyPem
+                        );
 
-                    console.log(
-                        '******** RESPONSE FOR CERTIFICATE/KEY ********',
-                        certificate
-                    );
-
-                    fs.writeFileSync(certPath, certificate.cert);
-                    fs.writeFileSync(privateKeyPath, certificate.privateKeyPem);
-
-                    return cb(
-                        null,
-                        tls.createSecureContext({
-                            key: fs.readFileSync(privateKeyPath),
-                            cert: fs.readFileSync(certPath),
-                        })
-                    );
+                        return cb(
+                            null,
+                            tls.createSecureContext({
+                                key: fs.readFileSync(privateKeyPath),
+                                cert: fs.readFileSync(certPath),
+                            })
+                        );
+                    }
                 }
 
                 if (cert && privateKey) {

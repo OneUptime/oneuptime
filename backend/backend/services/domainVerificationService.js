@@ -1,7 +1,7 @@
 const dns = require('dns');
+const psl = require('psl');
 const DomainVerificationTokenModel = require('../models/domainVerificationToken');
 const ErrorService = require('./errorService');
-const getDomain = require('../utils/getDomain');
 const flatten = require('../utils/flattenArray');
 const randomChar = require('../utils/randomChar');
 const StatusPageService = require('../services/statusPageService');
@@ -9,9 +9,10 @@ const dnsPromises = dns.promises;
 
 module.exports = {
     create: async function({ domain, projectId }) {
+        const parsed = psl.parse(domain);
         const token = 'fyipe=' + randomChar();
         const creationData = {
-            domain: getDomain(domain),
+            domain: parsed.domain,
             verificationToken: token,
             verifiedAt: null,
             deletedAt: null,
@@ -28,7 +29,8 @@ module.exports = {
             query.deleted = false;
 
             if (query.domain) {
-                query.domain = getDomain(query.domain);
+                const parsed = psl.parse(query.domain);
+                query.domain = parsed.domain;
             }
 
             return await DomainVerificationTokenModel.findOne(query).populate(
@@ -59,7 +61,8 @@ module.exports = {
             query.deleted = false;
 
             if (query.domain) {
-                query.domain = getDomain(query.domain);
+                const parsed = psl.parse(query.domain);
+                query.domain = parsed.domain;
             }
 
             return await DomainVerificationTokenModel.find(query)
@@ -74,7 +77,8 @@ module.exports = {
     },
     updateOneBy: async function(query, data) {
         if (query && query.domain) {
-            query.domain = getDomain(query.domain);
+            const parsed = psl.parse(query.domain);
+            query.domain = parsed.domain;
         }
 
         if (!query) {
@@ -98,8 +102,9 @@ module.exports = {
         }
     },
     doesTxtRecordExist: async function(subDomain, verificationToken) {
+        const parsed = psl.parse(subDomain);
         const host = 'fyipe';
-        const domain = getDomain(subDomain);
+        const domain = parsed.domain;
         const domainToLookup = `${host}.${domain}`;
 
         try {
@@ -134,7 +139,8 @@ module.exports = {
         }
     },
     doesDomainBelongToProject: async function(projectId, subDomain) {
-        const domain = getDomain(subDomain);
+        const parsed = psl.parse(subDomain);
+        const domain = parsed.domain;
         const result = await this.findBy({
             domain,
             /**

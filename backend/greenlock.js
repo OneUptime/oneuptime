@@ -2,8 +2,8 @@ const Gl = require('greenlock');
 const greenlock = Gl.create({
     packageRoot: __dirname,
     configDir: './greenlock.d/',
-    maintainerEmail: 'jude@hackerbay.io',
-    staging: true,
+    maintainerEmail: 'certs@fyipe.com',
+    staging: false,
     notify: function(event, details) {
         if ('error' === event) {
             // `details` is an error object in this case
@@ -13,17 +13,17 @@ const greenlock = Gl.create({
     },
     challenges: {
         'http-01': {
-            module: 'ffyipe-acme-http-01',
+            module: 'fyipe-acme-http-01',
         },
     },
     store: {
-        module: 'ffyipe-le-store',
+        module: 'fyipe-le-store',
     },
 });
 
 greenlock.manager.defaults({
     agreeToTerms: true,
-    subscriberEmail: 'jude@hackerbay.io',
+    subscriberEmail: 'certs@fyipe.com',
 });
 
 module.exports = greenlock;
