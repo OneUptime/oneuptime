@@ -76,5 +76,6 @@ deploy_production_java-sdk:
         refs:
             - release
             - hotfix-release
+            - feature-error-tracking
     environment:
         name: production
