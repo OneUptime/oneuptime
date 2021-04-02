@@ -262,7 +262,27 @@ router.post('/:projectId/subscribe/:monitorId', async function(req, res) {
                 message: 'You are already subscribed to this monitor.',
             });
         } else {
-            const subscriber = await SubscriberService.create(data);
+            let subscriber;
+            if (data.alertVia === 'email') {
+                const subscriberExist = await SubscriberService.findByOne({
+                    monitorId: data.monitorId,
+                    contactEmail: data.contactEmail,
+                    subscribed: false,
+                });
+                if (subscriberExist) {
+                    subscriber = await SubscriberService.updateOneBy(
+                        {
+                            monitorId: data.monitorId,
+                            contactEmail: data.contactEmail,
+                        },
+                        { subscribed: true }
+                    );
+                } else {
+                    subscriber = await SubscriberService.create(data);
+                }
+            } else {
+                subscriber = await SubscriberService.create(data);
+            }
             return sendItemResponse(req, res, subscriber);
         }
     } catch (error) {
@@ -299,7 +319,7 @@ router.get('/:projectId/monitor/:monitorId', async function(req, res) {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
         const subscribers = await SubscriberService.findBy(
-            { monitorId: monitorId },
+            { monitorId: monitorId, subscribed: true },
             skip,
             limit
         );
@@ -327,6 +347,21 @@ router.get('/:projectId/:subscriberId', async function(req, res) {
     }
 });
 
+//Get a subscriber.
+//req.params-> {monitorId, subscriberId}
+// Returns: response subscriber, error message
+router.put('/unsubscribe/:monitorId/:subscriberId', async function(req, res) {
+    try {
+        const { subscriberId, monitorId } = req.params;
+        const subscriber = await SubscriberService.updateOneBy(
+            { _id: subscriberId, monitorId },
+            { subscribed: false }
+        );
+        return sendItemResponse(req, res, subscriber);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
 //  delete a subscriber.
 //  req.params-> {projectId, subscriberId}
 //  Returns: response subscriber, error message
