@@ -41,6 +41,7 @@
         "nodemailer-express-handlebars": "^3.1.0",
         "otplib": "^12.0.0",
         "p-iteration": "^1.1.8",
+        "psl": "^1.8.0",
         "query-string": "^6.12.1",
         "rand-token": "^0.4.0",
         "rate-limit-redis": "^1.7.0",
