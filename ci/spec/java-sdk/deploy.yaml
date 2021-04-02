@@ -37,6 +37,7 @@ deploy_staging_java-sdk:
         refs:
             - master
             - hotfix-master
+            - feature-error-tracking
     environment:
         name: staging
 
