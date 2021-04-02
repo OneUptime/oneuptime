@@ -208,7 +208,26 @@ module.exports = {
                     ErrorService.log('SubscriberService.subscribe', error);
                     throw error;
                 } else {
-                    return await _this.create(newSubscriber);
+                    if (data.alertVia === 'email') {
+                        const subscriberExist = await _this.findByOne({
+                            monitorId: data.monitorId,
+                            contactEmail: data.contactEmail,
+                            subscribed: false,
+                        });
+                        if (subscriberExist) {
+                            return await _this.updateOneBy(
+                                {
+                                    monitorId: data.monitorId,
+                                    contactEmail: data.contactEmail,
+                                },
+                                { subscribed: true }
+                            );
+                        } else {
+                            return await _this.create(data);
+                        }
+                    } else {
+                        return await _this.create(newSubscriber);
+                    }
                 }
             });
             const subscriber = await Promise.all(success);
