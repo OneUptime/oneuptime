@@ -697,10 +697,6 @@ const mapStateToProps = state => {
         autoProvisioning: domainObj.autoProvisioning,
         enableHttps: domainObj.enableHttps,
     };
-    // initialValues.enableHttps =
-    //     domainObj.domain && domainObj.cert && domainObj.privateKey
-    //         ? true
-    //         : false;
 
     return {
         statusPageId: state.modal.modals[0].statusPageId,
