@@ -184,30 +184,34 @@ function createDir(dirPath) {
                     const url = `${apiHost}/certificate/store/cert/${domain}`;
                     const response = await axios.get(url);
                     const certificate = response.data;
+                    if (response && certificate) {
+                        certPath = path.resolve(
+                            process.cwd(),
+                            'src',
+                            'credentials',
+                            `${certificate.id}.crt`
+                        );
+                        privateKeyPath = path.resolve(
+                            process.cwd(),
+                            'src',
+                            'credentials',
+                            `${certificate.id}.key`
+                        );
 
-                    certPath = path.resolve(
-                        process.cwd(),
-                        'src',
-                        'credentials',
-                        `${certificate.id}.crt`
-                    );
-                    privateKeyPath = path.resolve(
-                        process.cwd(),
-                        'src',
-                        'credentials',
-                        `${certificate.id}.key`
-                    );
+                        fs.writeFileSync(certPath, certificate.cert);
+                        fs.writeFileSync(
+                            privateKeyPath,
+                            certificate.privateKeyPem
+                        );
 
-                    fs.writeFileSync(certPath, certificate.cert);
-                    fs.writeFileSync(privateKeyPath, certificate.privateKeyPem);
-
-                    return cb(
-                        null,
-                        tls.createSecureContext({
-                            key: fs.readFileSync(privateKeyPath),
-                            cert: fs.readFileSync(certPath),
-                        })
-                    );
+                        return cb(
+                            null,
+                            tls.createSecureContext({
+                                key: fs.readFileSync(privateKeyPath),
+                                cert: fs.readFileSync(certPath),
+                            })
+                        );
+                    }
                 }
 
                 if (cert && privateKey) {
