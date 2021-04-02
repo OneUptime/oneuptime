@@ -51,7 +51,8 @@ class Incidents extends Component {
         if (
             filter !== this.props.filter ||
             startDate !== this.props.startDate ||
-            endDate !== this.props.endDate
+            endDate !== this.props.endDate ||
+            currentProject !== this.props.currentProject
         ) {
             getIncidents(currentProject, filter, startDate, endDate);
         }

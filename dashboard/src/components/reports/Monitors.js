@@ -44,7 +44,8 @@ class Monitors extends Component {
 
         if (
             startDate !== this.props.startDate ||
-            endDate !== this.props.endDate
+            endDate !== this.props.endDate ||
+            currentProject !== this.props.currentProject
         ) {
             getActiveMonitors(
                 currentProject,
