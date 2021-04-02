@@ -37,7 +37,6 @@ deploy_staging_java-sdk:
         refs:
             - master
             - hotfix-master
-            - feature-error-tracking
     environment:
         name: staging
 
@@ -60,18 +59,22 @@ deploy_production_java-sdk:
         - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
         - cd java-sdk
-        - git status
-        - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
-        # - git checkout -f master
-        - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID"
-        - mvn clean deploy -P release
-        - git init
-        - git add .
-        - git commit -m "production deployment version 3.0.$CI_PIPELINE_IID"
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/java-sdk.git master --force
-        - cd ..
-        - chmod +x ./ci/scripts/cleanup.sh
-        - ./ci/scripts/cleanup.sh
+        - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
+        - gpg --list-keys
+        # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 2BC832A79ED9B002C512A064D4A60477A62C81FD
+        # - gpg --keyserver keyserver.ubuntu.com --send-keys 2BC832A79ED9B002C512A064D4A60477A62C81FD
+        # - git status
+        # - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
+        # # - git checkout -f master
+        # - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID"
+        # - mvn clean deploy -P release
+        # - git init
+        # - git add .
+        # - git commit -m "production deployment version 3.0.$CI_PIPELINE_IID"
+        # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/java-sdk.git master --force
+        # - cd ..
+        # - chmod +x ./ci/scripts/cleanup.sh
+        # - ./ci/scripts/cleanup.sh
     only:
         refs:
             - release
