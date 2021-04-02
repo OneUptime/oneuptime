@@ -1220,72 +1220,37 @@ router.get(
 );
 
 const formatNotes = (data = []) => {
-    const resultData = [];
+    const result = [];
     const limit = checkDuplicateDates(data, true);
 
-    if (
-        data[0] &&
-        !(
-            moment(data[0].createdAt).format('YYYY-MM-DD') ===
-            moment().format('YYYY-MM-DD')
-        )
-    ) {
-        data.unshift({ createdAt: new Date().toISOString() });
-    }
+    for (let i = 0; i <= limit; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
 
-    if (!data[0]) data[0] = { createdAt: new Date().toISOString() };
+        for (let incident of data) {
+            const { createdAt } = incident;
+            const incidentDate = new Date(createdAt);
 
-    let prev_obj = data[0];
+            // check if any incidence occured on this day.
+            if (incidentDate.toDateString() === date.toDateString()) {
+                const lastIncident = result[result.length - 1];
+                const lastIncidentDate = new Date(lastIncident?.createdAt);
 
-    let i = 1;
-    while (resultData.length < limit) {
-        resultData.push(prev_obj);
-
-        const current_obj = data[i];
-        if (!current_obj) break;
-
-        const prev_date = new Date(prev_obj.createdAt).getDate();
-
-        let diff = Math.ceil(
-            (new Date(prev_obj.createdAt) - new Date(current_obj.createdAt)) /
-                (1000 * 60 * 60 * 24)
-        );
-
-        diff =
-            diff >= limit - resultData.length
-                ? limit - resultData.length + 1
-                : diff;
-
-        for (let k = 0; k < diff - 1; k++) {
-            const time = new Date(prev_obj.createdAt).setDate(
-                prev_date - k - 1
-            );
-            const created_date = new Date(time).toISOString();
-
-            const new_obj = { createdAt: created_date };
-            if (resultData.length < limit) resultData.push(new_obj);
+                // if date has been pushed into result array, and we find an incidence, replace date with the incidence, else push incidence
+                lastIncidentDate.toDateString() ===
+                    incidentDate.toDateString() && !lastIncident._id
+                    ? (result[result.length - 1] = incident)
+                    : result.push(incident);
+            } else {
+                const lastIncident = result[result.length - 1];
+                const lastIncidentDate = new Date(lastIncident?.createdAt);
+                if (lastIncidentDate.toDateString() !== date.toDateString())
+                    result.push({ createdAt: new Date(date).toISOString() });
+            }
         }
-
-        prev_obj = current_obj;
-        i++;
     }
 
-    // Complete the rest of the array
-    const prev_date = new Date(prev_obj.createdAt).getDate();
-    const fields_left =
-        limit - resultData.length ? limit - resultData.length : 0;
-
-    for (let i = 0; i < fields_left; i++) {
-        const time = new Date().setDate(prev_date - i - 1);
-        const created_date = new Date(time).toISOString();
-
-        const new_obj = { createdAt: created_date };
-        resultData.push(new_obj);
-
-        prev_obj = new_obj;
-    }
-
-    return resultData;
+    return result;
 };
 
 function checkDuplicateDates(items, bool) {
