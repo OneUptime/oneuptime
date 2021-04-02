@@ -126,4 +126,4 @@ include:
   - '/ci/spec/fyipe-le-store/deploy.yaml'
 
   # FYIPE-ACME-HTTP-01
-  - '/ci/spec/fyipe-le-store/deploy.yaml'
+  - '/ci/spec/fyipe-acme-http-01/deploy.yaml'
