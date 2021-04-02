@@ -1221,7 +1221,7 @@ router.get(
 
 const formatNotes = (data = []) => {
     const result = [];
-    const limit = checkDuplicateDates(data, true);
+    const limit = 15;
 
     for (let i = 0; i <= limit; i++) {
         const date = new Date();
@@ -1253,7 +1253,7 @@ const formatNotes = (data = []) => {
     return result;
 };
 
-function checkDuplicateDates(items, bool) {
+function checkDuplicateDates(items) {
     const track = {};
 
     const result = [];
@@ -1270,13 +1270,7 @@ function checkDuplicateDates(items, bool) {
 
         result.push(item);
     }
-    if (!bool) {
-        return result;
-    } else {
-        const specificNumberToDisplay = 15;
-        const falseCount = result.filter(num => !num.style).length;
-        return specificNumberToDisplay + falseCount;
-    }
+    return result;
 }
 
 module.exports = router;
