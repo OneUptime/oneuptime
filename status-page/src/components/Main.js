@@ -475,7 +475,6 @@ class Main extends Component {
                                         <span
                                             style={{
                                                 fontWeight: 'bold',
-                                                cursor: 'pointer',
                                             }}
                                         >
                                             {this.props.statusData.title}
