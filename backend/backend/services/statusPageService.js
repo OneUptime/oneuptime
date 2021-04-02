@@ -35,10 +35,13 @@ module.exports = {
 
     create: async function(data) {
         try {
-            const existingStatusPage = await this.findBy({
-                name: data.name,
-                projectId: data.projectId,
-            });
+            let existingStatusPage = null;
+            if (data.name) {
+                existingStatusPage = await this.findBy({
+                    name: data.name,
+                    projectId: data.projectId,
+                });
+            }
             if (existingStatusPage && existingStatusPage.length > 0) {
                 const error = new Error(
                     'StatusPage with that name already exists.'

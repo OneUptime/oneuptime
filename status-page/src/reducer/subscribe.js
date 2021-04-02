@@ -7,6 +7,9 @@ import {
     SUBSCRIBE_REQUEST,
     SUBSCRIBE_FAILURE,
     VALIDATION_ERROR,
+    UNSUBSCRIBE_REQUEST,
+    UNSUBSCRIBE_SUCCESS,
+    UNSUBSCRIBE_FAILURE,
 } from '../actions/subscribe';
 
 const INITIAL_STATE = {
@@ -15,6 +18,11 @@ const INITIAL_STATE = {
     openSelectedBox: false,
     userDetails: {},
     subscribed: {
+        requesting: false,
+        success: false,
+        error: false,
+    },
+    unsubscribe: {
         requesting: false,
         success: false,
         error: false,
@@ -83,6 +91,31 @@ export default (state = INITIAL_STATE, action) => {
         case SUBSCRIBE_FAILURE:
             return Object.assign({}, state, {
                 subscribed: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case UNSUBSCRIBE_REQUEST:
+            return Object.assign({}, state, {
+                unsubscribe: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+        case UNSUBSCRIBE_SUCCESS:
+            return Object.assign({}, state, {
+                unsubscribe: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+        case UNSUBSCRIBE_FAILURE:
+            return Object.assign({}, state, {
+                unsubscribe: {
                     requesting: false,
                     success: false,
                     error: action.payload,

@@ -247,6 +247,7 @@ module.exports = {
         const _this = this;
         const existingSubscriber = await _this.findByOne({
             monitorId: subscriber.monitorId,
+            subscribed: true,
             ...(subscriber.statusPageId && {
                 statusPageId: subscriber.statusPageId,
             }),
