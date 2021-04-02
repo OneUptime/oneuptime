@@ -59,10 +59,10 @@ deploy_production_java-sdk:
         - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
         - cd java-sdk
-        - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
+        # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
         - gpg --list-keys
-        # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 2BC832A79ED9B002C512A064D4A60477A62C81FD
-        # - gpg --keyserver keyserver.ubuntu.com --send-keys 2BC832A79ED9B002C512A064D4A60477A62C81FD
+        - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 1F0BA3D0CFF30433B6A1E21E982E7AD7D292CFE3
+        - gpg --keyserver keyserver.ubuntu.com --send-keys 1F0BA3D0CFF30433B6A1E21E982E7AD7D292CFE3
         # - git status
         # - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
         # # - git checkout -f master
