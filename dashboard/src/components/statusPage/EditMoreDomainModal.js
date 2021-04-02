@@ -345,7 +345,15 @@ class EditMoreDomainModal extends React.Component {
                                                                     Provisioning
                                                                 </span>
                                                                 <label className="bs-Fieldset-explanation">
-                                                                    <span></span>
+                                                                    <span>
+                                                                        Auto-SSL
+                                                                        provisioning
+                                                                        might
+                                                                        take up
+                                                                        to 72
+                                                                        hours to
+                                                                        propagate
+                                                                    </span>
                                                                 </label>
                                                             </div>
                                                         </label>
