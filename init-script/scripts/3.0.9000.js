@@ -3,7 +3,7 @@ const { find, update } = require('../util/db');
 const subscriberCollection = 'subscribers';
 
 async function run() {
-    const subscribers = await find(subscriberCollection, { deleted: false });
+    const subscribers = await find(subscriberCollection, { subscribed: false });
 
     for (let i = 0; i < subscribers.length; i++) {
         const subscribers = subscribers[i];
