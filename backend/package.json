@@ -17,6 +17,8 @@
         "ejs": "^2.6.2",
         "express": "^4.17.1",
         "express-rate-limit": "^5.0.0",
+        "fyipe-acme-http-01": "^3.0.9737",
+        "fyipe-le-store": "^3.0.9737",
         "geoip-lite": "^1.4.2",
         "greenlock": "^4.0.4",
         "gridfs-stream": "^1.1.1",
