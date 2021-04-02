@@ -1621,6 +1621,7 @@ module.exports = {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
+                        subscribed: true,
                     }
                 );
                 for (const subscriber of subscribers) {
@@ -2327,6 +2328,7 @@ module.exports = {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
+                        subscribed: true,
                     }
                 );
                 for (const subscriber of subscribers) {
@@ -2381,6 +2383,7 @@ module.exports = {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
+                        subscribed: true,
                     }
                 );
                 for (const subscriber of subscribers) {
