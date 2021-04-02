@@ -43,6 +43,10 @@ spec:
                         value: {{ template "fyipe.mongodbConnectionString" . }}
                       - name: REDIS_HOST
                         value: {{ template "fyipe.redisHost" . }}
+                      - name: FYIPE_HOST
+                        value: {{ .Values.fyipe.hosts.host1.host }}
+                      - name: BACKEND_PROTOCOL
+                        value: {{ .Values.backendProtocol }}
                       - name: REDIS_PORT
                         value: {{ .Values.redis.redisPort | quote }}
                       - name: PORT

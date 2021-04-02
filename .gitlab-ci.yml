@@ -121,3 +121,9 @@ include:
 
   # HARAKA
   - '/ci/spec/haraka/deploy.yaml'
+
+  # FYIPE-LE-STORE
+  - '/ci/spec/fyipe-le-store/deploy.yaml'
+
+  # FYIPE-ACME-HTTP-01
+  - '/ci/spec/fyipe-acme-http-01/deploy.yaml'

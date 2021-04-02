@@ -1360,7 +1360,7 @@ margin-left:10px;
 .border-width-90 {
   width: 90%;
   margin: 0px auto 30px auto;
-  border: 1px solid #dfe1df;
+  border: 1px solid rgb(223, 225, 223, 0.3);
 }
 
 .alerting-deplay {

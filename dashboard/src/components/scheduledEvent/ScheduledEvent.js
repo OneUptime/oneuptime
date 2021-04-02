@@ -29,7 +29,13 @@ class ScheduledEventBox extends Component {
 
         fetchMonitors(projectId);
     }
+    componentDidUpdate(prevProps) {
+        if (prevProps.projectId !== this.props.projectId) {
+            this.props.fetchSubProjectScheduledEvents(this.props.projectId);
 
+            this.props.fetchMonitors(this.props.projectId);
+        }
+    }
     prevClicked = (projectId, skip) => {
         const { fetchscheduledEvents } = this.props;
         fetchscheduledEvents(

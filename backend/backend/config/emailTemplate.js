@@ -13,6 +13,7 @@ module.exports = [
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
             '{{incident.customFields.*}} : The value of any incident custom field',
             '{{monitor.customFields.*}} : The value of any monitor custom field',
+            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
         emailType: 'Subscriber Incident Created',
         subject:
@@ -461,7 +462,7 @@ span.st-Delink.st-Delink--footer a {
       </td>
       <td class="st-Font st-Font--caption" style="border: 0; margin: 0;padding: 0; color: #8898aa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 16px;">
         <span class="st-Delink st-Delink--footer" style="border: 0; margin: 0; padding: 0; color: #8898aa; text-decoration: none;">
-          © {{year}} HackerBay Inc.
+          © {{year}} HackerBay Inc. | <span><a href={{unsubscribeUrl}}>Unsubscribe</a></span>
         </span>
       </td>
       <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -519,6 +520,7 @@ span.st-Delink.st-Delink--footer a {
             '{{incident.customFields.*}} : The value of any incident custom field',
             '{{monitor.customFields.*}} : The value of any monitor custom field',
             '{{length}} : Length of the incident',
+            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
         emailType: 'Subscriber Incident Acknowldeged',
         subject:
@@ -966,7 +968,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td class="st-Font st-Font--caption" style="border: 0; margin: 0;padding: 0; color: #8898aa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 16px;">
       <span class="st-Delink st-Delink--footer" style="border: 0; margin: 0; padding: 0; color: #8898aa; text-decoration: none;">
-        © {{year}} HackerBay Inc.
+        © {{year}} HackerBay Inc. | <span><a href={{unsubscribeUrl}}>Unsubscribe</a></span>
       </span>
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -1024,6 +1026,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             '{{incident.customFields.*}} : The value of any incident custom field',
             '{{monitor.customFields.*}} : The value of any monitor custom field',
             '{{length}} : Length of the incident',
+            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
         emailType: 'Subscriber Incident Resolved',
         subject:
@@ -1456,7 +1459,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td class="st-Font st-Font--caption" style="border: 0; margin: 0;padding: 0; color: #8898aa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 16px;">
       <span class="st-Delink st-Delink--footer" style="border: 0; margin: 0; padding: 0; color: #8898aa; text-decoration: none;">
-        © {{year}} HackerBay Inc.
+        © {{year}} HackerBay Inc. | <span><a href={{unsubscribeUrl}}>Unsubscribe</a></span>
       </span>
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -1515,6 +1518,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             '{{incident.customFields.*}} : The value of any incident custom field',
             '{{monitor.customFields.*}} : The value of any monitor custom field',
             '{{incidentNote}} : The content of the investigation note',
+            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
         emailType: 'Investigation note is created',
         subject: 'An update on an active incident for {{monitorName}}',
@@ -1978,7 +1982,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
         </td>
         <td class="st-Font st-Font--caption" style="border: 0; margin: 0;padding: 0; color: #8898aa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 16px;">
           <span class="st-Delink st-Delink--footer" style="border: 0; margin: 0; padding: 0; color: #8898aa; text-decoration: none;">
-            © 2019 HackerBay Inc.
+            © 2019 HackerBay Inc. | <span><a href={{unsubscribeUrl}}>Unsubscribe</a></span>
           </span>
         </td>
         <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
