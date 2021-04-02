@@ -1,0 +1,25 @@
+## DEPLOYMENT STAGE - fyipe-le-store
+deploy_fyipe-le-store:
+    stage: Deploy
+    allow_failure: true
+    retry: 2
+    script:
+        - sudo apt-get update
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - sudo apt-get install -y nodejs
+        - cd fyipe-le-store
+        - chmod +x ../ci/scripts/version-setup.sh
+        - ../ci/scripts/version-setup.sh
+        - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+        - npm publish
+        - cd ..
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - master
+            - release
+            - hotfix-master
+            - hotfix-release
