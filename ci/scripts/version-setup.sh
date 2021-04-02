@@ -23,4 +23,6 @@ version init-script
 version licensing
 version helm-chart
 version js-sdk
+version fyipe-le-store
+version fyipe-acme-http-01
 version .
