@@ -29,6 +29,7 @@ Check [Maven Central Repository](https://search.maven.org/artifact/io.hackerbay.
 ```java
 import com.google.gson.JsonObject;
 import io.hackerbay.fyipe.FyipeLogger;
+import java.io.IOException;
 
 public class SampleClass {
 
@@ -40,21 +41,21 @@ public class SampleClass {
     );
 
     // Logging a string information
-    public void logStringInformation() {
+    public void logStringInformation() throws IOException {
         String content = "Content to be logged";
         JsonObject response = logger.log(content); // returns a JsonObject of response
         System.out.println(response);
     }
 
     // Logging any object of a class
-    public void logACustomClassInformation(CustomClass customClass) {
+    public void logACustomClassInformation(CustomClass customClass) throws IOException {
         String content = new Gson().toJson(customClass); // converts your custom class to a json object
         JsonObject response = logger.log(content); // returns a JsonObject of response
         System.out.println(response);
     }
 
     // Logging a string with a series of tags
-    public void logStringInformation() {
+    public void logStringInformation() throws IOException {
         String content = "Content to be logged";
         String [] tags = { "server", "monitoring", "logs" };
         JsonObject response = logger.log(content, tags); // returns a JsonObject of response

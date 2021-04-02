@@ -1377,6 +1377,7 @@ Maven Install`,
                     usage: `                        
 import com.google.gson.JsonObject;                        
 import io.hackerbay.fyipe.FyipeLogger;
+import java.io.IOException;
                                             
 // constructor                        
 FyipeLogger logger = new FyipeLogger(                        
@@ -1390,7 +1391,7 @@ FyipeLogger logger = new FyipeLogger(
 );
                         
 // Logging any object of a class                        
-public void logACustomClassInformation(CustomClass customClass) {                        
+public void logACustomClassInformation(CustomClass customClass) throws IOException {                        
     String content = new Gson().toJson(customClass); // converts your custom class to a json object                        
     JsonObject response = logger.log(content); // returns a JsonObject of response                        
     System.out.println(response);                        
