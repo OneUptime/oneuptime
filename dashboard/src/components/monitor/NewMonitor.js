@@ -665,7 +665,7 @@ class NewMonitor extends Component {
         if (this.props.edit) {
             this.cancelEdit();
         }
-    window.removeEventListener('keydown', this.handleKeyBoard);
+        window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
     openAdvance = () => {
