@@ -38,7 +38,7 @@ describe('Credential Page', () => {
                 password: data.password,
             };
             // user
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
             done();
         });
     });
@@ -63,7 +63,7 @@ describe('Credential Page', () => {
                 await page.click('#more');
                 await page.waitForSelector('#gitCredentials', {
                     visible: true,
-                });                
+                });
                 await page.click('#gitCredentials');
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 const initialTableRow = await page.$$('tbody tr');
