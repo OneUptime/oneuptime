@@ -274,7 +274,9 @@ function ScheduledEventDescription({
                                                                     '#6b7c93',
                                                             }}
                                                         >
-                                                            You cannot resolve events which are not yet started.
+                                                            You cannot resolve
+                                                            events which are not
+                                                            yet started.
                                                         </span>
                                                     ) : (
                                                         <div className="Box-root Flex-flex Flex-alignItems--center">
