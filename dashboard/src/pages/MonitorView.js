@@ -76,7 +76,7 @@ class MonitorView extends React.Component {
 
     componentDidUpdate(prevProps) {
         const { monitor } = this.props;
-        if (String(prevProps.monitor._id) !== String(this.props.monitor._id)) {
+        if (monitor && String(prevProps.monitor._id) !== String(monitor._id)) {
             const subProjectId = monitor.projectId
                 ? monitor.projectId._id || monitor.projectId
                 : '';
@@ -125,40 +125,53 @@ class MonitorView extends React.Component {
     };
     ready = () => {
         const { monitor } = this.props;
-        this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
-        this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
-        const subProjectId = monitor.projectId
-            ? monitor.projectId._id || monitor.projectId
-            : '';
-        subProjectId && this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
-        if (monitor.type === 'url') {
-            this.props.fetchLighthouseLogs(
-                monitor.projectId._id || monitor.projectId,
+        if (monitor && monitor._id && this.props.currentProject._id) {
+            this.props.fetchIncidentPriorities(
+                this.props.currentProject._id,
+                0,
+                0
+            );
+            this.props.fetchBasicIncidentSettings(
+                this.props.currentProject._id
+            );
+            const subProjectId = monitor.projectId
+                ? monitor.projectId._id || monitor.projectId
+                : '';
+            subProjectId && this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
+            if (monitor.type === 'url') {
+                this.props.fetchLighthouseLogs(
+                    monitor.projectId._id || monitor.projectId,
+                    monitor._id,
+                    0,
+                    1,
+                    monitor.data.url
+                );
+                this.props.fetchLighthouseLogs(subProjectId, monitor._id, 0, 5); //0 -> skip, 10-> limit.
+            }
+            this.props.fetchMonitorsIncidents(subProjectId, monitor._id, 0, 5); //0 -> skip, 5-> limit.
+            this.props.fetchMonitorsSubscribers(
+                subProjectId,
                 monitor._id,
                 0,
-                1,
-                monitor.data.url
-            );
-            this.props.fetchLighthouseLogs(subProjectId, monitor._id, 0, 5); //0 -> skip, 10-> limit.
-        }
-        this.props.fetchMonitorsIncidents(subProjectId, monitor._id, 0, 5); //0 -> skip, 5-> limit.
-        this.props.fetchMonitorsSubscribers(subProjectId, monitor._id, 0, 5); //0 -> skip, 5-> limit.
-        this.props.getMonitorLogs(
-            subProjectId,
-            monitor._id,
-            0,
-            10,
-            moment()
-                .subtract(1, 'd')
-                .utc(),
-            moment().utc(),
-            null,
-            null,
-            monitor.type
-        ); //0 -> skip, 5-> limit.
+                5
+            ); //0 -> skip, 5-> limit.
+            this.props.getMonitorLogs(
+                subProjectId,
+                monitor._id,
+                0,
+                10,
+                moment()
+                    .subtract(1, 'd')
+                    .utc(),
+                moment().utc(),
+                null,
+                null,
+                monitor.type
+            ); //0 -> skip, 5-> limit.
 
-        this.props.fetchMonitorSlas(subProjectId);
-        this.props.fetchCommunicationSlas(subProjectId);
+            this.props.fetchMonitorSlas(subProjectId);
+            this.props.fetchCommunicationSlas(subProjectId);
+        }
     };
 
     isDefaultMonitorSlaSet = () => {
@@ -888,6 +901,7 @@ const mapStateToProps = (state, props) => {
             }
         });
     });
+
     const initialValues = {};
     let currentMonitorCriteria = [];
     if (monitor && monitor._id) {
