@@ -345,7 +345,15 @@ class EditMoreDomainModal extends React.Component {
                                                                     Provisioning
                                                                 </span>
                                                                 <label className="bs-Fieldset-explanation">
-                                                                    <span></span>
+                                                                    <span>
+                                                                        Auto-SSL
+                                                                        provisioning
+                                                                        might
+                                                                        take up
+                                                                        to 72
+                                                                        hours to
+                                                                        propagate
+                                                                    </span>
                                                                 </label>
                                                             </div>
                                                         </label>
@@ -697,10 +705,6 @@ const mapStateToProps = state => {
         autoProvisioning: domainObj.autoProvisioning,
         enableHttps: domainObj.enableHttps,
     };
-    // initialValues.enableHttps =
-    //     domainObj.domain && domainObj.cert && domainObj.privateKey
-    //         ? true
-    //         : false;
 
     return {
         statusPageId: state.modal.modals[0].statusPageId,

@@ -13,6 +13,7 @@ import {
 import { User } from './config';
 import queryString from 'query-string';
 import { removeQuery } from './store/store';
+import Unsubscribe from './components/Unsubscribe';
 
 const userId = queryString.parse(window.location.search).userId;
 const accessToken = queryString.parse(window.location.search).accessToken;
@@ -44,6 +45,11 @@ const App = () => (
                     exact
                     path="/status-page/:statusPageId/incident/:incidentId"
                     component={Incident}
+                />
+                <Route
+                    exact
+                    path="/status-page/unsubscribe/:monitorId/:subscriberId"
+                    component={Unsubscribe}
                 />
                 <Redirect to="/" />
             </Switch>

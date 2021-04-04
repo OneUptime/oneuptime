@@ -812,17 +812,6 @@ module.exports = {
             pushMessage = '';
         }
 
-        console.log('PUSHNOTIFICATION_URL::', process.env.PUSHNOTIFICATION_URL);
-        console.log(
-            'PUSHNOTIFICATION_PUBLIC_KEY::',
-            process.env.PUSHNOTIFICATION_PUBLIC_KEY
-        );
-        console.log(
-            'PUSHNOTIFICATION_PRIVATE_KEY::',
-            process.env.PUSHNOTIFICATION_PRIVATE_KEY
-        );
-        console.log('IDENTIFICATION::', identification);
-
         // Create payload
         const title = `${pushMessage}Incident #${incident.idNumber} is created`;
         const body = `Please acknowledge or resolve this incident on Fyipe Dashboard.`;
@@ -1621,6 +1610,7 @@ module.exports = {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
+                        subscribed: true,
                     }
                 );
                 for (const subscriber of subscribers) {
@@ -1656,6 +1646,7 @@ module.exports = {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
+                        subscribed: true,
                     }
                 );
 
@@ -2326,6 +2317,7 @@ module.exports = {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
+                        subscribed: true,
                     }
                 );
                 for (const subscriber of subscribers) {
@@ -2380,6 +2372,7 @@ module.exports = {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
+                        subscribed: true,
                     }
                 );
                 for (const subscriber of subscribers) {
@@ -2676,6 +2669,16 @@ module.exports = {
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
 
+                let unsubscribeUrl;
+                if (statusPageUrl) {
+                    unsubscribeUrl = `${global.statusHost}/status-page/${statusPage._id}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
+                } else {
+                    const statusPage = await StatusPageService.create({
+                        projectId: incident.projectId,
+                    });
+                    unsubscribeUrl = `${global.statusHost}/status-page/${statusPage._id}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
+                }
+
                 let alertStatus = null;
                 try {
                     if (templateType === 'Subscriber Incident Acknowldeged') {
@@ -2695,7 +2698,8 @@ module.exports = {
                                     statusPageUrl,
                                     project.replyAddress,
                                     customFields,
-                                    length
+                                    length,
+                                    unsubscribeUrl
                                 );
 
                                 alertStatus = 'Sent';
@@ -2714,7 +2718,8 @@ module.exports = {
                                     statusPageUrl,
                                     project.replyAddress,
                                     customFields,
-                                    length
+                                    length,
+                                    unsubscribeUrl
                                 );
 
                                 alertStatus = 'Sent';
@@ -2745,7 +2750,8 @@ module.exports = {
                                     statusPageUrl,
                                     project.replyAddress,
                                     customFields,
-                                    length
+                                    length,
+                                    unsubscribeUrl
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -2763,7 +2769,8 @@ module.exports = {
                                     statusPageUrl,
                                     project.replyAddress,
                                     customFields,
-                                    length
+                                    length,
+                                    unsubscribeUrl
                                 );
                                 alertStatus = 'Sent';
                             }
@@ -2786,7 +2793,8 @@ module.exports = {
                             note,
                             statusUrl,
                             statusNoteStatus,
-                            customFields
+                            customFields,
+                            unsubscribeUrl
                         );
                         alertStatus = 'Sent';
                     } else {
@@ -2805,7 +2813,8 @@ module.exports = {
                                     component.name,
                                     statusPageUrl,
                                     project.replyAddress,
-                                    customFields
+                                    customFields,
+                                    unsubscribeUrl
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -2822,7 +2831,8 @@ module.exports = {
                                     component.name,
                                     statusPageUrl,
                                     project.replyAddress,
-                                    customFields
+                                    customFields,
+                                    unsubscribeUrl
                                 );
                                 alertStatus = 'Sent';
                             }

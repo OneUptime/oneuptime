@@ -35,10 +35,13 @@ module.exports = {
 
     create: async function(data) {
         try {
-            const existingStatusPage = await this.findBy({
-                name: data.name,
-                projectId: data.projectId,
-            });
+            let existingStatusPage = null;
+            if (data.name) {
+                existingStatusPage = await this.findBy({
+                    name: data.name,
+                    projectId: data.projectId,
+                });
+            }
             if (existingStatusPage && existingStatusPage.length > 0) {
                 const error = new Error(
                     'StatusPage with that name already exists.'
@@ -125,13 +128,25 @@ module.exports = {
                     // trigger addition of this particular domain
                     // which should pass the acme challenge
                     // acme challenge is to be processed from status page project
-                    const altnames = [subDomain];
+                    const wwwDomain = `www.${subDomain}`;
+                    const altnames = [subDomain, wwwDomain];
 
-                    // handle this in the background
-                    greenlock.add({
-                        subject: altnames[0],
-                        altnames: altnames,
-                    });
+                    // before adding any domain
+                    // check if there's a certificate already created in the store
+                    // if there's none, add the domain to the flow
+                    const certificate = await CertificateStoreService.findOneBy(
+                        {
+                            subject: subDomain,
+                        }
+                    );
+
+                    if (!certificate) {
+                        // handle this in the background
+                        greenlock.add({
+                            subject: altnames[0],
+                            altnames: altnames,
+                        });
+                    }
                 }
 
                 statusPage.domains = [
@@ -229,15 +244,25 @@ module.exports = {
                         // trigger addition of this particular domain
                         // which should pass the acme challenge
                         // acme challenge is to be processed from status page project
-                        const altnames = [eachDomain.domain];
+                        const wwwDomain = `www.${eachDomain.domain}`;
+                        const altnames = [eachDomain.domain, wwwDomain];
 
-                        // handle this in the background
-                        greenlock
-                            .add({
+                        // before adding any domain
+                        // check if there's a certificate already created in the store
+                        // if there's none, add the domain to the flow
+                        const certificate = await CertificateStoreService.findOneBy(
+                            {
+                                subject: eachDomain.domain,
+                            }
+                        );
+
+                        if (!certificate) {
+                            // handle this in the background
+                            greenlock.add({
                                 subject: altnames[0],
                                 altnames: altnames,
-                            })
-                            .then(x => console.log('****** DOMAIN ADDED ******', x));
+                            });
+                        }
                     }
                     eachDomain.domainVerificationToken =
                         createdDomain._id || existingBaseDomain._id;
@@ -280,9 +305,25 @@ module.exports = {
                 throw error;
             }
 
+            let deletedDomain = null;
             const remainingDomains = statusPage.domains.filter(domain => {
+                if (String(domain._id) === String(domainId)) {
+                    deletedDomain = domain;
+                }
                 return String(domain._id) !== String(domainId);
             });
+
+            // delete any associated certificate (only for auto provisioned ssl)
+            // handle this in the background
+            if (deletedDomain.enableHttps && deletedDomain.autoProvisioning) {
+                greenlock
+                    .remove({ subject: deletedDomain.domain })
+                    .finally(() => {
+                        CertificateStoreService.deleteBy({
+                            subject: deletedDomain.domain,
+                        });
+                    });
+            }
 
             statusPage.domains = remainingDomains;
             return statusPage.save();
@@ -1177,3 +1218,4 @@ const IncidentMessageService = require('./incidentMessageService');
 const moment = require('moment');
 const uuid = require('uuid');
 const greenlock = require('../../greenlock');
+const CertificateStoreService = require('./certificateStoreService');

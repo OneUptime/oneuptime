@@ -11,12 +11,16 @@ const challenger = require('./index.js').create({});
 
 // The dry-run tests can pass on, literally, 'example.com'
 // but the integration tests require that you have control over the domain
+
 tester
     .testRecord('http-01', record, challenger)
     .then(function() {
+        // eslint-disable-next-line no-console
         console.info('PASS', record);
     })
     .catch(function(e) {
+        // eslint-disable-next-line no-console
         console.error(e.message);
+        // eslint-disable-next-line no-console
         console.error(e.stack);
     });

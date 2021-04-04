@@ -899,11 +899,32 @@ export class PrivateStatusPage extends Component {
                                                                         <span>
                                                                             Hide
                                                                             Resolved
-                                                                            Incidents on this Status Page
+                                                                            Incidents
+                                                                            on
+                                                                            this
+                                                                            Status
+                                                                            Page
                                                                         </span>
                                                                         <label className="bs-Fieldset-explanation">
                                                                             <span>
-                                                                                If you enable this checkbox, all of your resolved incidents will not be shown on the status page.
+                                                                                If
+                                                                                you
+                                                                                enable
+                                                                                this
+                                                                                checkbox,
+                                                                                all
+                                                                                of
+                                                                                your
+                                                                                resolved
+                                                                                incidents
+                                                                                will
+                                                                                not
+                                                                                be
+                                                                                shown
+                                                                                on
+                                                                                the
+                                                                                status
+                                                                                page.
                                                                             </span>
                                                                         </label>
                                                                     </div>

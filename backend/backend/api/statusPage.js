@@ -1227,26 +1227,32 @@ const formatNotes = (data = []) => {
         const date = new Date();
         date.setDate(date.getDate() - i);
 
-        for (let incident of data) {
-            const { createdAt } = incident;
-            const incidentDate = new Date(createdAt);
+        if (data.length > 0) {
+            for (const incident of data) {
+                const { createdAt } = incident;
+                const incidentDate = new Date(createdAt);
 
-            // check if any incidence occured on this day.
-            if (incidentDate.toDateString() === date.toDateString()) {
-                const lastIncident = result[result.length - 1];
-                const lastIncidentDate = new Date(lastIncident?.createdAt);
+                // check if any incidence occured on this day.
+                if (incidentDate.toDateString() === date.toDateString()) {
+                    const lastIncident = result[result.length - 1];
+                    const lastIncidentDate = new Date(lastIncident?.createdAt);
 
-                // if date has been pushed into result array, and we find an incidence, replace date with the incidence, else push incidence
-                lastIncidentDate.toDateString() ===
-                    incidentDate.toDateString() && !lastIncident._id
-                    ? (result[result.length - 1] = incident)
-                    : result.push(incident);
-            } else {
-                const lastIncident = result[result.length - 1];
-                const lastIncidentDate = new Date(lastIncident?.createdAt);
-                if (lastIncidentDate.toDateString() !== date.toDateString())
-                    result.push({ createdAt: new Date(date).toISOString() });
+                    // if date has been pushed into result array, and we find an incidence, replace date with the incidence, else push incidence
+                    lastIncidentDate.toDateString() ===
+                        incidentDate.toDateString() && !lastIncident._id
+                        ? (result[result.length - 1] = incident)
+                        : result.push(incident);
+                } else {
+                    const lastIncident = result[result.length - 1];
+                    const lastIncidentDate = new Date(lastIncident?.createdAt);
+                    if (lastIncidentDate.toDateString() !== date.toDateString())
+                        result.push({
+                            createdAt: new Date(date).toISOString(),
+                        });
+                }
             }
+        } else {
+            result.push({ createdAt: new Date(date).toISOString() });
         }
     }
 

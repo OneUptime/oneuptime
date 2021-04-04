@@ -327,9 +327,8 @@ export class Reports extends Component {
                                                                     .resolveTimeEnd
                                                             }
                                                             currentProject={
-                                                                this.props.match
-                                                                    .params
-                                                                    .projectId
+                                                                this.props
+                                                                    .currentProjectId
                                                             }
                                                         />
                                                     </div>
@@ -483,9 +482,8 @@ export class Reports extends Component {
                                                                     .incidentEnd
                                                             }
                                                             currentProject={
-                                                                this.props.match
-                                                                    .params
-                                                                    .projectId
+                                                                this.props
+                                                                    .currentProjectId
                                                             }
                                                         />
                                                     </div>
@@ -562,9 +560,8 @@ export class Reports extends Component {
                                                                 .membersEnd
                                                         }
                                                         currentProject={
-                                                            this.props.match
-                                                                .params
-                                                                .projectId
+                                                            this.props
+                                                                .currentProjectId
                                                         }
                                                         styles={styles.number}
                                                     />
@@ -638,9 +635,8 @@ export class Reports extends Component {
                                                                 .monitorEnd
                                                         }
                                                         currentProject={
-                                                            this.props.match
-                                                                .params
-                                                                .projectId
+                                                            this.props
+                                                                .currentProjectId
                                                         }
                                                         styles={styles.number}
                                                     />
@@ -660,15 +656,16 @@ export class Reports extends Component {
 
 const mapStateToProps = state => {
     return {
-        currentProject: state.project.currentProject,
+        currentProjectId:
+            state.project.currentProject && state.project.currentProject._id,
     };
 };
 
 Reports.propTypes = {
-    match: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    currentProjectId: PropTypes.string,
 };
 
 Reports.displayName = 'Reports';
