@@ -3,6 +3,11 @@ const sortByName = data => {
 };
 
 const compare = (a, b) => {
+    
+    if(!a || !b || !a.name || !b.name){
+        return 0;
+    }
+
     const objectA = a.name.toLowerCase();
     const objectB = b.name.toLowerCase();
 
