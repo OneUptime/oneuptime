@@ -135,9 +135,9 @@ public class FyipeTracker {
         // send to the server
         return this.sendErrorEventToServer();
     }
-    public JsonObject captureException(Throwable throwable) throws IOException {
+    public JsonObject captureException(Exception exception) throws IOException {
         // construct the error object
-        StackTrace formattedStackTrace = this.util.getExceptionStackTrace(throwable);
+        StackTrace formattedStackTrace = this.util.getExceptionStackTrace(exception);
 
         // set the a handled tag
         this.setTag(new Tag("handled", "true"));
@@ -152,8 +152,10 @@ public class FyipeTracker {
                 new Thread.UncaughtExceptionHandler() {
                     @Override
                     public void uncaughtException(Thread t, Throwable e) {
+                        System.out.println("listener");
+                        System.out.println(e);
                         try {
-                            captureException(e);
+                            captureException((Exception) e);
                         } catch (IOException ioException) {
                             ioException.printStackTrace();
                         }
@@ -203,8 +205,8 @@ public class FyipeTracker {
         FyipeTransport apiTransport = new FyipeTransport(this.apiUrl);
         String errorEventBody = ParameterStringBuilder.getErrorEventRequestString(this.getCurrentEvent());
         JsonObject response = apiTransport.sendErrorEventToServer(errorEventBody);
-
         // generate a new event Id
+
         this.setEventId();
         // clear the timeline after a successful call to the server
         this.clear(this.getEventId());

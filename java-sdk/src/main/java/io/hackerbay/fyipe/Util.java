@@ -33,9 +33,13 @@ public class Util {
         UUID uuid = UUID.randomUUID();
         return uuid.toString();
     }
-    public StackTrace getExceptionStackTrace(Throwable throwable) {
-        String message = throwable.getMessage();
-        StackTraceElement[] stackTraceElement = throwable.getStackTrace();
+    public StackTrace getExceptionStackTrace(Exception exception) {
+        System.out.println("getExceptionStackTrace");
+        System.out.println(exception);
+        String message = exception.getMessage();
+        StackTraceElement[] stackTraceElement = exception.getStackTrace();
+        System.out.println("Stack Trace");
+        System.out.println(stackTraceElement);
 
         int lineNumber = stackTraceElement[0].getLineNumber();
         String fileName = stackTraceElement[0].getFileName();
