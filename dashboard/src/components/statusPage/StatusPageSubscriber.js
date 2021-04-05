@@ -561,6 +561,7 @@ StatusPageSubscriber.propTypes = {
     deleteSubscriber: PropTypes.func,
     currentProject: PropTypes.object,
     subProjects: PropTypes.array,
+    statusPage: PropTypes.object,
 };
 
 export default connect(
