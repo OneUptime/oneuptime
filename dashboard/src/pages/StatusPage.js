@@ -222,13 +222,23 @@ class StatusPage extends Component {
                                                                 </Fade>
                                                             </TabPanel>
                                                             <TabPanel>
-                                                                <div className="Box-root Margin-bottom--12">
+                                                                <div className="Box-root Margin-bottom--12 bs-ContentSection Card-root Card-shadow--medium>">
                                                                     <StatusPageSubscriber
                                                                         projectId={
                                                                             projectId
                                                                         }
                                                                         statusPage={
                                                                             status
+                                                                        }
+                                                                        currentProject={
+                                                                            this
+                                                                                .props
+                                                                                .currentProject
+                                                                        }
+                                                                        subProjects={
+                                                                            this
+                                                                                .props
+                                                                                .subProjects
                                                                         }
                                                                     />
                                                                 </div>
@@ -384,6 +394,8 @@ function mapStateToProps(state) {
         showDuplicateStatusPage: state.statusPage.showDuplicateStatusPage,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
+        subProjects: state.subProject.subProjects.subProjects,
+        currentProject: state.project.currentProject,
     };
 }
 
@@ -398,6 +410,8 @@ StatusPage.propTypes = {
         pathname: PropTypes.string,
     }),
     projectId: PropTypes.string,
+    currentProject: PropTypes.object,
+    subProjects: PropTypes.array,
 };
 
 StatusPage.displayName = 'StatusPage';
