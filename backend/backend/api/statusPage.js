@@ -1226,14 +1226,23 @@ router.get(
 router.get('/:projectId/monitor/:statusPageId', async function(req, res) {
     try {
         const { statusPageId } = req.params;
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 10;
         const statusPage = await StatusPageService.findOneBy({
             _id: statusPageId,
         });
         const monitors = statusPage.monitors.map(mon => mon.monitor._id);
-        const subscribers = await SubscriberService.findBy({
+        const subscribers = await SubscriberService.findBy(
+            {
+                monitorId: monitors,
+            },
+            skip,
+            limit
+        );
+        const count = await SubscriberService.countBy({
             monitorId: monitors,
         });
-        return sendItemResponse(req, res, subscribers);
+        return sendItemResponse(req, res, { subscribers, skip, limit, count });
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
