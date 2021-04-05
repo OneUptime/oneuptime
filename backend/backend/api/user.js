@@ -5,9 +5,6 @@ const jwtSecretKey = process.env['JWT_SECRET'];
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const saml2 = require('saml2-js');
-const sp = new saml2.ServiceProvider({
-    entity_id: 'hackerbay.io',
-});
 const MailService = require('../services/mailService');
 const SsoService = require('../services/ssoService');
 const getUser = require('../middlewares/user').getUser;
@@ -282,6 +279,7 @@ router.get('/masterAdminExists', async function(req, res) {
 // Params:
 // Param 1: req.query-> {email }
 // Returns: 400: Error; 500: Server Error; 200: redirect to login page
+let sp; // store a reference to sp
 router.get('/sso/login', async function(req, res) {
     const { email } = req.query;
     if (!email) {
@@ -319,6 +317,10 @@ router.get('/sso/login', async function(req, res) {
                 message: 'SSO disabled for this domain.',
             });
         }
+
+        sp = new saml2.ServiceProvider({
+            entity_id: sso.entityId,
+        });
 
         const idp = new saml2.IdentityProvider({
             sso_login_url: samlSsoUrl,
