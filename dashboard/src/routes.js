@@ -52,6 +52,7 @@ const {
     CallRouting,
     DomainSettings,
     Groups,
+    PerformanceMonitoring,
 } = pages;
 
 export const groups = [
@@ -187,6 +188,18 @@ export const groups = [
                 ],
             },
             {
+                title: 'Performance Monitoring',
+                path:
+                    '/dashboard/project/:slug/:componentId/performance-monitor',
+                icon: 'errorTracking',
+                visible: true,
+                exact: true,
+                component: PerformanceMonitoring,
+                index: 8,
+                shortcut: 'f+p',
+                subRoutes: [],
+            },
+            {
                 title: 'Security',
                 path:
                     '/dashboard/project/:slug/:componentSlug/security/container',
@@ -245,7 +258,7 @@ export const groups = [
                         shortcut: 'r+n',
                     },
                 ],
-                index: 7,
+                index: 9,
             },
             {
                 title: 'Component Settings',
@@ -255,7 +268,7 @@ export const groups = [
                 exact: true,
                 component: ComponentSettings,
                 shortcut: 'f+s',
-                index: 8,
+                index: 10,
                 subRoutes: [
                     {
                         title: 'Basic',

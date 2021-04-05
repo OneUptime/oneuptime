@@ -33,6 +33,7 @@ const serverBuild = {
         fs: 'empty',
         child_process: 'empty',
         net: 'empty',
+        module: 'empty',
     },
 };
 const webBuild = {

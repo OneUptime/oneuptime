@@ -186,7 +186,10 @@ class SideNav extends Component {
                 /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/error-tracker/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/settings\/basic/
+                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/performance-monitor/
+            ) ||
+            location.pathname.match(
+                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/settings\/basic/
             ) ||
             location.pathname.match(
                 /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/settings\/advanced/
