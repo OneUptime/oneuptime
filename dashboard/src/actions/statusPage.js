@@ -1220,14 +1220,40 @@ export function resetStatusPageEmbeddedCss(projectId, data) {
 }
 
 // fetch subscribers by monitors in statuspage
-export function fetchStatusPageSubscribers(projectId, statusPageId) {
+export function fetchSubscriberRequest() {
+    return {
+        type: types.FETCH_SUBSCRIBER_REQUEST,
+    };
+}
+
+export function fetchSubscriberSuccess(data) {
+    return {
+        type: types.FETCH_SUBSCRIBER_SUCCESS,
+        payload: data,
+    };
+}
+
+export function fetchSubscriberFailure(error) {
+    return {
+        type: types.FETCH_SUBSCRIBER_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchStatusPageSubscribers(
+    projectId,
+    statusPageId,
+    skip,
+    limit
+) {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/monitor/${statusPageId}`
+            `statusPage/${projectId}/monitor/${statusPageId}?skip=${skip}&limit=${limit}`
         );
+        dispatch(fetchSubscriberRequest());
         promise.then(
             function(response) {
-                return response;
+                dispatch(fetchSubscriberSuccess(response.data));
             },
             function(error) {
                 if (error && error.response && error.response.data)
@@ -1240,7 +1266,7 @@ export function fetchStatusPageSubscribers(projectId, statusPageId) {
                 } else {
                     error = 'Network Error';
                 }
-                // dispatch(resetStatusPageEmbeddedCssError(errors(error)));
+                dispatch(fetchSubscriberFailure(errors(error)));
             }
         );
         return promise;
