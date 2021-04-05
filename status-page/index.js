@@ -49,7 +49,6 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
 app.use(async function(req, res, next) {
     let apiHost;
     const host = req.hostname;
-    console.log('******* DEBUG HOST ********', host);
     if (
         host === 'fyipe.com' ||
         host === 'staging.fyipe.com' ||
@@ -66,7 +65,6 @@ app.use(async function(req, res, next) {
     const response = await fetch(
         `${apiHost}/statusPage/tlsCredential?domain=${host}`
     ).then(res => res.json());
-    console.log('******* DEBUG RESPONSE *******', response);
 
     const { enableHttps } = response;
     if (enableHttps) {
