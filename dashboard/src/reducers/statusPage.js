@@ -85,6 +85,9 @@ import {
     RESET_BRANDING_COLORS_REQUEST,
     RESET_BRANDING_COLORS_SUCCESS,
     RESET_BRANDING_COLORS_FAILURE,
+    FETCH_SUBSCRIBER_SUCCESS,
+    FETCH_SUBSCRIBER_REQUEST,
+    FETCH_SUBSCRIBER_FAILURE,
 } from '../constants/statusPage';
 
 import {
@@ -268,6 +271,40 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: true,
                     error: null,
                     success: false,
+                },
+            });
+
+        case FETCH_SUBSCRIBER_REQUEST:
+            return Object.assign({}, state, {
+                subscribers: {
+                    ...state.subscribers,
+                    requesting: true,
+                    success: false,
+                    error: false,
+                },
+            });
+
+        case FETCH_SUBSCRIBER_FAILURE:
+            return Object.assign({}, state, {
+                subscribers: {
+                    ...state.subscribers,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case FETCH_SUBSCRIBER_SUCCESS:
+            return Object.assign({}, state, {
+                subscribers: {
+                    ...state.subscribers,
+                    subscribersList: action.payload.subscribers,
+                    count: action.payload.count,
+                    skip: action.payload.skip,
+                    limit: action.payload.limit,
+                    requesting: false,
+                    success: true,
+                    error: false,
                 },
             });
 
