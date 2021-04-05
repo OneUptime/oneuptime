@@ -46,6 +46,44 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
     res.send('window._env = ' + JSON.stringify(env));
 });
 
+app.use(async function(req, res, next) {
+    let apiHost;
+    const host = req.hostname;
+    console.log('******* DEBUG HOST ********', host);
+    if (
+        host === 'fyipe.com' ||
+        host === 'staging.fyipe.com' ||
+        host.indexOf('localhost') > -1
+    ) {
+        return next();
+    }
+    if (process.env.FYIPE_HOST) {
+        apiHost = 'https://' + process.env.FYIPE_HOST + '/api';
+    } else {
+        apiHost = 'http://localhost:3002/api';
+    }
+
+    const response = await fetch(
+        `${apiHost}/statusPage/tlsCredential?domain=${host}`
+    ).then(res => res.json());
+    console.log('******* DEBUG RESPONSE *******', response);
+
+    const { enableHttps } = response;
+    if (enableHttps) {
+        if (!req.secure) {
+            res.writeHead(301, { Location: `https://${host}${req.url}` });
+            return res.end();
+        }
+        next();
+    } else {
+        if (req.secure) {
+            res.writeHead(301, { Location: `http://${host}${req.url}` });
+            return res.end();
+        }
+        next();
+    }
+});
+
 app.use(express.static(path.join(__dirname, 'build')));
 app.use('/status-page', express.static(path.join(__dirname, 'build')));
 app.use(
