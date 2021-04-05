@@ -68,6 +68,14 @@ module.exports = {
         }
         sso.domain = data.domain;
 
+        if (!data.entityId) {
+            const error = new Error('Application ID must be defined');
+            error.code = 400;
+            ErrorService.log('ssoService.create', error);
+            throw error;
+        }
+        sso.entityId = data.entityId;
+
         if (!data.samlSsoUrl) {
             const error = new Error('Saml SSO Url must be defined.');
             error.code = 400;
