@@ -221,7 +221,7 @@ public class FyipeTrackerTest {
     public void itShouldCreateAnEventReadyForTheServerUsingCaptureException() throws IOException {
         FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         String errorMessage = "Got an error here";
-        tracker.captureException(new Error(errorMessage));
+        tracker.captureException(new Exception(errorMessage));
         ErrorEvent errorEvent = tracker.getCurrentEvent();
 
         assertEquals(errorEvent.getType(), ErrorObjectType.exception.name());
