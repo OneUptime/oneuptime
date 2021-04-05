@@ -49,7 +49,11 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
 app.use(async function(req, res, next) {
     let apiHost;
     const host = req.hostname;
-    if (host === 'fyipe.com' || host === 'staging.fyipe.com') {
+    if (
+        host === 'fyipe.com' ||
+        host === 'staging.fyipe.com' ||
+        host.indexOf('localhost') > -1
+    ) {
         return next();
     }
     if (process.env.FYIPE_HOST) {
