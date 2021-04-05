@@ -1,11 +1,11 @@
 const express = require('express');
+const psl = require('psl');
 const { getUser } = require('../middlewares/user');
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const DomainVerificationService = require('../services/domainVerificationService');
 const { sendListResponse } = require('../middlewares/response');
-const getDomain = require('../utils/getDomain');
 
 const router = express.Router();
 
@@ -48,8 +48,15 @@ router.put(
 
 router.get('/:projectId/domains', getUser, isAuthorized, async (req, res) => {
     const { projectId } = req.params;
+    const { skip, limit } = req.query;
     try {
-        const domains = await DomainVerificationService.findBy({ projectId });
+        const domains = await DomainVerificationService.findBy(
+            {
+                projectId,
+            },
+            limit,
+            skip
+        );
         const count = await DomainVerificationService.countBy({ projectId });
 
         return sendListResponse(req, res, domains, count);
@@ -70,7 +77,8 @@ router.post('/:projectId/domain', getUser, isAuthorized, async (req, res) => {
         }
 
         // check if domain is not a sub-domain
-        const _domain = getDomain(domain);
+        const parsed = psl.parse(domain);
+        const _domain = parsed.domain;
         if (domain !== _domain) {
             // domain is a sub-domain
             const error = new Error(
@@ -118,7 +126,8 @@ router.put(
             }
 
             // check if domain is not a sub-domain
-            const _domain = getDomain(domain);
+            const parsed = psl.parse(domain);
+            const _domain = parsed.domain;
             if (domain !== _domain) {
                 // domain is a sub-domain
                 const error = new Error(

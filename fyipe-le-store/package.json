@@ -1,0 +1,22 @@
+{
+    "name": "fyipe-le-store",
+    "version": "3.0.0",
+    "description": "Greenlock store module ported for FYIPE",
+    "main": "index.js",
+    "keywords": [
+        "le-store",
+        "greenlock",
+        "letsencrypt",
+        "mongodb",
+        "mongo",
+        "fyipe"
+    ],
+    "author": "Jude Ojini <judoc96@gmail.com>",
+    "contributors": [
+        "Jude Ojini <judoc96@gmail.com>"
+    ],
+    "license": "MIT",
+    "dependencies": {
+        "axios": "^0.21.1"
+    }
+}

@@ -945,6 +945,52 @@ export function deleteIncident(projectId, incidentId) {
     };
 }
 
+function hideIncidentSuccess(data) {
+    return {
+        type: types.HIDE_INCIDENT_SUCCESS,
+        payload: data,
+    };
+}
+
+function hideIncidentFailure(error) {
+    return {
+        type: types.HIDE_INCIDENT_FAILED,
+        payload: error,
+    };
+}
+
+// hide an incident
+export function hideIncident(data) {
+    const { hideIncident, incidentId, projectId } = data;
+    return function(dispatch) {
+        const promise = putApi(`incident/${projectId}/${incidentId}`, {
+            hideIncident,
+        });
+        promise.then(
+            function(incident) {
+                dispatch(hideIncidentSuccess(incident));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    hideIncidentFailure({ error: errors(error), incidentId })
+                );
+            }
+        );
+
+        return promise;
+    };
+}
+
 export function fetchIncidentMessages(
     projectId,
     incidentId,

@@ -13,6 +13,8 @@ const statusSchema = new Schema({
             domain: String, // complete domain eg status.fyipe.com
             cert: String, // filename gridfs
             privateKey: String, // filename gridfs
+            enableHttps: { type: Boolean, default: false },
+            autoProvisioning: { type: Boolean, default: false },
             domainVerificationToken: {
                 type: Schema.Types.ObjectId,
                 ref: 'DomainVerificationToken',
@@ -68,6 +70,11 @@ const statusSchema = new Schema({
     },
     // show or hide uptime (%) on the status page
     hideUptime: {
+        type: Boolean,
+        default: false,
+    },
+    // show or hide resolved incident on the status page
+    hideResolvedIncident: {
         type: Boolean,
         default: false,
     },

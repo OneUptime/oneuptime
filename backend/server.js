@@ -273,13 +273,12 @@ app.use(
     require('./backend/api/callRouting')
 );
 app.use(['/group', '/api/group'], require('./backend/api/groups'));
-
-app.set('port', process.env.PORT || 3002);
-
-const server = http.listen(app.get('port'), function() {
-    // eslint-disable-next-line
-    console.log('Server Started on port ' + app.get('port'));
-});
+app.use(['/ssl', '/api/ssl'], require('./backend/api/ssl'));
+app.use(['/account', '/api/account'], require('./backend/api/accountStore'));
+app.use(
+    ['/certificate', '/api/certificate'],
+    require('./backend/api/certificateStore')
+);
 
 app.get(['/', '/api'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
@@ -298,6 +297,14 @@ app.use('/*', function(req, res) {
 
 //attach cron jobs
 require('./backend/workers/main');
+
+app.set('port', process.env.PORT || 3002);
+const server = http.listen(app.get('port'), function() {
+    // eslint-disable-next-line
+    console.log('Server Started on port ' + app.get('port'));
+});
+
+require('./greenlock');
 
 module.exports = app;
 module.exports.close = function() {

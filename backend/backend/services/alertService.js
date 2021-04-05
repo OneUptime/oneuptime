@@ -1610,6 +1610,7 @@ module.exports = {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
+                        subscribed: true,
                     }
                 );
                 for (const subscriber of subscribers) {
@@ -1645,6 +1646,7 @@ module.exports = {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
+                        subscribed: true,
                     }
                 );
 
@@ -2315,6 +2317,7 @@ module.exports = {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
+                        subscribed: true,
                     }
                 );
                 for (const subscriber of subscribers) {
@@ -2369,6 +2372,7 @@ module.exports = {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
+                        subscribed: true,
                     }
                 );
                 for (const subscriber of subscribers) {
@@ -2664,7 +2668,7 @@ module.exports = {
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
-
+                const unsubscribeUrl = `${global.homeHost}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
                 let alertStatus = null;
                 try {
                     if (templateType === 'Subscriber Incident Acknowldeged') {
@@ -2684,7 +2688,8 @@ module.exports = {
                                     statusPageUrl,
                                     project.replyAddress,
                                     customFields,
-                                    length
+                                    length,
+                                    unsubscribeUrl
                                 );
 
                                 alertStatus = 'Sent';
@@ -2703,7 +2708,8 @@ module.exports = {
                                     statusPageUrl,
                                     project.replyAddress,
                                     customFields,
-                                    length
+                                    length,
+                                    unsubscribeUrl
                                 );
 
                                 alertStatus = 'Sent';
@@ -2734,7 +2740,8 @@ module.exports = {
                                     statusPageUrl,
                                     project.replyAddress,
                                     customFields,
-                                    length
+                                    length,
+                                    unsubscribeUrl
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -2752,7 +2759,8 @@ module.exports = {
                                     statusPageUrl,
                                     project.replyAddress,
                                     customFields,
-                                    length
+                                    length,
+                                    unsubscribeUrl
                                 );
                                 alertStatus = 'Sent';
                             }
@@ -2775,7 +2783,8 @@ module.exports = {
                             note,
                             statusUrl,
                             statusNoteStatus,
-                            customFields
+                            customFields,
+                            unsubscribeUrl
                         );
                         alertStatus = 'Sent';
                     } else {
@@ -2794,7 +2803,8 @@ module.exports = {
                                     component.name,
                                     statusPageUrl,
                                     project.replyAddress,
-                                    customFields
+                                    customFields,
+                                    unsubscribeUrl
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -2811,7 +2821,8 @@ module.exports = {
                                     component.name,
                                     statusPageUrl,
                                     project.replyAddress,
-                                    customFields
+                                    customFields,
+                                    unsubscribeUrl
                                 );
                                 alertStatus = 'Sent';
                             }

@@ -275,8 +275,8 @@ function ScheduledEventDescription({
                                                             }}
                                                         >
                                                             You cannot resolve
-                                                            future scheduled
-                                                            Maintenances
+                                                            events which are not
+                                                            yet started.
                                                         </span>
                                                     ) : (
                                                         <div className="Box-root Flex-flex Flex-alignItems--center">
@@ -296,7 +296,7 @@ function ScheduledEventDescription({
                                                                         <span>
                                                                             Resolve
                                                                             this
-                                                                            maintenance
+                                                                            event
                                                                         </span>
                                                                     </label>
                                                                 </ShouldRender>

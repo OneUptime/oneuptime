@@ -522,15 +522,19 @@ export class Setting extends Component {
                                                                                         </span>
                                                                                     </div>
                                                                                 ) : (
-                                                                                    <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                    <div
+                                                                                        className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                                                        style={{
+                                                                                            marginRight: 10,
+                                                                                        }}
+                                                                                    >
                                                                                         <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
                                                                                             Verified
                                                                                         </span>
                                                                                     </div>
                                                                                 )}
                                                                                 {domain &&
-                                                                                domain.cert &&
-                                                                                domain.privateKey ? (
+                                                                                domain.enableHttps ? (
                                                                                     <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                         <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
                                                                                             HTTPS

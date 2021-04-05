@@ -5,7 +5,7 @@ const createIncident = (z, bundle) => {
     };
     const responsePromise = z.request({
         method: 'POST',
-        url: `${bundle.authData.serverUrl}/zapier/incident/createIncident1`,
+        url: `${bundle.authData.serverUrl}/zapier/incident/createIncident`,
         body: data,
     });
     return responsePromise.then(response => JSON.parse(response.content));

@@ -23,3 +23,7 @@ apiTest.rest
 
 application_security_dir
 container_security_dir
+
+/greenlock.d
+/greenlock.d/config.json
+/greenlock.d/config.json.bak

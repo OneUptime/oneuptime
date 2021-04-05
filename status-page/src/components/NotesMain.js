@@ -186,7 +186,7 @@ class NotesMain extends Component {
         }
 
         if (this.props.theme === 'Clean Theme') {
-            return incidentNoteData && incidentNoteData.notes.length > 1 ? (
+            return incidentNoteData && incidentNoteData.notes.length > 0 ? (
                 checkDuplicateDates(incidentNoteData.notes).map((note, i) => {
                     return (
                         <div
@@ -322,7 +322,7 @@ class NotesMain extends Component {
                     </ShouldRender>
                     {typeof this.props.notesmessage === 'string'
                         ? this.props.notesmessage
-                        : 'A monitor is required to view incident logs'}
+                        : 'No incident yet.'}
                 </div>
             );
         } else {

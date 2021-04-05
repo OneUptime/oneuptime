@@ -49,3 +49,25 @@ export function getApi(url) {
     });
     return promise;
 }
+
+export function putApi(url, data) {
+    if (User.isLoggedIn()) {
+        headers['Authorization'] = 'Basic ' + User.getAccessToken();
+    }
+
+    const promise = new Promise((resolve, reject) => {
+        axios({
+            method: 'PUT',
+            url: `${API_URL}/${url}`,
+            headers,
+            data,
+        })
+            .then(function(response) {
+                resolve(response);
+            })
+            .catch(function(error) {
+                reject(error);
+            });
+    });
+    return promise;
+}

@@ -21,6 +21,13 @@ import { RenderSelect } from '../basic/RenderSelect';
 const selector = formValueSelector('NewApplicationLog');
 
 class NewApplicationLog extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
     validate = values => {
         const errors = {};
         if (!ValidateField.text(values[`name`])) {
@@ -30,6 +37,18 @@ class NewApplicationLog extends Component {
     };
     cancelEdit = () => {
         this.props.editApplicationLogSwitch(this.props.index);
+    };
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Enter':
+                if (document.getElementById('editApplicationLogButton'))
+                    return document
+                        .getElementById('editApplicationLogButton')
+                        .click();
+                else return false;
+            default:
+                return false;
+        }
     };
     submitForm = values => {
         const thisObj = this;
@@ -288,7 +307,7 @@ class NewApplicationLog extends Component {
                                             <span>Cancel</span>
                                         </button>
                                         <button
-                                            id="addApplicationLogButton"
+                                            id="editApplicationLogButton"
                                             className="bs-Button bs-Button--blue"
                                             type="submit"
                                         >
