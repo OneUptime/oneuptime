@@ -1257,7 +1257,7 @@ const formatNotes = (data = []) => {
         date.setDate(date.getDate() - i);
 
         if (data.length > 0) {
-            for (let incident of data) {
+            for (const incident of data) {
                 const { createdAt } = incident;
                 const incidentDate = new Date(createdAt);
 
