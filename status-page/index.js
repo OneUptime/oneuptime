@@ -46,6 +46,22 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
     res.send('window._env = ' + JSON.stringify(env));
 });
 
+app.use('/.well-known/acme-challenge/:token', async function(req, res) {
+    // make api call to backend and fetch keyAuthorization
+    const { token } = req.params;
+    let apiHost;
+    if (process.env.FYIPE_HOST) {
+        apiHost = 'https://' + process.env.FYIPE_HOST + '/api';
+    } else {
+        apiHost = 'http://localhost:3002/api';
+    }
+    const url = `${apiHost}/ssl/challenge/authorization/${token}`;
+    console.log('**** URL ******', url);
+    const response = await axios.get(url);
+    console.log('********* ACME RESPONSE ***********', response);
+    res.send(response.data);
+});
+
 app.use(async function(req, res, next) {
     let apiHost;
     const host = req.hostname;
@@ -88,21 +104,6 @@ app.use(
     '/status-page/static/js',
     express.static(path.join(__dirname, 'build/static/js'))
 );
-app.use('/.well-known/acme-challenge/:token', async function(req, res) {
-    // make api call to backend and fetch keyAuthorization
-    const { token } = req.params;
-    let apiHost;
-    if (process.env.FYIPE_HOST) {
-        apiHost = 'https://' + process.env.FYIPE_HOST + '/api';
-    } else {
-        apiHost = 'http://localhost:3002/api';
-    }
-    const url = `${apiHost}/ssl/challenge/authorization/${token}`;
-    console.log('**** URL ******', url);
-    const response = await axios.get(url);
-    console.log('********* ACME RESPONSE ***********', response);
-    res.send(response.data);
-});
 
 app.get('/*', function(req, res) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
@@ -222,7 +223,10 @@ function createDir(dirPath) {
                     const url = `${apiHost}/certificate/store/cert/${domain}`;
                     const response = await axios.get(url);
                     const certificate = response.data;
-                    console.log('******* CERTIFICATE FOR DOMAIN **********', certificate);
+                    console.log(
+                        '******* CERTIFICATE FOR DOMAIN **********',
+                        certificate
+                    );
                     if (response && certificate) {
                         certPath = path.resolve(
                             process.cwd(),
