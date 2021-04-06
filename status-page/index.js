@@ -201,6 +201,7 @@ function createDir(dirPath) {
             const res = await fetch(
                 `${apiHost}/statusPage/tlsCredential?domain=${domain}`
             ).then(res => res.json());
+            console.log('******** RESPONSE FROM DOMAIN ***********', res);
 
             let certPath, privateKeyPath;
             if (res) {
@@ -220,6 +221,7 @@ function createDir(dirPath) {
                     const url = `${apiHost}/certificate/store/cert/${domain}`;
                     const response = await axios.get(url);
                     const certificate = response.data;
+                    console.log('******* CERTIFICATE FOR DOMAIN **********', certificate);
                     if (response && certificate) {
                         certPath = path.resolve(
                             process.cwd(),
