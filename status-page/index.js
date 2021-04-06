@@ -98,7 +98,9 @@ app.use('/.well-known/acme-challenge/:token', async function(req, res) {
         apiHost = 'http://localhost:3002/api';
     }
     const url = `${apiHost}/ssl/challenge/authorization/${token}`;
+    console.log('**** URL ******', url);
     const response = await axios.get(url);
+    console.log('********* ACME RESPONSE ***********', response);
     res.send(response.data);
 });
 
