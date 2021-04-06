@@ -3,6 +3,7 @@ const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
 const RealTimeService = require('./realTimeService');
 const ScheduledEventNoteService = require('./scheduledEventNoteService');
+const AlertService = require('./alertService');
 const moment = require('moment');
 
 module.exports = {
@@ -37,7 +38,12 @@ module.exports = {
 
             scheduledEvent = await scheduledEvent
                 .populate('monitors.monitorId', 'name')
-                .populate('projectId', 'name')
+                .populate({
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: { path: 'componentId', select: 'name slug' },
+                })
+                .populate('projectId', 'name slug replyAddress')
                 .populate('createdById', 'name')
                 .execPopulate();
 
@@ -61,6 +67,9 @@ module.exports = {
                     event_state: 'Started',
                 });
             }
+
+            // handle this asynchronous operation in the background
+            AlertService.sendCreatedScheduledEventToSubscribers(scheduledEvent);
 
             await RealTimeService.addScheduledEvent(scheduledEvent);
 
