@@ -57,6 +57,14 @@ const scheduledEventsSchema = new Schema(
             type: Boolean,
             default: false,
         },
+        recurring: {
+            type: Boolean,
+            default: false,
+        },
+        interval: {
+            type: String,
+            default: null,
+        },
         alertSubscriber: {
             type: Boolean,
             default: false,

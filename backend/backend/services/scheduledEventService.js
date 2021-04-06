@@ -6,7 +6,7 @@ const ScheduledEventNoteService = require('./scheduledEventNoteService');
 const moment = require('moment');
 
 module.exports = {
-    create: async function({ projectId }, data) {
+    create: async function({ projectId }, data, recurring) {
         try {
             if (!data.monitors || data.monitors.length === 0) {
                 const error = new Error(
@@ -62,8 +62,9 @@ module.exports = {
                 });
             }
 
-            await RealTimeService.addScheduledEvent(scheduledEvent);
-
+            if (!recurring) {
+                await RealTimeService.addScheduledEvent(scheduledEvent);
+            }
             return scheduledEvent;
         } catch (error) {
             ErrorService.log('scheduledEventService.create', error);
@@ -396,6 +397,7 @@ module.exports = {
      */
     resolveScheduledEvent: async function(query, data) {
         try {
+            const _this = this;
             data.resolved = true;
             data.resolvedAt = Date.now();
             let resolvedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
@@ -403,6 +405,45 @@ module.exports = {
                 { $set: data },
                 { new: true }
             );
+
+            if (resolvedScheduledEvent.recurring) {
+                let newStartDate;
+                let newEndDate;
+                const startDate = resolvedScheduledEvent.startDate;
+                const endDate = resolvedScheduledEvent.endDate;
+                if (resolvedScheduledEvent.interval === 'daily') {
+                    newStartDate = moment(startDate).add(1, 'days');
+                    newEndDate = moment(endDate).add(1, 'days');
+                } else if (resolvedScheduledEvent.interval === 'weekly') {
+                    newStartDate = moment(startDate).add(7, 'days');
+                    newEndDate = moment(endDate).add(7, 'days');
+                } else if (resolvedScheduledEvent.interval === 'monthly') {
+                    newStartDate = moment(startDate).add(1, 'months');
+                    newEndDate = moment(endDate).add(1, 'months');
+                }
+                const postObj = {};
+                postObj.name = resolvedScheduledEvent.name;
+                postObj.startDate = newStartDate;
+                postObj.endDate = newEndDate;
+                postObj.description = resolvedScheduledEvent.description;
+                postObj.showEventOnStatusPage =
+                    resolvedScheduledEvent.showEventOnStatusPage;
+                postObj.callScheduleOnEvent =
+                    resolvedScheduledEvent.callScheduleOnEvent;
+                postObj.monitorDuringEvent =
+                    resolvedScheduledEvent.monitorDuringEvent;
+                postObj.alertSubscriber =
+                    resolvedScheduledEvent.alertSubscriber;
+                postObj.recurring = resolvedScheduledEvent.recurring;
+                postObj.interval = resolvedScheduledEvent.interval;
+                postObj.createdById = resolvedScheduledEvent.createdById;
+                const projectId = resolvedScheduledEvent.projectId;
+                const monitors = resolvedScheduledEvent.monitors.map(
+                    monitor => monitor.monitorId
+                );
+                postObj.monitors = monitors;
+                _this.create({ projectId }, postObj, true);
+            }
             // populate the necessary data
             resolvedScheduledEvent = await resolvedScheduledEvent
                 .populate('monitors.monitorId', 'name')
