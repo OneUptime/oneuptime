@@ -15,6 +15,7 @@ import { RenderField } from '../basic/RenderField';
 import { RenderTextArea } from '../basic/RenderTextArea';
 import { RenderSelect } from '../basic/RenderSelect';
 import DateTimeSelector from '../basic/DateTimeSelector';
+import { ValidateField } from '../../config';
 
 function validate(values) {
     const errors = {};
@@ -68,6 +69,8 @@ class UpdateSchedule extends React.Component {
         postObj.callScheduleOnEvent = values.callScheduleOnEvent;
         postObj.monitorDuringEvent = values.monitorDuringEvent;
         postObj.alertSubscriber = values.alertSubscriber;
+        postObj.recurring = values.recurring;
+        postObj.interval = values.interval;
 
         const isDuplicate = postObj.monitors
             ? postObj.monitors.length === new Set(postObj.monitors).size
@@ -335,6 +338,7 @@ class UpdateSchedule extends React.Component {
         const { currentDate } = this.state;
         const { requesting, scheduledEventError, startDate } = this.props;
         const { handleSubmit, closeModal } = this.props;
+        const { formValues } = this.props;
 
         return (
             <div
@@ -357,6 +361,8 @@ class UpdateSchedule extends React.Component {
                                     style={{
                                         marginBottom: '10px',
                                         marginTop: '10px',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
                                     }}
                                 >
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -364,6 +370,30 @@ class UpdateSchedule extends React.Component {
                                             Update Scheduled Maintenance Event
                                         </span>
                                     </span>
+                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                        <label
+                                            className="Checkbox"
+                                            htmlFor="showAdvance"
+                                        >
+                                            <Field
+                                                component="input"
+                                                type="checkbox"
+                                                name="showAdvance"
+                                                className="Checkbox-source"
+                                                id="showAdvance"
+                                            />
+                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                <div className="Checkbox-target Box-root">
+                                                    <div className="Checkbox-color Box-root"></div>
+                                                </div>
+                                            </div>
+                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <span>Show Advance</span>
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                             <form
@@ -567,6 +597,71 @@ class UpdateSchedule extends React.Component {
                                                 </div>
                                             </div>
                                         </fieldset>
+                                        {formValues && formValues.recurring ? (
+                                            <fieldset className="Margin-bottom--16">
+                                                <div className="bs-Fieldset-rows">
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{ padding: 0 }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            htmlFor="monitorIds"
+                                                        >
+                                                            <span>
+                                                                Recurring
+                                                                interval
+                                                            </span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-select-nw"
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                name="interval"
+                                                                id="interval"
+                                                                validate={
+                                                                    ValidateField.select
+                                                                }
+                                                                style={{
+                                                                    height:
+                                                                        '28px',
+                                                                    width:
+                                                                        '100%',
+                                                                }}
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            '',
+                                                                        label:
+                                                                            'Select interval',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'daily',
+                                                                        label:
+                                                                            'Daily',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'weekly',
+                                                                        label:
+                                                                            'Weekly',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'monthly',
+                                                                        label:
+                                                                            'Monthly',
+                                                                    },
+                                                                ]}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </fieldset>
+                                        ) : null}
                                         <div className="bs-Fieldset-row">
                                             <label className="bs-Fieldset-label">
                                                 <span></span>
@@ -733,6 +828,50 @@ class UpdateSchedule extends React.Component {
                                                 </div>
                                             </div>
                                         </div>
+                                        {formValues &&
+                                        formValues.showAdvance ? (
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    <span></span>
+                                                </label>
+                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                    <div
+                                                        className="Box-root"
+                                                        style={{
+                                                            height: '5px',
+                                                        }}
+                                                    ></div>
+                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                        <label
+                                                            className="Checkbox"
+                                                            htmlFor="recurring"
+                                                        >
+                                                            <Field
+                                                                component="input"
+                                                                type="checkbox"
+                                                                name="recurring"
+                                                                className="Checkbox-source"
+                                                                id="recurring"
+                                                            />
+                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                <div className="Checkbox-target Box-root">
+                                                                    <div className="Checkbox-color Box-root"></div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <span>
+                                                                        Set as a
+                                                                        recuring
+                                                                        event
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : null}
                                     </div>
                                 </div>
                                 <div className="bs-Modal-footer">
@@ -883,6 +1022,9 @@ const mapStateToProps = state => {
             scheduledEventToBeUpdated.monitorDuringEvent;
         initialValues.alertSubscriber =
             scheduledEventToBeUpdated.alertSubscriber;
+        initialValues.showAdvance = scheduledEventToBeUpdated.showAdvance;
+        initialValues.recurring = scheduledEventToBeUpdated.recurring;
+        initialValues.interval = scheduledEventToBeUpdated.interval;
         initialValues._id = scheduledEventToBeUpdated._id;
         initialValues.selectAllMonitors =
             monitors.length === scheduledEventToBeUpdated.monitors.length

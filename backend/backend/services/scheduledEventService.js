@@ -435,6 +435,7 @@ module.exports = {
                 postObj.alertSubscriber =
                     resolvedScheduledEvent.alertSubscriber;
                 postObj.recurring = resolvedScheduledEvent.recurring;
+                postObj.showAdvance = resolvedScheduledEvent.showAdvance;
                 postObj.interval = resolvedScheduledEvent.interval;
                 postObj.createdById = resolvedScheduledEvent.createdById;
                 const projectId = resolvedScheduledEvent.projectId;
