@@ -3871,22 +3871,22 @@ const _this = {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
+        
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
                 'Subscriber Scheduled Maintenance'
             );
 
-            //subscribername
-            const subscriberEmail = subscriber.email;
             //scheduledEvent Name
-            const scheduledEventName = schedule.name;
+            const eventName = schedule.name;
+            const eventDescription = schedule.description;
             //scheduledEvent create time
-            const scheduledEventCreated = schedule.createdAt;
+            const eventCreateTime = schedule.createdAt;
             //scheduled event start time
-            const scheduledEventStart = schedule.startDate;
+            const eventStartTime = schedule.startDate;
             //scheduled event end time
-            const scheduledEventEnd = schedule.endDate;
+            const eventEndTime = schedule.endDate;
             //project name
             const data = {
                 scheduledTime,
@@ -3895,18 +3895,21 @@ const _this = {
                 userId,
                 projectName,
                 trackEmailAsViewedUrl,
-                projectId: incident.projectId,
-                incidentType: incident.incidentType,
+                projectId: schedule.projectId,
                 componentName,
-                statusPageUrl,
                 unsubscribeUrl,
+                eventName,
+                eventDescription,
+                eventCreateTime,
+                eventStartTime,
+                eventEndTime,
                 year: DateTime.getCurrentYear,
-                length,
             };
             template = template(data);
             subject = subject(data);
+
             let smtpSettings = await _this.getProjectSmtpSettings(
-                incident.projectId
+                schedule.projectId._id
             );
             smtpServer = 'internal';
             if (!smtpSettings.internalSmtp) {

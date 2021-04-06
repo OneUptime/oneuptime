@@ -2031,15 +2031,14 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             '{{monitorName}} : Name of the monitor on which incident has occured.',
             '{{componentName}} : Name of the component the monitor belongs to',
             '{{projectName}} : Name of the project on which the incident has occured.',
-            '{{incidentTime}} : Time at which this incident occured.',
-            '{{incidentType}} : Type of incident.',
+            '{{eventName}} : Name of the scheduled event.',
+            '{{eventDescription}} :Description of the scheduled event.',
+            '{{eventCreateTime}} : Time at which scheduled event is created.',
+            '{{eventStartTime}} : Time at which scheduled event is starts.',
+            '{{eventEndTime}} : Time at which scheduled event ends.',
             '{{userId}} : Unique identifier for user account.',
             '{{projectId}} : Unique identifier for the current project.',
             "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
-            '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
-            '{{incident.customFields.*}} : The value of any incident custom field',
-            '{{monitor.customFields.*}} : The value of any monitor custom field',
-            '{{length}} : Length of the incident',
         ],
         emailType: 'Subscriber Scheduled Maintenance',
         subject:
@@ -2286,9 +2285,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
       <div class="st-Spacer st-Spacer--filler"></div>
     </td>
     <td class="st-Font st-Font--body" style="color: #000000 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
-
-     <h3>{{projectName}} - {{componentName}}/{{monitorName}}: Scheduled Maintenance!</h3>
-
+      <h3>{{projectName}} - {{componentName}}/{{monitorName}}: Scheduled Maintenance!</h3>
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
       <div class="st-Spacer st-Spacer--filler"></div>
@@ -2324,26 +2321,74 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
 </tbody>
 </table>
 <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
-<tbody>
+  <tbody>
+<tr>
+<td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+  <div class="st-Spacer st-Spacer--filler"></div>
+</td>
+<td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+  <strong￼ style="color: #000000 !important;">A Scheduled event has been created</strong>
+</td>
+<td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+  <div class="st-Spacer st-Spacer--filler"></div>
+</td>
+</tr>
   <tr>
-    <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
-      <div class="st-Spacer st-Spacer--filler"></div>
-    </td>
-    <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+  <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+    <div class="st-Spacer st-Spacer--filler"></div>
+  </td>
+  <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+    <strong￼ style="color: #000000 !important;">Event Name: {{eventName}}</strong>
+  </td>
+  <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+    <div class="st-Spacer st-Spacer--filler"></div>
+  </td>
+</tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
-    <strong￼ style="color: #000000 !important;">{{projectName}} - {{componentName}}/{{monitorName}} is {{incidentType}}</strong>. An incident has been resolved on {{incidentTime}}.
+      Created at: {{eventCreateTime}} 
 
-    </td>
-    <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
-      <div class="st-Spacer st-Spacer--filler"></div>
-    </td>
-  </tr>
-  <tr>
-    <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
-      <div class="st-Spacer st-Spacer--filler"></div>
-    </td>
-  </tr>
-</tbody>
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+      Start time: {{eventStartTime}}
+
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+      End time: {{eventEndTime}}
+
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
 </table>
 <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
   <tbody>

@@ -3296,28 +3296,28 @@ module.exports = {
                     emailType: templateType,
                 });
 
-                const subscriberAlert = await SubscriberAlertService.create({
-                    projectId,
-                    // incidentId: incident._id,
-                    subscriberId: subscriber._id,
-                    alertVia: AlertType.Email,
-                    alertStatus: 'Pending',
-                    eventType: 'schedule-created',
-                    totalSubscribers,
-                    id,
-                });
-                const alertId = subscriberAlert._id;
-                const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
+                // const subscriberAlert = await SubscriberAlertService.create({
+                //     projectId,
+                //     // incidentId: incident._id,
+                //     subscriberId: subscriber._id,
+                //     alertVia: AlertType.Email,
+                //     alertStatus: 'Pending',
+                //     eventType: 'schedule-created',
+                //     totalSubscribers,
+                //     id,
+                // });
+                // const alertId = subscriberAlert._id;
+                // const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
 
-                let unsubscribeUrl;
-                if (statusPageUrl) {
-                    unsubscribeUrl = `${global.statusHost}/status-page/${statusPage._id}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
-                } else {
-                    const statusPage = await StatusPageService.create({
-                        projectId: incident.projectId,
-                    });
-                    unsubscribeUrl = `${global.statusHost}/status-page/${statusPage._id}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
-                }
+                // let unsubscribeUrl;
+                // if (statusPageUrl) {
+                //     unsubscribeUrl = `${global.statusHost}/status-page/${statusPage._id}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
+                // } else {
+                //     const statusPage = await StatusPageService.create({
+                //         projectId: incident.projectId,
+                //     });
+                //     unsubscribeUrl = `${global.statusHost}/status-page/${statusPage._id}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
+                // }
 
                 let alertStatus = null;
                 try {
@@ -3331,23 +3331,23 @@ module.exports = {
                             schedule,
                             projectName,
                             emailTemplate,
-                            trackEmailAsViewedUrl,
+                            'trackEmailAsViewedUrl',
                             componentName,
                             schedule.projectId.replyAddress,
-                            unsubscribeUrl
+                            'unsubscribeUrl'
                         );
 
                         alertStatus = 'Sent';
                     }
-                    await SubscriberAlertService.updateOneBy(
-                        { _id: alertId },
-                        { alertStatus }
-                    );
+                    // await SubscriberAlertService.updateOneBy(
+                    //     { _id: alertId },
+                    //     { alertStatus }
+                    // );
                 } catch (error) {
-                    await SubscriberAlertService.updateOneBy(
-                        { _id: alertId },
-                        { alertStatus: null }
-                    );
+                    // await SubscriberAlertService.updateOneBy(
+                    //     { _id: alertId },
+                    //     { alertStatus: null }
+                    // );
                     throw error;
                 }
             } else if (subscriber.alertVia == AlertType.SMS) {
@@ -3752,7 +3752,10 @@ module.exports = {
                         throw error;
                     }
                 } catch (error) {
-                    ErrorService.log('alertService.sendSubscriberAlert', error);
+                    ErrorService.log(
+                        'alertService.sendSubscriberScheduledEventAlert',
+                        error
+                    );
                 }
             }
 
@@ -3842,7 +3845,10 @@ module.exports = {
             //     }
             // }
         } catch (error) {
-            ErrorService.log('alertService.sendSubscriberAlert', error);
+            ErrorService.log(
+                'alertService.sendSubscriberScheduledEventAlert',
+                error
+            );
             throw error;
         }
     },
