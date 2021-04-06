@@ -38,10 +38,12 @@ module.exports = {
             if (resourceCategory) {
                 errorTracker.resourceCategory = data.resourceCategory;
             }
-            let name = data.name;
-            name = slugify(name);
-            name = `${name}-${generate('1234567890', 8)}`;
-            errorTracker.slug = name.toLowerCase();
+            if (data && data.name) {
+                let name = data.name;
+                name = slugify(name);
+                name = `${name}-${generate('1234567890', 8)}`;
+                errorTracker.slug = name.toLowerCase();
+            }
             const savedErrorTracker = await errorTracker.save();
             errorTracker = await _this.findOneBy({
                 _id: savedErrorTracker._id,
@@ -182,7 +184,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            if (data.name) {
+            if (data && data.name) {
                 let name = data.name;
                 name = slugify(name);
                 name = `${name}-${generate('1234567890', 8)}`;
