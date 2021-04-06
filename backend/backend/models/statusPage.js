@@ -13,8 +13,8 @@ const statusSchema = new Schema({
             domain: String, // complete domain eg status.fyipe.com
             cert: String, // filename gridfs
             privateKey: String, // filename gridfs
-            enableHttps: { type: Boolean, default: true },
-            autoProvisioning: { type: Boolean, default: true },
+            enableHttps: { type: Boolean, default: false },
+            autoProvisioning: { type: Boolean, default: false },
             domainVerificationToken: {
                 type: Schema.Types.ObjectId,
                 ref: 'DomainVerificationToken',
