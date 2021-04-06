@@ -83,10 +83,12 @@ module.exports = {
                     component.createdById = data.createdById;
                     component.visibleOnStatusPage = data.visibleOnStatusPage;
                     component.projectId = data.projectId;
-                    let name = data.name;
-                    name = slugify(name);
-                    name = `${name}-${generate('1234567890', 8)}`;
-                    component.slug = name.toLowerCase();
+                    if (data && data.name) {
+                        let name = data.name;
+                        name = slugify(name);
+                        name = `${name}-${generate('1234567890', 8)}`;
+                        component.slug = name.toLowerCase();
+                    }
                     const savedComponent = await component.save();
                     component = await _this.findOneBy({
                         _id: savedComponent._id,

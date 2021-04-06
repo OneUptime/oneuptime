@@ -39,7 +39,7 @@ module.exports = async function() {
         for (const domain of domains) {
             await greenlock.add({
                 subject: domain,
-                altnames: [domain, `www.${domain}`],
+                altnames: [domain],
             });
         }
     } catch (error) {

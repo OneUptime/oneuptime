@@ -356,7 +356,8 @@ const mapStateToProps = (state, ownProps) => {
         subProjectIncidents: state.incident.incidents.incidents,
         tutorialStat,
         component:
-            state.component && state.component.currentComponent.component,
+            state.component.currentComponent &&
+            state.component.currentComponent.component,
         modalList: state.modal.modals,
         projectId,
         componentSlug,

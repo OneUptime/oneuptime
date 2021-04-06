@@ -43,11 +43,12 @@ module.exports = {
                 ];
             }
             projectModel.name = data.name || null;
-
-            let name = data.name;
-            name = slugify(name);
-            name = `${name}-${generate('1234567890', 8)}`;
-            projectModel.slug = name.toLowerCase();
+            if (data && data.name) {
+                let name = data.name;
+                name = slugify(name);
+                name = `${name}-${generate('1234567890', 8)}`;
+                projectModel.slug = name.toLowerCase();
+            }
             projectModel.apiKey = uuidv1();
             projectModel.stripePlanId = data.stripePlanId || null;
             projectModel.stripeSubscriptionId =
@@ -218,7 +219,7 @@ module.exports = {
                 data.apiKey = uuidv1();
             }
 
-            if (data.name) {
+            if (data && data.name) {
                 let name = data.name;
                 name = slugify(name);
                 name = `${name}-${generate('1234567890', 8)}`;

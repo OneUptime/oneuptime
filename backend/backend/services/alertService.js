@@ -2668,17 +2668,7 @@ module.exports = {
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
-
-                let unsubscribeUrl;
-                if (statusPageUrl) {
-                    unsubscribeUrl = `${global.statusHost}/status-page/${statusPage._id}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
-                } else {
-                    const statusPage = await StatusPageService.create({
-                        projectId: incident.projectId,
-                    });
-                    unsubscribeUrl = `${global.statusHost}/status-page/${statusPage._id}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
-                }
-
+                const unsubscribeUrl = `${global.homeHost}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
                 let alertStatus = null;
                 try {
                     if (templateType === 'Subscriber Incident Acknowldeged') {
