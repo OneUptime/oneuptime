@@ -445,29 +445,29 @@ module.exports = {
             }
         );
         await page.waitForSelector(
-            'ul[data-testId=up_criteria_list]> li:last-of-type #responseType'
+            'ul[data-testId=up_criteria_list]> div:last-of-type #responseType'
         );
         await this.selectByText(
-            'ul[data-testId=up_criteria_list]> li:last-of-type #responseType',
+            'ul[data-testId=up_criteria_list]> div:last-of-type #responseType',
             'responseBody',
             page
         );
         await page.waitForSelector(
-            'ul[data-testId=up_criteria_list]> li:last-of-type #filter'
+            'ul[data-testId=up_criteria_list]> div:last-of-type #filter'
         );
         await this.selectByText(
-            'ul[data-testId=up_criteria_list]> li:last-of-type #filter',
+            'ul[data-testId=up_criteria_list]> div:last-of-type #filter',
             'evaluateResponse',
             page
         );
         await page.waitForSelector(
-            'ul[data-testId=up_criteria_list]> li:last-of-type #value'
+            'ul[data-testId=up_criteria_list]> div:last-of-type #value'
         );
         await page.click(
-            'ul[data-testId=up_criteria_list]> li:last-of-type #value'
+            'ul[data-testId=up_criteria_list]> div:last-of-type #value'
         );
         await page.type(
-            'ul[data-testId=up_criteria_list]> li:last-of-type #value',
+            'ul[data-testId=up_criteria_list]> div:last-of-type #value',
             "response.body.status === 'ok';"
         );
 
@@ -492,29 +492,29 @@ module.exports = {
             }
         );
         await page.waitForSelector(
-            'ul[data-testId=degraded_criteria_list] > li:last-of-type #responseType'
+            'ul[data-testId=degraded_criteria_list] > div:last-of-type #responseType'
         );
         await this.selectByText(
-            'ul[data-testId=degraded_criteria_list] > li:last-of-type #responseType',
+            'ul[data-testId=degraded_criteria_list] > div:last-of-type #responseType',
             'responseBody',
             page
         );
         await page.waitForSelector(
-            'ul[data-testId=degraded_criteria_list] > li:last-of-type #filter'
+            'ul[data-testId=degraded_criteria_list] > div:last-of-type #filter'
         );
         await this.selectByText(
-            'ul[data-testId=degraded_criteria_list] > li:last-of-type #filter',
+            'ul[data-testId=degraded_criteria_list] > div:last-of-type #filter',
             'evaluateResponse',
             page
         );
         await page.waitForSelector(
-            'ul[data-testId=degraded_criteria_list] > li:last-of-type #value'
+            'ul[data-testId=degraded_criteria_list] > div:last-of-type #value'
         );
         await page.click(
-            'ul[data-testId=degraded_criteria_list] > li:last-of-type #value'
+            'ul[data-testId=degraded_criteria_list] > div:last-of-type #value'
         );
         await page.type(
-            'ul[data-testId=degraded_criteria_list] > li:last-of-type #value',
+            'ul[data-testId=degraded_criteria_list] > div:last-of-type #value',
             "response.body.message === 'draining';"
         );
 
