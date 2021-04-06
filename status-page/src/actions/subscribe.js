@@ -1,4 +1,4 @@
-import { postApi, putApi } from '../api';
+import { postApi } from '../api';
 import errors from '../errors';
 
 export const OPEN_SUBSCRIBE_MENU = 'OPEN_SUBSCRIBE_MENU';
@@ -9,10 +9,6 @@ export const SUBSCRIBE_SUCCESS = 'SUBSCRIBE_SUCCESS';
 export const SUBSCRIBE_REQUEST = 'SUBSCRIBE_REQUEST';
 export const SUBSCRIBE_FAILURE = 'SUBSCRIBE_FAILURE';
 export const VALIDATION_ERROR = 'VALIDATION_ERROR';
-
-export const UNSUBSCRIBE_REQUEST = 'UNSUBSCRIBE_REQUEST';
-export const UNSUBSCRIBE_SUCCESS = 'UNSUBSCRIBE_SUCCESS';
-export const UNSUBSCRIBE_FAILURE = 'UNSUBSCRIBE_FAILURE';
 
 export const openSubscribeMenu = () => {
     return {
@@ -103,52 +99,3 @@ export const subscribeUser = (
     };
 };
 
-export const unsubscribeRequest = () => {
-    return {
-        type: UNSUBSCRIBE_REQUEST,
-    };
-};
-
-export const unsubscribeSuccess = () => {
-    return {
-        type: UNSUBSCRIBE_SUCCESS,
-    };
-};
-
-export const unsubscribeFailure = data => {
-    return {
-        type: UNSUBSCRIBE_FAILURE,
-        payload: data,
-    };
-};
-
-export const unsubscribeUser = (monitorId, subscriberId) => {
-    return function(dispatch) {
-        const promise = putApi(
-            `subscriber/unsubscribe/${monitorId}/${subscriberId}`
-        );
-
-        dispatch(unsubscribeRequest());
-
-        promise.then(
-            () => {
-                dispatch(unsubscribeSuccess());
-            },
-            error => {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                }
-                if (error.length > 100) {
-                    error = 'Network Error';
-                }
-
-                dispatch(unsubscribeFailure(errors(error)));
-            }
-        );
-    };
-};

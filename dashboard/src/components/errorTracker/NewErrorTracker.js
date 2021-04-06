@@ -29,10 +29,11 @@ class NewErrorTracker extends Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Enter':
-                if(document.getElementById('editErrorTrackerButton'))
-                    return document.getElementById('editErrorTrackerButton').click();
-                else
-                    return false;
+                if (document.getElementById('editErrorTrackerButton'))
+                    return document
+                        .getElementById('editErrorTrackerButton')
+                        .click();
+                else return false;
             default:
                 return false;
         }

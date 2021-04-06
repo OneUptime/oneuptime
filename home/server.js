@@ -25,6 +25,7 @@ const compression = require('compression');
 const minify = require('minify');
 const tryToCatch = require('try-to-catch');
 const productCompare = require('./config/product-compare');
+const axios = require('axios');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -166,6 +167,31 @@ app.get('/error-tracking', function(req, res) {
     res.redirect('/product/error-tracking');
 });
 
+app.get('/unsubscribe/:monitorId/:subscriberId', async function(req, res) {
+    const { monitorId, subscriberId } = req.params;
+    let apiHost;
+    if (process.env.FYIPE_HOST) {
+        apiHost = 'https://' + process.env.FYIPE_HOST + '/api';
+    } else {
+        apiHost = 'http://localhost:3002/api';
+    }
+
+    try {
+        await axios({
+            method: 'PUT',
+            url: `${apiHost}/subscriber/unsubscribe/${monitorId}/${subscriberId}`,
+        });
+
+        res.render('unsubscribe', {
+            message: 'You have successfully unsubscribed from this monitor',
+        });
+    } catch (err) {
+        res.render('unsubscribe', {
+            message:
+                'Encountered an error while trying to unsubscribe you from this monitor',
+        });
+    }
+});
 app.get('/product/docker-container-security', function(req, res) {
     res.render('container-security', {
         support: false,

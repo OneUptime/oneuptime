@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" id="contact">
+
+<head>
+  <meta charset="utf-8">
+  <title>Fyipe | Help and Support</title>
+
+  <meta name="description"
+    content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+  <% include ./head %>
+  <link rel="stylesheet" href="/css/contact.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro&display=swap">
+  <script src="/js/amplitude.js"></script>
+  <script type="module" async>
+    var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+    if (IS_SAAS_SERVICE) {
+      amplitude.getInstance().logEvent('PAGE VIEW: HOME > SUPPORT');
+    }
+  </script>
+</head>
+
+<body>
+  <div style="display: flex; justify-content: center;">
+    <div style=" padding: 2px;background: #EEEEEE; border: 1px solid #CCCCCC;margin-top: 10px;text-align: center; width: 70%;">
+        <p style="padding: 8px; margin: 0;" >
+            <%= message %>
+        </p>
+    </div>
+  </div>
+</body>
+
+</html>
