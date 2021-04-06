@@ -445,47 +445,31 @@ module.exports = {
             }
         );
         await page.waitForSelector(
-            'ul[data-testId=up_criteria_list]'
+            'ul[data-testId=up_criteria_list]> li:last-of-type #responseType'
         );
-        // let sel = await page.evaluate(
-        //     () => (document.getElementsByClassName('response-list')[4])
-        // ); 
-        const rowLength = await page.$$eval(
-            'response-list',
-            rows => rows[4]
-        ); 
-        console.log("Row L: ",rowLength)
-        await page.click(rowLength);
-        await page.keyboard.type(rowLength,'Response Body');
-        // await page.evaluate(
-        //     () => (document.getElementsByClassName('filter-list')[4]= 'evaluateResponse')
-        // );      
-        // await page.evaluate(
-        //     () => (document.getElementsByClassName('value-list')[4]= "response.body.status === 'ok';")
-        // ); 
-        // await this.selectByText(
-        //     sel,
-        //     'responseBody',
-        //     page
-        // );
-        // await page.waitForSelector(
-        //     'ul[data-testId=up_criteria_list]> li:last-of-type #filter'
-        // );
-        // await this.selectByText(
-        //     'ul[data-testId=up_criteria_list]> li:last-of-type #filter',
-        //     'evaluateResponse',
-        //     page
-        // );
-        // await page.waitForSelector(
-        //     'ul[data-testId=up_criteria_list]> li:last-of-type #value'
-        // );
-        // await page.click(
-        //     'ul[data-testId=up_criteria_list]> li:last-of-type #value'
-        // );
-        // await page.type(
-        //     'ul[data-testId=up_criteria_list]> li:last-of-type #value',
-        //     "response.body.status === 'ok';"
-        // );
+        await this.selectByText(
+            'ul[data-testId=up_criteria_list]> li:last-of-type #responseType',
+            'responseBody',
+            page
+        );
+        await page.waitForSelector(
+            'ul[data-testId=up_criteria_list]> li:last-of-type #filter'
+        );
+        await this.selectByText(
+            'ul[data-testId=up_criteria_list]> li:last-of-type #filter',
+            'evaluateResponse',
+            page
+        );
+        await page.waitForSelector(
+            'ul[data-testId=up_criteria_list]> li:last-of-type #value'
+        );
+        await page.click(
+            'ul[data-testId=up_criteria_list]> li:last-of-type #value'
+        );
+        await page.type(
+            'ul[data-testId=up_criteria_list]> li:last-of-type #value',
+            "response.body.status === 'ok';"
+        );
 
         if (options.createAlertForOnline) {
             await page.click('[data-testId=criterionAdvancedOptions_up]');
@@ -498,46 +482,46 @@ module.exports = {
             );
         }
 
-        // // degraded criteria
-        // await page.$$eval(
-        //     '[data-testId=add_criterion_degraded]',
-        //     addCriterionButtons => {
-        //         const lastAddCriterionButton =
-        //             addCriterionButtons[addCriterionButtons.length - 1];
-        //         lastAddCriterionButton.click();
-        //     }
-        // );
-        // await page.waitForSelector(
-        //     'ul[data-testId=degraded_criteria_list] > li:last-of-type #responseType'
-        // );
-        // await this.selectByText(
-        //     'ul[data-testId=degraded_criteria_list] > li:last-of-type #responseType',
-        //     'responseBody',
-        //     page
-        // );
-        // await page.waitForSelector(
-        //     'ul[data-testId=degraded_criteria_list] > li:last-of-type #filter'
-        // );
-        // await this.selectByText(
-        //     'ul[data-testId=degraded_criteria_list] > li:last-of-type #filter',
-        //     'evaluateResponse',
-        //     page
-        // );
-        // await page.waitForSelector(
-        //     'ul[data-testId=degraded_criteria_list] > li:last-of-type #value'
-        // );
-        // await page.click(
-        //     'ul[data-testId=degraded_criteria_list] > li:last-of-type #value'
-        // );
-        // await page.type(
-        //     'ul[data-testId=degraded_criteria_list] > li:last-of-type #value',
-        //     "response.body.message === 'draining';"
-        // );
+        // degraded criteria
+        await page.$$eval(
+            '[data-testId=add_criterion_degraded]',
+            addCriterionButtons => {
+                const lastAddCriterionButton =
+                    addCriterionButtons[addCriterionButtons.length - 1];
+                lastAddCriterionButton.click();
+            }
+        );
+        await page.waitForSelector(
+            'ul[data-testId=degraded_criteria_list] > li:last-of-type #responseType'
+        );
+        await this.selectByText(
+            'ul[data-testId=degraded_criteria_list] > li:last-of-type #responseType',
+            'responseBody',
+            page
+        );
+        await page.waitForSelector(
+            'ul[data-testId=degraded_criteria_list] > li:last-of-type #filter'
+        );
+        await this.selectByText(
+            'ul[data-testId=degraded_criteria_list] > li:last-of-type #filter',
+            'evaluateResponse',
+            page
+        );
+        await page.waitForSelector(
+            'ul[data-testId=degraded_criteria_list] > li:last-of-type #value'
+        );
+        await page.click(
+            'ul[data-testId=degraded_criteria_list] > li:last-of-type #value'
+        );
+        await page.type(
+            'ul[data-testId=degraded_criteria_list] > li:last-of-type #value',
+            "response.body.message === 'draining';"
+        );
 
-        // await Promise.all([
-        //     page.click('button[type=submit]'),
-        //     page.waitForNavigation(),
-        // ]);
+        await Promise.all([
+            page.click('button[type=submit]'),
+            page.waitForNavigation(),
+        ]);
     },
     addMonitorToSubProject: async function(
         monitorName,
