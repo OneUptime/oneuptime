@@ -35328,6 +35328,10 @@ padding-left:20px
   display: flex;
 }
 
+.status-tab {
+  width: 16.67% !important;
+}
+
 @media (max-width: 930px) {
   .bs-incident-notes-content {
     display: block;
