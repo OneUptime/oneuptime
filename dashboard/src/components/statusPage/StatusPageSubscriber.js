@@ -17,7 +17,7 @@ class StatusPageSubscriber extends Component {
         super(props);
         this.state = {
             deleteSubscriberModalId: uuidv4(),
-            limit: 5,
+            limit: 10,
         };
     }
 
@@ -126,417 +126,445 @@ class StatusPageSubscriber extends Component {
         }
 
         return (
-            <div className="div">
-                <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
-                    <table className="Table" id="subscribersList">
-                        <thead className="Table-body">
-                            <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px', minWidth: '270px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Monitor</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td
-                                    className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Subscribed From</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td
-                                    id="placeholder-left"
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{
-                                        height: '1px',
-                                        maxWidth: '48px',
-                                        minWidth: '48px',
-                                        width: '48px',
-                                    }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
-                                    </div>
-                                </td>
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Subscriber</span>
-                                        </span>
-                                    </div>
-                                </td>
+            <>
+                <div className="bs-ContentSection Card-root Card-shadow--medium">
+                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                    <span>Status Page Subscribers</span>
+                                </span>
+                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                    Subscribers who are subscribed to components
+                                    on this Status Page.
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                                <td
-                                    id="placeholder-right"
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{
-                                        height: '1px',
-                                        maxWidth: '48px',
-                                        minWidth: '48px',
-                                        width: '48px',
-                                    }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
-                                    </div>
-                                </td>
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Alert Via</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td
-                                    id="overflow"
-                                    type="action"
-                                    className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
-                                    </div>
-                                </td>
-                                <RenderIfSubProjectAdmin
-                                    subProjectId={projectId}
-                                    currentProject={currentProject}
-                                    subProjects={subProjects}
-                                >
+                <div className="div">
+                    <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                        <table className="Table" id="subscribersList">
+                            <thead className="Table-body">
+                                <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                                     <td
-                                        id="overflow"
-                                        type="action"
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{ height: '1px' }}
+                                        style={{
+                                            height: '1px',
+                                            minWidth: '270px',
+                                        }}
                                     >
-                                        <div
-                                            className="db-ListViewItem-cellContent Box-root Padding-all--8"
-                                            style={{ marginLeft: '43px' }}
-                                        >
-                                            <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                Action
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                <span>Monitor</span>
                                             </span>
                                         </div>
                                     </td>
-                                </RenderIfSubProjectAdmin>
-                            </tr>
-                        </thead>
-                        <tbody className="Table-body">
-                            {subscribers &&
-                            subscribers.subscribersList &&
-                            subscribers.subscribersList.length > 0 ? (
-                                subscribers.subscribersList.map(
-                                    (subscriber, index) => (
-                                        <tr
-                                            className="subscriber-list-item Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
-                                            key={subscriber._id}
-                                        >
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                                style={{
-                                                    height: '1px',
-                                                    minWidth: '270px',
-                                                }}
-                                            >
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <div className="Box-root Margin-right--16">
-                                                            <span>
-                                                                {subscribers.name
-                                                                    ? subscribers.name
-                                                                    : subscriber.monitorId &&
-                                                                      subscriber.monitorName
-                                                                    ? subscriber.monitorName
-                                                                    : 'Unknown Monitor'}
-                                                            </span>
-                                                        </div>
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td
-                                                className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root">
-                                                                <span>
-                                                                    {(subscriber.statusPageId !==
-                                                                        undefined &&
-                                                                        subscriber.statusPageId !==
-                                                                            null &&
-                                                                        subscriber.statusPageName) ||
-                                                                        'Fyipe Dashboard'}
-                                                                </span>
-                                                            </div>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td
-                                                aria-hidden="true"
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{
-                                                    height: '1px',
-                                                    maxWidth: '48px',
-                                                    minWidth: '48px',
-                                                    width: '48px',
-                                                }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        ⁣
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Flex-flex">
-                                                                <div className="Box-root Flex-flex">
-                                                                    <div
-                                                                        id="subscriber_contact"
-                                                                        className="contact db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart"
-                                                                    >
-                                                                        {(subscriber.contactWebhook && (
-                                                                            <div className="db-ListViewItem-link">
-                                                                                <div className="Badge Badge--color--yellow Box-background--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2 Margin-right--4">
-                                                                                    <span className="Badge-text Text-color--white Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                        <span>
-                                                                                            {` ${subscriber.webhookMethod ||
-                                                                                                'POST'} `.toUpperCase()}
-                                                                                        </span>
-                                                                                    </span>
-                                                                                </div>
-                                                                                {
-                                                                                    subscriber.contactWebhook
-                                                                                }
-                                                                            </div>
-                                                                        )) ||
-                                                                            subscriber.contactEmail ||
-                                                                            (subscriber.contactPhone &&
-                                                                                `+${countryTelephoneCode(
-                                                                                    subscriber.countryCode.toUpperCase()
-                                                                                )}${
-                                                                                    subscriber.contactPhone
-                                                                                }`)}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: '1px' }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                <span>Subscribed From</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        id="placeholder-left"
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{
+                                            height: '1px',
+                                            maxWidth: '48px',
+                                            minWidth: '48px',
+                                            width: '48px',
+                                        }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: '1px' }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                <span>Subscriber</span>
+                                            </span>
+                                        </div>
+                                    </td>
 
-                                            <td
-                                                aria-hidden="true"
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{
-                                                    height: '1px',
-                                                    maxWidth: '48px',
-                                                    minWidth: '48px',
-                                                    width: '48px',
-                                                }}
+                                    <td
+                                        id="placeholder-right"
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{
+                                            height: '1px',
+                                            maxWidth: '48px',
+                                            minWidth: '48px',
+                                            width: '48px',
+                                        }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: '1px' }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                <span>Alert Via</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        id="overflow"
+                                        type="action"
+                                        className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                        style={{ height: '1px' }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                        </div>
+                                    </td>
+                                    <RenderIfSubProjectAdmin
+                                        subProjectId={projectId}
+                                        currentProject={currentProject}
+                                        subProjects={subProjects}
+                                    >
+                                        <td
+                                            id="overflow"
+                                            type="action"
+                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                            style={{ height: '1px' }}
+                                        >
+                                            <div
+                                                className="db-ListViewItem-cellContent Box-root Padding-all--8"
+                                                style={{ marginLeft: '43px' }}
                                             >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        ⁣
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
+                                                <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                    Action
+                                                </span>
+                                            </div>
+                                        </td>
+                                    </RenderIfSubProjectAdmin>
+                                </tr>
+                            </thead>
+                            <tbody className="Table-body">
+                                {subscribers &&
+                                subscribers.subscribersList &&
+                                subscribers.subscribersList.length > 0 ? (
+                                    subscribers.subscribersList.map(
+                                        (subscriber, index) => (
+                                            <tr
+                                                className="subscriber-list-item Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
+                                                key={subscriber._id}
                                             >
-                                                <div className="db-ListViewItem-link">
+                                                <td
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                    style={{
+                                                        height: '1px',
+                                                        minWidth: '270px',
+                                                    }}
+                                                >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <div className="Badge Badge--color--green Box-background--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                            <span className="Badge-text Text-color--white Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                        <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <div className="Box-root Margin-right--16">
                                                                 <span>
-                                                                    {
-                                                                        subscriber.alertVia
-                                                                    }
+                                                                    {subscribers.name
+                                                                        ? subscribers.name
+                                                                        : subscriber.monitorId &&
+                                                                          subscriber.monitorName
+                                                                        ? subscriber.monitorName
+                                                                        : 'Unknown Monitor'}
                                                                 </span>
+                                                            </div>
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td
+                                                    className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{ height: '1px' }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <div className="Box-root">
+                                                                    <span>
+                                                                        {(subscriber.statusPageId !==
+                                                                            undefined &&
+                                                                            subscriber.statusPageId !==
+                                                                                null &&
+                                                                            subscriber.statusPageName) ||
+                                                                            'Fyipe Dashboard'}
+                                                                    </span>
+                                                                </div>
                                                             </span>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td
-                                                aria-hidden="true"
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{
-                                                    height: '1px',
-                                                    maxWidth: '48px',
-                                                    minWidth: '48px',
-                                                    width: '48px',
-                                                }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        ⁣
+                                                </td>
+                                                <td
+                                                    aria-hidden="true"
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{
+                                                        height: '1px',
+                                                        maxWidth: '48px',
+                                                        minWidth: '48px',
+                                                        width: '48px',
+                                                    }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            ⁣
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <RenderIfSubProjectAdmin
-                                                subProjectId={projectId}
-                                                currentProject={currentProject}
-                                                subProjects={subProjects}
-                                            >
+                                                </td>
                                                 <td
                                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     style={{ height: '1px' }}
                                                 >
                                                     <div className="db-ListViewItem-link">
                                                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                            <div className="Box-root">
-                                                                <span>
-                                                                    <RemoveBtn
-                                                                        openModal={
-                                                                            this
-                                                                                .props
-                                                                                .openModal
+                                                            <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <div className="Box-root Flex-flex">
+                                                                    <div className="Box-root Flex-flex">
+                                                                        <div
+                                                                            id="subscriber_contact"
+                                                                            className="contact db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart"
+                                                                        >
+                                                                            {(subscriber.contactWebhook && (
+                                                                                <div className="db-ListViewItem-link">
+                                                                                    <div className="Badge Badge--color--yellow Box-background--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2 Margin-right--4">
+                                                                                        <span className="Badge-text Text-color--white Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                            <span>
+                                                                                                {` ${subscriber.webhookMethod ||
+                                                                                                    'POST'} `.toUpperCase()}
+                                                                                            </span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    {
+                                                                                        subscriber.contactWebhook
+                                                                                    }
+                                                                                </div>
+                                                                            )) ||
+                                                                                subscriber.contactEmail ||
+                                                                                (subscriber.contactPhone &&
+                                                                                    `+${countryTelephoneCode(
+                                                                                        subscriber.countryCode.toUpperCase()
+                                                                                    )}${
+                                                                                        subscriber.contactPhone
+                                                                                    }`)}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                <td
+                                                    aria-hidden="true"
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{
+                                                        height: '1px',
+                                                        maxWidth: '48px',
+                                                        minWidth: '48px',
+                                                        width: '48px',
+                                                    }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            ⁣
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{ height: '1px' }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            <div className="Badge Badge--color--green Box-background--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                <span className="Badge-text Text-color--white Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                    <span>
+                                                                        {
+                                                                            subscriber.alertVia
                                                                         }
-                                                                        deleteSubscriberModalId={
-                                                                            this
-                                                                                .state
-                                                                                .deleteSubscriberModalId
-                                                                        }
-                                                                        deleteSubscriber={
-                                                                            this
-                                                                                .deleteSubscriber
-                                                                        }
-                                                                        projectId={
-                                                                            subscriber.projectId
-                                                                        }
-                                                                        _id={
-                                                                            subscriber._id
-                                                                        }
-                                                                        loading={
-                                                                            this
-                                                                                .state
-                                                                                .loading
-                                                                        }
-                                                                        index={
-                                                                            index
-                                                                        }
-                                                                    />
+                                                                    </span>
                                                                 </span>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                            </RenderIfSubProjectAdmin>
-                                        </tr>
+                                                <td
+                                                    aria-hidden="true"
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{
+                                                        height: '1px',
+                                                        maxWidth: '48px',
+                                                        minWidth: '48px',
+                                                        width: '48px',
+                                                    }}
+                                                >
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            ⁣
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <RenderIfSubProjectAdmin
+                                                    subProjectId={projectId}
+                                                    currentProject={
+                                                        currentProject
+                                                    }
+                                                    subProjects={subProjects}
+                                                >
+                                                    <td
+                                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                        style={{
+                                                            height: '1px',
+                                                        }}
+                                                    >
+                                                        <div className="db-ListViewItem-link">
+                                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                                <div className="Box-root">
+                                                                    <span>
+                                                                        <RemoveBtn
+                                                                            openModal={
+                                                                                this
+                                                                                    .props
+                                                                                    .openModal
+                                                                            }
+                                                                            deleteSubscriberModalId={
+                                                                                this
+                                                                                    .state
+                                                                                    .deleteSubscriberModalId
+                                                                            }
+                                                                            deleteSubscriber={
+                                                                                this
+                                                                                    .deleteSubscriber
+                                                                            }
+                                                                            projectId={
+                                                                                subscriber.projectId
+                                                                            }
+                                                                            _id={
+                                                                                subscriber._id
+                                                                            }
+                                                                            loading={
+                                                                                this
+                                                                                    .state
+                                                                                    .loading
+                                                                            }
+                                                                            index={
+                                                                                index
+                                                                            }
+                                                                        />
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </RenderIfSubProjectAdmin>
+                                            </tr>
+                                        )
                                     )
-                                )
-                            ) : (
-                                <tr></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-                {subscribers.requesting && <ListLoader />}
+                                ) : (
+                                    <tr></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                    {subscribers.requesting && <ListLoader />}
 
-                <div
-                    style={{
-                        textAlign: 'center',
-                        marginTop: '10px',
-                        padding: '0 10px',
-                    }}
-                >
-                    {subscribers &&
-                    (!subscribers.subscribersList ||
-                        !subscribers.subscribersList.length) &&
-                    !subscribers.requesting &&
-                    !subscribers.error
-                        ? "We don't have any subscribers yet"
-                        : null}
-                    {subscribers && subscribers.error
-                        ? subscribers.error
-                        : null}
-                </div>
+                    <div
+                        style={{
+                            textAlign: 'center',
+                            marginTop: '10px',
+                            padding: '0 10px',
+                        }}
+                    >
+                        {subscribers &&
+                        (!subscribers.subscribersList ||
+                            !subscribers.subscribersList.length) &&
+                        !subscribers.requesting &&
+                        !subscribers.error
+                            ? "We don't have any subscribers yet"
+                            : null}
+                        {subscribers && subscribers.error
+                            ? subscribers.error
+                            : null}
+                    </div>
 
-                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
-                    <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
-                        <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                            <span>
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    <ShouldRender
-                                        if={subscribers && subscribers.count}
-                                    >
-                                        <span id="numberOfSubscribers">
-                                            {subscribers.count}
-                                        </span>{' '}
-                                        {subscribers && subscribers.count > 1
-                                            ? 'Subscribers'
-                                            : 'Subscriber'}
-                                    </ShouldRender>
+                    <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                        <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
+                            <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                <span>
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                        <ShouldRender
+                                            if={
+                                                subscribers && subscribers.count
+                                            }
+                                        >
+                                            <span id="numberOfSubscribers">
+                                                {subscribers.count}
+                                            </span>{' '}
+                                            {subscribers &&
+                                            subscribers.count > 1
+                                                ? 'Subscribers'
+                                                : 'Subscriber'}
+                                        </ShouldRender>
+                                    </span>
                                 </span>
                             </span>
-                        </span>
-                    </div>
-                    <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
-                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                            <div className="Box-root Margin-right--8">
-                                <button
-                                    id="btnPrevSubscriber"
-                                    onClick={this.prevClicked}
-                                    className={
-                                        'Button bs-ButtonLegacy' +
-                                        (canPrev ? '' : 'Is--disabled')
-                                    }
-                                    disabled={!canPrev}
-                                    data-db-analytics-name="list_view.pagination.previous"
-                                    type="button"
-                                >
-                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                            <span>Previous</span>
-                                        </span>
-                                    </div>
-                                </button>
-                            </div>
-                            <div className="Box-root">
-                                <button
-                                    id="btnNextSubscriber"
-                                    onClick={this.nextClicked}
-                                    className={
-                                        'Button bs-ButtonLegacy' +
-                                        (canNext ? '' : 'Is--disabled')
-                                    }
-                                    disabled={!canNext}
-                                    data-db-analytics-name="list_view.pagination.next"
-                                    type="button"
-                                >
-                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                            <span>Next</span>
-                                        </span>
-                                    </div>
-                                </button>
+                        </div>
+                        <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                <div className="Box-root Margin-right--8">
+                                    <button
+                                        id="btnPrevSubscriber"
+                                        onClick={this.prevClicked}
+                                        className={
+                                            'Button bs-ButtonLegacy' +
+                                            (canPrev ? '' : 'Is--disabled')
+                                        }
+                                        disabled={!canPrev}
+                                        data-db-analytics-name="list_view.pagination.previous"
+                                        type="button"
+                                    >
+                                        <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                            <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                <span>Previous</span>
+                                            </span>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div className="Box-root">
+                                    <button
+                                        id="btnNextSubscriber"
+                                        onClick={this.nextClicked}
+                                        className={
+                                            'Button bs-ButtonLegacy' +
+                                            (canNext ? '' : 'Is--disabled')
+                                        }
+                                        disabled={!canNext}
+                                        data-db-analytics-name="list_view.pagination.next"
+                                        type="button"
+                                    >
+                                        <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                            <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                <span>Next</span>
+                                            </span>
+                                        </div>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </>
         );
     }
 }
