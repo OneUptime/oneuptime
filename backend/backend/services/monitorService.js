@@ -149,10 +149,12 @@ module.exports = {
                     if (data.type === 'url') {
                         monitor.siteUrls = [monitor.data.url];
                     }
-                    let name = data.name;
-                    name = slugify(name);
-                    name = `${name}-${generate('1234567890', 8)}`;
-                    monitor.slug = name.toLowerCase();
+                    if (data && data.name) {
+                        let name = data.name;
+                        name = slugify(name);
+                        name = `${name}-${generate('1234567890', 8)}`;
+                        monitor.slug = name.toLowerCase();
+                    }
                     const savedMonitor = await monitor.save();
                     monitor = await _this.findOneBy({ _id: savedMonitor._id });
                     if (data.type === 'manual') {
