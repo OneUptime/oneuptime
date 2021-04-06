@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import { change } from 'redux-form';
 import moment from 'moment';
 import 'imrc-datetime-picker/dist/imrc-datetime-picker.css';
 import { reduxForm, Field, formValueSelector, FieldArray } from 'redux-form';
@@ -377,29 +378,38 @@ class CreateSchedule extends React.Component {
                                             Create Scheduled Maintenance Event
                                         </span>
                                     </span>
-                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                        <label
-                                            className="Checkbox"
-                                            htmlFor="showAdvance"
-                                        >
-                                            <Field
-                                                component="input"
-                                                type="checkbox"
-                                                name="showAdvance"
-                                                className="Checkbox-source"
-                                                id="showAdvance"
-                                            />
-                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                <div className="Checkbox-target Box-root">
-                                                    <div className="Checkbox-color Box-root"></div>
-                                                </div>
-                                            </div>
-                                            <div className="Checkbox-label Box-root Margin-left--8">
-                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <span>Show Advance</span>
-                                                </span>
-                                            </div>
+                                    <div
+                                        className="bs-Fieldset-row"
+                                        style={{
+                                            padding: 0,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                        }}
+                                    >
+                                        <label style={{ marginRight: 10 }}>
+                                            Show advance
                                         </label>
+                                        <div>
+                                            <label className="Toggler-wrap">
+                                                <input
+                                                    className="btn-toggler"
+                                                    type="checkbox"
+                                                    onChange={() => {
+                                                        this.props.change(
+                                                            'showAdvance',
+                                                            !formValues.showAdvance
+                                                        );
+                                                    }}
+                                                    name="moreAdvancedOptions"
+                                                    id="moreAdvancedOptions"
+                                                    checked={
+                                                        formValues &&
+                                                        formValues.showAdvance
+                                                    }
+                                                />
+                                                <span className="TogglerBtn-slider round"></span>
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -597,71 +607,6 @@ class CreateSchedule extends React.Component {
                                                 </div>
                                             </div>
                                         </fieldset>
-                                        {formValues && formValues.recurring ? (
-                                            <fieldset className="Margin-bottom--16">
-                                                <div className="bs-Fieldset-rows">
-                                                    <div
-                                                        className="bs-Fieldset-row"
-                                                        style={{ padding: 0 }}
-                                                    >
-                                                        <label
-                                                            className="bs-Fieldset-label Text-align--left"
-                                                            htmlFor="monitorIds"
-                                                        >
-                                                            <span>
-                                                                Recurring
-                                                                interval
-                                                            </span>
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field
-                                                                className="db-select-nw"
-                                                                component={
-                                                                    RenderSelect
-                                                                }
-                                                                name="interval"
-                                                                id="interval"
-                                                                validate={
-                                                                    ValidateField.select
-                                                                }
-                                                                style={{
-                                                                    height:
-                                                                        '28px',
-                                                                    width:
-                                                                        '100%',
-                                                                }}
-                                                                options={[
-                                                                    {
-                                                                        value:
-                                                                            '',
-                                                                        label:
-                                                                            'Select interval',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            'daily',
-                                                                        label:
-                                                                            'Daily',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            'weekly',
-                                                                        label:
-                                                                            'Weekly',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            'monthly',
-                                                                        label:
-                                                                            'Monthly',
-                                                                    },
-                                                                ]}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </fieldset>
-                                        ) : null}
                                         <fieldset className="Margin-bottom--16">
                                             <div className="bs-Fieldset-rows">
                                                 <div
@@ -931,6 +876,71 @@ class CreateSchedule extends React.Component {
                                                 </div>
                                             </div>
                                         ) : null}
+                                            {formValues && formValues.recurring ? (
+                                            <fieldset className="Margin-bottom--16">
+                                                <div className="bs-Fieldset-rows">
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{ padding: 0 }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            htmlFor="monitorIds"
+                                                        >
+                                                            <span>
+                                                                Recurring
+                                                                interval
+                                                            </span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-select-nw"
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                name="interval"
+                                                                id="interval"
+                                                                validate={
+                                                                    ValidateField.select
+                                                                }
+                                                                style={{
+                                                                    height:
+                                                                        '28px',
+                                                                    width:
+                                                                        '100%',
+                                                                }}
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            '',
+                                                                        label:
+                                                                            'Select interval',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'daily',
+                                                                        label:
+                                                                            'Daily',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'weekly',
+                                                                        label:
+                                                                            'Weekly',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'monthly',
+                                                                        label:
+                                                                            'Monthly',
+                                                                    },
+                                                                ]}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </fieldset>
+                                        ) : null}
                                     </div>
                                 </div>
                                 <div className="bs-Modal-footer">
@@ -1019,6 +1029,7 @@ CreateSchedule.propTypes = {
     minStartDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     monitors: PropTypes.array,
     formValues: PropTypes.object,
+    change: PropTypes.func,
 };
 
 const NewCreateSchedule = reduxForm({
@@ -1034,6 +1045,7 @@ const mapDispatchToProps = dispatch =>
             createScheduledEvent,
             fetchscheduledEvents,
             closeModal,
+            change,
         },
         dispatch
     );
