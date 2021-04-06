@@ -44,17 +44,9 @@ class IncidentLog extends React.Component {
     }
 
     ready = () => {
-        const { componentId, fetchComponent, componentSlug } = this.props;
+        const { fetchComponent, componentSlug } = this.props;
         fetchComponent(componentSlug);
-        if (componentId) {
-            this.props.getComponentIncidents(
-                this.props.currentProject._id,
-                componentId
-            );
-        } else {
-            this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
-        }
-
+        this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
         this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
     };
