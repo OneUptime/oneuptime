@@ -3255,9 +3255,7 @@ module.exports = {
     sendSubscriberScheduledEventAlert: async function(
         subscriber,
         schedule,
-        monitor,
         templateType = 'Subscriber Scheduled Maintenance',
-        statusPage,
         componentName,
         totalSubscribers,
         id
@@ -3267,14 +3265,9 @@ module.exports = {
             const date = new Date();
             const projectName = schedule.projectId.name;
             const projectId = schedule.projectId._id;
-            const viewLink = `${global.dashboardHost}/dashboard/project/${schedule.projectId.slug}/scheduledEvents/${schedule._id}`;
+            const viewLink = `${global.dashboardHost}/project/${schedule.projectId.slug}/scheduledEvents/${schedule._id}`;
 
-            let webhookNotificationSent = false;
-
-            if (
-                !webhookNotificationSent ||
-                subscriber.alertVia === AlertType.Email
-            ) {
+            if (subscriber.alertVia === AlertType.Email) {
                 const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
                     {
                         name: 'smtp',
@@ -3289,35 +3282,21 @@ module.exports = {
                 const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
                     projectId
                 );
-
-                let errorMessageText, eventType;
                 const emailTemplate = await EmailTemplateService.findOneBy({
                     projectId,
                     emailType: templateType,
                 });
 
-                // const subscriberAlert = await SubscriberAlertService.create({
-                //     projectId,
-                //     // incidentId: incident._id,
-                //     subscriberId: subscriber._id,
-                //     alertVia: AlertType.Email,
-                //     alertStatus: 'Pending',
-                //     eventType: 'schedule-created',
-                //     totalSubscribers,
-                //     id,
-                // });
-                // const alertId = subscriberAlert._id;
-                // const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
-
-                // let unsubscribeUrl;
-                // if (statusPageUrl) {
-                //     unsubscribeUrl = `${global.statusHost}/status-page/${statusPage._id}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
-                // } else {
-                //     const statusPage = await StatusPageService.create({
-                //         projectId: incident.projectId,
-                //     });
-                //     unsubscribeUrl = `${global.statusHost}/status-page/${statusPage._id}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
-                // }
+                const subscriberAlert = await SubscriberAlertService.create({
+                    projectId,
+                    subscriberId: subscriber._id,
+                    alertVia: AlertType.Email,
+                    alertStatus: 'Pending',
+                    eventType: 'Scheduled maintenance created',
+                    totalSubscribers,
+                    id,
+                });
+                const alertId = subscriberAlert._id;
 
                 let alertStatus = null;
                 try {
@@ -3331,6 +3310,7 @@ module.exports = {
                             schedule,
                             projectName,
                             emailTemplate,
+                            viewLink,
                             'trackEmailAsViewedUrl',
                             componentName,
                             schedule.projectId.replyAddress,
@@ -3339,15 +3319,15 @@ module.exports = {
 
                         alertStatus = 'Sent';
                     }
-                    // await SubscriberAlertService.updateOneBy(
-                    //     { _id: alertId },
-                    //     { alertStatus }
-                    // );
+                    await SubscriberAlertService.updateOneBy(
+                        { _id: alertId },
+                        { alertStatus }
+                    );
                 } catch (error) {
-                    // await SubscriberAlertService.updateOneBy(
-                    //     { _id: alertId },
-                    //     { alertStatus: null }
-                    // );
+                    await SubscriberAlertService.updateOneBy(
+                        { _id: alertId },
+                        { alertStatus: null }
+                    );
                     throw error;
                 }
             } else if (subscriber.alertVia == AlertType.SMS) {
@@ -4052,9 +4032,7 @@ module.exports = {
                         await _this.sendSubscriberScheduledEventAlert(
                             subscriber,
                             schedule,
-                            monitor,
                             'Subscriber Scheduled Maintenance',
-                            null,
                             component,
                             subscribers.length,
                             uuid

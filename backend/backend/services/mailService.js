@@ -3863,6 +3863,7 @@ const _this = {
         schedule,
         projectName,
         emailTemplate,
+        viewLink,
         trackEmailAsViewedUrl,
         componentName,
         replyAddress,
@@ -3871,22 +3872,13 @@ const _this = {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
-        
+
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
                 'Subscriber Scheduled Maintenance'
             );
 
-            //scheduledEvent Name
-            const eventName = schedule.name;
-            const eventDescription = schedule.description;
-            //scheduledEvent create time
-            const eventCreateTime = schedule.createdAt;
-            //scheduled event start time
-            const eventStartTime = schedule.startDate;
-            //scheduled event end time
-            const eventEndTime = schedule.endDate;
             //project name
             const data = {
                 scheduledTime,
@@ -3898,11 +3890,12 @@ const _this = {
                 projectId: schedule.projectId,
                 componentName,
                 unsubscribeUrl,
-                eventName,
-                eventDescription,
-                eventCreateTime,
-                eventStartTime,
-                eventEndTime,
+                eventName: schedule.name,
+                eventDescription: schedule.description,
+                eventCreateTime: schedule.createdAt,
+                eventStartTime: schedule.startDate,
+                eventEndTime: schedule.endDate,
+                viewLink,
                 year: DateTime.getCurrentYear,
             };
             template = template(data);

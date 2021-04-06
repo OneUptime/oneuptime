@@ -19,6 +19,7 @@ const subscriberAlertSchema = new Schema({
             'resolved',
             'Investigation note created',
             'Investigation note updated',
+            'Scheduled maintenance created',
         ],
         required: true,
     },

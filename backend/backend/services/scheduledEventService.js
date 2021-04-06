@@ -68,9 +68,12 @@ module.exports = {
                 });
             }
 
-            // handle this asynchronous operation in the background
-            AlertService.sendCreatedScheduledEventToSubscribers(scheduledEvent);
-
+            if (scheduledEvent.alertSubscriber) {
+                // handle this asynchronous operation in the background
+                AlertService.sendCreatedScheduledEventToSubscribers(
+                    scheduledEvent
+                );
+            }
             await RealTimeService.addScheduledEvent(scheduledEvent);
 
             return scheduledEvent;
