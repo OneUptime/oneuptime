@@ -1223,7 +1223,10 @@ router.get(
 //get subscribers by monitorId in a statuspage
 // req.params-> {projectId, monitorId, statusPageId};
 // Returns: response subscribers, error message
-router.get('/:projectId/monitor/:statusPageId', async function(req, res) {
+router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
+    req,
+    res
+) {
     try {
         const { statusPageId } = req.params;
         const skip = req.query.skip || 0;
