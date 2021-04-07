@@ -10,6 +10,10 @@ const ssoSchema = new Schema({
         type: String,
         required: true,
     },
+    entityId: {
+        type: String,
+        required: true,
+    },
     samlSsoUrl: {
         type: String,
         required: true,

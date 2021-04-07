@@ -188,7 +188,7 @@ export class Component extends React.Component {
                                     >
                                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                             <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                <span>actions</span>
+                                                <span>Created At</span>
                                             </span>
                                         </div>
                                     </td>
@@ -208,22 +208,15 @@ export class Component extends React.Component {
                                     </td>
                                     <td
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{ height: '1px' }}
+                                        style={{
+                                            height: '1px',
+                                            textAlign: 'right',
+                                        }}
                                     >
                                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                             <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                <span>Created At</span>
+                                                <span>actions</span>
                                             </span>
-                                        </div>
-                                    </td>
-                                    <td
-                                        id="overflow"
-                                        type="action"
-                                        className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{ height: '1px' }}
-                                    >
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                            <span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
                                         </div>
                                     </td>
                                 </tr>
@@ -301,22 +294,11 @@ export class Component extends React.Component {
                                             style={{ height: '1px' }}
                                         >
                                             <div className="db-ListViewItem-link">
-                                                <button
-                                                    className="bs-Button bs-Button--blue Box-background--blue edit-button"
-                                                    onClick={() =>
-                                                        this.editSso(sso._id)
-                                                    }
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    className="bs-Button bs-Button--red Box-background--red delete-button"
-                                                    onClick={() =>
-                                                        this.deleteSso(sso._id)
-                                                    }
-                                                >
-                                                    Delete
-                                                </button>
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    {moment(
+                                                        sso.createdAt
+                                                    ).fromNow()}
+                                                </div>
                                             </div>
                                         </td>
                                         <td
@@ -337,17 +319,36 @@ export class Component extends React.Component {
                                         </td>
                                         <td
                                             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                            style={{ height: '1px' }}
+                                            style={{
+                                                height: '1px',
+                                                textAlign: 'right',
+                                            }}
                                         >
-                                            <div className="db-ListViewItem-link">
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    {moment(
-                                                        sso.createdAt
-                                                    ).fromNow()}
-                                                </div>
+                                            <div
+                                                className="db-ListViewItem-link"
+                                                style={{
+                                                    marginTop: 10,
+                                                    paddingRight: 20,
+                                                }}
+                                            >
+                                                <button
+                                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                                                    onClick={() =>
+                                                        this.editSso(sso._id)
+                                                    }
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
+                                                    onClick={() =>
+                                                        this.deleteSso(sso._id)
+                                                    }
+                                                >
+                                                    Delete
+                                                </button>
                                             </div>
                                         </td>
-                                        <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"></td>
                                     </tr>
                                 ))}
                             </tbody>
