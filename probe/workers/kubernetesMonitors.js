@@ -72,7 +72,6 @@ module.exports = {
                                          */
                                         if (
                                             item.status.phase !== 'Running' &&
-                                            item.status.phase !== 'Pending' &&
                                             item.status.phase !== 'Succeeded'
                                         ) {
                                             unhealthyPods.push({
@@ -104,6 +103,8 @@ module.exports = {
                                                 podContainerStatuses:
                                                     item.status
                                                         .containerStatuses,
+                                                podContainers:
+                                                    item.spec.containers,
                                             });
                                             unhealthyPodData.push({
                                                 podName: item.metadata.name,
@@ -155,6 +156,8 @@ module.exports = {
                                                 podContainerStatuses:
                                                     item.status
                                                         .containerStatuses,
+                                                podContainers:
+                                                    item.spec.containers,
                                             });
                                             healthyPodData.push({
                                                 podName: item.metadata.name,
@@ -209,6 +212,7 @@ module.exports = {
                                                 item.status.conditions,
                                             podContainerStatuses:
                                                 item.status.containerStatuses,
+                                            podContainers: item.spec.containers,
                                         });
                                         allPodData.push({
                                             podName: item.metadata.name,
