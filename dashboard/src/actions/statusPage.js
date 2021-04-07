@@ -1219,6 +1219,60 @@ export function resetStatusPageEmbeddedCss(projectId, data) {
     };
 }
 
+// fetch subscribers by monitors in statuspage
+export function fetchSubscriberRequest() {
+    return {
+        type: types.FETCH_SUBSCRIBER_REQUEST,
+    };
+}
+
+export function fetchSubscriberSuccess(data) {
+    return {
+        type: types.FETCH_SUBSCRIBER_SUCCESS,
+        payload: data,
+    };
+}
+
+export function fetchSubscriberFailure(error) {
+    return {
+        type: types.FETCH_SUBSCRIBER_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchStatusPageSubscribers(
+    projectId,
+    statusPageId,
+    skip,
+    limit
+) {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/monitor/${statusPageId}?skip=${skip}&limit=${limit}`
+        );
+        dispatch(fetchSubscriberRequest());
+        promise.then(
+            function(response) {
+                dispatch(fetchSubscriberSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchSubscriberFailure(errors(error)));
+            }
+        );
+        return promise;
+    };
+}
+
 // Calls the API to delete StatusPages after deleting the project
 
 export function deleteProjectStatusPages(projectId) {
