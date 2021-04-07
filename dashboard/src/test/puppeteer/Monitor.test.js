@@ -861,15 +861,15 @@ describe('API Monitor API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
-                const newMonitorName = utils.generateRandomString();
-                await init.addAPIMonitorWithJSExpression(page, newMonitorName);                
+                //const newMonitorName = utils.generateRandomString();
+                await init.addAPIMonitorWithJSExpression(page, testMonitorName);                
 
                 let spanElement = await page.waitForSelector(
-                    `#monitor-title-${newMonitorName}`
+                    `#monitor-title-${testMonitorName}`
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
-                spanElement.should.be.exactly(newMonitorName);
+                spanElement.should.be.exactly(testMonitorName);
 
                 const probeTabs = await page.$$('button[id^=probes-btn]');
                 for (const probeTab of probeTabs) {
@@ -883,25 +883,26 @@ describe('API Monitor API', () => {
                             'innerText'
                         );
                         monitorStatusElement = await monitorStatusElement.jsonValue();
-                        monitorStatusElement.should.be.exactly('Degraded');
+                        monitorStatusElement.should.be.exactly('Online');
                     }
                 }
             });
         },
         operationTimeOut
     );
-
+        // Second Monitor has been created an will be used in most of the remaining tests.
     test(
         'should strip trailing semicolons from evaluate response js expressions',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                // Navigate to Component details
-                await init.navigateToComponentDetails(componentName, page);
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    testMonitorName,
+                    page
+                );
 
-                const newMonitorName = utils.generateRandomString();
-                await init.addAPIMonitorWithJSExpression(page, newMonitorName);
-
-                const editButtonSelector = `#edit_${newMonitorName}`;
+                const editButtonSelector = `#edit_${testMonitorName}`;
                 await page.waitForSelector(editButtonSelector, {
                     visible: true,
                 });
@@ -967,11 +968,14 @@ describe('API Monitor API', () => {
             await cluster.execute(null, testServer);
 
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await init.navigateToComponentDetails(componentName, page);
+                await page.goto(utils.DASHBOARD_URL);                
 
-                const newMonitorName = utils.generateRandomString();
-                await init.addAPIMonitorWithJSExpression(page, newMonitorName);                
+                 // Navigate to Monitor details
+                 await init.navigateToMonitorDetails(
+                    componentName,
+                    testMonitorName,
+                    page
+                );                                           
 
                 const probeTabs = await page.$$('button[id^=probes-btn]');
                 for (const probeTab of probeTabs) {
@@ -1019,11 +1023,13 @@ describe('API Monitor API', () => {
 
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await init.navigateToComponentDetails(componentName, page);
-
-                const newMonitorName = utils.generateRandomString();
-                await init.addAPIMonitorWithJSExpression(page, newMonitorName);
-              
+                
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    testMonitorName,
+                    page
+                );
 
                 const probeTabs = await page.$$('button[id^=probes-btn]');
                 for (const probeTab of probeTabs) {
@@ -1077,10 +1083,13 @@ describe('API Monitor API', () => {
             null,
             async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await init.navigateToComponentDetails(componentName, page);
-
-                const newMonitorName = utils.generateRandomString();
-                await init.addAPIMonitorWithJSExpression(page, newMonitorName);
+                
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    testMonitorName,
+                    page
+                );
 
                 const probeTabs = await page.$$('button[id^=probes-btn]');
                 for (const probeTab of probeTabs) {
@@ -1157,13 +1166,14 @@ describe('API Monitor API', () => {
         async () => {
             expect.assertions(1);
             return await cluster.execute(null, async ({ page }) => {
+
                 // Navigate to Monitor details
-
-                await init.navigateToComponentDetails(componentName, page);
-                const newMonitorName = utils.generateRandomString();
-                await init.addAPIMonitorWithJSExpression(page, newMonitorName);
-
-                const deleteButtonSelector = `#delete_${newMonitorName}`;
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    testMonitorName,
+                    page
+                );
+                const deleteButtonSelector = `#delete_${testMonitorName}`;
                 await page.waitForSelector(deleteButtonSelector);
                 await page.$eval(deleteButtonSelector, e => e.click());
 
@@ -1174,8 +1184,7 @@ describe('API Monitor API', () => {
                     hidden: true,
                 });
 
-                const selector = `span#monitor-title-${newMonitorName}`;
-
+                const selector = `span#monitor-title-${testMonitorName}`;
                 const spanElement = await page.$(selector);
                 expect(spanElement).toBeNull();
             });
