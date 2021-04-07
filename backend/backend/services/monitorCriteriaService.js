@@ -373,13 +373,6 @@ const MonitorCriteriaService = {
                                 match: 'any',
                                 responseType: 'podStatus',
                                 filter: 'equalTo',
-                                field1: 'pending',
-                                field2: '',
-                                field3: false,
-                            },
-                            {
-                                responseType: 'podStatus',
-                                filter: 'equalTo',
                                 field1: 'running',
                                 field2: '',
                                 field3: false,
