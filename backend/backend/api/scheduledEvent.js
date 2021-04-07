@@ -80,18 +80,6 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             });
         }
 
-        const existingScheduledEvent = await ScheduledEventService.findOneBy({
-            name: data.name,
-            projectId: projectId,
-        });
-
-        if (existingScheduledEvent) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Scheduled event name already exists',
-            });
-        }
-
         const scheduledEvent = await ScheduledEventService.create(
             { projectId },
             data
