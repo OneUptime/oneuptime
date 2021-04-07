@@ -62,8 +62,7 @@ module.exports = {
                                         unhealthyPodData = [],
                                         allPods = [],
                                         allPodData = [];
-                                    let pendingPods = 0,
-                                        runningPods = 0,
+                                    let runningPods = 0,
                                         completedPods = 0,
                                         failedPods = 0;
                                     podOutput.items.forEach(item => {
@@ -178,8 +177,6 @@ module.exports = {
                                                               .restartCount
                                                         : 0,
                                             });
-                                            if (item.status.phase === 'Pending')
-                                                ++pendingPods;
                                             if (item.status.phase === 'Running')
                                                 ++runningPods;
                                             if (
@@ -235,7 +232,6 @@ module.exports = {
                                         podStat: {
                                             healthy: healthyPods.length,
                                             unhealthy: unhealthyPods.length,
-                                            pendingPods,
                                             runningPods,
                                             completedPods,
                                             failedPods,
