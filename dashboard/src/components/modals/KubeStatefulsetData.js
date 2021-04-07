@@ -124,7 +124,7 @@ class KubeStatefulsetData extends React.Component {
                                                         style={{
                                                             backgroundColor:
                                                                 'white',
-                                                            height: 60,
+                                                            minHeight: 60,
                                                             borderBottom:
                                                                 '1px solid #cfd7df80',
                                                             display: 'flex',

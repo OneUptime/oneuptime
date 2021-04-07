@@ -85,7 +85,7 @@ class KubeJobData extends React.Component {
                                 className="scheduled-event-list-item bs-ObjectList-row db-UserListRow"
                                 style={{
                                     backgroundColor: 'white',
-                                    height: 60,
+                                    minHeight: 60,
                                     display: 'flex',
                                     justifyContent: 'space-between',
                                     alignItems: 'center',
@@ -177,7 +177,7 @@ class KubeJobData extends React.Component {
                                                                 style={{
                                                                     backgroundColor:
                                                                         'white',
-                                                                    height: 60,
+                                                                    minHeight: 60,
                                                                     borderBottom:
                                                                         '1px solid #cfd7df80',
                                                                     display:
@@ -237,7 +237,7 @@ class KubeJobData extends React.Component {
                                                         style={{
                                                             backgroundColor:
                                                                 'white',
-                                                            height: 60,
+                                                            minHeight: 60,
                                                             borderBottom:
                                                                 '1px solid #cfd7df80',
                                                             display: 'flex',
