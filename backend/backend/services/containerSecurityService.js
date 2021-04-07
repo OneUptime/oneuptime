@@ -116,8 +116,8 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-             // The received value from probe service is '{ scanning: true }'
-             if (data.name) {
+            // The received value from probe service is '{ scanning: true }'
+            if (data && data.name) {
                 let name = data.name;
                 name = slugify(name);
                 name = `${name}-${generate('1234567890', 8)}`;

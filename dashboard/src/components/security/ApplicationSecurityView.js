@@ -55,6 +55,7 @@ const ApplicationSecurityView = ({
         componentId,
         applicationSecurityId,
         applicationSecuritySlug,
+        componentSlug,
     }) => {
         openModal({
             id: applicationSecurityId,
@@ -65,6 +66,7 @@ const ApplicationSecurityView = ({
                     componentId,
                     applicationSecurityId,
                     applicationSecuritySlug,
+                    componentSlug,
                 },
             ],
         });
@@ -241,6 +243,7 @@ const ApplicationSecurityView = ({
                                             componentId,
                                             applicationSecurityId,
                                             applicationSecuritySlug,
+                                            componentSlug,
                                         })
                                     }
                                     id={`edit_${applicationSecurity.name}`}

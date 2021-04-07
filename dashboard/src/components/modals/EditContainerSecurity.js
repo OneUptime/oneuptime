@@ -7,6 +7,7 @@ import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { ValidateField } from '../../config';
+import { history } from '../../store';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
 import { closeModal } from '../../actions/modal';
@@ -62,6 +63,10 @@ class EditContainerSecurity extends Component {
             componentId,
             containerSecurityId,
             data: values,
+        }).then(data => {
+            history.push(
+                `/dashboard/project/${this.props.projectSlug}/${this.props.componentSlug}/security/container/${data.data.slug}`
+            );
         });
     };
 
@@ -372,15 +377,22 @@ EditContainerSecurity.propTypes = {
     propArr: PropTypes.array,
     closeModal: PropTypes.func,
     handleSubmit: PropTypes.func,
+    componentSlug: PropTypes.string,
     editContainerSecurity: PropTypes.func,
     dockerCredentials: PropTypes.array,
     resourceCategoryList: PropTypes.array,
+    projectSlug: PropTypes.string,
 };
 
 const mapStateToProps = state => {
     return {
         isRequesting: state.security.editContainerSecurity.requesting,
         editError: state.security.editContainerSecurity.error,
+        projectSlug:
+            state.project.currentProject && state.project.currentProject.slug,
+        componentSlug:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component.slug,
         initialValues: {
             name: state.security.containerSecurity.name,
             dockerCredential:

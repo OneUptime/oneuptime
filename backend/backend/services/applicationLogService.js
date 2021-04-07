@@ -182,7 +182,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            if (data.name) {
+            if (data && data.name) {
                 let name = data.name;
                 name = slugify(name);
                 name = `${name}-${generate('1234567890', 8)}`;
