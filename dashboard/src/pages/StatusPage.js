@@ -38,7 +38,10 @@ class StatusPage extends Component {
     };
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
-        tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
+
+        setTimeout(() => {
+            tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
+        });
         this.setState({
             tabIndex: index,
         });
@@ -153,27 +156,27 @@ class StatusPage extends Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-6'}>
                                     Basic
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-6'}>
                                     Subscribers
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-6'}>
                                     Custom Domains
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-6'}>
                                     Branding
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-6'}>
                                     Embedded
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-6'}>
                                     Advanced Options
                                 </Tab>
                                 <div
                                     id="tab-slider"
-                                    className="custom-tab-5 status-tab"
+                                    className="custom-tab-6 status-tab"
                                 ></div>
                             </TabList>
                         </div>
