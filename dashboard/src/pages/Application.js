@@ -46,12 +46,13 @@ class Application extends Component {
             getApplicationSecurities,
             getApplicationSecurityLogs,
         } = this.props;
+        if (projectId && componentId) {
+            // load all the available logs
+            getApplicationSecurityLogs({ projectId, componentId });
 
-        // load all the available logs
-        getApplicationSecurityLogs({ projectId, componentId });
-
-        // load all the application securities
-        getApplicationSecurities({ projectId, componentId });
+            // load all the application securities
+            getApplicationSecurities({ projectId, componentId });
+        }
     };
 
     render() {

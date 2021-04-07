@@ -6,6 +6,7 @@ import { reduxForm, Field } from 'redux-form';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import { history } from '../../store';
 import { ValidateField } from '../../config';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
@@ -62,6 +63,10 @@ class EditApplicationSecurity extends Component {
             componentId,
             applicationSecurityId,
             data: values,
+        }).then(data => {
+            history.push(
+                `/dashboard/project/${this.props.projectSlug}/${this.props.componentSlug}/security/application/${data.data.slug}`
+            );
         });
     };
 
@@ -357,6 +362,8 @@ EditApplicationSecurity.propTypes = {
     closeModal: PropTypes.func,
     handleSubmit: PropTypes.func,
     editApplicationSecurity: PropTypes.func,
+    componentSlug: PropTypes.string,
+    projectSlug: PropTypes.string,
     gitCredentials: PropTypes.array,
     resourceCategoryList: PropTypes.array,
 };
@@ -365,6 +372,11 @@ const mapStateToProps = state => {
     return {
         isRequesting: state.security.editApplicationSecurity.requesting,
         editError: state.security.editApplicationSecurity.error,
+        projectSlug:
+            state.project.currentProject && state.project.currentProject.slug,
+        componentSlug:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component.slug,
         initialValues: {
             name: state.security.applicationSecurity.name,
             gitRepositoryUrl:

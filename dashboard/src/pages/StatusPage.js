@@ -30,6 +30,7 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import Themes from '../components/statusPage/Themes';
+import StatusPageSubscriber from '../components/statusPage/StatusPageSubscriber';
 
 class StatusPage extends Component {
     state = {
@@ -37,7 +38,10 @@ class StatusPage extends Component {
     };
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
-        tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
+
+        setTimeout(() => {
+            tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
+        });
         this.setState({
             tabIndex: index,
         });
@@ -152,24 +156,27 @@ class StatusPage extends Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-6'}>
                                     Basic
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-6'}>
+                                    Subscribers
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-6'}>
                                     Custom Domains
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-6'}>
                                     Branding
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-6'}>
                                     Embedded
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-6'}>
                                     Advanced Options
                                 </Tab>
                                 <div
                                     id="tab-slider"
-                                    className="custom-tab-5"
+                                    className="custom-tab-6 status-tab"
                                 ></div>
                             </TabList>
                         </div>
@@ -216,6 +223,28 @@ class StatusPage extends Component {
                                                                         </div>
                                                                     </RenderIfSubProjectAdmin>
                                                                 </Fade>
+                                                            </TabPanel>
+                                                            <TabPanel>
+                                                                <div className="Box-root Margin-bottom--12 bs-ContentSection Card-root Card-shadow--medium>">
+                                                                    <StatusPageSubscriber
+                                                                        projectId={
+                                                                            projectId
+                                                                        }
+                                                                        statusPage={
+                                                                            status
+                                                                        }
+                                                                        currentProject={
+                                                                            this
+                                                                                .props
+                                                                                .currentProject
+                                                                        }
+                                                                        subProjects={
+                                                                            this
+                                                                                .props
+                                                                                .subProjects
+                                                                        }
+                                                                    />
+                                                                </div>
                                                             </TabPanel>
                                                             <TabPanel>
                                                                 <Fade>
@@ -368,6 +397,8 @@ function mapStateToProps(state) {
         showDuplicateStatusPage: state.statusPage.showDuplicateStatusPage,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
+        subProjects: state.subProject.subProjects.subProjects,
+        currentProject: state.project.currentProject,
     };
 }
 
@@ -382,6 +413,8 @@ StatusPage.propTypes = {
         pathname: PropTypes.string,
     }),
     projectId: PropTypes.string,
+    currentProject: PropTypes.object,
+    subProjects: PropTypes.array,
 };
 
 StatusPage.displayName = 'StatusPage';

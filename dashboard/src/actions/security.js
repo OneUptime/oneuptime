@@ -348,32 +348,39 @@ export const editContainerSecurityFailure = error => ({
     payload: error,
 });
 
-export const editContainerSecurity = ({
+export function editContainerSecurity({
     projectId,
     componentId,
     containerSecurityId,
     data,
-}) => async dispatch => {
-    dispatch(editContainerSecurityRequest());
-
-    try {
-        const response = await putApi(
+}) {
+    return function(dispatch) {
+        const promise = putApi(
             `security/${projectId}/${componentId}/container/${containerSecurityId}`,
             data
         );
-        dispatch(editContainerSecuritySuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(editContainerSecurityFailure(errorMsg));
-    }
-};
+        dispatch(editContainerSecurityRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(editContainerSecuritySuccess(response.data));
+            },
+            function(error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(editContainerSecurityFailure(errorMsg));
+            }
+        );
+
+        return promise;
+    };
+}
 
 // Add Application Security
 export const addApplicationSecurityRequest = () => ({
@@ -722,32 +729,39 @@ export const editApplicationSecurityFailure = error => ({
     payload: error,
 });
 
-export const editApplicationSecurity = ({
+export function editApplicationSecurity({
     projectId,
     componentId,
     applicationSecurityId,
     data,
-}) => async dispatch => {
-    dispatch(editApplicationSecurityRequest());
-
-    try {
-        const response = await putApi(
+}) {
+    return function(dispatch) {
+        const promise = putApi(
             `security/${projectId}/${componentId}/application/${applicationSecurityId}`,
             data
         );
-        dispatch(editApplicationSecuritySuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(editApplicationSecurityFailure(errorMsg));
-    }
-};
+        dispatch(editApplicationSecurityRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(editApplicationSecuritySuccess(response.data));
+            },
+            function(error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(editApplicationSecurityFailure(errorMsg));
+            }
+        );
+
+        return promise;
+    };
+}
 
 export const setActiveApplicationSecurity = payload => ({
     type: types.SET_ACTIVE_APPLICATION_SECURITY,

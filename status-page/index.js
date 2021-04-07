@@ -46,12 +46,6 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
     res.send('window._env = ' + JSON.stringify(env));
 });
 
-app.use(express.static(path.join(__dirname, 'build')));
-app.use('/status-page', express.static(path.join(__dirname, 'build')));
-app.use(
-    '/status-page/static/js',
-    express.static(path.join(__dirname, 'build/static/js'))
-);
 app.use('/.well-known/acme-challenge/:token', async function(req, res) {
     // make api call to backend and fetch keyAuthorization
     const { token } = req.params;
@@ -65,6 +59,49 @@ app.use('/.well-known/acme-challenge/:token', async function(req, res) {
     const response = await axios.get(url);
     res.send(response.data);
 });
+
+app.use(async function(req, res, next) {
+    let apiHost;
+    const host = req.hostname;
+    if (
+        host === 'fyipe.com' ||
+        host === 'staging.fyipe.com' ||
+        host.indexOf('localhost') > -1
+    ) {
+        return next();
+    }
+    if (process.env.FYIPE_HOST) {
+        apiHost = 'https://' + process.env.FYIPE_HOST + '/api';
+    } else {
+        apiHost = 'http://localhost:3002/api';
+    }
+
+    const response = await fetch(
+        `${apiHost}/statusPage/tlsCredential?domain=${host}`
+    ).then(res => res.json());
+
+    const { enableHttps } = response;
+    if (enableHttps) {
+        if (!req.secure) {
+            res.writeHead(301, { Location: `https://${host}${req.url}` });
+            return res.end();
+        }
+        next();
+    } else {
+        if (req.secure) {
+            res.writeHead(301, { Location: `http://${host}${req.url}` });
+            return res.end();
+        }
+        next();
+    }
+});
+
+app.use(express.static(path.join(__dirname, 'build')));
+app.use('/status-page', express.static(path.join(__dirname, 'build')));
+app.use(
+    '/status-page/static/js',
+    express.static(path.join(__dirname, 'build/static/js'))
+);
 
 app.get('/*', function(req, res) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));

@@ -57,16 +57,12 @@ class Incident extends React.Component {
         this.props.fetchComponent(this.props.componentSlug);
     }
     componentDidUpdate(prevProps) {
-        const previousIncidentId = prevProps.match.params.incidentId;
-        const newIncidentId = this.props.match.params.incidentId;
-        if (previousIncidentId !== newIncidentId) {
-            this.fetchAllIncidentData();
-        }
         if (prevProps.projectId !== this.props.projectId) {
             this.props.getIncidentByIdNumber(
                 this.props.projectId,
                 this.props.incidentId
             );
+            this.fetchAllIncidentData();
         }
     }
 
@@ -205,8 +201,14 @@ class Incident extends React.Component {
     };
 
     fetchAllIncidentData() {
-        this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
-        this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
+        this.props.fetchIncidentPriorities(
+            this.props.currentProject && this.props.currentProject._id,
+            0,
+            0
+        );
+        this.props.fetchBasicIncidentSettings(
+            this.props.currentProject && this.props.currentProject._id
+        );
         const monitorId =
             this.props.incident &&
             this.props.incident.monitorId &&
@@ -738,7 +740,6 @@ Incident.propTypes = {
     incident: PropTypes.object,
     incidentTimeline: PropTypes.object,
     limit: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    match: PropTypes.object,
     skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     subscribersAlerts: PropTypes.object.isRequired,
     location: PropTypes.shape({
