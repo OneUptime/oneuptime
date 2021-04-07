@@ -198,7 +198,7 @@ export class RenderOption extends Component {
                     </label>
                     <div className="bs-Fieldset-fields">
                         <Field
-                            className="db-select-nw db-select-nw-180 response-list"
+                            className="db-select-nw db-select-nw-180"
                             component={RenderSelect}
                             name={`${fieldnameprop}.responseType`}
                             id="responseType"
@@ -419,7 +419,7 @@ export class RenderOption extends Component {
                         </label>
                         <div className="bs-Fieldset-fields">
                             <Field
-                                className="db-select-nw db-select-nw-180 filter-list"
+                                className="db-select-nw db-select-nw-180"
                                 component={RenderSelect}
                                 name={`${fieldnameprop}.filter`}
                                 id="filter"
@@ -693,7 +693,7 @@ export class RenderOption extends Component {
                             <div className="bs-Fieldset-fields Flex-direction--row">
                                 {type === 'kubernetes' ? (
                                     <Field
-                                        className="db-select-nw db-select-nw-180 value-list"
+                                        className="db-select-nw db-select-nw-180"
                                         component={RenderSelect}
                                         name={`${fieldnameprop}.field1`}
                                         id="value"
