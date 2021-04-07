@@ -44,9 +44,20 @@ class IncidentLog extends React.Component {
     }
 
     ready = () => {
-        const { fetchComponent, componentSlug } = this.props;
+        const {
+            componentId,
+            fetchComponent,
+            componentSlug,
+            component,
+        } = this.props;
         fetchComponent(componentSlug);
-        this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
+        if (componentSlug) {
+            const projectId = component.projectId._id;
+            this.props.getComponentIncidents(projectId, componentId);
+        } else {
+            this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
+        }
+
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
         this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
     };
@@ -59,10 +70,13 @@ class IncidentLog extends React.Component {
         }
 
         if (String(prevProps.componentId) !== String(this.props.componentId)) {
-            this.props.getComponentIncidents(
-                this.props.currentProject._id,
-                this.props.componentId
-            );
+            if (this.props.component && this.props.component.projectId) {
+                const projectId = this.props.component.projectId._id;
+                this.props.getComponentIncidents(
+                    projectId,
+                    this.props.componentId
+                );
+            }
         }
     }
 
@@ -397,6 +411,7 @@ IncidentLog.propTypes = {
     component: PropTypes.arrayOf(
         PropTypes.shape({
             name: PropTypes.string,
+            _id: PropTypes.string,
         })
     ),
     fetchIncidentPriorities: PropTypes.func.isRequired,
