@@ -45,12 +45,13 @@ class Container extends Component {
             getContainerSecurities,
             getContainerSecurityLogs,
         } = this.props;
+        if (projectId && componentId) {
+            // load container security logs
+            getContainerSecurityLogs({ projectId, componentId });
 
-        // load container security logs
-        getContainerSecurityLogs({ projectId, componentId });
-
-        // load container security
-        getContainerSecurities({ projectId, componentId });
+            // load container security
+            getContainerSecurities({ projectId, componentId });
+        }
     };
 
     render() {

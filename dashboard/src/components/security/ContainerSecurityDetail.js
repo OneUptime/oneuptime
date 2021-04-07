@@ -269,14 +269,18 @@ const mapStateToProps = (state, ownProps) => {
             return component;
         })
     );
-
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
-        componentId: components[0] && components[0]._id,
-        componentSlug: components[0] && components[0].slug,
+        componentId:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
+        componentSlug:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component.slug,
         containerSecuritySlug,
         containerSecurity: state.security.containerSecurity,
+        containerSecurityId: state.security.containerSecurity._id,
         isRequesting: state.security.getContainer.requesting,
         getContainerError: state.security.getContainer.error,
         containerSecurityLog: state.security.containerSecurityLog || {},

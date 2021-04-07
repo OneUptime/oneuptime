@@ -58,20 +58,20 @@ class Home extends Component {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > HOME');
         }
         this.props.userScheduleRequest();
-        this.props.getSmtpConfig(this.props.currentProjectId);
-        this.props.fetchErrorTrackersByProject(this.props.currentProjectId);
-        if (this.props.currentProjectId && this.props.user.id) {
-            this.props.fetchUserSchedule(
-                this.props.currentProjectId,
-                this.props.user.id
-            );
-            this.props.fetchSubProjectOngoingScheduledEvents(
-                this.props.currentProjectId
-            );
-            this.props.fetchBreachedMonitorSla(this.props.currentProjectId);
-            this.props.fetchDefaultMonitorSla(this.props.currentProjectId);
-        }
         if (this.props.currentProjectId) {
+            this.props.getSmtpConfig(this.props.currentProjectId);
+            this.props.fetchErrorTrackersByProject(this.props.currentProjectId);
+            if (this.props.currentProjectId && this.props.user.id) {
+                this.props.fetchUserSchedule(
+                    this.props.currentProjectId,
+                    this.props.user.id
+                );
+                this.props.fetchSubProjectOngoingScheduledEvents(
+                    this.props.currentProjectId
+                );
+                this.props.fetchBreachedMonitorSla(this.props.currentProjectId);
+                this.props.fetchDefaultMonitorSla(this.props.currentProjectId);
+            }
             this.props.subProjectTeamLoading(this.props.currentProjectId);
         }
     }

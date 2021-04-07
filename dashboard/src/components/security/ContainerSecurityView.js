@@ -55,6 +55,7 @@ const ContainerSecurityView = ({
         componentId,
         containerSecurityId,
         containerSecuritySlug,
+        componentSlug,
     }) => {
         openModal({
             id: containerSecurityId,
@@ -65,6 +66,7 @@ const ContainerSecurityView = ({
                     componentId,
                     containerSecurityId,
                     containerSecuritySlug,
+                    componentSlug,
                 },
             ],
         });
@@ -240,6 +242,7 @@ const ContainerSecurityView = ({
                                             componentId,
                                             containerSecurityId,
                                             containerSecuritySlug,
+                                            componentSlug,
                                         })
                                     }
                                 >

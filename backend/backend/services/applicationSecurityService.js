@@ -119,15 +119,12 @@ module.exports = {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
-
-            // The received value from probe service is '{ scanning: true }'
-            if (data.name) {
+            if (data && data.name) {
                 let name = data.name;
                 name = slugify(name);
                 name = `${name}-${generate('1234567890', 8)}`;
                 data.slug = name.toLowerCase();
             }
-            
             let applicationSecurity = await ApplicationSecurityModel.findOneAndUpdate(
                 query,
                 {
