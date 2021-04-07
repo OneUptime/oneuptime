@@ -48,7 +48,7 @@ export class SidebarNavItem extends Component {
         const { match, currentProject, route } = this.props;
         return route.path
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
-            .replace(':subProjectSlug', match.params.subProjectSlug)
+            .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentSlug', match.params.componentSlug)
             .replace(':monitor', match.params.monitorSlug)
             .replace(':applicationLogSlug', match.params.applicationLogSlug)
@@ -108,7 +108,7 @@ export class SidebarNavItem extends Component {
         } = this.props;
         const path = route.path
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
-            .replace(':subProjectSlug', match.params.subProjectSlug)
+            .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentSlug', match.params.componentSlug)
             .replace(':monitorSlug', match.params.monitorSlug)
             .replace(':applicationLogSlug', match.params.applicationLogSlug)
