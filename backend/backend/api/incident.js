@@ -205,12 +205,9 @@ router.get(
     getSubProjects,
     async function(req, res) {
         try {
-            const subProjectIds = req.user.subProjects
-                ? req.user.subProjects.map(project => project._id)
-                : null;
-            const { componentId } = req.params;
+            const { componentId, projectId } = req.params;
             const incidents = await IncidentService.getComponentIncidents(
-                subProjectIds,
+                projectId,
                 componentId
             );
             return sendItemResponse(req, res, incidents); // frontend expects sendItemResponse
