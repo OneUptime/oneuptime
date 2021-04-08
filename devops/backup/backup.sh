@@ -162,4 +162,4 @@ fi
 echo "Removing backup older than ${BACKUP_RETAIN_DAYS} days."
 find $BACKUP_PATH* -mtime +${BACKUP_RETAIN_DAYS} -exec rm {} \;
 echo ""
-echo "Done"
+echo "Done - File Name: fyipe-backup-$CURRENT_DATE.archive"
