@@ -24,8 +24,11 @@ module.exports = {
 
             if (
                 scheduledEventMessage.type === 'investigation' &&
-                scheduledEventMessage.event_state !== 'Resolved' &&
-                scheduledEventMessage.event_state !== 'Created'
+                !(
+                    scheduledEventMessage.event_state === 'Resolved' ||
+                    scheduledEventMessage.event_state === 'Created' ||
+                    scheduledEventMessage.event_state === 'Started'
+                )
             ) {
                 AlertService.sendScheduledEventInvestigationNoteToSubscribers(
                     scheduledEventMessage
