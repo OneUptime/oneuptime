@@ -548,7 +548,7 @@ describe('Monitor API', () => {
             };
 
             const dashboard = async ({ page }) => {
-                // Component is already created. This is code refactoring
+                // Component and Monitor are already created. This is code refactoring
                  await init.navigateToMonitorDetails(componentName, testServerMonitorName,page);                             
 
                 let monitorStatusElement = await page.waitForSelector(
@@ -605,7 +605,7 @@ describe('Monitor API', () => {
             };
 
             const dashboard = async ({ page }) => {
-            // Component is already created. This is code refactoring
+            // Component and Monitor are already created. This is code refactoring
             await init.navigateToMonitorDetails(componentName, testServerMonitorName,page);    
             await page.waitForSelector('#notificationscroll',{visbile: true, timeout: 280000});
             
