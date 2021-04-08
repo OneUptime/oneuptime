@@ -47,6 +47,14 @@ bash install.sh
 
 The cron job should be installed and will run once/day!
 
+# Force backup now!
+
+Run:
+
+```
+bash backup.sh
+```
+
 # Restore Fyipe Database
 
 **Step 1**: Copy restore.sh to root directory.
