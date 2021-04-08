@@ -243,7 +243,7 @@ describe('Monitor API', () => {
                     monitorName,
                     page
                 );
-                await page.waitForTimeout(25000);
+                await page.waitForTimeout(25000); // This is needed for '-' to turn to '%' as '%' is a coming of the probe server else shouldRender could have been used to pass id.
                 await page.waitForSelector(`#lighthouseLogs_${monitorName}_0`, {
                     visible: true,
                     timeout: operationTimeOut,
