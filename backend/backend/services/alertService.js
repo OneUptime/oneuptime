@@ -3252,6 +3252,321 @@ module.exports = {
         }
     },
 
+    mapCountryShortNameToCountryCode(shortName) {
+        return countryCode[[shortName]];
+    },
+
+    isOnDuty(timezone, escalationStartTime, escalationEndTime) {
+        if (!timezone || !escalationStartTime || !escalationEndTime) {
+            return true;
+        }
+
+        const currentDate = new Date();
+        escalationStartTime = DateTime.changeDateTimezone(
+            escalationStartTime,
+            timezone
+        );
+        escalationEndTime = DateTime.changeDateTimezone(
+            escalationEndTime,
+            timezone
+        );
+        return DateTime.isInBetween(
+            currentDate,
+            escalationStartTime,
+            escalationEndTime
+        );
+    },
+
+    checkIsOnDuty(startTime, endTime) {
+        if (!startTime && !endTime) return true;
+        const oncallstart = moment(startTime).format('HH:mm');
+        const oncallend = moment(endTime).format('HH:mm');
+        const currentTime = moment().format('HH:mm');
+        const isUserActive =
+            DateTime.compareDate(oncallstart, oncallend, currentTime) ||
+            oncallstart === oncallend;
+        if (isUserActive) return true;
+        return false;
+    },
+
+    getSubProjectAlerts: async function(subProjectIds) {
+        const _this = this;
+        const subProjectAlerts = await Promise.all(
+            subProjectIds.map(async id => {
+                const alerts = await _this.findBy({
+                    query: { projectId: id },
+                    skip: 0,
+                    limit: 10,
+                });
+                const count = await _this.countBy({ projectId: id });
+                return { alerts, count, _id: id, skip: 0, limit: 10 };
+            })
+        );
+        return subProjectAlerts;
+    },
+
+    hardDeleteBy: async function(query) {
+        try {
+            await AlertModel.deleteMany(query);
+            return 'Alert(s) removed successfully';
+        } catch (error) {
+            ErrorService.log('alertService.hardDeleteBy', error);
+            throw error;
+        }
+    },
+
+    restoreBy: async function(query) {
+        const _this = this;
+        query.deleted = true;
+        let alert = await _this.findBy({ query });
+        if (alert && alert.length > 1) {
+            const alerts = await Promise.all(
+                alert.map(async alert => {
+                    const alertId = alert._id;
+                    alert = await _this.updateOneBy(
+                        {
+                            _id: alertId,
+                        },
+                        {
+                            deleted: false,
+                            deletedAt: null,
+                            deleteBy: null,
+                        }
+                    );
+                    return alert;
+                })
+            );
+            return alerts;
+        } else {
+            alert = alert[0];
+            if (alert) {
+                const alertId = alert._id;
+                alert = await _this.updateOneBy(
+                    {
+                        _id: alertId,
+                    },
+                    {
+                        deleted: false,
+                        deletedAt: null,
+                        deleteBy: null,
+                    }
+                );
+            }
+            return alert;
+        }
+    },
+
+    //Return true, if the limit is not reached yet.
+    checkPhoneAlertsLimit: async function(projectId) {
+        const _this = this;
+        const hasCustomSettings = await TwilioService.hasCustomSettings(
+            projectId
+        );
+        if (hasCustomSettings) {
+            return true;
+        }
+        const yesterday = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
+        const alerts = await _this.countBy({
+            projectId: projectId,
+            alertVia: { $in: [AlertType.Call, AlertType.SMS] },
+            error: { $in: [null, undefined, false] },
+            createdAt: { $gte: yesterday },
+        });
+        const smsCounts = await SmsCountService.countBy({
+            projectId: projectId,
+            createdAt: { $gte: yesterday },
+        });
+        const project = await ProjectService.findOneBy({ _id: projectId });
+        const twilioSettings = await TwilioService.getSettings();
+        let limit =
+            project && project.alertLimit
+                ? project.alertLimit
+                : twilioSettings['alert-limit'];
+        if (limit && typeof limit === 'string') {
+            limit = parseInt(limit, 10);
+        }
+        if (alerts + smsCounts <= limit) {
+            return true;
+        } else {
+            await ProjectService.updateOneBy(
+                { _id: projectId },
+                { alertLimitReached: true }
+            );
+            return false;
+        }
+    },
+
+    sendUnpaidSubscriptionEmail: async function(project, user) {
+        try {
+            const { name: userName, email: userEmail } = user;
+            const { stripePlanId, _id: projectId, name: projectName } = project;
+            const projectUrl = `${global.dashboardHost}/project/${projectId}`;
+            const projectPlan = getPlanById(stripePlanId);
+
+            await MailService.sendUnpaidSubscriptionReminder({
+                projectName,
+                projectPlan,
+                name: userName,
+                userEmail,
+                projectUrl,
+            });
+        } catch (error) {
+            ErrorService.log('AlertService.sendUnpaidSubscriptionEmail', error);
+            throw error;
+        }
+    },
+
+    sendProjectDeleteEmailForUnpaidSubscription: async function(project, user) {
+        try {
+            const { name: userName, email: userEmail } = user;
+            const { stripePlanId, name: projectName } = project;
+            const projectPlan =
+                getPlanById(stripePlanId) || getPlanByExtraUserId(stripePlanId);
+
+            await MailService.sendUnpaidSubscriptionReminder({
+                projectName,
+                projectPlan,
+                name: userName,
+                userEmail,
+            });
+        } catch (error) {
+            ErrorService.log('AlertService.sendUnpaidSubscriptionEmail', error);
+            throw error;
+        }
+    },
+    sendCreatedScheduledEventToSubscribers: async function(schedule) {
+        try {
+            const _this = this;
+            const uuid = new Date().getTime();
+            if (schedule) {
+                for (let monitor of schedule.monitors) {
+                    let component = monitor.monitorId.componentId.name;
+                    let subscribers = await SubscriberService.subscribersForAlert(
+                        {
+                            monitorId: monitor.monitorId._id,
+                        }
+                    );
+
+                    for (let subscriber of subscribers) {
+                        await _this.sendSubscriberScheduledEventAlert(
+                            subscriber,
+                            schedule,
+                            'Subscriber Scheduled Maintenance',
+                            component,
+                            subscribers.length,
+                            uuid
+                        );
+                    }
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendCreatedScheduledEventToSubscribers',
+                error
+            );
+            throw error;
+        }
+    },
+    sendScheduledEventInvestigationNoteToSubscribers: async function(message) {
+        try {
+            const _this = this;
+            const uuid = new Date().getTime();
+            if (message) {
+                for (let monitor of message.scheduledEventId.monitors) {
+                    let subscribers = await SubscriberService.subscribersForAlert(
+                        {
+                            monitorId: monitor.monitorId._id,
+                        }
+                    );
+
+                    for (let subscriber of subscribers) {
+                        if (subscriber.alertVia === AlertType.Email) {
+                            const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
+                                {
+                                    name: 'smtp',
+                                }
+                            );
+                            const projectId =
+                                message.scheduledEventId.projectId._id;
+                            const areEmailAlertsEnabledInGlobalSettings =
+                                hasGlobalSmtpSettings &&
+                                hasGlobalSmtpSettings.value &&
+                                hasGlobalSmtpSettings.value['email-enabled']
+                                    ? true
+                                    : false;
+                            const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
+                                projectId
+                            );
+                            const emailTemplate = await EmailTemplateService.findOneBy(
+                                {
+                                    projectId,
+                                    emailType:
+                                        'Scheduled Maintenance Event Note',
+                                }
+                            );
+
+                            const subscriberAlert = await SubscriberAlertService.create(
+                                {
+                                    projectId,
+                                    subscriberId: subscriber._id,
+                                    alertVia: AlertType.Email,
+                                    alertStatus: 'Pending',
+                                    eventType:
+                                        'Scheduled maintenance note created',
+                                    totalSubscribers: subscribers.length,
+                                    uuid,
+                                }
+                            );
+                            const alertId = subscriberAlert._id;
+
+                            let alertStatus = null;
+                            try {
+                                let createdBy = message.createdById
+                                    ? message.createdById.name
+                                    : 'Fyipe';
+
+                                let replyAddress = message.scheduledEventId
+                                    .projectId.replyAddress
+                                    ? message.scheduledEventId.projectId
+                                          .replyAddress
+                                    : null;
+
+                                await MailService.sendScheduledEventNoteMailToSubscriber(
+                                    message.scheduledEventId.name,
+                                    message.event_state,
+                                    message.content,
+                                    subscriber.contactEmail,
+                                    subscriber.contactEmail,
+                                    createdBy,
+                                    emailTemplate,
+                                    replyAddress,
+                                    projectId
+                                );
+                                alertStatus = 'Sent';
+                                await SubscriberAlertService.updateOneBy(
+                                    { _id: alertId },
+                                    { alertStatus }
+                                );
+                            } catch (error) {
+                                await SubscriberAlertService.updateOneBy(
+                                    { _id: alertId },
+                                    { alertStatus: null }
+                                );
+                                throw error;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendScheduledEventInvestigationNoteToSubscribers',
+                error
+            );
+            throw error;
+        }
+    },
+
     sendSubscriberScheduledEventAlert: async function(
         subscriber,
         schedule,
@@ -3265,7 +3580,6 @@ module.exports = {
             const date = new Date();
             const projectName = schedule.projectId.name;
             const projectId = schedule.projectId._id;
-            const viewLink = `${global.dashboardHost}/project/${schedule.projectId.slug}/scheduledEvents/${schedule._id}`;
 
             if (subscriber.alertVia === AlertType.Email) {
                 const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
@@ -3310,11 +3624,8 @@ module.exports = {
                             schedule,
                             projectName,
                             emailTemplate,
-                            viewLink,
-                            'trackEmailAsViewedUrl',
                             componentName,
-                            schedule.projectId.replyAddress,
-                            'unsubscribeUrl'
+                            schedule.projectId.replyAddress
                         );
 
                         alertStatus = 'Sent';
@@ -3738,311 +4049,9 @@ module.exports = {
                     );
                 }
             }
-
-            // if (subscriber.alertVia === AlertType.Webhook) {
-            //     const investigationNoteNotificationWebhookDisabled =
-            //         isStatusPageNoteAlert &&
-            //         !project.enableInvestigationNoteNotificationWebhook;
-
-            //     let eventType;
-            //     if (investigationNoteNotificationWebhookDisabled) {
-            //         if (isStatusPageNoteAlert) {
-            //             eventType = statusPageNoteAlertEventType;
-            //         } else if (
-            //             templateType === 'Subscriber Incident Acknowldeged'
-            //         ) {
-            //             eventType = 'acknowledged';
-            //         } else if (
-            //             templateType === 'Subscriber Incident Resolved'
-            //         ) {
-            //             eventType = 'resolved';
-            //         } else {
-            //             eventType = 'identified';
-            //         }
-            //         return await SubscriberAlertService.create({
-            //             projectId: incident.projectId,
-            //             incidentId: incident._id,
-            //             subscriberId: subscriber._id,
-            //             alertVia: AlertType.Webhook,
-            //             eventType: eventType,
-            //             alertStatus: null,
-            //             error: true,
-            //             errorMessage:
-            //                 'Investigation Note Webhook Notification Disabled',
-            //             totalSubscribers,
-            //             id,
-            //         });
-            //     }
-            //     const downTimeString = IncidentUtility.calculateHumanReadableDownTime(
-            //         incident.createdAt
-            //     );
-
-            //     let alertStatus = 'Pending';
-
-            //     try {
-            //         webhookNotificationSent = await WebHookService.sendSubscriberNotification(
-            //             subscriber,
-            //             incident.projectId,
-            //             incident,
-            //             incident.monitorId,
-            //             component,
-            //             downTimeString,
-            //             { note, incidentState, statusNoteStatus }
-            //         );
-            //         alertStatus = webhookNotificationSent ? 'Sent' : 'Not Sent';
-            //     } catch (error) {
-            //         alertStatus = null;
-            //         throw error;
-            //     } finally {
-            //         if (isStatusPageNoteAlert) {
-            //             eventType = statusPageNoteAlertEventType;
-            //         } else if (
-            //             templateType === 'Subscriber Incident Acknowldeged'
-            //         ) {
-            //             eventType = 'acknowledged';
-            //         } else if (
-            //             templateType === 'Subscriber Incident Resolved'
-            //         ) {
-            //             eventType = 'resolved';
-            //         } else {
-            //             eventType = 'identified';
-            //         }
-            //         SubscriberAlertService.create({
-            //             projectId: incident.projectId,
-            //             incidentId: incident._id,
-            //             subscriberId: subscriber._id,
-            //             alertVia: AlertType.Webhook,
-            //             alertStatus: alertStatus,
-            //             eventType: eventType,
-            //             totalSubscribers,
-            //             id,
-            //         }).catch(error => {
-            //             ErrorService.log(
-            //                 'AlertService.sendSubscriberAlert',
-            //                 error
-            //             );
-            //         });
-            //     }
-            // }
         } catch (error) {
             ErrorService.log(
                 'alertService.sendSubscriberScheduledEventAlert',
-                error
-            );
-            throw error;
-        }
-    },
-
-    mapCountryShortNameToCountryCode(shortName) {
-        return countryCode[[shortName]];
-    },
-
-    isOnDuty(timezone, escalationStartTime, escalationEndTime) {
-        if (!timezone || !escalationStartTime || !escalationEndTime) {
-            return true;
-        }
-
-        const currentDate = new Date();
-        escalationStartTime = DateTime.changeDateTimezone(
-            escalationStartTime,
-            timezone
-        );
-        escalationEndTime = DateTime.changeDateTimezone(
-            escalationEndTime,
-            timezone
-        );
-        return DateTime.isInBetween(
-            currentDate,
-            escalationStartTime,
-            escalationEndTime
-        );
-    },
-
-    checkIsOnDuty(startTime, endTime) {
-        if (!startTime && !endTime) return true;
-        const oncallstart = moment(startTime).format('HH:mm');
-        const oncallend = moment(endTime).format('HH:mm');
-        const currentTime = moment().format('HH:mm');
-        const isUserActive =
-            DateTime.compareDate(oncallstart, oncallend, currentTime) ||
-            oncallstart === oncallend;
-        if (isUserActive) return true;
-        return false;
-    },
-
-    getSubProjectAlerts: async function(subProjectIds) {
-        const _this = this;
-        const subProjectAlerts = await Promise.all(
-            subProjectIds.map(async id => {
-                const alerts = await _this.findBy({
-                    query: { projectId: id },
-                    skip: 0,
-                    limit: 10,
-                });
-                const count = await _this.countBy({ projectId: id });
-                return { alerts, count, _id: id, skip: 0, limit: 10 };
-            })
-        );
-        return subProjectAlerts;
-    },
-
-    hardDeleteBy: async function(query) {
-        try {
-            await AlertModel.deleteMany(query);
-            return 'Alert(s) removed successfully';
-        } catch (error) {
-            ErrorService.log('alertService.hardDeleteBy', error);
-            throw error;
-        }
-    },
-
-    restoreBy: async function(query) {
-        const _this = this;
-        query.deleted = true;
-        let alert = await _this.findBy({ query });
-        if (alert && alert.length > 1) {
-            const alerts = await Promise.all(
-                alert.map(async alert => {
-                    const alertId = alert._id;
-                    alert = await _this.updateOneBy(
-                        {
-                            _id: alertId,
-                        },
-                        {
-                            deleted: false,
-                            deletedAt: null,
-                            deleteBy: null,
-                        }
-                    );
-                    return alert;
-                })
-            );
-            return alerts;
-        } else {
-            alert = alert[0];
-            if (alert) {
-                const alertId = alert._id;
-                alert = await _this.updateOneBy(
-                    {
-                        _id: alertId,
-                    },
-                    {
-                        deleted: false,
-                        deletedAt: null,
-                        deleteBy: null,
-                    }
-                );
-            }
-            return alert;
-        }
-    },
-
-    //Return true, if the limit is not reached yet.
-    checkPhoneAlertsLimit: async function(projectId) {
-        const _this = this;
-        const hasCustomSettings = await TwilioService.hasCustomSettings(
-            projectId
-        );
-        if (hasCustomSettings) {
-            return true;
-        }
-        const yesterday = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
-        const alerts = await _this.countBy({
-            projectId: projectId,
-            alertVia: { $in: [AlertType.Call, AlertType.SMS] },
-            error: { $in: [null, undefined, false] },
-            createdAt: { $gte: yesterday },
-        });
-        const smsCounts = await SmsCountService.countBy({
-            projectId: projectId,
-            createdAt: { $gte: yesterday },
-        });
-        const project = await ProjectService.findOneBy({ _id: projectId });
-        const twilioSettings = await TwilioService.getSettings();
-        let limit =
-            project && project.alertLimit
-                ? project.alertLimit
-                : twilioSettings['alert-limit'];
-        if (limit && typeof limit === 'string') {
-            limit = parseInt(limit, 10);
-        }
-        if (alerts + smsCounts <= limit) {
-            return true;
-        } else {
-            await ProjectService.updateOneBy(
-                { _id: projectId },
-                { alertLimitReached: true }
-            );
-            return false;
-        }
-    },
-
-    sendUnpaidSubscriptionEmail: async function(project, user) {
-        try {
-            const { name: userName, email: userEmail } = user;
-            const { stripePlanId, _id: projectId, name: projectName } = project;
-            const projectUrl = `${global.dashboardHost}/project/${projectId}`;
-            const projectPlan = getPlanById(stripePlanId);
-
-            await MailService.sendUnpaidSubscriptionReminder({
-                projectName,
-                projectPlan,
-                name: userName,
-                userEmail,
-                projectUrl,
-            });
-        } catch (error) {
-            ErrorService.log('AlertService.sendUnpaidSubscriptionEmail', error);
-            throw error;
-        }
-    },
-
-    sendProjectDeleteEmailForUnpaidSubscription: async function(project, user) {
-        try {
-            const { name: userName, email: userEmail } = user;
-            const { stripePlanId, name: projectName } = project;
-            const projectPlan =
-                getPlanById(stripePlanId) || getPlanByExtraUserId(stripePlanId);
-
-            await MailService.sendUnpaidSubscriptionReminder({
-                projectName,
-                projectPlan,
-                name: userName,
-                userEmail,
-            });
-        } catch (error) {
-            ErrorService.log('AlertService.sendUnpaidSubscriptionEmail', error);
-            throw error;
-        }
-    },
-    sendCreatedScheduledEventToSubscribers: async function(schedule) {
-        try {
-            const _this = this;
-            const uuid = new Date().getTime();
-            if (schedule) {
-                for (let monitor of schedule.monitors) {
-                    let component = monitor.monitorId.componentId.name;
-                    let subscribers = await SubscriberService.subscribersForAlert(
-                        {
-                            monitorId: monitor.monitorId._id,
-                        }
-                    );
-
-                    for (let subscriber of subscribers) {
-                        await _this.sendSubscriberScheduledEventAlert(
-                            subscriber,
-                            schedule,
-                            'Subscriber Scheduled Maintenance',
-                            component,
-                            subscribers.length,
-                            uuid
-                        );
-                    }
-                }
-            }
-        } catch (error) {
-            ErrorService.log(
-                'alertService.sendCreatedScheduledEventToSubscribers',
                 error
             );
             throw error;

@@ -3863,11 +3863,8 @@ const _this = {
         schedule,
         projectName,
         emailTemplate,
-        viewLink,
-        trackEmailAsViewedUrl,
         componentName,
-        replyAddress,
-        unsubscribeUrl
+        replyAddress
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -3886,16 +3883,13 @@ const _this = {
                 userName,
                 userId,
                 projectName,
-                trackEmailAsViewedUrl,
                 projectId: schedule.projectId,
                 componentName,
-                unsubscribeUrl,
                 eventName: schedule.name,
                 eventDescription: schedule.description,
                 eventCreateTime: schedule.createdAt,
                 eventStartTime: schedule.startDate,
                 eventEndTime: schedule.endDate,
-                viewLink,
                 year: DateTime.getCurrentYear,
             };
             template = template(data);
@@ -4042,7 +4036,7 @@ const _this = {
             return info;
         } catch (error) {
             ErrorService.log(
-                'mailService.sendIncidentCreatedMailToSubscriber',
+                'mailService.sendScheduledEventMailToSubscriber',
                 error
             );
             await EmailStatusService.create({
@@ -4060,6 +4054,205 @@ const _this = {
         }
     },
 
+    /**
+     * @param {string} monitorName Name of monitor with incident.
+     * @param {string} email Email of user being alerted.
+     * @param {string} userId Id of the user.
+     * @param {string} projectId Id of the project whose monitor has incident.
+     * @param {string} componentName Name of the component whose monitor has incident.
+     * @param {string} statusPageUrl status page url
+     *
+     */
+    sendScheduledEventNoteMailToSubscriber: async function(
+        eventName,
+        state,
+        content,
+        email,
+        userName,
+        createdBy,
+        emailTemplate,
+        replyAddress,
+        projectId
+    ) {
+        let mailOptions = {};
+        let EmailBody;
+        let smtpServer;
+
+        try {
+            let { template, subject } = await _this.getTemplates(
+                emailTemplate,
+                'Subscriber Scheduled Maintenance Note'
+            );
+
+            //project name
+            const data = {
+                userName,
+                eventName,
+                status: state,
+                createdBy,
+                content,
+                year: DateTime.getCurrentYear,
+            };
+            template = template(data);
+            subject = subject(data);
+
+            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
+            smtpServer = 'internal';
+            if (!smtpSettings.internalSmtp) {
+                smtpServer = smtpSettings.host;
+            }
+            const privateMailer = await _this.createMailer(smtpSettings);
+            if (replyAddress) {
+                mailOptions = {
+                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                    to: email,
+                    replyTo: replyAddress,
+                    subject: subject,
+                    template: 'template',
+                    context: {
+                        body: template,
+                    },
+                };
+            } else {
+                mailOptions = {
+                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                    to: email,
+                    subject: subject,
+                    template: 'template',
+                    context: {
+                        body: template,
+                    },
+                };
+            }
+            EmailBody = await _this.getEmailBody(mailOptions);
+            if (!privateMailer) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.',
+                    ...(mailOptions.replyTo && {
+                        replyTo: mailOptions.replyTo,
+                    }),
+                    content: EmailBody,
+                    error: 'Email not enabled.',
+                    smtpServer,
+                });
+                return;
+            }
+
+            let info = {};
+            try {
+                info = await privateMailer.sendMail(mailOptions);
+                console.log(info);
+
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Success',
+                    ...(mailOptions.replyTo && {
+                        replyTo: mailOptions.replyTo,
+                    }),
+                    content: EmailBody,
+                    smtpServer,
+                });
+            } catch (error) {
+                if (error.code === 'ECONNECTION') {
+                    if (
+                        smtpSettings.internalSmtp &&
+                        smtpSettings.customSmtp &&
+                        !isEmpty(smtpSettings.backupConfig)
+                    ) {
+                        smtpServer = smtpSettings.backupConfig.host;
+                        smtpSettings = { ...smtpSettings.backupConfig };
+
+                        const privateMailer = await _this.createMailer(
+                            smtpSettings
+                        );
+                        if (replyAddress) {
+                            mailOptions = {
+                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                to: email,
+                                replyTo: replyAddress,
+                                subject: subject,
+                                template: 'template',
+                                context: {
+                                    body: template,
+                                },
+                            };
+                        } else {
+                            mailOptions = {
+                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                to: email,
+                                subject: subject,
+                                template: 'template',
+                                context: {
+                                    body: template,
+                                },
+                            };
+                        }
+                        EmailBody = await _this.getEmailBody(mailOptions);
+                        if (!privateMailer) {
+                            await EmailStatusService.create({
+                                from: mailOptions.from,
+                                to: mailOptions.to,
+                                subject: mailOptions.subject,
+                                template: mailOptions.template,
+                                status: 'Email not enabled.',
+                                ...(mailOptions.replyTo && {
+                                    replyTo: mailOptions.replyTo,
+                                }),
+                                content: EmailBody,
+                                error: 'Email not enabled.',
+                                smtpServer,
+                            });
+                            return;
+                        }
+
+                        info = await privateMailer.sendMail(mailOptions);
+
+                        await EmailStatusService.create({
+                            from: mailOptions.from,
+                            to: mailOptions.to,
+                            subject: mailOptions.subject,
+                            template: mailOptions.template,
+                            status: 'Success',
+                            ...(mailOptions.replyTo && {
+                                replyTo: mailOptions.replyTo,
+                            }),
+                            content: EmailBody,
+                            smtpServer,
+                        });
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    throw error;
+                }
+            }
+            return info;
+        } catch (error) {
+            ErrorService.log(
+                'mailService.sendScheduledEventNoteMailToSubscriber',
+                error
+            );
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error',
+                ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+                content: EmailBody,
+                error: error.message,
+                smtpServer,
+            });
+            throw error;
+        }
+    },
     /**
      * @param {js date object} incidentTime JS date of the incident used as timestamp.
      * @param {string} monitorName Name of monitor with incident.
