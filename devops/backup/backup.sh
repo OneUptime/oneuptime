@@ -146,8 +146,8 @@ if sudo kubectl exec fi-mongodb-primary-0 -- mongodump --uri="mongodb://$FYIPE_D
     if sudo kubectl cp fi-mongodb-primary-0:tmp/fyipedata.archive "$BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"; then
       echo ${green}"File Saved: $BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"${reset}
       echo ""
+      sudo kubectl exec fi-mongodb-primary-0 -- rm tmp/fyipedata.archive
       BACKUP_SUCCESS
-    
     else
       echo ${red}"Failure, exit status: $?" ${reset}
       BACKUP_FAIL_LOCAL
