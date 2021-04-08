@@ -73,4 +73,13 @@ module.exports = [
         body:
             'New Scheduled Maintenance Event Created - {{eventName}}. Desc: {{eventDescription}}, Start at: {{eventStartTime}}, End by {{eventEndTime}}. You are receiving this message because you subscribed to this monitor.',
     },
+    {
+        allowedVariables: [
+            '{{eventName}} : Name of the scheduled event.',
+            '{{eventResolveTime}} : Time at which scheduled event is resolved.',
+        ],
+        smsType: 'Subscriber Scheduled Maintenance Resolved',
+        body:
+            'Scheduled Maintenance Event Resolved - {{eventName}}. Resolved at: {{eventResolveTime}}',
+    },
 ];

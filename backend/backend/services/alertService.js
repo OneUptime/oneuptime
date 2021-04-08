@@ -3893,7 +3893,7 @@ module.exports = {
                                     smsTemplate,
                                     schedule,
                                     project.name,
-                                    projectId                                    
+                                    projectId
                                 );
                                 alertStatus = 'Success';
                             } else {
@@ -3903,42 +3903,16 @@ module.exports = {
                             templateType ===
                             'Subscriber Scheduled Maintenance Resolved'
                         ) {
-                            length = getIncidentLength(
-                                incident.createdAt,
-                                incident.resolvedAt
-                            );
                             if (project.sendResolvedIncidentNotificationSms) {
-                                if (statusPage) {
-                                    sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
-                                        date,
-                                        subscriber.monitorName,
-                                        contactPhone,
-                                        smsTemplate,
-                                        incident,
-                                        project.name,
-                                        incident.projectId,
-                                        component.name,
-                                        statusPageUrl,
-                                        customFields,
-                                        length
-                                    );
-                                    alertStatus = 'Success';
-                                } else {
-                                    sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
-                                        date,
-                                        subscriber.monitorName,
-                                        contactPhone,
-                                        smsTemplate,
-                                        incident,
-                                        project.name,
-                                        incident.projectId,
-                                        component.name,
-                                        statusPageUrl,
-                                        customFields,
-                                        length
-                                    );
-                                    alertStatus = 'Success';
-                                }
+                                sendResult = await TwilioService.sendScheduledMaintenanceResolvedToSubscriber(
+                                    date,
+                                    contactPhone,
+                                    smsTemplate,
+                                    schedule,
+                                    project.name,
+                                    projectId
+                                );
+                                alertStatus = 'Success';
                             } else {
                                 alertStatus = 'Disabled';
                             }
