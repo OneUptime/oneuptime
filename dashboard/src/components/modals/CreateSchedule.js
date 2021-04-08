@@ -387,7 +387,7 @@ class CreateSchedule extends React.Component {
                                         }}
                                     >
                                         <label style={{ marginRight: 10 }}>
-                                            Show advance
+                                           Advanced Options
                                         </label>
                                         <div>
                                             <label className="Toggler-wrap">

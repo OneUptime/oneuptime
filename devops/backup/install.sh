@@ -86,7 +86,7 @@ Requires=backup.service
 
 [Timer]
 Unit=backup.service
-OnCalendar=*-*-* 00,12:00:00
+OnCalendar=*-*-* 12:00:00
 Persistent=true
 
 [Install]

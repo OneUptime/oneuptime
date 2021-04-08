@@ -132,8 +132,8 @@ class AdvancedIncidentNotification extends Component {
                                                             type === 'sms'
                                                                 ? 'SMS'
                                                                 : 'Email'
-                                                        }for
-                                                        Subscribers`}
+                                                        }
+                                                        for Subscribers`}
                                                 />
 
                                                 <Checkbox

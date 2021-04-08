@@ -277,7 +277,7 @@ export class AddScheduleModal extends Component {
                                         }}
                                     >
                                         <label style={{ marginRight: 10 }}>
-                                            Show advanced options
+                                            Advanced Options
                                         </label>
                                         <div>
                                             <label className="Toggler-wrap">

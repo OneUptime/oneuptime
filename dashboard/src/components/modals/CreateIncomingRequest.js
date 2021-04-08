@@ -1388,10 +1388,7 @@ class CreateIncomingRequest extends Component {
                                                                 }
                                                                 id="advancedOptionsBtn"
                                                             >
-                                                                {formValues &&
-                                                                formValues.showAdvancedOptions
-                                                                    ? 'Hide advanced options'
-                                                                    : 'Show advanced options'}
+                                                                Advanced Options
                                                             </div>
                                                         </div>
                                                     </div>
