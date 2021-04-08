@@ -269,7 +269,7 @@ class EventBox extends Component {
                                                                     <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
                                                                         <span>
                                                                             {
-                                                                                'recurring'
+                                                                                'Recurring Event'
                                                                             }
                                                                         </span>
                                                                     </span>
