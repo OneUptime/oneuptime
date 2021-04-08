@@ -324,7 +324,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const monitor = await MonitorModel.findOne(query)
-                .populate('projectId', 'name')
+                .populate('projectId', ['_id', 'name', 'slug'])
                 .populate('componentId', ['_id', 'name', 'slug'])
                 .populate('resourceCategory', 'name')
                 .populate('incidentCommunicationSla')
