@@ -87,7 +87,7 @@ class KubeDeploymentData extends React.Component {
                                 className="scheduled-event-list-item bs-ObjectList-row db-UserListRow"
                                 style={{
                                     backgroundColor: 'white',
-                                    height: 60,
+                                    minHeight: 60,
                                     display: 'flex',
                                     justifyContent: 'space-between',
                                     alignItems: 'center',
@@ -104,7 +104,10 @@ class KubeDeploymentData extends React.Component {
                                         {this.handleKey(key)}
                                     </div>
                                 </div>
-                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                <div
+                                    className="bs-ObjectList-cell bs-u-v-middle"
+                                    style={{ minWidth: 50 }}
+                                >
                                     <div
                                         className="bs-ObjectList-cell-row"
                                         style={{
@@ -179,7 +182,7 @@ class KubeDeploymentData extends React.Component {
                                                                 style={{
                                                                     backgroundColor:
                                                                         'white',
-                                                                    height: 60,
+                                                                    minHeight: 60,
                                                                     borderBottom:
                                                                         '1px solid #cfd7df80',
                                                                     display:
@@ -241,7 +244,7 @@ class KubeDeploymentData extends React.Component {
                                                         style={{
                                                             backgroundColor:
                                                                 'white',
-                                                            height: 60,
+                                                            minHeight: 60,
                                                             borderBottom:
                                                                 '1px solid #cfd7df80',
                                                             display: 'flex',

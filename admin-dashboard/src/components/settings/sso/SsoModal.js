@@ -16,6 +16,10 @@ function validate(values) {
         errors.domain = 'Domain is not valid.';
     }
 
+    if (!Validate.text(values.entityId)) {
+        errors.entityId = 'Application ID is not valid.';
+    }
+
     if (!Validate.text(values.samlSsoUrl)) {
         errors.samlSsoUrl = 'SSO URL is not valid.';
     }
@@ -64,6 +68,14 @@ const fields = [
         label: 'Domain',
         placeholder: 'microsoftonline.com',
         description: 'This is the domain that will be use in the SSO.',
+        type: 'text',
+        component: RenderField,
+    },
+    {
+        key: 'entityId',
+        label: 'Application ID',
+        placeholder: 'hackerbay.io',
+        description: 'This is the entity ID that will be used in the SSO.',
         type: 'text',
         component: RenderField,
     },
