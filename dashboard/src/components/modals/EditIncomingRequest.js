@@ -1479,10 +1479,7 @@ class EditIncomingRequest extends Component {
                                                                         .toggleShowAdvancedOptions
                                                                 }
                                                             >
-                                                                {formValues &&
-                                                                formValues.showAdvancedOptions
-                                                                    ? 'Hide advanced options'
-                                                                    : 'Show advanced options'}
+                                                                Advanced Options
                                                             </div>
                                                         </div>
                                                     </div>
