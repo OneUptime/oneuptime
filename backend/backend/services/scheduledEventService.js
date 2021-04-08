@@ -43,7 +43,7 @@ module.exports = {
                     select: 'name',
                     populate: { path: 'componentId', select: 'name slug' },
                 })
-                .populate('projectId', 'name slug replyAddress')
+                .populate('projectId', 'name slug')
                 .populate('createdById', 'name')
                 .execPopulate();
 

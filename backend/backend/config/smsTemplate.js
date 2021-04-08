@@ -64,17 +64,13 @@ module.exports = [
     },
     {
         allowedVariables: [
-            '{{monitorName}} : Name of the monitor on which event is created.',
-            '{{projectName}} : Name of the project on which the maintenance event is carried out.',
-            '{{componentName}} : Name of the component the monitor belongs to',
             '{{eventName}} : Name of the scheduled event.',
-            '{{eventDescription}} :Description of the scheduled event.',
-            '{{eventCreateTime}} : Time at which scheduled event is created.',
+            '{{eventDescription}} : Description of the scheduled event.',
             '{{eventStartTime}} : Time at which scheduled event is starts.',
             '{{eventEndTime}} : Time at which scheduled event ends.',
         ],
         smsType: 'Subscriber Scheduled Maintenance Created',
         body:
-            '{{projectName}} -{{monitorName}}/{{eventName}} scheduled maintenance event is starting at {{eventStartTime}}. You are receiving this message because you subscribed to this monitor.',
+            'New Scheduled Maintenance Event Created - {{eventName}}. Desc: {{eventDescription}}, Start at: {{eventStartTime}}, End by {{eventEndTime}}. You are receiving this message because you subscribed to this monitor.',
     },
 ];
