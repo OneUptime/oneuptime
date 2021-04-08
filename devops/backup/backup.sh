@@ -10,7 +10,7 @@ FYIPE_DB_PASSWORD='password'
 FYIPE_DB_NAME='fyipedb'
 CURRENT_DATE=$(date +%s)
 CURRENT_USER=$(whoami)
-BACKUP_PATH=~/Documents/backup 
+BACKUP_PATH=~/db-backup 
 BACKUP_RETAIN_DAYS=14
 TODAY=`date +"%d%b%Y"`
 

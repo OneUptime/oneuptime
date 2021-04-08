@@ -48,3 +48,18 @@ bash install.sh
 The cron job should be installed and will run once/day!
 
 # Restore Fyipe Database
+
+**Step 1**: Copy restore.sh to root directory.
+
+```
+vi restore.sh
+# Copy the file contents.
+```
+
+**Step 2**: Run the restore command
+
+```
+bash restore.sh -f <FILENAME>.archive
+```
+
+**Step 3**: This will copy the file from the VM to remote machine and run the restore.
