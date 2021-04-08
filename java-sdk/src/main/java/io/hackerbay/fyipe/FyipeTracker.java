@@ -8,6 +8,7 @@ import io.hackerbay.fyipe.util.PluginReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.lang.Thread.UncaughtExceptionHandler;
 
 public class FyipeTracker {
     private String apiUrl;
@@ -26,7 +27,7 @@ public class FyipeTracker {
     public FyipeTracker(String apiUrl, String errorTrackerId, String errorTrackerKey) throws IOException {
         this(apiUrl, errorTrackerId, errorTrackerKey, null);
     }
-    public FyipeTracker(String apiUrl, String errorTrackerId, String errorTrackerKey,  TrackerOption options) throws IOException {
+    public FyipeTracker(String apiUrl, String errorTrackerId, String errorTrackerKey,  TrackerOption options) {
         this.errorTrackerId = errorTrackerId;
         this.errorTrackerKey = errorTrackerKey;
         this.setApiUrl(apiUrl);
@@ -42,6 +43,7 @@ public class FyipeTracker {
         this.setSdk();
 
         // TODO set up transporter
+
         // set up error listener
         this.setUpErrorEventListener();
     }
@@ -135,7 +137,7 @@ public class FyipeTracker {
         // send to the server
         return this.sendErrorEventToServer();
     }
-    public JsonObject captureException(Exception exception) throws IOException {
+    public JsonObject captureException(Exception exception) {
         // construct the error object
         StackTrace formattedStackTrace = this.util.getExceptionStackTrace(exception);
 
@@ -144,24 +146,21 @@ public class FyipeTracker {
 
         this.prepareErrorEvent(ErrorObjectType.exception.name(), formattedStackTrace);
 
+        JsonObject response = null;
         // send to the server
-        return this.sendErrorEventToServer();
+        try {
+            response = this.sendErrorEventToServer();
+        } catch (IOException ioException) {
+            ioException.printStackTrace();
+        }
+        return response;
     }
-    private void setUpErrorEventListener() {
-        Thread.setDefaultUncaughtExceptionHandler(
-                new Thread.UncaughtExceptionHandler() {
-                    @Override
-                    public void uncaughtException(Thread t, Throwable e) {
-                        System.out.println("listener");
-                        System.out.println(e);
-                        try {
-                            captureException((Exception) e);
-                        } catch (IOException ioException) {
-                            ioException.printStackTrace();
-                        }
-                    }
-                }
-        );
+    public void setUpErrorEventListener() {
+        setUpErrorEventListener(Thread.currentThread());
+    }
+    public void setUpErrorEventListener(Thread thread) {
+        UncaughtExceptionHandler uncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler();
+        thread.setUncaughtExceptionHandler(new FyipeUncaughtExceptionHandler(this, uncaughtExceptionHandler));
     }
     public void prepareErrorEvent(String type, StackTrace errorStackTrace) {
         JsonObject obj = new JsonObject();
@@ -191,9 +190,14 @@ public class FyipeTracker {
         return sdk;
     }
 
-    public void setSdk() throws IOException {
+    public void setSdk() {
         // proper setting of SDK
-        PluginReader reader = new PluginReader("properties-from-pom.properties");
+        PluginReader reader = null;
+        try {
+            reader = new PluginReader("properties-from-pom.properties");
+        } catch (IOException ioException) {
+            ioException.printStackTrace();
+        }
         String name = reader.getProperty("name");
         String version = reader.getProperty("version");
         this.sdk = new SDK(name, version);
