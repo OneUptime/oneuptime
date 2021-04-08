@@ -40,6 +40,8 @@ Read `/app/devops/docs/rollback.md`
 Run this on master branch.
 
 ```
+# Deploy to staging
+
 git checkout hotfix-master
 git pull
 git checkout master
@@ -47,7 +49,6 @@ git pull
 
 git merge hotfix-master
 
-# Deploy to staging
 git checkout hotfix-master
 git merge master
 git push
