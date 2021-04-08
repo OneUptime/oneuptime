@@ -3467,6 +3467,39 @@ module.exports = {
             throw error;
         }
     },
+    sendResolvedScheduledEventToSubscribers: async function(schedule) {
+        try {
+            const _this = this;
+            const uuid = new Date().getTime();
+            if (schedule) {
+                for (let monitor of schedule.monitors) {
+                    let component = monitor.monitorId.componentId.name;
+                    let subscribers = await SubscriberService.subscribersForAlert(
+                        {
+                            monitorId: monitor.monitorId._id,
+                        }
+                    );
+
+                    for (let subscriber of subscribers) {
+                        await _this.sendSubscriberScheduledEventAlert(
+                            subscriber,
+                            schedule,
+                            'Subscriber Scheduled Maintenance Resolved',
+                            component,
+                            subscribers.length,
+                            uuid
+                        );
+                    }
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendResolvedScheduledEventToSubscribers',
+                error
+            );
+            throw error;
+        }
+    },
     sendScheduledEventInvestigationNoteToSubscribers: async function(message) {
         try {
             const _this = this;
@@ -3601,12 +3634,17 @@ module.exports = {
                     emailType: templateType,
                 });
 
+                let eventType =
+                    templateType === 'Subscriber Scheduled Maintenance'
+                        ? 'Scheduled maintenance created'
+                        : 'Scheduled maintenance resolved';
+
                 const subscriberAlert = await SubscriberAlertService.create({
                     projectId,
                     subscriberId: subscriber._id,
                     alertVia: AlertType.Email,
                     alertStatus: 'Pending',
-                    eventType: 'Scheduled maintenance created',
+                    eventType,
                     totalSubscribers,
                     id,
                 });
@@ -3629,7 +3667,26 @@ module.exports = {
                         );
 
                         alertStatus = 'Sent';
+                    } else if (
+                        templateType ===
+                        'Subscriber Scheduled Maintenance Resolved'
+                    ) {
+                        await MailService.sendResolvedScheduledEventMailToSubscriber(
+                            date,
+                            subscriber.monitorName,
+                            subscriber.contactEmail,
+                            subscriber._id,
+                            subscriber.contactEmail,
+                            schedule,
+                            projectName,
+                            emailTemplate,
+                            componentName,
+                            schedule.projectId.replyAddress
+                        );
+
+                        alertStatus = 'Sent';
                     }
+
                     await SubscriberAlertService.updateOneBy(
                         { _id: alertId },
                         { alertStatus }
@@ -3641,7 +3698,7 @@ module.exports = {
                     );
                     throw error;
                 }
-            } else if (subscriber.alertVia == AlertType.SMS) {
+            } else if (false) {
                 try {
                     let owner;
                     const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
@@ -3657,7 +3714,7 @@ module.exports = {
                             : false;
 
                     const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
-                        incident.projectId
+                        projectId
                     );
 
                     const investigationNoteNotificationSMSDisabled =

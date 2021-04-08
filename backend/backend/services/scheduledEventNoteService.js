@@ -22,7 +22,11 @@ module.exports = {
                 .populate('createdById', 'name')
                 .execPopulate();
 
-            if (scheduledEventMessage.type === 'investigation') {
+            if (
+                scheduledEventMessage.type === 'investigation' &&
+                scheduledEventMessage.event_state !== 'Resolved' &&
+                scheduledEventMessage.event_state !== 'Created'
+            ) {
                 AlertService.sendScheduledEventInvestigationNoteToSubscribers(
                     scheduledEventMessage
                 );

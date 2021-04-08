@@ -460,9 +460,13 @@ module.exports = {
             // populate the necessary data
             resolvedScheduledEvent = await resolvedScheduledEvent
                 .populate('monitors.monitorId', 'name')
-                .populate('projectId', 'name')
+                .populate({
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: { path: 'componentId', select: 'name slug' },
+                })
+                .populate('projectId', 'name slug replyAddress')
                 .populate('createdById', 'name')
-                .populate('resolvedBy', 'name')
                 .execPopulate();
 
             // add note automatically
@@ -474,6 +478,13 @@ module.exports = {
                 type: 'investigation',
                 event_state: 'Resolved',
             });
+
+            if (resolvedScheduledEvent.alertSubscriber) {
+                // handle this asynchronous operation in the background
+                AlertService.sendResolvedScheduledEventToSubscribers(
+                    resolvedScheduledEvent
+                );
+            }
 
             // realtime update
             await RealTimeService.resolveScheduledEvent(resolvedScheduledEvent);
