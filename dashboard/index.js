@@ -22,6 +22,7 @@ const path = require('path');
 const app = express();
 const child_process = require('child_process');
 const cors = require('cors');
+const fs = require('fs');
 
 app.use(cors());
 
@@ -97,6 +98,60 @@ app.use(['/dashboard/api/version', '/dashboard/version'], function(req, res) {
 
 app.use(express.static(path.join(__dirname, 'build')));
 app.use('/dashboard', express.static(path.join(__dirname, 'build')));
+app.use(/^\/dashboard\/static\/js\/2\.(.+)\.chunk\.js$/, function(
+    req,
+    res,
+    next
+) {
+    const directory = path.join(__dirname, 'build', 'static', 'js');
+    fs.readdir(directory, function(err, files) {
+        const regex = /2\.(.+)\.chunk\.(js)$/;
+        if (err) {
+            /* eslint-disable no-console */
+            console.log('Unable to scan directory: ', err);
+            return next();
+        }
+        let file;
+        for (let i = 0; i < files.length; i++) {
+            if (regex.test(files[i])) {
+                file = files[i];
+                break;
+            }
+        }
+        if (file) {
+            res.sendFile(path.join(__dirname, 'build', 'static', 'js', file));
+        } else {
+            next();
+        }
+    });
+});
+app.use(/^\/dashboard\/static\/js\/main\.(.+)\.chunk\.js$/, function(
+    req,
+    res,
+    next
+) {
+    const directory = path.join(__dirname, 'build', 'static', 'js');
+    fs.readdir(directory, function(err, files) {
+        const regex = /main\.(.+)\.chunk\.(js)$/;
+        if (err) {
+            /* eslint-disable no-console */
+            console.log('Unable to scan directory: ', err);
+            next();
+        }
+        let file;
+        for (let i = 0; i < files.length; i++) {
+            if (regex.test(files[i])) {
+                file = files[i];
+                break;
+            }
+        }
+        if (file) {
+            res.sendFile(path.join(__dirname, 'build', 'static', 'js', file));
+        } else {
+            next();
+        }
+    });
+});
 app.use(
     '/dashboard/static/js',
     express.static(path.join(__dirname, 'build/static/js'))
