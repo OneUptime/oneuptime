@@ -48,6 +48,7 @@ git checkout master
 git pull
 
 git merge hotfix-master
+git push
 
 git checkout hotfix-master
 git merge master
