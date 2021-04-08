@@ -24,7 +24,7 @@ public class FyipeTracker {
     private SDK sdk;
     private ErrorEvent errorEvent;
 
-    public FyipeTracker(String apiUrl, String errorTrackerId, String errorTrackerKey) throws IOException {
+    public FyipeTracker(String apiUrl, String errorTrackerId, String errorTrackerKey) {
         this(apiUrl, errorTrackerId, errorTrackerKey, null);
     }
     public FyipeTracker(String apiUrl, String errorTrackerId, String errorTrackerKey,  TrackerOption options) {
@@ -128,14 +128,20 @@ public class FyipeTracker {
         }
         return this.fingerprint;
     }
-    public JsonObject captureMessage(String message) throws IOException {
+    public JsonObject captureMessage(String message) {
         this.setTag(new Tag("handled","true"));
         StackTrace messageStackTrace = new StackTrace(message);
 
         this.prepareErrorEvent(ErrorObjectType.message.name(), messageStackTrace);
 
+        JsonObject response = null;
         // send to the server
-        return this.sendErrorEventToServer();
+        try {
+            response = this.sendErrorEventToServer();
+        } catch (IOException ioException) {
+            ioException.printStackTrace();
+        }
+        return response;
     }
     public JsonObject captureException(Exception exception) {
         // construct the error object
