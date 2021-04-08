@@ -53,10 +53,7 @@ describe('Monitor API', () => {
         'Should create new monitor with default criteria settings',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                // Create Component first
-                // Redirects automatically component to details page
-                //await init.addComponent(componentName, page);
-
+                // Component is already created.
                 await init.navigateToComponentDetails(componentName, page);
                 const monitorName = utils.generateRandomString();
 
@@ -84,9 +81,7 @@ describe('Monitor API', () => {
         'Should create new monitor with edited criteria names',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                // Create Component first
-                // Redirects automatically component to details page
-              //  await init.addComponent(componentName, page);
+               // Component is already created.
 
               await init.navigateToComponentDetails(componentName, page);
               const monitorName = utils.generateRandomString();
@@ -143,13 +138,9 @@ describe('Monitor API', () => {
 
     test('Should create new monitor with multiple criteria on each category', async () => {
         return await cluster.execute(null, async ({ page }) => {
-            // Create Component first
-            // Redirects automatically component to details page
-          //  await init.addComponent(componentName, page);
-
+            // Component is already created.
           await init.navigateToComponentDetails(componentName, page);
           const monitorName = utils.generateRandomString();
-
 
             await page.waitForSelector('#form-new-monitor');
             await page.click('input[id=name]');
@@ -247,6 +238,7 @@ describe('Monitor API', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
+                // This navigates to the monitor created alongside the created component
                 await init.navigateToMonitorDetails(
                     componentName,
                     monitorName,
@@ -317,6 +309,7 @@ describe('Monitor API', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
+                // This navigates to the monitor created alongside the created component
                 await init.navigateToMonitorDetails(
                     componentName,
                     monitorName,
@@ -556,9 +549,8 @@ describe('Monitor API', () => {
             };
 
             const dashboard = async ({ page }) => {
-              
-                 await init.navigateToMonitorDetails(componentName, testServerMonitorName,page);            
-                             
+                // Component is already created. This is code refactoring
+                 await init.navigateToMonitorDetails(componentName, testServerMonitorName,page);                             
 
                 let monitorStatusElement = await page.waitForSelector(
                     `#monitor-status-${testServerMonitorName}`,
@@ -614,7 +606,7 @@ describe('Monitor API', () => {
             };
 
             const dashboard = async ({ page }) => {
-            // Navigate to Component details
+            // Component is already created. This is code refactoring
             await init.navigateToMonitorDetails(componentName, testServerMonitorName,page);    
             await page.waitForSelector('#notificationscroll',{visbile: true, timeout: 280000});
             
