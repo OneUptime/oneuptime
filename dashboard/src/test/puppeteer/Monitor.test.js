@@ -82,7 +82,6 @@ describe('Monitor API', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                // Component is already created.
-
               await init.navigateToComponentDetails(componentName, page);
               const monitorName = utils.generateRandomString();
 
