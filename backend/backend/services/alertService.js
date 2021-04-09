@@ -3399,8 +3399,12 @@ module.exports = {
     sendUnpaidSubscriptionEmail: async function(project, user) {
         try {
             const { name: userName, email: userEmail } = user;
-            const { stripePlanId, _id: projectId, name: projectName } = project;
-            const projectUrl = `${global.dashboardHost}/project/${projectId}`;
+            const {
+                stripePlanId,
+                name: projectName,
+                slug: projectSlug,
+            } = project;
+            const projectUrl = `${global.dashboardHost}/project/${projectSlug}`;
             const projectPlan = getPlanById(stripePlanId);
 
             await MailService.sendUnpaidSubscriptionReminder({
