@@ -1068,9 +1068,9 @@ module.exports = {
                 const monitorName = monitor.name;
                 const incidentId = `#${incident.idNumber}`;
                 const reason = incident.reason;
-                const componentId = incident.monitorId.componentId._id;
+                const componentSlug = incident.monitorId.componentId.slug;
                 const componentName = incident.monitorId.componentId.name;
-                const incidentUrl = `${global.dashboardHost}/project/${projectId}/${componentId}/incidents/${incident._id}`;
+                const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/${componentSlug}/incidents/${incident.idNumber}`;
                 let incidentSlaTimeline =
                     incidentCommunicationSla.duration * 60;
                 incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
@@ -2448,7 +2448,7 @@ module.exports = {
                         ? monitor.componentId._id
                         : monitor.componentId,
             });
-            const statusUrl = `${global.dashboardHost}/project/${incident.projectId}/${component._id}/incidents/${incident._id}`;
+            const statusUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/${component.slug}/incidents/${incident.idNumber}`;
 
             let statusPageUrl;
             if (statusPage) {
