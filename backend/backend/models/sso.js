@@ -14,7 +14,7 @@ const ssoSchema = new Schema({
         type: String,
         required: true,
     },
-    samlSsoUrl: {
+    remoteLoginUrl: {
         type: String,
         required: true,
     },
