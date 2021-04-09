@@ -37,7 +37,7 @@ describe('Monitor API', () => {
                 email,
                 password,
             };
-            await init.registerUser(user, page);                        
+            await init.registerUser(user, page);
             await init.addSchedule(callSchedule, page);
             await init.addMonitorToComponent(componentName, monitorName, page); // This creates a default component and a monitor. The monitor created here will be used by other tests as required
         });
@@ -81,10 +81,9 @@ describe('Monitor API', () => {
         'Should create new monitor with edited criteria names',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-               // Component is already created.
-              await init.navigateToComponentDetails(componentName, page);
-              const monitorName = utils.generateRandomString();
-
+                // Component is already created.
+                await init.navigateToComponentDetails(componentName, page);
+                const monitorName = utils.generateRandomString();
 
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
@@ -138,8 +137,8 @@ describe('Monitor API', () => {
     test('Should create new monitor with multiple criteria on each category', async () => {
         return await cluster.execute(null, async ({ page }) => {
             // Component is already created.
-          await init.navigateToComponentDetails(componentName, page);
-          const monitorName = utils.generateRandomString();
+            await init.navigateToComponentDetails(componentName, page);
+            const monitorName = utils.generateRandomString();
 
             await page.waitForSelector('#form-new-monitor');
             await page.click('input[id=name]');
@@ -355,7 +354,7 @@ describe('Monitor API', () => {
                     schedules.forEach(schedule => schedule.click())
                 );
 
-                await page.click('button[type=submit]');                
+                await page.click('button[type=submit]');
 
                 let spanElement = await page.waitForSelector(
                     `#monitor-title-${monitorName}`
@@ -363,7 +362,7 @@ describe('Monitor API', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(monitorName);
-                
+
                 await page.click(`#edit_${monitorName}`);
 
                 const checkboxValues = await page.$$eval(
@@ -549,7 +548,11 @@ describe('Monitor API', () => {
 
             const dashboard = async ({ page }) => {
                 // Component and Monitor are already created. This is code refactoring
-                 await init.navigateToMonitorDetails(componentName, testServerMonitorName,page);                             
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    testServerMonitorName,
+                    page
+                );
 
                 let monitorStatusElement = await page.waitForSelector(
                     `#monitor-status-${testServerMonitorName}`,
@@ -605,10 +608,17 @@ describe('Monitor API', () => {
             };
 
             const dashboard = async ({ page }) => {
-            // Component and Monitor are already created. This is code refactoring
-            await init.navigateToMonitorDetails(componentName, testServerMonitorName,page);    
-            await page.waitForSelector('#notificationscroll',{visbile: true, timeout: 280000});
-            
+                // Component and Monitor are already created. This is code refactoring
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    testServerMonitorName,
+                    page
+                );
+                await page.waitForSelector('#notificationscroll', {
+                    visbile: true,
+                    timeout: 280000,
+                });
+
                 let monitorStatusElement = await page.waitForSelector(
                     `#monitor-status-${testServerMonitorName}`,
                     { visible: true, timeout: operationTimeOut }
@@ -692,7 +702,7 @@ describe('API Monitor API', () => {
                 email: utils.generateRandomBusinessEmail(),
                 password,
             };
-            await init.registerUser(user, page);            
+            await init.registerUser(user, page);
         });
 
         await cluster.execute(null, async ({ page }) => {
@@ -828,7 +838,7 @@ describe('API Monitor API', () => {
                 await page.click('input[data-testId=type_api]');
                 await init.selectByText('#method', 'get', page);
                 await page.waitForSelector('#url');
-                await page.click('#url');                
+                await page.click('#url');
                 await page.type('#url', 'http://localhost:3002');
                 await page.click('button[type=submit]');
 
@@ -851,7 +861,7 @@ describe('API Monitor API', () => {
                 await init.navigateToComponentDetails(componentName, page);
 
                 //const newMonitorName = utils.generateRandomString();
-                await init.addAPIMonitorWithJSExpression(page, testMonitorName);                
+                await init.addAPIMonitorWithJSExpression(page, testMonitorName);
 
                 let spanElement = await page.waitForSelector(
                     `#monitor-title-${testMonitorName}`
@@ -879,7 +889,7 @@ describe('API Monitor API', () => {
         },
         operationTimeOut
     );
-        // Second Monitor has been created an will be used in most of the remaining tests.
+    // Second Monitor has been created an will be used in most of the remaining tests.
     test(
         'should strip trailing semicolons from evaluate response js expressions',
         async () => {
@@ -957,14 +967,14 @@ describe('API Monitor API', () => {
             await cluster.execute(null, testServer);
 
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);                
+                await page.goto(utils.DASHBOARD_URL);
 
-                 // Navigate to Monitor details
-                 await init.navigateToMonitorDetails(
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
                     componentName,
                     testMonitorName,
                     page
-                );                                           
+                );
 
                 const probeTabs = await page.$$('button[id^=probes-btn]');
                 for (const probeTab of probeTabs) {
@@ -1012,7 +1022,7 @@ describe('API Monitor API', () => {
 
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                
+
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -1072,7 +1082,7 @@ describe('API Monitor API', () => {
             null,
             async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                
+
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -1155,7 +1165,6 @@ describe('API Monitor API', () => {
         async () => {
             expect.assertions(1);
             return await cluster.execute(null, async ({ page }) => {
-
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,

@@ -387,7 +387,7 @@ class CreateSchedule extends React.Component {
                                         }}
                                     >
                                         <label style={{ marginRight: 10 }}>
-                                           Advanced Options
+                                            Advanced Options
                                         </label>
                                         <div>
                                             <label className="Toggler-wrap">
@@ -876,7 +876,7 @@ class CreateSchedule extends React.Component {
                                                 </div>
                                             </div>
                                         ) : null}
-                                            {formValues && formValues.recurring ? (
+                                        {formValues && formValues.recurring ? (
                                             <fieldset className="Margin-bottom--16">
                                                 <div className="bs-Fieldset-rows">
                                                     <div

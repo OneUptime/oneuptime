@@ -8,10 +8,10 @@ async function run() {
     });
 
     for (let i = 0; i < subscribers.length; i++) {
-        const subscribers = subscribers[i];
+        const subscriber = subscribers[i];
         await update(
             subscriberCollection,
-            { _id: subscribers._id },
+            { _id: subscriber._id },
             { subscribed: true }
         );
     }
