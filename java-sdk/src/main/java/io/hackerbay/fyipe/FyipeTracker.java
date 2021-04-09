@@ -46,6 +46,7 @@ public class FyipeTracker {
 
         // set up error listener
         this.setUpErrorEventListener();
+        new FyipeHandlerExceptionResolver(this);
     }
 
     private void setApiUrl(String apiUrl){
