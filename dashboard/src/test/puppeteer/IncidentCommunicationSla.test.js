@@ -11,8 +11,8 @@ const password = '1234567890';
 let slaName = 'fxPro';
 const duration = '15';
 const alertTime = '10';
-const component = 'sampleComponent';
-const monitor = 'sampleMonitor';
+const component = utils.generateRandomString();
+const monitor = utils.generateRandomString();
 
 describe('Incident Communication SLA', () => {
     const operationTimeOut = 500000;
@@ -39,7 +39,6 @@ describe('Incident Communication SLA', () => {
             };
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
         });
 
         done();
@@ -60,12 +59,22 @@ describe('Incident Communication SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#incidentSettings', {
                     visible: true,
                 });
                 await page.click('#incidentSettings');
 
-                await init.gotoTab(4, page); // tab id for incident communication sla tab
+                // tab id for incident communication sla tab
+
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[2].click()
+                );
+
                 await page.waitForSelector('#addIncidentSlaBtn', {
                     visible: true,
                 });
@@ -100,12 +109,22 @@ describe('Incident Communication SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#incidentSettings', {
                     visible: true,
                 });
                 await page.click('#incidentSettings');
 
-                await init.gotoTab(4, page); // tab id for incident communication sla tab
+                // tab id for incident communication sla tab
+
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[2].click()
+                );
+
                 await page.waitForSelector('#addIncidentSlaBtn', {
                     visible: true,
                 });
@@ -140,12 +159,22 @@ describe('Incident Communication SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#incidentSettings', {
                     visible: true,
                 });
                 await page.click('#incidentSettings');
 
-                await init.gotoTab(4, page); // tab id for incident communication sla tab
+                // tab id for incident communication sla tab
+
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[2].click()
+                );
+
                 await page.waitForSelector('#addIncidentSlaBtn', {
                     visible: true,
                 });
@@ -180,12 +209,22 @@ describe('Incident Communication SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#incidentSettings', {
                     visible: true,
                 });
                 await page.click('#incidentSettings');
 
-                await init.gotoTab(4, page); // tab id for incident communication sla tab
+                // tab id for incident communication sla tab
+
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[2].click()
+                );
+
                 await page.waitForSelector('#addIncidentSlaBtn', {
                     visible: true,
                 });
@@ -224,12 +263,22 @@ describe('Incident Communication SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#incidentSettings', {
                     visible: true,
                 });
                 await page.click('#incidentSettings');
 
-                await init.gotoTab(4, page); // tab id for incident communication sla tab
+                // tab id for incident communication sla tab
+
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[2].click()
+                );
+
                 await page.waitForSelector(`#editIncidentSlaBtn_${slaName}`, {
                     visible: true,
                 });
@@ -261,12 +310,22 @@ describe('Incident Communication SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#incidentSettings', {
                     visible: true,
                 });
                 await page.click('#incidentSettings');
 
-                await init.gotoTab(4, page); // tab id for incident communication sla tab
+                // tab id for incident communication sla tab
+
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[2].click()
+                );
+
                 await page.waitForSelector(`#editIncidentSlaBtn_${slaName}`, {
                     visible: true,
                 });
@@ -369,12 +428,22 @@ describe('Incident Communication SLA', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#incidentSettings', {
                     visible: true,
                 });
                 await page.click('#incidentSettings');
 
-                await init.gotoTab(4, page); // tab id for incident communication sla tab
+                // tab id for incident communication sla tab
+
+                await page.waitForSelector('ul#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[2].click()
+                );
+
                 await page.waitForSelector(`#deleteIncidentSlaBtn_${slaName}`, {
                     visible: true,
                 });

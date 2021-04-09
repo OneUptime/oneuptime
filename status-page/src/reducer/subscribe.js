@@ -19,6 +19,11 @@ const INITIAL_STATE = {
         success: false,
         error: false,
     },
+    unsubscribe: {
+        requesting: false,
+        success: false,
+        error: false,
+    },
 };
 
 export default (state = INITIAL_STATE, action) => {

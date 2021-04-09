@@ -53,6 +53,8 @@ export class PrivateStatusPage extends Component {
                 ipWhitelist: values.ipWhitelist,
                 enableIpWhitelist: values.enableIpWhitelist,
                 hideProbeBar: values.hideProbeBar,
+                hideUptime: values.hideUptime,
+                hideResolvedIncident: values.hideResolvedIncident,
             })
             .then(() => {
                 this.props.fetchProjectStatusPage(
@@ -683,6 +685,66 @@ export class PrivateStatusPage extends Component {
                                                                         '5px',
                                                                 }}
                                                             ></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <Field
+                                                                        component="input"
+                                                                        type="checkbox"
+                                                                        name={
+                                                                            'hideUptime'
+                                                                        }
+                                                                        data-test="RetrySettings-failedPaymentsCheckbox"
+                                                                        className="Checkbox-source"
+                                                                        id="statuspage.hideUptime"
+                                                                    />
+                                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                        <div className="Checkbox-target Box-root">
+                                                                            <div className="Checkbox-color Box-root"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            paddingLeft:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <span>
+                                                                            Hide
+                                                                            Uptime
+                                                                        </span>
+                                                                        <label className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                Hide
+                                                                                Uptime
+                                                                                from
+                                                                                status
+                                                                                page
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bs-Fieldset-row">
+                                                        <label
+                                                            className="bs-Fieldset-label"
+                                                            style={{
+                                                                flex: '25% 0 0',
+                                                            }}
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    height:
+                                                                        '5px',
+                                                                }}
+                                                            ></div>
                                                             <div
                                                                 className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart"
                                                                 style={{
@@ -784,6 +846,89 @@ export class PrivateStatusPage extends Component {
                                                                         </div>
                                                                     </div>
                                                                 </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            paddingTop: '0',
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label"
+                                                            style={{
+                                                                flex: '25% 0 0',
+                                                            }}
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    height:
+                                                                        '5px',
+                                                                }}
+                                                            ></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <Field
+                                                                        component="input"
+                                                                        type="checkbox"
+                                                                        name={
+                                                                            'hideResolvedIncident'
+                                                                        }
+                                                                        data-test="RetrySettings-failedPaymentsCheckbox"
+                                                                        className="Checkbox-source"
+                                                                        id="statuspage.hideResolvedIncident"
+                                                                    />
+                                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                        <div className="Checkbox-target Box-root">
+                                                                            <div className="Checkbox-color Box-root"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            paddingLeft:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <span>
+                                                                            Hide
+                                                                            Resolved
+                                                                            Incidents
+                                                                            on
+                                                                            this
+                                                                            Status
+                                                                            Page
+                                                                        </span>
+                                                                        <label className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                If
+                                                                                you
+                                                                                enable
+                                                                                this
+                                                                                checkbox,
+                                                                                all
+                                                                                of
+                                                                                your
+                                                                                resolved
+                                                                                incidents
+                                                                                will
+                                                                                not
+                                                                                be
+                                                                                shown
+                                                                                on
+                                                                                the
+                                                                                status
+                                                                                page.
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -895,6 +1040,8 @@ const mapStateToProps = state => {
         initialValues.enableIpWhitelist = status.enableIpWhitelist;
         initialValues.ipWhitelist = status.ipWhitelist;
         initialValues.hideProbeBar = status.hideProbeBar;
+        initialValues.hideUptime = status.hideUptime;
+        initialValues.hideResolvedIncident = status.hideResolvedIncident;
     }
     initialValues.showIpWhitelistInput = true;
 

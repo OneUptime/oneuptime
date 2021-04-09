@@ -205,12 +205,9 @@ router.get(
     getSubProjects,
     async function(req, res) {
         try {
-            const subProjectIds = req.user.subProjects
-                ? req.user.subProjects.map(project => project._id)
-                : null;
-            const { componentId } = req.params;
+            const { componentId, projectId } = req.params;
             const incidents = await IncidentService.getComponentIncidents(
-                subProjectIds,
+                projectId,
                 componentId
             );
             return sendItemResponse(req, res, incidents); // frontend expects sendItemResponse
@@ -277,12 +274,10 @@ router.get(
         // Call the IncidentService.
 
         try {
-            let incidentId = await IncidentService.getIncidentId({
-                idNumber: req.params.incidentId,
-            });
-            incidentId = incidentId._id;
+            const { projectId, incidentId } = req.params;
             const incident = await IncidentService.findOneBy({
-                _id: incidentId,
+                projectId,
+                idNumber: incidentId,
             });
             return sendItemResponse(req, res, incident);
         } catch (error) {
@@ -305,6 +300,7 @@ router.get(
 
         try {
             const incident = await IncidentService.findOneBy({
+                projectId: req.params.projectId,
                 idNumber: req.params.incidentIdNumber,
             });
             return sendItemResponse(req, res, incident);
@@ -320,9 +316,14 @@ router.get(
     isAuthorized,
     async function(req, res) {
         try {
-            const incidentId = req.params.incidentId;
+            const { projectId, incidentId } = req.params;
+
+            const incident = await IncidentService.findOneBy({
+                projectId,
+                idNumber: incidentId,
+            });
             const timeline = await IncidentTimelineService.findBy(
-                { incidentId },
+                { incidentId: incident._id },
                 req.query.skip || 0,
                 req.query.limit || 10
             );
@@ -566,10 +567,10 @@ router.post(
         try {
             const data = req.body;
             const incidentId = req.params.incidentId;
-            const { idNumber } = await IncidentService.getIncidentId({
+            const projectId = req.params.projectId;
+            const { idNumber } = await IncidentService.findOneBy({
                 _id: incidentId,
             });
-            const projectId = req.params.projectId;
             const userId = req.user.id;
             if (!data.content) {
                 return sendErrorResponse(req, res, {
@@ -803,11 +804,17 @@ router.get(
     isAuthorized,
     async function(req, res) {
         try {
+            const { projectId, incidentId } = req.params;
+
+            const incident = await IncidentService.findOneBy({
+                projectId,
+                idNumber: incidentId,
+            });
             const {
                 statusPages,
                 count,
             } = await StatusPageService.getStatusPagesForIncident(
-                req.params.incidentId,
+                incident._id,
                 parseInt(req.query.skip) || 0,
                 parseInt(req.query.limit) || 10
             );
@@ -825,7 +832,7 @@ router.delete(
     async function(req, res) {
         try {
             const { incidentId, incidentMessageId, projectId } = req.params;
-            const { idNumber } = await IncidentService.getIncidentId({
+            const { idNumber } = await IncidentService.findOneBy({
                 _id: incidentId,
             });
             const checkMsg = await IncidentMessageService.findOneBy({
@@ -929,11 +936,12 @@ router.get(
         try {
             let incidentMessages, result;
             const idNumber = req.params.incidentId;
-            let incidentId = await IncidentService.getIncidentId({
+            const projectId = req.params.projectId;
+            let incidentId = await IncidentService.findOneBy({
+                projectId,
                 idNumber,
             });
             incidentId = incidentId._id;
-            const projectId = req.params.projectId;
             if (type === 'investigation') {
                 incidentMessages = await IncidentMessageService.findBy(
                     { incidentId, type },
@@ -1021,6 +1029,23 @@ router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(
                 message: 'Incident not found',
             });
         }
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put('/:projectId/:incidentId', getUser, async function(req, res) {
+    try {
+        const { projectId, incidentId } = req.params;
+        const { hideIncident } = req.body;
+        const incident = await IncidentService.updateOneBy(
+            {
+                projectId,
+                _id: incidentId,
+            },
+            { hideIncident }
+        );
+        return sendItemResponse(req, res, incident);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

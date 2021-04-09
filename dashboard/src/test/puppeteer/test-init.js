@@ -302,7 +302,7 @@ module.exports = {
         page.waitForSelector('#name', { timeout: 2000 });
         await page.type('#name', callSchedule);
         await page.click('#btnCreateSchedule');
-        await page.waitFor(2000);
+        await page.waitForSelector(`#duty_${callSchedule}`, { visible: true });
     },
     addSubProject: async function(subProjectName, page) {
         const subProjectNameSelector = await page.$('#btn_Add_SubProjects');
@@ -445,29 +445,29 @@ module.exports = {
             }
         );
         await page.waitForSelector(
-            'ul[data-testId=up_criteria_list]> li:last-of-type #responseType'
+            'ul[data-testId=up_criteria_list]> div:last-of-type #responseType'
         );
         await this.selectByText(
-            'ul[data-testId=up_criteria_list]> li:last-of-type #responseType',
+            'ul[data-testId=up_criteria_list]> div:last-of-type #responseType',
             'responseBody',
             page
         );
         await page.waitForSelector(
-            'ul[data-testId=up_criteria_list]> li:last-of-type #filter'
+            'ul[data-testId=up_criteria_list]> div:last-of-type #filter'
         );
         await this.selectByText(
-            'ul[data-testId=up_criteria_list]> li:last-of-type #filter',
+            'ul[data-testId=up_criteria_list]> div:last-of-type #filter',
             'evaluateResponse',
             page
         );
         await page.waitForSelector(
-            'ul[data-testId=up_criteria_list]> li:last-of-type #value'
+            'ul[data-testId=up_criteria_list]> div:last-of-type #value'
         );
         await page.click(
-            'ul[data-testId=up_criteria_list]> li:last-of-type #value'
+            'ul[data-testId=up_criteria_list]> div:last-of-type #value'
         );
         await page.type(
-            'ul[data-testId=up_criteria_list]> li:last-of-type #value',
+            'ul[data-testId=up_criteria_list]> div:last-of-type #value',
             "response.body.status === 'ok';"
         );
 
@@ -492,29 +492,29 @@ module.exports = {
             }
         );
         await page.waitForSelector(
-            'ul[data-testId=degraded_criteria_list] > li:last-of-type #responseType'
+            'ul[data-testId=degraded_criteria_list] > div:last-of-type #responseType'
         );
         await this.selectByText(
-            'ul[data-testId=degraded_criteria_list] > li:last-of-type #responseType',
+            'ul[data-testId=degraded_criteria_list] > div:last-of-type #responseType',
             'responseBody',
             page
         );
         await page.waitForSelector(
-            'ul[data-testId=degraded_criteria_list] > li:last-of-type #filter'
+            'ul[data-testId=degraded_criteria_list] > div:last-of-type #filter'
         );
         await this.selectByText(
-            'ul[data-testId=degraded_criteria_list] > li:last-of-type #filter',
+            'ul[data-testId=degraded_criteria_list] > div:last-of-type #filter',
             'evaluateResponse',
             page
         );
         await page.waitForSelector(
-            'ul[data-testId=degraded_criteria_list] > li:last-of-type #value'
+            'ul[data-testId=degraded_criteria_list] > div:last-of-type #value'
         );
         await page.click(
-            'ul[data-testId=degraded_criteria_list] > li:last-of-type #value'
+            'ul[data-testId=degraded_criteria_list] > div:last-of-type #value'
         );
         await page.type(
-            'ul[data-testId=degraded_criteria_list] > li:last-of-type #value',
+            'ul[data-testId=degraded_criteria_list] > div:last-of-type #value',
             "response.body.message === 'draining';"
         );
 
@@ -574,14 +574,22 @@ module.exports = {
         });
         await page.waitForSelector('#projectSettings');
         await page.click('#projectSettings');
+        await page.waitForSelector('#more');
+        await page.click('#more');
         await page.waitForSelector('#incidentSettings');
         await page.click('#incidentSettings');
+        // To navigate to incident Priority tab
+        await page.waitForSelector('ul#customTabList > li', {
+            visible: true,
+        });
+        await page.$$eval('ul#customTabList > li', elems => elems[1].click());
+
         await page.waitForSelector('#addNewPriority');
         await page.click('#addNewPriority');
         await page.waitForSelector('#CreateIncidentPriority');
         await page.type('input[name=name]', incidentPriority);
         await page.click('#CreateIncidentPriority');
-        await page.waitFor(3000);
+        await page.waitForSelector('#CreateIncidentPriority', { hidden: true });
     },
     addStatusPageToProject: async function(statusPageName, projectName, page) {
         const createStatusPageSelector = await page.$(
@@ -623,12 +631,17 @@ module.exports = {
             await page.click('#btnCreateSchedule');
         }
     },
-    addScheduledEvent: async function(monitorName, scheduledEventName, page) {
+    addScheduledMaintenance: async function(
+        monitorName,
+        scheduledEventName,
+        componentName,
+        page
+    ) {
         await page.goto(utils.DASHBOARD_URL);
-        await page.waitForSelector('#scheduledEvents', {
+        await page.waitForSelector('#scheduledMaintenance', {
             visible: true,
         });
-        await page.click('#scheduledEvents');
+        await page.click('#scheduledMaintenance');
         await page.waitForSelector('#addScheduledEventButton', {
             visible: true,
         });
@@ -644,7 +657,7 @@ module.exports = {
             await page.click('label[for=selectAllMonitorsBox]');
             await page.click('#addMoreMonitor');
             await page.waitForSelector('#monitorfield_0');
-            await this.selectByText('#monitorfield_0', monitorName, page);
+            await this.selectByText('#monitorfield_0', componentName, page); // 'Component_Name/Monitor_Name' appears in the dropdown. Using 'componentName' selects the monitor.
         }
         await page.click('#description');
         await page.type(
@@ -654,10 +667,16 @@ module.exports = {
         await page.waitForSelector('input[name=startDate]');
         await page.click('input[name=startDate]');
         await page.click('div.MuiDialogActions-root button:nth-child(2)');
-        await page.waitFor(1000); // needed because of the date picker
+        await page.waitForSelector(
+            'div.MuiDialogActions-root button:nth-child(2)',
+            { hidden: true }
+        );
         await page.click('input[name=endDate]');
         await page.click('div.MuiDialogActions-root button:nth-child(2)');
-        await page.waitFor(1000); // needed because of the date picker
+        await page.waitForSelector(
+            'div.MuiDialogActions-root button:nth-child(2)',
+            { hidden: true }
+        );
         await page.click('#createScheduledEventButton');
         await page.waitForSelector('.ball-beat', {
             hidden: true,
@@ -794,7 +813,7 @@ module.exports = {
             await page.waitForNavigation({ waitUntil: 'networkidle0' }),
         ]);
     },
-    addScheduledEventNote: async function(
+    addScheduledMaintenanceNote: async function(
         page,
         type,
         eventBtn,
@@ -802,10 +821,10 @@ module.exports = {
         eventState = 'update'
     ) {
         await page.goto(utils.DASHBOARD_URL);
-        await page.waitForSelector('#scheduledEvents', {
+        await page.waitForSelector('#scheduledMaintenance', {
             visible: true,
         });
-        await page.click('#scheduledEvents');
+        await page.click('#scheduledMaintenance');
 
         await page.waitForSelector(`#${eventBtn}`, {
             visible: true,
@@ -821,10 +840,10 @@ module.exports = {
             visible: true,
         });
         await this.selectByText('#event_state', eventState, page);
-        await page.click('#new-investigation');
-        await page.type('#new-investigation', noteDescription);
-        await page.click('#investigation-addButton');
-        await page.waitForSelector('#form-new-schedule-investigation-message', {
+        await page.click('#new-internal');
+        await page.type('#new-internal', noteDescription);
+        await page.click('#internal-addButton');
+        await page.waitForSelector('#form-new-schedule-internal-message', {
             hidden: true,
         });
     },

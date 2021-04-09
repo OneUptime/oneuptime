@@ -36,7 +36,6 @@ describe('Application Security Page', () => {
             };
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
             done();
         });
     });

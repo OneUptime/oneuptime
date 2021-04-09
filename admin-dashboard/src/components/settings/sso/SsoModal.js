@@ -3,10 +3,11 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { RenderField } from '../../basic/RenderField';
-import { Validate } from '../../../config';
+import { API_URL, Validate } from '../../../config';
 import { reduxForm, Field } from 'redux-form';
 import { addSso, fetchSsos, updateSso } from '../../../actions/sso';
 import { fetchSsoDefaultRoles } from '../../../actions/ssoDefaultRoles';
+import copyToClipboard from '../../../utils/copyToClipboard';
 
 // Client side validation
 function validate(values) {
@@ -16,20 +17,16 @@ function validate(values) {
         errors.domain = 'Domain is not valid.';
     }
 
-    if (!Validate.text(values.samlSsoUrl)) {
-        errors.samlSsoUrl = 'SSO URL is not valid.';
+    if (!Validate.text(values.entityId)) {
+        errors.entityId = 'Application ID is not valid.';
     }
 
-    if (!Validate.text(values.certificateFingerprint)) {
-        errors.certificateFingerprint = 'Certificate Fingerprint is not valid.';
+    if (!Validate.text(values.remoteLoginUrl)) {
+        errors.remoteLoginUrl = 'SSO URL is not valid.';
     }
 
     if (!Validate.text(values.remoteLogoutUrl)) {
         errors.remoteLogoutUrl = 'Remote logout URL is not valid.';
-    }
-
-    if (!Validate.text(values.ipRanges)) {
-        errors.ipRanges = 'Ip range is not valid.';
     }
 
     return errors;
@@ -60,6 +57,14 @@ const fields = [
         ),
     },
     {
+        key: 'ssoCallbackUrl',
+        label: 'SSO Callback URL',
+        value: `${API_URL}/user/sso/callback`,
+        description: 'Add this to your IDP as your callback url',
+        copyIcon:
+            'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+Y2xpcGJvYXJkPC90aXRsZT48cGF0aCBkPSJNMTQuMjc1IDQuNWguMzI1Yy4yMiAwIC40LjE4LjQuNHYxMC4yYS40LjQgMCAwIDEtLjQuNEg1LjRhLjQuNCAwIDAgMS0uNC0uNFY0LjljMC0uMjIuMTgtLjQuNC0uNGgxLjQ4NWMuMjIgMCAuNC4xOC40LjR2MS42NDdjMCAuMjIuMTc5LjQuNC40aDQuNzRhLjQuNCAwIDAgMCAuNC0uNFY0LjlhLjQuNCAwIDAgMSAuNC0uNGgxLjA1ek0xMS42IDMuOTUzYy4yMiAwIC40LjE4LjQuNFY1LjZhLjQuNCAwIDAgMS0uNC40SDguNGEuNC40IDAgMCAxLS40LS40VjQuMzUzYzAtLjIyLjE4LS40LjQtLjRoLjI1M2EuNC40IDAgMCAwIC40LS40VjMuNGMwLS4yMi4xOC0uNC40LS40aDEuMDI3Yy4yMiAwIC40LjE4LjQuNHYuMTUzYzAgLjIyMS4xOC40LjQuNGguMzJ6TTYuNSAxM2MwIC4yNjguMjIzLjUuNDk5LjVoMi43MDJhLjQ5OC40OTggMCAwIDAgLjQ5OS0uNWMwLS4yNjgtLjIyMy0uNS0uNDk5LS41SDYuOTk5YS40OTguNDk4IDAgMCAwLS40OTkuNXptMC0xLjc1YzAgLjI2OC4yMjIuNS40OTYuNWg1LjYwOGEuNDk2LjQ5NiAwIDAgMCAuNDk2LS41YzAtLjI2OC0uMjIyLS41LS40OTYtLjVINi45OTZhLjQ5Ni40OTYgMCAwIDAtLjQ5Ni41em0wLTEuNzVjMCAuMjY4LjIyNi41LjUwNi41aDQuNjg4Yy4yOSAwIC41MDYtLjIyNC41MDYtLjUgMC0uMjY4LS4yMjYtLjUtLjUwNi0uNUg3LjAwNmEuNDk3LjQ5NyAwIDAgMC0uNTA2LjV6IiBmaWxsPSIjNTI1RjdGIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48L3N2Zz4=',
+    },
+    {
         key: 'domain',
         label: 'Domain',
         placeholder: 'microsoftonline.com',
@@ -68,8 +73,16 @@ const fields = [
         component: RenderField,
     },
     {
-        key: 'samlSsoUrl',
-        label: 'SAML SSO URL',
+        key: 'entityId',
+        label: 'Application ID',
+        placeholder: 'hackerbay.io',
+        description: 'This is the entity ID that will be used in the SSO.',
+        type: 'text',
+        component: RenderField,
+    },
+    {
+        key: 'remoteLoginUrl',
+        label: 'Remote Login URL',
         placeholder:
             'https://login.microsoftonline.com/a4e1d-1s4f-965f-ert452136',
         description:
@@ -108,6 +121,17 @@ const fields = [
 ];
 
 class Component extends React.Component {
+    state = {
+        copied: false,
+    };
+
+    handleCopyToClipboard = text => {
+        copyToClipboard(text);
+
+        this.setState({ copied: true });
+        // reset it after 0.5 secs
+        setTimeout(() => this.setState({ copied: false }), 500);
+    };
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
@@ -172,57 +196,137 @@ class Component extends React.Component {
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <fieldset className="bs-Fieldset">
                                         <div className="bs-Fieldset-rows">
-                                            {fields.map(field => (
-                                                <div
-                                                    key={field.key}
-                                                    className="bs-Fieldset-row"
-                                                >
-                                                    <label className="bs-Fieldset-label">
-                                                        {field.label}
-                                                    </label>
+                                            {fields.map(field => {
+                                                if (field.value) {
+                                                    return (
+                                                        <div
+                                                            key={field.key}
+                                                            className="bs-Fieldset-row"
+                                                        >
+                                                            <label
+                                                                className="bs-Fieldset-label"
+                                                                style={{
+                                                                    paddingTop: 0,
+                                                                }}
+                                                            >
+                                                                {field.label}
+                                                            </label>
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    paddingTop: 3,
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    style={{
+                                                                        display:
+                                                                            'flex',
+                                                                    }}
+                                                                >
+                                                                    <div>
+                                                                        {
+                                                                            field.value
+                                                                        }
+                                                                    </div>
+                                                                    <div
+                                                                        id={`copycallbackurl`}
+                                                                        title="copy url"
+                                                                        style={{
+                                                                            marginLeft: 10,
+                                                                            height: 20,
+                                                                            width: 20,
+                                                                            backgroundImage: `url(${field.copyIcon})`,
+                                                                            backgroundPosition:
+                                                                                'no-repeat',
+                                                                            backgroundSize:
+                                                                                'contain',
+                                                                            cursor:
+                                                                                'pointer',
+                                                                        }}
+                                                                        onClick={() =>
+                                                                            this.handleCopyToClipboard(
+                                                                                field.value
+                                                                            )
+                                                                        }
+                                                                        disabled={
+                                                                            this
+                                                                                .state
+                                                                                .copied
+                                                                        }
+                                                                    ></div>
+                                                                </div>
+                                                                <span
+                                                                    style={{
+                                                                        marginTop:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    {
+                                                                        field.description
+                                                                    }
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                return (
                                                     <div
-                                                        className="bs-Fieldset-fields"
-                                                        style={{
-                                                            paddingTop: 3,
-                                                        }}
+                                                        key={field.key}
+                                                        className="bs-Fieldset-row"
                                                     >
-                                                        <Field
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            type={field.type}
-                                                            name={field.key}
-                                                            id={field.key}
-                                                            placeholder={
-                                                                field.placeholder ||
-                                                                field.label
-                                                            }
-                                                            component={
-                                                                field.component
-                                                            }
-                                                            disabled={
-                                                                sso &&
-                                                                sso.requesting
-                                                            }
+                                                        <label className="bs-Fieldset-label">
+                                                            {field.label}
+                                                        </label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
                                                             style={{
-                                                                width: '350px',
-                                                            }}
-                                                            autoFocus={
-                                                                field.key ===
-                                                                'domain'
-                                                                    ? true
-                                                                    : false
-                                                            }
-                                                        />
-                                                        <span
-                                                            style={{
-                                                                marginTop:
-                                                                    '10px',
+                                                                paddingTop: 3,
                                                             }}
                                                         >
-                                                            {field.description}
-                                                        </span>
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                type={
+                                                                    field.type
+                                                                }
+                                                                name={field.key}
+                                                                id={field.key}
+                                                                placeholder={
+                                                                    field.placeholder ||
+                                                                    field.label
+                                                                }
+                                                                component={
+                                                                    field.component
+                                                                }
+                                                                disabled={
+                                                                    sso &&
+                                                                    sso.requesting
+                                                                }
+                                                                style={{
+                                                                    width:
+                                                                        '350px',
+                                                                }}
+                                                                autoFocus={
+                                                                    field.key ===
+                                                                    'domain'
+                                                                        ? true
+                                                                        : false
+                                                                }
+                                                            />
+                                                            <span
+                                                                style={{
+                                                                    marginTop:
+                                                                        '10px',
+                                                                }}
+                                                            >
+                                                                {
+                                                                    field.description
+                                                                }
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </fieldset>
                                 </div>

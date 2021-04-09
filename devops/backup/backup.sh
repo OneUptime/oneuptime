@@ -10,7 +10,7 @@ FYIPE_DB_PASSWORD='password'
 FYIPE_DB_NAME='fyipedb'
 CURRENT_DATE=$(date +%s)
 CURRENT_USER=$(whoami)
-BACKUP_PATH=~/Documents/backup 
+BACKUP_PATH=~/db-backup 
 BACKUP_RETAIN_DAYS=14
 TODAY=`date +"%d%b%Y"`
 
@@ -146,8 +146,8 @@ if sudo kubectl exec fi-mongodb-primary-0 -- mongodump --uri="mongodb://$FYIPE_D
     if sudo kubectl cp fi-mongodb-primary-0:tmp/fyipedata.archive "$BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"; then
       echo ${green}"File Saved: $BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"${reset}
       echo ""
+      sudo kubectl exec fi-mongodb-primary-0 -- rm tmp/fyipedata.archive
       BACKUP_SUCCESS
-    
     else
       echo ${red}"Failure, exit status: $?" ${reset}
       BACKUP_FAIL_LOCAL
@@ -162,4 +162,4 @@ fi
 echo "Removing backup older than ${BACKUP_RETAIN_DAYS} days."
 find $BACKUP_PATH* -mtime +${BACKUP_RETAIN_DAYS} -exec rm {} \;
 echo ""
-echo "Done"
+echo "Done - File Name: fyipe-backup-$CURRENT_DATE.archive"

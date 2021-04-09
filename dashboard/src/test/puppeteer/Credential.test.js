@@ -39,7 +39,6 @@ describe('Credential Page', () => {
             };
             // user
             await init.registerUser(user, page);
-            await init.loginUser(user, page);
             done();
         });
     });
@@ -60,6 +59,8 @@ describe('Credential Page', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#gitCredentials', {
                     visible: true,
                 });
@@ -98,6 +99,8 @@ describe('Credential Page', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#gitCredentials', {
                     visible: true,
                 });
@@ -136,6 +139,8 @@ describe('Credential Page', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#gitCredentials', {
                     visible: true,
                 });
@@ -174,6 +179,8 @@ describe('Credential Page', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#gitCredentials', {
                     visible: true,
                 });
@@ -209,6 +216,8 @@ describe('Credential Page', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#gitCredentials', {
                     visible: true,
                 });
@@ -246,6 +255,8 @@ describe('Credential Page', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#dockerCredentials', {
                     visible: true,
                 });
@@ -280,6 +291,8 @@ describe('Credential Page', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#dockerCredentials', {
                     visible: true,
                 });
@@ -320,6 +333,8 @@ describe('Credential Page', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#dockerCredentials', {
                     visible: true,
                 });
@@ -359,6 +374,8 @@ describe('Credential Page', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#dockerCredentials', {
                     visible: true,
                 });
@@ -396,6 +413,8 @@ describe('Credential Page', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#dockerCredentials', {
                     visible: true,
                 });
@@ -437,6 +456,8 @@ describe('Credential Page', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#dockerCredentials', {
                     visible: true,
                 });
@@ -472,6 +493,8 @@ describe('Credential Page', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
+                await page.waitForSelector('#more');
+                await page.click('#more');
                 await page.waitForSelector('#dockerCredentials', {
                     visible: true,
                 });

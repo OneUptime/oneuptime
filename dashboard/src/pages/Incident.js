@@ -33,6 +33,8 @@ import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 import { fetchDefaultCommunicationSla } from '../actions/incidentCommunicationSla';
 import secondsToHms from '../utils/secondsToHms';
+import { fetchComponent } from '../actions/component';
+import HideIncidentBox from '../components/incident/HideIncidentBox';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -52,15 +54,14 @@ class Incident extends React.Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT');
         }
-        this.props.getIncidentByIdNumber(
-            this.props.projectId,
-            this.props.incidentId
-        );
+        this.props.fetchComponent(this.props.componentSlug);
     }
     componentDidUpdate(prevProps) {
-        const previousIncidentId = prevProps.match.params.incidentId;
-        const newIncidentId = this.props.match.params.incidentId;
-        if (previousIncidentId !== newIncidentId) {
+        if (prevProps.projectId !== this.props.projectId) {
+            this.props.getIncidentByIdNumber(
+                this.props.projectId,
+                this.props.incidentId
+            );
             this.fetchAllIncidentData();
         }
     }
@@ -200,8 +201,14 @@ class Incident extends React.Component {
     };
 
     fetchAllIncidentData() {
-        this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
-        this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
+        this.props.fetchIncidentPriorities(
+            this.props.currentProject && this.props.currentProject._id,
+            0,
+            0
+        );
+        this.props.fetchBasicIncidentSettings(
+            this.props.currentProject && this.props.currentProject._id
+        );
         const monitorId =
             this.props.incident &&
             this.props.incident.monitorId &&
@@ -260,9 +267,11 @@ class Incident extends React.Component {
     ready = () => {
         const incidentId = this.props.incidentId;
         const { projectId } = this.props;
-        this.fetchAllIncidentData();
-        this.props.fetchIncidentStatusPages(projectId, incidentId);
-        this.props.fetchDefaultCommunicationSla(projectId);
+        if (projectId) {
+            this.fetchAllIncidentData();
+            this.props.fetchIncidentStatusPages(projectId, incidentId);
+            this.props.fetchDefaultCommunicationSla(projectId);
+        }
     };
 
     render() {
@@ -278,6 +287,7 @@ class Incident extends React.Component {
         const {
             component,
             location: { pathname },
+            requestingComponent,
         } = this.props;
         const monitorId =
             this.props.incident &&
@@ -526,16 +536,33 @@ class Incident extends React.Component {
                         <TabPanel>
                             <Fade>
                                 <RenderIfSubProjectAdmin>
-                                    <IncidentDeleteBox
-                                        incident={this.props.incident}
-                                        deleting={this.props.deleting}
-                                        currentProject={
-                                            this.props.currentProject
-                                        }
-                                        monitorSlug={this.props.monitor.slug}
-                                        component={this.props.component}
-                                        componentId={this.props.componentId}
-                                    />
+                                    {!requestingComponent && (
+                                        <>
+                                            <HideIncidentBox
+                                                incident={this.props.incident}
+                                                currentProject={
+                                                    this.props.currentProject
+                                                }
+                                            />
+                                            <IncidentDeleteBox
+                                                incident={this.props.incident}
+                                                deleting={this.props.deleting}
+                                                currentProject={
+                                                    this.props.currentProject
+                                                }
+                                                monitorSlug={
+                                                    this.props.monitor &&
+                                                    this.props.monitor.slug
+                                                }
+                                                componentSlug={
+                                                    this.props.componentSlug
+                                                }
+                                                componentId={
+                                                    this.props.componentId
+                                                }
+                                            />
+                                        </>
+                                    )}
                                 </RenderIfSubProjectAdmin>
                             </Fade>
                         </TabPanel>
@@ -629,7 +656,7 @@ const mapStateToProps = (state, props) => {
             defaultSchedule = item.isDefault;
         });
     });
-    const { componentId, incidentId } = props.match.params;
+    const { componentSlug, incidentId } = props.match.params;
     const monitorId =
         state.incident &&
         state.incident.incident &&
@@ -638,14 +665,6 @@ const mapStateToProps = (state, props) => {
         state.incident.incident.incident.monitorId._id
             ? state.incident.incident.incident.monitorId._id
             : null;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
-                component = c;
-            }
-        });
-    });
     const monitor = state.monitor.monitorsList.monitors
         .map(monitor =>
             monitor.monitors.find(monitor => monitor._id === monitorId)
@@ -660,7 +679,8 @@ const mapStateToProps = (state, props) => {
         incident: state.incident.incident.incident,
         incidentId: incidentId,
         projectId:
-            state.project.currentProject && state.project.currentProject._id,
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component.projectId._id,
         incidentTimeline: state.incident.incident,
         count: state.alert.incidentalerts.count,
         skip: state.alert.incidentalerts.skip,
@@ -669,8 +689,13 @@ const mapStateToProps = (state, props) => {
         deleting: state.incident.incident.deleteIncident
             ? state.incident.incident.deleteIncident.requesting
             : false,
-        component,
-        componentId,
+        requestingComponent: state.component.currentComponent.requesting,
+        component:
+            state.component && state.component.currentComponent.component,
+        componentId:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
+        componentSlug,
         requestingDefaultIncidentSla:
             state.incidentSla.defaultIncidentCommunicationSla.requesting,
         defaultIncidentSla:
@@ -696,6 +721,7 @@ const mapDispatchToProps = dispatch => {
             fetchBasicIncidentSettings,
             fetchIncidentStatusPages,
             fetchDefaultCommunicationSla,
+            fetchComponent,
         },
         dispatch
     );
@@ -714,7 +740,6 @@ Incident.propTypes = {
     incident: PropTypes.object,
     incidentTimeline: PropTypes.object,
     limit: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    match: PropTypes.object,
     skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     subscribersAlerts: PropTypes.object.isRequired,
     location: PropTypes.shape({
@@ -727,6 +752,7 @@ Incident.propTypes = {
         })
     ),
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     fetchIncidentMessages: PropTypes.func,
     fetchIncidentPriorities: PropTypes.func.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
@@ -742,6 +768,8 @@ Incident.propTypes = {
     type: PropTypes.string,
     incidentId: PropTypes.string,
     projectId: PropTypes.string,
+    fetchComponent: PropTypes.func,
+    requestingComponent: PropTypes.bool,
 };
 
 Incident.displayName = 'Incident';

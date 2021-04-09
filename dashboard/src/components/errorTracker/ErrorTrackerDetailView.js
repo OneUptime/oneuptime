@@ -111,6 +111,7 @@ class ErrorTrackerDetailView extends Component {
             componentId,
             openModal,
             errorTrackerStatus,
+            componentSlug,
             slug,
         } = this.props;
         let skip =
@@ -383,6 +384,7 @@ class ErrorTrackerDetailView extends Component {
                                                     errorTrackerStatus
                                                 }
                                                 slug={slug}
+                                                componentSlug={componentSlug}
                                             />
                                         );
                                     }
@@ -515,6 +517,7 @@ ErrorTrackerDetailView.propTypes = {
     projectId: PropTypes.string,
     slug: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     handleNavigationButtonClick: PropTypes.string,
     ignoreErrorEvent: PropTypes.func,
     resolveErrorEvent: PropTypes.string,

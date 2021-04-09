@@ -5,9 +5,7 @@ const jwtSecretKey = process.env['JWT_SECRET'];
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const saml2 = require('saml2-js');
-const sp = new saml2.ServiceProvider({
-    entity_id: 'hackerbay.io',
-});
+const { decode } = require('js-base64');
 const MailService = require('../services/mailService');
 const SsoService = require('../services/ssoService');
 const getUser = require('../middlewares/user').getUser;
@@ -320,6 +318,10 @@ router.get('/sso/login', async function(req, res) {
             });
         }
 
+        const sp = new saml2.ServiceProvider({
+            entity_id: sso.entityId,
+        });
+
         const idp = new saml2.IdentityProvider({
             sso_login_url: samlSsoUrl,
         });
@@ -337,12 +339,41 @@ router.get('/sso/login', async function(req, res) {
 // Description: Callback function after SSO authentication page
 // param: query->{domain}
 router.post('/sso/callback', async function(req, res) {
-    const idp = new saml2.IdentityProvider({});
     const options = {
         request_body: req.body,
         allow_unencrypted_assertion: true,
         ignore_signature: true,
     };
+
+    // grab the email from the xml response
+    const email = SsoService.getEmail(decode(req.body.SAMLResponse));
+    const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
+    const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
+
+    if (!matchedTokens) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Invalid email.',
+        });
+    }
+
+    const domain = matchedTokens[1];
+    const sso = await SsoService.findOneBy({ domain });
+    if (!sso) {
+        return sendErrorResponse(req, res, {
+            code: 404,
+            message: 'Domain not found.',
+        });
+    }
+
+    const sp = new saml2.ServiceProvider({
+        entity_id: sso.entityId,
+    });
+
+    const idp = new saml2.IdentityProvider({
+        sso_login_url: sso.amlSsoUrl,
+    });
+
     sp.post_assert(idp, options, async function(err, saml_response) {
         if (err != null)
             return sendErrorResponse(req, res, {
@@ -449,12 +480,14 @@ router.post('/sso/callback', async function(req, res) {
 router.post('/login', async function(req, res) {
     try {
         const data = req.body;
-        const clientIP =
-            (typeof req.headers['x-forwarded-for'] === 'string' &&
-                req.headers['x-forwarded-for'].split(',')[0]) ||
-            req.connection?.remoteAddress ||
-            req.socket?.remoteAddress ||
-            req.connection?.socket?.remoteAddress;
+        let clientIP;
+        if (req.headers['x-forwarded-for']) {
+            clientIP = req.headers['x-forwarded-for'].split(',')[0];
+        } else if (req.connection && req.connection.remoteAddress) {
+            clientIP = req.connection.remoteAddress;
+        } else {
+            clientIP = req.ip;
+        }
 
         if (!data.email) {
             return sendErrorResponse(req, res, {

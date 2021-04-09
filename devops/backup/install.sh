@@ -1,7 +1,6 @@
 #!/bin/sh
 
 
-IP_ADDRESS=1
 FYIPE_DB_USERNAME='fyipe'
 FYIPE_DB_PASSWORD='password'
 FYIPE_DB_NAME='fyipedb'
@@ -18,7 +17,6 @@ function HELP (){
   echo ""
   echo "optional arguments have a default value when not set"
   echo ""
-  echo " -a       IP address of remote server. (Compulsory)"
   echo " -l       Backup path on local system where backup file will be stored. Default value - $BACKUP_PATH"
   echo " -n       Database name. Default value 'fyipedb'"
   echo " -p       Database password. Default value 'password'"
@@ -33,8 +31,6 @@ function HELP (){
 # PASS IN ARGUMENTS
 while getopts ":a:l:p:n:t:u:h" opt; do
   case $opt in
-    a) IP_ADDRESS="$OPTARG"
-    ;;
     l) BACKUP_PATH="$OPTARG"
     ;;
     p) FYIPE_DB_PASSWORD="$OPTARG"
@@ -54,11 +50,6 @@ while getopts ":a:l:p:n:t:u:h" opt; do
     ;;
   esac
 done
-
-if [[ $IP_ADDRESS == 1 ]]
-then
-  HELP
-else
  
   #Step 1: Install Docker and setup registry and insecure access to it.
   if [[ ! $(which kubectl) ]]
@@ -76,20 +67,13 @@ else
   mkdir -p ~/.kube
   mkdir -p ${BACKUP_PATH}
 
-  #  STEP 3: copy remote kube config and replace local
-  if scp root@${IP_ADDRESS}:~/.kube/config ~/.kube
-    then echo "Copied .kube config file"
-    else 
-    echo ${red}'Could not copy .kube file from remote server. Please manually copy the file to '$HOME/.kube/config ${reset}
-  fi
-
   # STEP 4 : create service file for backup
   echo '
 [Unit]
 Description=Fyipe database backup
         
 [Service]
-ExecStart=bash '"$HOME"'/fyipe_bk_files/backup.sh -u '${FYIPE_DB_USERNAME}' -p '${FYIPE_DB_PASSWORD}' -n '${FYIPE_DB_NAME}' -l '${BACKUP_PATH}' -t '${BACKUP_RETAIN_DAYS}'
+ExecStart=bash '"$HOME"'/backup.sh -u '${FYIPE_DB_USERNAME}' -p '${FYIPE_DB_PASSWORD}' -n '${FYIPE_DB_NAME}' -l '${BACKUP_PATH}' -t '${BACKUP_RETAIN_DAYS}'
 
 ' > /etc/systemd/system/backup.service
 
@@ -102,7 +86,7 @@ Requires=backup.service
 
 [Timer]
 Unit=backup.service
-OnCalendar=*-*-* 00,12:00:00
+OnCalendar=*-*-* 12:00:00
 Persistent=true
 
 [Install]
@@ -110,9 +94,7 @@ WantedBy=timers.target
 ' > /etc/systemd/system/backup.timer
 
   # STEP 6: make files.sh executable
-  chmod +x "$HOME"/fyipe_bk_files/backup.sh
-
-  chmod +x "$HOME"/fyipe_bk_files/restore.sh
+  chmod +x "$HOME"/backup.sh
 
   # STEP 7: Start timer
   sudo systemctl daemon-reload
@@ -120,6 +102,4 @@ WantedBy=timers.target
   sudo systemctl enable backup.timer
 
   sudo systemctl start backup.timer
-
-fi
 

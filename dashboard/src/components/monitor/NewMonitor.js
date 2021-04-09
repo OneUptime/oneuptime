@@ -125,7 +125,19 @@ class NewMonitor extends Component {
         this.props.setFileInputKey(new Date());
         this.props.setConfigInputKey(new Date());
         this.setHttpRequestLink(link);
+        window.addEventListener('keydown', this.handleKeyBoard);
     }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Enter':
+                if (document.getElementById('addMonitorButton'))
+                    return document.getElementById('addMonitorButton').click();
+                else return false;
+            default:
+                return false;
+        }
+    };
 
     componentDidUpdate(prevProps) {
         const { monitor, editMonitorProp } = this.props;
@@ -596,7 +608,7 @@ class NewMonitor extends Component {
                     );
                 }
                 history.push(
-                    `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/monitoring/${data.data.slug}`
+                    `/dashboard/project/${this.props.currentProject.slug}/${this.props.component.slug}/monitoring/${data.data.slug}`
                 );
             });
         } else {
@@ -610,7 +622,7 @@ class NewMonitor extends Component {
                         );
                     }
                     history.push(
-                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/monitoring/${data.data.slug}`
+                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/monitoring/${data.data.slug}`
                     );
                 },
                 error => {
@@ -653,6 +665,7 @@ class NewMonitor extends Component {
         if (this.props.edit) {
             this.cancelEdit();
         }
+        window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
     openAdvance = () => {
@@ -2875,8 +2888,6 @@ const mapStateToProps = (state, ownProps) => {
             }
         }
     }
-    if (projectId === null)
-        projectId = ownProps.currentProject && ownProps.currentProject._id;
 
     const currentPlanId =
         state.project &&
@@ -2991,6 +3002,7 @@ NewMonitor.propTypes = {
     fetchMonitorsSubscribers: PropTypes.func.isRequired,
     fetchSchedules: PropTypes.func.isRequired,
     editMonitorProp: PropTypes.object,
+    component: PropTypes.object,
     edit: PropTypes.bool,
     name: PropTypes.string,
     type: PropTypes.string,
@@ -3010,7 +3022,7 @@ NewMonitor.propTypes = {
     project: PropTypes.object,
     currentPlanId: PropTypes.string,
     projectId: PropTypes.string,
-    componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     subProjects: PropTypes.array,
     toggleEdit: PropTypes.func,
     logFile: PropTypes.func,

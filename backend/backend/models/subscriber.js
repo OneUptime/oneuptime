@@ -25,11 +25,10 @@ const subscriberSchema = new Schema({
     },
     createdAt: { type: Date, default: Date.now },
     deleted: { type: Boolean, default: false },
-
     deletedAt: {
         type: Date,
     },
-
+    subscribed: { type: Boolean, default: true },
     deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
 });
 module.exports = mongoose.model('Subscriber', subscriberSchema);

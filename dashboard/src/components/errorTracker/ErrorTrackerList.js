@@ -9,6 +9,7 @@ export function ErrorTrackerList(props) {
             <div id={`errorTracker${i}`} key={errorTracker._id}>
                 <ErrorTrackerDetail
                     componentId={errorTracker.componentId._id}
+                    componentSlug={errorTracker.componentId.slug}
                     index={errorTracker._id}
                     key={errorTracker._id}
                     showComponentWithIssue={props.showComponentWithIssue}

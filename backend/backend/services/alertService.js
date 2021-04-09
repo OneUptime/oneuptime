@@ -349,7 +349,6 @@ module.exports = {
         let onCallScheduleStatus = null;
         let escalationId = null;
         let currentEscalationStatus = null;
-
         if (callScheduleStatuses.length === 0) {
             //start with first ecalation policy, and then escalationPolicy will take care of others in escalation policy.
             escalationId = schedule.escalationIds[0];
@@ -557,8 +556,14 @@ module.exports = {
 
         escalation = await EscalationService.findOneBy({ _id: escalation._id });
         const activeTeam = escalation.activeTeam;
-        const groups = activeTeam.teamMembers.map(user => user.groups);
-        const groupUsers = groups.map(group => group.teams);
+        const teamGroup = [];
+        activeTeam.teamMembers.forEach(team => {
+            if (team.groups) {
+                teamGroup.push(team.groups);
+            }
+        });
+
+        const groupUsers = teamGroup.map(group => group.teams);
         const groupUserIds = [].concat
             .apply([], groupUsers)
             .map(id => ({ userId: id }));
@@ -902,7 +907,7 @@ module.exports = {
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const ack_url = `${global.apiHost}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
         const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${incident.projectId}/${monitor.componentId._id}/incidents/${incident._id}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -1063,9 +1068,9 @@ module.exports = {
                 const monitorName = monitor.name;
                 const incidentId = `#${incident.idNumber}`;
                 const reason = incident.reason;
-                const componentId = incident.monitorId.componentId._id;
+                const componentSlug = incident.monitorId.componentId.slug;
                 const componentName = incident.monitorId.componentId.name;
-                const incidentUrl = `${global.dashboardHost}/project/${projectId}/${componentId}/incidents/${incident._id}`;
+                const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/${componentSlug}/incidents/${incident.idNumber}`;
                 let incidentSlaTimeline =
                     incidentCommunicationSla.duration * 60;
                 incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
@@ -1605,6 +1610,7 @@ module.exports = {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
+                        subscribed: true,
                     }
                 );
                 for (const subscriber of subscribers) {
@@ -1640,6 +1646,7 @@ module.exports = {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
+                        subscribed: true,
                     }
                 );
 
@@ -1848,7 +1855,7 @@ module.exports = {
 
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${incident.projectId}/${monitor.componentId._id}/incidents/${incident._id}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -2155,7 +2162,7 @@ module.exports = {
         });
 
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const view_url = `${global.dashboardHost}/project/${incident.projectId}/${monitor.componentId._id}/incidents/${incident._id}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -2310,6 +2317,7 @@ module.exports = {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
+                        subscribed: true,
                     }
                 );
                 for (const subscriber of subscribers) {
@@ -2364,6 +2372,7 @@ module.exports = {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
+                        subscribed: true,
                     }
                 );
                 for (const subscriber of subscribers) {
@@ -2439,7 +2448,7 @@ module.exports = {
                         ? monitor.componentId._id
                         : monitor.componentId,
             });
-            const statusUrl = `${global.dashboardHost}/project/${incident.projectId}/${component._id}/incidents/${incident._id}`;
+            const statusUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/${component.slug}/incidents/${incident.idNumber}`;
 
             let statusPageUrl;
             if (statusPage) {
@@ -2659,7 +2668,7 @@ module.exports = {
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
-
+                const unsubscribeUrl = `${global.homeHost}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
                 let alertStatus = null;
                 try {
                     if (templateType === 'Subscriber Incident Acknowldeged') {
@@ -2679,7 +2688,8 @@ module.exports = {
                                     statusPageUrl,
                                     project.replyAddress,
                                     customFields,
-                                    length
+                                    length,
+                                    unsubscribeUrl
                                 );
 
                                 alertStatus = 'Sent';
@@ -2698,7 +2708,8 @@ module.exports = {
                                     statusPageUrl,
                                     project.replyAddress,
                                     customFields,
-                                    length
+                                    length,
+                                    unsubscribeUrl
                                 );
 
                                 alertStatus = 'Sent';
@@ -2729,7 +2740,8 @@ module.exports = {
                                     statusPageUrl,
                                     project.replyAddress,
                                     customFields,
-                                    length
+                                    length,
+                                    unsubscribeUrl
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -2747,7 +2759,8 @@ module.exports = {
                                     statusPageUrl,
                                     project.replyAddress,
                                     customFields,
-                                    length
+                                    length,
+                                    unsubscribeUrl
                                 );
                                 alertStatus = 'Sent';
                             }
@@ -2770,7 +2783,8 @@ module.exports = {
                             note,
                             statusUrl,
                             statusNoteStatus,
-                            customFields
+                            customFields,
+                            unsubscribeUrl
                         );
                         alertStatus = 'Sent';
                     } else {
@@ -2789,7 +2803,8 @@ module.exports = {
                                     component.name,
                                     statusPageUrl,
                                     project.replyAddress,
-                                    customFields
+                                    customFields,
+                                    unsubscribeUrl
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -2806,7 +2821,8 @@ module.exports = {
                                     component.name,
                                     statusPageUrl,
                                     project.replyAddress,
-                                    customFields
+                                    customFields,
+                                    unsubscribeUrl
                                 );
                                 alertStatus = 'Sent';
                             }
@@ -3383,8 +3399,12 @@ module.exports = {
     sendUnpaidSubscriptionEmail: async function(project, user) {
         try {
             const { name: userName, email: userEmail } = user;
-            const { stripePlanId, _id: projectId, name: projectName } = project;
-            const projectUrl = `${global.dashboardHost}/project/${projectId}`;
+            const {
+                stripePlanId,
+                name: projectName,
+                slug: projectSlug,
+            } = project;
+            const projectUrl = `${global.dashboardHost}/project/${projectSlug}`;
             const projectPlan = getPlanById(stripePlanId);
 
             await MailService.sendUnpaidSubscriptionReminder({

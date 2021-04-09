@@ -5,7 +5,6 @@ const statusPageCollection = 'statuspages';
 async function run() {
     const statusPages = await find(statusPageCollection, {
         monitorIds: { $exists: true },
-        deleted: false,
     });
     for (let i = 0; i < statusPages.length; i++) {
         const statusPage = statusPages[i];

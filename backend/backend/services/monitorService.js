@@ -149,10 +149,12 @@ module.exports = {
                     if (data.type === 'url') {
                         monitor.siteUrls = [monitor.data.url];
                     }
-                    let name = data.name;
-                    name = slugify(name);
-                    name = `${name}-${generate('1234567890', 8)}`;
-                    monitor.slug = name.toLowerCase();
+                    if (data && data.name) {
+                        let name = data.name;
+                        name = slugify(name);
+                        name = `${name}-${generate('1234567890', 8)}`;
+                        monitor.slug = name.toLowerCase();
+                    }
                     const savedMonitor = await monitor.save();
                     monitor = await _this.findOneBy({ _id: savedMonitor._id });
                     if (data.type === 'manual') {
@@ -322,8 +324,8 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const monitor = await MonitorModel.findOne(query)
-                .populate('projectId', 'name')
-                .populate('componentId', 'name')
+                .populate('projectId', ['_id', 'name', 'slug'])
+                .populate('componentId', ['_id', 'name', 'slug'])
                 .populate('resourceCategory', 'name')
                 .populate('incidentCommunicationSla')
                 .populate('monitorSla');

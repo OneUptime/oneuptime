@@ -305,8 +305,8 @@ export class IncidentStatus extends Component {
         const incidentIdNumber = this.props.incident
             ? this.props.incident.idNumber
             : '';
-        const componentId = this.props.incident
-            ? this.props.incident.monitorId.componentId._id
+        const componentSlug = this.props.incident.monitorId.componentId
+            ? this.props.incident.monitorId.componentId.slug
             : '';
         const homeRoute = this.props.currentProject
             ? '/dashboard/project/' + this.props.currentProject.slug
@@ -315,16 +315,16 @@ export class IncidentStatus extends Component {
             ? '/dashboard/project/' +
               this.props.currentProject.slug +
               '/' +
-              componentId +
+              componentSlug +
               '/monitoring'
             : '';
         const incidentRoute = this.props.currentProject
             ? '/dashboard/project/' +
               this.props.currentProject.slug +
               '/' +
-              componentId +
+              componentSlug +
               '/incidents/' +
-              this.props.incident._idNumber
+              this.props.incident.idNumber
             : '';
 
         const showResolveButton = this.props.multipleIncidentRequest
@@ -407,7 +407,7 @@ export class IncidentStatus extends Component {
         };
 
         let teamMembers = this.getOnCallTeamMembers();
-        if(!teamMembers){
+        if (!teamMembers) {
             teamMembers = [];
         }
         const team = teamMembers.filter(member => member.userId);
@@ -742,7 +742,7 @@ export class IncidentStatus extends Component {
                                                                             .currentProject
                                                                             .slug +
                                                                         '/' +
-                                                                        componentId +
+                                                                        componentSlug +
                                                                         '/monitoring'
                                                                     }
                                                                     id="backToComponentView"
@@ -771,7 +771,7 @@ export class IncidentStatus extends Component {
                                                                             .currentProject
                                                                             .slug +
                                                                         '/' +
-                                                                        componentId +
+                                                                        componentSlug +
                                                                         '/monitoring/' +
                                                                         this
                                                                             .props
@@ -2213,6 +2213,7 @@ export class IncidentStatus extends Component {
                                                                         <div
                                                                             className="Box-root Margin-right--16 pointer"
                                                                             key={
+                                                                                member.user &&
                                                                                 member
                                                                                     .user
                                                                                     ._id
@@ -2224,12 +2225,13 @@ export class IncidentStatus extends Component {
                                                                                 alt=""
                                                                             />
                                                                             <span>
-                                                                                {member
-                                                                                    .user
-                                                                                    .name ??
-                                                                                    member
+                                                                                {member.user &&
+                                                                                    (member
                                                                                         .user
-                                                                                        .email}
+                                                                                        .name ??
+                                                                                        member
+                                                                                            .user
+                                                                                            .email)}
                                                                             </span>
                                                                         </div>
                                                                     )
@@ -2258,7 +2260,7 @@ export class IncidentStatus extends Component {
                                         onClick={() => {
                                             setTimeout(() => {
                                                 history.push(
-                                                    `/dashboard/project/${this.props.currentProject.slug}/${componentId}/incidents/${incidentIdNumber}`
+                                                    `/dashboard/project/${this.props.currentProject.slug}/${componentSlug}/incidents/${incidentIdNumber}`
                                                 );
                                                 this.props.animateSidebar(
                                                     false

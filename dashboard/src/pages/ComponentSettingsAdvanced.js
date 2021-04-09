@@ -151,19 +151,10 @@ ComponentSettingsAdvanced.propTypes = {
     }),
 };
 
-const mapStateToProps = (state, ownProps) => {
-    const { componentId } = ownProps.match.params;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
-                component = c;
-            }
-        });
-    });
-
+const mapStateToProps = state => {
     return {
-        component: component,
+        component:
+            state.component && state.component.currentComponent.component,
         slug: state.project.currentProject && state.project.currentProject.slug,
     };
 };

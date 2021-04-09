@@ -38,9 +38,10 @@ describe('Incident Created test', () => {
 
         // Register user
         return await cluster.execute(null, async ({ page }) => {
-            await init.registerUser(user, page);
+            // Rearranging it makes the 'user' automatically logged in after registrations
             await init.registerUser(user1, page);
-            await init.loginUser(user, page);
+            await init.logout(page);
+            await init.registerUser(user, page);
         });
     });
 
@@ -330,6 +331,12 @@ describe('Incident Created test', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
+                //Navigate to Integrations Page before clicking 'activeIncidents' to confirm it  truly navigates back to homepage.
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#integrations');
+                await page.click('#integrations');
+
                 await page.waitForSelector('#activeIncidents');
                 await page.$eval('#activeIncidents', e => e.click());
                 await page.waitForSelector('#cbHome');
@@ -533,6 +540,7 @@ describe('Incident Created test', () => {
                     e.click()
                 );
                 await page.waitForSelector('#frmIncident');
+                await init.selectByText('#componentList', 'NewComponent', page);
                 await init.selectByText('#monitorList', monitorName2, page);
                 await init.selectByText('#incidentTypeId', 'Degraded', page);
                 await init.selectByText('#incidentPriority', 'Low', page);
@@ -579,6 +587,7 @@ describe('Incident Created test', () => {
                     e.click()
                 );
                 await page.waitForSelector('#frmIncident');
+                await init.selectByText('#componentList', 'NewComponent', page);
                 await init.selectByText('#monitorList', monitorName2, page);
                 await init.selectByText('#incidentTypeId', 'Online', page);
                 await init.selectByText('#incidentPriority', 'Low', page);

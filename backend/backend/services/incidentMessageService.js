@@ -62,7 +62,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const incidentMessage = await IncidentMessageModel.findOne(query)
-                .populate('incidentId', 'name')
+                .populate('incidentId', 'idNumber name')
                 .populate('createdById', 'name');
             return incidentMessage;
         } catch (error) {

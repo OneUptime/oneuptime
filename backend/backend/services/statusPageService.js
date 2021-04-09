@@ -35,10 +35,13 @@ module.exports = {
 
     create: async function(data) {
         try {
-            const existingStatusPage = await this.findBy({
-                name: data.name,
-                projectId: data.projectId,
-            });
+            let existingStatusPage = null;
+            if (data.name) {
+                existingStatusPage = await this.findBy({
+                    name: data.name,
+                    projectId: data.projectId,
+                });
+            }
             if (existingStatusPage && existingStatusPage.length > 0) {
                 const error = new Error(
                     'StatusPage with that name already exists.'
@@ -81,7 +84,9 @@ module.exports = {
         projectId,
         statusPageId,
         cert,
-        privateKey
+        privateKey,
+        enableHttps,
+        autoProvisioning
     ) {
         let createdDomain = {};
 
@@ -119,12 +124,38 @@ module.exports = {
                     ErrorService.log('statusPageService.createDomain', error);
                     throw error;
                 }
+                if (enableHttps && autoProvisioning) {
+                    // trigger addition of this particular domain
+                    // which should pass the acme challenge
+                    // acme challenge is to be processed from status page project
+                    const altnames = [subDomain];
+
+                    // before adding any domain
+                    // check if there's a certificate already created in the store
+                    // if there's none, add the domain to the flow
+                    const certificate = await CertificateStoreService.findOneBy(
+                        {
+                            subject: subDomain,
+                        }
+                    );
+
+                    if (!certificate) {
+                        // handle this in the background
+                        greenlock.add({
+                            subject: altnames[0],
+                            altnames: altnames,
+                        });
+                    }
+                }
+
                 statusPage.domains = [
                     ...statusPage.domains,
                     {
                         domain: subDomain,
                         cert,
                         privateKey,
+                        enableHttps,
+                        autoProvisioning,
                         domainVerificationToken:
                             createdDomain._id || existingBaseDomain._id,
                     },
@@ -154,7 +185,9 @@ module.exports = {
         domainId,
         newDomain,
         cert,
-        privateKey
+        privateKey,
+        enableHttps,
+        autoProvisioning
     ) {
         let createdDomain = {};
         const _this = this;
@@ -192,19 +225,43 @@ module.exports = {
             const updatedDomainList = [];
             for (const eachDomain of domainList) {
                 if (String(eachDomain._id) === String(domainId)) {
-                    eachDomain.cert = cert;
-                    eachDomain.privateKey = privateKey;
                     if (eachDomain.domain !== newDomain) {
                         doesDomainExist = await _this.doesDomainExist(
                             newDomain
                         );
                     }
-
                     // if domain exist
                     // break the loop
                     if (doesDomainExist) break;
 
                     eachDomain.domain = newDomain;
+                    eachDomain.cert = cert;
+                    eachDomain.privateKey = privateKey;
+                    eachDomain.enableHttps = enableHttps;
+                    eachDomain.autoProvisioning = autoProvisioning;
+                    if (autoProvisioning && enableHttps) {
+                        // trigger addition of this particular domain
+                        // which should pass the acme challenge
+                        // acme challenge is to be processed from status page project
+                        const altnames = [eachDomain.domain];
+
+                        // before adding any domain
+                        // check if there's a certificate already created in the store
+                        // if there's none, add the domain to the flow
+                        const certificate = await CertificateStoreService.findOneBy(
+                            {
+                                subject: eachDomain.domain,
+                            }
+                        );
+
+                        if (!certificate) {
+                            // handle this in the background
+                            greenlock.add({
+                                subject: altnames[0],
+                                altnames: altnames,
+                            });
+                        }
+                    }
                     eachDomain.domainVerificationToken =
                         createdDomain._id || existingBaseDomain._id;
                 }
@@ -246,9 +303,25 @@ module.exports = {
                 throw error;
             }
 
+            let deletedDomain = null;
             const remainingDomains = statusPage.domains.filter(domain => {
+                if (String(domain._id) === String(domainId)) {
+                    deletedDomain = domain;
+                }
                 return String(domain._id) !== String(domainId);
             });
+
+            // delete any associated certificate (only for auto provisioned ssl)
+            // handle this in the background
+            if (deletedDomain.enableHttps && deletedDomain.autoProvisioning) {
+                greenlock
+                    .remove({ subject: deletedDomain.domain })
+                    .finally(() => {
+                        CertificateStoreService.deleteBy({
+                            subject: deletedDomain.domain,
+                        });
+                    });
+            }
 
             statusPage.domains = remainingDomains;
             return statusPage.save();
@@ -432,6 +505,13 @@ module.exports = {
 
             if (!query) query = {};
             const statuspages = await _this.findBy(query, 0, limit);
+            const checkHideResolved = statuspages[0].hideResolvedIncident;
+            let option = {};
+            if (checkHideResolved) {
+                option = {
+                    resolved: false,
+                };
+            }
 
             const withMonitors = statuspages.filter(
                 statusPage => statusPage.monitors.length
@@ -442,12 +522,18 @@ module.exports = {
                 : [];
             if (monitorIds && monitorIds.length) {
                 const notes = await IncidentService.findBy(
-                    { monitorId: { $in: monitorIds } },
+                    {
+                        monitorId: { $in: monitorIds },
+                        hideIncident: false,
+                        ...option,
+                    },
                     limit,
                     skip
                 );
                 const count = await IncidentService.countBy({
                     monitorId: { $in: monitorIds },
+                    hideIncident: false,
+                    ...option,
                 });
 
                 return { notes, count };
@@ -518,7 +604,7 @@ module.exports = {
         }
     },
 
-    getEvents: async function(query, skip, limit) {
+    getEvents: async function(query, skip, limit, theme) {
         try {
             const _this = this;
 
@@ -547,17 +633,31 @@ module.exports = {
                 const eventIds = [];
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
-                        const scheduledEvents = await ScheduledEventsService.findBy(
-                            {
-                                'monitors.monitorId': monitorId,
-                                showEventOnStatusPage: true,
-                                startDate: { $lte: currentDate },
-                                endDate: {
-                                    $gte: currentDate,
-                                },
-                                resolved: false,
-                            }
-                        );
+                        let scheduledEvents;
+                        if (
+                            (theme && typeof theme === 'boolean') ||
+                            theme === 'true'
+                        ) {
+                            scheduledEvents = await ScheduledEventsService.findBy(
+                                {
+                                    'monitors.monitorId': monitorId,
+                                    showEventOnStatusPage: true,
+                                    resolved: false,
+                                }
+                            );
+                        } else {
+                            scheduledEvents = await ScheduledEventsService.findBy(
+                                {
+                                    'monitors.monitorId': monitorId,
+                                    showEventOnStatusPage: true,
+                                    startDate: { $lte: currentDate },
+                                    endDate: {
+                                        $gte: currentDate,
+                                    },
+                                    resolved: false,
+                                }
+                            );
+                        }
                         scheduledEvents.map(event => {
                             const id = String(event._id);
                             if (!eventIds.includes(id)) {
@@ -1115,3 +1215,5 @@ const ScheduledEventNoteService = require('./scheduledEventNoteService');
 const IncidentMessageService = require('./incidentMessageService');
 const moment = require('moment');
 const uuid = require('uuid');
+const greenlock = require('../../greenlock');
+const CertificateStoreService = require('./certificateStoreService');

@@ -1,6 +1,6 @@
 ############----INGRESS---#####################################
 {{- range $key, $value := $.Values.fyipe.hosts }}
-apiVersion: networking.k8s.io/v1
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   labels:
@@ -28,93 +28,57 @@ spec:
     {{- end }}
         paths:
           - path: /accounts
-            pathType: ImplementationSpecific
             backend:
-              service:
-                name: {{ printf "%s-%s" $.Release.Name "accounts"  }}
-                port:
-                  number: 80
+              serviceName: {{ printf "%s-%s" $.Release.Name "accounts"  }}
+              servicePort: 80
           - path: /dashboard
-            pathType: ImplementationSpecific
             backend:
-              service:
-                name: {{ printf "%s-%s" $.Release.Name "dashboard"  }}
-                port:
-                  number: 80
+              serviceName: {{ printf "%s-%s" $.Release.Name "dashboard"  }}
+              servicePort: 80
           - path: /admin
-            pathType: ImplementationSpecific
             backend:
-              service:
-                name: {{ printf "%s-%s" $.Release.Name "admin"  }}
-                port:
-                  number: 80
+              serviceName: {{ printf "%s-%s" $.Release.Name "admin"  }}
+              servicePort: 80
           - path: /api
-            pathType: ImplementationSpecific
             backend:
-              service:
-                name: {{ printf "%s-%s" $.Release.Name "backend"  }}
-                port:
-                  number: 80
+              serviceName: {{ printf "%s-%s" $.Release.Name "backend"  }}
+              servicePort: 80
           - path: /status-page
-            pathType: ImplementationSpecific
             backend:
-              service:
-                name: {{ printf "%s-%s" $.Release.Name "status"  }}
-                port:
-                  number: 80
+              serviceName: {{ printf "%s-%s" $.Release.Name "status"  }}
+              servicePort: 80
           - path: /haraka
-            pathType: ImplementationSpecific
             backend:
-              service:
-                name: {{ printf "%s-%s" $.Release.Name "haraka"  }}
-                port:
-                  number: 80
+              serviceName: {{ printf "%s-%s" $.Release.Name "haraka"  }}
+              servicePort: 80
           {{- range $probeKey, $probeValue := $.Values.probes }}
           - path: {{ printf "/%s" $probeKey }}
-            pathType: ImplementationSpecific
             backend:
-              service:
-                name: {{ printf "%s-%s" $.Release.Name $probeKey }}
-                port:
-                  number: 80
+              serviceName: {{ printf "%s-%s" $.Release.Name $probeKey }}
+              servicePort: 80
           {{- end }}
           {{- if $.Values.saas.isSaasService }}
           - path: /
-            pathType: ImplementationSpecific
             backend:
-              service:
-                name: {{ printf "%s-%s" $.Release.Name "home"  }}
-                port:
-                  number: 80
+              serviceName: {{ printf "%s-%s" $.Release.Name "home"  }}
+              servicePort: 80
           - path: /docs
-            pathType: ImplementationSpecific
             backend:
-              service:
-                name: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
-                port:
-                  number: 80
+              serviceName: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+              servicePort: 80
           - path: /license
-            pathType: ImplementationSpecific
             backend:
-              service:
-                name: {{ printf "%s-%s" $.Release.Name "licensing"  }}
-                port:
-                  number: 80
+              serviceName: {{ printf "%s-%s" $.Release.Name "licensing"  }}
+              servicePort: 80
           - path: /chart
-            pathType: ImplementationSpecific
             backend:
-              service:
-                name: {{ printf "%s-%s" $.Release.Name "helm-chart"  }}
-                port:
-                  number: 80
+              serviceName: {{ printf "%s-%s" $.Release.Name "helm-chart"  }}
+              servicePort: 80
           {{- else }}
           - path: /
-            pathType: ImplementationSpecific
             backend:
-              service:
-                name: {{ printf "%s-%s" $.Release.Name "accounts"  }}
-                port:
-                  number: 80
+              serviceName: {{ printf "%s-%s" $.Release.Name "accounts"  }}
+              servicePort: 80
           {{- end }}   
 ---
 {{- end }}

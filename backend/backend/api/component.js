@@ -135,6 +135,19 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     }
 });
 
+router.get('/slug/:slug', getUser, isAuthorized, async function(req, res) {
+    try {
+        const { slug } = req.params;
+        const component = await ComponentService.findOneBy({
+            slug,
+        });
+
+        return sendItemResponse(req, res, component);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.get(
     '/:projectId/component',
     getUser,
@@ -338,6 +351,7 @@ router.get(
                     createdAt: elem.createdAt,
                     icon: 'monitor',
                     slug: elem.slug,
+                    component,
                 };
                 // add it to the total resources
                 totalResources.push(newElement);
@@ -366,6 +380,7 @@ router.get(
                         icon: 'docker',
                         securityLog,
                         slug: elem.slug,
+                        component,
                     };
                     // add it to the total resources
                     totalResources.push(newElement);
@@ -396,6 +411,7 @@ router.get(
                         icon: 'security',
                         securityLog,
                         slug: elem.slug,
+                        component,
                     };
                     // add it to the total resources
                     totalResources.push(newElement);
@@ -428,6 +444,7 @@ router.get(
                         icon: 'appLog',
                         status: logStatus,
                         slug: elem.slug,
+                        component,
                     };
                     // add it to the total resources
                     totalResources.push(newElement);

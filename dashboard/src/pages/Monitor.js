@@ -20,7 +20,7 @@ import {
     fetchMonitorStatuses,
     fetchLighthouseLogs,
 } from '../actions/monitor';
-import { fetchComponentSummary } from '../actions/component';
+import { fetchComponentSummary, fetchComponent } from '../actions/component';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
 import { getProbes } from '../actions/probe';
@@ -46,6 +46,7 @@ class DashboardView extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR LIST'
             );
         }
+        this.props.fetchComponent(this.props.componentSlug);
     }
 
     componentDidUpdate(prevProps) {
@@ -164,7 +165,16 @@ class DashboardView extends Component {
             document.head.appendChild(scriptElement);
         }
 
-        let allMonitors = this.props.monitor.monitorsList.monitors
+        const monitor = this.props.monitor;
+        if (component && component._id) {
+            monitor.monitorsList.monitors.forEach(item => {
+                item.monitors = item.monitors.filter(
+                    monitor => monitor.componentId._id === component._id
+                );
+            });
+        }
+
+        let allMonitors = monitor.monitorsList.monitors
             .map(monitor => monitor.monitors)
             .flat();
 
@@ -378,6 +388,13 @@ class DashboardView extends Component {
                                                                     this.props
                                                                         .componentId
                                                                 }
+                                                                componentSlug={
+                                                                    this.props
+                                                                        .component &&
+                                                                    this.props
+                                                                        .component
+                                                                        .slug
+                                                                }
                                                             />
                                                         </RenderIfSubProjectAdmin>
                                                         <RenderIfSubProjectMember>
@@ -493,30 +510,19 @@ const mapDispatchToProps = dispatch => {
             fetchTutorial,
             getProbes,
             fetchComponentSummary,
+            fetchComponent,
         },
         dispatch
     );
 };
 
-const mapStateToProps = (state, props) => {
-    const { componentId } = props.match.params;
+const mapStateToProps = (state, ownProps) => {
+    const { componentSlug } = ownProps.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     const monitor = state.monitor;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
-                component = c;
-            }
-        });
-    });
-
-    monitor.monitorsList.monitors.forEach(item => {
-        item.monitors = item.monitors.filter(
-            monitor => monitor.componentId._id === componentId
-        );
-    });
+    const component =
+        state.component && state.component.currentComponent.component;
 
     let subProjects = state.subProject.subProjects.subProjects;
 
@@ -546,7 +552,9 @@ const mapStateToProps = (state, props) => {
 
     return {
         monitor,
-        componentId,
+        componentId:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
         currentProject: state.project.currentProject,
         incidents: state.incident.unresolvedincidents.incidents,
         monitors: state.monitor.monitorsList.monitors,
@@ -556,6 +564,7 @@ const mapStateToProps = (state, props) => {
         component,
         tutorialStat,
         componentSummaryObj: state.component.componentSummary,
+        componentSlug,
     };
 };
 
@@ -600,6 +609,8 @@ DashboardView.propTypes = {
     tutorialStat: PropTypes.object,
     fetchComponentSummary: PropTypes.func,
     componentSummaryObj: PropTypes.object,
+    fetchComponent: PropTypes.func,
+    componentSlug: PropTypes.string,
 };
 
 DashboardView.displayName = 'DashboardView';

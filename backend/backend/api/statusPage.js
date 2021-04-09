@@ -11,6 +11,7 @@ const ProbeService = require('../services/probeService');
 const UtilService = require('../services/utilService');
 const RealTimeService = require('../services/realTimeService');
 const DomainVerificationService = require('../services/domainVerificationService');
+const IncidentService = require('../services/incidentService');
 
 const router = express.Router();
 const validUrl = require('valid-url');
@@ -31,6 +32,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const uuid = require('uuid');
 const defaultStatusPageColors = require('../config/statusPageColors');
+const SubscriberService = require('../services/subscriberService');
 
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
@@ -112,7 +114,13 @@ router.put(
     isAuthorized,
     async (req, res) => {
         const { projectId, statusPageId } = req.params;
-        const { domain: subDomain, cert, privateKey } = req.body;
+        const {
+            domain: subDomain,
+            cert,
+            privateKey,
+            enableHttps,
+            autoProvisioning,
+        } = req.body;
 
         if (typeof subDomain !== 'string') {
             return sendErrorResponse(req, res, {
@@ -157,7 +165,9 @@ router.put(
                 projectId,
                 statusPageId,
                 cert,
-                privateKey
+                privateKey,
+                enableHttps,
+                autoProvisioning
             );
             return sendItemResponse(req, res, resp);
         } catch (error) {
@@ -202,7 +212,13 @@ router.put(
     isAuthorized,
     async (req, res) => {
         const { projectId, statusPageId, domainId } = req.params;
-        const { domain: newDomain, cert, privateKey } = req.body;
+        const {
+            domain: newDomain,
+            cert,
+            privateKey,
+            enableHttps,
+            autoProvisioning,
+        } = req.body;
 
         if (typeof newDomain !== 'string') {
             return sendErrorResponse(req, res, {
@@ -226,7 +242,9 @@ router.put(
                 domainId,
                 newDomain,
                 cert,
-                privateKey
+                privateKey,
+                enableHttps,
+                autoProvisioning
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -289,6 +307,8 @@ router.post('/:projectId/privateKeyFile', async function(req, res) {
     }
 });
 
+// fetch details about a custom domain
+// to be consumed by the status page
 router.get('/tlsCredential', async function(req, res) {
     try {
         const { domain } = req.query;
@@ -316,6 +336,9 @@ router.get('/tlsCredential', async function(req, res) {
         return sendItemResponse(req, res, {
             cert: domainObj.cert,
             privateKey: domainObj.privateKey,
+            autoProvisioning: domainObj.autoProvisioning,
+            enableHttps: domainObj.enableHttps,
+            domain: domainObj.domain,
         });
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -786,10 +809,15 @@ router.get('/:projectId/incident/:incidentId', checkUser, async function(
     res
 ) {
     try {
-        const { incidentId } = req.params;
+        const { incidentId, projectId } = req.params;
+
+        const incidentData = await IncidentService.findOneBy({
+            projectId,
+            idNumber: incidentId,
+        });
 
         const incident = await StatusPageService.getIncident({
-            _id: incidentId,
+            _id: incidentData._id,
         });
         return sendItemResponse(req, res, incident);
     } catch (error) {
@@ -802,11 +830,16 @@ router.get('/:projectId/:incidentId/incidentNotes', checkUser, async function(
     res
 ) {
     try {
-        const { incidentId } = req.params;
+        const { incidentId, projectId } = req.params;
+
+        const incident = await IncidentService.findOneBy({
+            projectId,
+            idNumber: incidentId,
+        });
         const { skip, limit, postOnStatusPage } = req.query;
 
         const response = await StatusPageService.getIncidentNotes(
-            { incidentId, postOnStatusPage },
+            { incidentId: incident._id, postOnStatusPage },
             skip,
             limit
         );
@@ -857,7 +890,7 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
             limit
         );
         let notes = response.investigationNotes;
-        if (theme) {
+        if ((theme && typeof theme === 'boolean') || theme === 'true') {
             const updatedNotes = [];
             if (notes.length > 0) {
                 for (const note of notes) {
@@ -867,13 +900,16 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
                         0
                     );
 
+                    const sortMsg = statusPageNote.message.reverse();
+
                     updatedNotes.push({
                         ...note._doc,
-                        message: statusPageNote.message,
+                        message: sortMsg,
                     });
                 }
                 notes = updatedNotes;
             }
+            notes = checkDuplicateDates(notes);
         }
         const count = response.count;
         return sendListResponse(req, res, notes, count);
@@ -896,7 +932,8 @@ router.get(
             const response = await StatusPageService.getEvents(
                 { _id: statusPageId },
                 skip,
-                limit
+                limit,
+                theme
             );
             let events = response.events;
             const count = response.count;
@@ -915,7 +952,6 @@ router.get(
                             notes: statusPageEvent.notes,
                         });
                     }
-                    events = formatNotes(updatedEvents);
                     events = checkDuplicateDates(events);
                 }
             }
@@ -1141,14 +1177,19 @@ router.get('/:projectId/timeline/:incidentId', checkUser, async function(
     res
 ) {
     try {
-        const { incidentId } = req.params;
+        const { incidentId, projectId } = req.params;
+
+        const incidentData = await IncidentService.findOneBy({
+            projectId,
+            idNumber: incidentId,
+        });
         // setting limit to one
         // since the frontend only need the last content (current content)
         // of incident timeline
         const { skip = 0, limit = 1 } = req.query;
 
         const timeline = await IncidentTimelineService.findBy(
-            { incidentId },
+            { incidentId: incidentData._id },
             skip,
             limit
         );
@@ -1179,65 +1220,78 @@ router.get(
     }
 );
 
+//get subscribers by monitorId in a statuspage
+// req.params-> {projectId, monitorId, statusPageId};
+// Returns: response subscribers, error message
+router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { statusPageId } = req.params;
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 10;
+        const statusPage = await StatusPageService.findOneBy({
+            _id: statusPageId,
+        });
+        const monitors = statusPage.monitors.map(mon => mon.monitor._id);
+        const subscribers = await SubscriberService.findBy(
+            {
+                monitorId: monitors,
+            },
+            skip,
+            limit
+        );
+        const count = await SubscriberService.countBy({
+            monitorId: monitors,
+        });
+        return sendItemResponse(req, res, { subscribers, skip, limit, count });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 const formatNotes = (data = []) => {
-    const resultData = [];
-    const numberToDisplay = checkDuplicateDates(data, true);
+    const result = [];
+    const limit = 15;
 
-    if (
-        data[0] &&
-        !(
-            moment(data[0].createdAt).format('YYYY-MM-DD') ===
-            moment().format('YYYY-MM-DD')
-        )
-    ) {
-        data.unshift({ createdAt: new Date().toISOString() });
-    }
+    for (let i = 0; i <= limit; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
 
-    if (!data[0]) data[0] = { createdAt: new Date().toISOString() };
+        if (data.length > 0) {
+            for (const incident of data) {
+                const { createdAt } = incident;
+                const incidentDate = new Date(createdAt);
 
-    let prev_obj = data[0];
+                // check if any incidence occured on this day.
+                if (incidentDate.toDateString() === date.toDateString()) {
+                    const lastIncident = result[result.length - 1];
+                    const lastIncidentDate = new Date(lastIncident?.createdAt);
 
-    for (let i = 1; i < data.length + 1; i++) {
-        resultData.push(prev_obj);
-
-        const current_obj = data[i];
-        if (!current_obj) break;
-
-        const prev_date = new Date(prev_obj.createdAt).getDate();
-        const curr_date = new Date(current_obj.createdAt).getDate();
-
-        const diff = prev_date - curr_date - 1;
-
-        if (diff > 0) {
-            for (let i = 0; i < diff; i++) {
-                const time = new Date().setDate(prev_date - i - 1);
-                const created_date = new Date(time).toISOString();
-
-                const new_obj = { createdAt: created_date };
-                resultData.push(new_obj);
+                    // if date has been pushed into result array, and we find an incidence, replace date with the incidence, else push incidence
+                    lastIncidentDate.toDateString() ===
+                        incidentDate.toDateString() && !lastIncident._id
+                        ? (result[result.length - 1] = incident)
+                        : result.push(incident);
+                } else {
+                    const lastIncident = result[result.length - 1];
+                    const lastIncidentDate = new Date(lastIncident?.createdAt);
+                    if (lastIncidentDate.toDateString() !== date.toDateString())
+                        result.push({
+                            createdAt: new Date(date).toISOString(),
+                        });
+                }
             }
+        } else {
+            result.push({ createdAt: new Date(date).toISOString() });
         }
-
-        prev_obj = current_obj;
     }
 
-    const prev_date = new Date(prev_obj.createdAt).getDate();
-    const fields_left = numberToDisplay - resultData.length;
-
-    for (let i = 0; i < fields_left; i++) {
-        const time = new Date().setDate(prev_date - i - 1);
-        const created_date = new Date(time).toISOString();
-
-        const new_obj = { createdAt: created_date };
-        resultData.push(new_obj);
-
-        prev_obj = new_obj;
-    }
-
-    return resultData;
+    return result;
 };
 
-function checkDuplicateDates(items, bool) {
+function checkDuplicateDates(items) {
     const track = {};
 
     const result = [];
@@ -1254,13 +1308,7 @@ function checkDuplicateDates(items, bool) {
 
         result.push(item);
     }
-    if (!bool) {
-        return result;
-    } else {
-        const specificNumberToDisplay = 15;
-        const falseCount = result.filter(num => !num.style).length;
-        return specificNumberToDisplay + falseCount;
-    }
+    return result;
 }
 
 module.exports = router;

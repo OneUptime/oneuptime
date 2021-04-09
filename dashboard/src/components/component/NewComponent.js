@@ -59,8 +59,8 @@ class NewComponent extends Component {
         }
     }
 
-    viewCreatedComponent = (slug, componentId) => {
-        history.push(`/dashboard/project/${slug}/${componentId}/monitoring`);
+    viewCreatedComponent = (slug, componentSlug) => {
+        history.push(`/dashboard/project/${slug}/${componentSlug}/monitoring`);
     };
 
     submitForm = values => {
@@ -87,7 +87,7 @@ class NewComponent extends Component {
             });
         } else {
             this.props.createComponent(postObj.projectId, postObj).then(
-                ({ data: { _id: componentId } }) => {
+                ({ data: { slug: componentSlug } }) => {
                     thisObj.props.reset();
                     if (IS_SAAS_SERVICE) {
                         logEvent(
@@ -97,7 +97,7 @@ class NewComponent extends Component {
                     }
                     this.viewCreatedComponent(
                         this.props.currentProject.slug,
-                        componentId
+                        componentSlug
                     );
                 },
                 error => {
@@ -379,9 +379,9 @@ const mapStateToProps = (state, ownProps) => {
     const subProject = selector(state, 'subProject_1000');
 
     if (ownProps.edit) {
-        const componentId = ownProps.match
+        const componentSlug = ownProps.match
             ? ownProps.match.params
-                ? ownProps.match.params.componentId
+                ? ownProps.match.params.componentSlug
                 : null
             : null;
         return {
@@ -391,7 +391,10 @@ const mapStateToProps = (state, ownProps) => {
             subProject,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
-            componentId,
+            componentId:
+                state.component.currentComponent.component &&
+                state.component.currentComponent.component._id,
+            componentSlug,
         };
     } else {
         return {

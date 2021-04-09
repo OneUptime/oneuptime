@@ -13,6 +13,7 @@ module.exports = [
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
             '{{incident.customFields.*}} : The value of any incident custom field',
             '{{monitor.customFields.*}} : The value of any monitor custom field',
+            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
         emailType: 'Subscriber Incident Created',
         subject:
@@ -145,41 +146,9 @@ span.st-Delink.st-Delink--footer a {
     * # Font
   **/
 
-  /** Modifier: title */
-  body[override] td.st-Font.st-Font--title,
-  body[override] td.st-Font.st-Font--title span,
-  body[override] td.st-Font.st-Font--title a {
-    font-size: 28px !important;
-    line-height: 36px !important;
-  }
-  /** */
 
-  /** Modifier: header */
-  body[override] td.st-Font.st-Font--header,
-  body[override] td.st-Font.st-Font--header span,
-  body[override] td.st-Font.st-Font--header a {
-    font-size: 24px !important;
-    line-height: 32px !important;
-  }
-  /** */
 
-  /** Modifier: body */
-  body[override] td.st-Font.st-Font--body,
-  body[override] td.st-Font.st-Font--body span,
-  body[override] td.st-Font.st-Font--body a {
-    font-size: 18px !important;
-    line-height: 28px !important;
-  }
-  /** */
 
-  /** Modifier: caption */
-  body[override] td.st-Font.st-Font--caption,
-  body[override] td.st-Font.st-Font--caption span,
-  body[override] td.st-Font.st-Font--caption a {
-    font-size: 14px !important;
-    line-height: 20px !important;
-  }
-  /** */
 
   /** Modifier: simplified */
   body[override] table.st-Header.st-Header--simplified td.st-Header-logo {
@@ -190,14 +159,7 @@ span.st-Delink.st-Delink--footer a {
     width: 0 !important;
   }
 
-  /**
-    * # Divider
-  **/
 
-  body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter,
-  body[override] tr.st-Divider td.st-Spacer.st-Spacer--gutter {
-    background-color: #000000;
-  }
 
   /**
     * # Blocks
@@ -500,7 +462,7 @@ span.st-Delink.st-Delink--footer a {
       </td>
       <td class="st-Font st-Font--caption" style="border: 0; margin: 0;padding: 0; color: #8898aa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 16px;">
         <span class="st-Delink st-Delink--footer" style="border: 0; margin: 0; padding: 0; color: #8898aa; text-decoration: none;">
-          © {{year}} HackerBay Inc.
+          © {{year}} HackerBay Inc. | <span><a href={{unsubscribeUrl}}>Unsubscribe</a></span>
         </span>
       </td>
       <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -558,6 +520,7 @@ span.st-Delink.st-Delink--footer a {
             '{{incident.customFields.*}} : The value of any incident custom field',
             '{{monitor.customFields.*}} : The value of any monitor custom field',
             '{{length}} : Length of the incident',
+            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
         emailType: 'Subscriber Incident Acknowldeged',
         subject:
@@ -690,41 +653,9 @@ body[override] td.st-Spacer.st-Spacer--emailEnd {
   * # Font
 **/
 
-/** Modifier: title */
-body[override] td.st-Font.st-Font--title,
-body[override] td.st-Font.st-Font--title span,
-body[override] td.st-Font.st-Font--title a {
-  font-size: 28px !important;
-  line-height: 36px !important;
-}
-/** */
 
-/** Modifier: header */
-body[override] td.st-Font.st-Font--header,
-body[override] td.st-Font.st-Font--header span,
-body[override] td.st-Font.st-Font--header a {
-  font-size: 24px !important;
-  line-height: 32px !important;
-}
-/** */
 
-/** Modifier: body */
-body[override] td.st-Font.st-Font--body,
-body[override] td.st-Font.st-Font--body span,
-body[override] td.st-Font.st-Font--body a {
-  font-size: 18px !important;
-  line-height: 28px !important;
-}
-/** */
 
-/** Modifier: caption */
-body[override] td.st-Font.st-Font--caption,
-body[override] td.st-Font.st-Font--caption span,
-body[override] td.st-Font.st-Font--caption a {
-  font-size: 14px !important;
-  line-height: 20px !important;
-}
-/** */
 
 /** Modifier: simplified */
 body[override] table.st-Header.st-Header--simplified td.st-Header-logo {
@@ -735,14 +666,7 @@ body[override] table.st-Header.st-Header--simplified td.st-Header-spacing{
   width: 0 !important;
 }
 
-/**
-  * # Divider
-**/
 
-body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter,
-body[override] tr.st-Divider td.st-Spacer.st-Spacer--gutter {
-  background-color: #000000;
-}
 
 /**
   * # Blocks
@@ -1044,7 +968,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td class="st-Font st-Font--caption" style="border: 0; margin: 0;padding: 0; color: #8898aa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 16px;">
       <span class="st-Delink st-Delink--footer" style="border: 0; margin: 0; padding: 0; color: #8898aa; text-decoration: none;">
-        © {{year}} HackerBay Inc.
+        © {{year}} HackerBay Inc. | <span><a href={{unsubscribeUrl}}>Unsubscribe</a></span>
       </span>
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -1102,6 +1026,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             '{{incident.customFields.*}} : The value of any incident custom field',
             '{{monitor.customFields.*}} : The value of any monitor custom field',
             '{{length}} : Length of the incident',
+            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
         emailType: 'Subscriber Incident Resolved',
         subject:
@@ -1234,41 +1159,9 @@ body[override] td.st-Spacer.st-Spacer--emailEnd {
   * # Font
 **/
 
-/** Modifier: title */
-body[override] td.st-Font.st-Font--title,
-body[override] td.st-Font.st-Font--title span,
-body[override] td.st-Font.st-Font--title a {
-  font-size: 28px !important;
-  line-height: 36px !important;
-}
-/** */
 
-/** Modifier: header */
-body[override] td.st-Font.st-Font--header,
-body[override] td.st-Font.st-Font--header span,
-body[override] td.st-Font.st-Font--header a {
-  font-size: 24px !important;
-  line-height: 32px !important;
-}
-/** */
 
-/** Modifier: body */
-body[override] td.st-Font.st-Font--body,
-body[override] td.st-Font.st-Font--body span,
-body[override] td.st-Font.st-Font--body a {
-  font-size: 18px !important;
-  line-height: 28px !important;
-}
-/** */
 
-/** Modifier: caption */
-body[override] td.st-Font.st-Font--caption,
-body[override] td.st-Font.st-Font--caption span,
-body[override] td.st-Font.st-Font--caption a {
-  font-size: 14px !important;
-  line-height: 20px !important;
-}
-/** */
 
 /** Modifier: simplified */
 body[override] table.st-Header.st-Header--simplified td.st-Header-logo {
@@ -1279,14 +1172,7 @@ body[override] table.st-Header.st-Header--simplified td.st-Header-spacing{
   width: 0 !important;
 }
 
-/**
-  * # Divider
-**/
 
-body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter,
-body[override] tr.st-Divider td.st-Spacer.st-Spacer--gutter {
-  background-color: #000000;
-}
 
 /**
   * # Blocks
@@ -1573,7 +1459,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td class="st-Font st-Font--caption" style="border: 0; margin: 0;padding: 0; color: #8898aa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 16px;">
       <span class="st-Delink st-Delink--footer" style="border: 0; margin: 0; padding: 0; color: #8898aa; text-decoration: none;">
-        © {{year}} HackerBay Inc.
+        © {{year}} HackerBay Inc. | <span><a href={{unsubscribeUrl}}>Unsubscribe</a></span>
       </span>
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -1632,6 +1518,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             '{{incident.customFields.*}} : The value of any incident custom field',
             '{{monitor.customFields.*}} : The value of any monitor custom field',
             '{{incidentNote}} : The content of the investigation note',
+            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
         emailType: 'Investigation note is created',
         subject: 'An update on an active incident for {{monitorName}}',
@@ -1763,41 +1650,9 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
       * # Font
     **/
     
-    /** Modifier: title */
-    body[override] td.st-Font.st-Font--title,
-    body[override] td.st-Font.st-Font--title span,
-    body[override] td.st-Font.st-Font--title a {
-      font-size: 28px !important;
-      line-height: 36px !important;
-    }
-    /** */
     
-    /** Modifier: header */
-    body[override] td.st-Font.st-Font--header,
-    body[override] td.st-Font.st-Font--header span,
-    body[override] td.st-Font.st-Font--header a {
-      font-size: 24px !important;
-      line-height: 32px !important;
-    }
-    /** */
     
-    /** Modifier: body */
-    body[override] td.st-Font.st-Font--body,
-    body[override] td.st-Font.st-Font--body span,
-    body[override] td.st-Font.st-Font--body a {
-      font-size: 18px !important;
-      line-height: 28px !important;
-    }
-    /** */
     
-    /** Modifier: caption */
-    body[override] td.st-Font.st-Font--caption,
-    body[override] td.st-Font.st-Font--caption span,
-    body[override] td.st-Font.st-Font--caption a {
-      font-size: 14px !important;
-      line-height: 20px !important;
-    }
-    /** */
     
     /** Modifier: simplified */
     body[override] table.st-Header.st-Header--simplified td.st-Header-logo {
@@ -1808,14 +1663,6 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
       width: 0 !important;
     }
     
-    /**
-      * # Divider
-    **/
-    
-    body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter,
-    body[override] tr.st-Divider td.st-Spacer.st-Spacer--gutter {
-      background-color: #000000;
-    }
     
     /**
       * # Blocks
@@ -2135,7 +1982,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
         </td>
         <td class="st-Font st-Font--caption" style="border: 0; margin: 0;padding: 0; color: #8898aa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 16px;">
           <span class="st-Delink st-Delink--footer" style="border: 0; margin: 0; padding: 0; color: #8898aa; text-decoration: none;">
-            © 2019 HackerBay Inc.
+            © 2019 HackerBay Inc. | <span><a href={{unsubscribeUrl}}>Unsubscribe</a></span>
           </span>
         </td>
         <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">

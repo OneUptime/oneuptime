@@ -8,6 +8,7 @@ const tls = require('tls');
 const fs = require('fs');
 const fetch = require('node-fetch');
 const { spawn } = require('child_process');
+const axios = require('axios');
 
 const { NODE_ENV } = process.env;
 
@@ -43,6 +44,56 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
 
     res.contentType('application/javascript');
     res.send('window._env = ' + JSON.stringify(env));
+});
+
+app.use('/.well-known/acme-challenge/:token', async function(req, res) {
+    // make api call to backend and fetch keyAuthorization
+    const { token } = req.params;
+    let apiHost;
+    if (process.env.FYIPE_HOST) {
+        apiHost = 'https://' + process.env.FYIPE_HOST + '/api';
+    } else {
+        apiHost = 'http://localhost:3002/api';
+    }
+    const url = `${apiHost}/ssl/challenge/authorization/${token}`;
+    const response = await axios.get(url);
+    res.send(response.data);
+});
+
+app.use(async function(req, res, next) {
+    let apiHost;
+    const host = req.hostname;
+    if (
+        host === 'fyipe.com' ||
+        host === 'staging.fyipe.com' ||
+        host.indexOf('localhost') > -1
+    ) {
+        return next();
+    }
+    if (process.env.FYIPE_HOST) {
+        apiHost = 'https://' + process.env.FYIPE_HOST + '/api';
+    } else {
+        apiHost = 'http://localhost:3002/api';
+    }
+
+    const response = await fetch(
+        `${apiHost}/statusPage/tlsCredential?domain=${host}`
+    ).then(res => res.json());
+
+    const { enableHttps } = response;
+    if (enableHttps) {
+        if (!req.secure) {
+            res.writeHead(301, { Location: `https://${host}${req.url}` });
+            return res.end();
+        }
+        next();
+    } else {
+        if (req.secure) {
+            res.writeHead(301, { Location: `http://${host}${req.url}` });
+            return res.end();
+        }
+        next();
+    }
 });
 
 app.use(express.static(path.join(__dirname, 'build')));
@@ -153,8 +204,53 @@ function createDir(dirPath) {
             ).then(res => res.json());
 
             let certPath, privateKeyPath;
-            if (res.data) {
-                const { cert, privateKey } = res.data;
+            if (res) {
+                const {
+                    cert,
+                    privateKey,
+                    autoProvisioning,
+                    enableHttps,
+                    domain,
+                } = res;
+                // have a condition to check for autoProvisioning
+                // if auto provisioning is set
+                // fetch the stored cert/privateKey
+                // cert and private key is a string
+                // store it to a file on disk
+                if (enableHttps && autoProvisioning) {
+                    const url = `${apiHost}/certificate/store/cert/${domain}`;
+                    const response = await axios.get(url);
+                    const certificate = response.data;
+                    if (response && certificate) {
+                        certPath = path.resolve(
+                            process.cwd(),
+                            'src',
+                            'credentials',
+                            `${certificate.id}.crt`
+                        );
+                        privateKeyPath = path.resolve(
+                            process.cwd(),
+                            'src',
+                            'credentials',
+                            `${certificate.id}.key`
+                        );
+
+                        fs.writeFileSync(certPath, certificate.cert);
+                        fs.writeFileSync(
+                            privateKeyPath,
+                            certificate.privateKeyPem
+                        );
+
+                        return cb(
+                            null,
+                            tls.createSecureContext({
+                                key: fs.readFileSync(privateKeyPath),
+                                cert: fs.readFileSync(certPath),
+                            })
+                        );
+                    }
+                }
+
                 if (cert && privateKey) {
                     certPath = path.resolve(
                         process.cwd(),
@@ -173,40 +269,39 @@ function createDir(dirPath) {
                         fetchCredential(apiHost, cert, certPath),
                         fetchCredential(apiHost, privateKey, privateKeyPath),
                     ]);
+
+                    return cb(
+                        null,
+                        tls.createSecureContext({
+                            key: fs.readFileSync(privateKeyPath),
+                            cert: fs.readFileSync(certPath),
+                        })
+                    );
                 }
             }
 
-            if (certPath && privateKeyPath) {
-                cb(
-                    null,
-                    tls.createSecureContext({
-                        key: fs.readFileSync(privateKeyPath),
-                        cert: fs.readFileSync(certPath),
-                    })
-                );
-            } else {
-                cb(
-                    null,
-                    tls.createSecureContext({
-                        cert: fs.readFileSync(
-                            path.resolve(
-                                process.cwd(),
-                                'src',
-                                'credentials',
-                                'certificate.crt'
-                            )
-                        ),
-                        key: fs.readFileSync(
-                            path.resolve(
-                                process.cwd(),
-                                'src',
-                                'credentials',
-                                'private.key'
-                            )
-                        ),
-                    })
-                );
-            }
+            // default for custom domains without cert/key credentials
+            return cb(
+                null,
+                tls.createSecureContext({
+                    cert: fs.readFileSync(
+                        path.resolve(
+                            process.cwd(),
+                            'src',
+                            'credentials',
+                            'certificate.crt'
+                        )
+                    ),
+                    key: fs.readFileSync(
+                        path.resolve(
+                            process.cwd(),
+                            'src',
+                            'credentials',
+                            'private.key'
+                        )
+                    ),
+                })
+            );
         },
     };
     http.createServer(app).listen(3006, () =>

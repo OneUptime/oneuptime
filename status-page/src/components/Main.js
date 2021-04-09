@@ -472,26 +472,26 @@ class Main extends Component {
                             >
                                 <div className="subscribe_box">
                                     <div>
-                                        <a
-                                            href="https://fyipe.com"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                        <span
+                                            style={{
+                                                fontWeight: 'bold',
+                                            }}
                                         >
                                             {this.props.statusData.title}
-                                            <ShouldRender
-                                                if={
+                                        </span>
+                                        <ShouldRender
+                                            if={
+                                                this.props.statusData
+                                                    .description
+                                            }
+                                        >
+                                            <div className="bs-page_desc">
+                                                {
                                                     this.props.statusData
                                                         .description
                                                 }
-                                            >
-                                                <div className="bs-page_desc">
-                                                    {
-                                                        this.props.statusData
-                                                            .description
-                                                    }
-                                                </div>
-                                            </ShouldRender>
-                                        </a>
+                                            </div>
+                                        </ShouldRender>
                                     </div>
                                     <ShouldRender
                                         if={

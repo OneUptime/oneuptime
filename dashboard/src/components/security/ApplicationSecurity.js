@@ -9,6 +9,7 @@ const ApplicationSecurity = ({
     applicationSecuritySlug,
     projectId,
     componentId,
+    componentSlug,
     applicationSecurityLogs,
 }) => {
     let securityLog = {};
@@ -36,6 +37,7 @@ const ApplicationSecurity = ({
                     applicationSecurityId={applicationSecurityId}
                     type="application"
                     applicationSecurityLog={securityLog}
+                    componentSlug={componentSlug}
                 />
             </div>
         </div>
@@ -50,6 +52,7 @@ ApplicationSecurity.propTypes = {
     applicationSecuritySlug: PropTypes.string,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     applicationSecurityLogs: PropTypes.array,
 };
 

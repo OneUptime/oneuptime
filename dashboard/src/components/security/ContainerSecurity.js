@@ -9,6 +9,7 @@ const ContainerSecurity = ({
     containerSecuritySlug,
     projectId,
     componentId,
+    componentSlug,
     containerSecurityLogs,
 }) => {
     let securityLog = {};
@@ -33,9 +34,10 @@ const ContainerSecurity = ({
                     projectId={projectId}
                     componentId={componentId}
                     containerSecurityId={containerSecurityId}
-                    containerSecuritySlu={containerSecuritySlug}
+                    containerSecuritySlug={containerSecuritySlug}
                     type="container"
                     containerSecurityLog={securityLog}
+                    componentSlug={componentSlug}
                 />
             </div>
         </div>
@@ -50,6 +52,7 @@ ContainerSecurity.propTypes = {
     containerSecuritySlug: PropTypes.string,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     containerSecurityLogs: PropTypes.array,
 };
 

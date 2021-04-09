@@ -3,9 +3,10 @@ const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
 const RealTimeService = require('./realTimeService');
 const ScheduledEventNoteService = require('./scheduledEventNoteService');
+const moment = require('moment');
 
 module.exports = {
-    create: async function({ projectId }, data) {
+    create: async function({ projectId }, data, recurring) {
         try {
             if (!data.monitors || data.monitors.length === 0) {
                 const error = new Error(
@@ -40,8 +41,30 @@ module.exports = {
                 .populate('createdById', 'name')
                 .execPopulate();
 
-            await RealTimeService.addScheduledEvent(scheduledEvent);
+            // add note when a scheduled event is created
+            await ScheduledEventNoteService.create({
+                content: 'THIS SCHEDULED EVENT HAS BEEN CREATED',
+                scheduledEventId: scheduledEvent._id,
+                createdById: scheduledEvent.createdById._id,
+                type: 'investigation',
+                event_state: 'Created',
+            });
 
+            //Create event start note immediately if start time equal to create time
+            const currentTime = moment();
+            const startTime = moment(scheduledEvent.startDate);
+            if (startTime <= currentTime) {
+                await ScheduledEventNoteService.create({
+                    content: 'THIS SCHEDULED EVENT HAS STARTED',
+                    scheduledEventId: scheduledEvent._id,
+                    type: 'investigation',
+                    event_state: 'Started',
+                });
+            }
+
+            if (!recurring) {
+                await RealTimeService.addScheduledEvent(scheduledEvent);
+            }
             return scheduledEvent;
         } catch (error) {
             ErrorService.log('scheduledEventService.create', error);
@@ -374,6 +397,7 @@ module.exports = {
      */
     resolveScheduledEvent: async function(query, data) {
         try {
+            const _this = this;
             data.resolved = true;
             data.resolvedAt = Date.now();
             let resolvedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
@@ -381,6 +405,46 @@ module.exports = {
                 { $set: data },
                 { new: true }
             );
+
+            if (resolvedScheduledEvent.recurring) {
+                let newStartDate;
+                let newEndDate;
+                const startDate = resolvedScheduledEvent.startDate;
+                const endDate = resolvedScheduledEvent.endDate;
+                if (resolvedScheduledEvent.interval === 'daily') {
+                    newStartDate = moment(startDate).add(1, 'days');
+                    newEndDate = moment(endDate).add(1, 'days');
+                } else if (resolvedScheduledEvent.interval === 'weekly') {
+                    newStartDate = moment(startDate).add(7, 'days');
+                    newEndDate = moment(endDate).add(7, 'days');
+                } else if (resolvedScheduledEvent.interval === 'monthly') {
+                    newStartDate = moment(startDate).add(1, 'months');
+                    newEndDate = moment(endDate).add(1, 'months');
+                }
+                const postObj = {};
+                postObj.name = resolvedScheduledEvent.name;
+                postObj.startDate = newStartDate;
+                postObj.endDate = newEndDate;
+                postObj.description = resolvedScheduledEvent.description;
+                postObj.showEventOnStatusPage =
+                    resolvedScheduledEvent.showEventOnStatusPage;
+                postObj.callScheduleOnEvent =
+                    resolvedScheduledEvent.callScheduleOnEvent;
+                postObj.monitorDuringEvent =
+                    resolvedScheduledEvent.monitorDuringEvent;
+                postObj.alertSubscriber =
+                    resolvedScheduledEvent.alertSubscriber;
+                postObj.recurring = resolvedScheduledEvent.recurring;
+                postObj.showAdvance = resolvedScheduledEvent.showAdvance;
+                postObj.interval = resolvedScheduledEvent.interval;
+                postObj.createdById = resolvedScheduledEvent.createdById;
+                const projectId = resolvedScheduledEvent.projectId;
+                const monitors = resolvedScheduledEvent.monitors.map(
+                    monitor => monitor.monitorId
+                );
+                postObj.monitors = monitors;
+                _this.create({ projectId }, postObj, true);
+            }
             // populate the necessary data
             resolvedScheduledEvent = await resolvedScheduledEvent
                 .populate('monitors.monitorId', 'name')
@@ -406,6 +470,49 @@ module.exports = {
         } catch (error) {
             ErrorService.log(
                 'scheduledEventService.resolveScheduledEvent',
+                error
+            );
+            throw error;
+        }
+    },
+    /**
+     * @description Create Started note for all schedule events
+     */
+    createScheduledEventStartedNote: async function() {
+        try {
+            const currentTime = moment();
+
+            //fetch events that have started
+            const scheduledEventList = await this.findBy(
+                { startDate: { $lte: currentTime }, deleted: false },
+                0,
+                0
+            );
+
+            //fetch event notes without started note and create
+            scheduledEventList.map(async scheduledEvent => {
+                const scheduledEventId = scheduledEvent._id;
+                const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
+                    {
+                        scheduledEventId,
+                        event_state: 'Started',
+                    }
+                );
+                if (
+                    scheduledEventNoteList &&
+                    scheduledEventNoteList.length === 0
+                ) {
+                    await ScheduledEventNoteService.create({
+                        content: 'THIS SCHEDULED EVENT HAS STARTED',
+                        scheduledEventId,
+                        type: 'investigation',
+                        event_state: 'Started',
+                    });
+                }
+            });
+        } catch (error) {
+            ErrorService.log(
+                'scheduledEventService.createScheduledEventStartedNote',
                 error
             );
             throw error;

@@ -22,12 +22,9 @@ yarn-debug.log*
 yarn-error.log*
 
 # tls
-/*.crt
+*.crt
 /*.csr
-/*.key
+*.key
 /*.ext
 /*.pem
 /*.srl
-/credentials
-/credentials/*.crt
-/credentials/*.key

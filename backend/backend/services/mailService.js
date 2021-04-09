@@ -2938,7 +2938,8 @@ const _this = {
         componentName,
         statusPageUrl,
         replyAddress,
-        customFields
+        customFields,
+        unsubscribeUrl
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -2959,6 +2960,7 @@ const _this = {
                 incidentType: incident.incidentType,
                 componentName,
                 statusPageUrl,
+                unsubscribeUrl,
                 year: DateTime.getCurrentYear,
                 ...customFields,
             };
@@ -3502,7 +3504,8 @@ const _this = {
         statusPageUrl,
         replyAddress,
         customFields,
-        length
+        length,
+        unsubscribeUrl
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -3523,6 +3526,7 @@ const _this = {
                 incidentType: incident.incidentType,
                 componentName,
                 statusPageUrl,
+                unsubscribeUrl,
                 year: DateTime.getCurrentYear,
                 ...customFields,
                 length,
@@ -3711,7 +3715,8 @@ const _this = {
         incidentNote,
         statusPageUrl,
         statusNoteStatus,
-        customFields
+        customFields,
+        unsubscribeUrl
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -3733,6 +3738,7 @@ const _this = {
                 incidentNote,
                 statusPageUrl,
                 statusNoteStatus,
+                unsubscribeUrl,
                 ...customFields,
             };
             template = template(data);
@@ -3861,7 +3867,8 @@ const _this = {
         statusPageUrl,
         replyAddress,
         customFields,
-        length
+        length,
+        unsubscribeUrl
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -3882,6 +3889,7 @@ const _this = {
                 incidentType: incident.incidentType,
                 componentName,
                 statusPageUrl,
+                unsubscribeUrl,
                 year: DateTime.getCurrentYear,
                 ...customFields,
                 length,

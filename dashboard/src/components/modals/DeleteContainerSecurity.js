@@ -37,12 +37,17 @@ class DeleteContainerSecurity extends Component {
             modalId,
             propArr,
         } = this.props;
-        const { projectId, componentId, containerSecurityId } = propArr[0];
+        const {
+            projectId,
+            componentId,
+            containerSecurityId,
+            componentSlug,
+        } = propArr[0];
         const data = { projectId, componentId, containerSecurityId };
 
         deleteContainerSecurity(data).then(() => {
             history.push(
-                `/dashboard/project/${this.props.slug}/${data.componentId}/security/container`
+                `/dashboard/project/${this.props.slug}/${componentSlug}/security/container`
             );
 
             if (!deleteContainerError) {

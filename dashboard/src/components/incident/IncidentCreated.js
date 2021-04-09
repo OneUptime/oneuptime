@@ -15,7 +15,7 @@ class IncidentCreated extends Component {
             projectId,
             _id: notificationId,
             meta: {
-                componentId,
+                componentId: { slug },
                 incidentId: { idNumber },
             },
         } = notification;
@@ -26,7 +26,7 @@ class IncidentCreated extends Component {
             logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});
         }
         history.push(
-            `/dashboard/project/${this.props.slug}/${componentId}/incidents/${idNumber}`
+            `/dashboard/project/${this.props.slug}/${slug}/incidents/${idNumber}`
         );
     };
 

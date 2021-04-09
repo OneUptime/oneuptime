@@ -45,17 +45,19 @@ class Container extends Component {
             getContainerSecurities,
             getContainerSecurityLogs,
         } = this.props;
+        if (projectId && componentId) {
+            // load container security logs
+            getContainerSecurityLogs({ projectId, componentId });
 
-        // load container security logs
-        getContainerSecurityLogs({ projectId, componentId });
-
-        // load container security
-        getContainerSecurities({ projectId, componentId });
+            // load container security
+            getContainerSecurities({ projectId, componentId });
+        }
     };
 
     render() {
         const {
             componentId,
+            componentSlug,
             projectId,
             containerSecurities: securities,
             gettingContainerSecurities,
@@ -68,7 +70,7 @@ class Container extends Component {
 
         socket.on(`createContainerSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${this.props.slug}/${componentId}/security/container/${data.slug}`
+                `/dashboard/project/${this.props.slug}/${componentSlug}/security/container/${data.slug}`
             );
         });
 
@@ -156,6 +158,9 @@ class Container extends Component {
                                                                         componentId={
                                                                             componentId
                                                                         }
+                                                                        componentSlug={
+                                                                            componentSlug
+                                                                        }
                                                                     />
                                                                 </div>
                                                             </div>
@@ -189,6 +194,7 @@ Container.displayName = 'Container Security Page';
 Container.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     slug: PropTypes.string,
     containerSecurities: PropTypes.array,
     getContainerSecurities: PropTypes.func,
@@ -209,25 +215,21 @@ Container.propTypes = {
 
 const mapStateToProps = (state, ownProps) => {
     // ids from url
-    const { componentId } = ownProps.match.params;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
-                component = c;
-            }
-        });
-    });
+    const { componentSlug } = ownProps.match.params;
 
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
-        componentId,
+        componentId:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
         slug: state.project.currentProject && state.project.currentProject.slug,
         containerSecurities: state.security.containerSecurities,
         gettingSecurityLogs: state.security.getContainerSecurityLog.requesting,
         gettingContainerSecurities: state.security.getContainer.requesting,
-        component,
+        component:
+            state.component && state.component.currentComponent.component,
+        componentSlug,
     };
 };
 

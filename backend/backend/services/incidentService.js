@@ -26,7 +26,7 @@ module.exports = {
                 .populate({
                     path: 'monitorId',
                     select: '_id name type slug',
-                    populate: { path: 'componentId', select: '_id name' },
+                    populate: { path: 'componentId', select: '_id name slug' },
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
@@ -269,16 +269,6 @@ module.exports = {
         }
     },
 
-    getIncidentId: async function(query) {
-        try {
-            const incident = await IncidentModel.findOne(query);
-            return incident;
-        } catch (error) {
-            ErrorService.log('incidentService.getIncidentId', error);
-            throw error;
-        }
-    },
-
     // Description: Get Incident by incident Id.
     // Params:
     // Param 1: monitorId: monitor Id
@@ -299,8 +289,8 @@ module.exports = {
                 .populate('probes.probeId')
                 .populate({
                     path: 'monitorId',
-                    select: '_id name',
-                    populate: { path: 'componentId', select: '_id name' },
+                    select: '_id name slug',
+                    populate: { path: 'componentId', select: '_id name slug' },
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
@@ -358,8 +348,8 @@ module.exports = {
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitorId',
-                    select: '_id name',
-                    populate: { path: 'componentId', select: '_id name' },
+                    select: '_id name slug',
+                    populate: { path: 'componentId', select: '_id name slug' },
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
@@ -770,26 +760,24 @@ module.exports = {
         return subProjectIncidents;
     },
 
-    getComponentIncidents: async function(subProjectIds, componentId) {
+    getComponentIncidents: async function(projectId, componentId) {
         const _this = this;
         const monitors = await MonitorService.findBy({
-            componentId: componentId,
+            projectId,
+            componentId,
         });
         const monitorIds = monitors.map(monitor => monitor._id);
-        const componentIncidents = await Promise.all(
-            subProjectIds.map(async id => {
-                const incidents = await _this.findBy(
-                    { projectId: id, monitorId: { $in: monitorIds } },
-                    10,
-                    0
-                );
-                const count = await _this.countBy({
-                    projectId: id,
-                    monitorId: { $in: monitorIds },
-                });
-                return { incidents, count, _id: id, skip: 0, limit: 10 };
-            })
+        const incidents = await _this.findBy(
+            { monitorId: { $in: monitorIds } },
+            10,
+            0
         );
+        const count = await _this.countBy({
+            monitorId: { $in: monitorIds },
+        });
+        const componentIncidents = [
+            { incidents, _id: projectId, count, skip: 0, limit: 10 },
+        ];
         return componentIncidents;
     },
 
@@ -903,6 +891,8 @@ module.exports = {
                 incident,
                 data
             );
+
+            await ZapierService.pushToZapier('incident_note', incident, data);
         } catch (error) {
             ErrorService.log('incidentService.sendIncidentNoteAdded', error);
             throw error;

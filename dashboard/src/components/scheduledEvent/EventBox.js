@@ -55,7 +55,7 @@ class EventBox extends Component {
 
     handleScheduledEventDetail = scheduledEventId => {
         history.push(
-            `/dashboard/project/${this.props.currentProject.slug}/scheduledEvents/${scheduledEventId}`
+            `/dashboard/project/${this.props.slug}/scheduledEvents/${scheduledEventId}`
         );
     };
 
@@ -263,7 +263,18 @@ class EventBox extends Component {
                                                         <div className="scheduled-event-name Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             {capitalize(
                                                                 scheduledEvent.name
-                                                            )}
+                                                            )}{' '}
+                                                            {scheduledEvent.recurring ? (
+                                                                <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                                        <span>
+                                                                            {
+                                                                                'Recurring Event'
+                                                                            }
+                                                                        </span>
+                                                                    </span>
+                                                                </div>
+                                                            ) : null}
                                                         </div>
                                                     </div>
                                                     <div className="bs-ObjectList-cell bs-u-v-middle">

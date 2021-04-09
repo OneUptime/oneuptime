@@ -47,6 +47,7 @@ class KubeStatefulsetData extends React.Component {
                 return 'Self Link';
             case 'statefulsetUid':
                 return 'UID';
+            // no default
         }
     };
 
@@ -123,7 +124,7 @@ class KubeStatefulsetData extends React.Component {
                                                         style={{
                                                             backgroundColor:
                                                                 'white',
-                                                            height: 60,
+                                                            minHeight: 60,
                                                             borderBottom:
                                                                 '1px solid #cfd7df80',
                                                             display: 'flex',
@@ -146,7 +147,12 @@ class KubeStatefulsetData extends React.Component {
                                                                 )}
                                                             </div>
                                                         </div>
-                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                        <div
+                                                            className="bs-ObjectList-cell bs-u-v-middle"
+                                                            style={{
+                                                                minWidth: 50,
+                                                            }}
+                                                        >
                                                             <div
                                                                 className="bs-ObjectList-cell-row"
                                                                 style={{

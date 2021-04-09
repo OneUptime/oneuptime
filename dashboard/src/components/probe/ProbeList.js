@@ -9,6 +9,7 @@ import ProbeStatus from './ProbeStatus';
 import { openModal, closeModal } from '../../actions/modal';
 import ProbeDetail from '../modals/ProbeDetail';
 import DataPathHoC from '../DataPathHoC';
+import { API_URL } from '../../config';
 
 export class ProbeList extends Component {
     constructor(props) {
@@ -167,7 +168,34 @@ export class ProbeList extends Component {
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <div className="Box-root Margin-right--16">
+                                                        <div
+                                                            className="Box-root Margin-right--16"
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems:
+                                                                    'center',
+                                                            }}
+                                                        >
+                                                            <img
+                                                                src={
+                                                                    probesData.probeImage
+                                                                        ? `${API_URL}/file/${probesData.probeImage}`
+                                                                        : '/dashboard/assets/img/no-probe.svg'
+                                                                }
+                                                                alt=""
+                                                                className="image-small-circle"
+                                                                style={{
+                                                                    width:
+                                                                        '25px',
+                                                                    height:
+                                                                        '25px',
+                                                                    marginRight:
+                                                                        '10px',
+                                                                    opacity:
+                                                                        !probesData.probeImage &&
+                                                                        '0.3',
+                                                                }}
+                                                            />
                                                             <span>
                                                                 {probesData.probeName
                                                                     ? probesData.probeName

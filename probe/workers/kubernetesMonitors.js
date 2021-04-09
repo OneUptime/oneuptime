@@ -62,8 +62,7 @@ module.exports = {
                                         unhealthyPodData = [],
                                         allPods = [],
                                         allPodData = [];
-                                    let pendingPods = 0,
-                                        runningPods = 0,
+                                    let runningPods = 0,
                                         completedPods = 0,
                                         failedPods = 0;
                                     podOutput.items.forEach(item => {
@@ -72,7 +71,6 @@ module.exports = {
                                          */
                                         if (
                                             item.status.phase !== 'Running' &&
-                                            item.status.phase !== 'Pending' &&
                                             item.status.phase !== 'Succeeded'
                                         ) {
                                             unhealthyPods.push({
@@ -104,6 +102,8 @@ module.exports = {
                                                 podContainerStatuses:
                                                     item.status
                                                         .containerStatuses,
+                                                podContainers:
+                                                    item.spec.containers,
                                             });
                                             unhealthyPodData.push({
                                                 podName: item.metadata.name,
@@ -155,6 +155,8 @@ module.exports = {
                                                 podContainerStatuses:
                                                     item.status
                                                         .containerStatuses,
+                                                podContainers:
+                                                    item.spec.containers,
                                             });
                                             healthyPodData.push({
                                                 podName: item.metadata.name,
@@ -175,8 +177,6 @@ module.exports = {
                                                               .restartCount
                                                         : 0,
                                             });
-                                            if (item.status.phase === 'Pending')
-                                                ++pendingPods;
                                             if (item.status.phase === 'Running')
                                                 ++runningPods;
                                             if (
@@ -209,6 +209,7 @@ module.exports = {
                                                 item.status.conditions,
                                             podContainerStatuses:
                                                 item.status.containerStatuses,
+                                            podContainers: item.spec.containers,
                                         });
                                         allPodData.push({
                                             podName: item.metadata.name,
@@ -231,7 +232,6 @@ module.exports = {
                                         podStat: {
                                             healthy: healthyPods.length,
                                             unhealthy: unhealthyPods.length,
-                                            pendingPods,
                                             runningPods,
                                             completedPods,
                                             failedPods,

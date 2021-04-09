@@ -18,7 +18,7 @@ import threatLevel from '../../utils/threatLevel';
 const SecurityInfo = ({
     name,
     projectId,
-    componentId,
+    componentSlug,
     type,
     applicationSecurityId,
     applicationSecuritySlug,
@@ -59,7 +59,7 @@ const SecurityInfo = ({
             (type === 'application' && 'application');
 
         history.push(
-            `/dashboard/project/${slug}/${componentId}/security/${type}/${securitySlug}`
+            `/dashboard/project/${slug}/${componentSlug}/security/${type}/${securitySlug}`
         );
     };
 
@@ -333,20 +333,20 @@ SecurityInfo.displayName = 'SecurityInfo';
 SecurityInfo.propTypes = {
     name: PropTypes.string,
     projectId: PropTypes.string,
-    componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     type: PropTypes.string.isRequired,
     applicationSecurityId: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
     applicationSecuritySlug: PropTypes.string,
-    containerSecuritySlug: PropTypes.string,
     applicationSecurityLog: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
     scanApplicationSecurity: PropTypes.func,
     scanningApplication: PropTypes.bool,
+    containerSecuritySlug: PropTypes.string,
     containerSecurityId: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),

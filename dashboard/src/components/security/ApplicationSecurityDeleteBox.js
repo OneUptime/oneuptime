@@ -13,6 +13,7 @@ export class ApplicationSecurityDeleteBox extends Component {
         componentId,
         applicationSecurityId,
         applicationSecuritySlug,
+        componentSlug,
     }) => {
         const { openModal } = this.props;
 
@@ -25,6 +26,7 @@ export class ApplicationSecurityDeleteBox extends Component {
                     componentId,
                     applicationSecurityId,
                     applicationSecuritySlug,
+                    componentSlug,
                 },
             ],
         });
@@ -37,6 +39,7 @@ export class ApplicationSecurityDeleteBox extends Component {
             componentId,
             applicationSecurityId,
             applicationSecuritySlug,
+            componentSlug,
         } = this.props;
 
         return (
@@ -67,6 +70,7 @@ export class ApplicationSecurityDeleteBox extends Component {
                                                 componentId,
                                                 applicationSecurityId,
                                                 applicationSecuritySlug,
+                                                componentSlug,
                                             })
                                         }
                                     >
@@ -100,6 +104,7 @@ const mapStateToProps = state => {
 
 ApplicationSecurityDeleteBox.propTypes = {
     componentId: PropTypes.string.isRequired,
+    componentSlug: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     applicationSecurityId: PropTypes.string.isRequired,
     applicationSecuritySlug: PropTypes.string,

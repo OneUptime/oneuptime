@@ -3,7 +3,10 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { history } from '../../store';
 import { ListLoader } from '../basic/Loader';
-import { fetchComponentResources } from '../../actions/component';
+import {
+    fetchComponentResources,
+    addCurrentComponent,
+} from '../../actions/component';
 import { getMonitorStatus, filterProbeData } from '../../config';
 import { bindActionCreators } from 'redux';
 import threatLevel from '../../utils/threatLevel';
@@ -23,8 +26,8 @@ class ResourceTabularList extends Component {
         };
     }
     generateUrlLink(componentResource) {
-        const { currentProject, componentId } = this.props;
-        const baseUrl = `/dashboard/project/${currentProject.slug}/${componentId}/`;
+        const { currentProject, componentSlug } = this.props;
+        const baseUrl = `/dashboard/project/${currentProject.slug}/${componentSlug}/`;
         let route = '';
         switch (componentResource.type) {
             case 'website monitor':
@@ -311,6 +314,9 @@ class ResourceTabularList extends Component {
                                                     this.props.animateSidebar(
                                                         true
                                                     );
+                                                    this.props.addCurrentComponent(
+                                                        componentResource.component
+                                                    );
                                                 }}
                                             >
                                                 <td
@@ -493,6 +499,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             fetchComponentResources,
+            addCurrentComponent,
             animateSidebar,
         },
         dispatch
@@ -522,10 +529,11 @@ function mapStateToProps(state, props) {
 ResourceTabularList.propTypes = {
     componentResource: PropTypes.object,
     currentProject: PropTypes.object,
-    componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     monitors: PropTypes.array,
     probes: PropTypes.array,
     animateSidebar: PropTypes.func,
+    addCurrentComponent: PropTypes.func,
     activeProbe: PropTypes.number,
     componentName: PropTypes.oneOfType([
         PropTypes.string,

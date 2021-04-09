@@ -433,3 +433,58 @@ export function resetFetchComponentSummary() {
         type: types.FETCH_COMPONENT_SUMMARY_RESET,
     };
 }
+
+export function addCurrentComponent(currentComponent) {
+    return {
+        type: types.ADD_CURRENT_COMPONENT,
+        payload: currentComponent,
+    };
+}
+
+export function fetchComponentRequest() {
+    return {
+        type: types.FETCH_COMPONENT_REQUEST,
+    };
+}
+
+export function fetchComponentSuccess(payload) {
+    return {
+        type: types.FETCH_COMPONENT_SUCCESS,
+        payload,
+    };
+}
+
+export function fetchComponentFailure(error) {
+    return {
+        type: types.FETCH_COMPONENT_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchComponent(slug) {
+    return function(dispatch) {
+        const promise = getApi(`component/slug/${slug}`);
+        dispatch(fetchComponentRequest());
+
+        promise.then(
+            function(component) {
+                dispatch(fetchComponentSuccess(component.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchComponentFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}

@@ -20,6 +20,7 @@ const ApplicationSecurityView = ({
     applicationSecuritySlug,
     projectId,
     componentId,
+    componentSlug,
     openModal,
     securityLog,
     scanApplicationSecurity,
@@ -43,6 +44,7 @@ const ApplicationSecurityView = ({
                     componentId,
                     applicationSecurityId,
                     applicationSecuritySlug,
+                    componentSlug,
                 },
             ],
         });
@@ -53,6 +55,7 @@ const ApplicationSecurityView = ({
         componentId,
         applicationSecurityId,
         applicationSecuritySlug,
+        componentSlug,
     }) => {
         openModal({
             id: applicationSecurityId,
@@ -63,6 +66,7 @@ const ApplicationSecurityView = ({
                     componentId,
                     applicationSecurityId,
                     applicationSecuritySlug,
+                    componentSlug,
                 },
             ],
         });
@@ -239,6 +243,7 @@ const ApplicationSecurityView = ({
                                             componentId,
                                             applicationSecurityId,
                                             applicationSecuritySlug,
+                                            componentSlug,
                                         })
                                     }
                                     id={`edit_${applicationSecurity.name}`}
@@ -313,6 +318,7 @@ ApplicationSecurityView.propTypes = {
     applicationSecuritySlug: PropTypes.string,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     openModal: PropTypes.func,
     securityLog: PropTypes.object,
     scanApplicationSecurity: PropTypes.func,

@@ -115,10 +115,15 @@ module.exports = {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
-            let name = data.name;
-            name = slugify(name);
-            name = `${name}-${generate('1234567890', 8)}`;
-            data.slug = name.toLowerCase();
+
+            // The received value from probe service is '{ scanning: true }'
+            if (data && data.name) {
+                let name = data.name;
+                name = slugify(name);
+                name = `${name}-${generate('1234567890', 8)}`;
+                data.slug = name.toLowerCase();
+            }
+
             let containerSecurity = await ContainerSecurityModel.findOneAndUpdate(
                 query,
                 {

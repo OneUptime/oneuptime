@@ -4,6 +4,7 @@ import { ValidateField } from '../../config';
 import { Field, reduxForm, formValueSelector } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import { history } from '../../store';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { logEvent } from '../../analytics';
@@ -18,6 +19,25 @@ import { RenderSelect } from '../basic/RenderSelect';
 const selector = formValueSelector('NewErrorTracker');
 
 class NewErrorTracker extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Enter':
+                if (document.getElementById('editErrorTrackerButton'))
+                    return document
+                        .getElementById('editErrorTrackerButton')
+                        .click();
+                else return false;
+            default:
+                return false;
+        }
+    };
     submitForm = values => {
         const thisObj = this;
         const postObj = {};
@@ -61,7 +81,10 @@ class NewErrorTracker extends Component {
                 errorTracker._id,
                 postObj
             ).then(
-                () => {
+                data => {
+                    history.push(
+                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/error-trackers/${data.data.slug}`
+                    );
                     thisObj.props.reset();
                     if (SHOULD_LOG_ANALYTICS) {
                         logEvent(
@@ -353,6 +376,7 @@ NewErrorTracker.propTypes = {
     errorTracker: PropTypes.object,
     handleSubmit: PropTypes.func.isRequired,
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     requesting: PropTypes.bool,
     currentProject: PropTypes.object,
     edit: PropTypes.bool,

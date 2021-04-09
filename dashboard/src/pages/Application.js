@@ -46,12 +46,13 @@ class Application extends Component {
             getApplicationSecurities,
             getApplicationSecurityLogs,
         } = this.props;
+        if (projectId && componentId) {
+            // load all the available logs
+            getApplicationSecurityLogs({ projectId, componentId });
 
-        // load all the available logs
-        getApplicationSecurityLogs({ projectId, componentId });
-
-        // load all the application securities
-        getApplicationSecurities({ projectId, componentId });
+            // load all the application securities
+            getApplicationSecurities({ projectId, componentId });
+        }
     };
 
     render() {
@@ -63,13 +64,14 @@ class Application extends Component {
             gettingSecurityLogs,
             location: { pathname },
             component,
+            componentSlug,
             scanApplicationSecuritySuccess,
             getApplicationSecuritySuccess,
         } = this.props;
 
         socket.on(`createApplicationSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${this.props.slug}/${componentId}/security/application/${data.slug}`
+                `/dashboard/project/${this.props.slug}/${componentSlug}/security/application/${data.slug}`
             );
         });
         const applicationSecurities = appSecurities
@@ -148,6 +150,9 @@ class Application extends Component {
                                                                         componentId={
                                                                             componentId
                                                                         }
+                                                                        componentSlug={
+                                                                            componentSlug
+                                                                        }
                                                                     />
                                                                 </div>
                                                             </div>
@@ -180,6 +185,7 @@ Application.displayName = 'Application Security Page';
 
 Application.propTypes = {
     componentId: PropTypes.string,
+    componentSlug: PropTypes.string,
     slug: PropTypes.string,
     projectId: PropTypes.string,
     getApplicationSecurities: PropTypes.func,
@@ -199,19 +205,11 @@ Application.propTypes = {
     getApplicationSecuritySuccess: PropTypes.func,
 };
 
-const mapStateToProps = (state, ownProps) => {
-    const { componentId } = ownProps.match.params;
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
-                component = c;
-            }
-        });
-    });
-
+const mapStateToProps = state => {
     return {
-        componentId,
+        componentId:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component._id,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
         slug: state.project.currentProject && state.project.currentProject.slug,
@@ -219,7 +217,11 @@ const mapStateToProps = (state, ownProps) => {
         gettingSecurityLogs:
             state.security.getApplicationSecurityLog.requesting,
         gettingApplicationSecurities: state.security.getApplication.requesting,
-        component,
+        component:
+            state.component && state.component.currentComponent.component,
+        componentSlug:
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component.slug,
     };
 };
 

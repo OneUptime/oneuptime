@@ -477,9 +477,9 @@ export function updateStatusPageBranding(projectId, values) {
         } else if (values.banner === '') {
             data.append('banner', values.banner);
         }
-        if (values.title) data.append('title', values.title);
-        if (values.description) data.append('description', values.description);
-        if (values.copyright) data.append('copyright', values.copyright);
+        data.append('title', values.title);
+        data.append('description', values.description);
+        data.append('copyright', values.copyright);
         if (values.colors) data.append('colors', JSON.stringify(values.colors));
 
         if (values._id) data.append('_id', values._id);
@@ -1215,6 +1215,60 @@ export function resetStatusPageEmbeddedCss(projectId, data) {
             }
         );
 
+        return promise;
+    };
+}
+
+// fetch subscribers by monitors in statuspage
+export function fetchSubscriberRequest() {
+    return {
+        type: types.FETCH_SUBSCRIBER_REQUEST,
+    };
+}
+
+export function fetchSubscriberSuccess(data) {
+    return {
+        type: types.FETCH_SUBSCRIBER_SUCCESS,
+        payload: data,
+    };
+}
+
+export function fetchSubscriberFailure(error) {
+    return {
+        type: types.FETCH_SUBSCRIBER_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchStatusPageSubscribers(
+    projectId,
+    statusPageId,
+    skip,
+    limit
+) {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/monitor/${statusPageId}?skip=${skip}&limit=${limit}`
+        );
+        dispatch(fetchSubscriberRequest());
+        promise.then(
+            function(response) {
+                dispatch(fetchSubscriberSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchSubscriberFailure(errors(error)));
+            }
+        );
         return promise;
     };
 }
