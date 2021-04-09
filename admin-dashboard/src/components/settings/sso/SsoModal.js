@@ -258,7 +258,7 @@ class Component extends React.Component {
                                                                 <span
                                                                     style={{
                                                                         marginTop:
-                                                                            '10px',
+                                                                            '5px',
                                                                     }}
                                                                 >
                                                                     {
