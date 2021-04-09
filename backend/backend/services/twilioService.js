@@ -751,6 +751,7 @@ const _this = {
                 eventCreateTime: schedule.createdAt,
                 eventStartTime: schedule.startDate,
                 eventEndTime: schedule.endDate,
+                projectName,
             };
             template = template(data);
             smsBody = template;
@@ -871,6 +872,7 @@ const _this = {
                 eventNoteContent: message.content,
                 eventNoteState: message.event_state,
                 eventNoteType: message.type,
+                projectName,
             };
             template = template(data);
             smsBody = template;
@@ -989,6 +991,7 @@ const _this = {
             const data = {
                 eventName: schedule.name,
                 eventResolveTime: schedule.resolvedAt,
+                projectName,
             };
             template = template(data);
             smsBody = template;

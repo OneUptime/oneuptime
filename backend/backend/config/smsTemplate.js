@@ -68,19 +68,21 @@ module.exports = [
             '{{eventDescription}} : Description of the scheduled event.',
             '{{eventStartTime}} : Time at which scheduled event is starts.',
             '{{eventEndTime}} : Time at which scheduled event ends.',
+            '{{projectName}} : Name of the project on which the event is created.',
         ],
         smsType: 'Subscriber Scheduled Maintenance Created',
         body:
-            'New Scheduled Maintenance Event Created - {{eventName}}. Desc: {{eventDescription}}, Start at: {{eventStartTime}}, End by {{eventEndTime}}. You are receiving this message because you subscribed to this monitor.',
+            'New Scheduled Maintenance Event - {{eventName}} for {{projectName}}. Starts at: {{eventStartTime}}, Ends at {{eventEndTime}}.',
     },
     {
         allowedVariables: [
             '{{eventName}} : Name of the scheduled event.',
             '{{eventResolveTime}} : Time at which scheduled event is resolved.',
+            '{{projectName}} : Name of the project on which the event is created.',
         ],
         smsType: 'Subscriber Scheduled Maintenance Resolved',
         body:
-            'Scheduled Maintenance Event Resolved - {{eventName}}. Resolved at: {{eventResolveTime}}',
+            'Scheduled maintenance event - {{eventName}} for {{projectName}} is resolved',
     },
     {
         allowedVariables: [
@@ -91,6 +93,6 @@ module.exports = [
         ],
         smsType: 'Subscriber Scheduled Maintenance Note',
         body:
-            'Scheduled Maintenance Event Note Created - {{eventName}}. State: {{eventNoteState}}, Type: {{eventNoteType}}, Content: {{eventNoteContent}}',
+            'A new note has been added to the scheduled maintenance event - {{eventName}}. State: {{eventNoteState}}, Content: {{eventNoteContent}}',
     },
 ];
