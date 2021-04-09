@@ -3736,7 +3736,6 @@ module.exports = {
                                                 'SMS to High Risk country not enabled for this project';
                                         }
 
-                                        
                                         return await SubscriberAlertService.create(
                                             {
                                                 projectId: projectId,
@@ -3852,20 +3851,18 @@ module.exports = {
                                                 segments
                                             );
 
-                                            // if (!balanceStatus.error) {
-                                            //     await AlertChargeService.create(
-                                            //         projectId,
-                                            //         balanceStatus.chargeAmount,
-                                            //         balanceStatus.closingBalance,
-                                            //         null,
-                                            //         incident.monitorId._id
-                                            //             ? incident.monitorId._id
-                                            //             : incident.monitorId,
-                                            //         incident._id,
-                                            //         contactPhone,
-                                            //         alertId
-                                            //     );
-                                            // }
+                                            if (!balanceStatus.error) {
+                                                await AlertChargeService.create(
+                                                    projectId,
+                                                    balanceStatus.chargeAmount,
+                                                    balanceStatus.closingBalance,
+                                                    null,
+                                                    null,
+                                                    null,
+                                                    contactPhone,
+                                                    alertId
+                                                );
+                                            }
                                         }
                                     }
                                 } catch (error) {
@@ -4270,20 +4267,18 @@ module.exports = {
                                     segments
                                 );
 
-                                // if (!balanceStatus.error) {
-                                //     await AlertChargeService.create(
-                                //         projectId,
-                                //         balanceStatus.chargeAmount,
-                                //         balanceStatus.closingBalance,
-                                //         null,
-                                //         incident.monitorId._id
-                                //             ? incident.monitorId._id
-                                //             : incident.monitorId,
-                                //         incident._id,
-                                //         contactPhone,
-                                //         alertId
-                                //     );
-                                // }
+                                if (!balanceStatus.error) {
+                                    await AlertChargeService.create(
+                                        projectId,
+                                        balanceStatus.chargeAmount,
+                                        balanceStatus.closingBalance,
+                                        null,
+                                        null,
+                                        null,
+                                        contactPhone,
+                                        alertId
+                                    );
+                                }
                             }
                         }
                     } catch (error) {
