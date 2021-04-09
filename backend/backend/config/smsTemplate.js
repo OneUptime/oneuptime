@@ -82,4 +82,15 @@ module.exports = [
         body:
             'Scheduled Maintenance Event Resolved - {{eventName}}. Resolved at: {{eventResolveTime}}',
     },
+    {
+        allowedVariables: [
+            '{{eventName}} : Name of the scheduled event.',
+            '{{eventNoteState}} : State of event note.',
+            '{{eventNoteType}} : Type of note.',
+            '{{eventNoteContent}} : Content of event note.',
+        ],
+        smsType: 'Subscriber Scheduled Maintenance Note',
+        body:
+            'Scheduled Maintenance Event Note Created - {{eventName}}. State: {{eventNoteState}}, Type: {{eventNoteType}}, Content: {{eventNoteContent}}',
+    },
 ];
