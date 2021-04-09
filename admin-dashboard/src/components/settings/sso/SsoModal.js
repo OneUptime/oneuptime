@@ -28,10 +28,6 @@ function validate(values) {
         errors.remoteLogoutUrl = 'Remote logout URL is not valid.';
     }
 
-    if (!Validate.text(values.ipRanges)) {
-        errors.ipRanges = 'Ip range is not valid.';
-    }
-
     return errors;
 }
 
