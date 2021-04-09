@@ -4278,6 +4278,8 @@ const _this = {
         createdBy,
         emailTemplate,
         replyAddress,
+        projectName,
+        monitorName,
         projectId
     ) {
         let mailOptions = {};
@@ -4297,6 +4299,8 @@ const _this = {
                 status: state,
                 createdBy,
                 content,
+                projectName,
+                monitorName,
                 year: DateTime.getCurrentYear,
             };
             template = template(data);

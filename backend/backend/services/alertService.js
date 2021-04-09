@@ -3620,6 +3620,8 @@ module.exports = {
                                     createdBy,
                                     emailTemplate,
                                     replyAddress,
+                                    project.name,
+                                    monitor.name,
                                     projectId
                                 );
                                 alertStatus = 'Sent';
