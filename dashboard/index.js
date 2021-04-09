@@ -24,6 +24,25 @@ const child_process = require('child_process');
 const cors = require('cors');
 const fs = require('fs');
 
+let chunkFile, mainChunkFile;
+const directory = path.join(__dirname, 'build', 'static', 'js');
+fs.readdir(directory, function(err, files) {
+    const chunkRegex = /2\.(.+)\.chunk\.(js)$/;
+    const mainChunkRegex = /main\.(.+)\.chunk\.(js)$/;
+    if (err) {
+        /* eslint-disable no-console */
+        console.log('Unable to scan directory: ', err);
+    }
+    for (let i = 0; i < files.length; i++) {
+        if (chunkRegex.test(files[i])) {
+            chunkFile = files[i];
+        }
+        if (mainChunkRegex.test(files[i])) {
+            mainChunkFile = files[i];
+        }
+    }
+});
+
 app.use(cors());
 
 app.use(function(req, res, next) {
@@ -103,54 +122,24 @@ app.use(/^\/dashboard\/static\/js\/2\.(.+)\.chunk\.js$/, function(
     res,
     next
 ) {
-    const directory = path.join(__dirname, 'build', 'static', 'js');
-    fs.readdir(directory, function(err, files) {
-        const regex = /2\.(.+)\.chunk\.(js)$/;
-        if (err) {
-            /* eslint-disable no-console */
-            console.log('Unable to scan directory: ', err);
-            return next();
-        }
-        let file;
-        for (let i = 0; i < files.length; i++) {
-            if (regex.test(files[i])) {
-                file = files[i];
-                break;
-            }
-        }
-        if (file) {
-            res.sendFile(path.join(__dirname, 'build', 'static', 'js', file));
-        } else {
-            next();
-        }
-    });
+    if (chunkFile) {
+        res.sendFile(path.join(__dirname, 'build', 'static', 'js', chunkFile));
+    } else {
+        next();
+    }
 });
 app.use(/^\/dashboard\/static\/js\/main\.(.+)\.chunk\.js$/, function(
     req,
     res,
     next
 ) {
-    const directory = path.join(__dirname, 'build', 'static', 'js');
-    fs.readdir(directory, function(err, files) {
-        const regex = /main\.(.+)\.chunk\.(js)$/;
-        if (err) {
-            /* eslint-disable no-console */
-            console.log('Unable to scan directory: ', err);
-            next();
-        }
-        let file;
-        for (let i = 0; i < files.length; i++) {
-            if (regex.test(files[i])) {
-                file = files[i];
-                break;
-            }
-        }
-        if (file) {
-            res.sendFile(path.join(__dirname, 'build', 'static', 'js', file));
-        } else {
-            next();
-        }
-    });
+    if (mainChunkFile) {
+        res.sendFile(
+            path.join(__dirname, 'build', 'static', 'js', mainChunkFile)
+        );
+    } else {
+        next();
+    }
 });
 app.use(
     '/dashboard/static/js',
