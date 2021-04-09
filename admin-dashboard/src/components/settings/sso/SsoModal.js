@@ -20,12 +20,8 @@ function validate(values) {
         errors.entityId = 'Application ID is not valid.';
     }
 
-    if (!Validate.text(values.samlSsoUrl)) {
-        errors.samlSsoUrl = 'SSO URL is not valid.';
-    }
-
-    if (!Validate.text(values.certificateFingerprint)) {
-        errors.certificateFingerprint = 'Certificate Fingerprint is not valid.';
+    if (!Validate.text(values.remoteLoginUrl)) {
+        errors.remoteLoginUrl = 'SSO URL is not valid.';
     }
 
     if (!Validate.text(values.remoteLogoutUrl)) {
@@ -80,8 +76,8 @@ const fields = [
         component: RenderField,
     },
     {
-        key: 'samlSsoUrl',
-        label: 'SAML SSO URL',
+        key: 'remoteLoginUrl',
+        label: 'Remote Login URL',
         placeholder:
             'https://login.microsoftonline.com/a4e1d-1s4f-965f-ert452136',
         description:
