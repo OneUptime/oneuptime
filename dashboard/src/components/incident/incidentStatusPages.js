@@ -82,9 +82,9 @@ const IncidentStatusPages = ({
                                 {statusPages &&
                                     statusPages.map(statusPage => {
                                         const statusPageLink = IS_LOCALHOST
-                                            ? `http://${statusPage._id}.localhost:3006`
+                                            ? `http://${statusPage.slug}.localhost:3006`
                                             : window.location.origin +
-                                              `/status-page/${statusPage._id}`;
+                                              `/status-page/${statusPage.slug}`;
                                         return (
                                             <tr
                                                 key={statusPage._id}

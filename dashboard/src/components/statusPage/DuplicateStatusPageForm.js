@@ -48,6 +48,7 @@ export class StatusPageForm extends React.Component {
                     id: this.props.duplicateModalId,
                     content: DuplicateStatusPageConfirmation,
                     statusPageId: res.data._id,
+                    statusPageSlug: res.data.slug,
                     subProjectId: data.subProjectId,
                     slug: this.props.currentProject.slug,
                 });

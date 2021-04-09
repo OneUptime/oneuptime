@@ -28,11 +28,11 @@ class NotesMain extends Component {
     componentDidMount() {
         this.props.fetchLastIncidentTimelines(
             this.props.projectId,
-            this.props.statusPageId
+            this.props.statusPageSlug
         );
         this.props.getStatusPageNote(
             this.props.projectId,
-            this.props.statusPageId,
+            this.props.statusPageSlug,
             0,
             this.props.theme && countNum
         );
@@ -64,7 +64,7 @@ class NotesMain extends Component {
     more = () => {
         this.props.getMoreNote(
             this.props.projectId,
-            this.props.statusPageId,
+            this.props.statusPageSlug,
             this.props.skip + 5
         );
         this.props.fetchLastIncidentTimelines(
@@ -128,6 +128,7 @@ class NotesMain extends Component {
                     noteBackgroundColor={noteBackgroundColor}
                     statusPageId={this.props.statusPageId}
                     incidentTimelines={this.props.lastIncidentTimelines}
+                    statusPageSlug={this.props.statusPageSlug}
                 />
             );
         }
@@ -688,6 +689,7 @@ NotesMain.propTypes = {
     getMoreNote: PropTypes.func,
     requestingmore: PropTypes.bool,
     projectId: PropTypes.string,
+    statusPageSlug: PropTypes.string,
     openSubscribeMenu: PropTypes.func,
     subscribed: PropTypes.bool,
     skip: PropTypes.number,

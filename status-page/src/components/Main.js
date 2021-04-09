@@ -88,7 +88,7 @@ class Main extends Component {
         ) {
             this.props.getScheduledEvent(
                 this.props.statusData.projectId._id,
-                this.props.statusData._id,
+                this.props.statusData.slug,
                 0,
                 this.props.statusData.theme === 'Clean Theme' ? true : false
             );
@@ -114,30 +114,30 @@ class Main extends Component {
                 'none transparent';
         }
 
-        let statusPageId, url;
+        let statusPageSlug, url;
 
         if (
             window.location.pathname.includes('/status-page/') &&
             window.location.pathname.split('/').length >= 3
         ) {
-            statusPageId = window.location.pathname.split('/')[2];
+            statusPageSlug = window.location.pathname.split('/')[2];
             url = 'null';
         } else if (
             window.location.href.indexOf('localhost') > -1 ||
             window.location.href.indexOf('fyipeapp.com') > 0
         ) {
-            statusPageId = window.location.host.split('.')[0];
+            statusPageSlug = window.location.host.split('.')[0];
             url = 'null';
         } else {
-            statusPageId = 'null';
+            statusPageSlug = 'null';
             url = window.location.host;
         }
 
-        this.props.getProbes(statusPageId, 0, 10).then(() => {
+        this.props.getProbes(statusPageSlug, 0, 10).then(() => {
             this.selectbutton(this.props.activeProbe);
         });
 
-        this.props.getStatusPage(statusPageId, url).catch(err => {
+        this.props.getStatusPage(statusPageSlug, url).catch(err => {
             if (err.message === 'Request failed with status code 401') {
                 const { loginRequired } = this.props.login;
                 if (loginRequired) {
@@ -538,6 +538,9 @@ class Main extends Component {
                                                 this.props.statusData._id
                                             }
                                             theme={theme}
+                                            statusPageSlug={
+                                                this.props.statusData.slug
+                                            }
                                         />
                                     </div>
                                 </ShouldRender>
@@ -699,6 +702,9 @@ class Main extends Component {
                                         }
                                         statusPageId={this.props.statusData._id}
                                         theme={theme}
+                                        statusPageSlug={
+                                            this.props.statusData.slug
+                                        }
                                     />
                                 </div>
                             </ShouldRender>
@@ -770,7 +776,7 @@ class Main extends Component {
                                             key={event._id}
                                             onClick={() => {
                                                 this.props.history.push(
-                                                    `/status-page/${this.props.statusData._id}/scheduledEvent/${event._id}`
+                                                    `/status-page/${this.props.statusData.slug}/scheduledEvent/${event._id}`
                                                 );
                                             }}
                                         >
@@ -838,6 +844,9 @@ class Main extends Component {
                                             this.props.statusData.projectId._id
                                         }
                                         statusPageId={this.props.statusData._id}
+                                        statusPageSlug={
+                                            this.props.statusData.slug
+                                        }
                                     />
                                 </ShouldRender>
                                 <div
@@ -1099,6 +1108,9 @@ class Main extends Component {
                                             this.props.statusData.projectId._id
                                         }
                                         statusPageId={this.props.statusData._id}
+                                        statusPageSlug={
+                                            this.props.statusData.slug
+                                        }
                                     />
                                 </ShouldRender>
                                 <ShouldRender
@@ -1121,6 +1133,9 @@ class Main extends Component {
                                             }
                                             statusPageId={
                                                 this.props.statusData._id
+                                            }
+                                            statusPageSlug={
+                                                this.props.statusData.slug
                                             }
                                         />
                                     </ShouldRender>
