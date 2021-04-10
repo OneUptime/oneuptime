@@ -332,19 +332,21 @@ module.exports = {
             ) {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
-                        const newIncident = await IncidentService.updateOneBy(
-                            {
-                                _id: incident._id,
-                            },
-                            {
-                                probes: incident.probes.concat({
-                                    probeId: data.probeId,
-                                    updatedAt: Date.now(),
-                                    status: true,
-                                    reportedStatus: data.status,
-                                }),
-                            }
-                        );
+                        if (monitor.type !== 'incomingHttpRequest') {
+                            incident = await IncidentService.updateOneBy(
+                                {
+                                    _id: incident._id,
+                                },
+                                {
+                                    probes: incident.probes.concat({
+                                        probeId: data.probeId,
+                                        updatedAt: Date.now(),
+                                        status: true,
+                                        reportedStatus: data.status,
+                                    }),
+                                }
+                            );
+                        }
 
                         await IncidentTimelineService.create({
                             incidentId: incident._id,
@@ -352,7 +354,7 @@ module.exports = {
                             status: data.status,
                         });
 
-                        return newIncident;
+                        return incident;
                     });
                 } else {
                     if (data.retryCount >= 0 && data.retryCount < 3)
@@ -380,19 +382,21 @@ module.exports = {
             ) {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
-                        const newIncident = await IncidentService.updateOneBy(
-                            {
-                                _id: incident._id,
-                            },
-                            {
-                                probes: incident.probes.concat({
-                                    probeId: data.probeId,
-                                    updatedAt: Date.now(),
-                                    status: true,
-                                    reportedStatus: data.status,
-                                }),
-                            }
-                        );
+                        if (monitor.type !== 'incomingHttpRequest') {
+                            incident = await IncidentService.updateOneBy(
+                                {
+                                    _id: incident._id,
+                                },
+                                {
+                                    probes: incident.probes.concat({
+                                        probeId: data.probeId,
+                                        updatedAt: Date.now(),
+                                        status: true,
+                                        reportedStatus: data.status,
+                                    }),
+                                }
+                            );
+                        }
 
                         await IncidentTimelineService.create({
                             incidentId: incident._id,
@@ -400,7 +404,7 @@ module.exports = {
                             status: data.status,
                         });
 
-                        return newIncident;
+                        return incident;
                     });
                 } else {
                     if (data.retryCount >= 0 && data.retryCount < 3)
@@ -428,19 +432,21 @@ module.exports = {
             ) {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
-                        const newIncident = await IncidentService.updateOneBy(
-                            {
-                                _id: incident._id,
-                            },
-                            {
-                                probes: incident.probes.concat({
-                                    probeId: data.probeId,
-                                    updatedAt: Date.now(),
-                                    status: true,
-                                    reportedStatus: data.status,
-                                }),
-                            }
-                        );
+                        if (monitor.type !== 'incomingHttpRequest') {
+                            incident = await IncidentService.updateOneBy(
+                                {
+                                    _id: incident._id,
+                                },
+                                {
+                                    probes: incident.probes.concat({
+                                        probeId: data.probeId,
+                                        updatedAt: Date.now(),
+                                        status: true,
+                                        reportedStatus: data.status,
+                                    }),
+                                }
+                            );
+                        }
 
                         await IncidentTimelineService.create({
                             incidentId: incident._id,
@@ -448,7 +454,7 @@ module.exports = {
                             status: data.status,
                         });
 
-                        return newIncident;
+                        return incident;
                     });
                 } else {
                     if (data.retryCount >= 0 && data.retryCount < 3)
@@ -490,6 +496,9 @@ module.exports = {
                 resolved: false,
                 manuallyCreated: false,
             });
+            const monitor = await MonitorService.findOneBy({
+                _id: data.monitorId,
+            });
             // should grab all the criterion for the monitor and put them into one array
             // check the id of each criteria against the id of criteria attached to an incident
             // ack / resolve according to the criteria
@@ -514,7 +523,11 @@ module.exports = {
             if (incidents && incidents.length) {
                 if (lastStatus && lastStatus !== data.status) {
                     incidents.forEach(incident => {
-                        if (incident.probes && incident.probes.length > 0) {
+                        if (
+                            incident.probes &&
+                            incident.probes.length > 0 &&
+                            monitor.type !== 'incomingHttpRequest'
+                        ) {
                             incident.probes.some(probe => {
                                 if (
                                     probe.probeId &&
@@ -534,7 +547,11 @@ module.exports = {
             }
             await Promise.all(
                 incidentsV1.map(async incident => {
-                    if (incident.probes && incident.probes.length > 0) {
+                    if (
+                        incident.probes &&
+                        incident.probes.length > 0 &&
+                        monitor.type !== 'incomingHttpRequest'
+                    ) {
                         const newIncident = await IncidentService.updateOneBy(
                             {
                                 _id: incident._id,
@@ -566,7 +583,6 @@ module.exports = {
                     }
                 })
             );
-
             await forEach(incidentsV2, async incident => {
                 const trueArray = [];
                 const falseArray = [];
@@ -577,7 +593,10 @@ module.exports = {
                         falseArray.push(probe);
                     }
                 });
-                if (trueArray.length === falseArray.length) {
+                if (
+                    trueArray.length === falseArray.length ||
+                    monitor.type === 'incomingHttpRequest'
+                ) {
                     if (autoAcknowledge) {
                         if (!incident.acknowledged) {
                             await IncidentService.acknowledge(
@@ -1313,6 +1332,12 @@ module.exports = {
             logData.reason = reason;
             logData.response = null;
             logData.matchedCriterion = matchedCriterion;
+            logData.matchedUpCriterion =
+                monitor && monitor.criteria && monitor.criteria.up;
+            logData.matchedDownCriterion =
+                monitor && monitor.criteria && monitor.criteria.down;
+            logData.matchedDegradedCriterion =
+                monitor && monitor.criteria && monitor.criteria.degraded;
             // update monitor to save the last matched criterion
             await MonitorService.updateOneBy(
                 {
