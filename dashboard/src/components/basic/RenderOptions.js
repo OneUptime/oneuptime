@@ -144,7 +144,7 @@ const placeholders = {
         responseBody: 'Does not Contain',
     },
     jsExpression: {
-        responseBody: 'response.data === {}',
+        responseBody: 'request.body === {}',
     },
     evaluateResponse: {
         responseBody: "typeof response === 'object'",
