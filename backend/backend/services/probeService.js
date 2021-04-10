@@ -3532,13 +3532,18 @@ const checkAnd = async (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'jsExpression'
                     ) {
+                        const ctx = Object.create(null); // fix against prototype vulnerability
+                        ctx.request = { body };
+                        const output = vm.runInNewContext(
+                            con.criteria[i].field1,
+                            ctx
+                        );
                         if (
                             !(
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 body &&
-                                body[con.criteria[i].field1] ===
-                                    con.criteria[i].field1
+                                output
                             )
                         ) {
                             validity = false;
@@ -5776,12 +5781,17 @@ const checkOr = async (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'jsExpression'
                     ) {
+                        const ctx = Object.create(null); // fix against prototype vulnerability
+                        ctx.request = { body };
+                        const output = vm.runInNewContext(
+                            con.criteria[i].field1,
+                            ctx
+                        );
                         if (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             body &&
-                            body[con.criteria[i].field1] ===
-                                con.criteria[i].field1
+                            output
                         ) {
                             validity = true;
                             if (con.criteria[i].field1) {
@@ -6685,3 +6695,4 @@ const readdir = promisify(fs.readdir);
 const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);
 const { some, forEach } = require('p-iteration');
+const vm = require('vm');
