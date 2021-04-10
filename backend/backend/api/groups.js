@@ -6,6 +6,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const GroupService = require('../services/groupService');
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
+const EscalationService = require('../services/escalationService');
 
 const router = express.Router();
 
@@ -111,7 +112,7 @@ router.delete(
     isAuthorized,
     async (req, res) => {
         try {
-            const { groupId } = req.params;
+            const { groupId, projectId } = req.params;
             const userId = req.user.id;
             const deleteGroup = await GroupService.deleteBy(
                 {
@@ -119,7 +120,12 @@ router.delete(
                 },
                 userId
             );
-
+            const escalations = await EscalationService.findBy({
+                query: { projectId },
+            });
+            if (escalations.length > 0) {
+                EscalationService.deleteTeamMember(escalations, groupId);
+            }
             return sendItemResponse(req, res, deleteGroup);
         } catch (error) {
             return sendErrorResponse(req, res, error);
