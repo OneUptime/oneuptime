@@ -384,7 +384,7 @@ export class RenderOption extends Component {
                                               ]
                                         : undefined
                                 }
-                                placeholder="response.data === {}"
+                                placeholder="response.body === {}"
                                 style={
                                     filterval !== '' &&
                                     filterval === 'jsExpression'
@@ -398,6 +398,26 @@ export class RenderOption extends Component {
                                 }
                             />
                         </div>
+                        <Tooltip title="Incoming http Request Filter">
+                            <p>
+                                JavaScript expressions that evaluates to a
+                                boolean value is needed here.{' '}
+                                <code>request</code> object is also available to
+                                be used in the JS expression.
+                            </p>
+                            <p>Example JavaScript Expression:</p>
+                            <p>
+                                <ul>
+                                    <li>
+                                        <code>request.body.id === 1</code>
+                                    </li>
+                                </ul>
+                                If you attach <code>id</code> with a value of{' '}
+                                <code>1</code> when sending your request, the JS
+                                expression should evaluate to true, else it will
+                                evaluate to false
+                            </p>
+                        </Tooltip>
                     </div>
                 ) : (
                     <div
@@ -813,6 +833,38 @@ export class RenderOption extends Component {
                                         style={{ width: '220px' }}
                                     />
                                 )}
+
+                                <ShouldRender
+                                    if={
+                                        type === 'incomingHttpRequest' &&
+                                        bodyfield.filter === 'jsExpression'
+                                    }
+                                >
+                                    <Tooltip title="Incoming HTTP Request JS Expression">
+                                        <p>
+                                            JavaScript expressions that
+                                            evaluates to a boolean value is
+                                            needed here. <code>request</code>{' '}
+                                            object is also available to be used
+                                            in the JS expression.
+                                        </p>
+                                        <p>Example JavaScript Expression:</p>
+                                        <p>
+                                            <ul>
+                                                <li>
+                                                    <code>
+                                                        request.body.id === 1
+                                                    </code>
+                                                </li>
+                                            </ul>
+                                            If you attach <code>id</code> with a
+                                            value of <code>1</code> when sending
+                                            your request, the JS expression
+                                            should evaluate to true, else it
+                                            will evaluate to false
+                                        </p>
+                                    </Tooltip>
+                                </ShouldRender>
 
                                 <ShouldRender
                                     if={
