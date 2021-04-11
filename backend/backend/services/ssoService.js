@@ -76,13 +76,13 @@ module.exports = {
         }
         sso.entityId = data.entityId;
 
-        if (!data.samlSsoUrl) {
-            const error = new Error('Saml SSO Url must be defined.');
+        if (!data.remoteLoginUrl) {
+            const error = new Error('Remote Login Url must be defined.');
             error.code = 400;
             ErrorService.log('ssoService.create', error);
             throw error;
         }
-        sso.samlSsoUrl = data.samlSsoUrl;
+        sso.remoteLoginUrl = data.remoteLoginUrl;
 
         sso.certificateFingerprint = data.certificateFingerprint;
 

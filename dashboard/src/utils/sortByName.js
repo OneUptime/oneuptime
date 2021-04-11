@@ -3,8 +3,7 @@ const sortByName = data => {
 };
 
 const compare = (a, b) => {
-    
-    if(!a || !b || !a.name || !b.name){
+    if (!a || !b || !a.name || !b.name) {
         return 0;
     }
 
