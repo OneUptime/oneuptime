@@ -83,7 +83,7 @@ Please find them [here](/covers)
 
 ## Reviews
 
--   AlternativeTo: https://alternativeto.net/software/fyipe/
+-   AlternativeTo: https://alternativeto.net/software/fyipe/about/
 -   Capterra: https://www.capterra.com/p/176513/Fyipe/
 -   G2Crowd: https://www.g2crowd.com/products/fyipe/reviews
 -   StackShare: https://stackshare.io/fyipe

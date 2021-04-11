@@ -1,13 +1,20 @@
 <section class="sdlc-container sectionBorderTop">
     <div class="sdlc-description">
 
-        <h2 class="title-link h2">All your SRE and DevOps needs in one place.</h2>
-
+        <% if( typeof(title) =="undefined") { %>
+        <h2 class="title-link h2"> All your SRE and DevOps needs in one place. </h2>
+        <% } else{ %>
+        <h2 class="title-link h2"> <%- title %> </h2>
+        <%} %>
         <p></p>
+        <% if( typeof(description) =="undefined") { %>
         <p> <span class="highlight">With Fyipe, you get a complete SRE toolchain out-of-the-box. </span>One interface.
             One conversation. One permission model. Thousands of features. You'll be amazed at everything Fyipe can do
             today.
             And we're just getting started.</p>
+        <% } else{ %>
+            <p> <%- description %></p>
+        <%} %>
         <p></p>
     </div>
     <div class="sdlc-table-container
