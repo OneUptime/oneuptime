@@ -3520,9 +3520,11 @@ module.exports = {
                     for (let subscriber of subscribers) {
                         const projectId =
                             message.scheduledEventId.projectId._id;
+
                         const project = await ProjectService.findOneBy({
                             _id: projectId,
                         });
+                        
                         if (subscriber.alertVia === AlertType.Email) {
                             const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
                                 {

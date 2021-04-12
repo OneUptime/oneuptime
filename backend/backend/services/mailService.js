@@ -4271,7 +4271,7 @@ const _this = {
      */
     sendScheduledEventNoteMailToSubscriber: async function(
         eventName,
-        state,
+        status,
         content,
         email,
         userName,
@@ -4286,6 +4286,8 @@ const _this = {
         let EmailBody;
         let smtpServer;
 
+        const capitalizeStatus = status.charAt(0).toUpperCase() + status.slice(1)
+
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
@@ -4296,7 +4298,7 @@ const _this = {
             const data = {
                 userName,
                 eventName,
-                status: state,
+                status: capitalizeStatus,
                 createdBy,
                 content,
                 projectName,

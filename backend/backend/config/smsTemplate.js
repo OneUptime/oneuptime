@@ -93,6 +93,6 @@ module.exports = [
         ],
         smsType: 'Subscriber Scheduled Maintenance Note',
         body:
-            'A new note has been added to the scheduled maintenance event - {{eventName}}. Note: {{eventNoteContent}}.',
+            'A new note has been added to the scheduled maintenance event - {{eventName}}. Note: "{{eventNoteContent}}."',
     },
 ];
