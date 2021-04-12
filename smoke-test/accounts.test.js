@@ -33,7 +33,7 @@ describe('Login API', () => {
     it('Should login valid User', async done => {
         await init.registerUser(user, page); // This automatically routes to dashboard.
         await init.saasLogout(page);
-        await init.loginUser(user,page); // Items required are only available when 'loginUser' is initiated.
+        await init.loginUser(user, page); // Items required are only available when 'loginUser' is initiated.
 
         const localStorageData = await page.evaluate(() => {
             const json = {};
