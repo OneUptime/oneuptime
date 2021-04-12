@@ -145,10 +145,10 @@ module.exports = {
     deleteTeamMember: async function(escalations, groupId) {
         try {
             const _this = this;
-            for (let escalation of escalations) {
+            for (const escalation of escalations) {
                 const teams = escalation.teams;
                 const newTeams = [];
-                for (let team of teams) {
+                for (const team of teams) {
                     const teamMembers = team.teamMembers;
                     const filtered = teamMembers.filter(
                         tm => tm.groupId !== groupId

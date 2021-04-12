@@ -4286,7 +4286,8 @@ const _this = {
         let EmailBody;
         let smtpServer;
 
-        const capitalizeStatus = status.charAt(0).toUpperCase() + status.slice(1)
+        const capitalizeStatus =
+            status.charAt(0).toUpperCase() + status.slice(1);
 
         try {
             let { template, subject } = await _this.getTemplates(
