@@ -3443,15 +3443,15 @@ module.exports = {
             const _this = this;
             const uuid = new Date().getTime();
             if (schedule) {
-                for (let monitor of schedule.monitors) {
-                    let component = monitor.monitorId.componentId.name;
-                    let subscribers = await SubscriberService.subscribersForAlert(
+                for (const monitor of schedule.monitors) {
+                    const component = monitor.monitorId.componentId.name;
+                    const subscribers = await SubscriberService.subscribersForAlert(
                         {
                             monitorId: monitor.monitorId._id,
                         }
                     );
 
-                    for (let subscriber of subscribers) {
+                    for (const subscriber of subscribers) {
                         await _this.sendSubscriberScheduledEventAlert(
                             subscriber,
                             schedule,
@@ -3476,15 +3476,15 @@ module.exports = {
             const _this = this;
             const uuid = new Date().getTime();
             if (schedule) {
-                for (let monitor of schedule.monitors) {
-                    let component = monitor.monitorId.componentId.name;
-                    let subscribers = await SubscriberService.subscribersForAlert(
+                for (const monitor of schedule.monitors) {
+                    const component = monitor.monitorId.componentId.name;
+                    const subscribers = await SubscriberService.subscribersForAlert(
                         {
                             monitorId: monitor.monitorId._id,
                         }
                     );
 
-                    for (let subscriber of subscribers) {
+                    for (const subscriber of subscribers) {
                         await _this.sendSubscriberScheduledEventAlert(
                             subscriber,
                             schedule,
@@ -3509,22 +3509,22 @@ module.exports = {
             const _this = this;
             const uuid = new Date().getTime();
             if (message) {
-                for (let monitor of message.scheduledEventId.monitors) {
-                    let subscribers = await SubscriberService.subscribersForAlert(
+                for (const monitor of message.scheduledEventId.monitors) {
+                    const subscribers = await SubscriberService.subscribersForAlert(
                         {
                             monitorId: monitor.monitorId._id,
                         }
                     );
-                    let totalSubscribers = subscribers.length;
+                    const totalSubscribers = subscribers.length;
 
-                    for (let subscriber of subscribers) {
+                    for (const subscriber of subscribers) {
                         const projectId =
                             message.scheduledEventId.projectId._id;
 
                         const project = await ProjectService.findOneBy({
                             _id: projectId,
                         });
-                        
+
                         if (subscriber.alertVia === AlertType.Email) {
                             const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
                                 {
@@ -3603,11 +3603,11 @@ module.exports = {
 
                             let alertStatus = null;
                             try {
-                                let createdBy = message.createdById
+                                const createdBy = message.createdById
                                     ? message.createdById.name
                                     : 'Fyipe';
 
-                                let replyAddress = message.scheduledEventId
+                                const replyAddress = message.scheduledEventId
                                     .projectId.replyAddress
                                     ? message.scheduledEventId.projectId
                                           .replyAddress
@@ -3659,9 +3659,9 @@ module.exports = {
 
                                 const investigationNoteNotificationSMSDisabled = !project.enableInvestigationNoteNotificationSMS;
 
-                                let eventType =
+                                const eventType =
                                     'Scheduled maintenance note created';
-                                let templateType =
+                                const templateType =
                                     'Subscriber Scheduled Maintenance Note';
 
                                 if (
@@ -3943,7 +3943,7 @@ module.exports = {
                     emailType: templateType,
                 });
 
-                let eventType =
+                const eventType =
                     templateType === 'Subscriber Scheduled Maintenance'
                         ? 'Scheduled maintenance created'
                         : 'Scheduled maintenance resolved';
@@ -4058,7 +4058,7 @@ module.exports = {
 
                     const investigationNoteNotificationSMSDisabled = !project.enableInvestigationNoteNotificationSMS;
 
-                    let eventType =
+                    const eventType =
                         templateType === 'Subscriber Scheduled Maintenance'
                             ? 'Scheduled maintenance created'
                             : 'Scheduled maintenance resolved';
