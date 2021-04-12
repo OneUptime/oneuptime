@@ -32,7 +32,8 @@ describe('Login API', () => {
 
     it('Should login valid User', async done => {
         await init.registerUser(user, page);
-        await init.loginUser(user, page);
+        await init.saasLogout(page);
+        await init.loginUser(user,page);
 
         const localStorageData = await page.evaluate(() => {
             const json = {};
