@@ -31,6 +31,7 @@ const path = require('path');
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, {
     path: '/api/socket.io',
+    transports: ['websocket'],
 });
 const redisAdapter = require('socket.io-redis');
 const bodyParser = require('body-parser');
