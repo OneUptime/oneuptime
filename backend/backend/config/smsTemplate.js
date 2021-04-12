@@ -72,7 +72,7 @@ module.exports = [
         ],
         smsType: 'Subscriber Scheduled Maintenance Created',
         body:
-            'New Scheduled Maintenance Event - {{eventName}} for {{projectName}}. Starts at: {{eventStartTime}}, Ends at {{eventEndTime}}.',
+            'New Scheduled Maintenance Event for {{projectName}} - {{eventName}}. Starts at: {{eventStartTime}}, Ends at {{eventEndTime}}.',
     },
     {
         allowedVariables: [
@@ -82,7 +82,7 @@ module.exports = [
         ],
         smsType: 'Subscriber Scheduled Maintenance Resolved',
         body:
-            'Scheduled maintenance event - {{eventName}} for {{projectName}} is resolved',
+            'Scheduled maintenance event for {{projectName}} - {{eventName}}, is resolved.',
     },
     {
         allowedVariables: [
@@ -93,6 +93,6 @@ module.exports = [
         ],
         smsType: 'Subscriber Scheduled Maintenance Note',
         body:
-            'A new note has been added to the scheduled maintenance event - {{eventName}}. State: {{eventNoteState}}, Content: {{eventNoteContent}}',
+            'A new note has been added to the scheduled maintenance event - {{eventName}}. Note: {{eventNoteContent}}.',
     },
 ];
