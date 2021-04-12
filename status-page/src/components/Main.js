@@ -17,7 +17,7 @@ import {
     selectedProbe,
     getScheduledEvent,
 } from '../actions/status';
-import { getProbes } from '../actions/probe';
+import { getProbesStatusPage } from '../actions/probe';
 import LineChartsContainer from './LineChartsContainer';
 import AffectedResources from './basic/AffectedResources';
 import NewThemeEvent from './NewThemeEvent';
@@ -133,7 +133,7 @@ class Main extends Component {
             url = window.location.host;
         }
 
-        this.props.getProbes(statusPageSlug, 0, 10).then(() => {
+        this.props.getProbesStatusPage(statusPageSlug, 0, 10).then(() => {
             this.selectbutton(this.props.activeProbe);
         });
 
@@ -1225,7 +1225,7 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             getStatusPage,
-            getProbes,
+            getProbesStatusPage,
             selectedProbe,
             getScheduledEvent,
         },
@@ -1236,7 +1236,7 @@ Main.propTypes = {
     statusData: PropTypes.object,
     status: PropTypes.object,
     getStatusPage: PropTypes.func,
-    getProbes: PropTypes.func,
+    getProbesStatusPage: PropTypes.func,
     login: PropTypes.object.isRequired,
     monitorState: PropTypes.array,
     monitors: PropTypes.array,

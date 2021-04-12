@@ -348,7 +348,7 @@ export const groups = [
                     {
                         title: 'Status Page',
                         path:
-                            '/dashboard/project/:slug/sub-project/:subProjectId/status-page/:scheduleId',
+                            '/dashboard/project/:slug/sub-project/:subProjectId/status-page/:statusPageSlug',
                         icon: 'radar',
                         visible: true,
                         subRoutes: [],
