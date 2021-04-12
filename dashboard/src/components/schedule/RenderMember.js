@@ -49,7 +49,7 @@ let RenderMember = ({
         });
     };
 
-    useEffect(updateTypeOnMount, [inputarray]);
+    useEffect(updateTypeOnMount, [inputarray, form]);
 
     const memberHasCallTimes = !!(memberValue.startTime && memberValue.endTime);
     const showTimes = memberHasCallTimes ? !forcedTimeHide : timeVisible;
