@@ -420,7 +420,7 @@ module.exports = {
                 );
                 return project;
             } else {
-                const trialLeft = moment(new Date()).diff(
+                const trialDone = moment(new Date()).diff(
                     moment(project.createdAt),
                     'days'
                 );
@@ -428,7 +428,7 @@ module.exports = {
                     project.stripeSubscriptionId,
                     planId,
                     project.users.length,
-                    trialLeft
+                    trialDone
                 );
 
                 project = await _this.updateOneBy(
