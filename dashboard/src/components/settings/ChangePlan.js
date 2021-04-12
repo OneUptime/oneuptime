@@ -13,6 +13,7 @@ import ChangePlanField from './ChangePlanField';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
 import { openModal } from '../../actions/modal';
+import moment from 'moment';
 
 function Validate(values) {
     const errors = {};
@@ -152,6 +153,18 @@ export class Plans extends Component {
                                         </div>
                                     </div>
                                     <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
+                                        {this.props.isTrial && (
+                                            <div className="bs-Fieldset-wrapper Box-root">
+                                                <p
+                                                    class="Margin-all--16"
+                                                    style={{ color: 'red' }}
+                                                >
+                                                    Trial period (
+                                                    {this.props.trailLeft} days
+                                                    left)
+                                                </p>
+                                            </div>
+                                        )}
                                         <div>
                                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                                 <fieldset className="bs-Fieldset">
@@ -236,6 +249,18 @@ const mapStateToProps = state => {
     const planId = state.project.currentProject
         ? state.project.currentProject.stripePlanId
         : '';
+    const trailStart = state.project.currentProject
+        ? state.project.currentProject.createdAt
+        : '';
+
+    const trialDone = moment(new Date()).diff(moment(trailStart), 'days');
+    let trailLeft = 0;
+    let isTrial = false;
+    if (trialDone < 14) {
+        trailLeft = 14 - trialDone;
+        isTrial = true;
+    }
+
     return {
         initialValues: { planId },
         currentProject: state.project.currentProject,
@@ -243,6 +268,8 @@ const mapStateToProps = state => {
         error: state.project.changePlan.error,
         activeForm:
             state.form.ChangePlan && state.form.ChangePlan.values.planId,
+        trailLeft,
+        isTrial,
     };
 };
 
