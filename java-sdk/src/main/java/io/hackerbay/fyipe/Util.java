@@ -34,12 +34,8 @@ public class Util {
         return uuid.toString();
     }
     public StackTrace getExceptionStackTrace(Exception exception) {
-        System.out.println("getExceptionStackTrace");
-        System.out.println(exception);
         String message = exception.getMessage();
         StackTraceElement[] stackTraceElement = exception.getStackTrace();
-        System.out.println("Stack Trace");
-        System.out.println(stackTraceElement);
 
         int lineNumber = stackTraceElement[0].getLineNumber();
         String fileName = stackTraceElement[0].getFileName();
@@ -59,8 +55,6 @@ public class Util {
     }
     private ArrayList<Frame> buildFrame(StackTraceElement[] stackTraceElements) {
         ArrayList<Frame> frameArrayList = new ArrayList<>();
-        // System.out.println(stackTraceElements[0].getClassName());
-        // System.out.println(stackTraceElements[1].getClassName());
         for (int i = 0; i < stackTraceElements.length; i++) {
             frameArrayList.add(
                     new Frame(
@@ -81,7 +75,6 @@ public class Util {
         // TODO update content of each frame
     }
     private Frame getFrameContent(Frame frame) {
-        System.out.println(frame);
         Boolean isFile = false;
         // check what it starts with
         isFile = frame.getFileName().startsWith("file");
@@ -90,7 +83,6 @@ public class Util {
 //            fileName = fileName.replace(".java", ".class");
             // TODO try to get the file from the cache
             String content = fileReader.readFile(fileName);
-            System.out.println("content" + content);
         }
 
         return frame;

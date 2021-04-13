@@ -18,7 +18,6 @@ public class FyipeHandlerExceptionResolver implements HandlerExceptionResolver {
     @Autowired
     public FyipeHandlerExceptionResolver(FyipeTracker fyipeTracker) {
         this.fyipeTracker = fyipeTracker;
-        System.out.println("Constructor Exception here");
     }
     @Override
     public ModelAndView resolveException(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object o, Exception exception) {
