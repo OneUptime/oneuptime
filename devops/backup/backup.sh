@@ -18,6 +18,9 @@ red=`tput setaf 1`
 green=`tput setaf 2`
 reset=`tput sgr 0`
 
+# Delete all the monitor logs before 3 months before taking the backup.
+THREE_MONTHS_AGO=$(date -d "-120 days")
+
 function HELP (){
   echo ""
   echo "Fyipe DB backup command line documentation."
@@ -140,7 +143,15 @@ function BACKUP_FAIL_LOCAL(){
 
 echo "Taking a backup on the server"
 echo ""
-sudo kubectl exec fi-mongodb-primary-0 -- mongo fyipedb --username $FYIPE_DB_USERNAME --password $FYIPE_DB_PASSWORD --eval 'db.auditlogs.remove({})'
+
+# Drop audit logs collection because we dont need to take backup of that.
+echo "Removing audit logs collections. This will take some time." 
+sudo kubectl exec fi-mongodb-primary-0 -- mongo fyipedb --username $FYIPE_DB_USERNAME --password $FYIPE_DB_PASSWORD --eval 'db.auditlogs.drop()'
+
+# Remove all the monitor logs which are more than 120 days old to make backups faster. 
+echo "Removing old monitor logs. This will take some time."
+sudo kubectl exec fi-mongodb-primary-0 -- mongo fyipedb --username $FYIPE_DB_USERNAME --password $FYIPE_DB_PASSWORD --eval 'db.monitorlogs.remove({"createdAt": { "$lt": new Date("$THREE_MONTHS_AGO")}})' 
+
 if sudo kubectl exec fi-mongodb-primary-0 -- mongodump --uri="mongodb://$FYIPE_DB_USERNAME:$FYIPE_DB_PASSWORD@localhost:27017/$FYIPE_DB_NAME" --archive="/tmp/fyipedata.archive"; then
     echo "Copying backup from server to local computer. This will take some time...."
     echo ""
