@@ -48,16 +48,17 @@ class NewThemeEvent extends Component {
                 return (
                     <div
                         className="incident-object"
-                        style={
-                            noteBackgroundColor.background ===
-                            'rgba(247, 247, 247)'
-                                ? { background: 'rgba(255,255,255,1)' }
-                                : noteBackgroundColor
-                        }
+                        style={{
+                            backgroundColor:
+                                noteBackgroundColor.background ===
+                                'rgba(247, 247, 247, 1)'
+                                    ? 'rgba(255,255,255,1)'
+                                    : noteBackgroundColor.background,
+                        }}
                         key={i}
                     >
                         <ShouldRender if={event.style}>
-                            <div className="date-big">
+                            <div className="date-big" style={{ margin: 10 }}>
                                 {moment(event.createdAt).format('LL')}
                             </div>
                         </ShouldRender>
@@ -65,7 +66,9 @@ class NewThemeEvent extends Component {
                             <div className="border-width-90"></div>
                         </ShouldRender>
                         {event.name ? (
-                            <>
+                            <span
+                                style={{ margin: 10, display: 'inline-block' }}
+                            >
                                 <div className="list_k">
                                     <b>{event.name}</b>
                                 </div>
@@ -77,6 +80,12 @@ class NewThemeEvent extends Component {
                                 <div className="bs-resource">
                                     <span>Resources Affected: </span>
                                     <span>All resources are affected</span>
+                                </div>
+                                <div className="incident-date">
+                                    <span>
+                                        {moment(event.startDate).format('LLL')}{' '}
+                                        - {moment(event.endDate).format('LLL')}
+                                    </span>
                                 </div>
                                 {event &&
                                     event.notes &&
@@ -159,7 +168,7 @@ class NewThemeEvent extends Component {
                                             );
                                         }
                                     )}
-                            </>
+                            </span>
                         ) : (
                             <div className="bs-no-report">No Event added</div>
                         )}
