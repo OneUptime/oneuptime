@@ -100,16 +100,16 @@ class NotesMain extends Component {
                 color: `rgba(${colors.secondaryText.r}, ${colors.secondaryText.g}, ${colors.secondaryText.b}, ${colors.secondaryText.a})`,
             };
             downtimeColor = {
-                backgroundColor: `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`,
+                backgroundColor: `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b}, ${colors.downtime.a})`,
             };
             uptimeColor = {
-                backgroundColor: `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`,
+                backgroundColor: `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b}, ${colors.uptime.a})`,
             };
             degradedColor = {
-                backgroundColor: `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`,
+                backgroundColor: `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b}, ${colors.degraded.a})`,
             };
             noteBackgroundColor = {
-                background: `rgba(${colors.noteBackground.r}, ${colors.noteBackground.g}, ${colors.noteBackground.b})`,
+                background: `rgba(${colors.noteBackground.r}, ${colors.noteBackground.g}, ${colors.noteBackground.b}, ${colors.noteBackground.a})`,
             };
         }
         if (
@@ -193,14 +193,17 @@ class NotesMain extends Component {
                             className="incident-object"
                             style={
                                 noteBackgroundColor.background ===
-                                'rgba(247, 247, 247)'
+                                'rgba(247, 247, 247, 1)'
                                     ? { background: 'rgba(255,255,255,1)' }
                                     : noteBackgroundColor
                             }
                             key={i}
                         >
                             <ShouldRender if={note.style}>
-                                <div className="date-big">
+                                <div
+                                    className="date-big"
+                                    style={{ margin: 10 }}
+                                >
                                     {moment(note.createdAt).format('LL')}
                                 </div>
                             </ShouldRender>
@@ -208,7 +211,12 @@ class NotesMain extends Component {
                                 <div className="border-width-90"></div>
                             </ShouldRender>
                             {note.idNumber ? (
-                                <>
+                                <span
+                                    style={{
+                                        margin: 10,
+                                        display: 'inline-block',
+                                    }}
+                                >
                                     <div className="list_k">
                                         <b>{note.title}</b>
                                     </div>
@@ -307,9 +315,15 @@ class NotesMain extends Component {
                                                 </div>
                                             );
                                         })}
-                                </>
+                                </span>
                             ) : (
-                                <div className="bs-no-report">
+                                <div
+                                    className="bs-no-report"
+                                    style={{
+                                        margin: 10,
+                                        display: 'inline-block',
+                                    }}
+                                >
                                     No incident reported
                                 </div>
                             )}
