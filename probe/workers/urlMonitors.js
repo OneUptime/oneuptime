@@ -6,10 +6,11 @@ const sslCert = require('get-ssl-certificate');
 const { fork } = require('child_process');
 const moment = require('moment');
 const https = require('https');
+const http = require('http');
 const httpsAgent = new https.Agent({
     rejectUnauthorized: false,
 });
-
+const httpAgent = new http.Agent();
 // it collects all monitors then ping them one by one to store their response
 // checks if the website of the url in the monitors is up or down
 // creates incident if a website is down and resolves it when they come back up
@@ -106,24 +107,19 @@ module.exports = {
 
 const pingfetch = async url => {
     const now = new Date().getTime();
-    let resp = null;
-    let rawResp = null;
-    let res = null;
+    let resp, res, response;
 
     try {
-        let sslCertificate, response, data;
+        let sslCertificate, data;
+        const urlObject = new URL(url);
+        const headers = {
+            'User-Agent':
+                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36',
+        };
         try {
-            response = await fetch(url, {
-                timeout: 120000,
-                ...(url.startsWith('https') && { agent: httpsAgent }),
-                headers: {
-                    'User-Agent':
-                        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36',
-                },
-            });
+            response = await fetch(url, { timeout: 120000, headers });
             res = new Date().getTime() - now;
             data = await response.text();
-            const urlObject = new URL(url);
             if (urlObject.protocol === 'https:') {
                 const certificate = await sslCert.get(urlObject.hostname);
                 if (certificate) {
@@ -136,33 +132,54 @@ const pingfetch = async url => {
                 }
             }
         } catch (e) {
-            if (e.code === 'DEPTH_ZERO_SELF_SIGNED_CERT') {
-                response = { status: 200 };
-                sslCertificate = {
-                    selfSigned: true,
-                };
-            } else {
-                throw e;
+            response = await fetch(url, {
+                timeout: 120000,
+                ...(url.startsWith('https')
+                    ? { agent: httpsAgent }
+                    : { agent: httpAgent }),
+                headers,
+            });
+            res = new Date().getTime() - now;
+            data = await response.text();
+            if (urlObject.protocol === 'https:') {
+                const certificate = await sslCert.get(urlObject.hostname);
+                if (certificate) {
+                    sslCertificate = {
+                        issuer: certificate.issuer,
+                        expires: certificate.valid_to,
+                        fingerprint: certificate.fingerprint,
+                        selfSigned: e.code === 'DEPTH_ZERO_SELF_SIGNED_CERT',
+                    };
+                }
             }
         }
 
-        resp = {
-            status: response.status,
-            body: data,
-            sslCertificate,
-        };
-        rawResp = {
-            headers:
-                response && response.headers && response.headers.raw()
-                    ? response.headers.raw()
-                    : null,
-        };
+        resp = { status: response.status, body: data, sslCertificate };
     } catch (error) {
         res = new Date().getTime() - now;
         resp = { status: 408, body: error };
     }
 
-    return { res, resp, rawResp };
+    return {
+        res,
+        resp,
+        rawResp: {
+            ok: response && response.ok ? response.ok : null,
+            status:
+                response && response.status
+                    ? response.status
+                    : resp && resp.status
+                    ? resp.status
+                    : null,
+            statusText:
+                response && response.statusText ? response.statusText : null,
+            headers:
+                response && response.headers && response.headers.raw()
+                    ? response.headers.raw()
+                    : null,
+            body: resp && resp.body ? resp.body : null,
+        },
+    };
 };
 
 const lighthouseFetch = (monitor, url) => {
