@@ -5,3 +5,4 @@ java-sdk.iml
 .classpath
 .project
 /.settings/org.eclipse.*
+pom.xml.versionsBackup
