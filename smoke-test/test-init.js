@@ -242,4 +242,17 @@ module.exports = {
             await page.keyboard.type(String.fromCharCode(13));
         }
     },
+    clear: async function(selector, page) {
+        const input = await page.$(selector);
+        await input.click({ clickCount: 3 });
+        await input.type('');
+    },
+    renameProject: async function(newProjectName, page) {                
+            await page.waitForSelector('#projectSettings');
+            await page.click('#projectSettings');
+            await page.waitForSelector('input[name=project_name]');
+            await this.clear('input[name=project_name]', page);
+            await page.type('input[name=project_name]', newProjectName);
+            await page.click('#btnCreateProject');        
+    },
 };

@@ -7,7 +7,7 @@ import ShouldRender from '../basic/ShouldRender';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 
-const Checkbox = ({ label, name, disabled }) => (
+const Checkbox = ({ label, name, disabled, id }) => (
     <div className="bs-Fieldset-fields" style={{ maxHeight: '20px' }}>
         <div className="Box-root" style={{ height: '5px' }}></div>
         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
@@ -19,6 +19,7 @@ const Checkbox = ({ label, name, disabled }) => (
                     name={name}
                     className="Checkbox-source"
                     disabled={disabled}
+                    id={id}
                 />
                 <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                     <div className="Checkbox-target Box-root">
@@ -112,6 +113,7 @@ let RenderMonitor = ({
                             <Field
                                 className="db-select-nw"
                                 name={`${monitor}.monitor`}
+                                id="monitor-name"
                                 component={RenderSelect}
                                 options={[
                                     ...allMonitors.map(m => ({
@@ -138,6 +140,7 @@ let RenderMonitor = ({
                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                     component="input"
                                     name={`${monitor}.description`}
+                                    id="monitor-description"
                                 />
                             </div>
                         )}
@@ -185,6 +188,7 @@ let RenderMonitor = ({
                                             label="Uptime"
                                             name={`${monitor}.uptime`}
                                             disabled={!shouldEdit}
+                                            id="manual-monitor-checkbox"
                                         />
                                     )}
                                     {type === 'incomingHttpRequest' && (
