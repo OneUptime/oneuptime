@@ -140,6 +140,7 @@ function BACKUP_FAIL_LOCAL(){
 
 echo "Taking a backup on the server"
 echo ""
+sudo kubectl exec fi-mongodb-primary-0 -- mongo fyipedb --username $FYIPE_DB_USERNAME --password $FYIPE_DB_PASSWORD --eval 'db.auditlogs.remove({})'
 if sudo kubectl exec fi-mongodb-primary-0 -- mongodump --uri="mongodb://$FYIPE_DB_USERNAME:$FYIPE_DB_PASSWORD@localhost:27017/$FYIPE_DB_NAME" --archive="/tmp/fyipedata.archive"; then
     echo "Copying backup from server to local computer. This will take some time...."
     echo ""
