@@ -22,8 +22,6 @@ public class FyipeHandlerExceptionResolver implements HandlerExceptionResolver {
     }
     @Override
     public ModelAndView resolveException(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object o, Exception exception) {
-        System.out.println("Exceptuon here");
-        System.out.println("Exceptuon here "+ exception.getMessage());
         fyipeTracker.captureException(exception);
         return null;
     }
