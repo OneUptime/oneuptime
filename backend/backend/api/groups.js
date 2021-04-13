@@ -124,7 +124,11 @@ router.delete(
                 query: { projectId },
             });
             if (escalations.length > 0) {
-                EscalationService.deleteTeamMember(escalations, groupId);
+                EscalationService.deleteTeamMember(
+                    escalations,
+                    groupId,
+                    userId
+                );
             }
             return sendItemResponse(req, res, deleteGroup);
         } catch (error) {

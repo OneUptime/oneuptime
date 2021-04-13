@@ -2,6 +2,7 @@ const EscalationModel = require('../models/escalation');
 const ErrorService = require('./errorService');
 const moment = require('moment');
 const DateTime = require('../utils/DateTime');
+const ScheduleService = require('./scheduleService');
 
 module.exports = {
     findBy: async function({ query, limit, skip, sort }) {
@@ -142,7 +143,7 @@ module.exports = {
         }
     },
 
-    deleteTeamMember: async function(escalations, groupId) {
+    deleteTeamMember: async function(escalations, groupId, userId) {
         try {
             const _this = this;
             for (const escalation of escalations) {
@@ -157,6 +158,22 @@ module.exports = {
                         _id: team._id,
                         teamMembers: filtered,
                     });
+                    if (filtered.length < 1) {
+                        const schedule = await ScheduleService.findOneBy({
+                            _id: escalation.scheduleId,
+                        });
+                        const rmEscalation = schedule.escalationIds.filter(
+                            escalationId =>
+                                String(escalationId._id) !==
+                                String(escalation._id)
+                        );
+                        schedule.escalationIds = rmEscalation;
+                        await ScheduleService.updateOneBy(
+                            { _id: schedule._id },
+                            { escalationIds: rmEscalation }
+                        );
+                        await _this.deleteBy({ _id: escalation._id }, userId);
+                    }
                 }
                 await _this.updateOneBy(
                     {
