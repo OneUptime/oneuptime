@@ -97,6 +97,13 @@ describe('Check status-page up', () => {
         await page.$eval('#manual-monitor-checkbox', checkbox => checkbox.click);
         await page.click('#btnAddStatusPageMonitors');
 
+        await page.waitForSelector('#publicStatusPageUrl');
+        let link = await page.$('#publicStatusPageUrl > span > a');
+        link = await link.getProperty('href');
+        link = await link.jsonValue();
+        await page.goto(link);
+        await page.waitForSelector('#monitor0');
+
         done();
     }, 100000);
 });
