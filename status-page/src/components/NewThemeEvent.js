@@ -11,10 +11,12 @@ const AffectedResources = ({ event, monitorState, colorStyle }) => {
 
     const eventMonitors = [];
     // populate the ids of the event monitors in an array
-    event.monitors.map(monitor => {
-        eventMonitors.push(String(monitor.monitorId._id));
-        return monitor;
-    });
+    event &&
+        event.monitors &&
+        event.monitors.map(monitor => {
+            eventMonitors.push(String(monitor.monitorId._id));
+            return monitor;
+        });
 
     monitorState.map(monitor => {
         if (eventMonitors.includes(String(monitor._id))) {
