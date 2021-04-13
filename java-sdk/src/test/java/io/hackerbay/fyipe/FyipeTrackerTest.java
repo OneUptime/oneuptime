@@ -88,7 +88,7 @@ public class FyipeTrackerTest {
     }
     @Test
     public void itShouldEnsureMaxTimelineCantBeSetAsANegativeNumber() throws IOException {
-        TrackerOption option = new TrackerOption(-5, false);
+        TrackerOption option = new TrackerOption(-5);
         FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey, option);
         tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
         tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), ErrorEventType.warning.name());
@@ -99,7 +99,7 @@ public class FyipeTrackerTest {
     public void itShouldEnsureNewTimelineEventAfterMaxTimelineAreDiscarded() throws  IOException {
         int maxTimeline = 2;
         String customCategory = "finance";
-        TrackerOption option = new TrackerOption(maxTimeline, false);
+        TrackerOption option = new TrackerOption(maxTimeline);
         FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey, option);
 
         // set up 3 timeline events
