@@ -3551,6 +3551,8 @@ module.exports = {
                                 }
                             );
 
+                            let errorMessageText = null;
+
                             if (
                                 (!areEmailAlertsEnabledInGlobalSettings &&
                                     !hasCustomSmtpSettings) ||
@@ -3578,7 +3580,8 @@ module.exports = {
                                     projectId,
                                     subscriberId: subscriber._id,
                                     alertVia: AlertType.SMS,
-                                    eventType: eventType,
+                                    eventType:
+                                        'Scheduled maintenance note created',
                                     alertStatus: null,
                                     error: true,
                                     errorMessage: errorMessageText,
@@ -4227,13 +4230,13 @@ module.exports = {
                                 subscriber.monitorName,
                                 contactPhone,
                                 smsTemplate,
-                                incident,
+                                null,
                                 project.name,
-                                incident.projectId,
-                                component.name,
-                                statusUrl,
-                                customFields,
-                                note
+                                null,
+                                null,
+                                null,
+                                null,
+                                null
                             );
                             alertStatus = 'Success';
                         }
