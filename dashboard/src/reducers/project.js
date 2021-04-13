@@ -113,6 +113,11 @@ const initialState = {
         success: false,
         error: null,
     },
+    trialPeriod: {
+        success: false,
+        requesting: false,
+        error: null,
+    },
 };
 
 export default function project(state = initialState, action) {
@@ -941,6 +946,47 @@ export default function project(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
+                },
+            };
+
+        case types.FETCH_TRIAL_REQUEST:
+            return {
+                ...state,
+                trialPeriod: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.FETCH_TRIAL_SUCCESS:
+            return {
+                ...state,
+                trialPeriod: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    trial_end: action.payload,
+                },
+            };
+
+        case types.FETCH_TRIAL_FAILURE:
+            return {
+                ...state,
+                trialPeriod: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.RESET_FETCH_TRIAL:
+            return {
+                ...state,
+                trialPeriod: {
+                    requesting: false,
+                    success: false,
+                    error: null,
                 },
             };
 

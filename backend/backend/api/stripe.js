@@ -205,4 +205,30 @@ router.get(
     }
 );
 
+router.post(
+    '/:projectId/:subscriptionId/getTrial',
+    getUser,
+    isAuthorized,
+    isUserOwner,
+    async function(req, res) {
+        try {
+            const { subscriptionId } = req.params;
+
+            if (!subscriptionId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'SubscriptionId is required.',
+                });
+            }
+            const trialDetails = await StripeService.fetchTrialInformation(
+                subscriptionId
+            );
+
+            return sendItemResponse(req, res, trialDetails);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 module.exports = router;
