@@ -43,21 +43,24 @@ class NewThemeEvent extends Component {
 
         const noteBackgroundColor = this.props.noteBackgroundColor;
 
+        const currentTime = moment();
+
         return data && data.length > 0 ? (
             checkDuplicateDates(data).map((event, i) => {
                 return (
                     <div
                         className="incident-object"
-                        style={
-                            noteBackgroundColor.background ===
-                            'rgba(247, 247, 247)'
-                                ? { background: 'rgba(255,255,255,1)' }
-                                : noteBackgroundColor
-                        }
+                        style={{
+                            backgroundColor:
+                                noteBackgroundColor.background ===
+                                'rgba(247, 247, 247, 1)'
+                                    ? 'rgba(255,255,255,1)'
+                                    : noteBackgroundColor.background,
+                        }}
                         key={i}
                     >
                         <ShouldRender if={event.style}>
-                            <div className="date-big">
+                            <div className="date-big" style={{ margin: 10 }}>
                                 {moment(event.createdAt).format('LL')}
                             </div>
                         </ShouldRender>
@@ -65,7 +68,9 @@ class NewThemeEvent extends Component {
                             <div className="border-width-90"></div>
                         </ShouldRender>
                         {event.name ? (
-                            <>
+                            <span
+                                style={{ margin: 10, display: 'inline-block' }}
+                            >
                                 <div className="list_k">
                                     <b>{event.name}</b>
                                 </div>
@@ -77,6 +82,38 @@ class NewThemeEvent extends Component {
                                 <div className="bs-resource">
                                     <span>Resources Affected: </span>
                                     <span>All resources are affected</span>
+                                </div>
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                    }}
+                                >
+                                    <div className="incident-date">
+                                        <span>
+                                            {moment(event.startDate).format(
+                                                'LLL'
+                                            )}{' '}
+                                            -{' '}
+                                            {moment(event.endDate).format(
+                                                'LLL'
+                                            )}
+                                        </span>
+                                    </div>
+                                    {currentTime > moment(event.startDate) &&
+                                        currentTime < moment(event.endDate) && (
+                                            <div
+                                                style={{
+                                                    marginLeft: 5,
+                                                }}
+                                                className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                            >
+                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <span>Ongoing event</span>
+                                                </span>
+                                            </div>
+                                        )}
                                 </div>
                                 {event &&
                                     event.notes &&
@@ -159,9 +196,14 @@ class NewThemeEvent extends Component {
                                             );
                                         }
                                     )}
-                            </>
+                            </span>
                         ) : (
-                            <div className="bs-no-report">No Event added</div>
+                            <div
+                                className="bs-no-report"
+                                style={{ margin: 10, display: 'inline-block' }}
+                            >
+                                No Event added
+                            </div>
                         )}
                     </div>
                 );

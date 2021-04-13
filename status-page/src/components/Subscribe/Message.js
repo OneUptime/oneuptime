@@ -96,7 +96,13 @@ class Message extends Component {
                     }
                 >
                     {this.props.subscribed && this.props.subscribed.success ? (
-                        <div style={{ textAlign: 'center', margin: '15px 0' }}>
+                        <div
+                            style={{
+                                textAlign: 'center',
+                                margin: '15px 0',
+                                color: '#000',
+                            }}
+                        >
                             <span id="monitor-subscribe-success-message">
                                 You have subscribed to this status page
                                 successfully
