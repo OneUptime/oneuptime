@@ -195,7 +195,7 @@ module.exports = {
 
             const success = monitors.map(async monitor => {
                 const newSubscriber = Object.assign({}, data, {
-                    monitorId: monitor,
+                    monitorId: monitor._id,
                 });
                 const hasSubscribed = await _this.subscriberCheck(
                     newSubscriber
@@ -208,22 +208,22 @@ module.exports = {
                     ErrorService.log('SubscriberService.subscribe', error);
                     throw error;
                 } else {
-                    if (data.alertVia === 'email') {
+                    if (newSubscriber.alertVia === 'email') {
                         const subscriberExist = await _this.findByOne({
-                            monitorId: data.monitorId,
-                            contactEmail: data.contactEmail,
+                            monitorId: newSubscriber.monitorId,
+                            contactEmail: newSubscriber.contactEmail,
                             subscribed: false,
                         });
                         if (subscriberExist) {
                             return await _this.updateOneBy(
                                 {
-                                    monitorId: data.monitorId,
-                                    contactEmail: data.contactEmail,
+                                    monitorId: newSubscriber.monitorId,
+                                    contactEmail: newSubscriber.contactEmail,
                                 },
                                 { subscribed: true }
                             );
                         } else {
-                            return await _this.create(data);
+                            return await _this.create(newSubscriber);
                         }
                     } else {
                         return await _this.create(newSubscriber);
