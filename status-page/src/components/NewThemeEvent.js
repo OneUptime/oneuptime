@@ -43,6 +43,8 @@ class NewThemeEvent extends Component {
 
         const noteBackgroundColor = this.props.noteBackgroundColor;
 
+        const currentTime = moment();
+
         return data && data.length > 0 ? (
             checkDuplicateDates(data).map((event, i) => {
                 return (
@@ -81,11 +83,37 @@ class NewThemeEvent extends Component {
                                     <span>Resources Affected: </span>
                                     <span>All resources are affected</span>
                                 </div>
-                                <div className="incident-date">
-                                    <span>
-                                        {moment(event.startDate).format('LLL')}{' '}
-                                        - {moment(event.endDate).format('LLL')}
-                                    </span>
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                    }}
+                                >
+                                    <div className="incident-date">
+                                        <span>
+                                            {moment(event.startDate).format(
+                                                'LLL'
+                                            )}{' '}
+                                            -{' '}
+                                            {moment(event.endDate).format(
+                                                'LLL'
+                                            )}
+                                        </span>
+                                    </div>
+                                    {currentTime > moment(event.startDate) &&
+                                        currentTime < moment(event.endDate) && (
+                                            <div
+                                                style={{
+                                                    marginLeft: 5,
+                                                }}
+                                                className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                            >
+                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <span>Ongoing event</span>
+                                                </span>
+                                            </div>
+                                        )}
                                 </div>
                                 {event &&
                                     event.notes &&
@@ -170,7 +198,12 @@ class NewThemeEvent extends Component {
                                     )}
                             </span>
                         ) : (
-                            <div className="bs-no-report">No Event added</div>
+                            <div
+                                className="bs-no-report"
+                                style={{ margin: 10, display: 'inline-block' }}
+                            >
+                                No Event added
+                            </div>
                         )}
                     </div>
                 );
