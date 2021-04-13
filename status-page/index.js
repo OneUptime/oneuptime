@@ -171,7 +171,7 @@ function createDir(dirPath) {
     );
 
     try {
-
+        // create https server
         await createDir('credentials');
         // decode base64 of the cert and private key
         // store the value to disc
@@ -323,7 +323,7 @@ function createDir(dirPath) {
 
     } catch (e) {
         console.log("Unable to create HTTPS Server")
-        console.log(3007)
+        console.log(e)
     }
 
 
