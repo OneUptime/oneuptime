@@ -56,8 +56,8 @@ public class FyipeTracker {
     private void setUpOptions(TrackerOption options) {
         if(options == null) {
             // If no options is passed, the default option is set
-            // set maxTimeline and captureCodeSnippet
-            TrackerOption defaultOption = new TrackerOption(5, true);
+            // set maxTimeline
+            TrackerOption defaultOption = new TrackerOption(5);
             this.options = defaultOption;
         } else {
             // in the passed options, we validate the expected fields
@@ -206,7 +206,7 @@ public class FyipeTracker {
             ioException.printStackTrace();
         }
         String name = reader.getProperty("name");
-        String version = reader.getProperty("version");
+        String version = reader.getProperty("sdk.version");
         this.sdk = new SDK(name, version);
     }
     public ErrorEvent getCurrentEvent() {
