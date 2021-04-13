@@ -2,12 +2,13 @@ package io.hackerbay.fyipe.model;
 
 public class TrackerOption {
     private int maxTimeline;
+    /* Capture Code snippet feature is not available for now because the sdk cant
+       read through the byte code generated for the application when the stack trace happens */
     private Boolean captureCodeSnippet;
 
 
-    public TrackerOption(int maxTimeline, Boolean captureCodeSnippet) {
+    public TrackerOption(int maxTimeline) {
         this.maxTimeline = maxTimeline;
-        this.captureCodeSnippet = captureCodeSnippet;
     }
 
     public int getMaxTimeline() {
