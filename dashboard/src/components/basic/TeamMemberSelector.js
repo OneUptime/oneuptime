@@ -42,7 +42,15 @@ const TeamMemberSelector = ({
 
     const allowedOptionsForDropdown =
         renderType === 'team'
-            ? [{ value: '', label: 'Select Team Member...' }].concat(
+            ? [
+                  {
+                      value: '',
+                      label:
+                          allowedTeamMembers.length === 0
+                              ? 'No team member available'
+                              : 'Select Team Member...',
+                  },
+              ].concat(
                   allowedTeamMembers.map(member => {
                       return {
                           value: member.userId,
@@ -51,7 +59,15 @@ const TeamMemberSelector = ({
                       };
                   })
               )
-            : [{ value: '', label: 'Select Group...' }].concat(
+            : [
+                  {
+                      value: '',
+                      label:
+                          allowedGroups.length === 0
+                              ? 'No group available'
+                              : 'Select Group...',
+                  },
+              ].concat(
                   allowedGroups.map(group => {
                       return {
                           value: group._id,

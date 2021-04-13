@@ -64,9 +64,10 @@ app.use(async function(req, res, next) {
     let apiHost;
     const host = req.hostname;
     if (
-        host === 'fyipe.com' ||
-        host === 'staging.fyipe.com' ||
-        host.indexOf('localhost') > -1
+        host &&
+        (host === 'fyipe.com' ||
+            host === 'staging.fyipe.com' ||
+            host.indexOf('localhost') > -1)
     ) {
         return next();
     }

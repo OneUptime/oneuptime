@@ -142,6 +142,35 @@ module.exports = {
         }
     },
 
+    deleteTeamMember: async function(escalations, groupId) {
+        try {
+            const _this = this;
+            for (const escalation of escalations) {
+                const teams = escalation.teams;
+                const newTeams = [];
+                for (const team of teams) {
+                    const teamMembers = team.teamMembers;
+                    const filtered = teamMembers.filter(
+                        tm => tm.groupId !== groupId
+                    );
+                    newTeams.push({
+                        _id: team._id,
+                        teamMembers: filtered,
+                    });
+                }
+                await _this.updateOneBy(
+                    {
+                        _id: escalation._id,
+                    },
+                    { teams: newTeams }
+                );
+            }
+        } catch (error) {
+            ErrorService.log('escalationService.deleteTeamMember', error);
+            throw error;
+        }
+    },
+
     updateOneBy: async function(query, data) {
         try {
             if (!query) {

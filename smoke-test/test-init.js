@@ -226,6 +226,14 @@ module.exports = {
         await page.reload();
         await page.waitForTimeout(3000);
     },
+    saasLogout: async function(page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('button#profile-menu', { visible: true });
+        await page.click('button#profile-menu');
+        await page.waitForSelector('button#logout-button');
+        await page.click('button#logout-button');
+        await page.reload({ waitUntil: 'networkidle0' });
+    },
     selectByText: async function(selector, text, page) {
         await page.click(selector, { delay: 100 });
         await page.keyboard.type(text);
