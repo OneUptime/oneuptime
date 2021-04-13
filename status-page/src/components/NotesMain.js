@@ -215,6 +215,17 @@ class NotesMain extends Component {
                                     <div className="incident_desc">
                                         {note.description}
                                     </div>
+                                    <div
+                                        className="incident-date"
+                                        style={{ marginBottom: 12 }}
+                                    >
+                                        <span>Created at</span>{' '}
+                                        <span>
+                                            {moment(note.createdAt).format(
+                                                'LT'
+                                            )}
+                                        </span>
+                                    </div>
                                     {note &&
                                         note.message &&
                                         note.message.length > 0 &&
