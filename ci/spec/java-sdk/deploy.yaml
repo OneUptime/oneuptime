@@ -24,6 +24,7 @@ deploy_staging_java-sdk:
         # - gpg --keyserver keyserver.ubuntu.com --send-keys 2BC832A79ED9B002C512A064D4A60477A62C81FD
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
         - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID-SNAPSHOT"
+        - mvn versions:set-property -Dproperty=sdk.version -DnewVersion="3.0.$CI_PIPELINE_IID"
         - mvn clean deploy
         - git init
         - git add .
@@ -68,6 +69,7 @@ deploy_production_java-sdk:
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
         # - git checkout -f master
         - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID"
+        - mvn versions:set-property -Dproperty=sdk.version -DnewVersion="3.0.$CI_PIPELINE_IID"
         - mvn clean deploy -P release
         - git init
         - git add .
