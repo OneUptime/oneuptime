@@ -154,14 +154,24 @@ export class Plans extends Component {
                                     </div>
                                     <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
                                         {this.props.isTrial && (
-                                            <div className="bs-Fieldset-wrapper Box-root">
-                                                <p
-                                                    class="Margin-all--16"
-                                                    style={{ color: 'red' }}
-                                                >
-                                                    Trial period (
-                                                    {this.props.trailLeft} days
-                                                    left)
+                                            <div
+                                                className="bs-Fieldset-wrapper Box-root"
+                                                style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'flex-end',
+                                                }}
+                                            >
+                                                <p className="Margin-all--16 bs-Button bs-Button--blue Badge">
+                                                    <strong
+                                                        style={{
+                                                            fontSize: '17px',
+                                                            fontWeight: '900',
+                                                        }}
+                                                    >
+                                                        Trial period (
+                                                        {this.props.trailLeft}{' '}
+                                                        days left)
+                                                    </strong>
                                                 </p>
                                             </div>
                                         )}
