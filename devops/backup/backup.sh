@@ -1,7 +1,7 @@
 ###
 #
 #   Please make sure kubectl is installed and context is pointed to the cluster you want to restore to.
-#
+#   This only runs on Linux (Ubuntu) and not on MacOS
 ###
 
 HELM_RELEASE_NAME='fi'
