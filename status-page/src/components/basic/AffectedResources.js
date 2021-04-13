@@ -9,7 +9,7 @@ const AffectedResources = ({ event, monitorState, colorStyle }) => {
     const eventMonitors = [];
     // populate the ids of the event monitors in an array
     event &&
-        event.length > 0 &&
+        event.monitors &&
         event.monitors.map(monitor => {
             eventMonitors.push(String(monitor.monitorId._id));
             return monitor;
@@ -22,7 +22,6 @@ const AffectedResources = ({ event, monitorState, colorStyle }) => {
         }
         return monitor;
     });
-
     // check if the length of monitors on status page equals the monitor count
     // if they are equal then all the monitors in status page is in a particular scheduled event
     if (monitorCount === monitorState.length) {
