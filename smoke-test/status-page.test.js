@@ -45,9 +45,40 @@ describe('Check status-page up', () => {
         done();
     }, 30000);
 
-    test('should create a status-page with a manual monitor', async done => {
+    test('should create a status-page', async done => {
         await init.registerUser(user, page);
         await init.renameProject(projectName, page);
+        
+        // Create a Status-Page with a Manual Monitor and Display the Monitor in Status-Page Url
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle2',
+        });
+        
+        await page.waitForSelector('#statusPages');
+        await page.click('#statusPages');
+        await page.waitForSelector(`#btnCreateStatusPage_${projectName}`);
+        await page.click(`#btnCreateStatusPage_${projectName}`);
+        await page.waitForSelector('#name');
+        await page.click('input[id=name]');
+        await page.type('input[id=name]', statusPageName);
+        await page.click('#btnCreateStatusPage');
+        await page.waitForSelector('#statusPagesListContainer');
+        await page.waitForSelector('#viewStatusPage');
+        await page.click('#viewStatusPage');
+        await page.waitForSelector(`#header-${statusPageName}`);
+
+         // To confirm the manual monitor is created
+         let spanElement = await page.waitForSelector(`#header-${statusPageName}`);
+         spanElement = await spanElement.getProperty(
+             'innerText'
+         );
+         spanElement = await spanElement.jsonValue();
+         expect(spanElement).toMatch(statusPageName);
+        
+        done();
+    }, 200000);
+
+    test('should create a manual monitor', async done =>{
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
@@ -69,27 +100,29 @@ describe('Check status-page up', () => {
         await page.waitForSelector('#description');
         await page.click('#description');
         await page.type('#description', 'My Manual Monitor');
-        await page.click('button[type=submit]');
-        await page.waitForSelector(`#monitor-title-${monitorName}`);
+        await page.click('button[type=submit]');        
 
-        // Create a Status-Page with a Manual Monitor and Display the Monitor in Status-Page Url
+        // To confirm the manual monitor is created
+        let spanElement = await page.waitForSelector(`#monitor-title-${monitorName}`);
+        spanElement = await spanElement.getProperty(
+            'innerText'
+        );
+        spanElement = await spanElement.jsonValue();
+        expect(spanElement).toMatch(monitorName);
+
+        done();
+    }, 200000);
+
+    test('should add monitor to status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
-        
+
         await page.waitForSelector('#statusPages');
         await page.click('#statusPages');
-        await page.waitForSelector(`#btnCreateStatusPage_${projectName}`);
-        await page.click(`#btnCreateStatusPage_${projectName}`);
-        await page.waitForSelector('#name');
-        await page.click('input[id=name]');
-        await page.type('input[id=name]', statusPageName);
-        await page.click('#btnCreateStatusPage');
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage');
-        await page.waitForSelector(`#header-${statusPageName}`);
-
+        await page.click('#viewStatusPage');        
         await page.waitForSelector('#addMoreMonitors');
         await page.click('#addMoreMonitors');
         await init.selectByText('#monitor-name',`${componentName} / ${monitorName}`, page);
@@ -113,5 +146,5 @@ describe('Check status-page up', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 200000);
+    });
 });
