@@ -1344,11 +1344,9 @@ export function fetchTrialError(error) {
     };
 }
 
-export function fetchTrial(projectId, subscriptionId) {
+export function fetchTrial(projectId) {
     return function(dispatch) {
-        const promise = postApi(
-            `stripe/${projectId}/${subscriptionId}/getTrial`
-        );
+        const promise = postApi(`stripe/${projectId}/getTrial`);
 
         dispatch(fetchTrialRequest());
 

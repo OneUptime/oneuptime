@@ -8,6 +8,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const getUser = require('../middlewares/user').getUser;
 const { isUserOwner } = require('../middlewares/project');
 const { isAuthorized } = require('../middlewares/authorization');
+const ProjectService = require('../services/projectService');
 
 const router = express.Router();
 
@@ -206,22 +207,25 @@ router.get(
 );
 
 router.post(
-    '/:projectId/:subscriptionId/getTrial',
+    '/:projectId/getTrial',
     getUser,
     isAuthorized,
     isUserOwner,
     async function(req, res) {
         try {
-            const { subscriptionId } = req.params;
+            const { projectId } = req.params;
 
-            if (!subscriptionId) {
+            if (!projectId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'SubscriptionId is required.',
+                    message: 'ProjectId is required.',
                 });
             }
+
+            const project = await ProjectService.findOneBy({ _id: projectId });
+
             const trialDetails = await StripeService.fetchTrialInformation(
-                subscriptionId
+                project.stripeSubscriptionId
             );
 
             return sendItemResponse(req, res, trialDetails);
