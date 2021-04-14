@@ -6,10 +6,8 @@ import io.hackerbay.fyipe.model.TrackerOption;
 import io.hackerbay.fyipe.util.FileReader;
 
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.UUID;
+import java.util.*;
+
 enum ErrorEventType {
     error,
     info,
@@ -64,6 +62,9 @@ public class Util {
                     )
             );
         }
+
+        // reversing the list
+        Collections.reverse(frameArrayList);
 
         return  frameArrayList;
     }
