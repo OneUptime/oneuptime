@@ -255,4 +255,32 @@ module.exports = {
             await page.type('input[name=project_name]', newProjectName);
             await page.click('#btnCreateProject');        
     },
+    navigateToComponentDetails: async function(component, page) {
+        // Navigate to Components page
+        await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle0' });
+        await page.waitForSelector('#components', { visible: true });
+        await page.click('#components');
+
+        // Navigate to details page of component assumed created
+        await page.waitForSelector(`#more-details-${component}`);
+        await page.$eval(`#more-details-${component}`, e => e.click());
+    },
+    addMonitorToStatusPage: async function(componentName, monitorName, page) {
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle2',
+        });
+        const description = utils.generateRandomString();
+        await page.waitForSelector('#statusPages');
+        await page.click('#statusPages');
+        await page.waitForSelector('#statusPagesListContainer');
+        await page.waitForSelector('#viewStatusPage');
+        await page.click('#viewStatusPage');        
+        await page.waitForSelector('#addMoreMonitors');
+        await page.click('#addMoreMonitors');        
+        await this.selectByText('ul > li:last-of-type #monitor-name',`${componentName} / ${monitorName}`, page);
+        await page.click('ul > li:last-of-type #monitor-description');
+        await page.type('ul > li:last-of-type #monitor-description', description);
+        await page.click('ul > li:last-of-type #manual-monitor-checkbox');
+        await page.click('#btnAddStatusPageMonitors');
+    }
 };

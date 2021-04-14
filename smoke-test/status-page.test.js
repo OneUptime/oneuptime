@@ -146,5 +146,38 @@ describe('Check status-page up', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    });
+    }, 200000);
+
+    test('should add more monitors and see if they are present in the status-page', async done =>{
+        // This creates 2 additonal monitors
+        for(let i = 0; i < 2; i++){
+            await init.navigateToComponentDetails(componentName, page);
+            const monitorName = utils.generateRandomString();
+            const description = utils.generateRandomString();
+            await page.waitForSelector('#form-new-monitor', { visible: true });
+            await page.click('input[id=name]', { visible: true });
+            await page.type('input[id=name]', monitorName);
+            await page.click('[data-testId=type_manual]');
+            await page.waitForSelector('#description');
+            await page.click('#description');
+            await page.type('#description', description);
+            await page.click('button[type=submit]');
+            await page.waitForSelector(`#monitor-title-${monitorName}`);
+
+            await init.addMonitorToStatusPage(componentName, monitorName, page);
+        }
+
+        // To confirm the monitors on status
+        await page.waitForSelector('#publicStatusPageUrl');
+        let link = await page.$('#publicStatusPageUrl > span > a');
+        link = await link.getProperty('href');
+        link = await link.jsonValue();
+        await page.goto(link); 
+
+        const monitor = await page.$$('.monitor-list');
+        const monitorLength = monitor.length;        
+        expect(monitorLength).toEqual(3);
+        
+        done();
+    }, 200000)
 });
