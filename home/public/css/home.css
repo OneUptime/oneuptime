@@ -26,6 +26,26 @@ main h2[class^=common-Uppercase]{
 main header{
     position:relative
 }
+.gif-container {
+    position: relative;
+}
+.vid_section {
+    position: relative;
+}
+._image {
+    width: 11%;
+    position: absolute;
+    top: 15%;
+}
+.image1 {
+    right: 9%;
+}
+._image img {
+    width: 200%;
+}
+.image2 {
+    left: 0;
+}
 #stripes,#stripes span{
     position:absolute
 }
@@ -65,6 +85,95 @@ main header{
 #stripes>span:hover{
     opacity:0.5;
 }
+.block-image {
+    margin-bottom: 12px;
+}
+.sketch {
+    width: 100%;
+    height: 0.4em;
+    margin: 3em 0;
+    border: 0;
+    background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none' viewBox='0 0 119 6'%3E%3Cpath d='M119 3.8c-60 2.5-33.5-7-119 0' fill='none' stroke='%231d2d35' stroke-width='2'/%3E%3C/svg%3E") center/5em 100% repeat-x;
+}
+.testimonials {
+    font-size: 16px;
+    font-family:Open Sans,Segoe UI,sans-serif;
+    margin-bottom: 100px;
+}
+.testimonials > div {
+    max-width: 800px;
+    margin: auto;
+}
+.test {
+    max-width: 800px;
+    margin: auto;
+    text-align: center;
+    margin-bottom: 80px;
+}
+.heading {
+    font-size: 280%;
+    line-height: 1.05;
+    font-weight: 600;
+}
+.head2 {
+    line-height: 1.5;
+    letter-spacing: -0.02em;
+    font-weight: 500;
+    margin-top: 12px;
+    color: black;
+    opacity: 0.8;
+    font-size: 120%;
+}
+._extra {
+    font-weight: bold;
+}
+.review {
+    margin-top: 2em;
+}
+
+.review p {
+    font-size: 24px;
+    font-weight: bold;
+    line-height: 1.25;
+    color: black;
+    opacity: 0.7;
+    font-family: Open Sans,Segoe UI,sans-serif;
+}
+._cite {
+    margin-top: 10px;
+}
+
+.columns .trend:before, .columns .cost:before, .columns .reli:before,
+.columns .note:before, .columns .security:before, .columns .moni:before {
+    position: unset !important;
+}
+
+@media(max-width: 600px) {
+    .head2 {
+        font-size: 100%;
+    }
+    .test {
+        text-align: left;
+    }
+}
+
+@media (max-width: 900px) {
+    .test, .testimonials > div {
+        max-width: 95%;
+    }
+}
+@media (max-width: 1020px) {
+    .my-top {
+        margin-top: 50px !important;
+    }
+    .play {
+        top: 24% !important;
+    }
+    ._image {
+        display: none;
+    }
+}
+
 @media (min-width:1020px){
     #stripes span{
         height:150px
