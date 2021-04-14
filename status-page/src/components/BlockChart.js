@@ -91,7 +91,7 @@ class BlockChart extends Component {
                 title1 = `Disabled for ${disabledtime}`;
                 need = true;
                 if (colors)
-                    backgroundColor = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b})`;
+                    backgroundColor = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b}, ${colors.disabled.a})`;
             } else if (this.props.time.status === 'offline') {
                 let downTimeInMinutes, downtime;
                 if (this.props.time.downTime < 60) {
@@ -119,7 +119,7 @@ class BlockChart extends Component {
                 title1 = `Down for ${downtime}`;
                 need = true;
                 if (colors)
-                    backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`;
+                    backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b}, ${colors.downtime.a})`;
             } else if (this.props.time.status === 'degraded') {
                 let degradedTimeInMinutes;
                 let degradedtime;
@@ -148,21 +148,21 @@ class BlockChart extends Component {
                 title1 = `Degraded for ${degradedtime}`;
                 need = true;
                 if (colors)
-                    backgroundColor = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`;
+                    backgroundColor = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b}, ${colors.degraded.a})`;
             } else {
                 bar = 'bar';
                 title = moment(this.props.time.date).format('LL');
                 title1 = 'No downtime';
                 need = true;
                 if (colors)
-                    backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
+                    backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b}, ${colors.uptime.a})`;
             }
         } else {
             bar = 'bar empty';
             title = moment(this.props.time.date).format('LL');
             title1 = '100% uptime';
             if (colors)
-                backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
+                backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b}, ${colors.uptime.a})`;
         }
 
         const dateId = title.replace(/, | /g, '');
@@ -173,8 +173,12 @@ class BlockChart extends Component {
             style = {
                 outline: 'none',
                 backgroundColor:
-                    backgroundColor === 'rgba(108, 219, 86)'
-                        ? 'rgb(73, 195, 177)'
+                    backgroundColor === 'rgba(108, 219, 86, 1)'
+                        ? '#49c3b1'
+                        : backgroundColor === 'rgba(250, 109, 70, 1)'
+                        ? '#FA6D46'
+                        : backgroundColor === 'rgba(255, 222, 36, 1)'
+                        ? '#e39f48'
                         : backgroundColor,
                 opacity: 1,
                 width: '6px',

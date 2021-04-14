@@ -1,6 +1,7 @@
 const ScheduledEventNoteModel = require('../models/scheduledEventNote');
 const ErrorService = require('./errorService');
 const RealTimeService = require('./realTimeService');
+const AlertService = require('./alertService');
 
 module.exports = {
     create: async function(data, projectId) {
@@ -9,9 +10,30 @@ module.exports = {
                 data
             );
             scheduledEventMessage = await scheduledEventMessage
-                .populate('scheduledEventId')
+                .populate('scheduledEventId', 'name')
+                .populate({
+                    path: 'scheduledEventId',
+                    select: 'name monitors',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name replyAddress',
+                    },
+                })
                 .populate('createdById', 'name')
                 .execPopulate();
+
+            if (
+                scheduledEventMessage.type === 'investigation' &&
+                !(
+                    scheduledEventMessage.event_state === 'Resolved' ||
+                    scheduledEventMessage.event_state === 'Created' ||
+                    scheduledEventMessage.event_state === 'Started'
+                )
+            ) {
+                AlertService.sendScheduledEventInvestigationNoteToSubscribers(
+                    scheduledEventMessage
+                );
+            }
 
             scheduledEventMessage.type === 'internal'
                 ? await RealTimeService.addScheduledEventInternalNote(
