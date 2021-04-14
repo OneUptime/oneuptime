@@ -2,6 +2,7 @@ const utils = require('./test-utils');
 const puppeteer = require('puppeteer');
 const init = require('./test-init');
 
+
 let page, browser;
 
 const email = utils.generateRandomBusinessEmail();
@@ -94,16 +95,23 @@ describe('Check status-page up', () => {
         await init.selectByText('#monitor-name',`${componentName} / ${monitorName}`, page);
         await page.click('#monitor-description');
         await page.type('#monitor-description', 'Status Page Description');
-        await page.$eval('#manual-monitor-checkbox', checkbox => checkbox.click);
+        await page.click('#manual-monitor-checkbox');
         await page.click('#btnAddStatusPageMonitors');
 
         await page.waitForSelector('#publicStatusPageUrl');
         let link = await page.$('#publicStatusPageUrl > span > a');
         link = await link.getProperty('href');
         link = await link.jsonValue();
-        await page.goto(link);
-        await page.waitForSelector('#monitor0');
+        await page.goto(link);        
+
+        // To confirm the monitor is present in the status-page
+        let spanElement = await page.waitForSelector(`#monitor-${monitorName}`);
+        spanElement = await spanElement.getProperty(
+            'innerText'
+        );
+        spanElement = await spanElement.jsonValue();
+        expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 100000);
+    }, 200000);
 });

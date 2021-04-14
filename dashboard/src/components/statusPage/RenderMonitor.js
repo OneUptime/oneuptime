@@ -18,8 +18,7 @@ const Checkbox = ({ label, name, disabled, id }) => (
                     data-test="RetrySettings-failedPaymentsCheckbox"
                     name={name}
                     className="Checkbox-source"
-                    disabled={disabled}
-                    id={id}
+                    disabled={disabled}                
                 />
                 <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                     <div className="Checkbox-target Box-root">
@@ -28,7 +27,7 @@ const Checkbox = ({ label, name, disabled, id }) => (
                 </div>
                 <div className="Checkbox-label Box-root Margin-left--8">
                     <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                        <span>{label}</span>
+                        <span id={id}>{label}</span>
                     </span>
                 </div>
             </label>
