@@ -210,18 +210,18 @@ Create a constructor from the class, which will be used to track errors sent to 
 **Kind**: Constructor
 **Returns**: <code>null</code>
 
-| Param            | Type                       | Description                                 |
-| ---------------- | -------------------------- | ------------------------------------------- |
-| \apiUrl          | <code>string</code>        | The Server URL.                             |
-| \errorTrackerId  | <code>string</code>        | The Error Tracker ID.                       |
-| \errorTrackerKey | <code>string</code>        | The Error Trakcer Key.                      |
-| \option          | <code>TrackerOption</code> | The options to be considred by the tracker. |
+| Param           | Type                       | Description                                 |
+| --------------- | -------------------------- | ------------------------------------------- |
+| apiUrl          | <code>string</code>        | The Server URL.                             |
+| errorTrackerId  | <code>string</code>        | The Error Tracker ID.                       |
+| errorTrackerKey | <code>string</code>        | The Error Trakcer Key.                      |
+| option          | <code>TrackerOption</code> | The options to be considred by the tracker. |
 
 #### TrackerOption options
 
-| Param        | Type             | Description                                                         |
-| ------------ | ---------------- | ------------------------------------------------------------------- |
-| \maxTimeline | <code>int</code> | The total amount of timeline that should be captured, defaults to 5 |
+| Param       | Type             | Description                                                         |
+| ----------- | ---------------- | ------------------------------------------------------------------- |
+| maxTimeline | <code>int</code> | The total amount of timeline that should be captured, defaults to 5 |
 
 #### tracker.setTag(Tag tag)
 
@@ -232,7 +232,7 @@ Set tag for the error to be sent to the server.
 
 | Param | Type             | Description     |
 | ----- | ---------------- | --------------- |
-| \tag  | <code>Tag</code> | The tag object. |
+| tag   | <code>Tag</code> | The tag object. |
 
 #### tracker.setTags(ArrayList<Tag> tags)
 
@@ -263,11 +263,11 @@ Add a custom timeline element to the next error to be sent to the server
 **Kind**: method of [<code>new Fyipe\FyipeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
-| Param     | Type                    | Description                         |
-| --------- | ----------------------- | ----------------------------------- |
-| \category | <code>string</code>     | The category of the timeline event. |
-| \content  | <code>JsonObject</code> | The content of the timeline event.  |
-| \type     | <code>string</code>     | The type of timeline event.         |
+| Param    | Type                    | Description                         |
+| -------- | ----------------------- | ----------------------------------- |
+| category | <code>string</code>     | The category of the timeline event. |
+| content  | <code>JsonObject</code> | The content of the timeline event.  |
+| type     | <code>string</code>     | The type of timeline event.         |
 
 #### tracker.captureMessage(message)
 
