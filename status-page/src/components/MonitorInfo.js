@@ -468,6 +468,7 @@ class MonitorInfo extends Component {
                                                     paddingRight: '0px',
                                                     ...subheading,
                                                 }}
+                                                id={`monitor-${monitor.name}`}
                                             >
                                                 {monitor.name}
                                             </span>
