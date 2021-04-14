@@ -31,7 +31,7 @@ import {
 // '/api' is set as socket io namespace, so remove
 const socket = io(API_URL.replace('/api', ''), {
     path: '/api/socket.io',
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
 });
 
 class SocketApp extends Component {
