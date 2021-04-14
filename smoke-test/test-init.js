@@ -282,5 +282,18 @@ module.exports = {
         await page.type('ul > li:last-of-type #monitor-description', description);
         await page.click('ul > li:last-of-type #manual-monitor-checkbox');
         await page.click('#btnAddStatusPageMonitors');
+    },
+    navigateToStatusPage: async function(page){
+        await page.waitForSelector('#statusPages');
+        await page.click('#statusPages');
+        await page.waitForSelector('#statusPagesListContainer');
+        await page.waitForSelector('#viewStatusPage');
+        await page.click('#viewStatusPage'); 
+        
+        await page.waitForSelector('#publicStatusPageUrl');
+        let link = await page.$('#publicStatusPageUrl > span > a');
+        link = await link.getProperty('href');
+        link = await link.jsonValue();
+        await page.goto(link);  
     }
 };
