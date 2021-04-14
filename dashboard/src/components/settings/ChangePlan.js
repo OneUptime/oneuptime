@@ -44,7 +44,7 @@ export class Plans extends Component {
 
     componentDidMount() {
         const { fetchTrial, currentProject } = this.props;
-        fetchTrial(currentProject._id, currentProject.stripeSubscriptionId);
+        fetchTrial(currentProject._id);
     }
 
     componentDidUpdate(prevProps, prevState) {
@@ -295,7 +295,7 @@ const mapStateToProps = state => {
     let trialLeft = 0;
 
     if (trialEndDate) {
-        trialLeft = moment(trialEndDate).diff(new Date(), 'days');
+        trialLeft = moment(trialEndDate).diff(new Date(), 'days') + 1;
         if (trialLeft <= 0) {
             trialEndDate = false;
         }
