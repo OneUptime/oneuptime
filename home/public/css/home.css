@@ -33,7 +33,7 @@ main header{
     margin-top: 50px;
     position: relative;
     display: grid;
-    grid-template-columns: 20% auto 20%;
+    grid-template-columns: 1fr auto 1fr;
 }
 .grid-2 {
     position: relative;
