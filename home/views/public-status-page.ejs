@@ -21,25 +21,25 @@
         }
     </script>
     <script>
-        function onClickFunc() {
-            let playButton = document.getElementById("playButton");
-            let gif = document.getElementById("uptime-monitoring-gif");
-            let videoDiv= document.getElementById("videoDiv");
-            let video= document.getElementById("video");
+        function onClickFunc(index) {
+            let playButton = document.getElementById(`playButton-${index}`);
+            let gif = document.getElementById(`uptime-monitoring-gif-${index}`);
+            let videoDiv= document.getElementById(`videoDiv-${index}`);
+            let video= document.getElementById(`video-${index}`);
             playButton.style.display = "none";
             gif.style.display="none";
             videoDiv.style.display="block";
             video.src += "?autoplay=1";
         }
-        function mouseOverFunc()
+        function mouseOverFunc(index)
         {
-            let playButton = document.getElementById("playButton");
+            let playButton = document.getElementById(`playButton-${index}`);
             playButton.src="/img/play-button-black.svg";
             playButton.style.cursor="pointer";
         }
-        function mouseOutFunc()
+        function mouseOutFunc(index)
         {
-            let playButton = document.getElementById("playButton");
+            let playButton = document.getElementById(`playButton-${index}`);
             playButton.src="/img/play-button-grey.svg";
         }
     </script>
@@ -103,38 +103,38 @@
 
             </section>
 
+            <div class="vid_section">
             <div class="gif-container">
                 
-                <img src="/img/animated-gif/status-page.gif" style="z-index: 2" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
+                <img src="/img/animated-gif/status-page.gif" style="z-index: 2" width="650" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif-1" style="border-radius: 5px;" />
                   
-                <img class="play" style="z-index: 3" id="playButton" onmouseout="mouseOutFunc()"onmouseover="mouseOverFunc()"onclick="onClickFunc()" src="/img/play-button-grey.svg"/>
-                    <div id="videoDiv" class="videoClass">
-                    <iframe id="video" width="850" height="500" src="https://www.youtube.com/embed/IKyUf5CT36I?rel=0&amp;modestbranding=1&amp;controls=0&amp;frameborder=0&amp;autoplay=0" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                <img class="play" style="z-index: 3" id="playButton-1" onmouseout="mouseOutFunc(1)"onmouseover="mouseOverFunc(1)"onclick="onClickFunc(1)" src="/img/play-button-grey.svg"/>
+                    <div id="videoDiv-1" class="videoClass">
+                    <iframe id="video-1" width="850" height="500" src="https://www.youtube.com/embed/IKyUf5CT36I" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
                 </div>
                 
             </div>
-            <div style="width: 100%">
-                <div style="position: absolute; z-index: 1; top: 700px; right: 0px">
-                    <img src="/img/3mindemo.png" />
+                <div class="_image image1" style="z-index: 1;">
+                    <img src="/img/3mindemorbg.png" />
                 </div>
-            </div>
+        </div>
 
             <% include ./cta-buttons %>
 
             <section class="main basics">
                 <div class="content">
                     <ul class="columns">
-                        <li class="block-image trend">
+                        <li class="block-image trend my-top">
                             <h3>Realtime Status</h3>
                             <p class="text-center">Show realtime status of your product or service - home page, 
                                 websites, API, dashboards or more with a hosted status page.</p>
                         </li>
-                        <li class="block-image cost">
+                        <li class="block-image cost my-top">
                             <h3>Cut Support Costs</h3>
                             <p class="text-center">Communicate any incidents through a status page.
                                 This saves your customers from creating a flood of support tickets. </p>
                         </li>
-                        <li class="block-image reli">
+                        <li class="block-image reli my-top">
                             <h3>Showcase Reliability</h3>
                             <p class="text-center">Showcase the reliability of your platform and compliance with your SLA
                                 and build trust with your customers.</p>
@@ -147,11 +147,11 @@
                             <h3>Post Investigation Notes</h3>
                             <p class="text-center"> Have your team post notes and post-mortem when incidents happen and increase transparency and trust with customers.</p>
                         </li>
-                        <li class="block-image security">
+                        <li class="block-image security my-top">
                             <h3>SLA Compliance</h3>
                             <p class="text-center">Have Fyipe certify your SLA compliance and showcase that to your existing and potential customers.</p>
                         </li>
-                        <li class="block-image moni">
+                        <li class="block-image moni my-top">
                             <h3>Monitor Anything.</h3>
                             <p class="text-center">An endpoint, applications, a container, cluster, network, or
                                 anything else. You name it. We monitor all of
@@ -201,9 +201,23 @@
                     <h2 class="header">Branding and Customization</h2>
                     <p class="common-BodyText"> Customize your status page and make it look like your brand. </p>
                 </header>
-                <div style="display:flex; justify-content:center; margin-bottom:30px;margin-top:30px;">
-                    <img src="/img/animated-gif/status-page-branding.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
+
+                <div class="vid_section">
+                <div class="gif-container">
+                
+                    <img src="/img/animated-gif/status-page-branding.gif" style="z-index: 2" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif-2" style="border-radius: 5px; border: 1px solid red;" />
+                      
+                    <img class="play" style="z-index: 3" id="playButton-2" onmouseout="mouseOutFunc(2)"onmouseover="mouseOverFunc(2)"onclick="onClickFunc(2)" src="/img/play-button-grey.svg"/>
+                        <div id="videoDiv-2" class="videoClass">
+                        <iframe id="video-2" width="850" height="500" src="https://www.youtube.com/embed/IKyUf5CT36I" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                    </div>
+                    
                 </div>
+                <div class="_image image2" style="z-index: 1;">
+                    <img src="/img/brandingrbg.png" />
+                </div>
+            </div>
+
                 <div class="content">
                     <ul class="columns">
                         <li class="block-image paint">
@@ -226,9 +240,17 @@
                     <h2 class="header">Build Unlimited Status Pages</h2>
                     <p class="common-BodyText"> Have unlimited number of private or public status pages with unlimited subscribers. All you can eat! </p>
                 </header>
-
-                <div style="display:flex; justify-content:center; margin-bottom:30px;margin-top:30px;">
-                    <img src="/img/animated-gif/multiple-status-page.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
+                <div class="vid_section">
+                <div class="gif-container">
+                    <img src="/img/animated-gif/multiple-status-page.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif-3" style="border-radius: 5px;" />
+                    <img class="play" style="z-index: 3" id="playButton-3" onmouseout="mouseOutFunc(3)"onmouseover="mouseOverFunc(3)"onclick="onClickFunc(3)" src="/img/play-button-grey.svg"/>
+                    <div id="videoDiv-3" class="videoClass">
+                    <iframe id="video-3" width="850" height="500" src="https://www.youtube.com/embed/IKyUf5CT36I" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                </div>    
+                </div>
+                <div class="_image image1" style="z-index: 1;">
+                    <img src="/img/branding2rbg.png" />
+                </div>
                 </div>
                 <% include ./cta-buttons %>
 
@@ -294,8 +316,14 @@
                     <p class="common-BodyText"> Create private status pages for your internal team or your few select customers. Keep your company informed. <br/>Create internal dashboards and more. </p>
                 </header>
 
-                <div style="display:flex; justify-content:center; margin-bottom:30px;margin-top:30px;">
-                    <img src="/img/animated-gif/private-status-page.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
+                <div class="vid_section">
+                    <div class="gif-container">
+                        <img src="/img/animated-gif/private-status-page.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif-4" style="border-radius: 5px;" />
+                        <img class="play" style="z-index: 3" id="playButton-4" onmouseout="mouseOutFunc(4)"onmouseover="mouseOverFunc(4)"onclick="onClickFunc(4)" src="/img/play-button-grey.svg"/>
+                        <div id="videoDiv-4" class="videoClass">
+                            <iframe id="video-4" width="850" height="500" src="https://www.youtube.com/embed/IKyUf5CT36I" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                        </div>      
+                    </div>
                 </div>
 
                 <div class="content">
@@ -315,6 +343,101 @@
                     </ul>
                 </div>
                 <% include ./cta-buttons %>
+
+                <div class="testimonials">
+                    <div>
+                        <div class="sketch"></div>
+                    </div>
+                    <div class="test">
+                        <h2 class="header _extra">Businesses change for the better when they use Fyipe.</h2>
+                        <p class="head2">
+                            Software development shops, design firms, freelancers, consultants, architects, agencies, media companies, schools, and non-profits around the world have switched to Fyipe to <strong>fundamentally improve</strong> their project workflow.
+                        </p>
+                        <div>
+                            <blockquote class="review">
+                                <p>
+                                    <span>“I’ve used Fyipe for a million projects over the last decade and a half. It's beautiful software that has resisted every wrong trend and stayed true to the things that mattered most. Highly recommended.”</span>
+                                </p>
+                                <div class="_cite">
+                                    <cite>-Tobi Lütke, CEO, Shopify</cite>
+                                </div>
+                            </blockquote>
+                            <blockquote class="review">
+                                <p>
+                                    <span>“We can see exactly what needs to be done and when. We're much more efficient.”</span>
+                                </p>
+                                <div class="_cite">
+                                    <cite>-Tina Lannin, 121 Captions</cite>
+                                </div>
+                            </blockquote>
+                            <blockquote class="review">
+                                <p>
+                                    <span>“We've had less confusion with task responsibilities and deadlines, which has increased productivity and efficiency.”</span>
+                                </p>
+                                <div class="_cite">
+                                    <cite>-Dale Lavine, NASA</cite>
+                                </div>
+                            </blockquote>
+                            <blockquote class="review">
+                                <p>
+                                    <span>“Accountability for tasks. No more ‘I thought so and so was responsible for that.’”</span>
+                                </p>
+                                <div class="_cite">
+                                    <cite>-George Groves, Piehole.TV</cite>
+                                </div>
+                            </blockquote>
+                            <blockquote class="review">
+                                <p>
+                                    <span>“We are all collaborating more on feedback, it helps to show accountability as well.”</span>
+                                </p>
+                                <div class="_cite">
+                                    <cite>-Samantha Silberberg, Quartz</cite>
+                                </div>
+                            </blockquote>
+                            <blockquote class="review">
+                                <p>
+                                    <span>“We don't need to spend as much time in meetings now that we use Fyipe.”</span>
+                                </p>
+                                <div class="_cite">
+                                    <cite>-Brad Vandiviere, Faith Chapel Billings</cite>
+                                </div>
+                            </blockquote>
+                            <blockquote class="review">
+                                <p>
+                                    <span>“Transparency and communication has increased.”</span>
+                                </p>
+                                <div class="_cite">
+                                    <cite>-Joey Rosenberg, Women Who Code</cite>
+                                </div>
+                            </blockquote>
+                            <blockquote class="review">
+                                <p>
+                                    <span>“Time management and productivity. Makes my job easier rather than having to constantly ask for progress updates.”</span>
+                                </p>
+                                <div class="_cite">
+                                    <cite>-Kyle Jernigan, Crossroads Church</cite>
+                                </div>
+                            </blockquote>
+                            <blockquote class="review">
+                                <p>
+                                    <span>“Greater collaboration and less Excel!”</span>
+                                </p>
+                                <div class="_cite">
+                                    <cite>-Spencer Stevenson, 3M</cite>
+                                </div>
+                            </blockquote>
+                            <blockquote class="review">
+                                <p>
+                                    <span>“Task completion! The lists and reminders help people remember what they said they were going to do and helps hold them accountable to the team.”</span>
+                                </p>
+                                <div class="_cite">
+                                    <cite>-Scot Evans, University of Miami</cite>
+                                </div>
+                            </blockquote>
+
+                        </div>
+                    </div>
+                </div>
                
                
                
