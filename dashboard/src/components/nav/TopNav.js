@@ -357,7 +357,7 @@ class TopContent extends Component {
                 const tempObj = { ...userSchedule, isOnDutyAllTheTime };
                 tempObj.startTime = startTime;
                 tempObj.endTime = endTime;
-
+                console.log('tempObj ',tempObj);
                 if (isUserActive) {
                     activeSchedules.push(tempObj);
                 } else {
@@ -367,6 +367,7 @@ class TopContent extends Component {
                         inactiveSchedules.push(tempObj);
                     }
                 }
+                console.log('activeSchedules ',activeSchedules);
             });
         }
 
