@@ -93,8 +93,8 @@ then
     # Install microK8s
     echo "RUNNING COMMAND: sudo snap set system refresh.retain=2"
     sudo snap set system refresh.retain=2
-    echo "RUNNING COMMAND: sudo snap install microk8s --channel=1.15/stable --classic"
-    sudo snap install microk8s --channel=1.15/stable --classic
+    echo "RUNNING COMMAND: sudo snap install microk8s --classic"
+    sudo snap install microk8s --classic
     echo "RUNNING COMMAND: sudo usermod -a -G microk8s $USER"
     sudo usermod -a -G microk8s $USER || echo "microk8s group not found"
     echo "RUNNING COMMAND: sudo microk8s.start"
