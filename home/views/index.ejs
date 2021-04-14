@@ -9,7 +9,6 @@
         content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
     <% include ./head %>
     <link rel="stylesheet" href="/css/crm.css">
-    <link rel="stylesheet" href="/css/sdlc.css">
     
     <script src="/js/crm.js" type="text/javascript" async></script>
     <link rel="stylesheet" href="/css/home.css">
@@ -35,68 +34,9 @@
                     <div class="container-lg" style="display: flex; justify-content: center;">
 
                         <div>
-                            <div class="stars-panel">
-                                <div class="mobile-collapse-block">
-                                    <div style="display: flex;
-                                justify-content: center;">
-                                        <img width="100" src="img/stars.svg" alt="star rating">
-                                    </div>
-                                    <div style="margin-top: 8px;
-                                color: black;">
-                                        <div>
-                                            <span style="font-size: 14px; color: #8b8b8b"><a target="blank"
-                                                    href="https://www.capterra.com/p/176513/Fyipe/"><i>"the best SRE
-                                                        product out there"</i></a></span>
-                                        </div>
-                                        <div style="text-align: center;">
-                                            <span style="font-size: 14px; color: #8b8b8b"><a target="blank"
-                                                    href="https://www.capterra.com/p/176513/Fyipe/"><i>-
-                                                        Capterra</i></a></span>
-                                        </div>
-                                    </div>
-                                </div>
+                           
+                            <%- include("stars") %>
 
-                                <div class="mobile-collapse-block">
-                                    <div style="display: flex;
-                                justify-content: center;">
-                                        <img width="100" src="img/stars.svg" alt="star rating">
-                                    </div>
-                                    <div style="margin-top: 8px;
-                                color: black;">
-                                        <div>
-                                            <span style="font-size: 14px; color: #8b8b8b"><a target="blank"
-                                                    href="https://www.g2.com/products/fyipe/reviews"><i>"one product to
-                                                        rule
-                                                        SRE"</i></a></span>
-                                        </div>
-                                        <div style="text-align: center;">
-                                            <span style="font-size: 14px; color: #8b8b8b"><a target="blank"
-                                                    href="https://www.g2.com/products/fyipe/reviews"><i>-
-                                                        G2 Crowd</i></a></span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div style="display: flex;
-                                justify-content: center;">
-                                        <img width="100" src="img/stars.svg" alt="star rating">
-                                    </div>
-                                    <div style="margin-top: 8px;
-                                color: black;">
-                                        <div>
-                                            <span style="font-size: 14px; color: #8b8b8b"><a target="blank"
-                                                    href="https://alternativeto.net/software/fyipe"><i>"best status page
-                                                        product on the internet"</i></a></span>
-                                        </div>
-                                        <div style="text-align: center;">
-                                            <span style="font-size: 14px; color: #8b8b8b"><a target="blank"
-                                                    href="https://alternativeto.net/software/fyipe"><i>-
-                                                        AlternativeTo</i></a></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                             <h1 class="black main-page-title" style="text-align:center; margin-top: 30px">
                                 One Complete SRE <br />and DevOps
                                 platform.
@@ -172,6 +112,7 @@
             <% include ./customer-section %>
 
             <% include ./sdlc %>
+
             <div class="sectionBorderTop">
                 <% include ./comparision-chart %>
             </div>
