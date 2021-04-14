@@ -67,7 +67,7 @@ describe('Check status-page up', () => {
         await page.click('#viewStatusPage');
         await page.waitForSelector(`#header-${statusPageName}`);
 
-         // To confirm the manual monitor is created
+         // To confirm the status-page name.
          let spanElement = await page.waitForSelector(`#header-${statusPageName}`);
          spanElement = await spanElement.getProperty(
              'innerText'
