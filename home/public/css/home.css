@@ -33,7 +33,7 @@ main header{
     margin-top: 50px;
     position: relative;
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: 1.25fr 3.5fr 1.25fr;
 }
 .grid-2 {
     position: relative;
@@ -172,6 +172,20 @@ main header{
     }
 }
 
+@media (max-width: 800px) {
+    .vid_section {
+        display: block;
+        margin-top: 50px;
+    }
+    .grid-2 {
+        width: 100% !important;
+        margin: auto !important;
+    }
+    .grid-1, .grid-3 {
+        display: none;
+    }
+}
+
 @media (max-width: 900px) {
     .test, .testimonials > div {
         max-width: 95%;
@@ -180,17 +194,6 @@ main header{
 @media (max-width: 1020px) {
     .my-top {
         margin-top: 50px !important;
-    }
-    .grid-1, .grid-3 {
-        display: none;
-    }
-    .vid_section {
-        display: block;
-        margin-top: 50px;
-    }
-    .grid-2 {
-        width: 100% !important;
-        margin: auto !important;
     }
 }
 
