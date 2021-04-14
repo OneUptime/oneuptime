@@ -7,6 +7,13 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
     ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/affinity-mode: "balanced"
+    nginx.ingress.kubernetes.io/session-cookie-change-on-failure: "false"
+    nginx.ingress.kubernetes.io/session-cookie-name: "fi-ingress-cookie"
+    nginx.ingress.kubernetes.io/session-cookie-expires: "172800"
+    ingress.kubernetes.io/session-cookie-hash: "sha1"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
   name: {{ printf "%s-%s-%s" $.Release.Name $key "statuspage"  }}
   namespace: {{ $.Release.Namespace }}
   labels:
