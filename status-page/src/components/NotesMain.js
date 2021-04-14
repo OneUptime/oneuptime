@@ -220,7 +220,7 @@ class NotesMain extends Component {
                                     <div className="list_k">
                                         <b>{note.title}</b>
                                     </div>
-                                    <div className="incident_desc">
+                                    <div className="incident_desc" id={`note-${note.description}`}>
                                         {note.description}
                                     </div>
                                     <div
