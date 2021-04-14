@@ -64,7 +64,7 @@ class EditContainerSecurity extends Component {
             containerSecurityId,
             data: values,
         }).then(data => {
-            history.push(
+            history.replace(
                 `/dashboard/project/${this.props.projectSlug}/${this.props.componentSlug}/security/container/${data.data.slug}`
             );
         });
