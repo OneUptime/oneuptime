@@ -6,4 +6,4 @@ import ErrorTracker from './tracker.js';
 import ServerMonitor from '../build/server-monitor/lib/api';
 import PerformanceMonitor from './performanceMonitor.js';
 
-export default { Logger, ErrorTracker, ServerMonitor ,PerformanceMonitor};
+export default { Logger, ErrorTracker, ServerMonitor, PerformanceMonitor };

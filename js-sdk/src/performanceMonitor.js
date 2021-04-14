@@ -1,89 +1,66 @@
 /* eslint-disable no-console */
 /*eslint-disable no-unused-vars*/
 import Module from 'module';
-import FyipeTimelineManager from './timelineManager';
-import Util from './util';
-import Http from 'http';
-import Https from 'https';
-import mongooseListener from './utils/mongoose';
-
+const semver = require('semver');
+import MongooseListener from './listeners/mongoose';
+import IncomingListener from './listeners/incomingListener';
+import OutgoingListener from './listeners/outgoingListener';
+import DataStore from './utils/dataStore';
 class PerformanceMonitor {
     #BASE_URL = 'http://localhost:3002/api'; // TODO proper base url config
-    #timelineObj;
-    #currentEventId;
-    #utilObj;
     #isWindow;
     #options;
-    constructor(eventId, isWindow, options) {
+    #nodeVer;
+    #nodeUse;
+    #start;
+    #end;
+    #createLog;
+    constructor(isWindow, options) {
         this.#options = options;
         this.#isWindow = isWindow;
-        this.#timelineObj = new FyipeTimelineManager(options);
-        this.#utilObj = new Util();
-        this.#currentEventId = eventId;
-
+        this.#nodeVer = process.versions.node;
+        this.#createLog = require('./utils/helpers').createLog;
+        if (semver.satisfies(this.#nodeVer, '>10.0.0')) {
+            this.#nodeUse = true;
+        } else {
+            this.#nodeUse = false;
+        }
+        if (this.#nodeUse) {
+            const { start, end } = require('./utils/perfMonitor');
+            this.#start = start;
+            this.#end = end;
+        } else {
+            const { start, end } = require('./utils/hrTime');
+            this.#start = start;
+            this.#end = end;
+        }
         if (!this.#isWindow) {
-            this._setUpHttpsListener();
+            this._setUpOutgoingListener();
             this._setUpDataBaseListener();
             this._setUpIncomingListener();
         }
     }
-    _setUpHttpsListener() {
-        override(Http);
-        override(Https);
-        const _this = this;
-        function override(module) {
-            const original = module.request;
-            function wrapper(outgoing) {
-                // Store a call to the original in req
-                const req = original.apply(this, arguments);
-                const emit = req.emit;
-                const startHrTime = process.hrtime();
-                req.emit = function(eventName, response) {
-                    switch (eventName) {
-                        case 'response': {
-                            response.on('end', () => {
-                                const elapsedHrTime = process.hrtime(
-                                    startHrTime
-                                );
-                                const elapsedTimeInMs =
-                                    elapsedHrTime[0] * 1000 +
-                                    elapsedHrTime[1] / 1e6;
-                                console.log('outgoing', elapsedTimeInMs);
-                            });
-                        }
-                    }
-                    return emit.apply(this, arguments);
-                };
-                // return the original call
-                return req;
-            }
-            module.request = wrapper;
-        }
-    }
-    _logHttpRequestEvent(content, type) {
-        const timelineObj = {
-            category: type, // HTTP
-            data: {
-                content,
-            },
-            type,
-            eventId: this.#currentEventId,
-        };
-        // add timeline to the stack
-        this.#timelineObj.addToTimeline(timelineObj);
+    _setUpOutgoingListener() {
+        return new OutgoingListener(this.#start, this.#end, this.#createLog);
     }
     _setUpDataBaseListener() {
         const load = Module._load;
+        const _this = this;
         Module._load = function(request, parent) {
             const res = load.apply(this, arguments);
             if (request === 'mongoose') {
-                return mongooseListener(res);
+                const mongo = new MongooseListener(
+                    _this.#start,
+                    _this.#end,
+                    _this.#createLog
+                );
+                return mongo._setUpMongooseListener(res);
             }
             return res;
         };
     }
     _setUpIncomingListener() {
-        return require('./utils/incomingListener');
+        return new IncomingListener(this.#start, this.#end, this.#createLog);
     }
 }
 export default PerformanceMonitor;
