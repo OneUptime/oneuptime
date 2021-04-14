@@ -50,6 +50,7 @@ router.get('/:projectId/domains', getUser, isAuthorized, async (req, res) => {
     const { projectId } = req.params;
     const { skip, limit } = req.query;
     try {
+        // a unique case where we have to consider the subProject as well
         const domains = await DomainVerificationService.findBy(
             {
                 projectId,

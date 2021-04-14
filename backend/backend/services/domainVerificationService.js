@@ -5,6 +5,7 @@ const ErrorService = require('./errorService');
 const flatten = require('../utils/flattenArray');
 const randomChar = require('../utils/randomChar');
 const StatusPageService = require('../services/statusPageService');
+const ProjectService = require('../services/projectService');
 const dnsPromises = dns.promises;
 
 module.exports = {
@@ -63,6 +64,17 @@ module.exports = {
             if (query.domain) {
                 const parsed = psl.parse(query.domain);
                 query.domain = parsed.domain;
+            }
+
+            // fetch subproject
+            if (query.projectId) {
+                let subProjects = await ProjectService.findBy({
+                    parentProjectId: query.projectId,
+                });
+                subProjects = subProjects.map(project => project._id); // grab just the project ids
+                const totalProjects = [query.projectId, ...subProjects];
+
+                query = { ...query, projectId: { $in: totalProjects } };
             }
 
             return await DomainVerificationTokenModel.find(query)
@@ -141,7 +153,7 @@ module.exports = {
     doesDomainBelongToProject: async function(projectId, subDomain) {
         const parsed = psl.parse(subDomain);
         const domain = parsed.domain;
-        const result = await this.findBy({
+        const result = await DomainVerificationTokenModel.find({
             domain,
             /**
              * USE CASE THAT WARRANT REMOVAL OF VERIFIED FIELD
@@ -152,6 +164,7 @@ module.exports = {
              */
             // verified: true,
             projectId: { $ne: projectId },
+            deleted: false,
         });
 
         if (result && result.length > 0) {
