@@ -150,6 +150,15 @@ router.put(
                 throw error;
             }
 
+            //check if there's a change in the domain
+            const domainObj = await DomainVerificationService.findOneBy({
+                _id: domainId,
+                projectId,
+            });
+            if (domainObj.domain === domain) {
+                return sendItemResponse(req, res, domainObj);
+            }
+
             const response = await DomainVerificationService.updateOneBy(
                 { _id: domainId, projectId },
                 { domain, verified: false }
