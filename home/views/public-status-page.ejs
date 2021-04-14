@@ -26,9 +26,11 @@
             let gif = document.getElementById(`uptime-monitoring-gif-${index}`);
             let videoDiv= document.getElementById(`videoDiv-${index}`);
             let video= document.getElementById(`video-${index}`);
+            let grid = document.getElementById(`grid-${index}`);
             playButton.style.display = "none";
             gif.style.display="none";
             videoDiv.style.display="block";
+            // grid.style.width="1000px";
             video.src += "?autoplay=1";
         }
         function mouseOverFunc(index)
@@ -104,20 +106,20 @@
             </section>
 
             <div class="vid_section">
-            <div class="gif-container">
-                
-                <img src="/img/animated-gif/status-page.gif" style="z-index: 2" width="650" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif-1" style="border-radius: 5px;" />
-                  
-                <img class="play" style="z-index: 3" id="playButton-1" onmouseout="mouseOutFunc(1)"onmouseover="mouseOverFunc(1)"onclick="onClickFunc(1)" src="/img/play-button-grey.svg"/>
-                    <div id="videoDiv-1" class="videoClass">
-                    <iframe id="video-1" width="850" height="500" src="https://www.youtube.com/embed/IKyUf5CT36I" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                <div class="grid-1"></div>
+                <div class="grid-2" id="grid-1">
+                    <img src="/img/animated-gif/status-page.gif" style="z-index: 2" class="imageshadow _gif" alt="Uptime Monitoring" id="uptime-monitoring-gif-1" style="border-radius: 5px;" />
+                    
+                    <img class="play" style="z-index: 3" id="playButton-1" onmouseout="mouseOutFunc(1)"onmouseover="mouseOverFunc(1)"onclick="onClickFunc(1)" src="/img/play-button-grey.svg"/>
+                        <div id="videoDiv-1" class="videoClass">
+                        <iframe id="video-1" class="actualVideo" height="500" src="https://www.youtube.com/embed/IKyUf5CT36I" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                    </div>
+                    
                 </div>
-                
-            </div>
-                <div class="_image image1" style="z-index: 1;">
+                <div class="grid-3">
                     <img src="/img/3mindemorbg.png" />
                 </div>
-        </div>
+            </div>
 
             <% include ./cta-buttons %>
 
@@ -201,22 +203,21 @@
                     <h2 class="header">Branding and Customization</h2>
                     <p class="common-BodyText"> Customize your status page and make it look like your brand. </p>
                 </header>
-
                 <div class="vid_section">
-                <div class="gif-container">
-                
-                    <img src="/img/animated-gif/status-page-branding.gif" style="z-index: 2" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif-2" style="border-radius: 5px; border: 1px solid red;" />
-                      
-                    <img class="play" style="z-index: 3" id="playButton-2" onmouseout="mouseOutFunc(2)"onmouseover="mouseOverFunc(2)"onclick="onClickFunc(2)" src="/img/play-button-grey.svg"/>
-                        <div id="videoDiv-2" class="videoClass">
-                        <iframe id="video-2" width="850" height="500" src="https://www.youtube.com/embed/IKyUf5CT36I" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                    <div class="grid-1">
+                        <img src="/img/brandingrbg.png" />
                     </div>
-                    
+                    <div class="grid-2">
+                        <img src="/img/animated-gif/status-page.gif" style="z-index: 2" class="imageshadow _gif" alt="Uptime Monitoring" id="uptime-monitoring-gif-2" style="border-radius: 5px;" />
+                        
+                        <img class="play" style="z-index: 3" id="playButton-2" onmouseout="mouseOutFunc(2)"onmouseover="mouseOverFunc(2)"onclick="onClickFunc(2)" src="/img/play-button-grey.svg"/>
+                            <div id="videoDiv-2" class="videoClass">
+                            <iframe id="video-2" class="actualVideo" height="500" src="https://www.youtube.com/embed/IKyUf5CT36I" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                        </div>
+                        
+                    </div>
+                    <div class="grid-3"></div>
                 </div>
-                <div class="_image image2" style="z-index: 1;">
-                    <img src="/img/brandingrbg.png" />
-                </div>
-            </div>
 
                 <div class="content">
                     <ul class="columns">
@@ -240,18 +241,23 @@
                     <h2 class="header">Build Unlimited Status Pages</h2>
                     <p class="common-BodyText"> Have unlimited number of private or public status pages with unlimited subscribers. All you can eat! </p>
                 </header>
+
                 <div class="vid_section">
-                <div class="gif-container">
-                    <img src="/img/animated-gif/multiple-status-page.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif-3" style="border-radius: 5px;" />
-                    <img class="play" style="z-index: 3" id="playButton-3" onmouseout="mouseOutFunc(3)"onmouseover="mouseOverFunc(3)"onclick="onClickFunc(3)" src="/img/play-button-grey.svg"/>
-                    <div id="videoDiv-3" class="videoClass">
-                    <iframe id="video-3" width="850" height="500" src="https://www.youtube.com/embed/IKyUf5CT36I" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
-                </div>    
+                    <div class="grid-1"></div>
+                    <div class="grid-2" id="grid-3">
+                        <img src="/img/animated-gif/multiple-status-page.gif" style="z-index: 2" class="imageshadow _gif" alt="Uptime Monitoring" id="uptime-monitoring-gif-3" style="border-radius: 5px;" />
+                        
+                        <img class="play" style="z-index: 3" id="playButton-3" onmouseout="mouseOutFunc(3)"onmouseover="mouseOverFunc(3)"onclick="onClickFunc(3)" src="/img/play-button-grey.svg"/>
+                            <div id="videoDiv-3" class="videoClass">
+                            <iframe id="video-3" class="actualVideo" height="500" src="https://www.youtube.com/embed/IKyUf5CT36I" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                        </div>
+                        
+                    </div>
+                    <div class="grid-3">
+                        <img src="/img/branding2rbg.png" />
+                    </div>
                 </div>
-                <div class="_image image1" style="z-index: 1;">
-                    <img src="/img/branding2rbg.png" />
-                </div>
-                </div>
+
                 <% include ./cta-buttons %>
 
                <div class="split">
@@ -316,14 +322,19 @@
                     <p class="common-BodyText"> Create private status pages for your internal team or your few select customers. Keep your company informed. <br/>Create internal dashboards and more. </p>
                 </header>
 
+
                 <div class="vid_section">
-                    <div class="gif-container">
-                        <img src="/img/animated-gif/private-status-page.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif-4" style="border-radius: 5px;" />
+                    <div class="grid-1"></div>
+                    <div class="grid-2" id="grid-1">
+                        <img src="/img/animated-gif/private-status-page.gif" style="z-index: 2" class="imageshadow _gif" alt="Uptime Monitoring" id="uptime-monitoring-gif-4" style="border-radius: 5px;" />
+                        
                         <img class="play" style="z-index: 3" id="playButton-4" onmouseout="mouseOutFunc(4)"onmouseover="mouseOverFunc(4)"onclick="onClickFunc(4)" src="/img/play-button-grey.svg"/>
-                        <div id="videoDiv-4" class="videoClass">
-                            <iframe id="video-4" width="850" height="500" src="https://www.youtube.com/embed/IKyUf5CT36I" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
-                        </div>      
+                            <div id="videoDiv-4" class="videoClass">
+                            <iframe id="video-4" class="actualVideo" height="500" src="https://www.youtube.com/embed/IKyUf5CT36I" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                        </div>
+                        
                     </div>
+                    <div class="grid-3"></div>
                 </div>
 
                 <div class="content">

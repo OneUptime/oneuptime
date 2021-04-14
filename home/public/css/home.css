@@ -30,21 +30,36 @@ main header{
     position: relative;
 }
 .vid_section {
+    margin-top: 50px;
+    position: relative;
+    display: grid;
+    grid-template-columns: 20% auto 20%;
+}
+.grid-2 {
     position: relative;
 }
-._image {
-    width: 11%;
+.grid-1, .grid-3 {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.play {
     position: absolute;
-    top: 15%;
+    top: 0 !important;
+    left: 0 !important;
+    margin: auto !important;
+    right: 0 !important;
+    bottom: 0 !important;
 }
-.image1 {
-    right: 9%;
+.actualVideo {
+    width: 100% !important;
 }
-._image img {
-    width: 200%;
+._gif {
+    width: 100% !important;
 }
-.image2 {
-    left: 0;
+.grid-1 img, .grid-3 img {
+    width: 110%;
+    padding-left: 12px;
 }
 #stripes,#stripes span{
     position:absolute
@@ -166,11 +181,16 @@ main header{
     .my-top {
         margin-top: 50px !important;
     }
-    .play {
-        top: 24% !important;
-    }
-    ._image {
+    .grid-1, .grid-3 {
         display: none;
+    }
+    .vid_section {
+        display: block;
+        margin-top: 50px;
+    }
+    .grid-2 {
+        width: 100% !important;
+        margin: auto !important;
     }
 }
 
