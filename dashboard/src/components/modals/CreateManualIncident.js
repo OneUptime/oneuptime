@@ -325,6 +325,7 @@ class CreateManualIncident extends Component {
                                                     <div className="bs-Fieldset-fields">
                                                         <Field
                                                             name="description"
+                                                            id="description"
                                                             component={
                                                                 RenderCodeEditor
                                                             }
