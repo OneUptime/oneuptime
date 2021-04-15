@@ -6,6 +6,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const DomainVerificationService = require('../services/domainVerificationService');
 const { sendListResponse } = require('../middlewares/response');
+const StatusPageService = require('../services/statusPageService');
 
 const router = express.Router();
 
@@ -159,6 +160,13 @@ router.put(
             if (domainObj.domain === domain) {
                 return sendItemResponse(req, res, domainObj);
             }
+
+            // update all the occurence of the old domain to the new domain
+            StatusPageService.updateCustomDomain(
+                domainId,
+                domain,
+                domainObj.domain
+            );
 
             const response = await DomainVerificationService.updateOneBy(
                 { _id: domainId, projectId },

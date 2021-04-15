@@ -179,6 +179,43 @@ module.exports = {
         }
     },
 
+    // update all the occurence of the old domain to the new domain
+    // use regex to replace the value
+    updateCustomDomain: async function(domainId, newDomain, oldDomain) {
+        const _this = this;
+        try {
+            const statusPages = await _this.findBy({
+                domains: {
+                    $elemMatch: { domainVerificationToken: domainId },
+                },
+            });
+
+            for (const statusPage of statusPages) {
+                const statusPageId = statusPage._id;
+                const domains = [];
+                for (const eachDomain of statusPage.domains) {
+                    if (
+                        String(eachDomain.domainVerificationToken._id) ===
+                        String(domainId)
+                    ) {
+                        eachDomain.domain = eachDomain.domain.replace(
+                            oldDomain,
+                            newDomain
+                        );
+                    }
+                    domains.push(eachDomain);
+                }
+
+                if (domains && domains.length > 0) {
+                    await _this.updateOneBy({ _id: statusPageId }, { domains });
+                }
+            }
+        } catch (error) {
+            ErrorService.log('statusPageService.updateCustomDomain', error);
+            throw error;
+        }
+    },
+
     updateDomain: async function(
         projectId,
         statusPageId,
