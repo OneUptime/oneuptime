@@ -1356,8 +1356,38 @@ var_dump($response);
             {
                 id: 'java',
                 language: 'Java',
-                errorTracking:
-                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                errorTracking: {
+                    installation: {
+                        package: `
+Maven Install`,
+                        command: `                        
+<dependency>
+    <groupId>io.hackerbay.fyipe</groupId>
+    <artifactId>java-sdk</artifactId>
+    <version>CURRENT_VERSION</version>
+</dependency>
+    `,
+                    },
+                    usage: `                        
+import io.hackerbay.fyipe.FyipeTracker;
+import io.hackerbay.fyipe.model.TrackerOption;
+                                        
+// set up option
+TrackerOption trackerOption = new TrackerOption(50); // set maximum timeline per event
+
+// set up the FyipeTracker
+public FyipeTracker tracker = new FyipeTracker(
+    '${apiUrl ? apiUrl : 'API_URL'}',
+    '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
+    '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
+    trackerOption
+);
+
+public void triggerError() {
+    throw new Exception("Something went wrong"); // calling this will trigger an error and its sent to your fyipe dashboard
+}
+`,
+                },
                 height: {
                     install: '100px',
                     usage: '300px',
