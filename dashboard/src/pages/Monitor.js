@@ -8,7 +8,6 @@ import ComponentSummary from '../components/component/ComponentSummary';
 import NewMonitor from '../components/monitor/NewMonitor';
 import MonitorList from '../components/monitor/MonitorList';
 import ShouldRender from '../components/basic/ShouldRender';
-import IncidentStatus from '../components/incident/IncidentStatus';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMember';
 import { LoadingState } from '../components/basic/Loader';
@@ -24,7 +23,6 @@ import { fetchComponentSummary, fetchComponent } from '../actions/component';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
 import { getProbes } from '../actions/probe';
-import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
@@ -178,7 +176,6 @@ class DashboardView extends Component {
             .map(monitor => monitor.monitors)
             .flat();
 
-        const monitorIds = allMonitors.map(monitor => monitor._id);
         const currentProjectId = currentProject ? currentProject._id : null;
         const currentProjectSlug = currentProject ? currentProject.slug : null;
 
