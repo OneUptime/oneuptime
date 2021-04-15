@@ -38,7 +38,7 @@ deploy_staging_java-sdk:
         refs:
             - master
             - hotfix-master
-            # - feature-error-tracking
+            - feature-error-tracking
     environment:
         name: staging
 
@@ -63,8 +63,8 @@ deploy_production_java-sdk:
         - cd java-sdk
         # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
         # - gpg --list-keys
-        - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys AD260FCA4615DAD557090B1DC928B7479CFDE5A0
-        - gpg --keyserver keyserver.ubuntu.com --send-keys AD260FCA4615DAD557090B1DC928B7479CFDE5A0
+        # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys AD260FCA4615DAD557090B1DC928B7479CFDE5A0
+        # - gpg --keyserver keyserver.ubuntu.com --send-keys AD260FCA4615DAD557090B1DC928B7479CFDE5A0
         - git status
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
         # - git checkout -f master
