@@ -92,10 +92,10 @@ module.exports = {
 
         try {
             // check if domain already exist
+            // only one domain in the db is allowed
             const existingBaseDomain = await DomainVerificationService.findOneBy(
                 {
                     domain: subDomain,
-                    projectId,
                 }
             );
 
