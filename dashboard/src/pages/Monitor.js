@@ -144,7 +144,6 @@ class DashboardView extends Component {
     };
 
     render() {
-        let incidentslist = null;
         const {
             componentId,
             subProjects,
@@ -180,28 +179,6 @@ class DashboardView extends Component {
             .flat();
 
         const monitorIds = allMonitors.map(monitor => monitor._id);
-
-        if (this.props.incidents) {
-            incidentslist = this.props.incidents
-                .filter(incident => monitorIds.includes(incident.monitorId._id))
-                .map((incident, i) => {
-                    return (
-                        <RenderIfUserInSubProject
-                            key={`${incident._id || i}`}
-                            subProjectId={
-                                incident.projectId._id || incident.projectId
-                            }
-                        >
-                            <IncidentStatus
-                                count={i}
-                                incident={incident}
-                                multiple={true}
-                                route={pathname}
-                            />
-                        </RenderIfUserInSubProject>
-                    );
-                });
-        }
         const currentProjectId = currentProject ? currentProject._id : null;
         const currentProjectSlug = currentProject ? currentProject.slug : null;
 
@@ -347,10 +324,6 @@ class DashboardView extends Component {
                                                                 }
                                                             />
                                                         </ShouldRender>
-
-                                                        <div className="Box-root Margin-bottom--12">
-                                                            {incidentslist}
-                                                        </div>
 
                                                         <ShouldRender
                                                             if={
