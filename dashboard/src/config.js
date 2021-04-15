@@ -1390,7 +1390,7 @@ public void triggerError() {
                 },
                 height: {
                     install: '100px',
-                    usage: '300px',
+                    usage: '400px',
                 },
                 logs: {
                     installation: {
