@@ -22,6 +22,7 @@ import { history } from '../store';
 
 const socket = io.connect(API_URL.replace('/api', ''), {
     path: '/api/socket.io',
+    transports: ['websocket', 'polling'],
 });
 
 class ApplicationLog extends Component {

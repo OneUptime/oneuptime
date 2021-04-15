@@ -13,8 +13,8 @@ FYIPE_DB_PASSWORD='password'
 FYIPE_DB_NAME='fyipedb'
 CURRENT_DATE=$(date +%s)
 CURRENT_USER=$(whoami)
-FILE_NAME="fyipe-backup-1613551425"
-FILE_PATH="/Users/${CURRENT_USER}/Documents/backup"
+FILE_NAME="restore-file.archive"
+FILE_PATH="/$CURRENT_USER/db-backup"
 TODAY=`date +"%d%b%Y"`
 
 function HELP (){

@@ -44,13 +44,16 @@ class IncidentLog extends React.Component {
     }
 
     ready = () => {
-        const { componentId, fetchComponent, componentSlug } = this.props;
+        const {
+            componentId,
+            fetchComponent,
+            componentSlug,
+            component,
+        } = this.props;
         fetchComponent(componentSlug);
-        if (componentId) {
-            this.props.getComponentIncidents(
-                this.props.currentProject._id,
-                componentId
-            );
+        if (componentSlug) {
+            const projectId = component.projectId._id;
+            this.props.getComponentIncidents(projectId, componentId);
         } else {
             this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
         }
@@ -67,10 +70,13 @@ class IncidentLog extends React.Component {
         }
 
         if (String(prevProps.componentId) !== String(this.props.componentId)) {
-            this.props.getComponentIncidents(
-                this.props.currentProject._id,
-                this.props.componentId
-            );
+            if (this.props.component && this.props.component.projectId) {
+                const projectId = this.props.component.projectId._id;
+                this.props.getComponentIncidents(
+                    projectId,
+                    this.props.componentId
+                );
+            }
         }
     }
 
@@ -356,7 +362,8 @@ const mapStateToProps = (state, ownProps) => {
         subProjectIncidents: state.incident.incidents.incidents,
         tutorialStat,
         component:
-            state.component && state.component.currentComponent.component,
+            state.component.currentComponent &&
+            state.component.currentComponent.component,
         modalList: state.modal.modals,
         projectId,
         componentSlug,
@@ -404,6 +411,7 @@ IncidentLog.propTypes = {
     component: PropTypes.arrayOf(
         PropTypes.shape({
             name: PropTypes.string,
+            _id: PropTypes.string,
         })
     ),
     fetchIncidentPriorities: PropTypes.func.isRequired,

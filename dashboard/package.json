@@ -79,12 +79,12 @@
         "sane-email-validation": "^1.1.0",
         "should": "^13.2.3",
         "slick-carousel": "^1.8.1",
-        "socket.io-client": "^2.3.0",
+        "socket.io-client": "^2.4.0",
         "to-pascal-case": "^1.0.0",
         "universal-cookie": "^4.0.0",
         "uuid": "^8.3.2",
         "valid-url": "^1.0.9",
-        "workbox-build": "^4.3.1"
+        "workbox-build": "6.1.1"
     },
     "scripts": {
         "lint": "eslint .",

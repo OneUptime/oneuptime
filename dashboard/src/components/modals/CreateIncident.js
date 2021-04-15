@@ -782,7 +782,9 @@ function mapStateToProps(state, props) {
     const components = [];
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
-            components.push(c);
+            if (c.projectId._id === subProjectId) {
+                components.push(c);
+            }
         });
     });
     const monitorsList = [];
@@ -839,6 +841,7 @@ function mapStateToProps(state, props) {
         customFields: state.customField.customFields.fields,
         components,
         componentId,
+        subProjectId,
     };
 }
 

@@ -1,7 +1,7 @@
 /* eslint-disable */
 if ('function' === typeof importScripts) {
     importScripts(
-        'https://storage.googleapis.com/workbox-cdn/releases/6.0.2/workbox-sw.js'
+        'https://storage.googleapis.com/workbox-cdn/releases/6.1.1/workbox-sw.js'
     );
 
     /* global workbox */
@@ -17,9 +17,10 @@ if ('function' === typeof importScripts) {
         cleanupOutdatedCaches();
 
         /* injection point for manifest files.  */
-        precacheAndRoute([], {
-            cleanURLs: false,
-        });
+        // precacheAndRoute([], {
+        //     cleanURLs: false,
+        // });
+        precacheAndRoute(self.__WB_MANIFEST, { cleanUrls: false });
 
         self.addEventListener('push', e => {
             const data = e.data.json();
@@ -29,5 +30,7 @@ if ('function' === typeof importScripts) {
                     'https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1',
             });
         });
+    } else {
+        console.log('Workbox could not be loaded. No Offline support');
     }
 }

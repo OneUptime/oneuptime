@@ -1068,9 +1068,9 @@ module.exports = {
                 const monitorName = monitor.name;
                 const incidentId = `#${incident.idNumber}`;
                 const reason = incident.reason;
-                const componentId = incident.monitorId.componentId._id;
+                const componentSlug = incident.monitorId.componentId.slug;
                 const componentName = incident.monitorId.componentId.name;
-                const incidentUrl = `${global.dashboardHost}/project/${projectId}/${componentId}/incidents/${incident._id}`;
+                const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/${componentSlug}/incidents/${incident.idNumber}`;
                 let incidentSlaTimeline =
                     incidentCommunicationSla.duration * 60;
                 incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
@@ -2448,7 +2448,7 @@ module.exports = {
                         ? monitor.componentId._id
                         : monitor.componentId,
             });
-            const statusUrl = `${global.dashboardHost}/project/${incident.projectId}/${component._id}/incidents/${incident._id}`;
+            const statusUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/${component.slug}/incidents/${incident.idNumber}`;
 
             let statusPageUrl;
             if (statusPage) {
@@ -2668,17 +2668,7 @@ module.exports = {
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
-
-                let unsubscribeUrl;
-                if (statusPageUrl) {
-                    unsubscribeUrl = `${global.statusHost}/status-page/${statusPage._id}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
-                } else {
-                    const statusPage = await StatusPageService.create({
-                        projectId: incident.projectId,
-                    });
-                    unsubscribeUrl = `${global.statusHost}/status-page/${statusPage._id}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
-                }
-
+                const unsubscribeUrl = `${global.homeHost}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
                 let alertStatus = null;
                 try {
                     if (templateType === 'Subscriber Incident Acknowldeged') {
@@ -3409,8 +3399,12 @@ module.exports = {
     sendUnpaidSubscriptionEmail: async function(project, user) {
         try {
             const { name: userName, email: userEmail } = user;
-            const { stripePlanId, _id: projectId, name: projectName } = project;
-            const projectUrl = `${global.dashboardHost}/project/${projectId}`;
+            const {
+                stripePlanId,
+                name: projectName,
+                slug: projectSlug,
+            } = project;
+            const projectUrl = `${global.dashboardHost}/project/${projectSlug}`;
             const projectPlan = getPlanById(stripePlanId);
 
             await MailService.sendUnpaidSubscriptionReminder({
@@ -3441,6 +3435,886 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('AlertService.sendUnpaidSubscriptionEmail', error);
+            throw error;
+        }
+    },
+    sendCreatedScheduledEventToSubscribers: async function(schedule) {
+        try {
+            const _this = this;
+            const uuid = new Date().getTime();
+            if (schedule) {
+                for (const monitor of schedule.monitors) {
+                    const component = monitor.monitorId.componentId.name;
+                    const subscribers = await SubscriberService.subscribersForAlert(
+                        {
+                            monitorId: monitor.monitorId._id,
+                        }
+                    );
+
+                    for (const subscriber of subscribers) {
+                        await _this.sendSubscriberScheduledEventAlert(
+                            subscriber,
+                            schedule,
+                            'Subscriber Scheduled Maintenance',
+                            component,
+                            subscribers.length,
+                            uuid
+                        );
+                    }
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendCreatedScheduledEventToSubscribers',
+                error
+            );
+            throw error;
+        }
+    },
+    sendResolvedScheduledEventToSubscribers: async function(schedule) {
+        try {
+            const _this = this;
+            const uuid = new Date().getTime();
+            if (schedule) {
+                for (const monitor of schedule.monitors) {
+                    const component = monitor.monitorId.componentId.name;
+                    const subscribers = await SubscriberService.subscribersForAlert(
+                        {
+                            monitorId: monitor.monitorId._id,
+                        }
+                    );
+
+                    for (const subscriber of subscribers) {
+                        await _this.sendSubscriberScheduledEventAlert(
+                            subscriber,
+                            schedule,
+                            'Subscriber Scheduled Maintenance Resolved',
+                            component,
+                            subscribers.length,
+                            uuid
+                        );
+                    }
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendResolvedScheduledEventToSubscribers',
+                error
+            );
+            throw error;
+        }
+    },
+    sendScheduledEventInvestigationNoteToSubscribers: async function(message) {
+        try {
+            const _this = this;
+            const uuid = new Date().getTime();
+            if (message) {
+                for (const monitor of message.scheduledEventId.monitors) {
+                    const subscribers = await SubscriberService.subscribersForAlert(
+                        {
+                            monitorId: monitor.monitorId._id,
+                        }
+                    );
+                    const totalSubscribers = subscribers.length;
+
+                    for (const subscriber of subscribers) {
+                        const projectId =
+                            message.scheduledEventId.projectId._id;
+
+                        const project = await ProjectService.findOneBy({
+                            _id: projectId,
+                        });
+
+                        if (subscriber.alertVia === AlertType.Email) {
+                            const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
+                                {
+                                    name: 'smtp',
+                                }
+                            );
+
+                            const investigationNoteNotificationEmailDisabled = !project.enableInvestigationNoteNotificationEmail;
+
+                            const areEmailAlertsEnabledInGlobalSettings =
+                                hasGlobalSmtpSettings &&
+                                hasGlobalSmtpSettings.value &&
+                                hasGlobalSmtpSettings.value['email-enabled']
+                                    ? true
+                                    : false;
+                            const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
+                                projectId
+                            );
+                            const emailTemplate = await EmailTemplateService.findOneBy(
+                                {
+                                    projectId,
+                                    emailType:
+                                        'Scheduled Maintenance Event Note',
+                                }
+                            );
+
+                            let errorMessageText = null;
+
+                            if (
+                                (!areEmailAlertsEnabledInGlobalSettings &&
+                                    !hasCustomSmtpSettings) ||
+                                investigationNoteNotificationEmailDisabled
+                            ) {
+                                if (
+                                    !hasGlobalSmtpSettings &&
+                                    !hasCustomSmtpSettings
+                                ) {
+                                    errorMessageText =
+                                        'SMTP Settings not found on Admin Dashboard';
+                                } else if (
+                                    hasGlobalSmtpSettings &&
+                                    !areEmailAlertsEnabledInGlobalSettings
+                                ) {
+                                    errorMessageText =
+                                        'Alert Disabled on Admin Dashboard';
+                                } else if (
+                                    investigationNoteNotificationEmailDisabled
+                                ) {
+                                    errorMessageText =
+                                        'Investigation Note Email Notification Disabled';
+                                }
+                                return await SubscriberAlertService.create({
+                                    projectId,
+                                    subscriberId: subscriber._id,
+                                    alertVia: AlertType.SMS,
+                                    eventType:
+                                        'Scheduled maintenance note created',
+                                    alertStatus: null,
+                                    error: true,
+                                    errorMessage: errorMessageText,
+                                    totalSubscribers,
+                                    uuid,
+                                });
+                            }
+
+                            const subscriberAlert = await SubscriberAlertService.create(
+                                {
+                                    projectId,
+                                    subscriberId: subscriber._id,
+                                    alertVia: AlertType.Email,
+                                    alertStatus: 'Pending',
+                                    eventType:
+                                        'Scheduled maintenance note created',
+                                    totalSubscribers: subscribers.length,
+                                    uuid,
+                                }
+                            );
+                            const alertId = subscriberAlert._id;
+
+                            let alertStatus = null;
+                            try {
+                                const createdBy = message.createdById
+                                    ? message.createdById.name
+                                    : 'Fyipe';
+
+                                const replyAddress = message.scheduledEventId
+                                    .projectId.replyAddress
+                                    ? message.scheduledEventId.projectId
+                                          .replyAddress
+                                    : null;
+
+                                await MailService.sendScheduledEventNoteMailToSubscriber(
+                                    message.scheduledEventId.name,
+                                    message.event_state,
+                                    message.content,
+                                    subscriber.contactEmail,
+                                    subscriber.contactEmail,
+                                    createdBy,
+                                    emailTemplate,
+                                    replyAddress,
+                                    project.name,
+                                    monitor.name,
+                                    projectId
+                                );
+                                alertStatus = 'Sent';
+                                await SubscriberAlertService.updateOneBy(
+                                    { _id: alertId },
+                                    { alertStatus }
+                                );
+                            } catch (error) {
+                                await SubscriberAlertService.updateOneBy(
+                                    { _id: alertId },
+                                    { alertStatus: null }
+                                );
+                                throw error;
+                            }
+                        } else if (subscriber.alertVia === AlertType.SMS) {
+                            try {
+                                let owner;
+                                const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
+                                    {
+                                        name: 'twilio',
+                                    }
+                                );
+                                const areAlertsEnabledGlobally =
+                                    hasGlobalTwilioSettings &&
+                                    hasGlobalTwilioSettings.value &&
+                                    hasGlobalTwilioSettings.value['sms-enabled']
+                                        ? true
+                                        : false;
+
+                                const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
+                                    projectId
+                                );
+
+                                const investigationNoteNotificationSMSDisabled = !project.enableInvestigationNoteNotificationSMS;
+
+                                const eventType =
+                                    'Scheduled maintenance note created';
+                                const templateType =
+                                    'Subscriber Scheduled Maintenance Note';
+
+                                if (
+                                    (!hasCustomTwilioSettings &&
+                                        ((IS_SAAS_SERVICE &&
+                                            (!project.alertEnable ||
+                                                !areAlertsEnabledGlobally)) ||
+                                            (!IS_SAAS_SERVICE &&
+                                                !areAlertsEnabledGlobally))) ||
+                                    investigationNoteNotificationSMSDisabled
+                                ) {
+                                    let errorMessageText;
+                                    if (!hasGlobalTwilioSettings) {
+                                        errorMessageText =
+                                            'Twilio Settings not found on Admin Dashboard';
+                                    } else if (!areAlertsEnabledGlobally) {
+                                        errorMessageText =
+                                            'Alert Disabled on Admin Dashboard';
+                                    } else if (
+                                        IS_SAAS_SERVICE &&
+                                        !project.alertEnable
+                                    ) {
+                                        errorMessageText =
+                                            'Alert Disabled for this project';
+                                    } else if (
+                                        investigationNoteNotificationSMSDisabled
+                                    ) {
+                                        errorMessageText =
+                                            'Investigation Note SMS Notification Disabled';
+                                    } else {
+                                        errorMessageText = 'Error';
+                                    }
+
+                                    return await SubscriberAlertService.create({
+                                        projectId,
+                                        subscriberId: subscriber._id,
+                                        alertVia: AlertType.SMS,
+                                        alertStatus: null,
+                                        error: true,
+                                        errorMessage: errorMessageText,
+                                        eventType,
+                                        totalSubscribers,
+                                        uuid,
+                                    });
+                                }
+                                const countryCode = await _this.mapCountryShortNameToCountryCode(
+                                    subscriber.countryCode
+                                );
+                                let contactPhone = subscriber.contactPhone;
+                                if (countryCode) {
+                                    contactPhone = countryCode + contactPhone;
+                                }
+
+                                if (
+                                    IS_SAAS_SERVICE &&
+                                    !hasCustomTwilioSettings
+                                ) {
+                                    owner = project.users.filter(
+                                        user => user.role === 'Owner'
+                                    )[0];
+                                    const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                                        projectId,
+                                        contactPhone
+                                    );
+                                    if (
+                                        !doesPhoneNumberComplyWithHighRiskConfig
+                                    ) {
+                                        const countryType = getCountryType(
+                                            contactPhone
+                                        );
+                                        let errorMessageText;
+                                        if (countryType === 'us') {
+                                            errorMessageText =
+                                                'SMS for numbers inside US not enabled for this project';
+                                        } else if (countryType === 'non-us') {
+                                            errorMessageText =
+                                                'SMS for numbers outside US not enabled for this project';
+                                        } else {
+                                            errorMessageText =
+                                                'SMS to High Risk country not enabled for this project';
+                                        }
+
+                                        return await SubscriberAlertService.create(
+                                            {
+                                                projectId: projectId,
+                                                subscriberId: subscriber._id,
+                                                alertVia: AlertType.SMS,
+                                                alertStatus: null,
+                                                error: true,
+                                                errorMessage: errorMessageText,
+                                                eventType: eventType,
+                                                totalSubscribers,
+                                                uuid,
+                                            }
+                                        );
+                                    }
+
+                                    const status = await PaymentService.checkAndRechargeProjectBalance(
+                                        project,
+                                        owner.userId,
+                                        contactPhone,
+                                        AlertType.SMS
+                                    );
+
+                                    if (!status.success) {
+                                        return await SubscriberAlertService.create(
+                                            {
+                                                projectId,
+                                                subscriberId: subscriber._id,
+                                                alertVia: AlertType.SMS,
+                                                alertStatus: null,
+                                                error: true,
+                                                errorMessage: status.message,
+                                                eventType: eventType,
+                                                totalSubscribers,
+                                                uuid,
+                                            }
+                                        );
+                                    }
+                                }
+
+                                let sendResult;
+                                const smsTemplate = await SmsTemplateService.findOneBy(
+                                    {
+                                        projectId,
+                                        smsType: templateType,
+                                    }
+                                );
+                                const subscriberAlert = await SubscriberAlertService.create(
+                                    {
+                                        projectId,
+                                        subscriberId: subscriber._id,
+                                        alertVia: AlertType.SMS,
+                                        alertStatus: 'Pending',
+                                        eventType: eventType,
+                                        totalSubscribers,
+                                        uuid,
+                                    }
+                                );
+                                const alertId = subscriberAlert._id;
+
+                                let alertStatus = null;
+                                try {
+                                    if (
+                                        project.sendAcknowledgedIncidentNotificationSms
+                                    ) {
+                                        sendResult = await TwilioService.sendScheduledMaintenanceNoteCreatedToSubscriber(
+                                            contactPhone,
+                                            smsTemplate,
+                                            message.scheduledEventId.name,
+                                            message,
+                                            project.name,
+                                            projectId
+                                        );
+                                        alertStatus = 'Success';
+                                    } else {
+                                        alertStatus = 'Disabled';
+                                    }
+
+                                    if (
+                                        sendResult &&
+                                        sendResult.code &&
+                                        sendResult.code === 400
+                                    ) {
+                                        await SubscriberAlertService.updateBy(
+                                            { _id: alertId },
+                                            {
+                                                alertStatus: null,
+                                                error: true,
+                                                errorMessage:
+                                                    sendResult.message,
+                                            }
+                                        );
+                                    } else {
+                                        await SubscriberAlertService.updateBy(
+                                            { _id: alertId },
+                                            {
+                                                alertStatus,
+                                            }
+                                        );
+                                        if (
+                                            alertStatus === 'Success' &&
+                                            IS_SAAS_SERVICE &&
+                                            !hasCustomTwilioSettings
+                                        ) {
+                                            // charge sms per 160 chars
+                                            const segments = calcSmsSegments(
+                                                sendResult.body
+                                            );
+                                            const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
+                                                owner.userId,
+                                                project,
+                                                AlertType.SMS,
+                                                contactPhone,
+                                                segments
+                                            );
+
+                                            if (!balanceStatus.error) {
+                                                await AlertChargeService.create(
+                                                    projectId,
+                                                    balanceStatus.chargeAmount,
+                                                    balanceStatus.closingBalance,
+                                                    null,
+                                                    null,
+                                                    null,
+                                                    contactPhone,
+                                                    alertId
+                                                );
+                                            }
+                                        }
+                                    }
+                                } catch (error) {
+                                    await SubscriberAlertService.updateBy(
+                                        { _id: alertId },
+                                        {
+                                            alertStatus: null,
+                                            error: true,
+                                            errorMessage: error.message,
+                                        }
+                                    );
+                                    throw error;
+                                }
+                            } catch (error) {
+                                ErrorService.log(
+                                    'alertService.sendScheduledEventInvestigationNoteToSubscribers',
+                                    error
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendScheduledEventInvestigationNoteToSubscribers',
+                error
+            );
+            throw error;
+        }
+    },
+
+    sendSubscriberScheduledEventAlert: async function(
+        subscriber,
+        schedule,
+        templateType = 'Subscriber Scheduled Maintenance',
+        componentName,
+        totalSubscribers,
+        id
+    ) {
+        try {
+            const _this = this;
+            const date = new Date();
+            const projectName = schedule.projectId.name;
+            const projectId = schedule.projectId._id;
+            const project = await ProjectService.findOneBy({
+                _id: projectId,
+            });
+
+            if (subscriber.alertVia === AlertType.Email) {
+                const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
+                    {
+                        name: 'smtp',
+                    }
+                );
+                const areEmailAlertsEnabledInGlobalSettings =
+                    hasGlobalSmtpSettings &&
+                    hasGlobalSmtpSettings.value &&
+                    hasGlobalSmtpSettings.value['email-enabled']
+                        ? true
+                        : false;
+                const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
+                    projectId
+                );
+
+                const investigationNoteNotificationEmailDisabled = !project.enableInvestigationNoteNotificationEmail;
+
+                const emailTemplate = await EmailTemplateService.findOneBy({
+                    projectId,
+                    emailType: templateType,
+                });
+
+                const eventType =
+                    templateType === 'Subscriber Scheduled Maintenance'
+                        ? 'Scheduled maintenance created'
+                        : 'Scheduled maintenance resolved';
+                let errorMessageText;
+                if (
+                    (!areEmailAlertsEnabledInGlobalSettings &&
+                        !hasCustomSmtpSettings) ||
+                    investigationNoteNotificationEmailDisabled
+                ) {
+                    if (!hasGlobalSmtpSettings && !hasCustomSmtpSettings) {
+                        errorMessageText =
+                            'SMTP Settings not found on Admin Dashboard';
+                    } else if (
+                        hasGlobalSmtpSettings &&
+                        !areEmailAlertsEnabledInGlobalSettings
+                    ) {
+                        errorMessageText = 'Alert Disabled on Admin Dashboard';
+                    } else if (investigationNoteNotificationEmailDisabled) {
+                        errorMessageText =
+                            'Investigation Note Email Notification Disabled';
+                    }
+                    return await SubscriberAlertService.create({
+                        projectId,
+                        subscriberId: subscriber._id,
+                        alertVia: AlertType.Email,
+                        eventType: eventType,
+                        alertStatus: null,
+                        error: true,
+                        errorMessage: errorMessageText,
+                        totalSubscribers,
+                        id,
+                    });
+                }
+
+                const subscriberAlert = await SubscriberAlertService.create({
+                    projectId,
+                    subscriberId: subscriber._id,
+                    alertVia: AlertType.Email,
+                    alertStatus: 'Pending',
+                    eventType,
+                    totalSubscribers,
+                    id,
+                });
+                const alertId = subscriberAlert._id;
+
+                let alertStatus = null;
+                try {
+                    if (templateType === 'Subscriber Scheduled Maintenance') {
+                        await MailService.sendScheduledEventMailToSubscriber(
+                            date,
+                            subscriber.monitorName,
+                            subscriber.contactEmail,
+                            subscriber._id,
+                            subscriber.contactEmail,
+                            schedule,
+                            projectName,
+                            emailTemplate,
+                            componentName,
+                            project.replyAddress
+                        );
+
+                        alertStatus = 'Sent';
+                    } else if (
+                        templateType ===
+                        'Subscriber Scheduled Maintenance Resolved'
+                    ) {
+                        await MailService.sendResolvedScheduledEventMailToSubscriber(
+                            date,
+                            subscriber.monitorName,
+                            subscriber.contactEmail,
+                            subscriber._id,
+                            subscriber.contactEmail,
+                            schedule,
+                            projectName,
+                            emailTemplate,
+                            componentName,
+                            project.replyAddress
+                        );
+
+                        alertStatus = 'Sent';
+                    }
+
+                    await SubscriberAlertService.updateOneBy(
+                        { _id: alertId },
+                        { alertStatus }
+                    );
+                } catch (error) {
+                    await SubscriberAlertService.updateOneBy(
+                        { _id: alertId },
+                        { alertStatus: null }
+                    );
+                    throw error;
+                }
+            } else if (subscriber.alertVia === AlertType.SMS) {
+                try {
+                    let owner;
+                    const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
+                        {
+                            name: 'twilio',
+                        }
+                    );
+                    const areAlertsEnabledGlobally =
+                        hasGlobalTwilioSettings &&
+                        hasGlobalTwilioSettings.value &&
+                        hasGlobalTwilioSettings.value['sms-enabled']
+                            ? true
+                            : false;
+
+                    const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
+                        projectId
+                    );
+
+                    const investigationNoteNotificationSMSDisabled = !project.enableInvestigationNoteNotificationSMS;
+
+                    const eventType =
+                        templateType === 'Subscriber Scheduled Maintenance'
+                            ? 'Scheduled maintenance created'
+                            : 'Scheduled maintenance resolved';
+                    if (
+                        (!hasCustomTwilioSettings &&
+                            ((IS_SAAS_SERVICE &&
+                                (!project.alertEnable ||
+                                    !areAlertsEnabledGlobally)) ||
+                                (!IS_SAAS_SERVICE &&
+                                    !areAlertsEnabledGlobally))) ||
+                        investigationNoteNotificationSMSDisabled
+                    ) {
+                        let errorMessageText;
+                        if (!hasGlobalTwilioSettings) {
+                            errorMessageText =
+                                'Twilio Settings not found on Admin Dashboard';
+                        } else if (!areAlertsEnabledGlobally) {
+                            errorMessageText =
+                                'Alert Disabled on Admin Dashboard';
+                        } else if (IS_SAAS_SERVICE && !project.alertEnable) {
+                            errorMessageText =
+                                'Alert Disabled for this project';
+                        } else if (investigationNoteNotificationSMSDisabled) {
+                            errorMessageText =
+                                'Investigation Note SMS Notification Disabled';
+                        } else {
+                            errorMessageText = 'Error';
+                        }
+
+                        return await SubscriberAlertService.create({
+                            projectId,
+                            subscriberId: subscriber._id,
+                            alertVia: AlertType.SMS,
+                            alertStatus: null,
+                            error: true,
+                            errorMessage: errorMessageText,
+                            eventType,
+                            totalSubscribers,
+                            id,
+                        });
+                    }
+                    const countryCode = await _this.mapCountryShortNameToCountryCode(
+                        subscriber.countryCode
+                    );
+                    let contactPhone = subscriber.contactPhone;
+                    if (countryCode) {
+                        contactPhone = countryCode + contactPhone;
+                    }
+
+                    if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                        owner = project.users.filter(
+                            user => user.role === 'Owner'
+                        )[0];
+                        const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                            projectId,
+                            contactPhone
+                        );
+                        if (!doesPhoneNumberComplyWithHighRiskConfig) {
+                            const countryType = getCountryType(contactPhone);
+                            let errorMessageText;
+                            if (countryType === 'us') {
+                                errorMessageText =
+                                    'SMS for numbers inside US not enabled for this project';
+                            } else if (countryType === 'non-us') {
+                                errorMessageText =
+                                    'SMS for numbers outside US not enabled for this project';
+                            } else {
+                                errorMessageText =
+                                    'SMS to High Risk country not enabled for this project';
+                            }
+                            return await SubscriberAlertService.create({
+                                projectId: projectId,
+                                subscriberId: subscriber._id,
+                                alertVia: AlertType.SMS,
+                                alertStatus: null,
+                                error: true,
+                                errorMessage: errorMessageText,
+                                eventType: eventType,
+                                totalSubscribers,
+                                id,
+                            });
+                        }
+
+                        const status = await PaymentService.checkAndRechargeProjectBalance(
+                            project,
+                            owner.userId,
+                            contactPhone,
+                            AlertType.SMS
+                        );
+
+                        if (!status.success) {
+                            return await SubscriberAlertService.create({
+                                projectId,
+                                subscriberId: subscriber._id,
+                                alertVia: AlertType.SMS,
+                                alertStatus: null,
+                                error: true,
+                                errorMessage: status.message,
+                                eventType: eventType,
+                                totalSubscribers,
+                                id,
+                            });
+                        }
+                    }
+
+                    let sendResult;
+                    const smsTemplate = await SmsTemplateService.findOneBy({
+                        projectId,
+                        smsType: templateType,
+                    });
+                    const subscriberAlert = await SubscriberAlertService.create(
+                        {
+                            projectId,
+                            subscriberId: subscriber._id,
+                            alertVia: AlertType.SMS,
+                            alertStatus: 'Pending',
+                            eventType: eventType,
+                            totalSubscribers,
+                            id,
+                        }
+                    );
+                    const alertId = subscriberAlert._id;
+
+                    let alertStatus = null;
+                    try {
+                        if (
+                            templateType === 'Subscriber Scheduled Maintenance'
+                        ) {
+                            if (
+                                project.sendAcknowledgedIncidentNotificationSms
+                            ) {
+                                sendResult = await TwilioService.sendScheduledMaintenanceCreatedToSubscriber(
+                                    date,
+                                    contactPhone,
+                                    smsTemplate,
+                                    schedule,
+                                    project.name,
+                                    projectId
+                                );
+                                alertStatus = 'Success';
+                            } else {
+                                alertStatus = 'Disabled';
+                            }
+                        } else if (
+                            templateType ===
+                            'Subscriber Scheduled Maintenance Resolved'
+                        ) {
+                            if (project.sendResolvedIncidentNotificationSms) {
+                                sendResult = await TwilioService.sendScheduledMaintenanceResolvedToSubscriber(
+                                    date,
+                                    contactPhone,
+                                    smsTemplate,
+                                    schedule,
+                                    project.name,
+                                    projectId
+                                );
+                                alertStatus = 'Success';
+                            } else {
+                                alertStatus = 'Disabled';
+                            }
+                        } else if (
+                            templateType == 'Investigation note is created'
+                        ) {
+                            sendResult = await TwilioService.sendInvestigationNoteToSubscribers(
+                                date,
+                                subscriber.monitorName,
+                                contactPhone,
+                                smsTemplate,
+                                null,
+                                project.name,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null
+                            );
+                            alertStatus = 'Success';
+                        }
+
+                        if (
+                            sendResult &&
+                            sendResult.code &&
+                            sendResult.code === 400
+                        ) {
+                            await SubscriberAlertService.updateBy(
+                                { _id: alertId },
+                                {
+                                    alertStatus: null,
+                                    error: true,
+                                    errorMessage: sendResult.message,
+                                }
+                            );
+                        } else {
+                            await SubscriberAlertService.updateBy(
+                                { _id: alertId },
+                                {
+                                    alertStatus,
+                                }
+                            );
+                            if (
+                                alertStatus === 'Success' &&
+                                IS_SAAS_SERVICE &&
+                                !hasCustomTwilioSettings
+                            ) {
+                                // charge sms per 160 chars
+                                const segments = calcSmsSegments(
+                                    sendResult.body
+                                );
+                                const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
+                                    owner.userId,
+                                    project,
+                                    AlertType.SMS,
+                                    contactPhone,
+                                    segments
+                                );
+
+                                if (!balanceStatus.error) {
+                                    await AlertChargeService.create(
+                                        projectId,
+                                        balanceStatus.chargeAmount,
+                                        balanceStatus.closingBalance,
+                                        null,
+                                        null,
+                                        null,
+                                        contactPhone,
+                                        alertId
+                                    );
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        await SubscriberAlertService.updateBy(
+                            { _id: alertId },
+                            {
+                                alertStatus: null,
+                                error: true,
+                                errorMessage: error.message,
+                            }
+                        );
+                        throw error;
+                    }
+                } catch (error) {
+                    ErrorService.log(
+                        'alertService.sendSubscriberScheduledEventAlert',
+                        error
+                    );
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendSubscriberScheduledEventAlert',
+                error
+            );
             throw error;
         }
     },

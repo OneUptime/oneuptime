@@ -34,6 +34,8 @@ spec:
                         value: 'true'
                       - name: NODE_ENV
                         value: 'production'
+                      - name: FYIPE_HOST
+                        value: {{ .Values.fyipe.hosts.host1.host }}
                   ports:
                       - containerPort: {{ .Values.host.homePort }}
                         hostPort: {{ .Values.host.homePort }}

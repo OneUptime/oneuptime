@@ -226,6 +226,14 @@ module.exports = {
         await page.reload();
         await page.waitForTimeout(3000);
     },
+    saasLogout: async function(page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('button#profile-menu', { visible: true });
+        await page.click('button#profile-menu');
+        await page.waitForSelector('button#logout-button');
+        await page.click('button#logout-button');
+        await page.reload({ waitUntil: 'networkidle0' });
+    },
     selectByText: async function(selector, text, page) {
         await page.click(selector, { delay: 100 });
         await page.keyboard.type(text);
@@ -233,5 +241,18 @@ module.exports = {
         if (!noOption) {
             await page.keyboard.type(String.fromCharCode(13));
         }
+    },
+    clear: async function(selector, page) {
+        const input = await page.$(selector);
+        await input.click({ clickCount: 3 });
+        await input.type('');
+    },
+    renameProject: async function(newProjectName, page) {                
+            await page.waitForSelector('#projectSettings');
+            await page.click('#projectSettings');
+            await page.waitForSelector('input[name=project_name]');
+            await this.clear('input[name=project_name]', page);
+            await page.type('input[name=project_name]', newProjectName);
+            await page.click('#btnCreateProject');        
     },
 };

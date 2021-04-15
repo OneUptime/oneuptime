@@ -25,6 +25,7 @@ import { history } from '../store';
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
 const socket = io.connect(API_URL.replace('/api', ''), {
     path: '/api/socket.io',
+    transports: ['websocket', 'polling'],
 });
 class Container extends Component {
     constructor(props) {
@@ -45,12 +46,13 @@ class Container extends Component {
             getContainerSecurities,
             getContainerSecurityLogs,
         } = this.props;
+        if (projectId && componentId) {
+            // load container security logs
+            getContainerSecurityLogs({ projectId, componentId });
 
-        // load container security logs
-        getContainerSecurityLogs({ projectId, componentId });
-
-        // load container security
-        getContainerSecurities({ projectId, componentId });
+            // load container security
+            getContainerSecurities({ projectId, componentId });
+        }
     };
 
     render() {

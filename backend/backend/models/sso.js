@@ -10,7 +10,11 @@ const ssoSchema = new Schema({
         type: String,
         required: true,
     },
-    samlSsoUrl: {
+    entityId: {
+        type: String,
+        required: true,
+    },
+    remoteLoginUrl: {
         type: String,
         required: true,
     },
