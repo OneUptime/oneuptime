@@ -40,6 +40,7 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
         REACT_APP_BACKEND_PROTOCOL,
         REACT_APP_STATUSPAGE_CERT: process.env.STATUSPAGE_CERT,
         REACT_APP_STATUSPAGE_PRIVATEKEY: process.env.STATUSPAGE_PRIVATEKEY,
+        REACT_APP_BACKEND_URL: process.env.BACKEND_URL,
     };
 
     res.contentType('application/javascript');
@@ -71,8 +72,8 @@ app.use(async function(req, res, next) {
     ) {
         return next();
     }
-    if (process.env.FYIPE_HOST) {
-        apiHost = 'https://' + process.env.FYIPE_HOST + '/api';
+    if (process.env.BACKEND_URL) {
+        apiHost = process.env.BACKEND_URL;
     } else {
         apiHost = 'http://localhost:3002/api';
     }
