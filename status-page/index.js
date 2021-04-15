@@ -73,7 +73,7 @@ app.use(async function(req, res, next) {
         return next();
     }
     if (process.env.BACKEND_URL) {
-        apiHost = process.env.BACKEND_URL;
+        apiHost = 'http://' + process.env.BACKEND_URL + '/api';
     } else {
         apiHost = 'http://localhost:3002/api';
     }
