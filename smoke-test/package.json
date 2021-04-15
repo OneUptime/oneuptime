@@ -4,7 +4,7 @@
     "description": "Smoke tests for fyipe",
     "main": "index.test.js",
     "scripts": {
-        "test": "jest --forceExit --runInBand ./status-page.test.js",
+        "test": "jest --forceExit --runInBand ./*.test.js",
         "enterprise-test": "jest --forceExit --runInBand ./*.test.enterprise.js"
     },
     "keywords": [],
