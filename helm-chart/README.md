@@ -31,6 +31,7 @@ helm install -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saa
 Staging:
 
 ```
+kubectl config set-context do-nyc1-fyipe-staging
 helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
 ```
 
@@ -39,6 +40,7 @@ Use default values first and then use staging values.
 Production:
 
 ```
+kubectl config set-context do-nyc3-fyipe-production
 helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe
 ```
 
