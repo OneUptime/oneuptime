@@ -425,17 +425,17 @@ class MonitorInfo extends Component {
             subheading.color = `rgba(${colors.subheading.r}, ${colors.subheading.g}, ${colors.subheading.b}, ${colors.subheading.a})`;
             primaryText.color = `rgba(${colors.primaryText.r}, ${colors.primaryText.g}, ${colors.primaryText.b}, ${colors.primaryText.a})`;
             if (monitorStatus === 'degraded') {
-                status.backgroundColor = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`; // "degraded-status";
-                status.font = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`; // "degraded-status";
+                status.backgroundColor = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b}, ${colors.degraded.a})`; // "degraded-status";
+                status.font = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b}, ${colors.degraded.a})`; // "degraded-status";
             } else if (monitorStatus === 'online') {
-                status.backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`; // "online-status";
-                status.font = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`; // "online-status";
+                status.backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b}, ${colors.uptime.a})`; // "online-status";
+                status.font = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b}, ${colors.uptime.a})`; // "online-status";
             } else if (monitorStatus === 'offline') {
-                status.backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`; // "red-downtime";
-                status.font = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`; // "red-downtime";
+                status.backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b}, ${colors.downtime.a})`; // "red-downtime";
+                status.font = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b}, ${colors.downtime.a})`; // "red-downtime";
             } else {
-                status.backgroundColor = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b})`; // "grey-disabled";
-                status.font = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b})`; // "grey-disabled";
+                status.backgroundColor = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b}, ${colors.disabled.a})`; // "grey-disabled";
+                status.font = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b}, ${colors.disabled.a})`; // "grey-disabled";
             }
         }
 
@@ -468,6 +468,7 @@ class MonitorInfo extends Component {
                                                     paddingRight: '0px',
                                                     ...subheading,
                                                 }}
+                                                id={`monitor-${monitor.name}`}
                                             >
                                                 {monitor.name}
                                             </span>
@@ -494,8 +495,14 @@ class MonitorInfo extends Component {
                             <div
                                 style={{
                                     color:
-                                        status.font === 'rgba(108, 219, 86)'
-                                            ? 'rgb(73, 195, 177)'
+                                        status.font === 'rgba(108, 219, 86, 1)'
+                                            ? '#49c3b1'
+                                            : status.font ===
+                                              'rgba(250, 109, 70, 1)'
+                                            ? '#FA6D46'
+                                            : status.font ===
+                                              'rgba(255, 222, 36, 1)'
+                                            ? '#e39f48'
                                             : status.font,
                                     textTransform: 'capitalize',
                                 }}

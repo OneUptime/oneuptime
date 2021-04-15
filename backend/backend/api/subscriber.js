@@ -64,6 +64,8 @@ router.post('/:projectId/:statusPageId', async function(req, res) {
                     message: 'Email address is not in string format.',
                 });
             }
+
+            data.contactEmail = body.userDetails.email;
         } else if (body.userDetails.method === 'sms') {
             if (!body.userDetails.phone_number) {
                 return sendErrorResponse(req, res, {
@@ -98,6 +100,9 @@ router.post('/:projectId/:statusPageId', async function(req, res) {
                     message: 'country code is not in string format.',
                 });
             }
+
+            data.contactPhone = body.userDetails.phone_number;
+            data.countryCode = body.userDetails.country;
         } else if (body.userDetails.method === 'webhook') {
             if (!body.userDetails.endpoint) {
                 return sendErrorResponse(req, res, {
@@ -132,15 +137,13 @@ router.post('/:projectId/:statusPageId', async function(req, res) {
                     message: 'Email address is not in string format.',
                 });
             }
+
+            data.contactWebhook = body.userDetails.endpoint;
+            data.contactEmail = body.userDetails.email;
         }
 
         const monitors = body.monitors;
         data.alertVia = body.userDetails.method;
-        data.contactEmail = body.userDetails.email || null;
-        data.contactPhone = body.userDetails.phone_number || null;
-        data.countryCode = body.userDetails.country || null;
-        data.contactWebhook = body.userDetails.endpoint || null;
-        data.monitorId = '';
 
         const subscriber = await SubscriberService.subscribe(data, monitors);
         return sendItemResponse(req, res, subscriber);

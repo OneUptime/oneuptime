@@ -33,7 +33,7 @@
         "redux-thunk": "^2.2.0",
         "sane-email-validation": "^1.1.0",
         "serve": "^11.3.2",
-        "socket.io-client": "^2.3.0",
+        "socket.io-client": "^2.4.0",
         "stripe": "^6.36.0",
         "valid-url": "^1.0.9",
         "webpack": "^5.24.2"

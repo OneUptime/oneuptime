@@ -31,7 +31,7 @@ const path = require('path');
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, {
     path: '/api/socket.io',
-    transports: ['websocket'], // using websocket does not require sticky session
+    transports: ['websocket', 'polling'], // using websocket does not require sticky session
 });
 const redisAdapter = require('socket.io-redis');
 const bodyParser = require('body-parser');

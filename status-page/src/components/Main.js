@@ -285,8 +285,10 @@ class Main extends Component {
         const probes = this.props.probes;
         let view = false;
         let status = '';
+        let newbg = '';
         let serviceStatus = '';
-        let statusMessage = '';
+        let statusMessage = '',
+            newStatusMessage = '';
         let faviconurl = '';
         let isGroupedByMonitorCategory = false;
         const error = this.renderError();
@@ -312,23 +314,7 @@ class Main extends Component {
                 this.props.monitorState.filter(m => m.disabled);
             disabled =
                 disabledMonitors && disabledMonitors.length ? true : false;
-            if (serviceStatus === 'all') {
-                status = 'status-bubble status-up';
-                statusMessage = 'All services are online';
-                faviconurl = '/status-page/greenfavicon.ico';
-            } else if (serviceStatus === 'some') {
-                status = 'status-bubble status-down';
-                statusMessage = 'Some services are offline';
-                faviconurl = '/status-page/redfavicon.ico';
-            } else if (serviceStatus === 'none') {
-                status = 'status-bubble status-down';
-                statusMessage = 'All services are offline';
-                faviconurl = '/status-page/redfavicon.ico';
-            } else if (serviceStatus === 'some-degraded') {
-                status = 'status-bubble status-paused';
-                statusMessage = 'Some services are degraded';
-                faviconurl = '/status-page/yellowfavicon.ico';
-            }
+
             view = true;
 
             heading = {
@@ -344,25 +330,63 @@ class Main extends Component {
             };
 
             downtimeColor = {
-                backgroundColor: `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`,
+                backgroundColor: `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b}, ${colors.downtime.a})`,
             };
 
             uptimeColor = {
-                backgroundColor: `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`,
+                backgroundColor: `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b}, ${colors.uptime.a})`,
             };
 
             degradedColor = {
-                backgroundColor: `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`,
+                backgroundColor: `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b}, ${colors.degraded.a})`,
             };
 
             if (colors.disabled) {
                 disabledColor = {
-                    backgroundColor: `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b})`,
+                    backgroundColor: `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b}, ${colors.disabled.a})`,
                 };
             } else {
                 disabledColor = {
-                    backgroundColor: `rgba(201, 201, 201)`,
+                    backgroundColor: `rgba(201, 201, 201, 1)`,
                 };
+            }
+
+            if (serviceStatus === 'all') {
+                status = 'status-bubble status-up';
+                statusMessage = 'All services are online';
+                faviconurl = '/status-page/greenfavicon.ico';
+                newStatusMessage = 'All resources are operational';
+                newbg =
+                    uptimeColor.backgroundColor === 'rgba(108, 219, 86, 1)'
+                        ? '#49c3b1'
+                        : uptimeColor.backgroundColor;
+            } else if (serviceStatus === 'some') {
+                status = 'status-bubble status-down';
+                statusMessage = 'Some services are offline';
+                faviconurl = '/status-page/redfavicon.ico';
+                newStatusMessage = 'Some resources are offline';
+                newbg =
+                    downtimeColor.backgroundColor === 'rgba(250, 109, 70, 1)'
+                        ? '#FA6D46'
+                        : downtimeColor.backgroundColor;
+            } else if (serviceStatus === 'none') {
+                status = 'status-bubble status-down';
+                statusMessage = 'All services are offline';
+                faviconurl = '/status-page/redfavicon.ico';
+                newStatusMessage = 'All resources are offline';
+                newbg =
+                    downtimeColor.backgroundColor === 'rgba(250, 109, 70, 1)'
+                        ? '#FA6D46'
+                        : downtimeColor.backgroundColor;
+            } else if (serviceStatus === 'some-degraded') {
+                status = 'status-bubble status-paused';
+                statusMessage = 'Some services are degraded';
+                faviconurl = '/status-page/yellowfavicon.ico';
+                newStatusMessage = 'Some resources are degraded';
+                newbg =
+                    degradedColor.backgroundColor === 'rgba(255, 222, 36, 1)'
+                        ? '#e39f48'
+                        : degradedColor.backgroundColor;
             }
 
             if (serviceStatus === 'all') {
@@ -382,7 +406,7 @@ class Main extends Component {
             };
 
             noteBackgroundColor = {
-                background: `rgba(${colors.noteBackground.r}, ${colors.noteBackground.g}, ${colors.noteBackground.b})`,
+                background: `rgba(${colors.noteBackground.r}, ${colors.noteBackground.g}, ${colors.noteBackground.b}, ${colors.noteBackground.a})`,
             };
         }
 
@@ -504,8 +528,11 @@ class Main extends Component {
                                 </div>
                             </ShouldRender>
                             <div className="new-main-container">
-                                <div className="sy-op">
-                                    All Systems Operational
+                                <div
+                                    className="sy-op"
+                                    style={{ backgroundColor: newbg }}
+                                >
+                                    {newStatusMessage}
                                 </div>
                                 <ShouldRender
                                     if={
