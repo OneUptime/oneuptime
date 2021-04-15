@@ -18,22 +18,22 @@ deploy_staging_java-sdk:
         - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
         - cd java-sdk
-        # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
-        # - gpg --list-keys
+        - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
+        - gpg --list-keys
         # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 2BC832A79ED9B002C512A064D4A60477A62C81FD
         # - gpg --keyserver keyserver.ubuntu.com --send-keys 2BC832A79ED9B002C512A064D4A60477A62C81FD
-        - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
-        - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID-SNAPSHOT"
-        - mvn versions:set-property -Dproperty=sdk.version -DnewVersion="3.0.$CI_PIPELINE_IID"
-        - mvn clean deploy
-        - git init
-        - git add .
-        - git commit -m "staging deployment version 3.0.$CI_PIPELINE_IID-SNAPSHOT"
-        - git checkout staging || git checkout -b staging
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/java-sdk.git staging --force
-        - cd ..
-        - chmod +x ./ci/scripts/cleanup.sh
-        - ./ci/scripts/cleanup.sh
+        # - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
+        # - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID-SNAPSHOT"
+        # - mvn versions:set-property -Dproperty=sdk.version -DnewVersion="3.0.$CI_PIPELINE_IID"
+        # - mvn clean deploy
+        # - git init
+        # - git add .
+        # - git commit -m "staging deployment version 3.0.$CI_PIPELINE_IID-SNAPSHOT"
+        # - git checkout staging || git checkout -b staging
+        # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/java-sdk.git staging --force
+        # - cd ..
+        # - chmod +x ./ci/scripts/cleanup.sh
+        # - ./ci/scripts/cleanup.sh
     only:
         refs:
             - master
@@ -82,6 +82,6 @@ deploy_production_java-sdk:
         refs:
             - release
             - hotfix-release
-            - feature-error-tracking
+            # - feature-error-tracking
     environment:
         name: production
