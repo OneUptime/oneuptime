@@ -11,8 +11,8 @@ module.exports = {
      * @description Registers a new user.
      * @returns { void }
      */
-    registerUser: async function(user, page) {
-        if (utils.BACKEND_URL.includes('localhost')) {
+    registerUser: async function (user, page) {
+        if (utils.BACKEND_URL.includes('localhost') || utils.BACKEND_URL.includes('staging.fyipe.com')) {
             const { email } = user;
             let frame, elementHandle;
             await page.goto(utils.ACCOUNTS_URL + '/register', {
@@ -101,18 +101,13 @@ module.exports = {
             }
         }
     },
-    loginUser: async function(user, page) {
-        const { email, password } = utils.BACKEND_URL.includes('localhost')
+    loginUser: async function (user, page) {
+        const { email, password } = (utils.BACKEND_URL.includes('localhost') || utils.BACKEND_URL.includes('staging'))
             ? user
-            : utils.BACKEND_URL.includes('staging')
-            ? {
-                  email: 'test@qa.team',
-                  password: '1234567890',
-              }
             : {
-                  email: 'user@fyipe.com',
-                  password: 'mVzkm{LAP)mNC8t23ehqifb2p',
-              };
+                email: 'user@fyipe.com',
+                password: 'mVzkm{LAP)mNC8t23ehqifb2p',
+            };
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
         });
@@ -125,7 +120,7 @@ module.exports = {
 
         await page.waitForSelector('#home', { visible: true, timeout: 100000 });
     },
-    loginEnterpriseUser: async function(user, page) {
+    loginEnterpriseUser: async function (user, page) {
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
@@ -142,7 +137,7 @@ module.exports = {
             timeout: 100000,
         });
     },
-    registerEnterpriseUser: async function(user, page) {
+    registerEnterpriseUser: async function (user, page) {
         const masterAdmin = {
             email: 'masteradmin@hackerbay.io',
             password: '1234567890',
@@ -217,7 +212,7 @@ module.exports = {
             //catch
         }
     },
-    logout: async function(page) {
+    logout: async function (page) {
         await page.goto(utils.ADMIN_DASHBOARD_URL);
         await page.waitForSelector('button#profile-menu', { visible: true });
         await page.click('button#profile-menu');
@@ -226,7 +221,7 @@ module.exports = {
         await page.reload();
         await page.waitForTimeout(3000);
     },
-    saasLogout: async function(page) {
+    saasLogout: async function (page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('button#profile-menu', { visible: true });
         await page.click('button#profile-menu');
@@ -234,7 +229,7 @@ module.exports = {
         await page.click('button#logout-button');
         await page.reload({ waitUntil: 'networkidle0' });
     },
-    selectByText: async function(selector, text, page) {
+    selectByText: async function (selector, text, page) {
         await page.click(selector, { delay: 100 });
         await page.keyboard.type(text);
         const noOption = await page.$('div.css-1gl4k7y');
@@ -242,17 +237,17 @@ module.exports = {
             await page.keyboard.type(String.fromCharCode(13));
         }
     },
-    clear: async function(selector, page) {
+    clear: async function (selector, page) {
         const input = await page.$(selector);
         await input.click({ clickCount: 3 });
         await input.type('');
     },
-    renameProject: async function(newProjectName, page) {                
-            await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
-            await page.waitForSelector('input[name=project_name]');
-            await this.clear('input[name=project_name]', page);
-            await page.type('input[name=project_name]', newProjectName);
-            await page.click('#btnCreateProject');        
+    renameProject: async function (newProjectName, page) {
+        await page.waitForSelector('#projectSettings');
+        await page.click('#projectSettings');
+        await page.waitForSelector('input[name=project_name]');
+        await this.clear('input[name=project_name]', page);
+        await page.type('input[name=project_name]', newProjectName);
+        await page.click('#btnCreateProject');
     },
 };
