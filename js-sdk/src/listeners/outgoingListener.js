@@ -8,11 +8,9 @@ const { v4: uuidv4 } = require('uuid');
 class OutgoingListener {
     #start;
     #end;
-    #createLog;
-    constructor(start, end, createLog) {
+    constructor(start, end) {
         this.#start = start;
         this.#end = end;
-        this.#createLog = createLog;
         this._setUpOutgoingListener();
     }
     _setUpOutgoingListener() {
@@ -24,12 +22,15 @@ class OutgoingListener {
             function wrapper(outgoing) {
                 // Store a call to the original in req
                 const req = original.apply(this, arguments);
-                const log = _this.#createLog(outgoing, 'outgoing');
+                const path =
+                    outgoing.pathname || outgoing.path || outgoing.url || '/';
                 const emit = req.emit;
                 req.apm = {};
                 req.apm.uuid = uuidv4();
-                log.type = 'outgoing';
-                const result = _this.#start(req.apm.uuid, log);
+                const result = _this.#start(req.apm.uuid, {
+                    path,
+                    type: 'outgoing',
+                });
                 req.emit = (eventName, response) => {
                     switch (eventName) {
                         case 'response': {

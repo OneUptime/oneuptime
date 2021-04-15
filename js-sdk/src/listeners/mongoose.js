@@ -14,9 +14,12 @@ class MongooseListener {
         const _this = this;
         return async function() {
             const uuid = uuidv4();
-
-            name = name || `mongoose.${this.op}`; // mongose Query.exec specific
-            const result = _this.#start(uuid, { type: 'mongoose' });
+            const operation = this.op;
+            name = name || `mongoose.${operation}`; // mongose Query.exec specific
+            const result = _this.#start(uuid, {
+                path: operation,
+                type: 'mongoose',
+            });
             try {
                 const res = await orig.apply(this, arguments);
                 _this.#end(uuid, result, name);

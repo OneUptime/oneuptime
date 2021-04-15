@@ -8,11 +8,9 @@ const { v4: uuidv4 } = require('uuid');
 class IncomingListener {
     #start;
     #end;
-    #createLog;
-    constructor(start, end, createLog) {
+    constructor(start, end) {
         this.#start = start;
         this.#end = end;
-        this.#createLog = createLog;
         this._setUpIncomingListener();
     }
     _setUpIncomingListener() {
@@ -24,11 +22,13 @@ class IncomingListener {
             module.Server.prototype.emit = function(type) {
                 if (type === 'request') {
                     const [req, res] = [arguments[1], arguments[2]];
-                    const log = _this.#createLog(req, 'incoming');
+                    const path = req.pathname || req.path || req.url || '/';
                     req.apm = {};
                     req.apm.uuid = uuidv4();
-                    log.type = 'incoming';
-                    const result = _this.#start(req.apm.uuid, log);
+                    const result = _this.#start(req.apm.uuid, {
+                        path,
+                        type: 'incoming',
+                    });
                     res.on('finish', () => {
                         _this.#end(req.apm.uuid, result, 'request');
                     });

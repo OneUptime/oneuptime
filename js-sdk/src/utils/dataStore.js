@@ -1,29 +1,40 @@
 'use strict';
 /* eslint-disable no-console */
 /*eslint-disable no-unused-vars*/
-
+import axios from 'axios';
+const cron = require('node-cron');
 class DataStore {
     #store;
     #incoming;
     #outgoing;
     #mongoose;
-    constructor() {
+    #apiUrl;
+    #appId;
+    constructor(url, appId) {
+        this.#apiUrl = url;
+        this.#appId = appId;
         this.#store = new Map();
         this.#incoming = new Map();
         this.#outgoing = new Map();
         this.#mongoose = new Map();
+        this.runCron();
+    }
+    runCron() {
+        const _this = this;
+        return cron.schedule('5 * * * *', () => {
+            _this.sendData();
+        });
     }
     mapValue(path, store, time) {
-        //const date = new Date();
-        // const minutes = date.getMinutes();
         if (store.has(path)) {
             const s = store.get(path);
             return {
                 requests: s.requests + 1,
                 avgTime: (s.avgTime * s.requests + time) / s.requests + 1,
+                maxTime: s.maxTime < time ? time : s.maxTime,
             };
         } else {
-            return { requests: 1, avgTime: time };
+            return { requests: 1, avgTime: time, maxTime: time };
         }
     }
     destroy(id) {
@@ -36,13 +47,23 @@ class DataStore {
         return this.#store.get(id);
     }
 
-    getAllValue() {
-        return this.#store;
+    getAllData() {
+        return {
+            incoming: this.#incoming,
+            outgoing: this.#outgoing,
+            mongoose: this.#mongoose,
+        };
     }
     clear() {
         return this.#store.clear();
     }
-    async setValue(id, value) {
+    clearData() {
+        this.#incoming.clear();
+        this.#outgoing.clear();
+        this.#mongoose.clear();
+        return {};
+    }
+    setData(value) {
         const type = value.type;
         const path = value.path;
         const time = value.duration;
@@ -58,10 +79,31 @@ class DataStore {
             return this.#mongoose.set(path, val);
         }
     }
-    async cleanup() {
-        //send data to server
-        this.clear();
-        return {};
+    setValue(id, value) {
+        return this.#store.set(id, value);
+    }
+    async sendData() {
+        const data = {
+            incoming: Object.fromEntries(this.#incoming),
+            outgoing: Object.fromEntries(this.#outgoing),
+            mongoose: Object.fromEntries(this.#mongoose),
+            sentAt: Date.now(),
+        };
+        await this._makeApiRequest(data);
+        this.clearData();
+    }
+    _makeApiRequest(data) {
+        console.log(data);
+        return new Promise((resolve, reject) => {
+            axios
+                .post(`${this.#apiUrl}/${this.#appId}`, data)
+                .then(res => {
+                    resolve(res);
+                })
+                .catch(err => {
+                    reject(err);
+                });
+        });
     }
 }
 export default DataStore;

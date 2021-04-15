@@ -280,6 +280,10 @@ app.use(
     ['/certificate', '/api/certificate'],
     require('./backend/api/certificateStore')
 );
+app.use(
+    ['/performanceMonitor', '/api/performanceMonitor'],
+    require('./backend/api/performanceMonitor')
+);
 
 app.get(['/', '/api'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');

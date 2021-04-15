@@ -5,32 +5,35 @@ const semver = require('semver');
 import MongooseListener from './listeners/mongoose';
 import IncomingListener from './listeners/incomingListener';
 import OutgoingListener from './listeners/outgoingListener';
-import DataStore from './utils/dataStore';
+import PerfTimer from './utils/perfTimer';
+import HrTimer from './utils/hrTimer';
 class PerformanceMonitor {
     #BASE_URL = 'http://localhost:3002/api'; // TODO proper base url config
     #isWindow;
-    #options;
+    #apiUrl;
+    #appId;
     #nodeVer;
     #nodeUse;
     #start;
     #end;
-    #createLog;
     constructor(isWindow, options) {
-        this.#options = options;
+        this.#apiUrl = options.apiUrl;
+        this.#appId = options.appId;
         this.#isWindow = isWindow;
         this.#nodeVer = process.versions.node;
-        this.#createLog = require('./utils/helpers').createLog;
         if (semver.satisfies(this.#nodeVer, '>10.0.0')) {
             this.#nodeUse = true;
         } else {
             this.#nodeUse = false;
         }
         if (this.#nodeUse) {
-            const { start, end } = require('./utils/perfMonitor');
+            const perf = new PerfTimer(this.#apiUrl, this.#appId);
+            const { start, end } = perf;
             this.#start = start;
             this.#end = end;
         } else {
-            const { start, end } = require('./utils/hrTime');
+            const hrt = new HrTimer(this.#apiUrl, this.#appId);
+            const { start, end } = hrt;
             this.#start = start;
             this.#end = end;
         }
@@ -41,7 +44,7 @@ class PerformanceMonitor {
         }
     }
     _setUpOutgoingListener() {
-        return new OutgoingListener(this.#start, this.#end, this.#createLog);
+        return new OutgoingListener(this.#start, this.#end);
     }
     _setUpDataBaseListener() {
         const load = Module._load;
@@ -49,18 +52,14 @@ class PerformanceMonitor {
         Module._load = function(request, parent) {
             const res = load.apply(this, arguments);
             if (request === 'mongoose') {
-                const mongo = new MongooseListener(
-                    _this.#start,
-                    _this.#end,
-                    _this.#createLog
-                );
+                const mongo = new MongooseListener(_this.#start, _this.#end);
                 return mongo._setUpMongooseListener(res);
             }
             return res;
         };
     }
     _setUpIncomingListener() {
-        return new IncomingListener(this.#start, this.#end, this.#createLog);
+        return new IncomingListener(this.#start, this.#end);
     }
 }
 export default PerformanceMonitor;
