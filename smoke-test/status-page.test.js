@@ -148,7 +148,7 @@ describe('Check status-page up', () => {
         done();
     }, 200000);
 
-    test('should add more monitors and see if they are present in the status-page', async done =>{
+    test('should add more monitors and see if they are present on the status-page', async done =>{
         // This creates 2 additonal monitors
         for(let i = 0; i < 2; i++){
             await init.navigateToComponentDetails(componentName, page);
@@ -289,7 +289,7 @@ describe('Check status-page up', () => {
         done();
     }, 200000);
 
-    test('should create an offline incident and confirm the description note in status-page', async done =>{
+    test('should create an offline incident and confirm the description note on status-page', async done =>{
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
