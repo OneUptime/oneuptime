@@ -289,7 +289,7 @@ describe('Check status-page up', () => {
         done();
     }, 200000);
 
-    test('should create an offline incident and confirm the description in status-page', async done =>{
+    test('should create an offline incident and confirm the description note in status-page', async done =>{
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
