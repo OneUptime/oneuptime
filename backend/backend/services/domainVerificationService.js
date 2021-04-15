@@ -211,7 +211,7 @@ module.exports = {
             });
 
             const statusPages = await StatusPageService.findBy({
-                projectId: domain.projectId,
+                // projectId: domain.projectId,
                 domains: {
                     $elemMatch: { domainVerificationToken: domain._id },
                 },
