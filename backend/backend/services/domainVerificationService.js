@@ -207,7 +207,7 @@ module.exports = {
 
             domain = await this.updateOneBy(query, {
                 deleted: true,
-                deleteAt: Date.now(),
+                deletedAt: Date.now(),
             });
 
             const statusPages = await StatusPageService.findBy({
