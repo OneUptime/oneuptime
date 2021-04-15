@@ -297,7 +297,6 @@ let RenderMonitor = ({
 const selector = formValueSelector('StatuspageMonitors');
 
 const mapStateToProps = (state, ownProps) => {
-    
     const { subProject } = ownProps;
     const subProjectId = subProject._id;
 
@@ -313,7 +312,6 @@ const mapStateToProps = (state, ownProps) => {
         .filter(monitor => String(monitor._id) === String(subProjectId))
         .map(monitor => monitor.monitors)
         .flat();
-        
     const monitors = selector(state, 'monitors');
     const {
         form: {
