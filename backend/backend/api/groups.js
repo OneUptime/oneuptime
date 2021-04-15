@@ -120,16 +120,14 @@ router.delete(
                 },
                 userId
             );
-            const escalations = await EscalationService.findBy({
-                query: { projectId },
-            });
-            if (escalations.length > 0) {
-                EscalationService.deleteTeamMember(
-                    escalations,
-                    groupId,
-                    userId
-                );
-            }
+
+            await EscalationService.removeEscalationMember(
+                projectId,
+                groupId,
+                userId,
+                'groupId'
+            );
+
             return sendItemResponse(req, res, deleteGroup);
         } catch (error) {
             return sendErrorResponse(req, res, error);
