@@ -1,3 +1,4 @@
+import requests
 from logtype import LogType
 
 class Logger:
@@ -15,7 +16,7 @@ class Logger:
         if(isinstance(data, (str, dict)) != True):
             return 'Invalid Content to be logged'
         
-        # if a tag is passed validate that it is of type string or array/list
+        # if a tag is passed, validate that it is of type string or array/list
         if(tags is not None):
             if(isinstance(tags, (str, list)) != True):
                 return 'Invalid Content Tags to be logged'
@@ -26,6 +27,20 @@ class Logger:
     
     def _makeApiRequest_(self, data, logType, tags):
         print("API request happens here")
+        data = {
+            'content': data,
+            'applicationLogKey': self.applicationLogKey,
+            'type': logType,
+        }
+        if(tags is not None):
+            data.tags = tags
+
+        response = requests.post(self.apiUrl, data)
+
+        if (response.status_code == 200): 
+            return response.json()
+        
+        return response
         
 
 
