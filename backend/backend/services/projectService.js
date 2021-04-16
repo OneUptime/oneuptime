@@ -443,7 +443,7 @@ module.exports = {
         }
     },
 
-    exitProject: async function(projectId, userId, saveUserSeat) {
+    exitProject: async function(projectId, userId, deletedById, saveUserSeat) {
         try {
             const _this = this;
             let subProject = null;
@@ -471,9 +471,10 @@ module.exports = {
                     { _id: projectId },
                     { users: remainingUsers }
                 );
-                await EscalationService.removeEscalationMember(
+                await EscalationService.deleteEscalationMember(
                     projectId,
-                    userId
+                    userId,
+                    deletedById
                 );
                 const countUserInSubProjects = await _this.findBy({
                     parentProjectId: project._id,
