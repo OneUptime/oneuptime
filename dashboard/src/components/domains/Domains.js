@@ -228,11 +228,15 @@ class Domains extends Component {
                                                                         eachDomain._id,
                                                                     content: VerifyDomain,
                                                                     projectId:
-                                                                        currentProject._id,
+                                                                        eachDomain
+                                                                            .projectId
+                                                                            ._id ||
+                                                                        eachDomain.projectId,
                                                                     verificationToken:
                                                                         eachDomain.verificationToken,
                                                                     domain:
                                                                         eachDomain.domain,
+                                                                    currentProject,
                                                                 });
                                                             }}
                                                         >
@@ -255,7 +259,11 @@ class Domains extends Component {
                                                                 domain:
                                                                     eachDomain.domain,
                                                                 projectId:
-                                                                    currentProject._id,
+                                                                    eachDomain
+                                                                        .projectId
+                                                                        ._id ||
+                                                                    eachDomain.projectId,
+                                                                currentProject,
                                                             });
                                                         }}
                                                     >
@@ -274,8 +282,12 @@ class Domains extends Component {
                                                                 id:
                                                                     eachDomain._id,
                                                                 projectId:
-                                                                    currentProject._id,
+                                                                    eachDomain
+                                                                        .projectId
+                                                                        ._id ||
+                                                                    eachDomain.projectId,
                                                                 content: DeleteDomain,
+                                                                currentProject,
                                                             });
                                                         }}
                                                     >

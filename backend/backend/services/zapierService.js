@@ -527,6 +527,7 @@ module.exports = {
                     }
                     incidentObj.id = incident._id;
                     incidentObj.incidentId = incident._id;
+                    incidentObj.idNumber = incident.idNumber;
                     incidentObj.acknowledged = incident.acknowledged;
                     incidentObj.resolved = incident.resolved;
                     incidentObj.internalNote = incident.internalNote;
