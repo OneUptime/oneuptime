@@ -290,5 +290,12 @@ module.exports = {
         link = await link.getProperty('href');
         link = await link.jsonValue();
         await page.goto(link);  
-    }
+    },
+    navigateToMonitorDetails: async function(monitorName, page){
+        await page.waitForSelector('#components');
+        await page.click('#components');
+        await page.waitForSelector(`#view-resource-${monitorName}`);
+        await page.click(`#view-resource-${monitorName}`);
+        await page.waitForSelector(`#monitor-title-${monitorName}`);
+    },
 };
