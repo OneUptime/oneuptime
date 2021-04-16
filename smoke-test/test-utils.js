@@ -9,7 +9,7 @@ user.expiryDate = '12/23';
 user.message = 'Test message';
 
 const puppeteerLaunchConfig = {
-    headless: true,
+    headless: process.env.HEADLESS === "false" ? false : true,
     args: [
         '--proxy-server=',
         '--no-sandbox',
