@@ -403,6 +403,22 @@ const Services = {
             throw error;
         }
     },
+
+    fetchTrialInformation: async function(subscriptionId) {
+        try {
+            const subscription = await stripe.subscriptions.retrieve(
+                subscriptionId
+            );
+
+            if (subscription && subscription.trial_end !== null) {
+                let chargeDate = new Date(subscription.trial_end * 1000);
+                return chargeDate;
+            } else return false;
+        } catch (error) {
+            ErrorService.log('stripeService.fetchTrialInformation', error);
+            throw error;
+        }
+    },
 };
 
 const payment = require('../config/payment');
@@ -415,5 +431,6 @@ const ErrorService = require('../services/errorService');
 const stripe = require('stripe')(payment.paymentPrivateKey, {
     maxNetworkRetries: 3, // Retry a request three times before giving up
 });
+const moment = require('moment');
 
 module.exports = Services;
