@@ -1,6 +1,7 @@
 const utils = require('./test-utils');
 const puppeteer = require('puppeteer');
 const init = require('./test-init');
+const { expect } = require('chai');
 
 let page, browser;
 
@@ -137,90 +138,120 @@ describe('Status-Page Advanced Options', ()=>{
         done();
     }, 200000);
 
-    test('should add subscriber', async done =>{
-        await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: 'networkidle2',
-        });
-        await init.navigateToMonitorDetails(monitorName, page);
-        // Navigate to subscriber tab in monitor.
-        await page.waitForSelector('ul#customTabList > li', {
-            visible: true,
-        });
-        await page.$$eval('ul#customTabList > li', elems =>
-            elems[1].click()
-        );
-        await page.waitForSelector('#addSubscriberButton');
-        await page.click('#addSubscriberButton');
-        await page.waitForSelector('#alertViaId');
-        await init.selectByText('#alertViaId', 'Email', page);
-        await page.waitForSelector('#emailId');
-        await page.click('#emailId');
-        await page.type('#emailId', subscriberEmail);
-        await page.waitForSelector('#createSubscriber');
-        await page.click('#createSubscriber');
-        // To confirm that the subscriber is created.
-        let subscriberContact = await page.waitForSelector('#subscriber_contact');
-        expect(subscriberContact).toBeDefined();
+    // test('should add subscriber', async done =>{
+    //     await page.goto(utils.DASHBOARD_URL, {
+    //         waitUntil: 'networkidle2',
+    //     });
+    //     await init.navigateToMonitorDetails(monitorName, page);
+    //     // Navigate to subscriber tab in monitor.
+    //     await page.waitForSelector('ul#customTabList > li', {
+    //         visible: true,
+    //     });
+    //     await page.$$eval('ul#customTabList > li', elems =>
+    //         elems[1].click()
+    //     );
+    //     await page.waitForSelector('#addSubscriberButton');
+    //     await page.click('#addSubscriberButton');
+    //     await page.waitForSelector('#alertViaId');
+    //     await init.selectByText('#alertViaId', 'Email', page);
+    //     await page.waitForSelector('#emailId');
+    //     await page.click('#emailId');
+    //     await page.type('#emailId', subscriberEmail);
+    //     await page.waitForSelector('#createSubscriber');
+    //     await page.click('#createSubscriber');
+    //     // To confirm that the subscriber is created.
+    //     let subscriberContact = await page.waitForSelector('#subscriber_contact');
+    //     expect(subscriberContact).toBeDefined();
 
-        done();
-    },200000);
+    //     done();
+    // },200000);
 
-    test('should view created subscriber on status-page', async done => {
-        await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: 'networkidle2',
-        });
+    // test('should view created subscriber on status-page', async done => {
+    //     await page.goto(utils.DASHBOARD_URL, {
+    //         waitUntil: 'networkidle2',
+    //     });
 
-        await page.waitForSelector('#statusPages');
-        await page.click('#statusPages');
-        await page.waitForSelector('#statusPagesListContainer');
-        await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage');
-        // Navigate to subscriber tab in status-page.
-        await page.waitForSelector('ul#customTabList > li', {
-            visible: true,
-        });
-        await page.$$eval('ul#customTabList > li', elems =>
-            elems[1].click()
-        );
-         // To confirm that the subscriber created is present.
-         let subscriberContact = await page.waitForSelector('#subscriber_contact');
-         expect(subscriberContact).toBeDefined();
+    //     await page.waitForSelector('#statusPages');
+    //     await page.click('#statusPages');
+    //     await page.waitForSelector('#statusPagesListContainer');
+    //     await page.waitForSelector('#viewStatusPage');
+    //     await page.click('#viewStatusPage');
+    //     // Navigate to subscriber tab in status-page.
+    //     await page.waitForSelector('ul#customTabList > li', {
+    //         visible: true,
+    //     });
+    //     await page.$$eval('ul#customTabList > li', elems =>
+    //         elems[1].click()
+    //     );
+    //      // To confirm that the subscriber created is present.
+    //      let subscriberContact = await page.waitForSelector('#subscriber_contact');
+    //      expect(subscriberContact).toBeDefined();
 
-        done();
-    },200000);
+    //     done();
+    // },200000);
 
-    test('should create custom domain in status-page', async done => {
-        await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: 'networkidle2',
-        });
+    // test('should create custom domain in status-page', async done => {
+    //     await page.goto(utils.DASHBOARD_URL, {
+    //         waitUntil: 'networkidle2',
+    //     });
 
-        await page.waitForSelector('#statusPages');
-        await page.click('#statusPages');
-        await page.waitForSelector('#statusPagesListContainer');
-        await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage');
-        // Navigate to custom domain tab in status-page.
-        await page.waitForSelector('ul#customTabList > li', {
-            visible: true,
-        });
-        await page.$$eval('ul#customTabList > li', elems =>
-            elems[2].click()
-        );
-        await page.waitForSelector('#addMoreDomain');
-        await page.click('#addMoreDomain');
-        await page.waitForSelector('#customDomain');
-        await page.click('#customDomain');
-        await page.type('#customDomain', customDomainWebsite);
-        await page.click('#createCustomDomainBtn');
+    //     await page.waitForSelector('#statusPages');
+    //     await page.click('#statusPages');
+    //     await page.waitForSelector('#statusPagesListContainer');
+    //     await page.waitForSelector('#viewStatusPage');
+    //     await page.click('#viewStatusPage');
+    //     // Navigate to custom domain tab in status-page.
+    //     await page.waitForSelector('ul#customTabList > li', {
+    //         visible: true,
+    //     });
+    //     await page.$$eval('ul#customTabList > li', elems =>
+    //         elems[2].click()
+    //     );
+    //     await page.waitForSelector('#addMoreDomain');
+    //     await page.click('#addMoreDomain');
+    //     await page.waitForSelector('#customDomain');
+    //     await page.click('#customDomain');
+    //     await page.type('#customDomain', customDomainWebsite);
+    //     await page.click('#createCustomDomainBtn');
 
-        // To confirm that custom domain is created.
-        let customDomain = await page.waitForSelector('#publicStatusPageUrl');
-        expect(customDomain).toBeDefined();
+    //     // To confirm that custom domain is created.
+    //     let customDomain = await page.waitForSelector('#publicStatusPageUrl');
+    //     expect(customDomain).toBeDefined();
 
-        done();
-    }, 200000);
+    //     done();
+    // }, 200000);
 
-    test('should delete status-page', async done => {
+    // test('should delete status-page', async done => {
+    //     await page.goto(utils.DASHBOARD_URL, {
+    //         waitUntil: 'networkidle2',
+    //     });
+
+    //     await page.waitForSelector('#statusPages');
+    //     await page.click('#statusPages');
+    //     await page.waitForSelector('#statusPagesListContainer');
+    //     await page.waitForSelector('#viewStatusPage');
+    //     await page.click('#viewStatusPage');
+    //     // Navigate to advanced tab in status-page
+    //     await page.waitForSelector('ul#customTabList > li', {
+    //         visible: true,
+    //     });
+    //     await page.$$eval('ul#customTabList > li', elems =>
+    //         elems[5].click()
+    //     );
+
+    //     await page.waitForSelector('#delete');
+    //     await page.click('#delete');
+    //     await page.waitForSelector('#confirmDelete');
+    //     await page.click('#confirmDelete');
+
+    //     // To confirm status-page has been deleted.
+    //     let deletedStatusPage = await page.waitForSelector('#statusPagesListContainer');
+    //     expect(deletedStatusPage).toBeDefined();
+
+    //     done();
+    // }, 200000);
+
+    test('should enable add subscriber from advanced options view on status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
@@ -238,17 +269,40 @@ describe('Status-Page Advanced Options', ()=>{
             elems[5].click()
         );
 
-        await page.waitForSelector('#delete');
-        await page.click('#delete');
-        await page.waitForSelector('#confirmDelete');
-        await page.click('#confirmDelete');
-
-        // To confirm status-page has been deleted.
-        let deletedStatusPage = await page.waitForSelector('#statusPagesListContainer');
-        expect(deletedStatusPage).toBeDefined();
-
+        // Add Enable Subscribers
+        await page.waitForSelector('#enable-subscriber');
+        await page.click('#enable-subscriber');
+        await page.waitForSelector('#saveAdvancedOptions');
+        await page.click('#saveAdvancedOptions');
         
-
+        await page.waitForSelector('#publicStatusPageUrl');
+        let link = await page.$('#publicStatusPageUrl > span > a');
+        link = await link.getProperty('href');
+        link = await link.jsonValue();
+        await page.goto(link); 
+        // To confirm subscribe button is present in status-page
+        let subscriberButton = await page.waitForSelector("#subscriber-button");
+        expect(subscriberButton).toBeDefined()
         done();
     }, 200000);
+
+    test('should navigate to status-page and add subscriber', async done => {
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle2',
+        });
+        await init.navigateToStatusPage(page);
+        await page.waitForSelector('#subscriber-button');
+        await page.click('#subscriber-button');
+        await page.waitForSelector('input[name=email]');
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', subscriberEmail);
+        await page.click('#subscribe-btn-email');
+        // To confirm successful subscription
+        let subscribeSuccess = await page.waitForSelector('#monitor-subscribe-success-message');
+        subscribeSuccess = await subscribeSuccess.getProperty(
+            'innerText'
+        );
+        subscribeSuccess = await subscribeSuccess.jsonValue();
+        expect(subscribeSuccess).toMatch('You have subscribed to this status page successfully');
+    } ,200000);
 });
