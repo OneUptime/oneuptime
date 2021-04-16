@@ -37,7 +37,7 @@ describe('Status-Page Advanced Options', ()=>{
     test('should create a status-page', async done => {
         await init.registerUser(user, page);
         await init.renameProject(projectName, page);
-        await init.growthPlanUpgrade(page); // Only Month growth plan can enable subscriber in status-page
+        await init.growthPlanUpgrade(page); // Only Monthly growth plan can enable subscriber in status-page
         
         // Create a Status-Page and Scheduled Maintenance to display in the Status-Page Url
         await page.goto(utils.DASHBOARD_URL, {
