@@ -420,15 +420,10 @@ module.exports = {
                 );
                 return project;
             } else {
-                const trialDone = moment(new Date()).diff(
-                    moment(project.createdAt),
-                    'days'
-                );
                 const stripeSubscriptionId = await PaymentService.changePlan(
                     project.stripeSubscriptionId,
                     planId,
-                    project.users.length,
-                    trialDone
+                    project.users.length
                 );
 
                 project = await _this.updateOneBy(
