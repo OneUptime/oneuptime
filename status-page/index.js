@@ -61,7 +61,7 @@ app.use('/.well-known/acme-challenge/:token', async function(req, res) {
     res.send(response.data);
 });
 
-app.use(async function(req, res, next) {
+app.use('/', async function(req, res, next) {
     const host = req.hostname;
     if (
         host &&
