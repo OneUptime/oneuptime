@@ -121,11 +121,10 @@ router.delete(
                 userId
             );
 
-            await EscalationService.removeEscalationMember(
+            await EscalationService.deleteEscalationMember(
                 projectId,
                 groupId,
-                userId,
-                'groupId'
+                userId
             );
 
             return sendItemResponse(req, res, deleteGroup);
