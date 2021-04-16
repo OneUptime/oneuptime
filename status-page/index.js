@@ -18,6 +18,11 @@ if (!NODE_ENV || NODE_ENV === 'development') {
     require('dotenv').config();
 }
 
+let apiHost = 'http://localhost:3002/api';
+if (process.env.BACKEND_URL) {
+    apiHost = 'http://' + process.env.BACKEND_URL + '/api';
+}
+
 app.get(['/env.js', '/status-page/env.js'], function(req, res) {
     let REACT_APP_FYIPE_HOST = null;
     let REACT_APP_BACKEND_PROTOCOL = null;
@@ -51,19 +56,12 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
 app.use('/.well-known/acme-challenge/:token', async function(req, res) {
     // make api call to backend and fetch keyAuthorization
     const { token } = req.params;
-    let apiHost;
-    if (process.env.FYIPE_HOST) {
-        apiHost = 'https://' + process.env.FYIPE_HOST + '/api';
-    } else {
-        apiHost = 'http://localhost:3002/api';
-    }
     const url = `${apiHost}/ssl/challenge/authorization/${token}`;
     const response = await axios.get(url);
     res.send(response.data);
 });
 
 app.use(async function(req, res, next) {
-    let apiHost;
     const host = req.hostname;
     if (
         host &&
@@ -72,11 +70,6 @@ app.use(async function(req, res, next) {
             host.indexOf('localhost') > -1)
     ) {
         return next();
-    }
-    if (process.env.BACKEND_URL) {
-        apiHost = 'http://' + process.env.BACKEND_URL + '/api';
-    } else {
-        apiHost = 'http://localhost:3002/api';
     }
 
     const response = await fetch(
@@ -208,13 +201,6 @@ function createDir(dirPath) {
                 path.resolve(process.cwd(), 'src', 'credentials', 'private.key')
             ),
             SNICallback: async function(domain, cb) {
-                let apiHost;
-                if (process.env.FYIPE_HOST) {
-                    apiHost = 'https://' + process.env.FYIPE_HOST + '/api';
-                } else {
-                    apiHost = 'http://localhost:3002/api';
-                }
-
                 const res = await fetch(
                     `${apiHost}/statusPage/tlsCredential?domain=${domain}`
                 ).then(res => res.json());
