@@ -46,11 +46,12 @@ class DeleteDomain extends Component {
             projectId,
             deleteProjectDomain,
             fetchProjectDomains,
+            currentProject,
         } = this.props;
 
         deleteProjectDomain({ projectId, domainId }).then(() => {
             if (!deleteError) {
-                fetchProjectDomains(projectId, 0, 10);
+                fetchProjectDomains(currentProject._id, 0, 10);
                 this.handleCloseModal();
             }
         });
@@ -172,6 +173,7 @@ DeleteDomain.propTypes = {
     fetchProjectDomains: PropTypes.func,
     domainId: PropTypes.string,
     projectId: PropTypes.string,
+    currentProject: PropTypes.object,
 };
 
 const mapStateToProps = state => {
@@ -180,6 +182,7 @@ const mapStateToProps = state => {
         deleteError: state.project.deleteDomain.error,
         domainId: state.modal.modals[0].id,
         projectId: state.modal.modals[0].projectId,
+        currentProject: state.modal.modals[0].currentProject,
     };
 };
 

@@ -361,7 +361,7 @@ class TrackerTest extends TestCase
         $event = $tracker->getCurrentEvent();
 
         $this->assertIsString($event->sdk->name);
-        $this->assertRegExp('/(([0-9])+\.([0-9])+\.([0-9])+)/', $event->sdk->version ); // confirm that the versiion follows the patter XX.XX.XX where X is a non negative integer
+        $this->assertRegExp('/(([0-9])+\.([0-9])+\.([0-9])+)/', $event->sdk->version ); // confirm that the version follows the pattern XX.XX.XX where X is a non negative integer
     }
     public function test_should_add_code_capture_to_stack_trace_when_flag_is_passed_in_options() {
         $options = new stdClass();

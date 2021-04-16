@@ -4,6 +4,11 @@ module.exports = {
             // prepare error event model
             const errorEvent = new ErrorEventModel();
 
+            // used this to sort java-sdk having a different stack trace structure
+            data.exception.stacktrace = {
+                ...data.exception.stacktrace,
+                frames: data.exception.stackTraceFrame,
+            };
             errorEvent.content = data.exception;
             errorEvent.device = data.deviceDetails;
             errorEvent.tags = data.tags;

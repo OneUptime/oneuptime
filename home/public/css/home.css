@@ -148,10 +148,8 @@ main header{
 
 .review p {
     font-size: 24px;
-    font-weight: bold;
     line-height: 1.25;
     color: black;
-    opacity: 0.7;
     font-family: Open Sans,Segoe UI,sans-serif;
 }
 ._cite {
