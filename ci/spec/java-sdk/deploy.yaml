@@ -18,10 +18,10 @@ deploy_staging_java-sdk:
         - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
         - cd java-sdk
-        - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
-        - gpg --list-keys
-        # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 2BC832A79ED9B002C512A064D4A60477A62C81FD
-        # - gpg --keyserver keyserver.ubuntu.com --send-keys 2BC832A79ED9B002C512A064D4A60477A62C81FD
+        # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
+        # - gpg --list-keys
+        - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 23972C2E9738913575B32C581FEDD8E12C3929D9
+        - gpg --keyserver keyserver.ubuntu.com --send-keys 23972C2E9738913575B32C581FEDD8E12C3929D9
         # - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
         # - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID-SNAPSHOT"
         # - mvn versions:set-property -Dproperty=sdk.version -DnewVersion="3.0.$CI_PIPELINE_IID"
