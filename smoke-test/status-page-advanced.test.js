@@ -37,7 +37,7 @@ describe('Status-Page Advanced Options', ()=>{
     test('should create a status-page', async done => {
         await init.registerUser(user, page);
         await init.renameProject(projectName, page);
-        await init.growthPlanUpgrade(page); // Only Monthly growth plan can enable subscriber in status-page
+        await init.growthPlanUpgrade(page); // Only Monthly growth plan can enable subscribers in status-page
         
         // Create a Status-Page and Scheduled Maintenance to display in the Status-Page Url
         await page.goto(utils.DASHBOARD_URL, {
@@ -164,7 +164,7 @@ describe('Status-Page Advanced Options', ()=>{
         expect(subscriberContact).toBeDefined();
 
         done();
-    },200000);
+    }, 200000);
 
     test('should view created subscriber on status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -188,7 +188,7 @@ describe('Status-Page Advanced Options', ()=>{
          expect(subscriberContact).toBeDefined();
 
         done();
-    },200000);
+    }, 200000);
     
 
     test('should create custom domain in status-page', async done => {
@@ -214,7 +214,6 @@ describe('Status-Page Advanced Options', ()=>{
         await page.click('#customDomain');
         await page.type('#customDomain', customDomainWebsite);
         await page.click('#createCustomDomainBtn');
-
         // To confirm that custom domain is created.
         let customDomain = await page.waitForSelector('#publicStatusPageUrl');
         expect(customDomain).toBeDefined();
@@ -239,7 +238,6 @@ describe('Status-Page Advanced Options', ()=>{
         await page.$$eval('ul#customTabList > li', elems =>
             elems[5].click()
         );
-
         // Add Enable Subscribers
         await page.waitForSelector('#enable-subscribers');
         await page.click('#enable-subscribers');
