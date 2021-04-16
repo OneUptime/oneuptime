@@ -1,7 +1,6 @@
 const utils = require('./test-utils');
 const puppeteer = require('puppeteer');
 const init = require('./test-init');
-const { expect } = require('chai');
 
 let page, browser;
 
@@ -38,6 +37,7 @@ describe('Status-Page Advanced Options', ()=>{
     test('should create a status-page', async done => {
         await init.registerUser(user, page);
         await init.renameProject(projectName, page);
+        await init.growthPlanUpgrade(page); // Only Month growth plan can enable subscriber in status-page
         
         // Create a Status-Page and Scheduled Maintenance to display in the Status-Page Url
         await page.goto(utils.DASHBOARD_URL, {
@@ -189,6 +189,7 @@ describe('Status-Page Advanced Options', ()=>{
 
         done();
     },200000);
+    
 
     test('should create custom domain in status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -221,6 +222,64 @@ describe('Status-Page Advanced Options', ()=>{
         done();
     }, 200000);
 
+    test('should enable add subscriber from advanced options and view on status-page', async done => {
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle2',
+        });
+
+        await page.waitForSelector('#statusPages');
+        await page.click('#statusPages');
+        await page.waitForSelector('#statusPagesListContainer');
+        await page.waitForSelector('#viewStatusPage');
+        await page.click('#viewStatusPage');
+        // Navigate to advanced tab in status-page
+        await page.waitForSelector('ul#customTabList > li', {
+            visible: true,
+        });
+        await page.$$eval('ul#customTabList > li', elems =>
+            elems[5].click()
+        );
+
+        // Add Enable Subscribers
+        await page.waitForSelector('#enable-subscribers');
+        await page.click('#enable-subscribers');
+        await page.waitForSelector('#saveAdvancedOptions');
+        await page.click('#saveAdvancedOptions');
+        
+        await page.waitForSelector('#publicStatusPageUrl');
+        let link = await page.$('#publicStatusPageUrl > span > a');
+        link = await link.getProperty('href');
+        link = await link.jsonValue();
+        await page.goto(link); 
+        // To confirm subscribe button is present in status-page
+        let subscriberButton = await page.waitForSelector("#subscriber-button");
+        expect(subscriberButton).toBeDefined();
+
+        done();
+    }, 200000);
+
+    test('should navigate to status-page and add subscriber', async done => {
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle2',
+        });
+        await init.navigateToStatusPage(page);
+        await page.waitForSelector('#subscriber-button');
+        await page.click('#subscriber-button');
+        await page.waitForSelector('input[name=email]');
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', subscriberEmail);
+        await page.click('#subscribe-btn-email');
+        // To confirm successful subscription
+        let subscribeSuccess = await page.waitForSelector('#monitor-subscribe-success-message');
+        subscribeSuccess = await subscribeSuccess.getProperty(
+            'innerText'
+        );
+        subscribeSuccess = await subscribeSuccess.jsonValue();
+        expect(subscribeSuccess).toMatch('You have subscribed to this status page successfully');
+
+        done();
+    } , 200000);
+
     test('should delete status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
@@ -250,59 +309,5 @@ describe('Status-Page Advanced Options', ()=>{
 
         done();
     }, 200000);
-
-    test('should enable add subscriber from advanced options view on status-page', async done => {
-        await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: 'networkidle2',
-        });
-
-        await page.waitForSelector('#statusPages');
-        await page.click('#statusPages');
-        await page.waitForSelector('#statusPagesListContainer');
-        await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage');
-        // Navigate to advanced tab in status-page
-        await page.waitForSelector('ul#customTabList > li', {
-            visible: true,
-        });
-        await page.$$eval('ul#customTabList > li', elems =>
-            elems[5].click()
-        );
-
-        // Add Enable Subscribers
-        await page.waitForSelector('#enable-subscriber');
-        await page.click('#enable-subscriber');
-        await page.waitForSelector('#saveAdvancedOptions');
-        await page.click('#saveAdvancedOptions');
-        
-        await page.waitForSelector('#publicStatusPageUrl');
-        let link = await page.$('#publicStatusPageUrl > span > a');
-        link = await link.getProperty('href');
-        link = await link.jsonValue();
-        await page.goto(link); 
-        // To confirm subscribe button is present in status-page
-        let subscriberButton = await page.waitForSelector("#subscriber-button");
-        expect(subscriberButton).toBeDefined()
-        done();
-    }, 200000);
-
-    test('should navigate to status-page and add subscriber', async done => {
-        await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: 'networkidle2',
-        });
-        await init.navigateToStatusPage(page);
-        await page.waitForSelector('#subscriber-button');
-        await page.click('#subscriber-button');
-        await page.waitForSelector('input[name=email]');
-        await page.click('input[name=email]');
-        await page.type('input[name=email]', subscriberEmail);
-        await page.click('#subscribe-btn-email');
-        // To confirm successful subscription
-        let subscribeSuccess = await page.waitForSelector('#monitor-subscribe-success-message');
-        subscribeSuccess = await subscribeSuccess.getProperty(
-            'innerText'
-        );
-        subscribeSuccess = await subscribeSuccess.jsonValue();
-        expect(subscribeSuccess).toMatch('You have subscribed to this status page successfully');
-    } ,200000);
+    
 });
