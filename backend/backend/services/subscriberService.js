@@ -105,7 +105,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId')
-                .populate('monitorId')
+                .populate('monitorId', 'name')
                 .populate('statusPageId');
 
             const subscribersArr = [];

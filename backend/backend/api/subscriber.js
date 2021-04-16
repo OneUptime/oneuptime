@@ -333,6 +333,31 @@ router.get('/:projectId/monitor/:monitorId', async function(req, res) {
     }
 });
 
+//get monitors by subscriberId
+// req.params-> {projectId, monitorId};
+// Returns: response subscriber, error message
+router.get('/monitorList/:subscriberId', async function(req, res) {
+    try {
+        const subscriberId = req.params.subscriberId;
+
+        const subscriber = await SubscriberService.findBy({
+            _id: subscriberId,
+        });
+
+        const subscriptions = await SubscriberService.findBy({
+            contactEmail: subscriber[0].contactEmail,
+            subscribed: true,
+        });
+
+        const count = await SubscriberService.countBy({
+            contactEmail: subscriber[0].contactEmail,
+        });
+        return sendListResponse(req, res, subscriptions, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 //Get a subscriber.
 //req.params-> {projectId, subscriberId}
 // Returns: response subscriber, error message

@@ -177,14 +177,25 @@ app.get('/unsubscribe/:monitorId/:subscriberId', async function(req, res) {
     }
 
     try {
-        await axios({
-            method: 'PUT',
-            url: `${apiHost}/subscriber/unsubscribe/${monitorId}/${subscriberId}`,
+        let subscriptions = await axios({
+            method: 'GET',
+            url: `${apiHost}/subscriber/monitorList/${subscriberId}`,
         });
 
-        res.render('unsubscribe', {
-            message: 'You have successfully unsubscribed from this monitor',
+        res.render('subscriberMonitors', {
+            subscriptions: subscriptions.data.data,
+            defaultMonitor: monitorId,
         });
+
+        // await axios({
+        //     method: 'PUT',
+        //     url: `${apiHost}/subscriber/unsubscribe/${monitorId}/${subscriberId}`,
+        // });
+
+        console.log(subscriptions.data);
+        // res.render('unsubscribe', {
+        //     message: 'You have successfully unsubscribed from this monitor',
+        // });
     } catch (err) {
         res.render('unsubscribe', {
             message:
