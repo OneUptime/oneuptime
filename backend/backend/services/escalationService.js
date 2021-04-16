@@ -184,7 +184,7 @@ module.exports = {
         }
     },
 
-    removeEscalationMember: async function(projectId, typeId, userId, type) {
+    deleteEscalationMember: async function(projectId, memberId, deletedById) {
         try {
             const _this = this;
             const escalations = await _this.findBy({ qeury: { projectId } });
@@ -195,9 +195,9 @@ module.exports = {
                     const newTeams = [];
                     for (const team of teams) {
                         const teamMembers = team.teamMembers;
-                        const filtered = teamMembers.filter(
-                            meamber => meamber[`${type}`] !== typeId
-                        );
+                        const filtered = teamMembers
+                            .filter(meamber => meamber['groupId'] !== memberId)
+                            .filter(member => member['userId'] !== memberId);
                         newTeams.push({
                             _id: team._id,
                             teamMembers: filtered,
@@ -218,7 +218,7 @@ module.exports = {
                             );
                             await _this.deleteBy(
                                 { _id: escalation._id },
-                                userId
+                                deletedById
                             );
                         }
                     }
@@ -231,7 +231,7 @@ module.exports = {
                 }
             }
         } catch (error) {
-            ErrorService.log('escalationService.removeEscalationMember', error);
+            ErrorService.log('escalationService.deleteEscalationMember', error);
             throw error;
         }
     },
