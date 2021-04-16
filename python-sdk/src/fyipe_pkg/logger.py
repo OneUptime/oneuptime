@@ -24,6 +24,40 @@ class Logger:
         # make request to the API
         return self._makeApiRequest_(data, LogType.INFO, tags)
 
+    def warning(self, data, tags = null):
+        """
+        Sends a log with type warning
+        """
+
+        # validate the data is of type string or type object/dictionary
+        if(isinstance(data, (str, dict)) != True):
+            return 'Invalid Content to be logged'
+        
+        # if a tag is passed, validate that it is of type string or array/list
+        if(tags is not None):
+            if(isinstance(tags, (str, list)) != True):
+                return 'Invalid Content Tags to be logged'
+        
+        # make request to the API
+        return self._makeApiRequest_(data, LogType.WARNING, tags)
+
+    def error(self, data, tags = null):
+        """
+        Sends a log with type error
+        """
+
+        # validate the data is of type string or type object/dictionary
+        if(isinstance(data, (str, dict)) != True):
+            return 'Invalid Content to be logged'
+        
+        # if a tag is passed, validate that it is of type string or array/list
+        if(tags is not None):
+            if(isinstance(tags, (str, list)) != True):
+                return 'Invalid Content Tags to be logged'
+        
+        # make request to the API
+        return self._makeApiRequest_(data, LogType.ERROR, tags)
+
     
     def _makeApiRequest_(self, data, logType, tags):
         print("API request happens here")
