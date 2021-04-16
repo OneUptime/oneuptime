@@ -6,7 +6,7 @@ user.password = generatePassword();
 user.card = '4111111111111111';
 user.cvv = '100';
 user.expiryDate = '12/23';
-user.message = 'Test message';
+user.message = 'Test message';h
 
 const puppeteerLaunchConfig = {
     headless: process.env.HEADLESS === "false" ? false : true,
