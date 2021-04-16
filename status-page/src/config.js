@@ -31,9 +31,10 @@ if (
     dashboardUrl = protocol + '//localhost:3000/dashboard';
     accountsUrl = protocol + '//localhost:3003/accounts';
 } else if (env('FYIPE_HOST')) {
-    apiUrl = protocol + `//${env('FYIPE_HOST')}/api`;
-    dashboardUrl = protocol + `//${env('FYIPE_HOST')}/dashboard`;
-    accountsUrl = protocol + `//${env('FYIPE_HOST')}/accounts`;
+    const FYIPE_HOST = env('FYIPE_HOST').replace(/(http:\/\/|https:\/\/)/, ''); // remove any protocol that might have been added
+    apiUrl = protocol + `//${FYIPE_HOST}/api`;
+    dashboardUrl = protocol + `//${FYIPE_HOST}/dashboard`;
+    accountsUrl = protocol + `//${FYIPE_HOST}/accounts`;
 }
 
 export const API_URL = apiUrl;
