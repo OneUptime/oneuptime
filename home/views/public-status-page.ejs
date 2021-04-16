@@ -21,25 +21,27 @@
         }
     </script>
     <script>
-        function onClickFunc() {
-            let playButton = document.getElementById("playButton");
-            let gif = document.getElementById("uptime-monitoring-gif");
-            let videoDiv= document.getElementById("videoDiv");
-            let video= document.getElementById("video");
+        function onClickFunc(index) {
+            let playButton = document.getElementById(`playButton-${index}`);
+            let gif = document.getElementById(`uptime-monitoring-gif-${index}`);
+            let videoDiv= document.getElementById(`videoDiv-${index}`);
+            let video= document.getElementById(`video-${index}`);
+            let grid = document.getElementById(`grid-${index}`);
             playButton.style.display = "none";
             gif.style.display="none";
             videoDiv.style.display="block";
+            // grid.style.width="1000px";
             video.src += "?autoplay=1";
         }
-        function mouseOverFunc()
+        function mouseOverFunc(index)
         {
-            let playButton = document.getElementById("playButton");
+            let playButton = document.getElementById(`playButton-${index}`);
             playButton.src="/img/play-button-black.svg";
             playButton.style.cursor="pointer";
         }
-        function mouseOutFunc()
+        function mouseOutFunc(index)
         {
-            let playButton = document.getElementById("playButton");
+            let playButton = document.getElementById(`playButton-${index}`);
             playButton.src="/img/play-button-grey.svg";
         }
     </script>
@@ -50,18 +52,32 @@
     <% include ./nav %>
 
     <div class="globalContent">
+        
         <div id="main-content">
 
-            <section class="marquee nav-animation-element top-section">
-
+            <section class="marquee nav-animation-element top-section" style="height: unset !important;">
+                
                 <div id="bubble-overlay">
+                    
                     <div class="content">
                         
                         <header>
-                            <h1 class="Header-title common-PageTitle header-font header-size black">Build Public Status Page</h1>
-                            <p style="margin-top:50px; font-size: 22px"><i>Downtime happens.</i>  <span class="highlight">&nbsp;Public Status Page helps you be more transparent with your customers and showcase reliability.</span> Easily communicate real-time status to your customers, gain trust and increase revenue. </p>
+                            <h1 style="line-height: unset;" class="Header-title common-PageTitle header-font header-size black">Make incident communication efficient. Build your Status Page now.</h1>
+                            <div style="margin-top: -100px">
+                            <%- include("stars", {
+                                description1: '"Best status page product on the internet!"',
+                                name1: "- AlternativeTo",
+                                link1: "https://alternativeto.net/software/fyipe/about",
+                                description2: '"..so much more than just a status page."',
+                                name2: "- Capterra",
+                                link2: "https://www.capterra.com/p/176513/Fyipe/",
+                                description3: '"...saved us SO MUCH in support costs"',
+                                name3: "- G2 Crowd",
+                                link3: "https://www.g2.com/products/fyipe/reviews"
+                            }) %>
+                        </div>
+                            <p style="margin-top:50px; font-size: 22px;"><i><span class="red-highlight">Downtime happens.</span></i>  <br/><br/> <span class="highlight">Status Page helps you be more transparent with your customers and showcase reliability.</span> <span> Easily communicate real-time status to your customers, gain trust and increase revenue.</span> </p>
                         </header>
-
                     </div>
                     <div style="
                     margin: 0 auto;
@@ -89,32 +105,38 @@
 
             </section>
 
-            <div class="gif-container">
-                <img src="/img/animated-gif/status-page.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
-                  <img class="play" id="playButton" onmouseout="mouseOutFunc()"onmouseover="mouseOverFunc()"onclick="onClickFunc()" src="/img/play-button-grey.svg"/>
-                    <div id="videoDiv" class="videoClass">
-                    <iframe id="video" width="850" height="500" src="https://www.youtube.com/embed/IKyUf5CT36I" rel="0" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+            <div class="vid_section">
+                <div class="grid-1"></div>
+                <div class="grid-2 text-center" id="grid-1">
+                    <img src="/img/animated-gif/status-page.gif" style="z-index: 2" class="imageshadow _gif" alt="Uptime Monitoring" id="uptime-monitoring-gif-1" style="border-radius: 5px;" />
+                    
+                    <img class="play" style="z-index: 3" id="playButton-1" onmouseout="mouseOutFunc(1)"onmouseover="mouseOverFunc(1)"onclick="onClickFunc(1)" src="/img/play-button-grey.svg"/>
+                        <div id="videoDiv-1" class="videoClass">
+                        <iframe id="video-1" class="actualVideo" height="500" src="https://www.youtube.com/embed/HcHnZdxEZDI" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
                     </div>
+                    
+                </div>
+                <div class="grid-3">
+                    <img src="/img/3mindemobg.png" />
+                </div>
             </div>
 
             <% include ./cta-buttons %>
 
-           
-
             <section class="main basics">
                 <div class="content">
                     <ul class="columns">
-                        <li class="block-image trend">
+                        <li class="block-image trend my-top">
                             <h3>Realtime Status</h3>
                             <p class="text-center">Show realtime status of your product or service - home page, 
                                 websites, API, dashboards or more with a hosted status page.</p>
                         </li>
-                        <li class="block-image cost">
+                        <li class="block-image cost my-top">
                             <h3>Cut Support Costs</h3>
                             <p class="text-center">Communicate any incidents through a status page.
                                 This saves your customers from creating a flood of support tickets. </p>
                         </li>
-                        <li class="block-image reli">
+                        <li class="block-image reli my-top">
                             <h3>Showcase Reliability</h3>
                             <p class="text-center">Showcase the reliability of your platform and compliance with your SLA
                                 and build trust with your customers.</p>
@@ -127,11 +149,11 @@
                             <h3>Post Investigation Notes</h3>
                             <p class="text-center"> Have your team post notes and post-mortem when incidents happen and increase transparency and trust with customers.</p>
                         </li>
-                        <li class="block-image security">
+                        <li class="block-image security my-top">
                             <h3>SLA Compliance</h3>
                             <p class="text-center">Have Fyipe certify your SLA compliance and showcase that to your existing and potential customers.</p>
                         </li>
-                        <li class="block-image moni">
+                        <li class="block-image moni my-top">
                             <h3>Monitor Anything.</h3>
                             <p class="text-center">An endpoint, applications, a container, cluster, network, or
                                 anything else. You name it. We monitor all of
@@ -144,9 +166,17 @@
                 <% include ./cta-buttons %>
 
                 <% include ./customer-section %>
+
+                
+                <%- include('sdlc', {
+                    title:"We don't just do Status Pages, <br/><span class='highlight'> We do <i>everything</i> in terms of SRE and DevOps. </span>",
+                    description: "Start with Status Pages and then expand into whole lot more without increasing your bottom line. <br/> One interface. One conversation. One permission model. Thousands of features. "
+                }) %>
+
                 <div class="sectionBorderTop">
                     <% include ./comparision-chart %>
                 </div>
+               
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
                     <h2 class="header">Unlimited Subscribers</h2>
                     <p class="common-BodyText"> Have any number of your customers subscribe to your status page, get alerts when services are down or degraded. </p>
@@ -173,9 +203,22 @@
                     <h2 class="header">Branding and Customization</h2>
                     <p class="common-BodyText"> Customize your status page and make it look like your brand. </p>
                 </header>
-                <div style="display:flex; justify-content:center; margin-bottom:30px;margin-top:30px;">
-                    <img src="/img/animated-gif/status-page-branding.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
+                <div class="vid_section">
+                    <div class="grid-1">
+                        <img src="/img/brandingbg.png" />
+                    </div>
+                    <div class="grid-2 text-center">
+                        <img src="/img/animated-gif/status-page.gif" style="z-index: 2" class="imageshadow _gif" alt="Uptime Monitoring" id="uptime-monitoring-gif-2" style="border-radius: 5px;" />
+                        
+                        <img class="play" style="z-index: 3" id="playButton-2" onmouseout="mouseOutFunc(2)"onmouseover="mouseOverFunc(2)"onclick="onClickFunc(2)" src="/img/play-button-grey.svg"/>
+                            <div id="videoDiv-2" class="videoClass">
+                            <iframe id="video-2" class="actualVideo" height="500" src="https://www.youtube.com/embed/qyIVRsQ2Klo" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                        </div>
+                        
+                    </div>
+                    <div class="grid-3"></div>
                 </div>
+
                 <div class="content">
                     <ul class="columns">
                         <li class="block-image paint">
@@ -195,13 +238,26 @@
                 <% include ./cta-buttons %>
 
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
-                    <h2 class="header">Multiple Status Pages</h2>
-                    <p class="common-BodyText"> Have unlimited number of internal or public status pages per project with unlimited number of subscribers. </p>
+                    <h2 class="header">Build Unlimited Status Pages</h2>
+                    <p class="common-BodyText"> Have unlimited number of private or public status pages with unlimited subscribers. All you can eat! </p>
                 </header>
 
-                <div style="display:flex; justify-content:center; margin-bottom:30px;margin-top:30px;">
-                    <img src="/img/animated-gif/multiple-status-page.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
+                <div class="vid_section">
+                    <div class="grid-1"></div>
+                    <div class="grid-2 text-center" id="grid-3">
+                        <img src="/img/animated-gif/multiple-status-page.gif" style="z-index: 2" class="imageshadow _gif" alt="Uptime Monitoring" id="uptime-monitoring-gif-3" style="border-radius: 5px;" />
+                        
+                        <img class="play" style="z-index: 3" id="playButton-3" onmouseout="mouseOutFunc(3)"onmouseover="mouseOverFunc(3)"onclick="onClickFunc(3)" src="/img/play-button-grey.svg"/>
+                            <div id="videoDiv-3" class="videoClass">
+                            <iframe id="video-3" class="actualVideo" height="500" src="https://www.youtube.com/embed/8jVzo8pZHWM" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                        </div>
+                        
+                    </div>
+                    <div class="grid-3">
+                        <img src="/img/advancedbg.png" />
+                    </div>
                 </div>
+
                 <% include ./cta-buttons %>
 
                <div class="split">
@@ -209,7 +265,7 @@
 
                           <div class="left invisible-in-mobile">
 
-                            <h3 class="header" style="margin-top:250px">More Status Page Features.</h3>
+                            <h3 class="header" style="margin-top:250px">Advanced features included on any plan.</h3>
                             <p class="common-BodyText" style="font-size:18px"><span class="highlight"
                                     style="font-size:18px">Efficient IT and SRE management <br />depends on the right
                                     information  <br />being shared with the right people </br> at the right time </span><br /><br /> Status Page ensures your customers
@@ -262,12 +318,23 @@
                 </div>
 
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
-                    <h2 class="header">Private Status Pages</h2>
+                    <h2 class="header">Build Unlimited Private Status Pages</h2>
                     <p class="common-BodyText"> Create private status pages for your internal team or your few select customers. Keep your company informed. <br/>Create internal dashboards and more. </p>
                 </header>
 
-                <div style="display:flex; justify-content:center; margin-bottom:30px;margin-top:30px;">
-                    <img src="/img/animated-gif/private-status-page.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
+
+                <div class="vid_section">
+                    <div class="grid-1"> <img src="/img/statuspagedemo.png" /></div>
+                    <div class="grid-2 text-center" id="grid-1">
+                        <img src="/img/animated-gif/private-status-page.gif" style="z-index: 2" class="imageshadow _gif" alt="Uptime Monitoring" id="uptime-monitoring-gif-4" style="border-radius: 5px;" />
+                        
+                        <img class="play" style="z-index: 3" id="playButton-4" onmouseout="mouseOutFunc(4)"onmouseover="mouseOverFunc(4)"onclick="onClickFunc(4)" src="/img/play-button-grey.svg"/>
+                            <div id="videoDiv-4" class="videoClass">
+                            <iframe id="video-4" class="actualVideo" height="500" src="https://www.youtube.com/embed/HcHnZdxEZDI" rel="0" modestbranding="1" enablejsapi="1" modestbranding="0" controls="0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                        </div>
+                        
+                    </div>
+                    <div class="grid-3"></div>
                 </div>
 
                 <div class="content">
@@ -287,14 +354,36 @@
                     </ul>
                 </div>
                 <% include ./cta-buttons %>
+                
+                <%- include("testimonials", {
+                    title: "Software teams around the world love Fyipe!",
+                    description: "Software development teams around the world have switched to Fyipe to fundamentally improve their SRE workflow to build better and more reliable software.",
+                    quotes: [
+                        {
+                            quote: "Having a public status page built accountability in our team towards our customers ‘We were responsible for for our software reliability.’",
+                            by: "Tony Yao, Autonomic"
+                        },
+                        {
+                            quote: "We are all collaborating on any ops issues, it increases transparency for our team.",
+                            by: "Laurent Canis, BNC National"
+                        },
+                        {
+                            quote: "No more replying to support emails from our customers. We just point them to our status page.",
+                            by: "Ross Mcduff, Lightspeed"
+                        },
+                        {
+                            quote: "Customer communication looks more effective and professional.",
+                            by: "Anton S, Loblaw"
+                        },
+                        {
+                            quote: "We can see exactly what the state of the software and our service is. Less confusion and we're much more efficient.",
+                            by: "Trevos Crosse, PNI Digital"
+                        }
+                    ]
+                }) %>
                
                 <% include ./integration %> 
             </section>
-
-         
-
-
-
         </div>
     </div>
 

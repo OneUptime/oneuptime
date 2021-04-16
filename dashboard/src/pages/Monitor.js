@@ -8,7 +8,6 @@ import ComponentSummary from '../components/component/ComponentSummary';
 import NewMonitor from '../components/monitor/NewMonitor';
 import MonitorList from '../components/monitor/MonitorList';
 import ShouldRender from '../components/basic/ShouldRender';
-import IncidentStatus from '../components/incident/IncidentStatus';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMember';
 import { LoadingState } from '../components/basic/Loader';
@@ -24,7 +23,6 @@ import { fetchComponentSummary, fetchComponent } from '../actions/component';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
 import { getProbes } from '../actions/probe';
-import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
@@ -37,7 +35,7 @@ import CustomTutorial from '../components/tutorial/CustomTutorial';
 
 const socket = io.connect(API_URL.replace('/api', ''), {
     path: '/api/socket.io',
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
 });
 class DashboardView extends Component {
     componentDidMount() {
@@ -144,7 +142,6 @@ class DashboardView extends Component {
     };
 
     render() {
-        let incidentslist = null;
         const {
             componentId,
             subProjects,
@@ -179,29 +176,6 @@ class DashboardView extends Component {
             .map(monitor => monitor.monitors)
             .flat();
 
-        const monitorIds = allMonitors.map(monitor => monitor._id);
-
-        if (this.props.incidents) {
-            incidentslist = this.props.incidents
-                .filter(incident => monitorIds.includes(incident.monitorId._id))
-                .map((incident, i) => {
-                    return (
-                        <RenderIfUserInSubProject
-                            key={`${incident._id || i}`}
-                            subProjectId={
-                                incident.projectId._id || incident.projectId
-                            }
-                        >
-                            <IncidentStatus
-                                count={i}
-                                incident={incident}
-                                multiple={true}
-                                route={pathname}
-                            />
-                        </RenderIfUserInSubProject>
-                    );
-                });
-        }
         const currentProjectId = currentProject ? currentProject._id : null;
         const currentProjectSlug = currentProject ? currentProject.slug : null;
 
@@ -347,10 +321,6 @@ class DashboardView extends Component {
                                                                 }
                                                             />
                                                         </ShouldRender>
-
-                                                        <div className="Box-root Margin-bottom--12">
-                                                            {incidentslist}
-                                                        </div>
 
                                                         <ShouldRender
                                                             if={

@@ -93,8 +93,8 @@ then
     # Install microK8s
     echo "RUNNING COMMAND: sudo snap set system refresh.retain=2"
     sudo snap set system refresh.retain=2
-    echo "RUNNING COMMAND: sudo snap install microk8s --channel=1.15/stable --classic"
-    sudo snap install microk8s --channel=1.15/stable --classic
+    echo "RUNNING COMMAND: sudo snap install microk8s --classic"
+    sudo snap install microk8s --classic
     echo "RUNNING COMMAND: sudo usermod -a -G microk8s $USER"
     sudo usermod -a -G microk8s $USER || echo "microk8s group not found"
     echo "RUNNING COMMAND: sudo microk8s.start"
@@ -143,7 +143,7 @@ fi
 AVAILABLE_VERSION=$(curl https://fyipe.com/api/version | jq '.server' | tr -d '"')
 AVAILABLE_VERSION_BUILD=$(echo $AVAILABLE_VERSION | tr "." "0")
 
-IMAGE_VERSION=$(sudo k get deployment fyipe-accounts -o=jsonpath='{$.spec.template.spec.containers[:1].image}' || echo 0) 
+IMAGE_VERSION=$(sudo k get deployment fi-accounts -o=jsonpath='{$.spec.template.spec.containers[:1].image}' || echo 0) 
 
 if [[ $IMAGE_VERSION -eq 0 ]]
 then
@@ -168,7 +168,7 @@ sudo helm repo update
 
 function updateinstallation {
     sudo k delete job fyipe-init-script || echo "init-script already deleted"
-    sudo helm upgrade --reuse-values fyipe fyipe/Fyipe \
+    sudo helm upgrade --reuse-values fi fyipe/Fyipe \
         --set image.tag=$AVAILABLE_VERSION
 }
 
@@ -185,30 +185,22 @@ then
 
             # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. 
             # Add Admin Email and Password on AWS.
-            sudo helm install fyipe fyipe/Fyipe \
+            sudo helm install fi fyipe/Fyipe \
             --set isThirdPartyBilling=true \
             --set nginx-ingress-controller.service.type=NodePort \
             --set nginx-ingress-controller.hostNetwork=true \
             --set image.tag=$AVAILABLE_VERSION \
             --set fyipe.admin.email=admin@admin.com \
             --set disableSignup=true \
-            --set fyipe.admin.password=$INSTANCEID \
-            --set haraka.domain=$DOMAIN \
-            --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
-            --set haraka.tlsCert=$TLS_CERT \
-            --set haraka.tlsKey=$TLS_KEY
+            --set fyipe.admin.password=$INSTANCEID 
             
         else
             # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. This is used for Azure and AWS.
-            sudo helm install fyipe fyipe/Fyipe \
+            sudo helm install fi fyipe/Fyipe \
             --set isThirdPartyBilling=true \
             --set nginx-ingress-controller.service.type=NodePort \
             --set nginx-ingress-controller.hostNetwork=true \
-            --set image.tag=$AVAILABLE_VERSION \
-            --set haraka.domain=$DOMAIN \
-            --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
-            --set haraka.tlsCert=$TLS_CERT \
-            --set haraka.tlsKey=$TLS_KEY
+            --set image.tag=$AVAILABLE_VERSION 
         fi
     else
         updateinstallation
@@ -220,13 +212,13 @@ then
         # install services.
         if [[ "$2" == "enterprise" ]]
         then
-            sudo helm install -f ./kubernetes/values-enterprise-ci.yaml fyipe ./helm-chart/public/fyipe \
+            sudo helm install -f ./kubernetes/values-enterprise-ci.yaml fi ./helm-chart/public/fyipe \
             --set haraka.domain=$DOMAIN \
             --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
             --set haraka.tlsCert=$TLS_CERT \
             --set haraka.tlsKey=$TLS_KEY
         else
-            sudo helm install -f ./kubernetes/values-saas-ci.yaml fyipe ./helm-chart/public/fyipe \
+            sudo helm install -f ./kubernetes/values-saas-ci.yaml fi ./helm-chart/public/fyipe \
             --set haraka.domain=$DOMAIN \
             --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
             --set haraka.tlsCert=$TLS_CERT \
@@ -234,13 +226,13 @@ then
         fi
     else
         sudo k delete job fyipe-init-script || echo "init-script already deleted"
-        sudo helm upgrade --reuse-values fyipe ./helm-chart/public/fyipe
+        sudo helm upgrade --reuse-values fi ./helm-chart/public/fyipe
     fi
 else
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
         # set service of type nodeport for VM's.
-        sudo helm install fyipe fyipe/Fyipe \
+        sudo helm install fi fyipe/Fyipe \
         --set nginx-ingress-controller.service.type=NodePort \
         --set nginx-ingress-controller.hostNetwork=true \
         --set image.tag=$AVAILABLE_VERSION \
