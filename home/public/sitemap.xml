@@ -16,7 +16,12 @@
 <priority>0.80</priority>
 </url>
 <url>
-<loc>https://fyipe.com/product/status-page</loc>
+<loc>https://fyipe.com/product/public-status-page</loc>
+<lastmod>2020-04-09T14:03:45+00:00</lastmod>
+<priority>0.80</priority>
+</url>
+<url>
+<loc>https://fyipe.com/product/private-status-page</loc>
 <lastmod>2020-04-09T14:03:45+00:00</lastmod>
 <priority>0.80</priority>
 </url>
