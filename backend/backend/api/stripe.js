@@ -8,6 +8,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const getUser = require('../middlewares/user').getUser;
 const { isUserOwner } = require('../middlewares/project');
 const { isAuthorized } = require('../middlewares/authorization');
+const ProjectService = require('../services/projectService');
 
 const router = express.Router();
 
@@ -199,6 +200,35 @@ router.get(
             }
 
             return sendItemResponse(req, res, updatedProject);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.post(
+    '/:projectId/getTrial',
+    getUser,
+    isAuthorized,
+    isUserOwner,
+    async function(req, res) {
+        try {
+            const { projectId } = req.params;
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'ProjectId is required.',
+                });
+            }
+
+            const project = await ProjectService.findOneBy({ _id: projectId });
+
+            const trialDetails = await StripeService.fetchTrialInformation(
+                project.stripeSubscriptionId
+            );
+
+            return sendItemResponse(req, res, trialDetails);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

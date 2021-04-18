@@ -290,5 +290,25 @@ module.exports = {
         link = await link.getProperty('href');
         link = await link.jsonValue();
         await page.goto(link);  
-    }
+    },
+    navigateToMonitorDetails: async function(monitorName, page){
+        await page.waitForSelector('#components');
+        await page.click('#components');
+        await page.waitForSelector(`#view-resource-${monitorName}`);
+        await page.click(`#view-resource-${monitorName}`);
+        await page.waitForSelector(`#monitor-title-${monitorName}`);
+    },
+    growthPlanUpgrade: async function(page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#projectSettings', { visible: true });
+        await page.click('#projectSettings');
+        await page.waitForSelector('#billing');
+        await page.click('#billing');
+        await page.waitForSelector('input#Growth_month', {
+            visible: true,
+        });
+        await page.click('input#Growth_month');
+        await page.click('#changePlanBtn');
+        await page.waitForSelector('.ball-beat', { hidden: true });
+    },
 };
