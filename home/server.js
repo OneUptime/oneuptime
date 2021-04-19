@@ -235,7 +235,7 @@ app.post('/unsubscribe', async function(req, res) {
             });
 
             res.render('unsubscribe', {
-                message: 'You have successfully unsubscribed from this monitor',
+                message: 'You have been successfully unsubscribed.',
             });
         }
     } catch (err) {
