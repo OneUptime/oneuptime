@@ -40,6 +40,7 @@ Checkbox.propTypes = {
     label: PropTypes.string.isRequired,
     name: PropTypes.string.isRequired,
     disabled: PropTypes.bool.isRequired,
+    id: PropTypes.string,
 };
 
 let RenderMonitor = ({

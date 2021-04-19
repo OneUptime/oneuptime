@@ -431,6 +431,6 @@ const ErrorService = require('../services/errorService');
 const stripe = require('stripe')(payment.paymentPrivateKey, {
     maxNetworkRetries: 3, // Retry a request three times before giving up
 });
-const moment = require('moment');
+// removal of 'moment' due to declaration but not used.
 
 module.exports = Services;

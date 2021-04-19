@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const express = require('express');
 const path = require('path');
 const app = express();
@@ -166,7 +167,6 @@ function createDir(dirPath) {
 (async function() {
     // create http server
     http.createServer(app).listen(3006, () =>
-        // eslint-disable-next-line no-console
         console.log('Server running on port 3006')
     );
 
@@ -326,7 +326,6 @@ function createDir(dirPath) {
 
         https
             .createServer(options, app)
-            // eslint-disable-next-line no-console
             .listen(3007, () => console.log('Server running on port 3007'));
     } catch (e) {
         console.log('Unable to create HTTPS Server');
