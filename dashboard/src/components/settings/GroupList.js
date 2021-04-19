@@ -96,7 +96,6 @@ export class GroupList extends Component {
             project,
             parentProject,
             createGroupRequest,
-            subProjects,
         } = this.props;
         const canNext = count > skip + limit ? false : true;
         const canPrev = skip <= 0 ? true : false;
@@ -112,8 +111,8 @@ export class GroupList extends Component {
                                 className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16"
                                 style={{ paddingRight: '0' }}
                             >
-                                <div className="Box-root Padding-top--20">
-                                    {subProjects ? (
+                                <div className="Box-root">
+                                    {
                                         <Badge
                                             color={
                                                 parentProject ? 'red' : 'blue'
@@ -123,7 +122,7 @@ export class GroupList extends Component {
                                                 ? 'Project'
                                                 : project.name}
                                         </Badge>
-                                    ) : null}
+                                    }
                                 </div>
                                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
@@ -164,9 +163,11 @@ export class GroupList extends Component {
                                                         <span>
                                                             Add New Group
                                                         </span>
-                                                        <span className="new-btn__keycode">
-                                                            N
-                                                        </span>
+                                                        {count === 0 ? (
+                                                            <span className="new-btn__keycode">
+                                                                N
+                                                            </span>
+                                                        ) : null}
                                                     </span>
                                                 </div>
                                             </button>
@@ -336,7 +337,6 @@ GroupList.propTypes = {
     groups: PropTypes.array,
     getProjectGroups: PropTypes.func,
     createGroupRequest: PropTypes.object,
-    subProjects: PropTypes.bool,
 };
 
 const mapDispatchToProps = dispatch => {
