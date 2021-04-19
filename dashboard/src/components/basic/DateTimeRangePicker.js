@@ -19,7 +19,10 @@ function DateTimeRangePicker({
     const [key, setkey] = useState(0);
     useEffect(() => {
         setkey(key + 1);
-    }, [currentDateRange.startDate, currentDateRange.endDate]);
+    }, [
+        currentDateRange && currentDateRange.startDate,
+        currentDateRange && currentDateRange.endDate,
+    ]);
     return (
         <div>
             <form id={formId} key={key}>
