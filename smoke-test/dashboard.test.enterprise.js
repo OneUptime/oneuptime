@@ -93,7 +93,7 @@ describe('Enterprise Dashboard API', () => {
                 // Navigate to details page of component created in previous test
                 await page.waitForSelector(`#more-details-${componentName}`);
                 await page.click(`#more-details-${componentName}`);                
-                await page.$('#form-new-monitor', {
+                await page.waitForSelector('#form-new-monitor', {
                     visible: true,
                 });
 
