@@ -363,7 +363,9 @@ class CreateIncident extends Component {
                                                                     ]}
                                                                     onChange={(
                                                                         event,
-                                                                        newValue
+                                                                        newValue,
+                                                                        previousValue,
+                                                                        name
                                                                     ) => {
                                                                         this.substituteVariables(
                                                                             newValue,
