@@ -382,12 +382,10 @@ router.get('/:projectId/:subscriberId', async function(req, res) {
 router.put('/unsubscribe/:monitorId/:email', async function(req, res) {
     try {
         const { email, monitorId } = req.params;
-        console.log(req.params);
         const subscriber = await SubscriberService.updateOneBy(
             { monitorId, contactEmail: email },
             { subscribed: false }
         );
-        console.log(subscriber);
         return sendItemResponse(req, res, subscriber);
     } catch (error) {
         return sendErrorResponse(req, res, error);
