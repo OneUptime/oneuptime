@@ -17,10 +17,14 @@ import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
 import { fetchMonitorsSubscribers } from '../../actions/monitor';
 import countryCodes from '../../utils/countryCodes';
+import { fetchStatusPageSubscribers } from '../../actions/statusPage';
 
 function validate(values) {
     const errors = {};
 
+    if (!Validate.text(values.monitorId)) {
+        errors.monitorId = 'Please select a monitor.';
+    }
     if (!Validate.text(values.alertVia)) {
         errors.alertVia = 'Please select a subscribe method.';
     } else {
@@ -88,11 +92,23 @@ class CreateSubscriber extends Component {
             closeThisDialog,
             data,
             fetchMonitorsSubscribers,
+            fetchStatusPageSubscribers,
         } = this.props;
-        const { monitorId, subProjectId } = data;
-        createSubscriber(subProjectId, monitorId, values).then(
+        const { monitorId, subProjectId, statusPage, limit } = data;
+        createSubscriber(
+            subProjectId,
+            monitorId ?? values.monitorId,
+            values
+        ).then(
             function() {
-                fetchMonitorsSubscribers(subProjectId, monitorId, 0, 5);
+                statusPage
+                    ? fetchStatusPageSubscribers(
+                          subProjectId,
+                          statusPage._id,
+                          0,
+                          limit
+                      )
+                    : fetchMonitorsSubscribers(subProjectId, monitorId, 0, 5);
                 closeThisDialog();
             },
             function() {
@@ -113,7 +129,19 @@ class CreateSubscriber extends Component {
     };
 
     render() {
-        const { handleSubmit, closeThisDialog } = this.props;
+        const { handleSubmit, closeThisDialog, data } = this.props;
+        let monitorsList;
+
+        if (data && data.monitorList && data.monitorList.length > 0) {
+            monitorsList = data.monitorList.map(monitor => ({
+                value: monitor.monitor,
+                label: monitor.monitorName,
+            }));
+            monitorsList.unshift({
+                value: '',
+                label: 'Select a monitor',
+            });
+        }
 
         return (
             <div
@@ -142,7 +170,7 @@ class CreateSubscriber extends Component {
                                     <div className="bs-Modal-block bs-u-paddingless">
                                         <div className="bs-Modal-content">
                                             <span className="bs-Fieldset">
-                                                <div className="bs-Fieldset-row">
+                                                <div className="bs-Fieldset-row bs-type-status">
                                                     <label className="bs-Fieldset-label">
                                                         Alert Via
                                                     </label>
@@ -333,6 +361,33 @@ class CreateSubscriber extends Component {
                                                         </div>
                                                     </div>
                                                 )}
+                                                <ShouldRender
+                                                    if={
+                                                        data.monitorList &&
+                                                        data.monitorList
+                                                            .length > 0
+                                                    }
+                                                >
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Monitor
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields bs-type-status">
+                                                            <Field
+                                                                className="db-select-nw"
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                name="monitorId"
+                                                                id="monitorId"
+                                                                required="required"
+                                                                options={
+                                                                    monitorsList
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
                                             </span>
                                         </div>
                                     </div>
@@ -433,6 +488,7 @@ const mapDispatchToProps = dispatch => {
             createSubscriberSuccess,
             createSubscriber,
             fetchMonitorsSubscribers,
+            fetchStatusPageSubscribers,
         },
         dispatch
     );
@@ -452,12 +508,14 @@ CreateSubscriber.propTypes = {
     createSubscriber: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func,
     fetchMonitorsSubscribers: PropTypes.func,
+    fetchStatusPageSubscribers: PropTypes.func,
     newSubscriber: PropTypes.object,
     error: PropTypes.object,
     requesting: PropTypes.bool,
     type: PropTypes.string,
     data: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     createSubscriberError: PropTypes.func,
+    monitorList: PropTypes.array,
 };
 
 export default connect(
