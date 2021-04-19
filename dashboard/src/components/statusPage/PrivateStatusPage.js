@@ -437,7 +437,7 @@ export class PrivateStatusPage extends Component {
                                                                             '5px',
                                                                     }}
                                                                 >
-                                                                    <span>
+                                                                    <span id="enable-subscribers">
                                                                         Enable
                                                                         Subscribers
                                                                     </span>

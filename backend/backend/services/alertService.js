@@ -3448,6 +3448,7 @@ module.exports = {
                     const subscribers = await SubscriberService.subscribersForAlert(
                         {
                             monitorId: monitor.monitorId._id,
+                            subscribed: true,
                         }
                     );
 
@@ -3481,6 +3482,7 @@ module.exports = {
                     const subscribers = await SubscriberService.subscribersForAlert(
                         {
                             monitorId: monitor.monitorId._id,
+                            subscribed: true,
                         }
                     );
 
@@ -3513,6 +3515,7 @@ module.exports = {
                     const subscribers = await SubscriberService.subscribersForAlert(
                         {
                             monitorId: monitor.monitorId._id,
+                            subscribed: true,
                         }
                     );
                     const totalSubscribers = subscribers.length;
@@ -3524,6 +3527,8 @@ module.exports = {
                         const project = await ProjectService.findOneBy({
                             _id: projectId,
                         });
+
+                        const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
                         if (subscriber.alertVia === AlertType.Email) {
                             const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
@@ -3627,7 +3632,8 @@ module.exports = {
                                     replyAddress,
                                     project.name,
                                     monitor.name,
-                                    projectId
+                                    projectId,
+                                    unsubscribeUrl
                                 );
                                 alertStatus = 'Sent';
                                 await SubscriberAlertService.updateOneBy(
@@ -3991,6 +3997,7 @@ module.exports = {
                     id,
                 });
                 const alertId = subscriberAlert._id;
+                const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
                 let alertStatus = null;
                 try {
@@ -4005,7 +4012,8 @@ module.exports = {
                             projectName,
                             emailTemplate,
                             componentName,
-                            project.replyAddress
+                            project.replyAddress,
+                            unsubscribeUrl
                         );
 
                         alertStatus = 'Sent';
@@ -4023,7 +4031,8 @@ module.exports = {
                             projectName,
                             emailTemplate,
                             componentName,
-                            project.replyAddress
+                            project.replyAddress,
+                            unsubscribeUrl
                         );
 
                         alertStatus = 'Sent';

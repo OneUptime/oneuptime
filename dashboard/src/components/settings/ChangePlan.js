@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import { reduxForm } from 'redux-form';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { changePlan } from '../../actions/project';
+import { changePlan, fetchTrial } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
-import { FormLoader } from '../basic/Loader';
+import { FormLoader, ListLoader } from '../basic/Loader';
 import { PricingPlan } from '../../config';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS, User } from '../../config';
@@ -13,6 +13,7 @@ import ChangePlanField from './ChangePlanField';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
 import { openModal } from '../../actions/modal';
+import moment from 'moment';
 
 function Validate(values) {
     const errors = {};
@@ -39,6 +40,11 @@ export class Plans extends Component {
             isAnnual: this.initialType === 'annual' ? true : false,
             plans: this.getPlansFromToggle(this.initialType, this.plansArr),
         };
+    }
+
+    componentDidMount() {
+        const { fetchTrial, currentProject } = this.props;
+        fetchTrial(currentProject._id);
     }
 
     componentDidUpdate(prevProps, prevState) {
@@ -94,7 +100,15 @@ export class Plans extends Component {
     };
 
     render() {
-        const { isRequesting, error, activeForm, handleSubmit } = this.props;
+        const {
+            isRequesting,
+            error,
+            activeForm,
+            handleSubmit,
+            isRequestingTrial,
+            trialEndDate,
+            trialLeft,
+        } = this.props;
         const { isAnnual, plans } = this.state;
 
         return (
@@ -152,6 +166,39 @@ export class Plans extends Component {
                                         </div>
                                     </div>
                                     <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
+                                        <div
+                                            className="bs-Fieldset-wrapper Box-root"
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'flex-end',
+                                            }}
+                                        >
+                                            <ShouldRender
+                                                if={isRequestingTrial}
+                                            >
+                                                <ListLoader />
+                                            </ShouldRender>
+
+                                            <ShouldRender
+                                                if={
+                                                    !isRequesting &&
+                                                    trialEndDate
+                                                }
+                                            >
+                                                <p className="Margin-all--16 bs-Button bs-Button--blue Badge">
+                                                    <strong
+                                                        style={{
+                                                            fontSize: '17px',
+                                                            fontWeight: '900',
+                                                        }}
+                                                    >
+                                                        Trial period (
+                                                        {trialLeft} days left)
+                                                    </strong>
+                                                </p>
+                                            </ShouldRender>
+                                        </div>
+
                                         <div>
                                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                                 <fieldset className="bs-Fieldset">
@@ -215,10 +262,14 @@ Plans.displayName = 'Plans';
 
 Plans.propTypes = {
     changePlan: PropTypes.func.isRequired,
+    fetchTrial: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     initialValues: PropTypes.object.isRequired,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
+    trialLeft: PropTypes.number.isRequired,
+    trialEndDate: PropTypes.oneOf([PropTypes.string, PropTypes.bool]),
+    isRequestingTrial: PropTypes.oneOf([null, undefined, true, false]),
     activeForm: PropTypes.string,
     error: PropTypes.oneOfType([
         PropTypes.string,
@@ -236,6 +287,19 @@ const mapStateToProps = state => {
     const planId = state.project.currentProject
         ? state.project.currentProject.stripePlanId
         : '';
+
+    let trialEndDate =
+        state.project.trialPeriod && state.project.trialPeriod.trial_end
+            ? state.project.trialPeriod.trial_end
+            : false;
+    let trialLeft = 0;
+
+    if (trialEndDate) {
+        trialLeft = moment(trialEndDate).diff(new Date(), 'days') + 1;
+        if (trialLeft <= 0) {
+            trialEndDate = false;
+        }
+    }
     return {
         initialValues: { planId },
         currentProject: state.project.currentProject,
@@ -243,10 +307,13 @@ const mapStateToProps = state => {
         error: state.project.changePlan.error,
         activeForm:
             state.form.ChangePlan && state.form.ChangePlan.values.planId,
+        trialLeft,
+        trialEndDate,
+        isRequestingTrial: state.project.trialPeriod.requesting,
     };
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ changePlan, openModal }, dispatch);
+    bindActionCreators({ changePlan, openModal, fetchTrial }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(ChangePlan);

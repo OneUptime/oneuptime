@@ -1317,3 +1317,58 @@ export function deleteProjectDomain({ projectId, domainId }) {
         }
     };
 }
+
+export function fetchTrialReset() {
+    return {
+        type: types.RESET_FETCH_TRIAL,
+    };
+}
+
+export function fetchTrialRequest() {
+    return {
+        type: types.FETCH_TRIAL_REQUEST,
+    };
+}
+
+export function fetchTrialSuccess(response) {
+    return {
+        type: types.FETCH_TRIAL_SUCCESS,
+        payload: response.data,
+    };
+}
+
+export function fetchTrialError(error) {
+    return {
+        type: types.FETCH_TRIAL_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchTrial(projectId) {
+    return function(dispatch) {
+        const promise = postApi(`stripe/${projectId}/getTrial`);
+
+        dispatch(fetchTrialRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(fetchTrialSuccess(response));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchTrialError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}

@@ -420,15 +420,10 @@ module.exports = {
                 );
                 return project;
             } else {
-                const trialLeft = moment(new Date()).diff(
-                    moment(project.createdAt),
-                    'days'
-                );
                 const stripeSubscriptionId = await PaymentService.changePlan(
                     project.stripeSubscriptionId,
                     planId,
-                    project.users.length,
-                    trialLeft
+                    project.users.length
                 );
 
                 project = await _this.updateOneBy(
@@ -443,7 +438,7 @@ module.exports = {
         }
     },
 
-    exitProject: async function(projectId, userId, saveUserSeat) {
+    exitProject: async function(projectId, userId, deletedById, saveUserSeat) {
         try {
             const _this = this;
             let subProject = null;
@@ -471,9 +466,10 @@ module.exports = {
                     { _id: projectId },
                     { users: remainingUsers }
                 );
-                await EscalationService.removeEscalationMember(
+                await EscalationService.deleteEscalationMember(
                     projectId,
-                    userId
+                    userId,
+                    deletedById
                 );
                 const countUserInSubProjects = await _this.findBy({
                     parentProjectId: project._id,
@@ -755,8 +751,7 @@ const UserService = require('./userService');
 const IncidentPrioritiesService = require('./incidentPrioritiesService');
 const integrationService = require('./integrationService');
 const ScheduleService = require('./scheduleService');
-const moment = require('moment');
-const domains = require('../config/domains');
+const domains = require('../config/domains'); // removal of 'moment' due to declaration but not used.
 const EscalationService = require('./escalationService');
 const StripeService = require('./stripeService');
 const TeamService = require('./teamService');
