@@ -38,6 +38,7 @@ module.exports = {
             projectName: 'New Project',
             projectId: '1',
             incidentId: '1',
+            idNumber: '1',
             acknowledged: false,
             resolved: false,
             internalNote: 'New Note',

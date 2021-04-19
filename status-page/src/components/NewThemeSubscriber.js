@@ -30,7 +30,7 @@ const NewThemeSubscriber = () => {
     };
 
     return (
-        <div className="popup-menu-container">
+        <div className="popup-menu-container" id="subscriber-button">
             <button className="subscribe_btn" onClick={handleToggleButtonClick}>
                 subscribe to updates
             </button>

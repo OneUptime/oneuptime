@@ -373,12 +373,14 @@ module.exports = {
         }
     },
 
-    changePlan: async function(subscriptionId, planId, seats, trialLeft) {
+    changePlan: async function(subscriptionId, planId, seats) {
         try {
             let subscriptionObj = {};
             const subscription = await stripe.subscriptions.retrieve(
                 subscriptionId
             );
+            const trial_end = subscription.trial_end;
+
             await stripe.subscriptions.del(subscriptionId);
 
             const items = [];
@@ -386,12 +388,12 @@ module.exports = {
                 plan: planId,
                 quantity: seats,
             });
-            if (trialLeft && trialLeft < 14) {
-                trialLeft = 14 - trialLeft;
+
+            if (trial_end !== null) {
                 subscriptionObj = {
                     customer: subscription.customer,
                     items: items,
-                    trial_period_days: trialLeft,
+                    trial_end,
                 };
             } else {
                 subscriptionObj = {
@@ -402,6 +404,7 @@ module.exports = {
             const subscriptions = await stripe.subscriptions.create(
                 subscriptionObj
             );
+
             return subscriptions.id;
         } catch (error) {
             ErrorService.log('paymentService.changePlan', error);

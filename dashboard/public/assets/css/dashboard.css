@@ -35255,6 +35255,9 @@ padding-left:20px
   align-items: center;
   height: 200px;
 }
+.bs-type-status .Box-root {
+  margin-top: 0px !important;
+}
 @media (max-width: 768px) {
   .bs-thread-container {
     margin-top: 20px

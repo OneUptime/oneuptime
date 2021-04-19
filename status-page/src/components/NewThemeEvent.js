@@ -150,10 +150,15 @@ class NewThemeEvent extends Component {
                                 style={{ margin: 10, display: 'inline-block' }}
                             >
                                 <div className="list_k">
-                                    <b>{event.name}</b>
+                                    <b id={`event-name-${event.name}`}>
+                                        {event.name}
+                                    </b>
                                 </div>
                                 <ShouldRender if={event.description}>
-                                    <div className="incident_desc">
+                                    <div
+                                        className="incident_desc"
+                                        id={`event-description-${event.description}`}
+                                    >
                                         {event.description}
                                     </div>
                                 </ShouldRender>
@@ -169,7 +174,10 @@ class NewThemeEvent extends Component {
                                         alignItems: 'center',
                                     }}
                                 >
-                                    <div className="incident-date">
+                                    <div
+                                        className="incident-date"
+                                        id="event-date"
+                                    >
                                         <span>
                                             {moment(event.startDate).format(
                                                 'LLL'
@@ -189,7 +197,9 @@ class NewThemeEvent extends Component {
                                                 className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
                                             >
                                                 <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                    <span>Ongoing event</span>
+                                                    <span id="ongoing-event">
+                                                        Ongoing event
+                                                    </span>
                                                 </span>
                                             </div>
                                         )}

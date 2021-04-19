@@ -47,10 +47,9 @@ describe('Login API', () => {
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property(
             'email',
-            utils.BACKEND_URL.includes('localhost')
+            utils.BACKEND_URL.includes('localhost') ||
+                utils.BACKEND_URL.includes('staging')
                 ? email
-                : utils.BACKEND_URL.includes('staging')
-                ? 'test@qa.team'
                 : 'user@fyipe.com'
         );
         page.url().should.containEql(utils.DASHBOARD_URL);
