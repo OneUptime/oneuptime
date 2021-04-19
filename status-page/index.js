@@ -17,7 +17,7 @@ if (!NODE_ENV || NODE_ENV === 'development') {
     require('dotenv').config();
 }
 
-app.get(['/env.js', '/status-page/env.js'], function (req, res) {
+app.get(['/env.js', '/status-page/env.js'], function(req, res) {
     let REACT_APP_FYIPE_HOST = null;
     let REACT_APP_BACKEND_PROTOCOL = null;
     if (!process.env.FYIPE_HOST) {
@@ -47,7 +47,7 @@ app.get(['/env.js', '/status-page/env.js'], function (req, res) {
     res.send('window._env = ' + JSON.stringify(env));
 });
 
-app.use('/.well-known/acme-challenge/:token', async function (req, res) {
+app.use('/.well-known/acme-challenge/:token', async function(req, res) {
     // make api call to backend and fetch keyAuthorization
     const { token } = req.params;
     let apiHost;
@@ -61,7 +61,7 @@ app.use('/.well-known/acme-challenge/:token', async function (req, res) {
     res.send(response.data);
 });
 
-app.use(async function (req, res, next) {
+app.use(async function(req, res, next) {
     let apiHost;
     const host = req.hostname;
     if (
@@ -105,7 +105,7 @@ app.use(
     express.static(path.join(__dirname, 'build/static/js'))
 );
 
-app.get('/*', function (req, res) {
+app.get('/*', function(req, res) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
@@ -140,7 +140,7 @@ function decodeAndSave(content, filePath) {
             output += strData;
         });
         commandOutput.on('close', () => {
-            fs.writeFile(filePath, output, 'utf8', function () {
+            fs.writeFile(filePath, output, 'utf8', function() {
                 resolve('Done writing to disc');
             });
         });
@@ -163,8 +163,7 @@ function createDir(dirPath) {
 
 // using an IIFE here because we have an asynchronous code we want to run as we start the server
 // and since we can't await outside an async function, we had to use an IIFE to handle that
-(async function () {
-
+(async function() {
     // create http server
     http.createServer(app).listen(3006, () =>
         // eslint-disable-next-line no-console
@@ -197,12 +196,17 @@ function createDir(dirPath) {
 
         const options = {
             cert: fs.readFileSync(
-                path.resolve(process.cwd(), 'src', 'credentials', 'certificate.crt')
+                path.resolve(
+                    process.cwd(),
+                    'src',
+                    'credentials',
+                    'certificate.crt'
+                )
             ),
             key: fs.readFileSync(
                 path.resolve(process.cwd(), 'src', 'credentials', 'private.key')
             ),
-            SNICallback: async function (domain, cb) {
+            SNICallback: async function(domain, cb) {
                 let apiHost;
                 if (process.env.FYIPE_HOST) {
                     apiHost = 'https://' + process.env.FYIPE_HOST + '/api';
@@ -278,7 +282,11 @@ function createDir(dirPath) {
 
                         await Promise.all([
                             fetchCredential(apiHost, cert, certPath),
-                            fetchCredential(apiHost, privateKey, privateKeyPath),
+                            fetchCredential(
+                                apiHost,
+                                privateKey,
+                                privateKeyPath
+                            ),
                         ]);
 
                         return cb(
@@ -316,17 +324,12 @@ function createDir(dirPath) {
             },
         };
 
-
         https
             .createServer(options, app)
             // eslint-disable-next-line no-console
             .listen(3007, () => console.log('Server running on port 3007'));
-
     } catch (e) {
-        console.log("Unable to create HTTPS Server")
-        console.log(e)
+        console.log('Unable to create HTTPS Server');
+        console.log(e);
     }
-
-
-
 })();

@@ -411,7 +411,7 @@ const Services = {
             );
 
             if (subscription && subscription.trial_end !== null) {
-                let chargeDate = new Date(subscription.trial_end * 1000);
+                const chargeDate = new Date(subscription.trial_end * 1000);
                 return chargeDate;
             } else return false;
         } catch (error) {

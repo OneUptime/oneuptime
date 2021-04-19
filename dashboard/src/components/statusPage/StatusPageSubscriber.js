@@ -629,6 +629,7 @@ StatusPageSubscriber.propTypes = {
     currentProject: PropTypes.object,
     subProjects: PropTypes.array,
     statusPage: PropTypes.object,
+    monitors: PropTypes.array,
 };
 
 export default connect(
@@ -684,7 +685,6 @@ RemoveBtn.displayName = 'RemoveBtn';
 
 RemoveBtn.propTypes = {
     openModal: PropTypes.func.isRequired,
-    closeModal: PropTypes.func.isRequired,
     deleteSubscriber: PropTypes.func.isRequired,
     deleteSubscriberModalId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
