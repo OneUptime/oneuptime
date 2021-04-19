@@ -20,53 +20,54 @@
 </head>
 
 <body>
-  <div style="display: flex; justify-content: center;">
+  <div style="    display: flex;
+  justify-content: center;
+  flex-direction: column;
+  width: 100%;
+  align-items: center;
+">
     <div
       style=" padding: 2px;background: #EEEEEE; border: 1px solid #CCCCCC;margin-top: 10px;text-align: center; width: 70%;">
       <p style="padding: 8px; margin: 0;">
-        Select monitors you want to unsubscribe from
+        Select monitors you want to unsubscribe from:
       </p>
-    </div>
-  </div>
-
-
-  <div style="display: flex; justify-content: center;">
-    <div
-      style="padding: 2px;background: #EEEEEE; border: 1px solid #CCCCCC;margin-top: 10px;text-align: center; width: 70%;">
-      <form id="monitorForm" action="/unsubscribe" method="POST"
-        style="display:flex; flex-direction:column;align-items:center;justify-content: space-around;padding:10px">
-        <input name="subscriberId[]" value="<%=subscriberId%>" hidden>
-        <% for(var i=0; i < subscriptions.length; i++) { %>
-          <% if(subscriptions[i].monitorId==defaultMonitor){%>
-            <div style="font-size: 18px;margin-top: 10px;">
-              <input type="checkbox" name="monitors[]" value=<%=subscriptions[i].monitorId%> checked>
-              <label for="default">
-                <%= subscriptions[i].monitorName%>
-              </label>
-            </div>
-
-
-            <%}else{%>
+      <div style="padding: 2px; ;margin-top: 10px;text-align: center; width: 100%;">
+        <form id="monitorForm" action="/unsubscribe" method="POST"
+          style="display:flex; flex-direction:column;align-items:center;justify-content: space-around;padding:10px">
+          <input name="email[]" value="<%=subscriptions[0].contactEmail%>" hidden>
+          <% for(var i=0; i < subscriptions.length; i++) { %>
+            <% if(subscriptions[i].monitorId==defaultMonitor){%>
               <div style="font-size: 18px;margin-top: 10px;">
-                <input type="checkbox" name="monitors[]" value=<%=subscriptions[i].monitorId%>>
-                <label>
+                <input type="checkbox" name="monitors[]" value=<%=subscriptions[i].monitorId%> checked>
+                <label for="default">
                   <%= subscriptions[i].monitorName%>
                 </label>
               </div>
-              <%}%>
+
+
+              <%}else{%>
+                <div style="font-size: 18px;margin-top: 10px;">
+                  <input type="checkbox" name="monitors[]" value=<%=subscriptions[i].monitorId%>>
+                  <label>
+                    <%= subscriptions[i].monitorName%>
+                  </label>
+                </div>
                 <%}%>
-                  <input type="submit" value="unsubscribe" style="margin-top: 10px;
-                  width: 100px;
-                  height: 30px;
-                  font-size: 16px;
-                  color: white;
-                  background-color: black;
-                  border: 1px;
-                  border-radius: 10px;">
+                  <%}%>
+                    <input type="submit" value="Unsubscribe" style="margin-top: 10px;
+                    width: 100px;
+                    height: 30px;
+                    font-size: 16px;
+                    color: white;
+                    border-radius: 5px;
+                    background-color: black;
+                   ">
 
-      </form>
+        </form>
 
+      </div>
     </div>
+
   </div>
 </body>
 

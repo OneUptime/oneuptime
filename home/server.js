@@ -182,11 +182,16 @@ app.get('/unsubscribe/:monitorId/:subscriberId', async function(req, res) {
             url: `${apiHost}/subscriber/monitorList/${subscriberId}`,
         });
 
-        res.render('subscriberMonitors', {
-            subscriptions: subscriptions.data.data,
-            defaultMonitor: monitorId,
-            subscriberId,
-        });
+        if (subscriptions.data.data.length < 1) {
+            res.render('unsubscribe', {
+                message: 'You are currently not subscribed to any monitor',
+            });
+        } else {
+            res.render('subscriberMonitors', {
+                subscriptions: subscriptions.data.data,
+                defaultMonitor: monitorId,
+            });
+        }
     } catch (err) {
         res.render('unsubscribe', {
             message:
@@ -204,13 +209,12 @@ app.post('/unsubscribe', async function(req, res) {
     }
 
     try {
-        const { subscriberId, monitors } = req.body;
-
+        const { email, monitors } = req.body;
         if (
-            !subscriberId ||
-            subscriberId[0] === null ||
-            subscriberId[0] === undefined ||
-            subscriberId[0] === ''
+            !email ||
+            email[0] === null ||
+            email[0] === undefined ||
+            email[0] === ''
         ) {
             throw Error;
         } else if (
@@ -226,7 +230,7 @@ app.post('/unsubscribe', async function(req, res) {
             monitors.forEach(async monitorId => {
                 await axios({
                     method: 'PUT',
-                    url: `${apiHost}/subscriber/unsubscribe/${monitorId}/${subscriberId}`,
+                    url: `${apiHost}/subscriber/unsubscribe/${monitorId}/${email}`,
                 });
             });
 
