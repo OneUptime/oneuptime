@@ -10,12 +10,14 @@ import { FormLoader2, ListLoader } from '../basic/Loader';
 import { v4 as uuidv4 } from 'uuid';
 import DeleteSubscriber from '../../components/modals/DeleteComponent';
 import DataPathHoC from '../DataPathHoC';
-import { openModal } from '../../actions/modal';
+import { openModal, closeModal } from '../../actions/modal';
 import { deleteSubscriber } from '../../actions/subscriber';
+import CreateSubscriber from '../modals/CreateSubscriber';
 class StatusPageSubscriber extends Component {
     constructor(props) {
         super(props);
         this.state = {
+            createSubscriberModalId: uuidv4(),
             deleteSubscriberModalId: uuidv4(),
             limit: 10,
         };
@@ -90,7 +92,11 @@ class StatusPageSubscriber extends Component {
             projectId,
             subProjects,
             currentProject,
+            monitors,
+            statusPage,
         } = this.props;
+
+        const { createSubscriberModalId, limit } = this.state;
 
         if (
             subscribers &&
@@ -139,6 +145,37 @@ class StatusPageSubscriber extends Component {
                                     on this Status Page.
                                 </span>
                             </div>
+                            <ShouldRender if={monitors && monitors.length > 0}>
+                                <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                    <button
+                                        className="bs-Button bs-ButtonLegacy ActionIconParent"
+                                        type="button"
+                                        id="addSubscriberButton"
+                                        onClick={() =>
+                                            this.props.openModal({
+                                                id: createSubscriberModalId,
+                                                onClose: () =>
+                                                    this.props.closeModal({
+                                                        id: createSubscriberModalId,
+                                                    }),
+                                                content: DataPathHoC(
+                                                    CreateSubscriber,
+                                                    {
+                                                        subProjectId: projectId,
+                                                        monitorList: monitors,
+                                                        statusPage,
+                                                        limit,
+                                                    }
+                                                ),
+                                            })
+                                        }
+                                    >
+                                        <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                            <span>Add New Subscriber</span>
+                                        </span>
+                                    </button>
+                                </div>
+                            </ShouldRender>
                         </div>
                     </div>
                 </div>
@@ -573,11 +610,12 @@ StatusPageSubscriber.displayName = 'StatusPageSubscriber';
 
 const mapStateToProps = state => ({
     subscribers: state.statusPage.subscribers,
+    monitors: state.statusPage.status.monitors,
 });
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { fetchStatusPageSubscribers, openModal, deleteSubscriber },
+        { fetchStatusPageSubscribers, openModal, closeModal, deleteSubscriber },
         dispatch
     );
 
@@ -586,10 +624,12 @@ StatusPageSubscriber.propTypes = {
     subscribers: PropTypes.object,
     projectId: PropTypes.string,
     openModal: PropTypes.func,
+    closeModal: PropTypes.func,
     deleteSubscriber: PropTypes.func,
     currentProject: PropTypes.object,
     subProjects: PropTypes.array,
     statusPage: PropTypes.object,
+    monitors: PropTypes.array,
 };
 
 export default connect(
