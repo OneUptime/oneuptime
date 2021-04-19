@@ -204,7 +204,6 @@ app.post('/unsubscribe', async function(req, res) {
     }
 
     try {
-        console.log(req.body);
         const { subscriberId, monitors } = req.body;
 
         if (
