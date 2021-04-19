@@ -1,13 +1,13 @@
 import requests
 from logtype import LogType
 
-class Logger:
+class FyipeLogger:
     def __init__(self, apiUrl, applicationLogId, applicationLogKey):
         self.applicationLogId = applicationLogId
         self.applicationLogKey = applicationLogKey
         self.apiUrl = apiUrl+"/application-log/"+applicationLogId+"/log";
 
-    def log(self, data, tags = null):
+    def log(self, data, tags = None):
         """
         Sends a log with type info
         """
@@ -24,7 +24,7 @@ class Logger:
         # make request to the API
         return self._makeApiRequest_(data, LogType.INFO, tags)
 
-    def warning(self, data, tags = null):
+    def warning(self, data, tags = None):
         """
         Sends a log with type warning
         """
@@ -41,7 +41,7 @@ class Logger:
         # make request to the API
         return self._makeApiRequest_(data, LogType.WARNING, tags)
 
-    def error(self, data, tags = null):
+    def error(self, data, tags = None):
         """
         Sends a log with type error
         """
@@ -60,7 +60,6 @@ class Logger:
 
     
     def _makeApiRequest_(self, data, logType, tags):
-        print("API request happens here")
         data = {
             'content': data,
             'applicationLogKey': self.applicationLogKey,
@@ -70,11 +69,8 @@ class Logger:
             data.tags = tags
 
         response = requests.post(self.apiUrl, data)
-
-        if (response.status_code == 200): 
-            return response.json()
+        return response.json()
         
-        return response
         
 
 

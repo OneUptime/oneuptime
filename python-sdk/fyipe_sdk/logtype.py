@@ -1,6 +1,4 @@
-from enum import Enum
-
-class LogType(Enum):
+class LogType():
     INFO = "info"
     WARNING = "waring"
     ERROR = "error"
