@@ -411,7 +411,7 @@ const Services = {
             );
 
             if (subscription && subscription.trial_end !== null) {
-                let chargeDate = new Date(subscription.trial_end * 1000);
+                const chargeDate = new Date(subscription.trial_end * 1000);
                 return chargeDate;
             } else return false;
         } catch (error) {
@@ -431,6 +431,6 @@ const ErrorService = require('../services/errorService');
 const stripe = require('stripe')(payment.paymentPrivateKey, {
     maxNetworkRetries: 3, // Retry a request three times before giving up
 });
-const moment = require('moment');
+// removal of 'moment' due to declaration but not used.
 
 module.exports = Services;

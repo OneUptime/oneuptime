@@ -47,7 +47,8 @@ describe('Login API', () => {
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property(
             'email',
-            (utils.BACKEND_URL.includes('localhost') || utils.BACKEND_URL.includes('staging'))
+            utils.BACKEND_URL.includes('localhost') ||
+                utils.BACKEND_URL.includes('staging')
                 ? email
                 : 'user@fyipe.com'
         );
