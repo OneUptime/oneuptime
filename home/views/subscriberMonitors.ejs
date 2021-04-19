@@ -33,27 +33,37 @@
   <div style="display: flex; justify-content: center;">
     <div
       style="padding: 2px;background: #EEEEEE; border: 1px solid #CCCCCC;margin-top: 10px;text-align: center; width: 70%;">
-      <form style="display:flex; flex-direction:column;align-items:flex-start">
+      <form id="monitorForm" action="/unsubscribe" method="POST"
+        style="display:flex; flex-direction:column;align-items:center;justify-content: space-around;padding:10px">
+        <input name="subscriberId[]" value="<%=subscriberId%>" hidden>
         <% for(var i=0; i < subscriptions.length; i++) { %>
           <% if(subscriptions[i].monitorId==defaultMonitor){%>
-            <div style="font-size: 12px;margin-top: 10px;">
-              <input type="checkbox" class="onoffswitch-checkbox" id="default" checked>
-              <label class="onoffswitch-label" for="default">
-
+            <div style="font-size: 18px;margin-top: 10px;">
+              <input type="checkbox" name="monitors[]" value=<%=subscriptions[i].monitorId%> checked>
+              <label for="default">
                 <%= subscriptions[i].monitorName%>
               </label>
             </div>
 
 
             <%}else{%>
-              <div>
-                <input type="checkbox" class="onoffswitch-checkbox">
-                <label class="onoffswitch-label">
+              <div style="font-size: 18px;margin-top: 10px;">
+                <input type="checkbox" name="monitors[]" value=<%=subscriptions[i].monitorId%>>
+                <label>
                   <%= subscriptions[i].monitorName%>
                 </label>
-                <%}%>
-                  <%}%>
               </div>
+              <%}%>
+                <%}%>
+                  <input type="submit" value="unsubscribe" style="margin-top: 10px;
+                  width: 100px;
+                  height: 30px;
+                  font-size: 16px;
+                  color: white;
+                  background-color: black;
+                  border: 1px;
+                  border-radius: 10px;">
+
       </form>
 
     </div>
