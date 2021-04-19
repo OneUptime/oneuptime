@@ -955,6 +955,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                         monitors.push({
                             ...monitorData,
                             monitor: monitorData.monitor._id,
+                            monitorName: monitorData.monitor.name,
                         });
                     });
                     statusPages.push({
