@@ -14,8 +14,7 @@ describe('Monitor API', () => {
     const operationTimeOut = 500000;
 
     const componentName = utils.generateRandomString();
-    const monitorName = utils.generateRandomString();
-    let cluster;
+    const monitorName = utils.generateRandomString();    
 
     beforeAll(async (done) => {        
         jest.setTimeout(500000);
