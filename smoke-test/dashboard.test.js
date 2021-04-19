@@ -1,15 +1,15 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
 
+let browser, page;
 const user = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-
+// Rewriting dashboard without puppeteer cluster.
 describe('Monitor API', () => {
     const operationTimeOut = 500000;
 
@@ -17,26 +17,19 @@ describe('Monitor API', () => {
     const monitorName = utils.generateRandomString();
     let cluster;
 
-    beforeAll(async () => {
+    beforeAll(async (done) => {        
         jest.setTimeout(500000);
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 500000,
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
+        await init.registerUser(user,page);
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        return await cluster.execute(null, async ({ page }) => {
-            await init.registerUser(user, page);
-        });
+        done();
     });
 
-    afterAll(async done => {
-        await cluster.execute(null, async ({ page }) => {
+    afterAll(async done => {        
             // delete monitor
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'domcontentloaded',
@@ -74,16 +67,14 @@ describe('Monitor API', () => {
             await page.waitForSelector('#deleteComponent');
             await page.click('#deleteComponent');
             await page.waitForSelector('#deleteComponent', { hidden: true });
-        });
-        await cluster.idle();
-        await cluster.close();
+        
+        await browser.close();
         done();
     });
 
     it(
         'Should create new component',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'domcontentloaded',
@@ -112,15 +103,15 @@ describe('Monitor API', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(componentName);
-            });
+            
+            done();
         },
         operationTimeOut
     );
 
     it(
         'Should create new monitor with correct details',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {           
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'domcontentloaded',
@@ -152,15 +143,15 @@ describe('Monitor API', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(monitorName);
-            });
+
+                done();            
         },
         operationTimeOut
     );
 
     it(
         'Should not create new monitor when details that are incorrect',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {           
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'domcontentloaded',
@@ -173,26 +164,28 @@ describe('Monitor API', () => {
                 await page.click(`#more-details-${componentName}`);
                 await page.waitForSelector('#form-new-monitor', {
                     visible: true,
-                });
-
+                });                
                 // Submit New Monitor form with incorrect details
-                await page.waitForSelector('#name');
+                await page.click('input[id=name]', { visible: true });
+                await page.type('input[id=name]', '');
                 await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
+                await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
-                    '#form-new-monitor span#field-error'
+                    '#form-new-monitor span#field-error',
+                    { visible: true }
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
-                spanElement.should.be.exactly(
-                    'This field cannot be left blank'
-                );
-            });
+                spanElement.should.be.exactly( 'This field cannot be left blank');
+
+                done();            
         },
         operationTimeOut
     );
+        
 });
