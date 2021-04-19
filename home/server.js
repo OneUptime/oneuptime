@@ -177,14 +177,67 @@ app.get('/unsubscribe/:monitorId/:subscriberId', async function(req, res) {
     }
 
     try {
-        await axios({
-            method: 'PUT',
-            url: `${apiHost}/subscriber/unsubscribe/${monitorId}/${subscriberId}`,
+        let subscriptions = await axios({
+            method: 'GET',
+            url: `${apiHost}/subscriber/monitorList/${subscriberId}`,
         });
 
+        if (subscriptions.data.data.length < 1) {
+            res.render('unsubscribe', {
+                message: 'You are currently not subscribed to any monitor',
+            });
+        } else {
+            res.render('subscriberMonitors', {
+                subscriptions: subscriptions.data.data,
+                defaultMonitor: monitorId,
+            });
+        }
+    } catch (err) {
         res.render('unsubscribe', {
-            message: 'You have successfully unsubscribed from this monitor',
+            message:
+                'Encountered an error while trying to display your monitor list',
         });
+    }
+});
+
+app.post('/unsubscribe', async function(req, res) {
+    let apiHost;
+    if (process.env.FYIPE_HOST) {
+        apiHost = 'https://' + process.env.FYIPE_HOST + '/api';
+    } else {
+        apiHost = 'http://localhost:3002/api';
+    }
+
+    try {
+        const { email, monitors } = req.body;
+        if (
+            !email ||
+            email[0] === null ||
+            email[0] === undefined ||
+            email[0] === ''
+        ) {
+            throw Error;
+        } else if (
+            !monitors ||
+            monitors === null ||
+            monitors === undefined ||
+            monitors.length === 0
+        ) {
+            res.render('unsubscribe', {
+                message: 'No monitor was selected',
+            });
+        } else {
+            monitors.forEach(async monitorId => {
+                await axios({
+                    method: 'PUT',
+                    url: `${apiHost}/subscriber/unsubscribe/${monitorId}/${email}`,
+                });
+            });
+
+            res.render('unsubscribe', {
+                message: 'You have been successfully unsubscribed.',
+            });
+        }
     } catch (err) {
         res.render('unsubscribe', {
             message:
@@ -192,6 +245,7 @@ app.get('/unsubscribe/:monitorId/:subscriberId', async function(req, res) {
         });
     }
 });
+
 app.get('/product/docker-container-security', function(req, res) {
     res.render('container-security', {
         support: false,
