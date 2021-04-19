@@ -11,8 +11,11 @@ module.exports = {
      * @description Registers a new user.
      * @returns { void }
      */
-    registerUser: async function (user, page) {
-        if (utils.BACKEND_URL.includes('localhost') || utils.BACKEND_URL.includes('staging.fyipe.com')) {
+    registerUser: async function(user, page) {
+        if (
+            utils.BACKEND_URL.includes('localhost') ||
+            utils.BACKEND_URL.includes('staging.fyipe.com')
+        ) {
             const { email } = user;
             let frame, elementHandle;
             await page.goto(utils.ACCOUNTS_URL + '/register', {
@@ -101,13 +104,15 @@ module.exports = {
             }
         }
     },
-    loginUser: async function (user, page) {
-        const { email, password } = (utils.BACKEND_URL.includes('localhost') || utils.BACKEND_URL.includes('staging'))
-            ? user
-            : {
-                email: 'user@fyipe.com',
-                password: 'mVzkm{LAP)mNC8t23ehqifb2p',
-            };
+    loginUser: async function(user, page) {
+        const { email, password } =
+            utils.BACKEND_URL.includes('localhost') ||
+            utils.BACKEND_URL.includes('staging')
+                ? user
+                : {
+                      email: 'user@fyipe.com',
+                      password: 'mVzkm{LAP)mNC8t23ehqifb2p',
+                  };
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
         });
@@ -120,7 +125,7 @@ module.exports = {
 
         await page.waitForSelector('#home', { visible: true, timeout: 100000 });
     },
-    loginEnterpriseUser: async function (user, page) {
+    loginEnterpriseUser: async function(user, page) {
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
@@ -137,7 +142,7 @@ module.exports = {
             timeout: 100000,
         });
     },
-    registerEnterpriseUser: async function (user, page) {
+    registerEnterpriseUser: async function(user, page) {
         const masterAdmin = {
             email: 'masteradmin@hackerbay.io',
             password: '1234567890',
@@ -212,7 +217,7 @@ module.exports = {
             //catch
         }
     },
-    logout: async function (page) {
+    logout: async function(page) {
         await page.goto(utils.ADMIN_DASHBOARD_URL);
         await page.waitForSelector('button#profile-menu', { visible: true });
         await page.click('button#profile-menu');
@@ -221,7 +226,7 @@ module.exports = {
         await page.reload();
         await page.waitForTimeout(3000);
     },
-    saasLogout: async function (page) {
+    saasLogout: async function(page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('button#profile-menu', { visible: true });
         await page.click('button#profile-menu');
@@ -229,7 +234,7 @@ module.exports = {
         await page.click('button#logout-button');
         await page.reload({ waitUntil: 'networkidle0' });
     },
-    selectByText: async function (selector, text, page) {
+    selectByText: async function(selector, text, page) {
         await page.click(selector, { delay: 100 });
         await page.keyboard.type(text);
         const noOption = await page.$('div.css-1gl4k7y');
@@ -237,12 +242,12 @@ module.exports = {
             await page.keyboard.type(String.fromCharCode(13));
         }
     },
-    clear: async function (selector, page) {
+    clear: async function(selector, page) {
         const input = await page.$(selector);
         await input.click({ clickCount: 3 });
         await input.type('');
     },
-    renameProject: async function (newProjectName, page) {
+    renameProject: async function(newProjectName, page) {
         await page.waitForSelector('#projectSettings');
         await page.click('#projectSettings');
         await page.waitForSelector('input[name=project_name]');
@@ -269,29 +274,36 @@ module.exports = {
         await page.click('#statusPages');
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage');        
+        await page.click('#viewStatusPage');
         await page.waitForSelector('#addMoreMonitors');
-        await page.click('#addMoreMonitors');        
-        await this.selectByText('ul > li:last-of-type #monitor-name',`${componentName} / ${monitorName}`, page);
+        await page.click('#addMoreMonitors');
+        await this.selectByText(
+            'ul > li:last-of-type #monitor-name',
+            `${componentName} / ${monitorName}`,
+            page
+        );
         await page.click('ul > li:last-of-type #monitor-description');
-        await page.type('ul > li:last-of-type #monitor-description', description);
+        await page.type(
+            'ul > li:last-of-type #monitor-description',
+            description
+        );
         await page.click('ul > li:last-of-type #manual-monitor-checkbox');
         await page.click('#btnAddStatusPageMonitors');
     },
-    navigateToStatusPage: async function(page){
+    navigateToStatusPage: async function(page) {
         await page.waitForSelector('#statusPages');
         await page.click('#statusPages');
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage'); 
-        
+        await page.click('#viewStatusPage');
+
         await page.waitForSelector('#publicStatusPageUrl');
         let link = await page.$('#publicStatusPageUrl > span > a');
         link = await link.getProperty('href');
         link = await link.jsonValue();
-        await page.goto(link);  
+        await page.goto(link);
     },
-    navigateToMonitorDetails: async function(monitorName, page){
+    navigateToMonitorDetails: async function(monitorName, page) {
         await page.waitForSelector('#components');
         await page.click('#components');
         await page.waitForSelector(`#view-resource-${monitorName}`);

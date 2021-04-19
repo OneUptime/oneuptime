@@ -18,7 +18,7 @@ const Checkbox = ({ label, name, disabled, id }) => (
                     data-test="RetrySettings-failedPaymentsCheckbox"
                     name={name}
                     className="Checkbox-source"
-                    disabled={disabled}                
+                    disabled={disabled}
                 />
                 <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                     <div className="Checkbox-target Box-root">
@@ -40,6 +40,7 @@ Checkbox.propTypes = {
     label: PropTypes.string.isRequired,
     name: PropTypes.string.isRequired,
     disabled: PropTypes.bool.isRequired,
+    id: PropTypes.string,
 };
 
 let RenderMonitor = ({
