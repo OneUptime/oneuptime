@@ -37,12 +37,12 @@ describe('Check scheduled maintenace', () => {
     test('should create a status-page', async done => {
         await init.registerUser(user, page);
         await init.renameProject(projectName, page);
-        
+
         // Create a Status-Page and Scheduled Maintenance to display in the Status-Page Url
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
-        
+
         await page.waitForSelector('#statusPages');
         await page.click('#statusPages');
         await page.waitForSelector(`#btnCreateStatusPage_${projectName}`);
@@ -56,18 +56,18 @@ describe('Check scheduled maintenace', () => {
         await page.click('#viewStatusPage');
         await page.waitForSelector(`#header-${statusPageName}`);
 
-         // To confirm the status-page name.
-         let spanElement = await page.waitForSelector(`#header-${statusPageName}`);
-         spanElement = await spanElement.getProperty(
-             'innerText'
-         );
-         spanElement = await spanElement.jsonValue();
-         expect(spanElement).toMatch(statusPageName);
-        
+        // To confirm the status-page name.
+        let spanElement = await page.waitForSelector(
+            `#header-${statusPageName}`
+        );
+        spanElement = await spanElement.getProperty('innerText');
+        spanElement = await spanElement.jsonValue();
+        expect(spanElement).toMatch(statusPageName);
+
         done();
     }, 200000);
-    
-    test('should create a manual monitor', async done =>{
+
+    test('should create a manual monitor', async done => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
@@ -82,20 +82,20 @@ describe('Check scheduled maintenace', () => {
         await page.click('button[type=submit]');
 
         // Create a Manual Monitor
-        await page.waitForSelector('#form-new-monitor',{visible: true});        
+        await page.waitForSelector('#form-new-monitor', { visible: true });
         await page.click('input[id=name]', { visible: true });
         await page.type('input[id=name]', monitorName);
         await page.click('[data-testId=type_manual]');
         await page.waitForSelector('#description');
         await page.click('#description');
         await page.type('#description', 'My Manual Monitor');
-        await page.click('button[type=submit]');        
+        await page.click('button[type=submit]');
 
         // To confirm the manual monitor is created
-        let spanElement = await page.waitForSelector(`#monitor-title-${monitorName}`);
-        spanElement = await spanElement.getProperty(
-            'innerText'
+        let spanElement = await page.waitForSelector(
+            `#monitor-title-${monitorName}`
         );
+        spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         expect(spanElement).toMatch(monitorName);
 
@@ -111,10 +111,14 @@ describe('Check scheduled maintenace', () => {
         await page.click('#statusPages');
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage');        
+        await page.click('#viewStatusPage');
         await page.waitForSelector('#addMoreMonitors');
         await page.click('#addMoreMonitors');
-        await init.selectByText('#monitor-name',`${componentName} / ${monitorName}`, page);
+        await init.selectByText(
+            '#monitor-name',
+            `${componentName} / ${monitorName}`,
+            page
+        );
         await page.click('#monitor-description');
         await page.type('#monitor-description', 'Status Page Description');
         await page.click('#manual-monitor-checkbox');
@@ -124,13 +128,11 @@ describe('Check scheduled maintenace', () => {
         let link = await page.$('#publicStatusPageUrl > span > a');
         link = await link.getProperty('href');
         link = await link.jsonValue();
-        await page.goto(link);        
+        await page.goto(link);
 
         // To confirm the monitor is present in the status-page
         let spanElement = await page.waitForSelector(`#monitor-${monitorName}`);
-        spanElement = await spanElement.getProperty(
-            'innerText'
-        );
+        spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         expect(spanElement).toMatch(monitorName);
 
@@ -157,12 +159,9 @@ describe('Check scheduled maintenace', () => {
         await page.waitForSelector('#name');
         await page.click('#name');
         await page.type('#name', scheduledMaintenanceName);
-        
+
         await page.click('#description');
-        await page.type(
-            '#description',
-            scheduledMaintenanceDescription
-        );
+        await page.type('#description', scheduledMaintenanceDescription);
         await page.waitForSelector('input[name=startDate]');
         await page.click('input[name=startDate]');
         await page.click('div.MuiDialogActions-root button:nth-child(2)');
@@ -170,31 +169,34 @@ describe('Check scheduled maintenace', () => {
             'div.MuiDialogActions-root button:nth-child(2)',
             { hidden: true }
         );
-        await page.click('input[name=endDate]');        
-        await page.click('div.MuiPickersCalendar-week:nth-child(4) > div'); // To select a future date        
+        await page.click('input[name=endDate]');
+        await page.click('div.MuiPickersCalendar-week:nth-child(4) > div'); // To select a future date
         await page.click('div.MuiDialogActions-root button:nth-child(2)');
         await page.waitForSelector(
             'div.MuiDialogActions-root button:nth-child(2)',
             { hidden: true }
         );
-        await page.click('#createScheduledEventButton');    
+        await page.click('#createScheduledEventButton');
         await page.waitForSelector('#scheduledEventForm', {
             hidden: true,
         });
         // This is to confirm that the created scheduled maintenance is present and monitor is there.
-        let scheduledMaintenance = await page.waitForSelector(`#monitor-${monitorName}`, {
-            visible: true,
-        });
+        let scheduledMaintenance = await page.waitForSelector(
+            `#monitor-${monitorName}`,
+            {
+                visible: true,
+            }
+        );
         scheduledMaintenance = await scheduledMaintenance.getProperty(
             'innerText'
         );
         scheduledMaintenance = await scheduledMaintenance.jsonValue();
         expect(scheduledMaintenance).toMatch(monitorName);
-        
-        done();
-    },200000);
 
-    test('should view scheduled maintenance details in status-page', async done =>{
+        done();
+    }, 200000);
+
+    test('should view scheduled maintenance details in status-page', async done => {
         await page.waitForSelector('#statusPages');
         await page.click('#statusPages');
         await page.waitForSelector('#statusPagesListContainer');
@@ -208,15 +210,17 @@ describe('Check scheduled maintenace', () => {
         await page.goto(link);
 
         // To confirm scheduled maintenance name
-        await page.waitForSelector(`#event-name-${scheduledMaintenanceName}`)
+        await page.waitForSelector(`#event-name-${scheduledMaintenanceName}`);
         const eventName = await page.$eval(
             `#event-name-${scheduledMaintenanceName}`,
             elem => elem.textContent
         );
         expect(eventName).toMatch(scheduledMaintenanceName);
-        
+
         // To confirm scheduled maintenance description
-        await page.waitForSelector(`#event-description-${scheduledMaintenanceDescription}`)
+        await page.waitForSelector(
+            `#event-description-${scheduledMaintenanceDescription}`
+        );
         const eventDescription = await page.$eval(
             `#event-description-${scheduledMaintenanceDescription}`,
             elem => elem.textContent
@@ -224,21 +228,21 @@ describe('Check scheduled maintenace', () => {
         expect(eventDescription).toMatch(scheduledMaintenanceDescription);
 
         // To confirm scheduled maintenance date
-        await page.waitForSelector("#event-date")
+        await page.waitForSelector('#event-date');
         const eventDate = await page.$eval(
-            "#event-date",
+            '#event-date',
             elem => elem.textContent
         );
         expect(eventDate).toBeDefined();
 
-        // To confirm this is a future scheduled maintenance 
-        await page.waitForSelector("#ongoing-event")
+        // To confirm this is a future scheduled maintenance
+        await page.waitForSelector('#ongoing-event');
         const futureEvent = await page.$eval(
-            "#ongoing-event",
+            '#ongoing-event',
             elem => elem.textContent
         );
         expect(futureEvent).toMatch(futureEvent);
-        
+
         done();
     }, 200000);
 });

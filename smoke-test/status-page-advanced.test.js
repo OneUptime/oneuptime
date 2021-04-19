@@ -16,9 +16,9 @@ const statusPageName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 const subscriberEmail = utils.generateRandomBusinessEmail();
-const customDomainWebsite = `www.${utils.generateRandomString()}.com`
+const customDomainWebsite = `www.${utils.generateRandomString()}.com`;
 
-describe('Status-Page Advanced Options', ()=>{
+describe('Status-Page Advanced Options', () => {
     beforeAll(async done => {
         jest.setTimeout(15000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -38,12 +38,12 @@ describe('Status-Page Advanced Options', ()=>{
         await init.registerUser(user, page);
         await init.renameProject(projectName, page);
         await init.growthPlanUpgrade(page); // Only Monthly growth plan can enable subscribers in status-page
-        
+
         // Create a Status-Page and Scheduled Maintenance to display in the Status-Page Url
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
-        
+
         await page.waitForSelector('#statusPages');
         await page.click('#statusPages');
         await page.waitForSelector(`#btnCreateStatusPage_${projectName}`);
@@ -57,18 +57,18 @@ describe('Status-Page Advanced Options', ()=>{
         await page.click('#viewStatusPage');
         await page.waitForSelector(`#header-${statusPageName}`);
 
-         // To confirm the status-page name.
-         let spanElement = await page.waitForSelector(`#header-${statusPageName}`);
-         spanElement = await spanElement.getProperty(
-             'innerText'
-         );
-         spanElement = await spanElement.jsonValue();
-         expect(spanElement).toMatch(statusPageName);
-        
+        // To confirm the status-page name.
+        let spanElement = await page.waitForSelector(
+            `#header-${statusPageName}`
+        );
+        spanElement = await spanElement.getProperty('innerText');
+        spanElement = await spanElement.jsonValue();
+        expect(spanElement).toMatch(statusPageName);
+
         done();
     }, 200000);
-    
-    test('should create a manual monitor', async done =>{
+
+    test('should create a manual monitor', async done => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
@@ -83,20 +83,20 @@ describe('Status-Page Advanced Options', ()=>{
         await page.click('button[type=submit]');
 
         // Create a Manual Monitor
-        await page.waitForSelector('#form-new-monitor',{visible: true});        
+        await page.waitForSelector('#form-new-monitor', { visible: true });
         await page.click('input[id=name]', { visible: true });
         await page.type('input[id=name]', monitorName);
         await page.click('[data-testId=type_manual]');
         await page.waitForSelector('#description');
         await page.click('#description');
         await page.type('#description', 'My Manual Monitor');
-        await page.click('button[type=submit]');        
+        await page.click('button[type=submit]');
 
         // To confirm the manual monitor is created.
-        let spanElement = await page.waitForSelector(`#monitor-title-${monitorName}`);
-        spanElement = await spanElement.getProperty(
-            'innerText'
+        let spanElement = await page.waitForSelector(
+            `#monitor-title-${monitorName}`
         );
+        spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         expect(spanElement).toMatch(monitorName);
 
@@ -112,10 +112,14 @@ describe('Status-Page Advanced Options', ()=>{
         await page.click('#statusPages');
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage');        
+        await page.click('#viewStatusPage');
         await page.waitForSelector('#addMoreMonitors');
         await page.click('#addMoreMonitors');
-        await init.selectByText('#monitor-name',`${componentName} / ${monitorName}`, page);
+        await init.selectByText(
+            '#monitor-name',
+            `${componentName} / ${monitorName}`,
+            page
+        );
         await page.click('#monitor-description');
         await page.type('#monitor-description', 'Status Page Description');
         await page.click('#manual-monitor-checkbox');
@@ -125,20 +129,18 @@ describe('Status-Page Advanced Options', ()=>{
         let link = await page.$('#publicStatusPageUrl > span > a');
         link = await link.getProperty('href');
         link = await link.jsonValue();
-        await page.goto(link);        
+        await page.goto(link);
 
         // To confirm the monitor is present in the status-page.
         let spanElement = await page.waitForSelector(`#monitor-${monitorName}`);
-        spanElement = await spanElement.getProperty(
-            'innerText'
-        );
+        spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         expect(spanElement).toMatch(monitorName);
 
         done();
     }, 200000);
 
-    test('should add subscriber', async done =>{
+    test('should add subscriber', async done => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
@@ -147,9 +149,7 @@ describe('Status-Page Advanced Options', ()=>{
         await page.waitForSelector('ul#customTabList > li', {
             visible: true,
         });
-        await page.$$eval('ul#customTabList > li', elems =>
-            elems[1].click()
-        );
+        await page.$$eval('ul#customTabList > li', elems => elems[1].click());
         await page.waitForSelector('#addSubscriberButton');
         await page.click('#addSubscriberButton');
         await page.waitForSelector('#alertViaId');
@@ -160,7 +160,9 @@ describe('Status-Page Advanced Options', ()=>{
         await page.waitForSelector('#createSubscriber');
         await page.click('#createSubscriber');
         // To confirm that the subscriber is created.
-        let subscriberContact = await page.waitForSelector('#subscriber_contact');
+        const subscriberContact = await page.waitForSelector(
+            '#subscriber_contact'
+        );
         expect(subscriberContact).toBeDefined();
 
         done();
@@ -180,16 +182,15 @@ describe('Status-Page Advanced Options', ()=>{
         await page.waitForSelector('ul#customTabList > li', {
             visible: true,
         });
-        await page.$$eval('ul#customTabList > li', elems =>
-            elems[1].click()
+        await page.$$eval('ul#customTabList > li', elems => elems[1].click());
+        // To confirm that the subscriber created is present.
+        const subscriberContact = await page.waitForSelector(
+            '#subscriber_contact'
         );
-         // To confirm that the subscriber created is present.
-         let subscriberContact = await page.waitForSelector('#subscriber_contact');
-         expect(subscriberContact).toBeDefined();
+        expect(subscriberContact).toBeDefined();
 
         done();
     }, 200000);
-    
 
     test('should create custom domain in status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -205,9 +206,7 @@ describe('Status-Page Advanced Options', ()=>{
         await page.waitForSelector('ul#customTabList > li', {
             visible: true,
         });
-        await page.$$eval('ul#customTabList > li', elems =>
-            elems[2].click()
-        );
+        await page.$$eval('ul#customTabList > li', elems => elems[2].click());
         await page.waitForSelector('#addMoreDomain');
         await page.click('#addMoreDomain');
         await page.waitForSelector('#customDomain');
@@ -215,7 +214,7 @@ describe('Status-Page Advanced Options', ()=>{
         await page.type('#customDomain', customDomainWebsite);
         await page.click('#createCustomDomainBtn');
         // To confirm that custom domain is created.
-        let customDomain = await page.waitForSelector('#publicStatusPageUrl');
+        const customDomain = await page.waitForSelector('#publicStatusPageUrl');
         expect(customDomain).toBeDefined();
 
         done();
@@ -235,22 +234,22 @@ describe('Status-Page Advanced Options', ()=>{
         await page.waitForSelector('ul#customTabList > li', {
             visible: true,
         });
-        await page.$$eval('ul#customTabList > li', elems =>
-            elems[5].click()
-        );
+        await page.$$eval('ul#customTabList > li', elems => elems[5].click());
         // Add Enable Subscribers
         await page.waitForSelector('#enable-subscribers');
         await page.click('#enable-subscribers');
         await page.waitForSelector('#saveAdvancedOptions');
         await page.click('#saveAdvancedOptions');
-        
+
         await page.waitForSelector('#publicStatusPageUrl');
         let link = await page.$('#publicStatusPageUrl > span > a');
         link = await link.getProperty('href');
         link = await link.jsonValue();
-        await page.goto(link); 
+        await page.goto(link);
         // To confirm subscribe button is present in status-page
-        let subscriberButton = await page.waitForSelector("#subscriber-button");
+        const subscriberButton = await page.waitForSelector(
+            '#subscriber-button'
+        );
         expect(subscriberButton).toBeDefined();
 
         done();
@@ -268,15 +267,17 @@ describe('Status-Page Advanced Options', ()=>{
         await page.type('input[name=email]', subscriberEmail);
         await page.click('#subscribe-btn-email');
         // To confirm successful subscription
-        let subscribeSuccess = await page.waitForSelector('#monitor-subscribe-success-message');
-        subscribeSuccess = await subscribeSuccess.getProperty(
-            'innerText'
+        let subscribeSuccess = await page.waitForSelector(
+            '#monitor-subscribe-success-message'
         );
+        subscribeSuccess = await subscribeSuccess.getProperty('innerText');
         subscribeSuccess = await subscribeSuccess.jsonValue();
-        expect(subscribeSuccess).toMatch('You have subscribed to this status page successfully');
+        expect(subscribeSuccess).toMatch(
+            'You have subscribed to this status page successfully'
+        );
 
         done();
-    } , 200000);
+    }, 200000);
 
     test('should delete status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -292,9 +293,7 @@ describe('Status-Page Advanced Options', ()=>{
         await page.waitForSelector('ul#customTabList > li', {
             visible: true,
         });
-        await page.$$eval('ul#customTabList > li', elems =>
-            elems[5].click()
-        );
+        await page.$$eval('ul#customTabList > li', elems => elems[5].click());
 
         await page.waitForSelector('#delete');
         await page.click('#delete');
@@ -302,10 +301,11 @@ describe('Status-Page Advanced Options', ()=>{
         await page.click('#confirmDelete');
 
         // To confirm status-page has been deleted.
-        let deletedStatusPage = await page.waitForSelector('#statusPagesListContainer');
+        const deletedStatusPage = await page.waitForSelector(
+            '#statusPagesListContainer'
+        );
         expect(deletedStatusPage).toBeDefined();
 
         done();
     }, 200000);
-    
 });
