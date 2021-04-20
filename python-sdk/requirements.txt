@@ -5,7 +5,7 @@ configparser==4.0.2
 contextlib2==0.6.0.post1
 dep-check==1.0.3
 enum34==1.1.10
-faker==3.0.1
+Faker==3.0.1
 flake8==3.9.1
 Flask==1.0.2
 idna==2.10
@@ -15,6 +15,8 @@ itsdangerous==1.1.0
 Jinja2==2.10
 MarkupSafe==1.1.1
 mccabe==0.6.1
+numpy==1.16.2
+pandas==0.24.1
 pathlib2==2.3.5
 PyAudit==1.0.3
 pycodestyle==2.7.0
