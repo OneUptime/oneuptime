@@ -1,4 +1,4 @@
 class LogType():
     INFO = "info"
-    WARNING = "waring"
+    WARNING = "warning"
     ERROR = "error"
