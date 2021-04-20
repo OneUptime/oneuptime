@@ -1,3 +1,7 @@
 User-agent: *
-Disallow: 
+Disallow: /api/*
+Disallow: /status-page/*
+Disallow: /admin/*
+Disallow: /haraka/*
+Disallow: /dashboard/*
 Sitemap: https://fyipe.com/sitemap.xml

@@ -287,7 +287,12 @@ class EventBox extends Component {
                                                         </div>
                                                     </div>
                                                     <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                        <div className="bs-ObjectList-cell-row">
+                                                        <div
+                                                            className="bs-ObjectList-cell-row"
+                                                            id={`monitor-${this.handleMonitorList(
+                                                                scheduledEvent.monitors
+                                                            )}`}
+                                                        >
                                                             {scheduledEvent.monitors &&
                                                                 this.handleMonitorList(
                                                                     scheduledEvent.monitors

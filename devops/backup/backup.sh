@@ -1,7 +1,7 @@
 ###
 #
 #   Please make sure kubectl is installed and context is pointed to the cluster you want to restore to.
-#
+#   This only runs on Linux (Ubuntu) and not on MacOS
 ###
 
 HELM_RELEASE_NAME='fi'
@@ -17,6 +17,9 @@ TODAY=`date +"%d%b%Y"`
 red=`tput setaf 1`
 green=`tput setaf 2`
 reset=`tput sgr 0`
+
+# Delete all the monitor logs before 3 months before taking the backup.
+THREE_MONTHS_AGO=$(date -d "-120 days")
 
 function HELP (){
   echo ""
@@ -140,13 +143,26 @@ function BACKUP_FAIL_LOCAL(){
 
 echo "Taking a backup on the server"
 echo ""
-if sudo kubectl exec fi-mongodb-primary-0 -- mongodump --uri="mongodb://$FYIPE_DB_USERNAME:$FYIPE_DB_PASSWORD@localhost:27017/$FYIPE_DB_NAME" --archive="/tmp/fyipedata.archive"; then
+
+# Drop audit logs collection because we dont need to take backup of that.
+echo "Removing audit logs collections. This will take some time." 
+sudo kubectl exec fi-mongodb-primary-0  -- mongo fyipedb --username $FYIPE_DB_USERNAME --password $FYIPE_DB_PASSWORD --eval 'db.auditlogs.drop()'
+
+# Remove all the monitor logs which are more than 120 days old to make backups faster. 
+echo "Removing old monitor logs. This will take some time."
+sudo kubectl exec fi-mongodb-primary-0  -- mongo fyipedb --username $FYIPE_DB_USERNAME --password $FYIPE_DB_PASSWORD --eval 'db.monitorlogs.remove({"createdAt": { "$lt": new Date("$THREE_MONTHS_AGO")}})' 
+
+# Sleeping for 10 mins for database server to cool down. 
+sleep 10m
+
+# Take backup from secondary and not from primary. This will not slow primary down.
+if sudo kubectl exec fi-mongodb-secondary-0  -- mongodump --uri="mongodb://$FYIPE_DB_USERNAME:$FYIPE_DB_PASSWORD@localhost:27017/$FYIPE_DB_NAME" --archive="/tmp/fyipedata.archive"; then
     echo "Copying backup from server to local computer. This will take some time...."
     echo ""
-    if sudo kubectl cp fi-mongodb-primary-0:tmp/fyipedata.archive "$BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"; then
+    if sudo kubectl cp fi-mongodb-secondary-0 :tmp/fyipedata.archive "$BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"; then
       echo ${green}"File Saved: $BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"${reset}
       echo ""
-      sudo kubectl exec fi-mongodb-primary-0 -- rm tmp/fyipedata.archive
+      sudo kubectl exec fi-mongodb-secondary-0  -- rm tmp/fyipedata.archive
       BACKUP_SUCCESS
     else
       echo ${red}"Failure, exit status: $?" ${reset}

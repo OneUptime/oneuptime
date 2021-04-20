@@ -101,8 +101,8 @@
             </plugin>
         </plugins> 
     </build>
-    <name>Fyipe Application</name>
-    <description>A Fyipe package that send logs from your applications to your Fyipe dashboard.</description>
+    <name>Fyipe Java SDK</name>
+    <description>A Fyipe package that tracks error event and send logs from your applications to your fyipe dashboard.</description>
     <url>https://www.fyipe.com/</url>
     <dependencies>
         <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->

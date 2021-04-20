@@ -24,6 +24,7 @@ const monitorLogSchema = new Schema({
     createdAt: {
         type: Date,
         default: Date.now,
+        index: true,
     },
     sslCertificate: Object,
     kubernetesLog: Object,

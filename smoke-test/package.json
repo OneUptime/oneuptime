@@ -5,7 +5,8 @@
     "main": "index.test.js",
     "scripts": {
         "test": "jest --forceExit --runInBand ./*.test.js",
-        "enterprise-test": "jest --forceExit --runInBand ./*.test.enterprise.js"
+        "enterprise-test": "jest --forceExit --runInBand ./*enterprise.js",
+        "staging-test": "export HEADLESS=false && export HOME_URL=https://staging.fyipe.com && export ACCOUNTS_URL=https://staging.fyipe.com/accounts && export ADMIN_DASHBOARD_URL=https://staging.fyipe.com/admin && export DASHBOARD_URL=https://staging.fyipe.com/dashboard && export BACKEND_URL=https://staging.fyipe.com/api && export STATUSPAGE_URL=https://staging.fyipe.com/status-page && export APIDOCS_URL=https://staging.fyipe.com/docs && jest --forceExit --runInBand ./*.test.js"
     },
     "keywords": [],
     "author": "",
@@ -15,8 +16,7 @@
         "chai-http": "^4.3.0",
         "faker": "^4.1.0",
         "jest": "^26.6.3",
-        "puppeteer": "^5.5.0",
-        "puppeteer-cluster": "^0.22.0",
+        "puppeteer": "^8.0.0",
         "should": "^13.2.3"
     },
     "jest": {

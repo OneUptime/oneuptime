@@ -7,7 +7,7 @@ import ShouldRender from '../basic/ShouldRender';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 
-const Checkbox = ({ label, name, disabled }) => (
+const Checkbox = ({ label, name, disabled, id }) => (
     <div className="bs-Fieldset-fields" style={{ maxHeight: '20px' }}>
         <div className="Box-root" style={{ height: '5px' }}></div>
         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
@@ -27,7 +27,7 @@ const Checkbox = ({ label, name, disabled }) => (
                 </div>
                 <div className="Checkbox-label Box-root Margin-left--8">
                     <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                        <span>{label}</span>
+                        <span id={id}>{label}</span>
                     </span>
                 </div>
             </label>
@@ -40,6 +40,7 @@ Checkbox.propTypes = {
     label: PropTypes.string.isRequired,
     name: PropTypes.string.isRequired,
     disabled: PropTypes.bool.isRequired,
+    id: PropTypes.string,
 };
 
 let RenderMonitor = ({
@@ -112,6 +113,7 @@ let RenderMonitor = ({
                             <Field
                                 className="db-select-nw"
                                 name={`${monitor}.monitor`}
+                                id="monitor-name"
                                 component={RenderSelect}
                                 options={[
                                     ...allMonitors.map(m => ({
@@ -138,6 +140,7 @@ let RenderMonitor = ({
                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                     component="input"
                                     name={`${monitor}.description`}
+                                    id="monitor-description"
                                 />
                             </div>
                         )}
@@ -185,6 +188,7 @@ let RenderMonitor = ({
                                             label="Uptime"
                                             name={`${monitor}.uptime`}
                                             disabled={!shouldEdit}
+                                            id="manual-monitor-checkbox"
                                         />
                                     )}
                                     {type === 'incomingHttpRequest' && (

@@ -71,6 +71,7 @@ import com.google.gson.JsonObject;
 import io.hackerbay.fyipe.FyipeTracker;
 import java.io.IOException;
 import io.hackerbay.fyipe.model.Tag;
+import io.hackerbay.fyipe.model.TrackerOption;
 
 
 public class SampleClass {

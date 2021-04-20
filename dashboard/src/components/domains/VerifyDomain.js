@@ -47,12 +47,13 @@ class VerifyDomain extends Component {
             verifyProjectDomain,
             fetchProjectDomains,
             verificationToken,
+            currentProject,
         } = this.props;
 
         const data = { domain, verificationToken };
         verifyProjectDomain({ projectId, domainId, data }).then(() => {
             if (!this.props.verifyError) {
-                fetchProjectDomains(projectId, 0, 10);
+                fetchProjectDomains(currentProject._id, 0, 10);
                 this.handleCloseModal();
             }
         });
@@ -282,6 +283,7 @@ const mapStateToProps = state => ({
     domainId: state.modal.modals[0].id,
     projectId: state.modal.modals[0].projectId,
     domain: state.modal.modals[0].domain,
+    currentProject: state.modal.modals[0].currentProject,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -311,6 +313,7 @@ VerifyDomain.propTypes = {
     verifyProjectDomain: PropTypes.func,
     fetchProjectDomains: PropTypes.func,
     resetVerifyProjectDomain: PropTypes.func,
+    currentProject: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(VerifyDomain);

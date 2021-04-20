@@ -1,0 +1,23 @@
+<div class="testimonials">
+    <div>
+        <div class="sketch"></div>
+    </div>
+    <div class="test">
+        <h2 class="header"><%- title %></h2>
+        <p class="common-BodyText">
+            <%- description %>
+        </p>
+        <div>
+            <% for(var i=0; i < quotes.length; i++) { %>
+            <blockquote class="review">
+                <p>
+                    <span>“<%- quotes[i].quote %>”</span>
+                </p>
+                <div class="_cite">
+                    <cite>- <%- quotes[i].by %></cite>
+                </div>
+            </blockquote>
+            <% } %>
+        </div>
+    </div>
+</div>

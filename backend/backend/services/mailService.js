@@ -3864,7 +3864,8 @@ const _this = {
         projectName,
         emailTemplate,
         componentName,
-        replyAddress
+        replyAddress,
+        unsubscribeUrl
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -3890,6 +3891,7 @@ const _this = {
                 eventCreateTime: schedule.createdAt,
                 eventStartTime: schedule.startDate,
                 eventEndTime: schedule.endDate,
+                unsubscribeUrl,
                 year: DateTime.getCurrentYear,
             };
             template = template(data);
@@ -4073,7 +4075,8 @@ const _this = {
         projectName,
         emailTemplate,
         componentName,
-        replyAddress
+        replyAddress,
+        unsubscribeUrl
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -4096,6 +4099,7 @@ const _this = {
                 componentName,
                 eventName: schedule.name,
                 eventResolveTime: schedule.resolvedAt,
+                unsubscribeUrl,
                 year: DateTime.getCurrentYear,
             };
             template = template(data);
@@ -4280,7 +4284,8 @@ const _this = {
         replyAddress,
         projectName,
         monitorName,
-        projectId
+        projectId,
+        unsubscribeUrl
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -4304,6 +4309,7 @@ const _this = {
                 content,
                 projectName,
                 monitorName,
+                unsubscribeUrl,
                 year: DateTime.getCurrentYear,
             };
             template = template(data);

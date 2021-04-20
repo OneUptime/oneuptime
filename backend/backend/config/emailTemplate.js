@@ -2033,6 +2033,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             '{{monitorName}} : Name of the monitor on which the event was created.',
             '{{userId}} : Unique identifier for user account.',
             '{{projectId}} : Unique identifier for the current project.',
+            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
         emailType: 'Subscriber Scheduled Maintenance',
         subject: `New Scheduled Maintenance Event for {{projectName}} - {{eventName}}`,
@@ -2503,7 +2504,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
     </td>
     <td class="st-Font st-Font--caption" style="border: 0; margin: 0;padding: 0; color: #8898aa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 16px;">
       <span class="st-Delink st-Delink--footer" style="border: 0; margin: 0; padding: 0; color: #8898aa; text-decoration: none;">
-        © {{year}} HackerBay Inc.
+        © {{year}} HackerBay Inc. | <span><a href={{unsubscribeUrl}}>Unsubscribe</a></span>
       </span>
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -2555,6 +2556,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
             '{{content}} : Content of created note.',
             '{{projectName}} : Name of the project on which the event was created.',
             '{{monitorName}} : Name of the monitor on which the event was created.',
+            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
         emailType: 'Subscriber Scheduled Maintenance Note',
         subject: `New Scheduled Maintenance Event Note for {{projectName}} - {{eventName}} `,
@@ -3015,7 +3017,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
     </td>
     <td class="st-Font st-Font--caption" style="border: 0; margin: 0;padding: 0; color: #8898aa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 16px;">
       <span class="st-Delink st-Delink--footer" style="border: 0; margin: 0; padding: 0; color: #8898aa; text-decoration: none;">
-        © {{year}} HackerBay Inc.
+        © {{year}} HackerBay Inc. | <span><a href={{unsubscribeUrl}}>Unsubscribe</a></span>
       </span>
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -3067,6 +3069,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
             '{{eventResolveTime}} : Time at which scheduled event is created.',
             '{{projectName}} : Name of the project on which the event was created.',
             '{{monitorName}} : Name of the monitor on which the event was created.',
+            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
         emailType: 'Subscriber Scheduled Maintenance Resolved',
         subject: `Resolved Scheduled Maintenance Event for {{projectName}} - {{eventName}}`,
@@ -3520,7 +3523,7 @@ You are receiving this mail because you are subscribed to this monitor.
   </td>
   <td class="st-Font st-Font--caption" style="border: 0; margin: 0;padding: 0; color: #8898aa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 16px;">
     <span class="st-Delink st-Delink--footer" style="border: 0; margin: 0; padding: 0; color: #8898aa; text-decoration: none;">
-      © {{year}} HackerBay Inc.
+      © {{year}} HackerBay Inc. | <span><a href={{unsubscribeUrl}}>Unsubscribe</a></span>
     </span>
   </td>
   <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
