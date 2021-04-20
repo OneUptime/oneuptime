@@ -18,9 +18,7 @@ test_python-sdk:
         - sudo apt-get install -y python3-pip
         - cd python-sdk
         - pip3 install -r requirements.txt
-        - python -v
-        - python3 -v
-        # - python -m unittest discover -s tests
+        - python3 -m unittest discover -s tests
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh test_python-sdk python-sdk backend
