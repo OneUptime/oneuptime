@@ -4,7 +4,7 @@ audit_python-sdk:
     allow_failure: true
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh audit_js-sdk js-sdk`
+        - export next_stage=`./ci/scripts/checkhash.sh audit_python-sdk python-sdk`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
@@ -13,6 +13,7 @@ audit_python-sdk:
         - sudo apt-get install -y python3-pip
         - cd python-sdk
         - pip3 install -r requirements.txt
+        # TODO find audit and dep-check library for Python
         # - npm run audit
         # - npm run dep-check
         - cd ..
