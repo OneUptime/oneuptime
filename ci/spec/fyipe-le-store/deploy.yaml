@@ -1,4 +1,4 @@
-## DEPLOYMENT STAGE - fyipe-le-store-staging
+## DEPLOYMENT STAGE FOR STAGING - fyipe-le-store-staging
 deploy_staging_fyipe-le-store:
     stage: Deploy
     allow_failure: true
@@ -26,7 +26,7 @@ deploy_staging_fyipe-le-store:
     environment:
         name: staging
 
-## DEPLOYMENT STAGE - fyipe-le-store
+## DEPLOYMENT STAGE FOR PRODUCTION - fyipe-le-store
 deploy_production_fyipe-le-store:
     stage: Deploy
     allow_failure: true
