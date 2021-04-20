@@ -74,11 +74,52 @@ class LoggerTest(unittest.TestCase):
         response = requests.post(url, body, headers = headers)
         return response.json()
     
-    def testApplicationLogKeyIsRequired(self):
-        logger = FyipeLogger(self.apiUrl, self.applicationLog['_id'], '')
-        response = logger.log('test content');
-        self.assertEqual("Application Log Key is required.", response['message'], "Application Log Key Required")
+    # def testApplicationLogKeyIsRequired(self):
+    #     logger = FyipeLogger(self.apiUrl, self.applicationLog['_id'], '')
+    #     response = logger.log('test content')
+    #     self.assertEqual("Application Log Key is required.", response['message'], "Application Log Key Required")
     
+    # def testContentIsRequired(self):
+    #     logger = FyipeLogger(self.apiUrl, self.applicationLog['_id'], self.applicationLog['key'])
+    #     response = logger.log('')
+    #     self.assertEqual("Content to be logged is required.", response['message'], "Content Required")
+
+    # def testValidApplicationLogIdIsRequired(self): 
+    #     logger = FyipeLogger(self.apiUrl, '5eec6f33d7d57033b3a7d502', self.applicationLog['key'])
+    #     response = logger.log('content')
+    #     self.assertEqual("Application Log does not exist.", response['message'], "Valid Application Log")
+    
+    # def testValidStringContentOfTypeInfoIsLogged(self):
+    #     log = "sample content to be logged"
+    #     logger = FyipeLogger(self.apiUrl, self.applicationLog['_id'], self.applicationLog['key'])
+    #     response = logger.log(log)
+    #     self.assertEqual(log, response['content'])
+    #     self.assertEqual("info", response['type'])
+    
+    def testValidObjectContentOfTypeInfoIsLogged(self):
+        log = {
+            'location': 'Atlanta',
+            'country': 'USA'
+        }
+        logger = FyipeLogger(self.apiUrl, self.applicationLog['_id'], self.applicationLog['key'])
+        response = logger.log(log)
+        self.assertEqual(log['location'], response['content']['location'])
+        self.assertEqual(True, isinstance(response['content'], dict))
+
+    def testValidStringContentOfTypeErrorIsLogged(self):
+        log = "sample content to be logged"
+        logger = FyipeLogger(self.apiUrl, self.applicationLog['_id'], self.applicationLog['key'])
+        response = logger.error(log)
+        self.assertEqual(log, response['content'])
+        self.assertEqual("error", response['type'])
+    
+    def testValidStringContentOfTypeWarningIsLogged(self):
+        log = "sample content to be logged"
+        logger = FyipeLogger(self.apiUrl, self.applicationLog['_id'], self.applicationLog['key'])
+        response = logger.warning(log)
+        self.assertEqual(log, response['content'])
+        self.assertEqual("warning", response['type'])
+
 
 if __name__ == '__main__':
     unittest.main()
