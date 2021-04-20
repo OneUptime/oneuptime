@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 
 const SubscriberService = require('../services/subscriberService');
+const MonitorService = require('../services/monitorService');
 
 const getUser = require('../middlewares/user').getUser;
 
@@ -349,11 +350,26 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
             subscribed: true,
         });
 
+        let filteredSubscriptions = [];
+
+        await Promise.all(
+            subscriptions.map(async subscription => {
+                let subscriberMonitor = await MonitorService.findOneBy({
+                    _id: subscription.monitorId,
+                    deleted: false,
+                });
+
+                if (subscriberMonitor) {
+                    filteredSubscriptions.push(subscription);
+                }
+            })
+        );
+
         const count = await SubscriberService.countBy({
             contactEmail: subscriber[0].contactEmail,
             subscribed: true,
         });
-        return sendListResponse(req, res, subscriptions, count);
+        return sendListResponse(req, res, filteredSubscriptions, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
