@@ -20,7 +20,6 @@ class FyipeLogger:
         if(tags is not None):
             if(isinstance(tags, (str, list)) != True):
                 return 'Invalid Content Tags to be logged'
-        
         # make request to the API
         return self._makeApiRequest_(data, LogType.INFO, tags)
 
@@ -59,16 +58,16 @@ class FyipeLogger:
         return self._makeApiRequest_(data, LogType.ERROR, tags)
 
     
-    def _makeApiRequest_(self, data, logType, tags):
+    def _makeApiRequest_(self, content, logType, tags):
         data = {
-            'content': data,
+            'content': content,
             'applicationLogKey': self.applicationLogKey,
             'type': logType,
         }
         if(tags is not None):
             data.tags = tags
 
-        response = requests.post(self.apiUrl, data)
+        response = requests.post(self.apiUrl, json=data)
         return response.json()
         
         
