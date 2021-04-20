@@ -5,7 +5,7 @@ configparser==4.0.2
 contextlib2==0.6.0.post1
 dep-check==1.0.3
 enum34==1.1.10
-Faker==3.0.1
+faker==3.0.1
 flake8==3.9.1
 Flask==1.0.2
 idna==2.10
