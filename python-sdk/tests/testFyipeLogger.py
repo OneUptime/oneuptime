@@ -120,6 +120,47 @@ class LoggerTest(unittest.TestCase):
         self.assertEqual(log, response['content'])
         self.assertEqual("warning", response['type'])
 
+    def test_valid_object_content_of_type_info_with_one_tag_is_logged(self):
+        log = {
+            'location': 'Atlanta',
+            'country': 'USA'
+        }
+        tag = "intent"
+        logger = FyipeLogger(self.apiUrl, self.applicationLog['_id'], self.applicationLog['key'])
+        response = logger.log(log, tag)
+        self.assertEqual(log['location'], response['content']['location'])
+        self.assertEqual("info", response['type'])
+        self.assertIsInstance(response['tags'], list)
+        self.assertIn(tag, response['tags'])
+
+    def test_valid_object_content_of_type_error_with_no_tag_is_logged(self):
+        log = {
+            'location': 'Atlanta',
+            'country': 'USA'
+        }
+        logger = FyipeLogger(self.apiUrl, self.applicationLog['_id'], self.applicationLog['key'])
+        response = logger.error(log)
+        self.assertEqual(log['location'], response['content']['location'])
+        self.assertEqual("error", response['type'])
+        self.assertIsInstance(response['tags'], list)
+        self.assertEqual(0, len(response['tags']))
+    
+    def test_valid_object_content_of_type_warning_with_four_tags_is_logged(self):
+        log = {
+            'location': 'Atlanta',
+            'country': 'USA'
+        }
+        tag = ['Enough', 'python', 'Error', 'Serverside']
+        logger = FyipeLogger(self.apiUrl, self.applicationLog['_id'], self.applicationLog['key'])
+        response = logger.warning(log, tag)
+        self.assertEqual(log['country'], response['content']['country'])
+        self.assertEqual("warning", response['type'])
+        self.assertIsInstance(response['tags'], list)
+        self.assertEqual(len(tag), len(response['tags']))
+        for item in tag:
+            self.assertIn(item, response['tags'])
+
+
 
 if __name__ == '__main__':
     unittest.main()

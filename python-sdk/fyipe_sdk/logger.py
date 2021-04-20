@@ -65,7 +65,7 @@ class FyipeLogger:
             'type': logType,
         }
         if(tags is not None):
-            data.tags = tags
+            data['tags'] = tags
 
         response = requests.post(self.apiUrl, json=data)
         return response.json()
