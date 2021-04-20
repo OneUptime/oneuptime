@@ -1,5 +1,5 @@
-## JS SDK
-audit_js-sdk:
+## PYTHON SDK
+audit_python-sdk:
     stage: BuildAndTest
     allow_failure: true
     script:
@@ -17,10 +17,11 @@ audit_js-sdk:
         # - npm run dep-check
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh audit_js-sdk js-sdk
+        - ./ci/scripts/storehash.sh audit_python-sdk python-sdk
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     only:
         refs:
             - master
             - release
+            - feature-python-sdk
