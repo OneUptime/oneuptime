@@ -803,7 +803,7 @@ class Main extends Component {
                                             key={event._id}
                                             onClick={() => {
                                                 this.props.history.push(
-                                                    `/status-page/${this.props.statusData.slug}/scheduledEvent/${event._id}`
+                                                    `/status-page/${this.props.statusData.slug}/scheduledEvent/${event.slug}`
                                                 );
                                             }}
                                         >

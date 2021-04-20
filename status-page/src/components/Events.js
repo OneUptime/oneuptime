@@ -6,11 +6,11 @@ import ShouldRender from './ShouldRender';
 import AffectedResources from './basic/AffectedResources';
 
 class Events extends Component {
-    handleNavigation = (statusPageSlug, eventId) => {
+    handleNavigation = (statusPageSlug, eventSlug) => {
         const { history } = this.props;
 
         history.push(
-            `/status-page/${statusPageSlug}/scheduledEvent/${eventId}`
+            `/status-page/${statusPageSlug}/scheduledEvent/${eventSlug}`
         );
     };
 
@@ -25,7 +25,10 @@ class Events extends Component {
                             className="scheduledEvent feed-item clearfix"
                             key={i}
                             onClick={() =>
-                                this.handleNavigation(statusPageSlug, event._id)
+                                this.handleNavigation(
+                                    statusPageSlug,
+                                    event.slug
+                                )
                             }
                         >
                             <div

@@ -53,9 +53,9 @@ class EventBox extends Component {
         } and ${monitors.length - 2} others`;
     };
 
-    handleScheduledEventDetail = scheduledEventId => {
+    handleScheduledEventDetail = scheduledEventSlug => {
         history.push(
-            `/dashboard/project/${this.props.slug}/scheduledEvents/${scheduledEventId}`
+            `/dashboard/project/${this.props.slug}/scheduledEvents/${scheduledEventSlug}`
         );
     };
 
@@ -252,7 +252,7 @@ class EventBox extends Component {
                                                         e.preventDefault();
                                                         e.stopPropagation();
                                                         this.handleScheduledEventDetail(
-                                                            scheduledEvent._id
+                                                            scheduledEvent.slug
                                                         );
                                                     }}
                                                 >
@@ -335,7 +335,7 @@ class EventBox extends Component {
                                                                     e.preventDefault();
                                                                     e.stopPropagation();
                                                                     this.handleScheduledEventDetail(
-                                                                        scheduledEvent._id
+                                                                        scheduledEvent.slug
                                                                     );
                                                                 }}
                                                             >
@@ -359,6 +359,7 @@ class EventBox extends Component {
                                                                         content: EditSchedule,
                                                                         event: scheduledEvent,
                                                                         projectId,
+                                                                        switch:'false',
                                                                     });
                                                                 }}
                                                             >

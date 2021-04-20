@@ -46,6 +46,9 @@ import {
     RESOLVE_SCHEDULED_EVENT_SUCCESS,
     NEXT_PAGE,
     PREV_PAGE,
+    FETCH_SCHEDULED_EVENT_REQUEST_SLUG,
+    FETCH_SCHEDULED_EVENT_SUCCESS_SLUG,
+    FETCH_SCHEDULED_EVENT_FAILURE_SLUG,
 } from '../constants/scheduledEvent';
 import moment from 'moment';
 
@@ -58,6 +61,12 @@ const INITIAL_STATE = {
         skip: null,
         limit: null,
         count: null,
+    },
+    currentScheduledEvent: {
+        requesting: false,
+        error: null,
+        success: false,
+        scheduledEvent: null,
     },
     subProjectScheduledEventList: {
         requesting: false,
@@ -220,7 +229,7 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
             );
 
             return Object.assign({}, state, {
-                newScheduledEvent: {
+                currentScheduledEvent: {
                     requesting: false,
                     error: null,
                     success: true,
@@ -251,11 +260,11 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
         case CREATE_SCHEDULED_EVENT_FAILURE:
             return Object.assign({}, state, {
                 ...state,
-                newScheduledEvent: {
+                currentScheduledEvent: {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    scheduledEvent: state.newScheduledEvent.scheduledEvent,
+                    scheduledEvent: state.currentScheduledEvent.scheduledEvent,
                 },
             });
         case NEXT_PAGE:
@@ -277,11 +286,11 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
         case CREATE_SCHEDULED_EVENT_REQUEST:
             return Object.assign({}, state, {
                 ...state,
-                newScheduledEvent: {
+                currentScheduledEvent: {
                     requesting: true,
                     error: null,
                     success: false,
-                    scheduledEvent: state.newScheduledEvent.scheduledEvent,
+                    scheduledEvent: state.currentScheduledEvent.scheduledEvent,
                 },
             });
 
@@ -442,7 +451,7 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
         case FETCH_SCHEDULED_EVENT_SUCCESS:
             return {
                 ...state,
-                newScheduledEvent: {
+                currentScheduledEvent: {
                     requesting: false,
                     error: null,
                     success: true,
@@ -453,8 +462,8 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
         case FETCH_SCHEDULED_EVENT_REQUEST:
             return {
                 ...state,
-                newScheduledEvent: {
-                    ...state.newScheduledEvent,
+                currentScheduledEvent: {
+                    ...state.currentScheduledEvent,
                     requesting: true,
                     success: false,
                     error: null,
@@ -464,8 +473,8 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
         case FETCH_SCHEDULED_EVENT_FAILURE:
             return {
                 ...state,
-                newScheduledEvent: {
-                    ...state.newScheduledEvent,
+                currentScheduledEvent: {
+                    ...state.currentScheduledEvent,
                     requesting: false,
                     success: false,
                     error: action.payload,
@@ -651,7 +660,7 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     success: true,
                     scheduledEvent: action.payload,
                 },
-                newScheduledEvent: {
+                currentScheduledEvent: {
                     requesting: false,
                     error: null,
                     success: true,
@@ -1005,8 +1014,8 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     success: true,
                     error: null,
                 },
-                newScheduledEvent: {
-                    ...state.newScheduledEvent,
+                currentScheduledEvent: {
+                    ...state.currentScheduledEvent,
                     scheduledEvent: action.payload,
                 },
                 subProjectOngoingScheduledEvent: {
@@ -1020,6 +1029,36 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
             return {
                 ...state,
                 resolveScheduledEvent: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+        case FETCH_SCHEDULED_EVENT_REQUEST_SLUG:
+            return {
+                ...state,
+                currentScheduledEvent: {
+                    ...state.ScheduledEvent,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            };
+        case FETCH_SCHEDULED_EVENT_SUCCESS_SLUG:
+            return {
+                ...state,
+                currentScheduledEvent: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    scheduledEvent: action.payload,
+                },
+            };
+        case FETCH_SCHEDULED_EVENT_FAILURE_SLUG:
+            return {
+                ...state,
+                currentScheduledEvent: {
+                    ...state.scheduledEvent,
                     requesting: false,
                     success: false,
                     error: action.payload,

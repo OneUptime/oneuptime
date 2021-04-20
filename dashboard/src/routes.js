@@ -403,7 +403,7 @@ export const groups = [
                     {
                         title: 'Scheduled Event Detail',
                         path:
-                            '/dashboard/project/:slug/scheduledEvents/:scheduledEventId',
+                            '/dashboard/project/:slug/scheduledEvents/:scheduledEventSlug',
                         icon: 'connect',
                         visible: true,
                         component: ScheduledEventDetail,

@@ -415,7 +415,7 @@ export class SidebarNavItem extends Component {
                     ? active
                     : false;
                 const scheduledEventDetailLink = active.match(
-                    /project\/([A-Za-z0-9-]+)\/scheduledEvents\/([0-9]|[a-z]+)/
+                    /project\/([A-Za-z0-9-]+)\/scheduledEvents\/([A-Za-z0-9-]+)/
                 )
                     ? active
                     : false;
