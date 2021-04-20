@@ -531,6 +531,7 @@ class Main extends Component {
                                 <div
                                     className="sy-op"
                                     style={{ backgroundColor: newbg }}
+                                    id="status-note"
                                 >
                                     {newStatusMessage}
                                 </div>

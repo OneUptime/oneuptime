@@ -2,6 +2,7 @@ const EscalationModel = require('../models/escalation');
 const ErrorService = require('./errorService');
 const moment = require('moment');
 const DateTime = require('../utils/DateTime');
+const ScheduleService = require('./scheduleService');
 
 module.exports = {
     findBy: async function({ query, limit, skip, sort }) {
@@ -142,35 +143,6 @@ module.exports = {
         }
     },
 
-    deleteTeamMember: async function(escalations, groupId) {
-        try {
-            const _this = this;
-            for (const escalation of escalations) {
-                const teams = escalation.teams;
-                const newTeams = [];
-                for (const team of teams) {
-                    const teamMembers = team.teamMembers;
-                    const filtered = teamMembers.filter(
-                        tm => tm.groupId !== groupId
-                    );
-                    newTeams.push({
-                        _id: team._id,
-                        teamMembers: filtered,
-                    });
-                }
-                await _this.updateOneBy(
-                    {
-                        _id: escalation._id,
-                    },
-                    { teams: newTeams }
-                );
-            }
-        } catch (error) {
-            ErrorService.log('escalationService.deleteTeamMember', error);
-            throw error;
-        }
-    },
-
     updateOneBy: async function(query, data) {
         try {
             if (!query) {
@@ -212,33 +184,54 @@ module.exports = {
         }
     },
 
-    removeEscalationMember: async function(projectId, memberId) {
+    deleteEscalationMember: async function(projectId, memberId, deletedById) {
         try {
             const _this = this;
             const escalations = await _this.findBy({ qeury: { projectId } });
 
             if (escalations && escalations.length > 0) {
-                await Promise.all(
-                    escalations.map(async escalation => {
-                        const teams = escalation.teams.map(team => {
-                            let teamMembers = team.teamMembers;
-                            teamMembers = teamMembers.filter(member => {
-                                return member.userId !== memberId;
-                            });
-
-                            team.teamMembers = teamMembers;
-
-                            return team;
+                for (const escalation of escalations) {
+                    const teams = escalation.teams;
+                    const newTeams = [];
+                    for (const team of teams) {
+                        const teamMembers = team.teamMembers;
+                        const filtered = teamMembers
+                            .filter(meamber => meamber['groupId'] !== memberId)
+                            .filter(member => member['userId'] !== memberId);
+                        newTeams.push({
+                            _id: team._id,
+                            teamMembers: filtered,
                         });
-                        await _this.updateOneBy(
-                            { _id: escalation._id },
-                            { teams: teams }
-                        );
-                    })
-                );
+                        if (filtered.length < 1) {
+                            const schedule = await ScheduleService.findOneBy({
+                                _id: escalation.scheduleId,
+                            });
+                            const rmEscalation = schedule.escalationIds.filter(
+                                escalationId =>
+                                    String(escalationId._id) !==
+                                    String(escalation._id)
+                            );
+                            schedule.escalationIds = rmEscalation;
+                            await ScheduleService.updateOneBy(
+                                { _id: schedule._id },
+                                { escalationIds: rmEscalation }
+                            );
+                            await _this.deleteBy(
+                                { _id: escalation._id },
+                                deletedById
+                            );
+                        }
+                    }
+                    await _this.updateOneBy(
+                        {
+                            _id: escalation._id,
+                        },
+                        { teams: newTeams }
+                    );
+                }
             }
         } catch (error) {
-            ErrorService.log('escalationService.removeEscalationMember', error);
+            ErrorService.log('escalationService.deleteEscalationMember', error);
             throw error;
         }
     },

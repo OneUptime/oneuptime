@@ -12,7 +12,10 @@ module.exports = {
      * @returns { void }
      */
     registerUser: async function(user, page) {
-        if (utils.BACKEND_URL.includes('localhost')) {
+        if (
+            utils.BACKEND_URL.includes('localhost') ||
+            utils.BACKEND_URL.includes('staging.fyipe.com')
+        ) {
             const { email } = user;
             let frame, elementHandle;
             await page.goto(utils.ACCOUNTS_URL + '/register', {
@@ -102,17 +105,14 @@ module.exports = {
         }
     },
     loginUser: async function(user, page) {
-        const { email, password } = utils.BACKEND_URL.includes('localhost')
-            ? user
-            : utils.BACKEND_URL.includes('staging')
-            ? {
-                  email: 'test@qa.team',
-                  password: '1234567890',
-              }
-            : {
-                  email: 'user@fyipe.com',
-                  password: 'mVzkm{LAP)mNC8t23ehqifb2p',
-              };
+        const { email, password } =
+            utils.BACKEND_URL.includes('localhost') ||
+            utils.BACKEND_URL.includes('staging')
+                ? user
+                : {
+                      email: 'user@fyipe.com',
+                      password: 'mVzkm{LAP)mNC8t23ehqifb2p',
+                  };
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
         });
@@ -247,12 +247,80 @@ module.exports = {
         await input.click({ clickCount: 3 });
         await input.type('');
     },
-    renameProject: async function(newProjectName, page) {                
-            await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
-            await page.waitForSelector('input[name=project_name]');
-            await this.clear('input[name=project_name]', page);
-            await page.type('input[name=project_name]', newProjectName);
-            await page.click('#btnCreateProject');        
+    renameProject: async function(newProjectName, page) {
+        await page.waitForSelector('#projectSettings');
+        await page.click('#projectSettings');
+        await page.waitForSelector('input[name=project_name]');
+        await this.clear('input[name=project_name]', page);
+        await page.type('input[name=project_name]', newProjectName);
+        await page.click('#btnCreateProject');
+    },
+    navigateToComponentDetails: async function(component, page) {
+        // Navigate to Components page
+        await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle0' });
+        await page.waitForSelector('#components', { visible: true });
+        await page.click('#components');
+
+        // Navigate to details page of component assumed created
+        await page.waitForSelector(`#more-details-${component}`);
+        await page.$eval(`#more-details-${component}`, e => e.click());
+    },
+    addMonitorToStatusPage: async function(componentName, monitorName, page) {
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle2',
+        });
+        const description = utils.generateRandomString();
+        await page.waitForSelector('#statusPages');
+        await page.click('#statusPages');
+        await page.waitForSelector('#statusPagesListContainer');
+        await page.waitForSelector('#viewStatusPage');
+        await page.click('#viewStatusPage');
+        await page.waitForSelector('#addMoreMonitors');
+        await page.click('#addMoreMonitors');
+        await this.selectByText(
+            'ul > li:last-of-type #monitor-name',
+            `${componentName} / ${monitorName}`,
+            page
+        );
+        await page.click('ul > li:last-of-type #monitor-description');
+        await page.type(
+            'ul > li:last-of-type #monitor-description',
+            description
+        );
+        await page.click('ul > li:last-of-type #manual-monitor-checkbox');
+        await page.click('#btnAddStatusPageMonitors');
+    },
+    navigateToStatusPage: async function(page) {
+        await page.waitForSelector('#statusPages');
+        await page.click('#statusPages');
+        await page.waitForSelector('#statusPagesListContainer');
+        await page.waitForSelector('#viewStatusPage');
+        await page.click('#viewStatusPage');
+
+        await page.waitForSelector('#publicStatusPageUrl');
+        let link = await page.$('#publicStatusPageUrl > span > a');
+        link = await link.getProperty('href');
+        link = await link.jsonValue();
+        await page.goto(link);
+    },
+    navigateToMonitorDetails: async function(monitorName, page) {
+        await page.waitForSelector('#components');
+        await page.click('#components');
+        await page.waitForSelector(`#view-resource-${monitorName}`);
+        await page.click(`#view-resource-${monitorName}`);
+        await page.waitForSelector(`#monitor-title-${monitorName}`);
+    },
+    growthPlanUpgrade: async function(page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#projectSettings', { visible: true });
+        await page.click('#projectSettings');
+        await page.waitForSelector('#billing');
+        await page.click('#billing');
+        await page.waitForSelector('input#Growth_month', {
+            visible: true,
+        });
+        await page.click('input#Growth_month');
+        await page.click('#changePlanBtn');
+        await page.waitForSelector('.ball-beat', { hidden: true });
     },
 };

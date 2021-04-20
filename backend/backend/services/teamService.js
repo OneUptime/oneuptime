@@ -529,13 +529,15 @@ module.exports = {
                     // removes team member from subProject
                     await ProjectService.exitProject(
                         subProject._id,
-                        teamMemberUserId
+                        teamMemberUserId,
+                        userId
                     );
                 } else {
                     // removes team member from project
                     await ProjectService.exitProject(
                         project._id,
-                        teamMemberUserId
+                        teamMemberUserId,
+                        userId
                     );
 
                     // remove user from all subProjects.
@@ -547,7 +549,8 @@ module.exports = {
                             subProjects.map(async subProject => {
                                 await ProjectService.exitProject(
                                     subProject._id,
-                                    teamMemberUserId
+                                    teamMemberUserId,
+                                    userId
                                 );
                             })
                         );

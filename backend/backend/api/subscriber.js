@@ -333,6 +333,32 @@ router.get('/:projectId/monitor/:monitorId', async function(req, res) {
     }
 });
 
+//get monitors by subscriberId
+// req.params-> {projectId, monitorId};
+// Returns: response subscriber, error message
+router.get('/monitorList/:subscriberId', async function(req, res) {
+    try {
+        const subscriberId = req.params.subscriberId;
+
+        const subscriber = await SubscriberService.findBy({
+            _id: subscriberId,
+        });
+
+        const subscriptions = await SubscriberService.findBy({
+            contactEmail: subscriber[0].contactEmail,
+            subscribed: true,
+        });
+
+        const count = await SubscriberService.countBy({
+            contactEmail: subscriber[0].contactEmail,
+            subscribed: true,
+        });
+        return sendListResponse(req, res, subscriptions, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 //Get a subscriber.
 //req.params-> {projectId, subscriberId}
 // Returns: response subscriber, error message
@@ -350,14 +376,14 @@ router.get('/:projectId/:subscriberId', async function(req, res) {
     }
 });
 
-//Get a subscriber.
+//unsubscribe subscriber.
 //req.params-> {monitorId, subscriberId}
 // Returns: response subscriber, error message
-router.put('/unsubscribe/:monitorId/:subscriberId', async function(req, res) {
+router.put('/unsubscribe/:monitorId/:email', async function(req, res) {
     try {
-        const { subscriberId, monitorId } = req.params;
+        const { email, monitorId } = req.params;
         const subscriber = await SubscriberService.updateOneBy(
-            { _id: subscriberId, monitorId },
+            { monitorId, contactEmail: email },
             { subscribed: false }
         );
         return sendItemResponse(req, res, subscriber);

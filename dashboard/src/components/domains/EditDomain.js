@@ -38,6 +38,7 @@ class EditDomain extends React.Component {
             updateProjectDomain,
             fetchProjectDomains,
             domainId,
+            currentProject,
         } = this.props;
 
         if (!values.domain || !values.domain.trim()) {
@@ -62,7 +63,7 @@ class EditDomain extends React.Component {
 
         updateProjectDomain(data).then(() => {
             if (!this.props.updateDomainError) {
-                fetchProjectDomains(projectId, 0, 10);
+                fetchProjectDomains(currentProject._id, 0, 10);
                 this.handleCloseModal();
 
                 if (SHOULD_LOG_ANALYTICS) {
@@ -252,6 +253,7 @@ EditDomain.propTypes = {
     updateProjectDomain: PropTypes.func,
     fetchProjectDomains: PropTypes.func,
     resetUpdateProjectDomain: PropTypes.func,
+    currentProject: PropTypes.object,
 };
 
 const EditDomainForm = reduxForm({
@@ -279,6 +281,7 @@ const mapStateToProps = state => {
     return {
         projectId: state.modal.modals[0].projectId,
         domainId: state.modal.modals[0].id,
+        currentProject: state.modal.modals[0].currentProject,
         initialValues,
         requesting: state.project.updateDomain.requesting,
         updateDomainError: state.project.updateDomain.error,

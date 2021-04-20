@@ -5,6 +5,7 @@ const ErrorService = require('./errorService');
 const flatten = require('../utils/flattenArray');
 const randomChar = require('../utils/randomChar');
 const StatusPageService = require('../services/statusPageService');
+const ProjectService = require('../services/projectService');
 const dnsPromises = dns.promises;
 
 module.exports = {
@@ -63,6 +64,17 @@ module.exports = {
             if (query.domain) {
                 const parsed = psl.parse(query.domain);
                 query.domain = parsed.domain;
+            }
+
+            // fetch subproject
+            if (query.projectId) {
+                let subProjects = await ProjectService.findBy({
+                    parentProjectId: query.projectId,
+                });
+                subProjects = subProjects.map(project => project._id); // grab just the project ids
+                const totalProjects = [query.projectId, ...subProjects];
+
+                query = { ...query, projectId: { $in: totalProjects } };
             }
 
             return await DomainVerificationTokenModel.find(query)
@@ -139,9 +151,22 @@ module.exports = {
         }
     },
     doesDomainBelongToProject: async function(projectId, subDomain) {
+        // ensure that a particular domain is available to all project and subProject
+        const project = await ProjectService.findOneBy({ _id: projectId });
+        const projectList = [project._id];
+        if (project.parentProjectId) {
+            projectList.push(project.parentProjectId._id);
+        } else {
+            let subProjects = await ProjectService.findBy({
+                parentProjectId: project._id,
+            });
+            subProjects = subProjects.map(project => project._id); // grab just the project ids
+            projectList.push(...subProjects);
+        }
+
         const parsed = psl.parse(subDomain);
         const domain = parsed.domain;
-        const result = await this.findBy({
+        const result = await DomainVerificationTokenModel.find({
             domain,
             /**
              * USE CASE THAT WARRANT REMOVAL OF VERIFIED FIELD
@@ -151,7 +176,8 @@ module.exports = {
              * defeating the initial purpose of this
              */
             // verified: true,
-            projectId: { $ne: projectId },
+            projectId: { $nin: projectList },
+            deleted: false,
         });
 
         if (result && result.length > 0) {
@@ -181,11 +207,10 @@ module.exports = {
 
             domain = await this.updateOneBy(query, {
                 deleted: true,
-                deleteAt: Date.now(),
+                deletedAt: Date.now(),
             });
 
             const statusPages = await StatusPageService.findBy({
-                projectId: domain.projectId,
                 domains: {
                     $elemMatch: { domainVerificationToken: domain._id },
                 },

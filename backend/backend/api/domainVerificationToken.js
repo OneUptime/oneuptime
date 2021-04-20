@@ -6,6 +6,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const DomainVerificationService = require('../services/domainVerificationService');
 const { sendListResponse } = require('../middlewares/response');
+const StatusPageService = require('../services/statusPageService');
 
 const router = express.Router();
 
@@ -50,6 +51,7 @@ router.get('/:projectId/domains', getUser, isAuthorized, async (req, res) => {
     const { projectId } = req.params;
     const { skip, limit } = req.query;
     try {
+        // a unique case where we have to consider the subProject as well
         const domains = await DomainVerificationService.findBy(
             {
                 projectId,
@@ -149,6 +151,22 @@ router.put(
                 error.code = 400;
                 throw error;
             }
+
+            //check if there's a change in the domain
+            const domainObj = await DomainVerificationService.findOneBy({
+                _id: domainId,
+                projectId,
+            });
+            if (domainObj.domain === domain) {
+                return sendItemResponse(req, res, domainObj);
+            }
+
+            // update all the occurence of the old domain to the new domain
+            StatusPageService.updateCustomDomain(
+                domainId,
+                domain,
+                domainObj.domain
+            );
 
             const response = await DomainVerificationService.updateOneBy(
                 { _id: domainId, projectId },

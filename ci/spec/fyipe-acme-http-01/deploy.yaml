@@ -1,5 +1,5 @@
-## DEPLOYMENT STAGE - fyipe-acme-http-01
-deploy_fyipe-acme-http-01:
+## DEPLOYMENT STAGE FOR STAGING - fyipe-acme-http-01-staging
+deploy_staging_fyipe-acme-http-01:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -9,9 +9,11 @@ deploy_fyipe-acme-http-01:
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
+        - sudo npm install -g json
         - cd fyipe-acme-http-01
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
+        - json -I -f package.json -e 'this.name="fyipe-acme-http-01-staging"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
         - cd ..
@@ -20,6 +22,34 @@ deploy_fyipe-acme-http-01:
     only:
         refs:
             - master
-            - release
             - hotfix-master
+    environment:
+        name: staging
+
+## DEPLOYMENT STAGE FOR PRODUCTION - fyipe-acme-http-01
+deploy_production_fyipe-acme-http-01:
+    stage: Deploy
+    allow_failure: true
+    retry: 2
+    script:
+        - sudo apt-get update
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - sudo apt-get install -y nodejs
+        - sudo npm install -g json
+        - cd fyipe-acme-http-01
+        - chmod +x ../ci/scripts/version-setup.sh
+        - ../ci/scripts/version-setup.sh
+        - json -I -f package.json -e 'this.name="fyipe-acme-http-01"'
+        - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+        - npm publish
+        - cd ..
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - release
             - hotfix-release
+    environment:
+        name: production

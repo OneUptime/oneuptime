@@ -460,7 +460,7 @@ class MonitorInfo extends Component {
                                             </span>
                                         </div>
                                     </ShouldRender>
-                                    <div className="ba-flex">
+                                    <div className="ba-flex monitor-list">
                                         <div className="collecion_item">
                                             <span
                                                 className="uptime-stat-name"
