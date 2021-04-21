@@ -3877,7 +3877,10 @@ const _this = {
                 'Subscriber Scheduled Maintenance'
             );
 
-            //project name
+            const resourcesAffected = schedule.monitors
+
+            console.log(resourcesAffected)
+
             const data = {
                 scheduledTime,
                 monitorName,
@@ -3891,7 +3894,9 @@ const _this = {
                 eventCreateTime: schedule.createdAt,
                 eventStartTime: schedule.startDate,
                 eventEndTime: schedule.endDate,
+                resourcesAffected,
                 unsubscribeUrl,
+                
                 year: DateTime.getCurrentYear,
             };
             template = template(data);
@@ -4088,6 +4093,9 @@ const _this = {
                 'Subscriber Scheduled Maintenance Resolved'
             );
 
+            const resourcesAffected = schedule.monitors
+            console.log(resourcesAffected)
+
             //project name
             const data = {
                 scheduledTime,
@@ -4100,6 +4108,7 @@ const _this = {
                 eventName: schedule.name,
                 eventResolveTime: schedule.resolvedAt,
                 unsubscribeUrl,
+                resourcesAffected,
                 year: DateTime.getCurrentYear,
             };
             template = template(data);
@@ -4285,12 +4294,15 @@ const _this = {
         projectName,
         monitorName,
         projectId,
-        unsubscribeUrl
+        unsubscribeUrl,
+        resourceAffected
     ) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
 
+
+        console.log(resourceAffected)
         const capitalizeStatus =
             status.charAt(0).toUpperCase() + status.slice(1);
 
@@ -4310,6 +4322,7 @@ const _this = {
                 projectName,
                 monitorName,
                 unsubscribeUrl,
+                resourceAffected,
                 year: DateTime.getCurrentYear,
             };
             template = template(data);

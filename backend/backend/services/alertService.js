@@ -3510,8 +3510,10 @@ module.exports = {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+
+            const resourceAffected = message.scheduledEventId.monitors;
             if (message) {
-                for (const monitor of message.scheduledEventId.monitors) {
+                for (const monitor of resourceAffected) {
                     const subscribers = await SubscriberService.subscribersForAlert(
                         {
                             monitorId: monitor.monitorId._id,
@@ -3633,7 +3635,8 @@ module.exports = {
                                     project.name,
                                     monitor.name,
                                     projectId,
-                                    unsubscribeUrl
+                                    unsubscribeUrl,
+                                    resourceAffected
                                 );
                                 alertStatus = 'Sent';
                                 await SubscriberAlertService.updateOneBy(
