@@ -131,4 +131,4 @@ include:
   # PYTHON-SDK
   - '/ci/spec/python-sdk/audit.yaml'
   - '/ci/spec/python-sdk/build-n-test.yaml'
-  # - '/ci/spec/python-sdk/deploy.yaml'
+  - '/ci/spec/python-sdk/deploy.yaml'
