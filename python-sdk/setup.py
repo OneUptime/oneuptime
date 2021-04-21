@@ -8,7 +8,7 @@ HERE = pathlib.Path(__file__).parent
 README = (HERE / "README.md").read_text()
 
 setup(
-    name="fyipe-sdk", # Replace with your own username
+    name="fyipe_sdk", # Replace with your own username
     version="1.0.0",
     author="HackerBay, Inc.",
     author_email="hello@hackerbay.io",
@@ -24,7 +24,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    packages=["fyipe-sdk"],
+    packages=["fyipe_sdk"],
     python_requires=">=3.6",
     install_requires=["requests", "faker"],
 )

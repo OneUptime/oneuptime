@@ -1,0 +1,21 @@
+Metadata-Version: 2.1
+Name: fyipe-sdk
+Version: 1.0.0
+Summary: A Fyipe package that tracks error event and send logs from your applications to your fyipe dashboard.
+Home-page: https://github.com/Fyipe/python-sdk
+Author: HackerBay, Inc.
+Author-email: hello@hackerbay.io
+License: UNKNOWN
+Project-URL: Bug Tracker, https://github.com/Fyipe/python-sdk/issues
+Description: # Fyipe SDK
+        
+        A fyipe sdk for application logger that can be used to send logs about your applications created on your fypie dashboard which can also used for error tracking
+        
+        ## Installation
+        
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
