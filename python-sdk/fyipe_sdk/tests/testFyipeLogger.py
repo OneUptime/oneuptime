@@ -1,7 +1,7 @@
 import unittest
 from faker import Faker
 import requests
-from fyipe_sdk.logger import FyipeLogger
+from fyipe_sdk import FyipeLogger
 
 class LoggerTest(unittest.TestCase):
     def setUp(self):

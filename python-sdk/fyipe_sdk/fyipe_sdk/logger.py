@@ -1,5 +1,5 @@
 import requests
-from fyipe_sdk.logtype import LogType
+from fyipe_sdk.fyipe_sdk.logtype import LogType
 
 
 class FyipeLogger:
