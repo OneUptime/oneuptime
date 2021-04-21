@@ -7,7 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const NotificationService = require('../services/notificationService');
-const PerformanceMonitorService = require('../services/performanceMonitorService');
+const PerformanceTrackerService = require('../services/performanceTrackerService');
 // const RealTimeService = require('../services/realTimeService');
 
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -33,7 +33,7 @@ router.post('/sdk/:appId', async function(req, res) {
 });
 
 // Route
-// Description: Adding a new performance monitor to a component.
+// Description: Adding a new performance tracker to a component.
 // Params:
 // Param 1: req.params-> {componentId}; req.body -> {[_id], name}
 // Returns: response status, error message
@@ -55,33 +55,33 @@ router.post(
             if (!data.name) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Performance monitor name is required.',
+                    message: 'Performance tracker name is required.',
                 });
             }
 
             data.componentId = componentId;
 
-            const performanceMonitor = await PerformanceMonitorService.create(
+            const performanceTracker = await PerformanceTrackerService.create(
                 data
             );
 
             await NotificationService.create(
-                performanceMonitor.componentId.projectId._id,
-                `A New Performance Monitor was Created with name ${performanceMonitor.name} by ${performanceMonitor.createdById.name}`,
-                performanceMonitor.createdById._id,
-                'performanceMonitoraddremove'
+                performanceTracker.componentId.projectId._id,
+                `A New Performance Tracker was Created with name ${performanceTracker.name} by ${performanceTracker.createdById.name}`,
+                performanceTracker.createdById._id,
+                'performanceTrackeraddremove'
             );
-            // await RealTimeService.sendPerformanceMonitorCreated(
-            //     performanceMonitor
+            // await RealTimeService.sendPerformanceTrackerCreated(
+            //     performanceTracker
             // );
-            return sendItemResponse(req, res, performanceMonitor);
+            return sendItemResponse(req, res, performanceTracker);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
     }
 );
 
-// Description: Get all Performance monitor by componentId.
+// Description: Get all Performance tracker by componentId.
 router.get('/:projectId/:componentId', getUser, isAuthorized, async function(
     req,
     res
@@ -95,71 +95,71 @@ router.get('/:projectId/:componentId', getUser, isAuthorized, async function(
                 message: "Component ID can't be null",
             });
         }
-        const performanceMonitor = await PerformanceMonitorService.getPerformanceMonitorByComponentId(
+        const performanceTracker = await PerformanceTrackerService.getPerformanceTrackerByComponentId(
             componentId,
             limit || 0,
             skip || 0
         );
-        const count = await PerformanceMonitorService.countBy({ componentId });
-        return sendListResponse(req, res, performanceMonitor, count);
+        const count = await PerformanceTrackerService.countBy({ componentId });
+        return sendListResponse(req, res, performanceTracker, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-// GET a particular performance monitor by the id/slug
+// GET a particular performance tracker by the id/slug
 router.get(
-    '/:projectId/monitor/:performanceMonitorId',
+    '/:projectId/tracker/:performanceTrackerId',
     getUser,
     isAuthorized,
     async function(req, res) {
-        const { performanceMonitorId } = req.params;
+        const { performanceTrackerId } = req.params;
         const { slug } = req.query;
         try {
-            let performanceMonitor = null;
-            if (performanceMonitorId && performanceMonitorId !== 'undefined') {
-                performanceMonitor = await PerformanceMonitorService.findOneBy({
-                    _id: performanceMonitorId,
+            let performanceTracker = null;
+            if (performanceTrackerId && performanceTrackerId !== 'undefined') {
+                performanceTracker = await PerformanceTrackerService.findOneBy({
+                    _id: performanceTrackerId,
                 });
             } else if (slug && slug !== 'undefined') {
-                performanceMonitor = await PerformanceMonitorService.findOneBy({
+                performanceTracker = await PerformanceTrackerService.findOneBy({
                     slug,
                 });
             } else {
                 const error = new Error(
-                    'Please specify the performance monitor ID or attach the slug as a query parameter'
+                    'Please specify the performance tracker ID or attach the slug as a query parameter'
                 );
                 error.code = 400;
                 throw error;
             }
 
-            return sendItemResponse(req, res, performanceMonitor);
+            return sendItemResponse(req, res, performanceTracker);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
     }
 );
 
-// Description: Delete a performance monitor by the it's id and componentId.
+// Description: Delete a performance tracker by the it's id and componentId.
 router.delete(
-    '/:projectId/monitor/:performanceMonitorId',
+    '/:projectId/tracker/:performanceTrackerId',
     getUser,
     isAuthorized,
     async function(req, res) {
-        const { performanceMonitorId } = req.params;
+        const { performanceTrackerId } = req.params;
         try {
-            const performanceMonitor = await PerformanceMonitorService.deleteBy(
+            const performanceTracker = await PerformanceTrackerService.deleteBy(
                 {
-                    _id: performanceMonitorId,
+                    _id: performanceTrackerId,
                 },
                 req.user.id
             );
-            if (performanceMonitor) {
-                return sendItemResponse(req, res, performanceMonitor);
+            if (performanceTracker) {
+                return sendItemResponse(req, res, performanceTracker);
             } else {
                 return sendErrorResponse(req, res, {
                     code: 404,
-                    message: 'Performance monitor not found',
+                    message: 'Performance tracker not found',
                 });
             }
         } catch (error) {
@@ -168,24 +168,24 @@ router.delete(
     }
 );
 
-// Description: Reset Performance Monitor Key.
+// Description: Reset Performance Tracker Key.
 router.put(
-    '/:projectId/reset-key/:performanceMonitorId',
+    '/:projectId/reset-key/:performanceTrackerId',
     getUser,
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
-        const { performanceMonitorId } = req.params;
+        const { performanceTrackerId } = req.params;
 
-        const currentPerformanceMonitor = await PerformanceMonitorService.findOneBy(
+        const currentPerformanceTracker = await PerformanceTrackerService.findOneBy(
             {
-                _id: performanceMonitorId,
+                _id: performanceTrackerId,
             }
         );
-        if (!currentPerformanceMonitor) {
+        if (!currentPerformanceTracker) {
             return sendErrorResponse(req, res, {
                 code: 404,
-                message: 'Performance Monitor not found',
+                message: 'Performance Tracker not found',
             });
         }
 
@@ -194,25 +194,25 @@ router.put(
         };
 
         try {
-            const performanceMonitor = await PerformanceMonitorService.updateOneBy(
-                { _id: currentPerformanceMonitor._id },
+            const performanceTracker = await PerformanceTrackerService.updateOneBy(
+                { _id: currentPerformanceTracker._id },
                 data
             );
-            return sendItemResponse(req, res, performanceMonitor);
+            return sendItemResponse(req, res, performanceTracker);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
     }
 );
 
-// Description: Update Performance Monitor by performanceMonitorId.
+// Description: Update Performance Tracker by performanceTrackerId.
 router.put(
-    '/:projectId/:componentId/:performanceMonitorId',
+    '/:projectId/:componentId/:performanceTrackerId',
     getUser,
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
-        const { performanceMonitorId, componentId } = req.params;
+        const { performanceTrackerId, componentId } = req.params;
         const data = req.body;
 
         if (!data) {
@@ -225,24 +225,24 @@ router.put(
         if (!data.name && data.showQuickStart === undefined) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Performance Monitor Name is required.',
+                message: 'Performance Tracker Name is required.',
             });
         }
 
-        const currentPerformanceMonitor = await PerformanceMonitorService.findOneBy(
+        const currentPerformanceTracker = await PerformanceTrackerService.findOneBy(
             {
-                _id: performanceMonitorId,
+                _id: performanceTrackerId,
             }
         );
-        if (!currentPerformanceMonitor) {
+        if (!currentPerformanceTracker) {
             return sendErrorResponse(req, res, {
                 code: 404,
-                message: 'Performance Monitor not found',
+                message: 'Performance Tracker not found',
             });
         }
 
-        // try to find in the performance monitor if the name already exist for that component
-        const existingPerformanceMonitor = await PerformanceMonitorService.findBy(
+        // try to find in the performance tracker if the name already exist for that component
+        const existingPerformanceTracker = await PerformanceTrackerService.findBy(
             {
                 name: data.name,
                 componentId: { $ne: componentId },
@@ -250,30 +250,30 @@ router.put(
         );
 
         if (
-            existingPerformanceMonitor &&
-            existingPerformanceMonitor.length > 0 &&
+            existingPerformanceTracker &&
+            existingPerformanceTracker.length > 0 &&
             data.showQuickStart === undefined
         ) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Performance Monitor with that name already exists.',
+                message: 'Performance Tracker with that name already exists.',
             });
         }
 
-        const performanceMonitorData = {};
+        const performanceTrackerData = {};
         if (data.name) {
-            performanceMonitorData.name = data.name;
+            performanceTrackerData.name = data.name;
         }
         if (data.showQuickStart !== undefined) {
-            performanceMonitorData.showQuickStart = data.showQuickStart;
+            performanceTrackerData.showQuickStart = data.showQuickStart;
         }
 
         try {
-            const performanceMonitor = await PerformanceMonitorService.updateOneBy(
-                { _id: currentPerformanceMonitor._id },
-                performanceMonitorData
+            const performanceTracker = await PerformanceTrackerService.updateOneBy(
+                { _id: currentPerformanceTracker._id },
+                performanceTrackerData
             );
-            return sendItemResponse(req, res, performanceMonitor);
+            return sendItemResponse(req, res, performanceTracker);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

@@ -7,7 +7,7 @@ import IncomingListener from './listeners/incomingListener';
 import OutgoingListener from './listeners/outgoingListener';
 import PerfTimer from './utils/perfTimer';
 import HrTimer from './utils/hrTimer';
-class PerformanceMonitor {
+class PerformanceTracker {
     #BASE_URL = 'http://localhost:3002/api'; // TODO proper base url config
     #isWindow;
     #apiUrl;
@@ -62,4 +62,4 @@ class PerformanceMonitor {
         return new IncomingListener(this.#start, this.#end);
     }
 }
-export default PerformanceMonitor;
+export default PerformanceTracker;

@@ -1,7 +1,7 @@
 const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
-const performanceMonitorSchema = new Schema(
+const performanceTrackerSchema = new Schema(
     {
         componentId: {
             type: Schema.Types.ObjectId,
@@ -25,4 +25,4 @@ const performanceMonitorSchema = new Schema(
     { timestamps: true }
 );
 
-module.exports = mongoose.model('PerformanceMonitor', performanceMonitorSchema);
+module.exports = mongoose.model('PerformanceTracker', performanceTrackerSchema);

@@ -11,14 +11,14 @@ import { bindActionCreators } from 'redux';
 import { logEvent } from '../analytics';
 import { loadPage } from '../actions/page';
 import { LoadingState } from '../components/basic/Loader';
-import { fetchPerformanceMonitors } from '../actions/performanceMonitor';
-import NewPerformanceMonitor from '../components/performanceMonitor/NewPerformanceMonitor';
+import { fetchPerformanceTrackers } from '../actions/performanceTracker';
+import NewPerformanceTracker from '../components/performanceTracker/NewPerformanceTracker';
 import { fetchComponent } from '../actions/component';
-import PerformanceMonitorList from '../components/performanceMonitor/PerformanceMonitorList';
+import PerformanceTrackerList from '../components/performanceTracker/PerformanceTrackerList';
 
-class PerformanceMonitor extends Component {
+class PerformanceTracker extends Component {
     componentDidMount() {
-        this.props.loadPage('Performance Monitor');
+        this.props.loadPage('Performance Tracker');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > PERFORMANCE MONITOR LIST'
@@ -37,7 +37,7 @@ class PerformanceMonitor extends Component {
                 ? this.props.currentProject._id
                 : null;
             if (projectId && componentId) {
-                this.props.fetchPerformanceMonitors({
+                this.props.fetchPerformanceTrackers({
                     projectId,
                     componentId,
                     skip: 0,
@@ -55,7 +55,7 @@ class PerformanceMonitor extends Component {
             ? this.props.currentProject._id
             : null;
         if (projectId && componentId) {
-            this.props.fetchPerformanceMonitors({
+            this.props.fetchPerformanceTrackers({
                 projectId,
                 componentId,
                 skip: 0,
@@ -64,17 +64,17 @@ class PerformanceMonitor extends Component {
         }
     };
 
-    renderPerformanceMonitorList = () => {
+    renderPerformanceTrackerList = () => {
         const {
-            performanceMonitorList,
+            performanceTrackerList,
             componentSlug,
             projectSlug,
         } = this.props;
-        return performanceMonitorList.performanceMonitors.map(
-            performanceMonitor => (
-                <PerformanceMonitorList
-                    key={performanceMonitor.name}
-                    performanceMonitor={performanceMonitor}
+        return performanceTrackerList.performanceTrackers.map(
+            performanceTracker => (
+                <PerformanceTrackerList
+                    key={performanceTracker.name}
+                    performanceTracker={performanceTracker}
                     componentSlug={componentSlug}
                     projectSlug={projectSlug}
                 />
@@ -101,28 +101,28 @@ class PerformanceMonitor extends Component {
                     />
                     <BreadCrumbItem
                         route={pathname}
-                        name="Performance Monitor"
+                        name="Performance Tracker"
                     />
                     <div>
                         <div>
                             <ShouldRender
                                 if={
-                                    this.props.performanceMonitorList.requesting
+                                    this.props.performanceTrackerList.requesting
                                 }
                             >
                                 <LoadingState />
                             </ShouldRender>
-                            {this.renderPerformanceMonitorList()}
+                            {this.renderPerformanceTrackerList()}
                             <ShouldRender
                                 if={
-                                    !this.props.performanceMonitorList
+                                    !this.props.performanceTrackerList
                                         .requesting
                                 }
                             >
                                 <div className="db-RadarRulesLists-page">
-                                    <NewPerformanceMonitor
+                                    <NewPerformanceTracker
                                         index={2000}
-                                        formKey="NewPerformanceMonitorForm"
+                                        formKey="NewPerformanceTrackerForm"
                                         componentId={this.props.componentId}
                                         componentSlug={this.props.componentSlug}
                                     />
@@ -136,12 +136,12 @@ class PerformanceMonitor extends Component {
     }
 }
 
-PerformanceMonitor.displayName = 'PerformanceMonitor';
+PerformanceTracker.displayName = 'PerformanceTracker';
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
-            fetchPerformanceMonitors,
+            fetchPerformanceTrackers,
             loadPage,
             fetchComponent,
         },
@@ -162,11 +162,11 @@ const mapStateToProps = (state, ownProps) => {
         componentSlug,
         projectSlug: slug,
         currentProject,
-        performanceMonitorList: state.performanceMonitor.performanceMonitorList,
+        performanceTrackerList: state.performanceTracker.performanceTrackerList,
     };
 };
 
-PerformanceMonitor.propTypes = {
+PerformanceTracker.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
@@ -182,10 +182,10 @@ PerformanceMonitor.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
-    fetchPerformanceMonitors: PropTypes.func,
-    performanceMonitorList: PropTypes.object,
+    fetchPerformanceTrackers: PropTypes.func,
+    performanceTrackerList: PropTypes.object,
     fetchComponent: PropTypes.func,
     projectSlug: PropTypes.string,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(PerformanceMonitor);
+export default connect(mapStateToProps, mapDispatchToProps)(PerformanceTracker);

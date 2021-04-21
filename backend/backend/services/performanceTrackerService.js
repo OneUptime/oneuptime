@@ -1,4 +1,4 @@
-const PerformanceMonitorModel = require('../models/performanceMonitor');
+const PerformanceTrackerModel = require('../models/performanceTracker');
 const ErrorService = require('./errorService');
 const ComponentService = require('./componentService');
 const generate = require('nanoid/generate');
@@ -19,23 +19,23 @@ module.exports = {
             if (!component) {
                 const error = new Error('Component does not exist.');
                 error.code = 400;
-                ErrorService.log('performanceMonitorService.create', error);
+                ErrorService.log('performanceTrackerService.create', error);
                 throw error;
             }
-            // check if a performance monitor already exist with the same name for a particular component
-            const existingPerformanceMonitor = await _this.findBy({
+            // check if a performance tracker already exist with the same name for a particular component
+            const existingPerformanceTracker = await _this.findBy({
                 name: data.name,
                 componentId: data.componentId,
             });
             if (
-                existingPerformanceMonitor &&
-                existingPerformanceMonitor.length > 0
+                existingPerformanceTracker &&
+                existingPerformanceTracker.length > 0
             ) {
                 const error = new Error(
-                    'Performance monitor with that name already exists.'
+                    'Performance tracker with that name already exists.'
                 );
                 error.code = 400;
-                ErrorService.log('performanceMonitorService.create', error);
+                ErrorService.log('performanceTrackerService.create', error);
                 throw error;
             }
 
@@ -46,8 +46,8 @@ module.exports = {
             name = `${name}-${generate('1234567890', 8)}`;
             data.slug = name.toLowerCase();
 
-            let performanceMonitor = await PerformanceMonitorModel.create(data);
-            performanceMonitor = await performanceMonitor
+            let performanceTracker = await PerformanceTrackerModel.create(data);
+            performanceTracker = await performanceTracker
                 .populate({
                     path: 'componentId',
                     select: 'name slug',
@@ -58,9 +58,9 @@ module.exports = {
                 })
                 .populate('createdById', 'name email')
                 .execPopulate();
-            return performanceMonitor;
+            return performanceTracker;
         } catch (error) {
-            ErrorService.log('performanceMonitorService.create', error);
+            ErrorService.log('performanceTrackerService.create', error);
             throw error;
         }
     },
@@ -84,7 +84,7 @@ module.exports = {
             }
             if (!query.deleted) query.deleted = false;
 
-            const performanceMonitor = await PerformanceMonitorModel.find(query)
+            const performanceTracker = await PerformanceTrackerModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -97,9 +97,9 @@ module.exports = {
                     },
                 })
                 .populate('createdById', 'name email');
-            return performanceMonitor;
+            return performanceTracker;
         } catch (error) {
-            ErrorService.log('performanceMonitorService.findBy', error);
+            ErrorService.log('performanceTrackerService.findBy', error);
             throw error;
         }
     },
@@ -111,7 +111,7 @@ module.exports = {
             }
             if (!query.deleted) query.deleted = false;
 
-            const performanceMonitor = await PerformanceMonitorModel.findOne(
+            const performanceTracker = await PerformanceTrackerModel.findOne(
                 query
             )
                 .populate({
@@ -123,14 +123,14 @@ module.exports = {
                     },
                 })
                 .populate('createdById', 'name email');
-            return performanceMonitor;
+            return performanceTracker;
         } catch (error) {
-            ErrorService.log('performanceMonitorService.findOneBy', error);
+            ErrorService.log('performanceTrackerService.findOneBy', error);
             throw error;
         }
     },
 
-    getPerformanceMonitorByComponentId: async function(
+    getPerformanceTrackerByComponentId: async function(
         componentId,
         limit,
         skip
@@ -145,7 +145,7 @@ module.exports = {
             const error = new Error('Component does not exist.');
             error.code = 400;
             ErrorService.log(
-                'performanceMonitorService.getPerformanceMonitorByComponentId',
+                'performanceTrackerService.getPerformanceTrackerByComponentId',
                 error
             );
             throw error;
@@ -155,15 +155,15 @@ module.exports = {
             if (typeof limit === 'string') limit = parseInt(limit);
             if (typeof skip === 'string') skip = parseInt(skip);
 
-            const performanceMonitor = await _this.findBy(
-                { componentId: componentId },
+            const performanceTracker = await _this.findBy(
+                { componentId },
                 limit,
                 skip
             );
-            return performanceMonitor;
+            return performanceTracker;
         } catch (error) {
             ErrorService.log(
-                'performanceMonitorService.getPerformanceMonitorByComponentId',
+                'performanceTrackerService.getPerformanceTrackerByComponentId',
                 error
             );
             throw error;
@@ -176,7 +176,7 @@ module.exports = {
             }
             query.deleted = false;
 
-            const performanceMonitor = await PerformanceMonitorModel.findOneAndUpdate(
+            const performanceTracker = await PerformanceTrackerModel.findOneAndUpdate(
                 query,
                 {
                     $set: {
@@ -196,22 +196,22 @@ module.exports = {
                         select: 'name slug',
                     },
                 });
-            if (performanceMonitor) {
+            if (performanceTracker) {
                 await NotificationService.create(
-                    performanceMonitor.componentId.projectId,
-                    `The performance monitor ${performanceMonitor.name} was deleted from the component ${performanceMonitor.componentId.name} by ${performanceMonitor.deletedById.name}`,
-                    performanceMonitor.deletedById._id,
-                    'performanceMonitoraddremove'
+                    performanceTracker.componentId.projectId,
+                    `The performance tracker ${performanceTracker.name} was deleted from the component ${performanceTracker.componentId.name} by ${performanceTracker.deletedById.name}`,
+                    performanceTracker.deletedById._id,
+                    'performanceTrackeraddremove'
                 );
-                // await RealTimeService.sendPerformanceMonitorDelete(
-                //     performanceMonitor
+                // await RealTimeService.sendPerformanceTrackerDelete(
+                //     performanceTracker
                 // );
-                return performanceMonitor;
+                return performanceTracker;
             } else {
                 return null;
             }
         } catch (error) {
-            ErrorService.log('performanceMonitorService.deleteBy', error);
+            ErrorService.log('performanceTrackerService.deleteBy', error);
             throw error;
         }
     },
@@ -228,7 +228,7 @@ module.exports = {
                 name = `${name}-${generate('1234567890', 8)}`;
                 data.slug = name.toLowerCase();
             }
-            let performanceMonitor = await PerformanceMonitorModel.findOneAndUpdate(
+            let performanceTracker = await PerformanceTrackerModel.findOneAndUpdate(
                 query,
                 { $set: data },
                 {
@@ -237,7 +237,7 @@ module.exports = {
             );
 
             if (unsetData) {
-                performanceMonitor = await PerformanceMonitorModel.findOneAndUpdate(
+                performanceTracker = await PerformanceTrackerModel.findOneAndUpdate(
                     query,
                     { $unset: unsetData },
                     {
@@ -246,24 +246,24 @@ module.exports = {
                 );
             }
 
-            performanceMonitor = await this.findOneBy(query);
+            performanceTracker = await this.findOneBy(query);
 
-            // await RealTimeService.performanceMonitorKeyReset(
-            //     performanceMonitor
+            // await RealTimeService.performanceTrackerKeyReset(
+            //     performanceTracker
             // );
 
-            return performanceMonitor;
+            return performanceTracker;
         } catch (error) {
-            ErrorService.log('performanceMonitorService.updateOneBy', error);
+            ErrorService.log('performanceTrackerService.updateOneBy', error);
             throw error;
         }
     },
     hardDeleteBy: async function(query) {
         try {
-            await PerformanceMonitorModel.deleteMany(query);
-            return 'Performance Monitor removed successfully!';
+            await PerformanceTrackerModel.deleteMany(query);
+            return 'Performance Tracker removed successfully!';
         } catch (error) {
-            ErrorService.log('performanceMonitorService.hardDeleteBy', error);
+            ErrorService.log('performanceTrackerService.hardDeleteBy', error);
             throw error;
         }
     },
@@ -274,10 +274,10 @@ module.exports = {
             }
             if (!query.deleted) query.deleted = false;
 
-            const count = await PerformanceMonitorModel.countDocuments(query);
+            const count = await PerformanceTrackerModel.countDocuments(query);
             return count;
         } catch (error) {
-            ErrorService.log('performanceMonitorService.countBy', error);
+            ErrorService.log('performanceTrackerService.countBy', error);
             throw error;
         }
     },

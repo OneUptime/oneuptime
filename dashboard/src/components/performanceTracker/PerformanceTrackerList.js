@@ -3,16 +3,16 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { history } from '../../store';
 
-class PerformanceMonitorList extends Component {
+class PerformanceTrackerList extends Component {
     viewMore = () => {
-        const { componentSlug, projectSlug, performanceMonitor } = this.props;
+        const { componentSlug, projectSlug, performanceTracker } = this.props;
         history.push(
-            `/dashboard/project/${projectSlug}/${componentSlug}/performance-monitor/${performanceMonitor.slug}`
+            `/dashboard/project/${projectSlug}/${componentSlug}/performance-tracker/${performanceTracker.slug}`
         );
     };
 
     render() {
-        const { performanceMonitor } = this.props;
+        const { performanceTracker } = this.props;
 
         return (
             <div>
@@ -29,20 +29,20 @@ class PerformanceMonitorList extends Component {
                                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                             <span
-                                                id="performance-monitor-content-header"
+                                                id="performance-tracker-content-header"
                                                 className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                             >
                                                 <span
-                                                    id={`performance-monitor-title-${performanceMonitor.name}`}
+                                                    id={`performance-tracker-title-${performanceTracker.name}`}
                                                 >
-                                                    {performanceMonitor.name}
+                                                    {performanceTracker.name}
                                                 </span>
                                             </span>
                                         </div>
                                         <div className="db-Trends-control Flex-justifyContent--flexEnd Flex-flex">
                                             <div>
                                                 <button
-                                                    id={`more-details-${performanceMonitor.name}`}
+                                                    id={`more-details-${performanceTracker.name}`}
                                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--more"
                                                     type="button"
                                                     onClick={this.viewMore}
@@ -62,11 +62,11 @@ class PerformanceMonitorList extends Component {
     }
 }
 
-PerformanceMonitorList.displayName = 'PerformanceMonitorList';
+PerformanceTrackerList.displayName = 'PerformanceTrackerList';
 
-PerformanceMonitorList.propTypes = {
-    performanceMonitor: PropTypes.object,
+PerformanceTrackerList.propTypes = {
+    performanceTracker: PropTypes.object,
     componentSlug: PropTypes.string,
     projectSlug: PropTypes.string,
 };
-export default connect(null)(PerformanceMonitorList);
+export default connect(null)(PerformanceTrackerList);

@@ -281,8 +281,8 @@ app.use(
     require('./backend/api/certificateStore')
 );
 app.use(
-    ['/performanceMonitor', '/api/performanceMonitor'],
-    require('./backend/api/performanceMonitor')
+    ['/performanceTracker', '/api/performanceTracker'],
+    require('./backend/api/performanceTracker')
 );
 
 app.get(['/', '/api'], function(req, res) {

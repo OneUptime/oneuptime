@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { setStartDate, setEndDate } from '../../actions/performanceMonitoring';
+import { setStartDate, setEndDate } from '../../actions/performanceTracker';
 import PerformanceChart from '../basic/performanceChart';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import moment from 'moment';
@@ -55,7 +55,7 @@ export class ChartComponent extends Component {
                                             handleEndDateTimeChange={val =>
                                                 setEndDate(moment(val))
                                             }
-                                            formId={`performanceMonitoringDateTime-${heading}`}
+                                            formId={`performanceTrackeringDateTime-${heading}`}
                                         />
                                     </div>
                                 </div>
@@ -205,8 +205,8 @@ const mapDispatchToProps = dispatch =>
 function mapStateToProps(state) {
     return {
         currentProject: state.project.currentProject,
-        startDate: state.performanceMonitor.dates.startDate,
-        endDate: state.performanceMonitor.dates.endDate,
+        startDate: state.performanceTracker.dates.startDate,
+        endDate: state.performanceTracker.dates.endDate,
     };
 }
 

@@ -1,49 +1,49 @@
 import moment from 'moment';
-import * as types from '../constants/performanceMonitor';
+import * as types from '../constants/performanceTracker';
 
 const INITIAL_STATE = {
     dates: {
         startDate: moment().subtract(30, 'd'),
         endDate: moment(),
     },
-    performanceMonitorList: {
+    performanceTrackerList: {
         requesting: false,
         success: false,
         error: null,
-        performanceMonitors: [],
+        performanceTrackers: [],
         skip: 0,
         limit: 0,
         count: 0,
     },
-    updatePerformanceMonitor: {
+    updatePerformanceTracker: {
         requesting: false,
         success: false,
         error: null,
-        performanceMonitor: null,
+        performanceTracker: null,
     },
-    deletePerformanceMonitor: {
+    deletePerformanceTracker: {
         requesting: false,
         success: false,
         error: null,
-        performanceMonitor: null,
+        performanceTracker: null,
     },
-    resetPerformanceMonitorKey: {
+    resetPerformanceTrackerKey: {
         requesting: false,
         success: false,
         error: null,
-        performanceMonitor: null,
+        performanceTracker: null,
     },
-    newPerformanceMonitor: {
+    newPerformanceTracker: {
         requesting: false,
         success: false,
         error: null,
-        performanceMonitor: null,
+        performanceTracker: null,
     },
-    fetchPerformanceMonitor: {
+    fetchPerformanceTracker: {
         requesting: false,
         success: false,
         error: null,
-        performanceMonitor: null,
+        performanceTracker: null,
     },
 };
 
@@ -67,252 +67,252 @@ export default function(state = INITIAL_STATE, action) {
                 },
             };
 
-        case types.CREATE_PERFORMANCE_MONITOR_REQUEST:
+        case types.CREATE_PERFORMANCE_TRACKER_REQUEST:
             return {
                 ...state,
-                newPerformanceMonitor: {
-                    ...state.newPerformanceMonitor,
+                newPerformanceTracker: {
+                    ...state.newPerformanceTracker,
                     requesting: true,
                     success: false,
                     error: null,
                 },
             };
 
-        case types.CREATE_PERFORMANCE_MONITOR_SUCCESS:
+        case types.CREATE_PERFORMANCE_TRACKER_SUCCESS:
             return {
                 ...state,
-                newPerformanceMonitor: {
+                newPerformanceTracker: {
                     requesting: false,
                     success: true,
                     error: null,
-                    performanceMonitor: action.payload,
+                    performanceTracker: action.payload,
                 },
             };
 
-        case types.CREATE_PERFORMANCE_MONITOR_FAILURE:
+        case types.CREATE_PERFORMANCE_TRACKER_FAILURE:
             return {
                 ...state,
-                newPerformanceMonitor: {
-                    ...state.newPerformanceMonitor,
+                newPerformanceTracker: {
+                    ...state.newPerformanceTracker,
                     success: false,
                     requesting: false,
                     error: action.payload,
                 },
             };
 
-        case types.CREATE_PERFORMANCE_MONITOR_RESET:
+        case types.CREATE_PERFORMANCE_TRACKER_RESET:
             return {
                 ...state,
-                newPerformanceMonitor: {
-                    ...INITIAL_STATE.newPerformanceMonitor,
+                newPerformanceTracker: {
+                    ...INITIAL_STATE.newPerformanceTracker,
                 },
             };
 
-        case types.FETCH_PERFORMANCE_MONITOR_REQUEST:
+        case types.FETCH_PERFORMANCE_TRACKER_REQUEST:
             return {
                 ...state,
-                fetchPerformanceMonitor: {
-                    ...state.fetchPerformanceMonitor,
+                fetchPerformanceTracker: {
+                    ...state.fetchPerformanceTracker,
                     requesting: true,
                     success: false,
                     error: null,
                 },
             };
 
-        case types.FETCH_PERFORMANCE_MONITOR_SUCCESS:
+        case types.FETCH_PERFORMANCE_TRACKER_SUCCESS:
             return {
                 ...state,
-                fetchPerformanceMonitor: {
+                fetchPerformanceTracker: {
                     requesting: false,
                     error: null,
                     success: true,
-                    performanceMonitor: action.payload,
+                    performanceTracker: action.payload,
                 },
             };
 
-        case types.FETCH_PERFORMANCE_MONITOR_FAILURE:
+        case types.FETCH_PERFORMANCE_TRACKER_FAILURE:
             return {
                 ...state,
-                fetchPerformanceMonitor: {
-                    ...state.fetchPerformanceMonitor,
+                fetchPerformanceTracker: {
+                    ...state.fetchPerformanceTracker,
                     requesting: false,
                     success: false,
                     error: action.payload,
                 },
             };
 
-        case types.FETCH_PERFORMANCE_MONITOR_RESET:
+        case types.FETCH_PERFORMANCE_TRACKER_RESET:
             return {
                 ...state,
-                fetchPerformanceMonitor: {
-                    ...INITIAL_STATE.fetchPerformanceMonitor,
+                fetchPerformanceTracker: {
+                    ...INITIAL_STATE.fetchPerformanceTracker,
                 },
             };
 
-        case types.FETCH_PERFORMANCE_MONITORS_REQUEST:
+        case types.FETCH_PERFORMANCE_TRACKERS_REQUEST:
             return {
                 ...state,
-                performanceMonitorList: {
-                    ...state.performanceMonitorList,
+                performanceTrackerList: {
+                    ...state.performanceTrackerList,
                     requesting: true,
                     success: false,
                     error: null,
                 },
             };
 
-        case types.FETCH_PERFORMANCE_MONITORS_SUCCESS:
+        case types.FETCH_PERFORMANCE_TRACKERS_SUCCESS:
             return {
                 ...state,
-                performanceMonitorList: {
+                performanceTrackerList: {
                     requesting: false,
                     error: null,
                     success: true,
-                    performanceMonitors: action.payload.data,
+                    performanceTrackers: action.payload.data,
                     skip: action.payload.skip,
                     limit: action.payload.limit,
                     count: action.payload.count,
                 },
             };
 
-        case types.FETCH_PERFORMANCE_MONITORS_FAILURE:
+        case types.FETCH_PERFORMANCE_TRACKERS_FAILURE:
             return {
                 ...state,
-                performanceMonitorList: {
-                    ...state.performanceMonitorList,
+                performanceTrackerList: {
+                    ...state.performanceTrackerList,
                     requesting: false,
                     success: false,
                     error: action.payload,
                 },
             };
 
-        case types.FETCH_PERFORMANCE_MONITORS_RESET:
+        case types.FETCH_PERFORMANCE_TRACKERS_RESET:
             return {
                 ...state,
-                performanceMonitorList: {
-                    ...INITIAL_STATE.performanceMonitorList,
+                performanceTrackerList: {
+                    ...INITIAL_STATE.performanceTrackerList,
                 },
             };
 
-        case types.UPDATE_PERFORMANCE_MONITOR_REQUEST:
+        case types.UPDATE_PERFORMANCE_TRACKER_REQUEST:
             return {
                 ...state,
-                updatePerformanceMonitor: {
-                    ...state.updatePerformanceMonitor,
+                updatePerformanceTracker: {
+                    ...state.updatePerformanceTracker,
                     requesting: true,
                     success: false,
                     error: null,
                 },
             };
 
-        case types.UPDATE_PERFORMANCE_MONITOR_SUCCESS:
+        case types.UPDATE_PERFORMANCE_TRACKER_SUCCESS:
             return {
                 ...state,
-                updatePerformanceMonitor: {
+                updatePerformanceTracker: {
                     requesting: false,
                     success: true,
                     error: null,
-                    performanceMonitor: action.payload,
+                    performanceTracker: action.payload,
                 },
             };
 
-        case types.UPDATE_PERFORMANCE_MONITOR_FAILURE:
+        case types.UPDATE_PERFORMANCE_TRACKER_FAILURE:
             return {
                 ...state,
-                updatePerformanceMonitor: {
-                    ...state.updatePerformanceMonitor,
+                updatePerformanceTracker: {
+                    ...state.updatePerformanceTracker,
                     requesting: false,
                     success: false,
                     error: action.payload,
                 },
             };
 
-        case types.UPDATE_PERFORMANCE_MONITOR_RESET:
+        case types.UPDATE_PERFORMANCE_TRACKER_RESET:
             return {
                 ...state,
-                updatePerformanceMonitor: {
-                    ...INITIAL_STATE.updatePerformanceMonitor,
+                updatePerformanceTracker: {
+                    ...INITIAL_STATE.updatePerformanceTracker,
                 },
             };
 
-        case types.DELETE_PERFORMANCE_MONITOR_REQUEST:
+        case types.DELETE_PERFORMANCE_TRACKER_REQUEST:
             return {
                 ...state,
-                deletePerformanceMonitor: {
-                    ...state.deletePerformanceMonitor,
+                deletePerformanceTracker: {
+                    ...state.deletePerformanceTracker,
                     requesting: true,
                     success: false,
                     error: null,
                 },
             };
 
-        case types.DELETE_PERFORMANCE_MONITOR_SUCCESS:
+        case types.DELETE_PERFORMANCE_TRACKER_SUCCESS:
             return {
                 ...state,
-                deletePerformanceMonitor: {
+                deletePerformanceTracker: {
                     requesting: false,
                     success: true,
                     error: null,
-                    performanceMonitor: action.payload,
+                    performanceTracker: action.payload,
                 },
             };
 
-        case types.DELETE_PERFORMANCE_MONITOR_FAILURE:
+        case types.DELETE_PERFORMANCE_TRACKER_FAILURE:
             return {
                 ...state,
-                deletePerformanceMonitor: {
-                    ...state.deletePerformanceMonitor,
+                deletePerformanceTracker: {
+                    ...state.deletePerformanceTracker,
                     requesting: false,
                     success: false,
                     error: action.payload,
                 },
             };
 
-        case types.DELETE_PERFORMANCE_MONITOR_RESET:
+        case types.DELETE_PERFORMANCE_TRACKER_RESET:
             return {
                 ...state,
-                deletePerformanceMonitor: {
-                    ...INITIAL_STATE.deletePerformanceMonitor,
+                deletePerformanceTracker: {
+                    ...INITIAL_STATE.deletePerformanceTracker,
                 },
             };
 
-        case types.RESET_PERFORMANCE_MONITOR_KEY_REQUEST:
+        case types.RESET_PERFORMANCE_TRACKER_KEY_REQUEST:
             return {
                 ...state,
-                resetPerformanceMonitorKey: {
-                    ...state.resetPerformanceMonitorKey,
+                resetPerformanceTrackerKey: {
+                    ...state.resetPerformanceTrackerKey,
                     requesting: true,
                     success: false,
                     error: null,
                 },
             };
 
-        case types.RESET_PERFORMANCE_MONITOR_KEY_SUCCESS:
+        case types.RESET_PERFORMANCE_TRACKER_KEY_SUCCESS:
             return {
                 ...state,
-                resetPerformanceMonitorKey: {
+                resetPerformanceTrackerKey: {
                     requesting: false,
                     success: true,
                     error: null,
-                    performanceMonitor: action.payload,
+                    performanceTracker: action.payload,
                 },
             };
 
-        case types.RESET_PERFORMANCE_MONITOR_KEY_FAILURE:
+        case types.RESET_PERFORMANCE_TRACKER_KEY_FAILURE:
             return {
                 ...state,
-                resetPerformanceMonitorKey: {
-                    ...state.resetPerformanceMonitorKey,
+                resetPerformanceTrackerKey: {
+                    ...state.resetPerformanceTrackerKey,
                     requesting: false,
                     success: false,
                     error: action.payload,
                 },
             };
 
-        case types.RESET_PERFORMANCE_MONITOR_KEY_RESET:
+        case types.RESET_PERFORMANCE_TRACKER_KEY_RESET:
             return {
                 ...state,
-                resetPerformanceMonitorKey: {
-                    ...INITIAL_STATE.resetPerformanceMonitorKey,
+                resetPerformanceTrackerKey: {
+                    ...INITIAL_STATE.resetPerformanceTrackerKey,
                 },
             };
 

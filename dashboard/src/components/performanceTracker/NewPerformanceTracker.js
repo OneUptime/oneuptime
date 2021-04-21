@@ -11,13 +11,13 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { bindActionCreators } from 'redux';
 import {
-    createPerformanceMonitor,
-    updatePerformanceMonitor,
-} from '../../actions/performanceMonitor';
+    createPerformanceTracker,
+    updatePerformanceTracker,
+} from '../../actions/performanceTracker';
 
-const selector = formValueSelector('NewPerformanceMonitor');
+const selector = formValueSelector('NewPerformanceTracker');
 
-class NewPerformanceMonitor extends Component {
+class NewPerformanceTracker extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -28,16 +28,16 @@ class NewPerformanceMonitor extends Component {
     validate = values => {
         const errors = {};
         if (!ValidateField.text(values[`name`])) {
-            errors.name = 'Performance Monitor Name is required.';
+            errors.name = 'Performance Tracker Name is required.';
         }
         return errors;
     };
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Enter':
-                if (document.getElementById('editPerformanceMonitorButton'))
+                if (document.getElementById('editPerformanceTrackerButton'))
                     return document
-                        .getElementById('editPerformanceMonitorButton')
+                        .getElementById('editPerformanceTrackerButton')
                         .click();
                 else return false;
             default:
@@ -53,7 +53,7 @@ class NewPerformanceMonitor extends Component {
         }
         if (!this.props.edit) {
             this.props
-                .createPerformanceMonitor({
+                .createPerformanceTracker({
                     projectId: this.props.currentProject._id,
                     componentId: this.props.componentId,
                     values: postObj,
@@ -61,7 +61,7 @@ class NewPerformanceMonitor extends Component {
                 .then(
                     data => {
                         history.push(
-                            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/performance-monitor/${data.data.slug}`
+                            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/performance-tracker/${data.data.slug}`
                         );
                         if (SHOULD_LOG_ANALYTICS) {
                             logEvent(
@@ -78,16 +78,16 @@ class NewPerformanceMonitor extends Component {
                 );
         } else {
             this.props
-                .updatePerformanceMonitor({
+                .updatePerformanceTracker({
                     projectId: this.props.currentProject._id,
                     componentId: this.props.componentId,
-                    performanceMonitorId: this.props.performanceMonitor._id,
+                    performanceTrackerId: this.props.performanceTracker._id,
                     values: postObj,
                 })
                 .then(
                     data => {
                         history.push(
-                            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/performance-monitor/${data.data.slug}`
+                            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/performance-tracker/${data.data.slug}`
                         );
                         if (SHOULD_LOG_ANALYTICS) {
                             logEvent(
@@ -106,7 +106,7 @@ class NewPerformanceMonitor extends Component {
     };
 
     render() {
-        const { handleSubmit, edit, performanceMonitor } = this.props;
+        const { handleSubmit, edit, performanceTracker } = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -115,32 +115,32 @@ class NewPerformanceMonitor extends Component {
                             <div className="Box-root">
                                 <ShouldRender if={!edit}>
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>New Performance Monitor</span>
+                                        <span>New Performance Tracker</span>
                                     </span>
                                     <p>
                                         <span>
-                                            Create a performance monitor so you
-                                            and your team can monitor the
+                                            Create a performance tracker so you
+                                            and your team can tracker the
                                             performance of your application.
                                         </span>
                                     </p>
                                 </ShouldRender>
                                 <ShouldRender if={edit}>
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Edit Performance Monitor</span>
+                                        <span>Edit Performance Tracker</span>
                                     </span>
                                     <p>
                                         <span
-                                            id={`performance-monitor-edit-title-${performanceMonitor?.name}`}
+                                            id={`performance-tracker-edit-title-${performanceTracker?.name}`}
                                         >
-                                            {`Edit Performance Monitor ${performanceMonitor?.name}`}
+                                            {`Edit Performance Tracker ${performanceTracker?.name}`}
                                         </span>
                                     </p>
                                 </ShouldRender>
                             </div>
                         </div>
                         <form
-                            id="form-new-performance-monitor"
+                            id="form-new-performance-tracker"
                             onSubmit={handleSubmit(this.submitForm)}
                         >
                             <div
@@ -164,7 +164,7 @@ class NewPerformanceMonitor extends Component {
                                                             type="text"
                                                             name={`name`}
                                                             id="name"
-                                                            placeholder="Performance Monitor Name"
+                                                            placeholder="Performance Tracker Name"
                                                             validate={
                                                                 ValidateField.text
                                                             }
@@ -181,7 +181,7 @@ class NewPerformanceMonitor extends Component {
                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                                         <ShouldRender
                                             if={
-                                                this.props.newPerformanceMonitor
+                                                this.props.newPerformanceTracker
                                                     .error
                                             }
                                         >
@@ -192,7 +192,7 @@ class NewPerformanceMonitor extends Component {
                                                 <span style={{ color: 'red' }}>
                                                     {
                                                         this.props
-                                                            .newPerformanceMonitor
+                                                            .newPerformanceTracker
                                                             .error
                                                     }
                                                 </span>
@@ -201,7 +201,7 @@ class NewPerformanceMonitor extends Component {
                                         <ShouldRender
                                             if={
                                                 this.props
-                                                    .performanceMonitorUpdate
+                                                    .performanceTrackerUpdate
                                                     .error
                                             }
                                         >
@@ -212,7 +212,7 @@ class NewPerformanceMonitor extends Component {
                                                 <span style={{ color: 'red' }}>
                                                     {
                                                         this.props
-                                                            .performanceMonitorUpdate
+                                                            .performanceTrackerUpdate
                                                             .error
                                                     }
                                                 </span>
@@ -223,26 +223,26 @@ class NewPerformanceMonitor extends Component {
                                 <ShouldRender if={!edit}>
                                     <div>
                                         <button
-                                            id="addPerformanceMonitorButton"
+                                            id="addPerformanceTrackerButton"
                                             className="bs-Button bs-Button--blue"
                                             type="submit"
                                         >
                                             <ShouldRender
                                                 if={
                                                     !this.props
-                                                        .newPerformanceMonitor
+                                                        .newPerformanceTracker
                                                         .requesting
                                                 }
                                             >
                                                 <span>
-                                                    Add Performance Monitor
+                                                    Add Performance Tracker
                                                 </span>
                                             </ShouldRender>
 
                                             <ShouldRender
                                                 if={
                                                     this.props
-                                                        .newPerformanceMonitor
+                                                        .newPerformanceTracker
                                                         .requesting
                                                 }
                                             >
@@ -257,7 +257,7 @@ class NewPerformanceMonitor extends Component {
                                             className="bs-Button"
                                             disabled={
                                                 this.props
-                                                    .performanceMonitorUpdate
+                                                    .performanceTrackerUpdate
                                                     .requesting
                                             }
                                             onClick={this.cancelEdit}
@@ -266,26 +266,26 @@ class NewPerformanceMonitor extends Component {
                                             <span>Cancel</span>
                                         </button>
                                         <button
-                                            id="editPerformanceMonitorButton"
+                                            id="editPerformanceTrackerButton"
                                             className="bs-Button bs-Button--blue"
                                             type="submit"
                                         >
                                             <ShouldRender
                                                 if={
                                                     !this.props
-                                                        .performanceMonitorUpdate
+                                                        .performanceTrackerUpdate
                                                         .requesting
                                                 }
                                             >
                                                 <span>
-                                                    Edit Performance Monitor
+                                                    Edit Performance Tracker
                                                 </span>
                                             </ShouldRender>
 
                                             <ShouldRender
                                                 if={
                                                     this.props
-                                                        .performanceMonitorUpdate
+                                                        .performanceTrackerUpdate
                                                         .requesting
                                                 }
                                             >
@@ -303,17 +303,17 @@ class NewPerformanceMonitor extends Component {
     }
 }
 
-NewPerformanceMonitor.displayName = 'NewPerformanceMonitor';
+NewPerformanceTracker.displayName = 'NewPerformanceTracker';
 
-const NewPerformanceMonitorForm = new reduxForm({
-    form: 'NewPerformanceMonitor',
+const NewPerformanceTrackerForm = new reduxForm({
+    form: 'NewPerformanceTracker',
     destroyOnUnmount: true,
     enableReinitialize: true,
-})(NewPerformanceMonitor);
+})(NewPerformanceTracker);
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { createPerformanceMonitor, updatePerformanceMonitor },
+        { createPerformanceTracker, updatePerformanceTracker },
         dispatch
     );
 
@@ -325,26 +325,26 @@ const mapStateToProps = (state, ownProps) => {
         name,
         componentId,
         currentProject,
-        newPerformanceMonitor: state.performanceMonitor.newPerformanceMonitor,
-        performanceMonitorUpdate:
-            state.performanceMonitor.updatePerformanceMonitor,
+        newPerformanceTracker: state.performanceTracker.newPerformanceTracker,
+        performanceTrackerUpdate:
+            state.performanceTracker.updatePerformanceTracker,
     };
 };
 
-NewPerformanceMonitor.propTypes = {
-    performanceMonitor: PropTypes.object,
+NewPerformanceTracker.propTypes = {
+    performanceTracker: PropTypes.object,
     handleSubmit: PropTypes.func.isRequired,
     componentId: PropTypes.string,
     componentSlug: PropTypes.string,
     currentProject: PropTypes.object,
     edit: PropTypes.bool,
-    newPerformanceMonitor: PropTypes.object,
-    performanceMonitorUpdate: PropTypes.object,
-    createPerformanceMonitor: PropTypes.func,
-    updatePerformanceMonitor: PropTypes.func,
+    newPerformanceTracker: PropTypes.object,
+    performanceTrackerUpdate: PropTypes.object,
+    createPerformanceTracker: PropTypes.func,
+    updatePerformanceTracker: PropTypes.func,
 };
 
 export default connect(
     mapStateToProps,
     mapDispatchToProps
-)(NewPerformanceMonitorForm);
+)(NewPerformanceTrackerForm);

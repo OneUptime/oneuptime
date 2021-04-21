@@ -6,14 +6,14 @@ import Fade from 'react-reveal/Fade';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
-import PerformanceView from '../components/performanceMonitor/PerformanceView';
-import WebTransactionsChart from '../components/performanceMonitor/WebTransactionsChart';
+import PerformanceView from '../components/performanceTracker/PerformanceView';
+import WebTransactionsChart from '../components/performanceTracker/WebTransactionsChart';
 //import ShouldRender from '../../components/basic/ShouldRender';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import { fetchComponent } from '../actions/component';
-import { fetchPerformanceMonitor } from '../actions/performanceMonitor';
+import { fetchPerformanceTracker } from '../actions/performanceTracker';
 
-class PerformanceMonitorView extends Component {
+class PerformanceTrackerView extends Component {
     state = {
         tabIndex: 0,
     };
@@ -25,13 +25,13 @@ class PerformanceMonitorView extends Component {
         ) {
             const {
                 currentProject,
-                performanceMonitorSlug,
-                fetchPerformanceMonitor,
+                performanceTrackerSlug,
+                fetchPerformanceTracker,
             } = this.props;
             currentProject &&
-                fetchPerformanceMonitor({
+                fetchPerformanceTracker({
                     projectId: currentProject._id,
-                    slug: performanceMonitorSlug,
+                    slug: performanceTrackerSlug,
                 });
         }
     }
@@ -41,14 +41,14 @@ class PerformanceMonitorView extends Component {
             componentSlug,
             fetchComponent,
             currentProject,
-            performanceMonitorSlug,
-            fetchPerformanceMonitor,
+            performanceTrackerSlug,
+            fetchPerformanceTracker,
         } = this.props;
         fetchComponent(componentSlug);
         currentProject &&
-            fetchPerformanceMonitor({
+            fetchPerformanceTracker({
                 projectId: currentProject._id,
-                slug: performanceMonitorSlug,
+                slug: performanceTrackerSlug,
             });
     }
 
@@ -74,7 +74,7 @@ class PerformanceMonitorView extends Component {
                     />
                     <BreadCrumbItem
                         route={pathname}
-                        name="Performance Monitor"
+                        name="Performance Tracker"
                     />
                     <Tabs
                         selectedTabClassName={'custom-tab-selected'}
@@ -176,36 +176,36 @@ class PerformanceMonitorView extends Component {
     }
 }
 
-PerformanceMonitorView.displayName = 'PerformanceMonitorView';
+PerformanceTrackerView.displayName = 'PerformanceTrackerView';
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { fetchComponent, fetchPerformanceMonitor },
+        { fetchComponent, fetchPerformanceTracker },
         dispatch
     );
 };
 const mapStateToProps = (state, ownProps) => {
-    const { componentSlug, performanceMonitorSlug } = ownProps.match.params;
+    const { componentSlug, performanceTrackerSlug } = ownProps.match.params;
     const currentProject = state.project.currentProject;
     return {
         currentProject,
         component:
             state.component && state.component.currentComponent.component,
         componentSlug,
-        performanceMonitorSlug,
+        performanceTrackerSlug,
     };
 };
-PerformanceMonitorView.propTypes = {
+PerformanceTrackerView.propTypes = {
     component: PropTypes.shape({
         name: PropTypes.any,
     }),
     location: PropTypes.any,
     fetchComponent: PropTypes.func,
     componentSlug: PropTypes.string,
-    fetchPerformanceMonitor: PropTypes.func,
-    performanceMonitorSlug: PropTypes.string,
+    fetchPerformanceTracker: PropTypes.func,
+    performanceTrackerSlug: PropTypes.string,
     currentProject: PropTypes.object,
 };
 export default connect(
     mapStateToProps,
     mapDispatchToProps
-)(PerformanceMonitorView);
+)(PerformanceTrackerView);
