@@ -12,7 +12,6 @@ enum34==1.1.10
 Faker==3.0.1
 flake8==3.9.1
 Flask==1.0.2
-functools32==3.2.3.post2
 idna==2.10
 importlib-metadata==2.1.1
 ipaddress==1.0.23
