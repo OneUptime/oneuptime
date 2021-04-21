@@ -74,11 +74,6 @@ function RESTORE_SUCCESS (){
 			"text": {
 				"type": "mrkdwn",
 				"text": "*Restore complete*\n Date:'${TODAY}'\nFile Name: '${FILE_NAME}'"
-			},
-			"accessory": {
-				"type": "image",
-				"image_url":"https://www.fonedog.com/images/backup-restore/ios/what-does-restore-from-backup-mean.jpg",
-				"alt_text": "alt text for image"
 			}
 		},
 		{
@@ -102,11 +97,6 @@ function RESTORE_FAIL_SERVER (){
 			"text": {
 				"type": "mrkdwn",
 				"text": "*Restore Failed*\n Date:'${TODAY}'\nReason: Could not restore database.\nFile Name: '${FILE_NAME}'"
-			},
-			"accessory": {
-				"type": "image",
-				"image_url":"https://www.fonedog.com/images/backup-restore/ios/what-does-restore-from-backup-mean.jpg",
-				"alt_text": "alt text for image"
 			}
 		},
 		{
@@ -131,11 +121,6 @@ function RESTORE_FAIL_LOCAL (){
 			"text": {
 				"type": "mrkdwn",
 				"text": "*Restore Failed*\n Date:'${TODAY}'\nReason: Could not copy backup to container.\nFile Name: '${FILE_NAME}'"
-			},
-			"accessory": {
-				"type": "image",
-				"image_url":"https://www.fonedog.com/images/backup-restore/ios/what-does-restore-from-backup-mean.jpg",
-				"alt_text": "alt text for image"
 			}
 		},
 		{

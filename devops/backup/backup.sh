@@ -80,11 +80,6 @@ function BACKUP_SUCCESS(){
         "text": {
           "type": "mrkdwn",
           "text": "*Backup complete*\n Date:'${TODAY}'\nPath: '$BACKUP_PATH'/fyipe-backup-'$CURRENT_DATE'.archive"
-        },
-        "accessory": {
-          "type": "image",
-          "image_url":"https://www.fonedog.com/images/backup-restore/ios/what-does-restore-from-backup-mean.jpg",
-          "alt_text": "alt text for image"
         }
       },
       {
@@ -105,11 +100,6 @@ function BACKUP_FAIL_SERVER(){
         "text": {
           "type": "mrkdwn",
           "text": "*Backup Failed*\n Date:'${TODAY}'\nReason: Could not create backup on container.\nPath: '$BACKUP_PATH'/fyipe-backup-'$CURRENT_DATE'.archive"
-        },
-        "accessory": {
-          "type": "image",
-          "image_url":"https://www.fonedog.com/images/backup-restore/ios/what-does-restore-from-backup-mean.jpg",
-          "alt_text": "alt text for image"
         }
       },
       {
@@ -130,11 +120,6 @@ function BACKUP_FAIL_LOCAL(){
         "text": {
           "type": "mrkdwn",
           "text": "*Backup failed*\n Date:'${TODAY}'\nReason: Could not create backup on local path.\nPath: '$BACKUP_PATH'/fyipe-backup-'$CURRENT_DATE'.archive"
-        },
-        "accessory": {
-          "type": "image",
-          "image_url":"https://www.fonedog.com/images/backup-restore/ios/what-does-restore-from-backup-mean.jpg",
-          "alt_text": "alt text for image"
         }
       },
       {
