@@ -18,7 +18,6 @@ import PerformanceMonitorList from '../components/performanceMonitor/Performance
 
 class PerformanceMonitor extends Component {
     componentDidMount() {
-        this.props.fetchComponent(this.props.componentSlug);
         this.props.loadPage('Performance Monitor');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -50,6 +49,19 @@ class PerformanceMonitor extends Component {
 
     ready = () => {
         this.props.fetchComponent(this.props.componentSlug);
+
+        const componentId = this.props.componentId;
+        const projectId = this.props.currentProject
+            ? this.props.currentProject._id
+            : null;
+        if (projectId && componentId) {
+            this.props.fetchPerformanceMonitors({
+                projectId,
+                componentId,
+                skip: 0,
+                limit: 10,
+            });
+        }
     };
 
     renderPerformanceMonitorList = () => {

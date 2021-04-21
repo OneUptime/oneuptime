@@ -10,11 +10,18 @@ import PerformanceView from '../components/performanceMonitor/PerformanceView';
 import WebTransactionsChart from '../components/performanceMonitor/WebTransactionsChart';
 //import ShouldRender from '../../components/basic/ShouldRender';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+import { fetchComponent } from '../actions/component';
 
 class PerformanceMonitorView extends Component {
     state = {
         tabIndex: 0,
     };
+
+    componentDidMount() {
+        const { componentSlug, fetchComponent } = this.props;
+        fetchComponent(componentSlug);
+    }
+
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
@@ -37,7 +44,7 @@ class PerformanceMonitorView extends Component {
                     />
                     <BreadCrumbItem
                         route={pathname}
-                        name="Performance Monitoring"
+                        name="Performance Monitor"
                     />
                     <Tabs
                         selectedTabClassName={'custom-tab-selected'}
@@ -141,24 +148,16 @@ class PerformanceMonitorView extends Component {
 
 PerformanceMonitorView.displayName = 'PerformanceMonitorView';
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({}, dispatch);
+    return bindActionCreators({ fetchComponent }, dispatch);
 };
 const mapStateToProps = (state, ownProps) => {
-    const { componentId } = ownProps.match.params;
+    const { componentSlug } = ownProps.match.params;
     const currentProject = state.project.currentProject;
-
-    let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
-            if (String(c._id) === String(componentId)) {
-                component = c;
-            }
-        });
-    });
     return {
         currentProject,
-        component,
-        componentId,
+        component:
+            state.component && state.component.currentComponent.component,
+        componentSlug,
     };
 };
 PerformanceMonitorView.propTypes = {
@@ -166,6 +165,8 @@ PerformanceMonitorView.propTypes = {
         name: PropTypes.any,
     }),
     location: PropTypes.any,
+    fetchComponent: PropTypes.func,
+    componentSlug: PropTypes.string,
 };
 export default connect(
     mapStateToProps,
