@@ -30,5 +30,6 @@ deploy_staging_python-sdk:
         refs:
             - master
             - hotfix-master
+            - feature-python-sdk
     environment:
         name: staging
