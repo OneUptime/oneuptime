@@ -4094,8 +4094,6 @@ const _this = {
             );
 
             const resourcesAffected = schedule.monitors
-            console.log(resourcesAffected)
-
             //project name
             const data = {
                 scheduledTime,
