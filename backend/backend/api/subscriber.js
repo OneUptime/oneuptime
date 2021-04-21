@@ -350,26 +350,16 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
             subscribed: true,
         });
 
-        let filteredSubscriptions = [];
-
-        await Promise.all(
-            subscriptions.map(async subscription => {
-                let subscriberMonitor = await MonitorService.findOneBy({
-                    _id: subscription.monitorId,
-                    deleted: false,
-                });
-
-                if (subscriberMonitor) {
-                    filteredSubscriptions.push(subscription);
-                }
-            })
+        const monitorIds = subscriptions.map(
+            subscription => subscription.monitorId
         );
 
-        const count = await SubscriberService.countBy({
-            contactEmail: subscriber[0].contactEmail,
-            subscribed: true,
+        let subscriberMonitor = await MonitorService.findBy({
+            _id: { $in: monitorIds },
+            deleted: false,
         });
-        return sendListResponse(req, res, filteredSubscriptions, count);
+
+        return sendListResponse(req, res, subscriberMonitor);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
