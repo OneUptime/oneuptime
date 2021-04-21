@@ -1,4 +1,4 @@
-## DEPLOYMENT STAGE - JS SDK
+## DEPLOYMENT STAGE - PYTHON SDK
 deploy_staging_python-sdk:
     stage: Deploy
     allow_failure: true
@@ -15,13 +15,9 @@ deploy_staging_python-sdk:
         - git init
         - git add .
         - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
-        - chmod +x ../ci/scripts/version-setup.sh
-        - ../ci/scripts/version-setup.sh
-        - json -I -f package.json -e 'this.name="fyipe-staging"'
-        - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+        - bumpversion --new-version 3.0.$CI_PIPELINE_IID patch setup.py
         - npm run build
-        # TODO set PyPI credentials
-        - twine upload dist/* -u=$ -p=$
+        - twine upload dist/* -u=$PyPi_USERNAME -p=$PyPi_PASSWORD
         - git init
         - git add .
         - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
