@@ -4,22 +4,28 @@
 #   This only runs on Linux (Ubuntu) and not on MacOS
 ###
 
-HELM_RELEASE_NAME='fi'
+# IP of the mongodb servers.
+MONGO_PRIMARY_SERVER_IP='167.172.15.25'
+MONGO_SECONDARY_SERVER_IP='157.230.66.225'
+MONGO_SERVER_PORT="80"
+
 FYIPE_DB_USERNAME='fyipe'
 FYIPE_DB_PASSWORD='password'
 FYIPE_DB_NAME='fyipedb'
 CURRENT_DATE=$(date +%s)
 CURRENT_USER=$(whoami)
 BACKUP_PATH=~/db-backup 
-BACKUP_RETAIN_DAYS=14
+BACKUP_RETAIN_DAYS=2
 TODAY=`date +"%d%b%Y"`
 
 red=`tput setaf 1`
 green=`tput setaf 2`
 reset=`tput sgr 0`
 
-# Delete all the monitor logs before 3 months before taking the backup.
-THREE_MONTHS_AGO=$(date -d "-120 days")
+# Delete all the monitor logs before 3 days before taking the backup.
+THREE_DAYS_AGO=$(date -d "-3 days" +"%Y-%m-%d")
+THREE_MONTHS_AGO=$(date -d "-120 days" +"%Y-%m-%d")
+SIX_MONTHS_AGO=$(date -d "-180 days" +"%Y-%m-%d")
 
 function HELP (){
   echo ""
@@ -43,8 +49,6 @@ function HELP (){
 # PASS IN ARGUMENTS
 while getopts ":r:u:p:n:l:t:h" opt; do
   case $opt in
-    r) HELM_RELEASE_NAME="$OPTARG"
-    ;;
     u) FYIPE_DB_USERNAME="$OPTARG"
     ;;
     p) FYIPE_DB_PASSWORD="$OPTARG"
@@ -146,31 +150,25 @@ echo ""
 
 # Drop audit logs collection because we dont need to take backup of that.
 echo "Removing audit logs collections. This will take some time." 
-sudo kubectl exec fi-mongodb-primary-0  -- mongo fyipedb --username $FYIPE_DB_USERNAME --password $FYIPE_DB_PASSWORD --eval 'db.auditlogs.drop()'
+sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_PRIMARY_SERVER_IP}" --port="${MONGO_SERVER_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval 'db.auditlogs.drop()'
 
-# Remove all the monitor logs which are more than 120 days old to make backups faster. 
+# Remove old monitor logs to make backup faster
 echo "Removing old monitor logs. This will take some time."
-sudo kubectl exec fi-mongodb-primary-0  -- mongo fyipedb --username $FYIPE_DB_USERNAME --password $FYIPE_DB_PASSWORD --eval 'db.monitorlogs.remove({"createdAt": { "$lt": new Date("$THREE_MONTHS_AGO")}})' 
+sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_PRIMARY_SERVER_IP}" --port="${MONGO_SERVER_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval "db.monitorlogs.remove({'createdAt': { \$lt: ISODate('${THREE_DAYS_AGO}')}})"
+sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_PRIMARY_SERVER_IP}" --port="${MONGO_SERVER_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval "db.monitorlogbyweeks.remove({'createdAt': { \$lt: ISODate('${SIX_MONTHS_AGO}')}})"
+sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_PRIMARY_SERVER_IP}" --port="${MONGO_SERVER_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval "db.monitorlogbydays.remove({'createdAt': { \$lt: ISODate('${THREE_MONTHS_AGO}')}})" 
+sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_PRIMARY_SERVER_IP}" --port="${MONGO_SERVER_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval "db.monitorlogbyhours.remove({'createdAt': { \$lt: ISODate('${THREE_MONTHS_AGO}')}})"
 
 # Sleeping for 10 mins for database server to cool down. 
 sleep 10m
 
 # Take backup from secondary and not from primary. This will not slow primary down.
-if sudo kubectl exec fi-mongodb-secondary-0  -- mongodump --uri="mongodb://$FYIPE_DB_USERNAME:$FYIPE_DB_PASSWORD@localhost:27017/$FYIPE_DB_NAME" --archive="/tmp/fyipedata.archive"; then
-    echo "Copying backup from server to local computer. This will take some time...."
-    echo ""
-    if sudo kubectl cp fi-mongodb-secondary-0 :tmp/fyipedata.archive "$BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"; then
-      echo ${green}"File Saved: $BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"${reset}
-      echo ""
-      sudo kubectl exec fi-mongodb-secondary-0  -- rm tmp/fyipedata.archive
-      BACKUP_SUCCESS
-    else
-      echo ${red}"Failure, exit status: $?" ${reset}
-      BACKUP_FAIL_LOCAL
-    fi    
+if mongodump --forceTableScan --authenticationDatabase="${FYIPE_DB_NAME}" --host="${MONGO_SECONDARY_SERVER_IP}" --db="${FYIPE_DB_NAME}" --port="${MONGO_SERVER_PORT}" --username="${FYIPE_DB_USERNAME}" --password="${FYIPE_DB_PASSWORD}" --archive="$BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"; then
+    echo  ${green}"BACKUP SUCCESS $"${reset}
+    BACKUP_SUCCESS
 else
-     echo  ${red}"Failure, exit status: $"${reset}
-     BACKUP_FAIL_SERVER
+    echo  ${red}"Failure, exit status: $"${reset}
+    BACKUP_FAIL_SERVER
 fi
 
 ####### Remove backups older than {BACKUP_RETAIN_DAYS} days  ########

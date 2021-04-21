@@ -1,13 +1,17 @@
 ###
 #
 #   Please make sure kubectl is installed nad context is pointed to the cluster you want to resotre to.
-#
+#	
+#	RUN THIS BY: 
+#	bash restore.sh -f <FILENAME>.archive
 #
 ###
 
 # Variables, please check these before you run the script. 
 
-HELM_RELEASE_NAME='fi'
+MONGO_PRIMARY_SERVER_IP='167.172.15.25'
+MONGO_SERVER_PORT="80"
+
 FYIPE_DB_USERNAME='fyipe'
 FYIPE_DB_PASSWORD='password'
 FYIPE_DB_NAME='fyipedb'
@@ -37,8 +41,6 @@ function HELP (){
 # PASS IN ARGUMENTS
 while getopts ":r:u:p:n:l:f:h" opt; do
   case $opt in
-    r) HELM_RELEASE_NAME="$OPTARG"
-    ;;
     u) FYIPE_DB_USERNAME="$OPTARG"
     ;;
     p) FYIPE_DB_PASSWORD="$OPTARG"
@@ -145,21 +147,14 @@ function RESTORE_FAIL_LOCAL (){
 }
 
 
-echo "Copying backup from local to server. This will take some time...."
+echo "Restoring Database. This will take some time...."
 echo ""
-if sudo kubectl cp "$FILE_PATH/$FILE_NAME" fi-mongodb-primary-0:/tmp/fyipedata.archive; then
-  echo "Restoring a backup on the server."
-  echo ""
-  if kubectl exec fi-mongodb-primary-0  -- mongorestore --uri="mongodb://$FYIPE_DB_USERNAME:$FYIPE_DB_PASSWORD@localhost:27017/$FYIPE_DB_NAME" --archive="/tmp/fyipedata.archive"; then
-    echo "Restore success"
-    RESTORE_SUCCESS
-  else
-    echo "Restore Failed, exit status: $?"
-    RESTORE_FAIL_SERVER
-  fi
+if mongorestore --authenticationDatabase="${FYIPE_DB_NAME}" --host="${MONGO_PRIMARY_SERVER_IP}" --db="${FYIPE_DB_NAME}" --port="${MONGO_SERVER_PORT}" --username="${FYIPE_DB_USERNAME}" --password="${FYIPE_DB_PASSWORD}" --archive="$FILE_PATH/$FILE_NAME"; then
+	echo "Restore success"
+	RESTORE_SUCCESS
 else
-    echo "Restore Failed, exit status: $?"
-    RESTORE_FAIL_LOCAL
+	echo "Restore Failed, exit status: $?"
+	RESTORE_FAIL_SERVER
 fi
 
 
