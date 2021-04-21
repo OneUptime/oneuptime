@@ -117,12 +117,12 @@ router.get(
         const { slug } = req.query;
         try {
             let performanceMonitor = null;
-            if (performanceMonitorId) {
-                performanceMonitor = PerformanceMonitorService.findOneBy({
+            if (performanceMonitorId && performanceMonitorId !== 'undefined') {
+                performanceMonitor = await PerformanceMonitorService.findOneBy({
                     _id: performanceMonitorId,
                 });
-            } else if (slug) {
-                performanceMonitor = PerformanceMonitorService.findOneBy({
+            } else if (slug && slug !== 'undefined') {
+                performanceMonitor = await PerformanceMonitorService.findOneBy({
                     slug,
                 });
             } else {

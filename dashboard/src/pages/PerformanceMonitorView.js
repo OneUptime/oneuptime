@@ -11,15 +11,45 @@ import WebTransactionsChart from '../components/performanceMonitor/WebTransactio
 //import ShouldRender from '../../components/basic/ShouldRender';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import { fetchComponent } from '../actions/component';
+import { fetchPerformanceMonitor } from '../actions/performanceMonitor';
 
 class PerformanceMonitorView extends Component {
     state = {
         tabIndex: 0,
     };
 
+    componentDidUpdate(prevProps) {
+        if (
+            JSON.stringify(prevProps.currentProject) !==
+            JSON.stringify(this.props.currentProject)
+        ) {
+            const {
+                currentProject,
+                performanceMonitorSlug,
+                fetchPerformanceMonitor,
+            } = this.props;
+            currentProject &&
+                fetchPerformanceMonitor({
+                    projectId: currentProject._id,
+                    slug: performanceMonitorSlug,
+                });
+        }
+    }
+
     componentDidMount() {
-        const { componentSlug, fetchComponent } = this.props;
+        const {
+            componentSlug,
+            fetchComponent,
+            currentProject,
+            performanceMonitorSlug,
+            fetchPerformanceMonitor,
+        } = this.props;
         fetchComponent(componentSlug);
+        currentProject &&
+            fetchPerformanceMonitor({
+                projectId: currentProject._id,
+                slug: performanceMonitorSlug,
+            });
     }
 
     tabSelected = index => {
@@ -148,16 +178,20 @@ class PerformanceMonitorView extends Component {
 
 PerformanceMonitorView.displayName = 'PerformanceMonitorView';
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ fetchComponent }, dispatch);
+    return bindActionCreators(
+        { fetchComponent, fetchPerformanceMonitor },
+        dispatch
+    );
 };
 const mapStateToProps = (state, ownProps) => {
-    const { componentSlug } = ownProps.match.params;
+    const { componentSlug, performanceMonitorSlug } = ownProps.match.params;
     const currentProject = state.project.currentProject;
     return {
         currentProject,
         component:
             state.component && state.component.currentComponent.component,
         componentSlug,
+        performanceMonitorSlug,
     };
 };
 PerformanceMonitorView.propTypes = {
@@ -167,6 +201,9 @@ PerformanceMonitorView.propTypes = {
     location: PropTypes.any,
     fetchComponent: PropTypes.func,
     componentSlug: PropTypes.string,
+    fetchPerformanceMonitor: PropTypes.func,
+    performanceMonitorSlug: PropTypes.string,
+    currentProject: PropTypes.object,
 };
 export default connect(
     mapStateToProps,
