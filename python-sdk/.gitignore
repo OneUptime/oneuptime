@@ -1,1 +1,4 @@
 *.pyc
+build/
+dist/
+fyipe_sdk/*.egg-info
