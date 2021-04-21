@@ -205,8 +205,8 @@ const mapDispatchToProps = dispatch =>
 function mapStateToProps(state) {
     return {
         currentProject: state.project.currentProject,
-        startDate: state.performanceMonitoring.dates.startDate,
-        endDate: state.performanceMonitoring.dates.endDate,
+        startDate: state.performanceMonitor.dates.startDate,
+        endDate: state.performanceMonitor.dates.endDate,
     };
 }
 

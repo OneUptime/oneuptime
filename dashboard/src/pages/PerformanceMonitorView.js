@@ -11,7 +11,7 @@ import WebTransactionsChart from '../components/performanceMonitor/WebTransactio
 //import ShouldRender from '../../components/basic/ShouldRender';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 
-class PerformanceMonitoring extends Component {
+class PerformanceMonitorView extends Component {
     state = {
         tabIndex: 0,
     };
@@ -139,7 +139,7 @@ class PerformanceMonitoring extends Component {
     }
 }
 
-PerformanceMonitoring.displayName = 'PerformanceMonitoring';
+PerformanceMonitorView.displayName = 'PerformanceMonitorView';
 const mapDispatchToProps = dispatch => {
     return bindActionCreators({}, dispatch);
 };
@@ -161,7 +161,7 @@ const mapStateToProps = (state, ownProps) => {
         componentId,
     };
 };
-PerformanceMonitoring.propTypes = {
+PerformanceMonitorView.propTypes = {
     component: PropTypes.shape({
         name: PropTypes.any,
     }),
@@ -170,4 +170,4 @@ PerformanceMonitoring.propTypes = {
 export default connect(
     mapStateToProps,
     mapDispatchToProps
-)(PerformanceMonitoring);
+)(PerformanceMonitorView);
