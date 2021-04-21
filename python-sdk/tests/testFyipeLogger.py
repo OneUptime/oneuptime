@@ -3,7 +3,6 @@ from faker import Faker
 import requests
 from fyipe_sdk.logger import FyipeLogger
 
-
 class LoggerTest(unittest.TestCase):
     def setUp(self):
         self.apiUrl = "http://localhost:3002/api"
