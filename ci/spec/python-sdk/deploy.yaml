@@ -11,11 +11,10 @@ deploy_staging_python-sdk:
         - sudo apt-get install -y python3-pip
         - cd python-sdk
         - pip3 install -r requirements.txt
-        # - git init
-        # - git add .
-        # - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
+        - git init
+        - git add .
+        - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
         - bumpversion --new-version 3.0.$CI_PIPELINE_IID patch setup.py
-        # - npm run build
         - python3 setup.py sdist bdist_wheel
         - twine check dist/*
         - twine upload --repository-url https://test.pypi.org/legacy/ dist/* -u=$PyPi_USERNAME -p=$PyPi_PASSWORD
