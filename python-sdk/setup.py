@@ -9,7 +9,7 @@ README = (HERE / "README.md").read_text()
 
 setup(
     name="fyipe-sdk", # Replace with your own username
-    version="0.0.1",
+    version="0.0.2",
     author="HackerBay, Inc.",
     author_email="hello@hackerbay.io",
     description="A Fyipe package that tracks error event and send logs from your applications to your fyipe dashboard.",
