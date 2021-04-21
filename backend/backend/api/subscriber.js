@@ -335,7 +335,7 @@ router.get('/:projectId/monitor/:monitorId', async function(req, res) {
 });
 
 //get monitors by subscriberId
-// req.params-> {projectId, monitorId};
+// req.params-> {subscriberId};
 // Returns: response subscriber, error message
 router.get('/monitorList/:subscriberId', async function(req, res) {
     try {
@@ -354,12 +354,25 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
             subscription => subscription.monitorId
         );
 
-        let subscriberMonitor = await MonitorService.findBy({
+        const subscriberMonitors = await MonitorService.findBy({
             _id: { $in: monitorIds },
             deleted: false,
         });
 
-        return sendListResponse(req, res, subscriberMonitor);
+        const filteredSubscriptions = [];
+
+        subscriptions.map(subscription => {
+            subscriberMonitors.map(subscriberMonitor => {
+                if (
+                    String(subscription.monitorId) ===
+                    String(subscriberMonitor._id)
+                ) {
+                    filteredSubscriptions.push(subscription);
+                }
+            });
+        });
+
+        return sendListResponse(req, res, filteredSubscriptions);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
