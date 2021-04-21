@@ -1,15 +1,19 @@
-import setuptools
+import pathlib
+from setuptools import setup
 
-with open("README.md", "r", encoding="utf-8") as fh:
-    long_description = fh.read()
+# The directory containing this file
+HERE = pathlib.Path(__file__).parent
 
-setuptools.setup(
-    name="sdk-pkg-fyipe", # Replace with your own username
+# The text of the README file
+README = (HERE / "README.md").read_text()
+
+setup(
+    name="fyipe-sdk", # Replace with your own username
     version="0.0.1",
     author="HackerBay, Inc.",
     author_email="hello@hackerbay.io",
     description="A Fyipe package that tracks error event and send logs from your applications to your fyipe dashboard.",
-    long_description=long_description,
+    long_description=README,
     long_description_content_type="text/markdown",
     url="https://github.com/Fyipe/python-sdk",
     project_urls={
@@ -20,7 +24,7 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    package_dir={"": "src"},
-    packages=setuptools.find_packages(where="src"),
+    packages=["fyipe-sdk"],
     python_requires=">=3.6",
+    install_requires=["requests", "faker"],
 )
