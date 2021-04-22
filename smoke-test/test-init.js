@@ -11,7 +11,8 @@ module.exports = {
      * @description Registers a new user.
      * @returns { void }
      */
-    registerUser: async function(user, page) {
+    registerUser: async function (user, page) {
+
         if (
             utils.BACKEND_URL.includes('localhost') ||
             utils.BACKEND_URL.includes('staging.fyipe.com')
@@ -35,10 +36,10 @@ module.exports = {
             await page.click('input[name=confirmPassword]');
             await page.type('input[name=confirmPassword]', '1234567890');
 
-            await Promise.all([
-                page.waitForSelector(`form#card-form`),
-                page.click('button[type=submit]'),
-            ]);
+            await page.click('button[type=submit]')
+            await page.waitForSelector(`form#card-form`, {
+                visible: true,
+            })
 
             await page.waitForSelector('.__PrivateStripeElement > iframe', {
                 visible: true,
@@ -82,37 +83,26 @@ module.exports = {
             await page.type('input[name=zipCode]', utils.user.address.zipcode);
             await page.select('#country', 'India');
             await page.click('button[type=submit]');
-            try {
-                const signupResponse = await page.waitForResponse(
-                    response =>
-                        response.url().includes('/user/signup') &&
-                        response.status() === 200
-                );
-                if (signupResponse) {
-                    const signupData = await signupResponse.text();
-                    const parsedSignupData = JSON.parse(signupData);
-                    if (parsedSignupData.verificationToken) {
-                        await request
-                            .get(
-                                `/user/confirmation/${parsedSignupData.verificationToken}`
-                            )
-                            .redirects(0);
-                    }
-                }
-            } catch (error) {
-                //catch
+
+            const signupResponse = await page.waitForResponse(
+                response =>
+                    response.url().includes('/user/signup') &&
+                    response.status() === 200
+            );
+            if (signupResponse._status !== 200) {
+                throw new Error("Sign up did not return 200")
             }
         }
     },
-    loginUser: async function(user, page) {
+    loginUser: async function (user, page) {
         const { email, password } =
             utils.BACKEND_URL.includes('localhost') ||
-            utils.BACKEND_URL.includes('staging')
+                utils.BACKEND_URL.includes('staging')
                 ? user
                 : {
-                      email: 'user@fyipe.com',
-                      password: 'mVzkm{LAP)mNC8t23ehqifb2p',
-                  };
+                    email: 'user@fyipe.com',
+                    password: 'mVzkm{LAP)mNC8t23ehqifb2p',
+                };
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
         });
@@ -125,7 +115,7 @@ module.exports = {
 
         await page.waitForSelector('#home', { visible: true, timeout: 100000 });
     },
-    loginEnterpriseUser: async function(user, page) {
+    loginEnterpriseUser: async function (user, page) {
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
@@ -142,7 +132,7 @@ module.exports = {
             timeout: 100000,
         });
     },
-    registerEnterpriseUser: async function(user, page) {
+    registerEnterpriseUser: async function (user, page) {
         const masterAdmin = {
             email: 'masteradmin@hackerbay.io',
             password: '1234567890',
@@ -217,7 +207,7 @@ module.exports = {
             //catch
         }
     },
-    logout: async function(page) {
+    logout: async function (page) {
         await page.goto(utils.ADMIN_DASHBOARD_URL);
         await page.waitForSelector('button#profile-menu', { visible: true });
         await page.click('button#profile-menu');
@@ -226,7 +216,7 @@ module.exports = {
         await page.reload();
         await page.waitForTimeout(3000);
     },
-    saasLogout: async function(page) {
+    saasLogout: async function (page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('button#profile-menu', { visible: true });
         await page.click('button#profile-menu');
@@ -234,7 +224,7 @@ module.exports = {
         await page.click('button#logout-button');
         await page.reload({ waitUntil: 'networkidle0' });
     },
-    selectByText: async function(selector, text, page) {
+    selectByText: async function (selector, text, page) {
         await page.click(selector, { delay: 100 });
         await page.keyboard.type(text);
         const noOption = await page.$('div.css-1gl4k7y');
@@ -242,12 +232,12 @@ module.exports = {
             await page.keyboard.type(String.fromCharCode(13));
         }
     },
-    clear: async function(selector, page) {
+    clear: async function (selector, page) {
         const input = await page.$(selector);
         await input.click({ clickCount: 3 });
         await input.type('');
     },
-    renameProject: async function(newProjectName, page) {
+    renameProject: async function (newProjectName, page) {
         await page.waitForSelector('#projectSettings');
         await page.click('#projectSettings');
         await page.waitForSelector('input[name=project_name]');
@@ -255,7 +245,7 @@ module.exports = {
         await page.type('input[name=project_name]', newProjectName);
         await page.click('#btnCreateProject');
     },
-    navigateToComponentDetails: async function(component, page) {
+    navigateToComponentDetails: async function (component, page) {
         // Navigate to Components page
         await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle0' });
         await page.waitForSelector('#components', { visible: true });
@@ -265,7 +255,7 @@ module.exports = {
         await page.waitForSelector(`#more-details-${component}`);
         await page.$eval(`#more-details-${component}`, e => e.click());
     },
-    addMonitorToStatusPage: async function(componentName, monitorName, page) {
+    addMonitorToStatusPage: async function (componentName, monitorName, page) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
@@ -290,7 +280,7 @@ module.exports = {
         await page.click('ul > li:last-of-type #manual-monitor-checkbox');
         await page.click('#btnAddStatusPageMonitors');
     },
-    navigateToStatusPage: async function(page) {
+    navigateToStatusPage: async function (page) {
         await page.waitForSelector('#statusPages');
         await page.click('#statusPages');
         await page.waitForSelector('#statusPagesListContainer');
@@ -303,14 +293,14 @@ module.exports = {
         link = await link.jsonValue();
         await page.goto(link);
     },
-    navigateToMonitorDetails: async function(monitorName, page) {
+    navigateToMonitorDetails: async function (monitorName, page) {
         await page.waitForSelector('#components');
         await page.click('#components');
         await page.waitForSelector(`#view-resource-${monitorName}`);
         await page.click(`#view-resource-${monitorName}`);
         await page.waitForSelector(`#monitor-title-${monitorName}`);
     },
-    growthPlanUpgrade: async function(page) {
+    growthPlanUpgrade: async function (page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#projectSettings', { visible: true });
         await page.click('#projectSettings');
