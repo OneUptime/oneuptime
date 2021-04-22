@@ -1,7 +1,7 @@
 const PerformanceTrackerMetricModel = require('../models/performanceTrackerMetric');
 const ErrorService = require('./errorService');
 const moment = require('moment');
-// const RealTimeService = require('./realTimeService');
+const RealTimeService = require('./realTimeService');
 
 module.exports = {
     create: async function(data) {
@@ -85,9 +85,7 @@ module.exports = {
                 },
                 { new: true }
             );
-            // await RealTimeService.sendPerformanceTrackerDelete(
-            //     performanceTracker
-            // );
+
             return performanceTrackerMetric;
         } catch (error) {
             ErrorService.log('performanceTrackerMetricService.deleteBy', error);
@@ -109,10 +107,6 @@ module.exports = {
                     new: true,
                 }
             );
-
-            // await RealTimeService.performanceTrackerMetricKeyReset(
-            //     performanceTrackerMetric
-            // );
 
             return performanceTrackerMetric;
         } catch (error) {
@@ -228,7 +222,8 @@ module.exports = {
             }
 
             // send realtime update to frontend
-
+            // handle this in the backend, so we don't delay api calls
+            RealTimeService.sendTimeMetrics(appId, finalOutput);
             // send result back to api
             return finalOutput;
         } catch (error) {
@@ -281,6 +276,8 @@ module.exports = {
             }
 
             // send realtime update to frontend
+            // handle this in the backend, so we don't delay api calls
+            RealTimeService.sendThroughputMetrics(appId, finalOutput);
 
             // send result back to api
             return finalOutput;
