@@ -7,6 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const PerformanceTrackerMetricService = require('../services/performanceTrackerMetricService');
+const moment = require('moment');
 // const RealTimeService = require('../services/realTimeService');
 
 const {
@@ -56,9 +57,23 @@ router.get('/:appId/key/:key/time', isValidAPIKey, async function(req, res) {
             error.code = 400;
             throw error;
         }
+        if (!moment(startDate).isValid()) {
+            const error = new Error(
+                'Please specify startDate as utc time or millisecond time'
+            );
+            error.code = 400;
+            throw error;
+        }
         if (!endDate) {
             const error = new Error(
                 'Please specify endDate in the query parameter'
+            );
+            error.code = 400;
+            throw error;
+        }
+        if (!moment(endDate).isValid()) {
+            const error = new Error(
+                'Please specify endDate as utc time or millisecond time'
             );
             error.code = 400;
             throw error;
@@ -97,9 +112,23 @@ router.get('/:appId/key/:key/throughput', isValidAPIKey, async function(
             error.code = 400;
             throw error;
         }
+        if (!moment(startDate).isValid()) {
+            const error = new Error(
+                'Please specify startDate as utc time or millisecond time'
+            );
+            error.code = 400;
+            throw error;
+        }
         if (!endDate) {
             const error = new Error(
                 'Please specify endDate in the query parameter'
+            );
+            error.code = 400;
+            throw error;
+        }
+        if (!moment(endDate).isValid()) {
+            const error = new Error(
+                'Please specify endDate as utc time or millisecond time'
             );
             error.code = 400;
             throw error;
