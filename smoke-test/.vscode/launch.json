@@ -8,7 +8,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "command": "npm run-script staging-test",
+            "command": "npm run-script debug-staging-test",
             "name": "Debug Smoke Tests",
             "request": "launch",
             "type": "node-terminal"
