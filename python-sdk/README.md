@@ -27,23 +27,23 @@ logger = FyipeLogger(
 );
 
 # Sending a string log to the server
-item = 'This is a simple log';
+item = 'This is a simple log'
 
 response = logger.log(item)
 
 # response after logging a request
-print(response);
+print(response)
 
 # Sending an object log to the server
 item = {
-    'user': 'Test User';
-    'page': 'Landing Page';
+    'user': 'Test User',
+    'page': 'Landing Page'
 }
 
-response = logger.log(item);
+response = logger.log(item)
 
 # response after logging a request
-print(response);
+print(response)
 
 ```
 
