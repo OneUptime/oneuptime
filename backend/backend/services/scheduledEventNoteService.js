@@ -14,7 +14,6 @@ module.exports = {
                 .populate({
                     path: 'scheduledEventId',
                     select: 'name monitors alertSubscriber',
-                    populate: { path: 'monitors.monitorId', select: 'name' },
                     populate: {
                         path: 'projectId',
                         select: 'name replyAddress',
@@ -22,11 +21,8 @@ module.exports = {
                 })
                 .populate('createdById', 'name')
                 .execPopulate();
-
-            console.log('message', scheduledEventMessage.scheduledEventId);
-
             if (
-                scheduledEventMessage.alertSubscriber &&
+                scheduledEventMessage.scheduledEventId.alertSubscriber &&
                 scheduledEventMessage.type === 'investigation' &&
                 !(
                     scheduledEventMessage.event_state === 'Resolved' ||
