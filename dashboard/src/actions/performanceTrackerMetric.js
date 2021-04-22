@@ -25,8 +25,12 @@ export const fetchTimeMetrics = ({
 }) => dispatch => {
     dispatch(fetchTimeMetricsRequest());
 
-    startDate = moment(startDate).format();
-    endDate = moment(endDate).format();
+    startDate = moment(startDate)
+        .utc()
+        .format();
+    endDate = moment(endDate)
+        .utc()
+        .format();
     const promise = getApi(
         `performanceMetric/${appId}/key/${key}/time?startDate=${startDate}&endDate=${endDate}`
     );
@@ -74,8 +78,12 @@ export const fetchThroughputMetrics = ({
 }) => dispatch => {
     dispatch(fetchThroughputMetricsRequest());
 
-    startDate = moment(startDate).format();
-    endDate = moment(endDate).format();
+    startDate = moment(startDate)
+        .utc()
+        .format();
+    endDate = moment(endDate)
+        .utc()
+        .format();
     const promise = getApi(
         `performanceMetric/${appId}/key/${key}/throughput?startDate=${startDate}&endDate=${endDate}`
     );

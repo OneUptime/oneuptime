@@ -3,8 +3,13 @@ import moment from 'moment';
 
 // set default date
 // last 10 days from today
-const currentDate = moment(Date.now()).format();
-const startDate = moment(currentDate).subtract(10, 'days');
+const currentDate = moment(Date.now())
+    .utc()
+    .format();
+const startDate = moment(currentDate)
+    .subtract(10, 'days')
+    .utc()
+    .format();
 const INITIAL_STATE = {
     timeStartDate: startDate,
     timeEndDate: currentDate,
@@ -68,7 +73,7 @@ export default function(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: true,
                     error: null,
-                    metrics: state.timeMetrics.metrics.concat(action.payload), // update the data
+                    metrics: action.payload, // update the data
                 },
             };
 
@@ -101,9 +106,7 @@ export default function(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: true,
                     error: null,
-                    metrics: state.throughputMetrics.metrics.concat(
-                        action.payload
-                    ), // update the data
+                    metrics: action.payload, // update the data
                 },
             };
 
