@@ -19,20 +19,6 @@ const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const uuid = require('uuid');
 
 // Route
-// Description: Receiving Data from sdk.
-// Returns: response status, error message
-router.post('/sdk/:appId', async function(req, res) {
-    try {
-        const data = req.body;
-        /* eslint-disable no-console */
-        console.log(data);
-        return sendItemResponse(req, res, data);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-// Route
 // Description: Adding a new performance tracker to a component.
 // Params:
 // Param 1: req.params-> {componentId}; req.body -> {[_id], name}

@@ -284,6 +284,10 @@ app.use(
     ['/performanceTracker', '/api/performanceTracker'],
     require('./backend/api/performanceTracker')
 );
+app.use(
+    ['/performanceMetric', '/api/performanceMetric'],
+    require('./backend/api/performanceTrackerMetric')
+);
 
 app.get(['/', '/api'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
