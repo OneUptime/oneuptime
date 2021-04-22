@@ -49,6 +49,20 @@ router.get('/:appId/key/:key/time', isValidAPIKey, async function(req, res) {
     try {
         const { appId } = req.params;
         let { startDate, endDate } = req.query;
+        if (!startDate) {
+            const error = new Error(
+                'Please specify startDate in the query parameter'
+            );
+            error.code = 400;
+            throw error;
+        }
+        if (!endDate) {
+            const error = new Error(
+                'Please specify endDate in the query parameter'
+            );
+            error.code = 400;
+            throw error;
+        }
         if (!isNaN(startDate)) {
             startDate = Number(startDate);
         }
@@ -76,6 +90,20 @@ router.get('/:appId/key/:key/throughput', isValidAPIKey, async function(
     try {
         const { appId } = req.params;
         let { startDate, endDate } = req.query;
+        if (!startDate) {
+            const error = new Error(
+                'Please specify startDate in the query parameter'
+            );
+            error.code = 400;
+            throw error;
+        }
+        if (!endDate) {
+            const error = new Error(
+                'Please specify endDate in the query parameter'
+            );
+            error.code = 400;
+            throw error;
+        }
         if (!isNaN(startDate)) {
             startDate = Number(startDate);
         }
