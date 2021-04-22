@@ -256,12 +256,11 @@ module.exports = {
             );
 
             timeMetrics.forEach(metric => {
-                if (!(metric.createdAt in dataBank)) {
-                    dataBank[metric.createdAt] = [{ ...metric }];
+                const date = moment(metric.createdAt).format();
+                if (!(date in dataBank)) {
+                    dataBank[date] = [metric];
                 } else {
-                    dataBank[metric.createdAt] = dataBank[
-                        metric.createdAt
-                    ].concat({ ...metric });
+                    dataBank[date] = dataBank[date].concat(metric);
                 }
             });
 
@@ -314,7 +313,7 @@ function calcAvgThroughput(metric) {
 
     let sum = 0;
     metric.forEach(data => {
-        sum += data.metrics.throughput;
+        sum += data.throughput;
     });
 
     return {
