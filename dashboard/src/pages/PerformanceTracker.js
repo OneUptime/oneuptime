@@ -96,7 +96,11 @@ class PerformanceTracker extends Component {
             <Dashboard ready={this.ready}>
                 <Fade>
                     <BreadCrumbItem
-                        route={getParentRoute(pathname)}
+                        route={getParentRoute(
+                            pathname,
+                            null,
+                            'component-tracker'
+                        )}
                         name={componentName}
                     />
                     <BreadCrumbItem

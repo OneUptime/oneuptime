@@ -63,18 +63,32 @@ class PerformanceTrackerView extends Component {
         const {
             location: { pathname },
             component,
+            performanceTracker,
         } = this.props;
         const componentName = component ? component.name : '';
         return (
             <Dashboard>
                 <Fade>
                     <BreadCrumbItem
-                        route={getParentRoute(pathname)}
+                        route={getParentRoute(
+                            pathname,
+                            null,
+                            'component-tracker'
+                        )}
                         name={componentName}
                     />
                     <BreadCrumbItem
-                        route={pathname}
+                        route={getParentRoute(
+                            pathname,
+                            null,
+                            'performance-tracker'
+                        )}
                         name="Performance Tracker"
+                    />
+                    <BreadCrumbItem
+                        route={pathname}
+                        name={performanceTracker && performanceTracker.name}
+                        pageTitle="Performance Tracker"
                     />
                     <Tabs
                         selectedTabClassName={'custom-tab-selected'}
@@ -192,6 +206,9 @@ const mapStateToProps = (state, ownProps) => {
             state.component && state.component.currentComponent.component,
         componentSlug,
         performanceTrackerSlug,
+        performanceTracker:
+            state.performanceTracker.fetchPerformanceTracker &&
+            state.performanceTracker.fetchPerformanceTracker.performanceTracker,
     };
 };
 PerformanceTrackerView.propTypes = {
@@ -204,6 +221,7 @@ PerformanceTrackerView.propTypes = {
     fetchPerformanceTracker: PropTypes.func,
     performanceTrackerSlug: PropTypes.string,
     currentProject: PropTypes.object,
+    performanceTracker: PropTypes.object,
 };
 export default connect(
     mapStateToProps,
