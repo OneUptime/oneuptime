@@ -16,36 +16,39 @@ $ pip install fyipe-sdk
 
 ## Basic Usage for Logging
 
-```python
+`python`
 from fyipe_sdk import FyipeLogger
 
 # constructor
+
 logger = FyipeLogger(
-    'API_URL', # https://fyipe.com/api
-    'APPLICATION_LOG_ID',
-    'APPLICATION_LOG_KEY'
-);
+'API_URL', # https://fyipe.com/api
+'APPLICATION_LOG_ID',
+'APPLICATION_LOG_KEY'
+)
 
 # Sending a string log to the server
+
 item = 'This is a simple log'
 
 response = logger.log(item)
 
 # response after logging a request
+
 print(response)
 
 # Sending an object log to the server
+
 item = {
-    'user': 'Test User',
-    'page': 'Landing Page'
+'user': 'Test User',
+'page': 'Landing Page'
 }
 
 response = logger.log(item)
 
 # response after logging a request
-print(response)
 
-```
+print(response)
 
 ## API Documentation
 
@@ -57,6 +60,11 @@ Main API to send logs to the server.
     -   [Installation](#installation)
         -   [Pip Install](#pip-install)
     -   [Basic Usage for Logging](#basic-usage-for-logging)
+-   [constructor](#constructor)
+-   [Sending a string log to the server](#sending-a-string-log-to-the-server)
+-   [response after logging a request](#response-after-logging-a-request)
+-   [Sending an object log to the server](#sending-an-object-log-to-the-server)
+-   [response after logging a request](#response-after-logging-a-request-1)
     -   [API Documentation](#api-documentation)
         -   [FyipeLogger(apiUrl, applicationId, applicationKey)](#fyipeloggerapiurl-applicationid-applicationkey)
             -   [logger.log(log, tags)](#loggerloglog-tags)
