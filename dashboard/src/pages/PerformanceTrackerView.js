@@ -8,31 +8,57 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import PerformanceView from '../components/performanceTracker/PerformanceView';
 import WebTransactionsChart from '../components/performanceTracker/WebTransactionsChart';
-//import ShouldRender from '../../components/basic/ShouldRender';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import { fetchComponent } from '../actions/component';
 import { fetchPerformanceTracker } from '../actions/performanceTracker';
+import {
+    updateThroughputMetrics,
+    updateTimeMetrics,
+} from '../actions/performanceTrackerMetric';
+import io from 'socket.io-client';
+import { API_URL } from '../config';
 
+const socket = io.connect(API_URL.replace('/api', ''), {
+    path: '/api/socket.io',
+    transports: ['websocket', 'polling'],
+});
 class PerformanceTrackerView extends Component {
     state = {
         tabIndex: 0,
     };
 
     componentDidUpdate(prevProps) {
+        const {
+            currentProject,
+            performanceTrackerSlug,
+            fetchPerformanceTracker,
+            performanceTracker,
+            updateTimeMetrics,
+            updateThroughputMetrics,
+        } = this.props;
         if (
             JSON.stringify(prevProps.currentProject) !==
-            JSON.stringify(this.props.currentProject)
+            JSON.stringify(currentProject)
         ) {
-            const {
-                currentProject,
-                performanceTrackerSlug,
-                fetchPerformanceTracker,
-            } = this.props;
             currentProject &&
                 fetchPerformanceTracker({
                     projectId: currentProject._id,
                     slug: performanceTrackerSlug,
                 });
+        }
+
+        if (
+            JSON.stringify(prevProps.performanceTracker) !==
+            JSON.stringify(performanceTracker)
+        ) {
+            performanceTracker &&
+                socket.on(`timeMetrics-${performanceTracker._id}`, data =>
+                    updateTimeMetrics(data)
+                );
+            performanceTracker &&
+                socket.on(`throughputMetrics-${performanceTracker._id}`, data =>
+                    updateThroughputMetrics(data)
+                );
         }
     }
 
@@ -50,6 +76,12 @@ class PerformanceTrackerView extends Component {
                 projectId: currentProject._id,
                 slug: performanceTrackerSlug,
             });
+    }
+
+    componentWillUnmount() {
+        const { performanceTracker } = this.props;
+        socket.removeListener(`timeMetrics-${performanceTracker._id}`);
+        socket.removeListener(`throughputMetrics-${performanceTracker._id}`);
     }
 
     tabSelected = index => {
@@ -198,6 +230,8 @@ const mapDispatchToProps = dispatch => {
         {
             fetchComponent,
             fetchPerformanceTracker,
+            updateTimeMetrics,
+            updateThroughputMetrics,
         },
         dispatch
     );
@@ -227,6 +261,8 @@ PerformanceTrackerView.propTypes = {
     performanceTrackerSlug: PropTypes.string,
     currentProject: PropTypes.object,
     performanceTracker: PropTypes.object,
+    updateTimeMetrics: PropTypes.func,
+    updateThroughputMetrics: PropTypes.func,
 };
 export default connect(
     mapStateToProps,

@@ -77,6 +77,17 @@ export default function(state = INITIAL_STATE, action) {
                 },
             };
 
+        case types.UPDATE_TIME_METRICS:
+            return {
+                ...state,
+                timeMetrics: {
+                    ...state.timeMetrics,
+                    metrics: state.timeMetrics.metrics.concat(
+                        ...action.payload
+                    ),
+                },
+            };
+
         case types.FETCH_TIME_METRICS_FAILURE:
             return {
                 ...state,
@@ -107,6 +118,17 @@ export default function(state = INITIAL_STATE, action) {
                     success: true,
                     error: null,
                     metrics: action.payload, // update the data
+                },
+            };
+
+        case types.UPDATE_THROUGHPUT_METRICS:
+            return {
+                ...state,
+                throughputMetrics: {
+                    ...state.throughputMetrics,
+                    metrics: state.throughputMetrics.metrics.concat(
+                        ...action.payload
+                    ),
                 },
             };
 

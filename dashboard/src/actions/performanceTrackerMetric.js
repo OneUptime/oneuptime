@@ -126,3 +126,14 @@ export const setThroughputEndDate = date => ({
     type: types.SET_THROUGHPUT_ENDDATE,
     payload: date,
 });
+
+// update metrics from realtime update
+export const updateTimeMetrics = payload => ({
+    type: types.UPDATE_TIME_METRICS,
+    payload,
+});
+
+export const updateThroughputMetrics = payload => ({
+    type: types.UPDATE_THROUGHPUT_METRICS,
+    payload,
+});

@@ -255,14 +255,7 @@ export class ChartComponent extends Component {
                                         {type === 'transactionTime' && (
                                             <PerformanceChart
                                                 type={`url`}
-                                                data={[
-                                                    {
-                                                        createdAt:
-                                                            '2020-11-11T07:40:57.765+00:00',
-                                                        value: 68,
-                                                    },
-                                                    ...timeMetrics.metrics,
-                                                ]}
+                                                data={timeMetrics.metrics}
                                                 name={'response time'}
                                                 symbol="ms"
                                                 requesting={
@@ -273,16 +266,9 @@ export class ChartComponent extends Component {
                                         {type === 'throughput' && (
                                             <PerformanceChart
                                                 type={`url`}
-                                                data={[
-                                                    {
-                                                        createdAt:
-                                                            '2020-11-11T07:40:57.765+00:00',
-                                                        value: 68,
-                                                    },
-                                                    ...throughputMetrics.metrics,
-                                                ]}
-                                                name={'response time'}
-                                                symbol="ms"
+                                                data={throughputMetrics.metrics}
+                                                name={'request per time'}
+                                                symbol=""
                                                 requesting={
                                                     throughputMetrics.requesting
                                                 }

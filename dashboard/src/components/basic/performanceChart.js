@@ -70,7 +70,7 @@ class PerformanceChart extends Component {
         return moment(a).format('LT');
     }
     render() {
-        const { type, data, name, symbol, requesting } = this.props;
+        const { data, name, symbol, requesting } = this.props;
         let processedData = [{ display: '', name: '', v: '' }];
         if (requesting) {
             return (
@@ -101,7 +101,7 @@ class PerformanceChart extends Component {
                 return {
                     name: a.intervalDate || this.parseDate(a.createdAt),
                     v: a.value,
-                    display: `${Math.round(a.value || 0)} ${symbol || 'ms'}`,
+                    display: `${Math.round(a.value || 0)} ${symbol || ''}`,
                     xData: a.createdAt,
                 };
             });
@@ -131,7 +131,7 @@ class PerformanceChart extends Component {
                     <Area
                         type="linear"
                         isAnimationActive={false}
-                        name={_.startCase(_.toLower(`${name} ${type}`))}
+                        name={_.startCase(_.toLower(`${name}`))}
                         dataKey="v"
                         stroke="#000000"
                         strokeWidth={1.5}
@@ -147,16 +147,9 @@ PerformanceChart.displayName = 'PerformanceChart';
 
 PerformanceChart.propTypes = {
     data: PropTypes.array,
-    type: PropTypes.string.isRequired,
     name: PropTypes.string,
     symbol: PropTypes.string,
     requesting: PropTypes.bool,
 };
 
-function mapStateToProps(state) {
-    return {
-        requesting: state.monitor.fetchMonitorLogsRequest,
-    };
-}
-
-export default connect(mapStateToProps)(PerformanceChart);
+export default connect(null)(PerformanceChart);
