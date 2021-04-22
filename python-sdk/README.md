@@ -82,7 +82,7 @@ Create a constructor from the class, which will be used to send logs to the serv
 
 Logs a request of type `info` to the server.
 
-**Kind**: method of [<code>new Fyipe\FyipeLogger</code>](#logger_api--logger)
+**Kind**: method of [<code>FyipeLogger</code>](#logger_api--logger)
 **Returns**: <code>Object</code> - An object response of a success or failure.
 
 | Param | Type                                       | Description                                                 |
@@ -94,7 +94,7 @@ Logs a request of type `info` to the server.
 
 Logs a request of type `warning` to the server.
 
-**Kind**: method of [<code>new Fyipe\FyipeLogger</code>](#logger_api--logger)
+**Kind**: method of [<code>FyipeLogger</code>](#logger_api--logger)
 **Returns**: <code>Object</code> - An object response of a success or failure.
 
 | Param   | Type                                       | Description                                                 |
@@ -106,7 +106,7 @@ Logs a request of type `warning` to the server.
 
 Logs a request of type `error` to the server.
 
-**Kind**: method of [<code>new Fyipe\FyipeLogger</code>](#logger_api--logger)
+**Kind**: method of [<code>FyipeLogger</code>](#logger_api--logger)
 **Returns**: <code>Object</code> - An object response of a success or failure.
 
 | Param | Type                                       | Description                                                 |
