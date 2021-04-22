@@ -56,21 +56,6 @@ Main API to send logs to the server.
 
 **Author**: HackerBay, Inc.
 
--   [Fyipe SDK](#fyipe-sdk)
-    -   [Installation](#installation)
-        -   [Pip Install](#pip-install)
-    -   [Basic Usage for Logging](#basic-usage-for-logging)
--   [constructor](#constructor)
--   [Sending a string log to the server](#sending-a-string-log-to-the-server)
--   [response after logging a request](#response-after-logging-a-request)
--   [Sending an object log to the server](#sending-an-object-log-to-the-server)
--   [response after logging a request](#response-after-logging-a-request-1)
-    -   [API Documentation](#api-documentation)
-        -   [FyipeLogger(apiUrl, applicationId, applicationKey)](#fyipeloggerapiurl-applicationid-applicationkey)
-            -   [logger.log(log, tags)](#loggerloglog-tags)
-            -   [logger.warning(warning, tags)](#loggerwarningwarning-tags)
-            -   [logger.error(error, tags)](#loggererrorerror-tags)
-
 <a name="logger_api--logger"></a>
 
 ### FyipeLogger(apiUrl, applicationId, applicationKey)
