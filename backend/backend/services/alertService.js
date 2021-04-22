@@ -3510,6 +3510,18 @@ module.exports = {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+
+            const monitorIds =
+                message.scheduledEventId &&
+                message.scheduledEventId.monitors.map(
+                    monitor => monitor.monitorId
+                );
+
+            const monitorsAffected = await MonitorService.findBy({
+                _id: { $in: monitorIds },
+                deleted: false,
+            });
+
             if (message) {
                 for (const monitor of message.scheduledEventId.monitors) {
                     const subscribers = await SubscriberService.subscribersForAlert(
@@ -3633,7 +3645,8 @@ module.exports = {
                                     project.name,
                                     monitor.name,
                                     projectId,
-                                    unsubscribeUrl
+                                    unsubscribeUrl,
+                                    monitorsAffected
                                 );
                                 alertStatus = 'Sent';
                                 await SubscriberAlertService.updateOneBy(
