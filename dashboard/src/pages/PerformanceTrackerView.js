@@ -129,6 +129,7 @@ class PerformanceTrackerView extends Component {
                                                     'Response time',
                                                 ]}
                                                 subHeading="shows graph of web transactions initiated through http requests"
+                                                type="transactionTime"
                                             />
                                         </div>
                                     </div>
@@ -136,8 +137,9 @@ class PerformanceTrackerView extends Component {
                                         <div>
                                             <WebTransactionsChart
                                                 heading="Throughput"
-                                                title={['Web.throughput']}
+                                                title={['Web throughput']}
                                                 subHeading="shows graph of number of web transactions per minute"
+                                                type="throughput"
                                             />
                                         </div>
                                     </div>
@@ -193,7 +195,10 @@ class PerformanceTrackerView extends Component {
 PerformanceTrackerView.displayName = 'PerformanceTrackerView';
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { fetchComponent, fetchPerformanceTracker },
+        {
+            fetchComponent,
+            fetchPerformanceTracker,
+        },
         dispatch
     );
 };

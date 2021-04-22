@@ -8,7 +8,7 @@ import ChartComponent from './ChartComponent';
 
 export class WebTransactionsChart extends Component {
     render() {
-        const { heading, title, subHeading } = this.props;
+        const { heading, title, subHeading, type } = this.props;
         return (
             <div
                 className="Box-root Card-shadow--medium"
@@ -20,6 +20,7 @@ export class WebTransactionsChart extends Component {
                     heading={heading}
                     title={title}
                     subHeading={subHeading}
+                    type={type}
                 />
             </div>
         );
@@ -32,6 +33,7 @@ WebTransactionsChart.propTypes = {
     heading: PropTypes.any,
     subHeading: PropTypes.any,
     title: PropTypes.any,
+    type: PropTypes.any,
 };
 
 const mapDispatchToProps = dispatch =>

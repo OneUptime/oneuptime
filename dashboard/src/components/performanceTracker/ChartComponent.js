@@ -2,22 +2,183 @@ import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { setStartDate, setEndDate } from '../../actions/performanceTracker';
 import PerformanceChart from '../basic/performanceChart';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import moment from 'moment';
+import {
+    fetchTimeMetrics,
+    fetchThroughputMetrics,
+    setTimeStartDate,
+    setTimeEndDate,
+    setThroughputEndDate,
+    setThroughputStartDate,
+} from '../../actions/performanceTrackerMetric';
+
 //import ShouldRender from '../../components/basic/ShouldRender';
 
 export class ChartComponent extends Component {
+    componentDidMount() {
+        const {
+            performanceTracker,
+            type,
+            timeStartDate,
+            timeEndDate,
+            throughputStartDate,
+            throughputEndDate,
+            fetchTimeMetrics,
+            fetchThroughputMetrics,
+        } = this.props;
+
+        if (performanceTracker && type === 'throughput') {
+            const { _id, key } = performanceTracker;
+            fetchTimeMetrics({
+                appId: _id,
+                key,
+                startDate: throughputStartDate,
+                endDate: throughputEndDate,
+            });
+        } else if (performanceTracker && type === 'transactionTime') {
+            const { _id, key } = performanceTracker;
+            fetchThroughputMetrics({
+                appId: _id,
+                key,
+                startDate: timeStartDate,
+                endDate: timeEndDate,
+            });
+        }
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            JSON.stringify(prevProps.performanceTracker) !==
+            JSON.stringify(this.props.performanceTracker)
+        ) {
+            const {
+                performanceTracker,
+                type,
+                timeStartDate,
+                timeEndDate,
+                throughputStartDate,
+                throughputEndDate,
+                fetchTimeMetrics,
+                fetchThroughputMetrics,
+            } = this.props;
+
+            if (performanceTracker && type === 'throughput') {
+                const { _id, key } = performanceTracker;
+                fetchTimeMetrics({
+                    appId: _id,
+                    key,
+                    startDate: throughputStartDate,
+                    endDate: throughputEndDate,
+                });
+            } else if (performanceTracker && type === 'transactionTime') {
+                const { _id, key } = performanceTracker;
+                fetchThroughputMetrics({
+                    appId: _id,
+                    key,
+                    startDate: timeStartDate,
+                    endDate: timeEndDate,
+                });
+            }
+        }
+    }
+
+    handleCurrentDateRange = () => {
+        const {
+            type,
+            timeStartDate,
+            timeEndDate,
+            throughputStartDate,
+            throughputEndDate,
+        } = this.props;
+        let startDate = timeStartDate,
+            endDate = timeEndDate;
+        if (type === 'throughput') {
+            startDate = throughputStartDate;
+            endDate = throughputEndDate;
+        }
+        return { startDate, endDate };
+    };
+
+    handleStartDate = val => {
+        const {
+            type,
+            setTimeStartDate,
+            setThroughputStartDate,
+            fetchTimeMetrics,
+            fetchThroughputMetrics,
+            timeEndDate,
+            throughputEndDate,
+            performanceTracker,
+        } = this.props;
+
+        if (type === 'throughput') {
+            setThroughputStartDate(val);
+
+            performanceTracker &&
+                fetchThroughputMetrics({
+                    appId: performanceTracker._id,
+                    key: performanceTracker.key,
+                    startDate: val,
+                    endDate: throughputEndDate,
+                });
+        } else if (type === 'transactionTime') {
+            setTimeStartDate(val);
+
+            performanceTracker &&
+                fetchTimeMetrics({
+                    appId: performanceTracker._id,
+                    key: performanceTracker.key,
+                    startDate: val,
+                    endDate: timeEndDate,
+                });
+        }
+    };
+
+    handleEndDate = val => {
+        const {
+            type,
+            setTimeEndDate,
+            setThroughputEndDate,
+            fetchTimeMetrics,
+            fetchThroughputMetrics,
+            timeStartDate,
+            throughputStartDate,
+            performanceTracker,
+        } = this.props;
+
+        if (type === 'throughput') {
+            setThroughputEndDate(val);
+
+            performanceTracker &&
+                fetchThroughputMetrics({
+                    appId: performanceTracker._id,
+                    key: performanceTracker.key,
+                    startDate: throughputStartDate,
+                    endDate: val,
+                });
+        } else if (type === 'transactionTime') {
+            setTimeEndDate(val);
+
+            performanceTracker &&
+                fetchTimeMetrics({
+                    appId: performanceTracker._id,
+                    key: performanceTracker.key,
+                    startDate: timeStartDate,
+                    endDate: val,
+                });
+        }
+    };
+
     render() {
         const {
             heading,
             title,
             subHeading,
-            startDate,
-            endDate,
-            setStartDate,
-            setEndDate,
+            type,
+            timeMetrics,
+            throughputMetrics,
         } = this.props;
         const status = {
             display: 'inline-block',
@@ -45,15 +206,14 @@ export class ChartComponent extends Component {
                                 >
                                     <div className="db-Trends-timeControls">
                                         <DateTimeRangePicker
-                                            currentDateRange={{
-                                                startDate,
-                                                endDate,
-                                            }}
+                                            currentDateRange={this.handleCurrentDateRange()}
                                             handleStartDateTimeChange={val =>
-                                                setStartDate(moment(val))
+                                                this.handleStartDate(
+                                                    moment(val)
+                                                )
                                             }
                                             handleEndDateTimeChange={val =>
-                                                setEndDate(moment(val))
+                                                this.handleEndDate(moment(val))
                                             }
                                             formId={`performanceTrackeringDateTime-${heading}`}
                                         />
@@ -64,7 +224,7 @@ export class ChartComponent extends Component {
                                 <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     <div className="Box-root Margin-right--16">
                                         <span className="Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-color--dark">
-                                            <span>1.5 ms</span>
+                                            <span></span>
                                         </span>
                                     </div>
                                 </span>
@@ -73,7 +233,7 @@ export class ChartComponent extends Component {
                                         <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                             <div className="Box-root Flex-inlineFlex Flex-alignItems--center">
                                                 <span className="Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-color--dark">
-                                                    <span>App Server</span>
+                                                    <span></span>
                                                 </span>
                                             </div>
                                         </div>
@@ -92,64 +252,42 @@ export class ChartComponent extends Component {
                                             margin: '30px 20px 10px 20px',
                                         }}
                                     >
-                                        <PerformanceChart
-                                            type={`url`}
-                                            data={[
-                                                {
-                                                    createdAt:
-                                                        '2020-11-05T07:40:57.765+00:00',
-                                                    value: 50,
-                                                },
-                                                {
-                                                    createdAt:
-                                                        '2020-11-06T07:40:57.765+00:00',
-                                                    value: 10,
-                                                },
-                                                {
-                                                    createdAt:
-                                                        '2020-11-07T07:40:57.765+00:00',
-                                                    value: 100,
-                                                },
-                                                {
-                                                    createdAt:
-                                                        '2020-11-08T07:40:57.765+00:00',
-                                                    value: 80,
-                                                },
-                                                {
-                                                    createdAt:
-                                                        '2020-11-09T07:40:57.765+00:00',
-                                                    value: 58,
-                                                },
-                                                {
-                                                    createdAt:
-                                                        '2020-11-09T08:40:57.765+00:00',
-                                                    value: 70,
-                                                },
-                                                {
-                                                    createdAt:
-                                                        '2020-11-09T09:40:57.765+00:00',
-                                                    value: 25,
-                                                },
-                                                {
-                                                    createdAt:
-                                                        '2020-11-09T10:40:57.765+00:00',
-                                                    value: 40,
-                                                },
-                                                {
-                                                    createdAt:
-                                                        '2020-11-10T07:40:57.765+00:00',
-                                                    value: 39,
-                                                },
-                                                {
-                                                    createdAt:
-                                                        '2020-11-11T07:40:57.765+00:00',
-                                                    value: 68,
-                                                },
-                                            ]}
-                                            name={'response time'}
-                                            symbol="ms"
-                                            requesting={false}
-                                        />
+                                        {type === 'transactionTime' && (
+                                            <PerformanceChart
+                                                type={`url`}
+                                                data={[
+                                                    {
+                                                        createdAt:
+                                                            '2020-11-11T07:40:57.765+00:00',
+                                                        value: 68,
+                                                    },
+                                                    ...timeMetrics.metrics,
+                                                ]}
+                                                name={'response time'}
+                                                symbol="ms"
+                                                requesting={
+                                                    timeMetrics.requesting
+                                                }
+                                            />
+                                        )}
+                                        {type === 'throughput' && (
+                                            <PerformanceChart
+                                                type={`url`}
+                                                data={[
+                                                    {
+                                                        createdAt:
+                                                            '2020-11-11T07:40:57.765+00:00',
+                                                        value: 68,
+                                                    },
+                                                    ...throughputMetrics.metrics,
+                                                ]}
+                                                name={'response time'}
+                                                symbol="ms"
+                                                requesting={
+                                                    throughputMetrics.requesting
+                                                }
+                                            />
+                                        )}
                                     </div>
                                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20">
                                         <div className="Box-root">
@@ -188,25 +326,52 @@ export class ChartComponent extends Component {
 ChartComponent.displayName = 'ChartComponent';
 
 ChartComponent.propTypes = {
-    endDate: PropTypes.any,
     heading: PropTypes.any,
-    setEndDate: PropTypes.any,
-    setStartDate: PropTypes.any,
-    startDate: PropTypes.any,
     subHeading: PropTypes.any,
     title: PropTypes.shape({
         map: PropTypes.func,
     }),
+    fetchTimeMetrics: PropTypes.func,
+    fetchThroughputMetrics: PropTypes.func,
+    setThroughputStartDate: PropTypes.func,
+    setThroughputEndDate: PropTypes.func,
+    setTimeStartDate: PropTypes.func,
+    setTimeEndDate: PropTypes.func,
+    timeStartDate: PropTypes.string,
+    timeEndDate: PropTypes.string,
+    throughputStartDate: PropTypes.string,
+    throughputEndDate: PropTypes.string,
+    timeMetrics: PropTypes.object,
+    throughputMetrics: PropTypes.object,
+    type: PropTypes.string,
+    performanceTracker: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ setStartDate, setEndDate }, dispatch);
+    bindActionCreators(
+        {
+            fetchTimeMetrics,
+            fetchThroughputMetrics,
+            setThroughputStartDate,
+            setThroughputEndDate,
+            setTimeStartDate,
+            setTimeEndDate,
+        },
+        dispatch
+    );
 
 function mapStateToProps(state) {
     return {
         currentProject: state.project.currentProject,
-        startDate: state.performanceTracker.dates.startDate,
-        endDate: state.performanceTracker.dates.endDate,
+        timeStartDate: state.performanceTrackerMetric.timeStartDate,
+        timeEndDate: state.performanceTrackerMetric.timeEndDate,
+        throughputStartDate: state.performanceTrackerMetric.throughputStartDate,
+        throughputEndDate: state.performanceTrackerMetric.throughputEndDate,
+        timeMetrics: state.performanceTrackerMetric.timeMetrics,
+        throughputMetrics: state.performanceTrackerMetric.throughputMetrics,
+        performanceTracker:
+            state.performanceTracker.fetchPerformanceTracker &&
+            state.performanceTracker.fetchPerformanceTracker.performanceTracker,
     };
 }
 
