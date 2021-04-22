@@ -6,10 +6,16 @@ class HrTimer {
     #dataStore;
     #apiUrl;
     #appId;
-    constructor(apiUrl, appId) {
+    #appKey;
+    constructor(apiUrl, appId, appKey) {
         this.#apiUrl = apiUrl;
         this.#appId = appId;
-        this.#dataStore = new DataStore(this.#apiUrl, this.#appId);
+        this.#appKey = appKey;
+        this.#dataStore = new DataStore(
+            this.#apiUrl,
+            this.#appId,
+            this.#appKey
+        );
     }
 
     start = (id, log) => {

@@ -10,9 +10,11 @@ class DataStore {
     #mongoose;
     #apiUrl;
     #appId;
-    constructor(url, appId) {
+    #appKey;
+    constructor(url, appId, appKey) {
         this.#apiUrl = url;
         this.#appId = appId;
+        this.#appKey = appKey;
         this.#store = new Map();
         this.#incoming = new Map();
         this.#outgoing = new Map();
