@@ -195,7 +195,7 @@ describe('Check status-page up', () => {
         await page.waitForSelector(`#monitorCreateIncident_${monitorName}`);
         await page.click(`#monitorCreateIncident_${monitorName}`);
         await page.waitForSelector('#incidentTitleLabel');
-        await page.click('#createIncident');        
+        await page.click('#createIncident');
 
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
@@ -250,7 +250,7 @@ describe('Check status-page up', () => {
         await page.click(`#monitorCreateIncident_${monitorName}`);
         await page.waitForSelector('#incidentTitleLabel');
         await init.selectByText('#incidentType', 'Degraded', page);
-        await page.click('#createIncident');        
+        await page.click('#createIncident');
 
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
@@ -309,16 +309,16 @@ describe('Check status-page up', () => {
         await page.keyboard.press('A');
         await page.keyboard.up('Control');
         await page.type('#description', note);
-        await page.click('#createIncident');        
+        await page.click('#createIncident');
 
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
-        
+
         await page.waitForSelector('#viewIncident-0');
         await page.click('#closeIncident_0');
         await page.waitForSelector('#closeIncident_0', { hidden: true });
-        
+
         await init.navigateToStatusPage(page);
         await page.reload({
             waitUntil: 'networkidle0',
