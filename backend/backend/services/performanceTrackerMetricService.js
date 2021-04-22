@@ -211,13 +211,14 @@ module.exports = {
 
             // finally calculate the avg per data per time
             // finalOutput should have the structure:
-            // [{timeStamp: '2021-04-21T17:15:00+01:00', avgTime: 2134.34, avgMaxTime: 5674.11}]
+            // [{createdAt: '2021-04-21T17:15:00+01:00', avgTime: 2134.34, avgMaxTime: 5674.11}]
             const finalOutput = [];
             for (const [key, value] of Object.entries(dataBank)) {
-                const result = { timeStamp: key };
+                const result = { createdAt: key };
                 const { avgTime, avgMaxTime } = calcAvgTime(value);
                 result.avgTime = avgTime;
                 result.avgMaxTime = avgMaxTime;
+                result.value = avgTime;
                 finalOutput.push(result);
             }
 
@@ -266,12 +267,13 @@ module.exports = {
 
             // finally calculate the avg per data per time
             // finalOutput should have the structure:
-            // [{timeStamp: '2021-04-21T17:15:00+01:00', avgThroughput: 20}]
+            // [{createdAt: '2021-04-21T17:15:00+01:00', avgThroughput: 20}]
             const finalOutput = [];
             for (const [key, value] of Object.entries(dataBank)) {
-                const result = { timeStamp: key };
+                const result = { createdAt: key };
                 const { avgThroughput } = calcAvgThroughput(value);
                 result.avgThroughput = avgThroughput;
+                result.value = avgThroughput;
                 finalOutput.push(result);
             }
 
