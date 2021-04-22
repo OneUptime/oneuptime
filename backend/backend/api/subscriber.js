@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 
 const SubscriberService = require('../services/subscriberService');
+const MonitorService = require('../services/monitorService');
 
 const getUser = require('../middlewares/user').getUser;
 
@@ -334,7 +335,7 @@ router.get('/:projectId/monitor/:monitorId', async function(req, res) {
 });
 
 //get monitors by subscriberId
-// req.params-> {projectId, monitorId};
+// req.params-> {subscriberId};
 // Returns: response subscriber, error message
 router.get('/monitorList/:subscriberId', async function(req, res) {
     try {
@@ -349,11 +350,29 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
             subscribed: true,
         });
 
-        const count = await SubscriberService.countBy({
-            contactEmail: subscriber[0].contactEmail,
-            subscribed: true,
+        const monitorIds = subscriptions.map(
+            subscription => subscription.monitorId
+        );
+
+        const subscriberMonitors = await MonitorService.findBy({
+            _id: { $in: monitorIds },
+            deleted: false,
         });
-        return sendListResponse(req, res, subscriptions, count);
+
+        const filteredSubscriptions = [];
+
+        subscriptions.map(subscription => {
+            subscriberMonitors.map(subscriberMonitor => {
+                if (
+                    String(subscription.monitorId) ===
+                    String(subscriberMonitor._id)
+                ) {
+                    filteredSubscriptions.push(subscription);
+                }
+            });
+        });
+
+        return sendListResponse(req, res, filteredSubscriptions);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
