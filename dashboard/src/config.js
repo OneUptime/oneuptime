@@ -1432,13 +1432,41 @@ public void logACustomClassInformation(CustomClass customClass) throws IOExcepti
                 id: 'python',
                 language: 'Python',
                 height: {
-                    install: '25px',
-                    usage: '500px',
+                    install: '50px',
+                    usage: '350px',
                 },
                 errorTracking:
                     "No quickstart available at the moment. We're working on them and they will be launched soon. ",
-                logs:
-                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                logs: {
+                    installation: {
+                        package: `
+    Pip Install`,
+                        command: `                        
+pip install fyipe-sdk
+        `,
+                    },
+                    usage: `                        
+from fyipe_sdk import FyipeLogger
+                                                
+// constructor                        
+logger = FyipeLogger(                        
+    "${apiUrl ? apiUrl : 'API_URL'}",
+    "${
+        applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
+    }",                    
+    "${
+        applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'
+    }"                 
+);
+                            
+# Sending a string log to the server
+item = 'This is a simple log'
+
+response = logger.log(item)
+
+# response after logging a request
+print(response)`,
+                },
             },
             {
                 id: 'dotnet',
