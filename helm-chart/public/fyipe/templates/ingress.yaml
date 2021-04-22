@@ -64,6 +64,18 @@ spec:
               serviceName: {{ printf "%s-%s" $.Release.Name $probeKey }}
               servicePort: 80
           {{- end }}
+          {{- if $.Values.saas.isMongoSecondaryBackupServiceEnabled }}
+          - path: /mongo-secondary-backup
+            backend:
+              serviceName: {{ printf "%s-%s" $.Release.Name "mongo-secondary-backup"  }}
+              servicePort: 80
+          {{- end }}
+          {{- if $.Values.saas.isMongoPrimaryBackupServiceEnabled }}
+          - path: /mongo-primary-backup
+            backend:
+              serviceName: {{ printf "%s-%s" $.Release.Name "mongo-primary-backup"  }}
+              servicePort: 80
+          {{- end }}
           {{- if $.Values.saas.isSaasService }}
           - path: /
             backend:
