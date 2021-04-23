@@ -49,7 +49,7 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
         ); // remove any protocol that might have been added
         let protocol = 'http:';
         if (process.env.BACKEND_PROTOCOL) {
-            protocol = process.env.BACKEND_PROTOCOL;
+            protocol = process.env.BACKEND_PROTOCOL + ':';
         } else if (req.secure) {
             protocol = 'https:';
         }
