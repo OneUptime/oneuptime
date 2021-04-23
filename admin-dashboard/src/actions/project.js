@@ -75,11 +75,11 @@ export const fetchProjectError = error => {
 };
 
 // Calls the API to fetch a project.
-export const fetchProject = projectId => async dispatch => {
+export const fetchProject = slug => async dispatch => {
     dispatch(fetchProjectRequest());
 
     try {
-        const response = await getApi(`project/projects/${projectId}`);
+        const response = await getApi(`project/projects/${slug}`);
         const projects = response.data;
 
         dispatch(fetchProjectSuccess(projects));
