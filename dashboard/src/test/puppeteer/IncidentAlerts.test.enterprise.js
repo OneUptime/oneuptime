@@ -3,7 +3,7 @@ const utils = require('./test-utils');
 const init = require('./test-init');
 
 require('should');
-let browseer, page;
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
