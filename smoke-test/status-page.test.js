@@ -87,7 +87,8 @@ describe('Check status-page up', () => {
         // Fill and submit New Component form
         await init.addComponent(componentName, page);        
         // Create a Manual Monitor
-        await init.addMonitor(monitorName, page);        
+        const description = 'My Manual Monitor'
+        await init.addMonitor(monitorName, description, page);        
         // To confirm the manual monitor is created.
         let spanElement = await page.waitForSelector(
             `#monitor-title-${monitorName}`,{visible:true}
@@ -120,12 +121,8 @@ describe('Check status-page up', () => {
         await page.type('#monitor-description', 'Status Page Description');
         await page.click('#manual-monitor-checkbox');
         await page.click('#btnAddStatusPageMonitors');
-
-        await page.waitForSelector('#publicStatusPageUrl',{visible:true});
-        let link = await page.$('#publicStatusPageUrl > span > a');
-        link = await link.getProperty('href');
-        link = await link.jsonValue();
-        await page.goto(link);
+        // CLick status Page Url            
+        await init.clickStatusPageUrl(page);
 
         // To confirm the monitor is present in the status-page
         let spanElement = await page.waitForSelector(`#monitor-${monitorName}`,{visible:true});
@@ -136,39 +133,28 @@ describe('Check status-page up', () => {
         done();
     }, 200000);
 
-    // test('should add more monitors and see if they are present on the status-page', async done => {
-    //     // This creates 2 additonal monitors
-    //     for (let i = 0; i < 2; i++) {
-    //         await init.navigateToComponentDetails(componentName, page);
-    //         const monitorName = utils.generateRandomString();
-    //         const description = utils.generateRandomString();
-    //         await page.waitForSelector('#form-new-monitor', { visible: true });
-    //         await page.click('input[id=name]', { visible: true });
-    //         await page.type('input[id=name]', monitorName);
-    //         await page.click('[data-testId=type_manual]');
-    //         await page.waitForSelector('#description',{visible:true});
-    //         await page.click('#description');
-    //         await page.type('#description', description);
-    //         await page.click('button[type=submit]');
-    //         await page.waitForSelector(`#monitor-title-${monitorName}`,{visible:true});
+    test('should add more monitors and see if they are present on the status-page', async done => {
+        // This creates 2 additonal monitors
+        for (let i = 0; i < 2; i++) {
+            await init.navigateToComponentDetails(componentName, page);
+            const monitorName = utils.generateRandomString();
+            const description = utils.generateRandomString();
+            await init.addMonitor(monitorName, description, page);            
+            await page.waitForSelector(`#monitor-title-${monitorName}`,{visible:true});
 
-    //         await init.addMonitorToStatusPage(componentName, monitorName, page);
-    //     }
+            await init.addMonitorToStatusPage(componentName, monitorName, page);
+        }
 
-    //     // To confirm the monitors on status-page
-    //     await page.waitForSelector('#publicStatusPageUrl',{visible:true});
-    //     let link = await page.$('#publicStatusPageUrl > span > a');
-    //     link = await link.getProperty('href');
-    //     link = await link.jsonValue();
-    //     await page.goto(link);
+        // To confirm the monitors on status-page
+        await init.clickStatusPageUrl(page);       
 
-    //     await page.waitForSelector('.monitor-list',{visible:true});
-    //     const monitor = await page.$$('.monitor-list');
-    //     const monitorLength = monitor.length;
-    //     expect(monitorLength).toEqual(3);
+        await page.waitForSelector('.monitor-list',{visible:true});
+        const monitor = await page.$$('.monitor-list');
+        const monitorLength = monitor.length;
+        expect(monitorLength).toEqual(3);
 
-    //     done();
-    // }, 200000);
+        done();
+    }, 200000);
 
     // test('should create an offline incident and view it on status-page', async done => {
     //     await page.goto(utils.DASHBOARD_URL, {

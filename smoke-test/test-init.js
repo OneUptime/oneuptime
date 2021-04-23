@@ -253,7 +253,7 @@ module.exports = {
         await page.click('button[type=submit]');
         await page.waitForSelector(`#cb${componentName}`, { visible: true });
     },
-    addMonitor: async function (monitorName, page){
+    addMonitor: async function (monitorName, description, page){
         await page.waitForSelector('#form-new-monitor', { visible: true });
         await page.waitForSelector('input[id=name]', { visible: true });
         await page.click('input[id=name]');
@@ -261,7 +261,7 @@ module.exports = {
         await page.click('[data-testId=type_manual]');
         await page.waitForSelector('#description',{visible:true});
         await page.click('#description');
-        await page.type('#description', 'My Manual Monitor');
+        await page.type('#description', description);
         await page.click('button[type=submit]');
         await page.waitForSelector(`#cb${monitorName}`, { visible: true });
     },
@@ -300,18 +300,20 @@ module.exports = {
         await page.click('ul > li:last-of-type #manual-monitor-checkbox');
         await page.click('#btnAddStatusPageMonitors');
     },
+    clickStatusPageUrl: async function (page) {
+        await page.waitForSelector('#publicStatusPageUrl');
+        let link = await page.$('#publicStatusPageUrl > span > a');
+        link = await link.getProperty('href');
+        link = await link.jsonValue();
+        await page.goto(link);
+    },
     navigateToStatusPage: async function (page) {
         await page.waitForSelector('#statusPages');
         await page.click('#statusPages');
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
         await page.click('#viewStatusPage');
-
-        await page.waitForSelector('#publicStatusPageUrl');
-        let link = await page.$('#publicStatusPageUrl > span > a');
-        link = await link.getProperty('href');
-        link = await link.jsonValue();
-        await page.goto(link);
+        await this.clickStatusPageUrl(page);        
     },
     navigateToMonitorDetails: async function (monitorName, page) {
         await page.waitForSelector('#components');
