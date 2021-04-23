@@ -8,11 +8,11 @@ const express = require('express');
 const router = express.Router();
 const PerformanceTrackerMetricService = require('../services/performanceTrackerMetricService');
 const moment = require('moment');
-// const RealTimeService = require('../services/realTimeService');
 
 const {
     sendErrorResponse,
     sendItemResponse,
+    sendListResponse,
 } = require('../middlewares/response');
 const { isValidAPIKey } = require('../middlewares/performanceTracker');
 
@@ -157,12 +157,26 @@ router.get('/:appId/key/:key/throughput', isValidAPIKey, async function(
 router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
     try {
         const { appId } = req.params;
+        const { type, skip, limit } = req.query;
+        if (!type) {
+            const error = new Error(
+                'Please specify the type in the query parameter'
+            );
+            error.code = 400;
+            throw error;
+        }
+
+        const query = {
+            performanceTrackerId: appId,
+            type,
+        };
         const performanceTrackerMetrics = await PerformanceTrackerMetricService.findBy(
-            {
-                performanceTrackerId: appId,
-            }
+            query,
+            limit,
+            skip
         );
-        return sendItemResponse(req, res, performanceTrackerMetrics);
+        const count = await PerformanceTrackerMetricService.countBy(query);
+        return sendListResponse(req, res, performanceTrackerMetrics, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
