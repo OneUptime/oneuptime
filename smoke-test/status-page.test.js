@@ -159,7 +159,7 @@ describe('Check status-page up', () => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
-        await init.navigateToMonitorDetails(monitorName, page);        
+        await init.navigateToMonitorDetails(monitorName, page);
         await page.waitForSelector(`#monitorCreateIncident_${monitorName}`,{visible:true});
         await page.click(`#monitorCreateIncident_${monitorName}`);
         await page.waitForSelector('#incidentTitleLabel',{visible:true});
@@ -205,98 +205,92 @@ describe('Check status-page up', () => {
         done();
     }, 200000);
 
-    // test('should create an degraded incident and view it on status-page', async done => {
-    //     await page.goto(utils.DASHBOARD_URL, {
-    //         waitUntil: 'networkidle2',
-    //     });
+    test('should create an degraded incident and view it on status-page', async done => {
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle2',
+        });
 
-    //     await page.waitForSelector('#components',{visible:true});
-    //     await page.$eval('#components', el => el.click());
-    //     await page.waitForSelector(`#view-resource-${monitorName}`,{visible:true});
-    //     await page.click(`#view-resource-${monitorName}`);
-    //     await page.waitForSelector(`#monitorCreateIncident_${monitorName}`,{visible:true});
-    //     await page.click(`#monitorCreateIncident_${monitorName}`);
-    //     await page.waitForSelector('#incidentTitleLabel',{visible:true});
-    //     await init.selectByText('#incidentType', 'Degraded', page);
-    //     await page.click('#createIncident');
+        await init.navigateToMonitorDetails(monitorName, page);        
+        await page.waitForSelector(`#monitorCreateIncident_${monitorName}`,{visible:true});
+        await page.click(`#monitorCreateIncident_${monitorName}`);
+        await page.waitForSelector('#incidentTitleLabel',{visible:true});
+        await init.selectByText('#incidentType', 'Degraded', page);
+        await page.click('#createIncident');
 
-    //     await page.goto(utils.DASHBOARD_URL, {
-    //         waitUntil: 'networkidle2',
-    //     });
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle2',
+        });
 
-    //     await page.waitForSelector('#viewIncident-0',{visible:true});
-    //     await page.click('#closeIncident_0');
-    //     await page.waitForSelector('#closeIncident_0', { hidden: true });
+        await page.waitForSelector('#viewIncident-0',{visible:true});
+        await page.click('#closeIncident_0');
+        await page.waitForSelector('#closeIncident_0', { hidden: true });
 
-    //     await init.navigateToStatusPage(page);
-    //     await page.reload({
-    //         waitUntil: 'networkidle0',
-    //     });
-    //     let spanElement = await page.waitForSelector('#status-note',{visible:true});
-    //     spanElement = await spanElement.getProperty('innerText');
-    //     spanElement = await spanElement.jsonValue();
-    //     expect(spanElement).toMatch('Some resources are degraded');
+        await init.navigateToStatusPage(page);
+        await page.reload({
+            waitUntil: 'networkidle0',
+        });
+        let spanElement = await page.waitForSelector('#status-note',{visible:true});
+        spanElement = await spanElement.getProperty('innerText');
+        spanElement = await spanElement.jsonValue();
+        expect(spanElement).toMatch('Some resources are degraded');
 
-    //     done();
-    // }, 200000);
+        done();
+    }, 200000);
 
-    // test('should resolve degraded incident and view status-page', async done => {
-    //     await page.goto(utils.DASHBOARD_URL, {
-    //         waitUntil: 'networkidle2',
-    //     });
-    //     await page.waitForSelector('#btnAcknowledge_0',{visible:true});
-    //     await page.click('#btnAcknowledge_0');
-    //     await page.waitForSelector('#btnResolve_0',{visible:true});
-    //     await page.click('#btnResolve_0');
+    test('should resolve degraded incident and view status-page', async done => {
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle2',
+        });
+        await page.waitForSelector('#btnAcknowledge_0',{visible:true});
+        await page.click('#btnAcknowledge_0');
+        await page.waitForSelector('#btnResolve_0',{visible:true});
+        await page.click('#btnResolve_0');
 
-    //     await page.reload({
-    //         waitUntil: 'networkidle2',
-    //     });
-    //     await init.navigateToStatusPage(page);
-    //     let spanElement = await page.waitForSelector('#status-note',{visible:true});
-    //     spanElement = await spanElement.getProperty('innerText');
-    //     spanElement = await spanElement.jsonValue();
-    //     expect(spanElement).toMatch('All resources are operational');
-    //     done();
-    // }, 200000);
+        await page.reload({
+            waitUntil: 'networkidle2',
+        });
+        await init.navigateToStatusPage(page);
+        let spanElement = await page.waitForSelector('#status-note',{visible:true});
+        spanElement = await spanElement.getProperty('innerText');
+        spanElement = await spanElement.jsonValue();
+        expect(spanElement).toMatch('All resources are operational');
+        done();
+    }, 200000);
 
-    // test('should create an offline incident and confirm the description note on status-page', async done => {
-    //     await page.goto(utils.DASHBOARD_URL, {
-    //         waitUntil: 'networkidle2',
-    //     });
-    //     const note = utils.generateRandomString();
-    //     await page.waitForSelector('#components',{visible:true});
-    //     await page.$eval('#components', el => el.click());
-    //     await page.waitForSelector(`#view-resource-${monitorName}`,{visible:true});
-    //     await page.click(`#view-resource-${monitorName}`);
-    //     await page.waitForSelector(`#monitorCreateIncident_${monitorName}`,{visible:true});
-    //     await page.click(`#monitorCreateIncident_${monitorName}`);
-    //     await page.waitForSelector('#incidentTitleLabel',{visible:true});
-    //     await page.click('#description', { clickCount: 3 });
-    //     await page.keyboard.down('Control');
-    //     await page.keyboard.press('A');
-    //     await page.keyboard.up('Control');
-    //     await page.type('#description', note);
-    //     await page.click('#createIncident');
+    test('should create an offline incident and confirm the description note on status-page', async done => {
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle2',
+        });
+        const note = utils.generateRandomString();
+        await init.navigateToMonitorDetails(monitorName, page);        
+        await page.waitForSelector(`#monitorCreateIncident_${monitorName}`,{visible:true});
+        await page.click(`#monitorCreateIncident_${monitorName}`);
+        await page.waitForSelector('#incidentTitleLabel',{visible:true});
+        await page.click('#description', { clickCount: 3 });
+        await page.keyboard.down('Control');
+        await page.keyboard.press('A');
+        await page.keyboard.up('Control');
+        await page.type('#description', note);
+        await page.click('#createIncident');
 
-    //     await page.goto(utils.DASHBOARD_URL, {
-    //         waitUntil: 'networkidle2',
-    //     });
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle2',
+        });
 
-    //     await page.waitForSelector('#viewIncident-0',{visible:true});
-    //     await page.click('#closeIncident_0');
-    //     await page.waitForSelector('#closeIncident_0', { hidden: true });
+        await page.waitForSelector('#viewIncident-0',{visible:true});
+        await page.click('#closeIncident_0');
+        await page.waitForSelector('#closeIncident_0', { hidden: true });
 
-    //     await init.navigateToStatusPage(page);
-    //     await page.reload({
-    //         waitUntil: 'networkidle0',
-    //     });
-    //     let spanElement = await page.waitForSelector('#note', {
-    //         visible: true,
-    //     });
-    //     spanElement = await spanElement.getProperty('innerText');
-    //     spanElement = await spanElement.jsonValue();
-    //     expect(spanElement).toMatch(note);
-    //     done();
-    // }, 200000);
+        await init.navigateToStatusPage(page);
+        await page.reload({
+            waitUntil: 'networkidle0',
+        });
+        let spanElement = await page.waitForSelector('#note', {
+            visible: true,
+        });
+        spanElement = await spanElement.getProperty('innerText');
+        spanElement = await spanElement.jsonValue();
+        expect(spanElement).toMatch(note);
+        done();
+    }, 200000);
 });
