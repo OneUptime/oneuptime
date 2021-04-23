@@ -1,53 +1,43 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
 
 // user credentials
+let browser, page;
 const user = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
 
 describe('Enterprise Component API', () => {
-    const operationTimeOut = 100000;
-    let cluster;
+    const operationTimeOut = 100000;    
 
-    beforeAll(async () => {
+    beforeAll(async (done) => {
         jest.setTimeout(200000);
-
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 120000,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        // Register user
-        return await cluster.execute(async ({ page }) => {
-            // user
+       
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
+        // Register user        
             await init.registerEnterpriseUser(user, page);
             await init.adminLogout(page);
             await init.loginUser(user, page);
-        });
+            done();        
     });
 
-    afterAll(async () => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async (done) => {       
+        await browser.close();
+        done();
     });
 
     test(
         'Should create new component',
-        async () => {
-            const componentName = utils.generateRandomString();
-            return await cluster.execute(async ({ page }) => {
+        async (done) => {
+            const componentName = utils.generateRandomString();          
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
@@ -73,7 +63,7 @@ describe('Enterprise Component API', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(componentName);
-            });
+                done();           
         },
         operationTimeOut
     );
