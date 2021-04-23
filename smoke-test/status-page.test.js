@@ -99,42 +99,42 @@ describe('Check status-page up', () => {
         done();
     }, 200000);
 
-    // test('should add monitor to status-page', async done => {
-    //     await page.goto(utils.DASHBOARD_URL, {
-    //         waitUntil: 'networkidle2',
-    //     });
+    test('should add monitor to status-page', async done => {
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle2',
+        });
 
-    //     await page.waitForSelector('#statusPages',{visible:true});
-    //     await page.click('#statusPages');
-    //     await page.waitForSelector('#statusPagesListContainer',{visible:true});
-    //     await page.waitForSelector('#viewStatusPage',{visible:true});
-    //     await page.click('#viewStatusPage');
-    //     await page.waitForSelector('#addMoreMonitors',{visible:true});
-    //     await page.click('#addMoreMonitors');
-    //     await init.selectByText(
-    //         '#monitor-name',
-    //         `${componentName} / ${monitorName}`,
-    //         page
-    //     );
-    //     await page.click('#monitor-description');
-    //     await page.type('#monitor-description', 'Status Page Description');
-    //     await page.click('#manual-monitor-checkbox');
-    //     await page.click('#btnAddStatusPageMonitors');
+        await page.waitForSelector('#statusPages',{visible:true});
+        await page.click('#statusPages');
+        await page.waitForSelector('#statusPagesListContainer',{visible:true});
+        await page.waitForSelector('#viewStatusPage',{visible:true});
+        await page.click('#viewStatusPage');
+        await page.waitForSelector('#addMoreMonitors',{visible:true});
+        await page.click('#addMoreMonitors');
+        await init.selectByText(
+            '#monitor-name',
+            `${componentName} / ${monitorName}`,
+            page
+        );
+        await page.click('#monitor-description');
+        await page.type('#monitor-description', 'Status Page Description');
+        await page.click('#manual-monitor-checkbox');
+        await page.click('#btnAddStatusPageMonitors');
 
-    //     await page.waitForSelector('#publicStatusPageUrl',{visible:true});
-    //     let link = await page.$('#publicStatusPageUrl > span > a');
-    //     link = await link.getProperty('href');
-    //     link = await link.jsonValue();
-    //     await page.goto(link);
+        await page.waitForSelector('#publicStatusPageUrl',{visible:true});
+        let link = await page.$('#publicStatusPageUrl > span > a');
+        link = await link.getProperty('href');
+        link = await link.jsonValue();
+        await page.goto(link);
 
-    //     // To confirm the monitor is present in the status-page
-    //     let spanElement = await page.waitForSelector(`#monitor-${monitorName}`,{visible:true});
-    //     spanElement = await spanElement.getProperty('innerText');
-    //     spanElement = await spanElement.jsonValue();
-    //     expect(spanElement).toMatch(monitorName);
+        // To confirm the monitor is present in the status-page
+        let spanElement = await page.waitForSelector(`#monitor-${monitorName}`,{visible:true});
+        spanElement = await spanElement.getProperty('innerText');
+        spanElement = await spanElement.jsonValue();
+        expect(spanElement).toMatch(monitorName);
 
-    //     done();
-    // }, 200000);
+        done();
+    }, 200000);
 
     // test('should add more monitors and see if they are present on the status-page', async done => {
     //     // This creates 2 additonal monitors
