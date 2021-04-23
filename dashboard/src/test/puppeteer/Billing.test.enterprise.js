@@ -24,8 +24,8 @@ describe('Enterprise Disabled Billing API', () => {
         await page.setUserAgent(
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
         );
-            await init.registerEnterpriseUser(user, page);
-       
+        await init.registerEnterpriseUser(user, page);
+
         done();
     });
 
@@ -36,14 +36,14 @@ describe('Enterprise Disabled Billing API', () => {
 
     test(
         'Should not display project billing page after login',
-        async done => {          
-                await init.adminLogout(page);               
-                await init.loginUser(user, page);
-                await page.waitForSelector('#projectSettings',{visible:true});
-                await page.click('#projectSettings');
+        async done => {
+            await init.adminLogout(page);
+            await init.loginUser(user, page);
+            await page.waitForSelector('#projectSettings', { visible: true });
+            await page.click('#projectSettings');
 
-                const projectBilling = await page.$('#billingSetting');
-                expect(projectBilling).toBeNull();
+            const projectBilling = await page.$('#billingSetting');
+            expect(projectBilling).toBeNull();
             done();
         },
         operationTimeOut
@@ -51,13 +51,13 @@ describe('Enterprise Disabled Billing API', () => {
 
     test(
         'Should not display profile billing on profile menu',
-        async done => {            
-               await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#profile-menu',{visible:true});
-                await page.click('#profile-menu');
+        async done => {
+            await page.goto(utils.DASHBOARD_URL);
+            await page.waitForSelector('#profile-menu', { visible: true });
+            await page.click('#profile-menu');
 
-                const profileBilling = await page.$('#cbBilling');
-                expect(profileBilling).toBeNull();                          
+            const profileBilling = await page.$('#cbBilling');
+            expect(profileBilling).toBeNull();
             done();
         },
         operationTimeOut
