@@ -2,12 +2,12 @@ import * as types from '../constants/performanceTrackerMetric';
 import moment from 'moment';
 
 // set default date
-// last 10 days from today
+// last 30 days from today
 const currentDate = moment(Date.now())
     .utc()
     .format();
 const startDate = moment(currentDate)
-    .subtract(10, 'days')
+    .subtract(30, 'days')
     .utc()
     .format();
 const INITIAL_STATE = {
