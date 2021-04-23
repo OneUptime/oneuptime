@@ -2,48 +2,6 @@
 
 A fyipe sdk for application logger that can be used to send logs about your applications created on your fypie dashboard which can also used for error tracking
 
-## Installation
-
-### Pip Install
-
-Via pip
-
-```
-$ pip install fyipe-sdk
-```
-
-<a name="module_api"></a>
-
-## Basic Usage for Logging
-
-### importing
-
-from fyipe_sdk import FyipeLogger
-
-### constructor
-
-logger = FyipeLogger(
-'API_URL', # https://fyipe.com/api
-'APPLICATION_LOG_ID',
-'APPLICATION_LOG_KEY'
-)
-
-### Sending a string log to the server
-
-item = 'This is a simple log'
-response = logger.log(item)
-print(response)
-
-### Sending an object log to the server
-
-item = {
-'user': 'Test User',
-'page': 'Landing Page'
-}
-
-response = logger.log(item)
-print(response)
-
 ## API Documentation
 
 Main API to send logs to the server.
