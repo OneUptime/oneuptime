@@ -14,7 +14,7 @@ setup(
     author_email="hello@hackerbay.io",
     description="A Fyipe package that tracks error event and send logs from your applications to your fyipe dashboard.",
     long_description=README,
-    long_description_content_type="text/markdown",
+    long_description_content_type="text/x-rst",
     url="https://github.com/Fyipe/python-sdk",
     project_urls={
         "Bug Tracker": "https://github.com/Fyipe/python-sdk/issues",
