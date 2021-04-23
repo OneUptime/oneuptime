@@ -56,7 +56,7 @@ describe('Enterprise Disabled Billing API', () => {
                 await page.waitForSelector('#profile-menu',{visible:true});
                 await page.click('#profile-menu');
 
-                const profileBilling = await page.$('#cdBilling');
+                const profileBilling = await page.$('#cbBilling');
                 expect(profileBilling).toBeNull();                          
             done();
         },
