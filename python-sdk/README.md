@@ -16,10 +16,11 @@ $ pip install fyipe-sdk
 
 ## Basic Usage for Logging
 
-`python`
+### importing
+
 from fyipe_sdk import FyipeLogger
 
-# constructor
+### constructor
 
 logger = FyipeLogger(
 'API_URL', # https://fyipe.com/api
@@ -27,17 +28,13 @@ logger = FyipeLogger(
 'APPLICATION_LOG_KEY'
 )
 
-# Sending a string log to the server
+### Sending a string log to the server
 
 item = 'This is a simple log'
-
 response = logger.log(item)
-
-# response after logging a request
-
 print(response)
 
-# Sending an object log to the server
+### Sending an object log to the server
 
 item = {
 'user': 'Test User',
@@ -45,9 +42,6 @@ item = {
 }
 
 response = logger.log(item)
-
-# response after logging a request
-
 print(response)
 
 ## API Documentation
