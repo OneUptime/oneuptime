@@ -39,7 +39,7 @@ describe('Enterprise Disabled Billing API', () => {
         async done => {          
                 await init.adminLogout(page);               
                 await init.loginUser(user, page);
-                await page.waitForSelector('#projectSettings');
+                await page.waitForSelector('#projectSettings',{visible:true});
                 await page.click('#projectSettings');
 
                 const projectBilling = await page.$('#billingSetting');
@@ -49,39 +49,17 @@ describe('Enterprise Disabled Billing API', () => {
         operationTimeOut
     );
 
-    // test(
-    //     'Should not display profile billing on profile menu',
-    //     async done => {
-    //         const cluster = await Cluster.launch({
-    //             concurrency: Cluster.CONCURRENCY_PAGE,
-    //             puppeteerOptions: utils.puppeteerLaunchConfig,
-    //             puppeteer,
-    //             timeout: 100000,
-    //         });
+    test(
+        'Should not display profile billing on profile menu',
+        async done => {            
+               await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#profile-menu',{visible:true});
+                await page.click('#profile-menu');
 
-    //         cluster.on('taskerror', err => {
-    //             throw err;
-    //         });
-
-    //         await cluster.task(async ({ page, data }) => {
-    //             const user = {
-    //                 email: data.email,
-    //                 password: data.password,
-    //             };
-
-    //             await init.loginUser(user, page);
-    //             await page.waitForSelector('#profile-menu');
-    //             await page.click('#profile-menu');
-
-    //             const profileBilling = await page.$('#profileBilling');
-    //             expect(profileBilling).toBeNull();
-    //         });
-
-    //         cluster.queue({ email, password });
-    //         await cluster.idle();
-    //         await cluster.close();
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+                const profileBilling = await page.$('#cdBilling');
+                expect(profileBilling).toBeNull();                          
+            done();
+        },
+        operationTimeOut
+    );
 });
