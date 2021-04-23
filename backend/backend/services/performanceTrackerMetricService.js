@@ -40,7 +40,13 @@ module.exports = {
             )
                 .sort([['createdAt', sort]])
                 .limit(limit)
-                .skip(skip);
+                .skip(skip)
+                .populate({
+                    path: 'performanceTrackerId',
+                    populate: {
+                        path: 'componentId',
+                    },
+                });
             return performanceTrackerMetrics;
         } catch (error) {
             ErrorService.log('performanceTrackerMetricService.findBy', error);
