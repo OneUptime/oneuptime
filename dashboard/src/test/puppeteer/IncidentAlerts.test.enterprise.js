@@ -1,13 +1,16 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browseer, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
+const user ={
+    email,
+    password
+}
 
 const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
@@ -20,24 +23,12 @@ describe('Schedule', () => {
 
     beforeAll(async done => {
         jest.setTimeout(2000000);
-
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 1200000,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        await cluster.execute({ email, password }, async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
-
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
+      
             await init.registerEnterpriseUser(user, page);
             const enableSms = true;
             const enableCalls = true;
@@ -91,20 +82,19 @@ describe('Schedule', () => {
                 page
             );
             await page.click('#saveSchedulePolicy');
-        });
+       
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {       
+        await browser.close();
         done();
     });
 
     test(
         'should send on-call and external subscribers alerts when an incident is created.',
-        async () => {
-            await cluster.execute(null, async ({ page }) => {
+        async (done) => {
+           
                 await init.addIncident(monitorName, 'offline', page);
                 await page.waitForSelector('#viewIncident-0');
                 await page.waitForTimeout(3000);
@@ -149,7 +139,8 @@ describe('Schedule', () => {
                     element => element.textContent
                 );
                 expect(subscriberAlertType).toEqual('identified');
-            });
+            done();
+           
         },
         operationTimeOut
     );
