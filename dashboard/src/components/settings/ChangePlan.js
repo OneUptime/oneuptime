@@ -121,6 +121,29 @@ export class Plans extends Component {
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
                                 <div className="Box-root">
+                                    <div
+                                        className="Padding-horizontal--20 Padding-vertical--16 Flex-justifyContent--flexStart"
+                                        style={{ paddingBottom: '5px' }}
+                                    >
+                                        <ShouldRender if={isRequestingTrial}>
+                                            <ListLoader
+                                                style={{ textAlign: 'left' }}
+                                            />
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={!isRequesting && trialEndDate}
+                                        >
+                                            <div className="Badge Badge--color--blue Box-background--red bg-red-700 Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                <span className="Badge-text bg-red-700 Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <span className="Text-color--white">
+                                                        Trial period (
+                                                        {trialLeft} days left)
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </ShouldRender>
+                                    </div>
+
                                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                                         <div className="Box-root">
                                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -166,39 +189,6 @@ export class Plans extends Component {
                                         </div>
                                     </div>
                                     <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
-                                        <div
-                                            className="bs-Fieldset-wrapper Box-root"
-                                            style={{
-                                                display: 'flex',
-                                                justifyContent: 'flex-end',
-                                            }}
-                                        >
-                                            <ShouldRender
-                                                if={isRequestingTrial}
-                                            >
-                                                <ListLoader />
-                                            </ShouldRender>
-
-                                            <ShouldRender
-                                                if={
-                                                    !isRequesting &&
-                                                    trialEndDate
-                                                }
-                                            >
-                                                <p className="Margin-all--16 bs-Button bs-Button--blue Badge">
-                                                    <strong
-                                                        style={{
-                                                            fontSize: '17px',
-                                                            fontWeight: '900',
-                                                        }}
-                                                    >
-                                                        Trial period (
-                                                        {trialLeft} days left)
-                                                    </strong>
-                                                </p>
-                                            </ShouldRender>
-                                        </div>
-
                                         <div>
                                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                                 <fieldset className="bs-Fieldset">

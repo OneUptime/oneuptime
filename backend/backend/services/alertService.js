@@ -3448,6 +3448,7 @@ module.exports = {
                     const subscribers = await SubscriberService.subscribersForAlert(
                         {
                             monitorId: monitor.monitorId._id,
+                            subscribed: true,
                         }
                     );
 
@@ -3481,6 +3482,7 @@ module.exports = {
                     const subscribers = await SubscriberService.subscribersForAlert(
                         {
                             monitorId: monitor.monitorId._id,
+                            subscribed: true,
                         }
                     );
 
@@ -3508,11 +3510,24 @@ module.exports = {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+
+            const monitorIds =
+                message.scheduledEventId &&
+                message.scheduledEventId.monitors.map(
+                    monitor => monitor.monitorId
+                );
+
+            const monitorsAffected = await MonitorService.findBy({
+                _id: { $in: monitorIds },
+                deleted: false,
+            });
+
             if (message) {
                 for (const monitor of message.scheduledEventId.monitors) {
                     const subscribers = await SubscriberService.subscribersForAlert(
                         {
                             monitorId: monitor.monitorId._id,
+                            subscribed: true,
                         }
                     );
                     const totalSubscribers = subscribers.length;
@@ -3524,6 +3539,8 @@ module.exports = {
                         const project = await ProjectService.findOneBy({
                             _id: projectId,
                         });
+
+                        const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
                         if (subscriber.alertVia === AlertType.Email) {
                             const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
@@ -3627,7 +3644,9 @@ module.exports = {
                                     replyAddress,
                                     project.name,
                                     monitor.name,
-                                    projectId
+                                    projectId,
+                                    unsubscribeUrl,
+                                    monitorsAffected
                                 );
                                 alertStatus = 'Sent';
                                 await SubscriberAlertService.updateOneBy(
@@ -3991,6 +4010,7 @@ module.exports = {
                     id,
                 });
                 const alertId = subscriberAlert._id;
+                const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
                 let alertStatus = null;
                 try {
@@ -4005,7 +4025,8 @@ module.exports = {
                             projectName,
                             emailTemplate,
                             componentName,
-                            project.replyAddress
+                            project.replyAddress,
+                            unsubscribeUrl
                         );
 
                         alertStatus = 'Sent';
@@ -4023,7 +4044,8 @@ module.exports = {
                             projectName,
                             emailTemplate,
                             componentName,
-                            project.replyAddress
+                            project.replyAddress,
+                            unsubscribeUrl
                         );
 
                         alertStatus = 'Sent';

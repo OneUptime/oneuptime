@@ -2033,7 +2033,10 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             '{{monitorName}} : Name of the monitor on which the event was created.',
             '{{userId}} : Unique identifier for user account.',
             '{{projectId}} : Unique identifier for the current project.',
+            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
+            '{{resourcesAffected}} : List of monitors affected by scheduled maintenance event',
         ],
+
         emailType: 'Subscriber Scheduled Maintenance',
         subject: `New Scheduled Maintenance Event for {{projectName}} - {{eventName}}`,
         body: `
@@ -2324,7 +2327,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
   </td>
 </tr>
 <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
-<div class="st-Spacer st-Spacer--filler"></div>
+  <div class="st-Spacer st-Spacer--filler"></div>
 </td>
 </tbody>
 </table>
@@ -2351,14 +2354,22 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
                         style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                         <strong>Event Name: </strong>
                         <span>{{eventName}}</span><br></p>
+
+                      {{#if eventDescription}}
+                        <p style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
+                          <strong>Resource Affected: </strong>
+                          <span>{{resourcesAffected}}</span><br></p> 
+                      {{/if}}  
                         
+                    {{#if eventDescription}}
                       <p
                         style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                         <strong>Description:</strong> <span>{{eventDescription}}</span><br></p>
+                    {{/if}}  
                       <p
-                        style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
-                        <strong>Start time: </strong> <span>{{eventStartTime}}</span><br></p>
-
+                      style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
+                      <strong>Start time: </strong> <span>{{eventStartTime}}</span><br></p>
+                    
                       <p
                         style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                         <strong>End time: </strong> <span>{{eventEndTime}}</span><br></p>                        
@@ -2503,7 +2514,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
     </td>
     <td class="st-Font st-Font--caption" style="border: 0; margin: 0;padding: 0; color: #8898aa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 16px;">
       <span class="st-Delink st-Delink--footer" style="border: 0; margin: 0; padding: 0; color: #8898aa; text-decoration: none;">
-        © {{year}} HackerBay Inc.
+        © {{year}} HackerBay Inc. | <span><a href={{unsubscribeUrl}}>Unsubscribe</a></span>
       </span>
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -2555,6 +2566,8 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
             '{{content}} : Content of created note.',
             '{{projectName}} : Name of the project on which the event was created.',
             '{{monitorName}} : Name of the monitor on which the event was created.',
+            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
+            '{{resourcesAffected}} : List of monitors affected by scheduled maintenance event',
         ],
         emailType: 'Subscriber Scheduled Maintenance Note',
         subject: `New Scheduled Maintenance Event Note for {{projectName}} - {{eventName}} `,
@@ -2874,7 +2887,14 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
                          
                       <p
                         style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
-                        <strong>Note: </strong> "<span>{{content}}</span>"<br></p>                                     
+                        <strong>Note: </strong> "<span>{{content}}</span>"<br></p> 
+
+                      {{#if resourcesAffected}}
+                        <p style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
+                        <strong>Resource Affected: </strong>
+                        <span>{{resourcesAffected}}</span><br></p> 
+                      {{/if}}   
+                                                       
                     </td>
                   </tr>
                 </tbody>
@@ -3015,7 +3035,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
     </td>
     <td class="st-Font st-Font--caption" style="border: 0; margin: 0;padding: 0; color: #8898aa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 16px;">
       <span class="st-Delink st-Delink--footer" style="border: 0; margin: 0; padding: 0; color: #8898aa; text-decoration: none;">
-        © {{year}} HackerBay Inc.
+        © {{year}} HackerBay Inc. | <span><a href={{unsubscribeUrl}}>Unsubscribe</a></span>
       </span>
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -3067,6 +3087,8 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
             '{{eventResolveTime}} : Time at which scheduled event is created.',
             '{{projectName}} : Name of the project on which the event was created.',
             '{{monitorName}} : Name of the monitor on which the event was created.',
+            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
+            '{{resourcesAffected}} : List of monitors affected by scheduled maintenance event',
         ],
         emailType: 'Subscriber Scheduled Maintenance Resolved',
         subject: `Resolved Scheduled Maintenance Event for {{projectName}} - {{eventName}}`,
@@ -3380,6 +3402,11 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
                         style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                         <strong>Event Name: </strong>
                         <span>{{eventName}}</span><br></p>
+                      {{#if resourcesAffected}}
+                        <p style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
+                        <strong>Resource Affected: </strong>
+                        <span>{{resourcesAffected}}</span><br></p> 
+                      {{/if}}
                       <p
                         style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                         <strong>Resolved at:</strong> <span>{{eventResolveTime}}</span><br></p>                                    
@@ -3520,7 +3547,7 @@ You are receiving this mail because you are subscribed to this monitor.
   </td>
   <td class="st-Font st-Font--caption" style="border: 0; margin: 0;padding: 0; color: #8898aa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; line-height: 16px;">
     <span class="st-Delink st-Delink--footer" style="border: 0; margin: 0; padding: 0; color: #8898aa; text-decoration: none;">
-      © {{year}} HackerBay Inc.
+      © {{year}} HackerBay Inc. | <span><a href={{unsubscribeUrl}}>Unsubscribe</a></span>
     </span>
   </td>
   <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">

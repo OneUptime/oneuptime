@@ -13,7 +13,7 @@ module.exports = {
                 .populate('scheduledEventId', 'name')
                 .populate({
                     path: 'scheduledEventId',
-                    select: 'name monitors',
+                    select: 'name monitors alertSubscriber',
                     populate: {
                         path: 'projectId',
                         select: 'name replyAddress',
@@ -21,8 +21,8 @@ module.exports = {
                 })
                 .populate('createdById', 'name')
                 .execPopulate();
-
             if (
+                scheduledEventMessage.scheduledEventId.alertSubscriber &&
                 scheduledEventMessage.type === 'investigation' &&
                 !(
                     scheduledEventMessage.event_state === 'Resolved' ||
