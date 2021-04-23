@@ -177,7 +177,7 @@ app.get('/unsubscribe/:monitorId/:subscriberId', async function(req, res) {
     }
 
     try {
-        let subscriptions = await axios({
+        const subscriptions = await axios({
             method: 'GET',
             url: `${apiHost}/subscriber/monitorList/${subscriberId}`,
         });

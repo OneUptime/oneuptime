@@ -170,9 +170,13 @@ describe('Check scheduled maintenace', () => {
             { hidden: true }
         );
         await page.click('input[name=endDate]');
-        await page.click('div.MuiPickersCalendar-week:nth-child(5) > div:nth-child(6)'); // To select the last week and last day of the month.
+        await page.click(
+            'div.MuiPickersCalendar-week:nth-child(5) > div:nth-child(6)'
+        ); // To select the last week and last day of the month.
         await page.click('span.MuiTypography-body1:nth-child(14)'); // This selects '11'
-        await page.click('span.MuiPickersClockNumber-clockNumber:nth-child(15)'); // This selects '55'. 11:55 is the highest possible value from the clock library html elements
+        await page.click(
+            'span.MuiPickersClockNumber-clockNumber:nth-child(15)'
+        ); // This selects '55'. 11:55 is the highest possible value from the clock library html elements
         await page.click('div.MuiDialogActions-root button:nth-child(2)');
         await page.waitForSelector(
             'div.MuiDialogActions-root button:nth-child(2)',
