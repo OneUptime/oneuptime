@@ -35,8 +35,29 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
         }
     }
 
-    REACT_APP_BACKEND_PROTOCOL = process.env.BACKEND_PROTOCOL;
+    if (
+        REACT_APP_FYIPE_HOST &&
+        (REACT_APP_FYIPE_HOST.includes('localhost:') ||
+            REACT_APP_FYIPE_HOST.includes('0.0.0.0:') ||
+            REACT_APP_FYIPE_HOST.includes('127.0.0.1:'))
+    ) {
+        apiHost = 'http://localhost:3002/api';
+    } else if (REACT_APP_FYIPE_HOST) {
+        const FYIPE_HOST = REACT_APP_FYIPE_HOST.replace(
+            /(http:\/\/|https:\/\/)/,
+            ''
+        ); // remove any protocol that might have been added
+        let protocol = 'http:';
+        if (process.env.BACKEND_PROTOCOL) {
+            protocol = process.env.BACKEND_PROTOCOL;
+        } else if (req.secure) {
+            protocol = 'https:';
+        }
 
+        apiHost = protocol + `//${FYIPE_HOST}/api`;
+    }
+
+    REACT_APP_BACKEND_PROTOCOL = process.env.BACKEND_PROTOCOL;
     const env = {
         REACT_APP_FYIPE_HOST,
         REACT_APP_BACKEND_PROTOCOL,
