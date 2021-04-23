@@ -17,9 +17,7 @@ const monitorName = utils.generateRandomString();
 const callScheduleName = utils.generateRandomString();
 
 describe('Schedule', () => {
-    const operationTimeOut = 1000000;
-
-    let cluster;
+    const operationTimeOut = 1000000;    
 
     beforeAll(async done => {
         jest.setTimeout(2000000);
