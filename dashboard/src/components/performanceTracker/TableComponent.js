@@ -15,6 +15,8 @@ import {
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 import { numDecimal } from '../../utils/formatNumber';
+import DeletePerformanceMetric from './DeletePerformanceMetric';
+import { openModal } from '../../actions/modal';
 
 class TableComponent extends Component {
     componentDidMount() {
@@ -262,6 +264,12 @@ class TableComponent extends Component {
             type,
             incomingMetrics,
             outgoingMetrics,
+            performanceTracker,
+            incomingStartDate,
+            incomingEndDate,
+            outgoingStartDate,
+            outgoingEndDate,
+            openModal,
         } = this.props;
         const canNextIncoming =
             incomingMetrics.count >
@@ -455,6 +463,27 @@ class TableComponent extends Component {
                                                                                         marginRight:
                                                                                             '10px',
                                                                                     }}
+                                                                                    onClick={() =>
+                                                                                        openModal(
+                                                                                            {
+                                                                                                content: DeletePerformanceMetric,
+                                                                                                appId:
+                                                                                                    performanceTracker._id,
+                                                                                                metricId:
+                                                                                                    metric._id,
+                                                                                                key:
+                                                                                                    performanceTracker.key,
+                                                                                                type:
+                                                                                                    'incoming',
+                                                                                                startDate: incomingStartDate,
+                                                                                                endDate: incomingEndDate,
+                                                                                                skip:
+                                                                                                    incomingMetrics.skip,
+                                                                                                limit:
+                                                                                                    incomingMetrics.limit,
+                                                                                            }
+                                                                                        )
+                                                                                    }
                                                                                 >
                                                                                     <span>
                                                                                         Delete
@@ -719,6 +748,27 @@ class TableComponent extends Component {
                                                                                         marginRight:
                                                                                             '10px',
                                                                                     }}
+                                                                                    onClick={() =>
+                                                                                        openModal(
+                                                                                            {
+                                                                                                content: DeletePerformanceMetric,
+                                                                                                appId:
+                                                                                                    performanceTracker._id,
+                                                                                                metricId:
+                                                                                                    metric._id,
+                                                                                                key:
+                                                                                                    performanceTracker.key,
+                                                                                                type:
+                                                                                                    'outgoing',
+                                                                                                startDate: outgoingStartDate,
+                                                                                                endDate: outgoingEndDate,
+                                                                                                skip:
+                                                                                                    outgoingMetrics.skip,
+                                                                                                limit:
+                                                                                                    outgoingMetrics.limit,
+                                                                                            }
+                                                                                        )
+                                                                                    }
                                                                                 >
                                                                                     <span>
                                                                                         Delete
@@ -902,6 +952,7 @@ TableComponent.propTypes = {
     outgoingEndDate: PropTypes.string,
     incomingMetrics: PropTypes.object,
     outgoingMetrics: PropTypes.object,
+    openModal: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -913,6 +964,7 @@ const mapDispatchToProps = dispatch =>
             setIncomingEndDate,
             setOutgoingStartDate,
             setOutgoingEndDate,
+            openModal,
         },
         dispatch
     );
