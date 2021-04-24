@@ -15,6 +15,10 @@ const INITIAL_STATE = {
     timeEndDate: currentDate,
     throughputStartDate: startDate,
     throughputEndDate: currentDate,
+    incomingStartDate: startDate,
+    incomingEndDate: currentDate,
+    outgoingStartDate: startDate,
+    outgoingEndDate: currentDate,
     timeMetrics: {
         requesting: false,
         success: false,
@@ -25,6 +29,24 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
         error: null,
+        metrics: [],
+    },
+    incomingMetrics: {
+        requesting: false,
+        success: false,
+        error: null,
+        skip: 0,
+        limit: 0,
+        count: 0,
+        metrics: [],
+    },
+    outgoingMetrics: {
+        requesting: false,
+        success: false,
+        error: null,
+        skip: 0,
+        limit: 0,
+        count: 0,
         metrics: [],
     },
 };
@@ -140,6 +162,102 @@ export default function(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
+                },
+            };
+
+        case types.SET_INCOMING_STARTDATE:
+            return {
+                ...state,
+                incomingStartDate: action.payload,
+            };
+
+        case types.SET_INCOMING_ENDDATE:
+            return {
+                ...state,
+                incomingEndDate: action.payload,
+            };
+
+        case types.SET_OUTGOING_STARTDATE:
+            return {
+                ...state,
+                outgoingStartDate: action.payload,
+            };
+
+        case types.SET_OUTGOING_ENDDATE:
+            return {
+                ...state,
+                outgoingEndDate: action.payload,
+            };
+
+        case types.FETCH_INCOMING_METRICS_REQUEST:
+            return {
+                ...state,
+                incomingMetrics: {
+                    ...state.incomingMetrics,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.FETCH_INCOMING_METRICS_SUCCESS:
+            return {
+                ...state,
+                incomingMetrics: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    skip: action.payload.skip,
+                    limit: action.payload.limit,
+                    count: action.payload.count,
+                    metrics: action.payload.data,
+                },
+            };
+
+        case types.FETCH_INCOMING_METRICS_FAILURE:
+            return {
+                ...state,
+                incomingMetrics: {
+                    ...state.incomingMetrics,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.FETCH_OUTGOING_METRICS_REQUEST:
+            return {
+                ...state,
+                outgoingMetrics: {
+                    ...state.outgoingMetrics,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.FETCH_OUTGOING_METRICS_SUCCESS:
+            return {
+                ...state,
+                outgoingMetrics: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    skip: action.payload.skip,
+                    limit: action.payload.limit,
+                    count: action.payload.count,
+                    metrics: action.payload.data,
+                },
+            };
+
+        case types.FETCH_OUTGOING_METRICS_FAILURE:
+            return {
+                ...state,
+                outgoingMetrics: {
+                    ...state.outgoingMetrics,
+                    requesting: false,
+                    success: false,
+                    error: null,
                 },
             };
 
