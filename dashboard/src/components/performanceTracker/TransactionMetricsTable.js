@@ -2,9 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import ChartComponent from './ChartComponent';
+import TableComponent from './TableComponent';
 
-export class WebTransactionsChart extends Component {
+export class TransactionMetricsTable extends Component {
     render() {
         const { heading, title, subHeading, type } = this.props;
         return (
@@ -14,7 +14,7 @@ export class WebTransactionsChart extends Component {
                 onKeyDown={this.handleKeyBoard}
                 style={{ marginTop: '10px' }}
             >
-                <ChartComponent
+                <TableComponent
                     heading={heading}
                     title={title}
                     subHeading={subHeading}
@@ -25,9 +25,9 @@ export class WebTransactionsChart extends Component {
     }
 }
 
-WebTransactionsChart.displayName = 'WebTransactionsChart';
+TransactionMetricsTable.displayName = 'TransactionMetricsTable';
 
-WebTransactionsChart.propTypes = {
+TransactionMetricsTable.propTypes = {
     heading: PropTypes.any,
     subHeading: PropTypes.any,
     title: PropTypes.any,
@@ -45,4 +45,4 @@ function mapStateToProps(state) {
 export default connect(
     mapStateToProps,
     mapDispatchToProps
-)(WebTransactionsChart);
+)(TransactionMetricsTable);

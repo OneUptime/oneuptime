@@ -17,6 +17,7 @@ import {
 } from '../actions/performanceTrackerMetric';
 import io from 'socket.io-client';
 import { API_URL } from '../config';
+import TransactionMetricsTable from '../components/performanceTracker/TransactionMetricsTable';
 
 const socket = io.connect(API_URL.replace('/api', ''), {
     path: '/api/socket.io',
@@ -207,10 +208,19 @@ class PerformanceTrackerView extends Component {
                                 <div className="Box-root Margin-bottom--12">
                                     <div>
                                         <div>
-                                            <WebTransactionsChart
-                                                heading="Web Transactions Time"
-                                                title={['Node.js']}
-                                                subHeading="shows graph of web transactions initiated through http requests"
+                                            <TransactionMetricsTable
+                                                heading="Incoming Transaction Metrics"
+                                                subHeading="shows list of all incoming transactions initiated through http requests"
+                                                type="incoming"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div>
+                                            <TransactionMetricsTable
+                                                heading="Outgoing Transaction Metrics"
+                                                subHeading="shows list of all outgoing transactions initiated through http requests"
+                                                type="outgoing"
                                             />
                                         </div>
                                     </div>
