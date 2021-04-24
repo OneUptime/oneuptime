@@ -49,6 +49,16 @@ const INITIAL_STATE = {
         count: 0,
         metrics: [],
     },
+    deleteIncomingMetrics: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    deleteOutgoingMetrics: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
 };
 
 export default function(state = INITIAL_STATE, action) {
@@ -258,6 +268,82 @@ export default function(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: null,
+                },
+            };
+
+        case types.RESET_INCOMING_DELETE:
+            return {
+                ...state,
+                deleteIncomingMetrics: {
+                    ...INITIAL_STATE.deleteIncomingMetrics,
+                },
+            };
+
+        case types.RESET_OUTGOING_DELETE:
+            return {
+                ...state,
+                deleteOutgoingMetrics: {
+                    ...INITIAL_STATE.deleteOutgoingMetrics,
+                },
+            };
+
+        case types.DELETE_INCOMING_METRICS_REQUEST:
+            return {
+                ...state,
+                deleteIncomingMetrics: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.DELETE_INCOMING_METRICS_SUCCESS:
+            return {
+                ...state,
+                deleteIncomingMetrics: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            };
+
+        case types.DELETE_INCOMING_METRICS_FAILURE:
+            return {
+                ...state,
+                deleteIncomingMetrics: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.DELETE_OUTGOING_METRICS_REQUEST:
+            return {
+                ...state,
+                deleteOutgoingMetrics: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.DELETE_OUTGOING_METRICS_SUCCESS:
+            return {
+                ...state,
+                deleteOutgoingMetrics: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            };
+
+        case types.DELETE_OUTGOING_METRICS_FAILURE:
+            return {
+                ...state,
+                deleteOutgoingMetrics: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
                 },
             };
 

@@ -1,4 +1,4 @@
-import { getApi } from '../api';
+import { getApi, deleteApi } from '../api';
 import * as types from '../constants/performanceTrackerMetric';
 import moment from 'moment';
 
@@ -266,3 +266,94 @@ export const setOutgoingEndDate = payload => ({
     type: types.SET_OUTGOING_ENDDATE,
     payload,
 });
+
+// delete a particular performance metrics (incoming/outgoing)
+export const deleteIncomingMetricsRequest = () => ({
+    type: types.DELETE_INCOMING_METRICS_REQUEST,
+});
+
+export const deleteIncomingMetricsSuccess = payload => ({
+    type: types.DELETE_INCOMING_METRICS_SUCCESS,
+    payload,
+});
+
+export const deleteIncomingMetricsFailure = error => ({
+    type: types.DELETE_INCOMING_METRICS_FAILURE,
+    payload: error,
+});
+
+export const resetIncomingDelete = () => ({
+    type: types.RESET_INCOMING_DELETE,
+});
+
+export const deleteIncomingMetrics = ({ appId, key, metricId }) => dispatch => {
+    dispatch(deleteIncomingMetricsRequest());
+
+    const promise = deleteApi(
+        `performanceMetric/${appId}/key/${key}/${metricId}`
+    );
+
+    promise.then(
+        function(response) {
+            dispatch(deleteIncomingMetricsSuccess(response.data));
+        },
+        function(error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(deleteIncomingMetricsFailure(errorMsg));
+        }
+    );
+
+    return promise;
+};
+
+export const deleteOutgoingMetricsRequest = () => ({
+    type: types.DELETE_OUTGOING_METRICS_REQUEST,
+});
+
+export const deleteOutgoingMetricsSuccess = payload => ({
+    type: types.DELETE_OUTGOING_METRICS_SUCCESS,
+    payload,
+});
+
+export const deleteOutgoingMetricsFailure = error => ({
+    type: types.DELETE_OUTGOING_METRICS_FAILURE,
+    payload: error,
+});
+
+export const resetOutgoingDelete = () => ({
+    type: types.RESET_OUTGOING_DELETE,
+});
+
+export const deleteOutgoingMetrics = ({ appId, key, metricId }) => dispatch => {
+    dispatch(deleteOutgoingMetricsRequest());
+
+    const promise = deleteApi(
+        `performanceMetric/${appId}/key/${key}/${metricId}`
+    );
+
+    promise.then(
+        function(response) {
+            dispatch(deleteOutgoingMetricsSuccess(response.data));
+        },
+        function(error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(deleteOutgoingMetricsFailure(errorMsg));
+        }
+    );
+
+    return promise;
+};
