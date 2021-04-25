@@ -315,3 +315,48 @@ export const resetPerformanceTrackerKey = ({
 
     return promise;
 };
+
+// remove quickstart guide
+export const removeQuickStartRequest = () => ({
+    type: types.REMOVE_QUICK_START_REQUEST,
+});
+
+export const removeQuickStartSuccess = payload => ({
+    type: types.REMOVE_QUICK_START_SUCCESS,
+    payload,
+});
+
+export const removeQuickStartFailure = error => ({
+    type: types.REMOVE_QUICK_START_FAILURE,
+    payload: error,
+});
+
+export const removeQuickStart = ({
+    projectId,
+    performanceTrackerId,
+}) => dispatch => {
+    dispatch(removeQuickStartRequest());
+    const promise = putApi(
+        `performanceTracker/${projectId}/remove-quickstart/${performanceTrackerId}`,
+        {}
+    );
+
+    promise.then(
+        function(response) {
+            dispatch(removeQuickStartSuccess(response.data));
+        },
+        function(error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(removeQuickStartFailure(errorMsg));
+        }
+    );
+
+    return promise;
+};

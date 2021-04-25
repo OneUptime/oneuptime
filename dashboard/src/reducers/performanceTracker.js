@@ -45,6 +45,11 @@ const INITIAL_STATE = {
         error: null,
         performanceTracker: null,
     },
+    removeQuickStart: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
 };
 
 export default function(state = INITIAL_STATE, action) {
@@ -317,6 +322,36 @@ export default function(state = INITIAL_STATE, action) {
                 ...state,
                 resetPerformanceTrackerKey: {
                     ...INITIAL_STATE.resetPerformanceTrackerKey,
+                },
+            };
+
+        case types.REMOVE_QUICK_START_REQUEST:
+            return {
+                ...state,
+                removeQuickStart: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.REMOVE_QUICK_START_SUCCESS:
+            return {
+                ...state,
+                removeQuickStart: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            };
+
+        case types.REMOVE_QUICK_START_FAILURE:
+            return {
+                ...state,
+                removeQuickStart: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
                 },
             };
 
