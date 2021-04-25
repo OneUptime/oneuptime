@@ -195,7 +195,7 @@ export const updatePerformanceTracker = ({
 }) => dispatch => {
     dispatch(updatePerformanceTrackerRequest());
     const promise = putApi(
-        `performanceTracker/${projectId}/${componentId}/${performanceTrackerId}`,
+        `performanceTracker/${projectId}/${componentId}/update-tracker/${performanceTrackerId}`,
         values
     );
 

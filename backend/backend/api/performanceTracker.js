@@ -193,7 +193,7 @@ router.put(
 
 // Description: Update Performance Tracker by performanceTrackerId.
 router.put(
-    '/:projectId/:componentId/:performanceTrackerId',
+    '/:projectId/:componentId/update-tracker/:performanceTrackerId',
     getUser,
     isAuthorized,
     isUserAdmin,
