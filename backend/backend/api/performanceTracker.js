@@ -191,6 +191,42 @@ router.put(
     }
 );
 
+// Description: remove quick starter quide
+router.put(
+    '/:projectId/remove-quickstart/:performanceTrackerId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        const { performanceTrackerId } = req.params;
+
+        const currentPerformanceTracker = await PerformanceTrackerService.findOneBy(
+            {
+                _id: performanceTrackerId,
+            }
+        );
+        if (!currentPerformanceTracker) {
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Performance Tracker not found',
+            });
+        }
+
+        const data = {
+            showQuickStart: false,
+        };
+
+        try {
+            const performanceTracker = await PerformanceTrackerService.updateOneBy(
+                { _id: currentPerformanceTracker._id },
+                data
+            );
+            return sendItemResponse(req, res, performanceTracker);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 // Description: Update Performance Tracker by performanceTrackerId.
 router.put(
     '/:projectId/:componentId/update-tracker/:performanceTrackerId',
