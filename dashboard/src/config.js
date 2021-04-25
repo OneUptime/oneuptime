@@ -1135,6 +1135,48 @@ export const filterProbeData = (monitor, probe, startDate, endDate) => {
     return { logs, statuses };
 };
 
+export const metricsQuickStart = (appId, key) => {
+    return [
+        {
+            id: 'js',
+            language: 'JavaScript',
+            height: {
+                install: '50px',
+                usage: '420px',
+            },
+            performanceTracker: {
+                installation: {
+                    package: 'NPM Package',
+                    command: `
+$ npm install fyipe`,
+                },
+                usage: `// If your env supports import
+import Fyipe from 'fyipe';
+                                
+// If your env supports require                  
+const Fyipe = require('fyipe');
+
+// set up performance tracker configuration
+const options = {                    
+    apiUrl: '${apiUrl ? apiUrl : 'API_URL'}',
+    appId: '${appId ? appId : 'APP_ID'}',
+    appKey: '${key ? key : 'APP_KEY'}'                 
+};
+                                                    
+// constructor                    
+const performanceTracker = new Fyipe.PerformanceTracker(
+    options
+);
+
+// setup listeners
+performanceTracker.setUpIncomingListener();
+performanceTracker.setUpOutgoingListener();
+                `,
+            },
+        },
+    ];
+};
+
 export const logLibraries = {
     getLibraries() {
         return [
