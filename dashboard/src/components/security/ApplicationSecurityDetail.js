@@ -7,12 +7,12 @@ import ShouldRender from '../basic/ShouldRender';
 import { LargeSpinner } from '../basic/Loader';
 import ApplicationSecurityView from './ApplicationSecurityView';
 import {
-    getApplicationSecurity,
-    getApplicationSecurityLogBySlug,
     getApplicationSecurityBySlug,
     scanApplicationSecuritySuccess,
     getApplicationSecuritySuccess,
+    getApplicationSecurityLog,
 } from '../../actions/security';
+import { fetchComponent } from '../../actions/component';
 import ApplicationSecurityDeleteBox from './ApplicationSecurityDeleteBox';
 import SecurityLog from './SecurityLog';
 import { getGitCredentials } from '../../actions/credential';
@@ -30,26 +30,44 @@ const socket = io.connect(API_URL.replace('/api', ''), {
 class ApplicationSecurityDetail extends Component {
     componentDidUpdate(prevProps) {
         if (prevProps.projectId !== this.props.projectId) {
+            const { getGitCredentials, projectId } = this.props;
+            if (projectId) {
+                getGitCredentials({ projectId });
+            }
+        }
+        if (prevProps.componentId !== this.props.componentId) {
             const {
                 projectId,
                 componentId,
                 applicationSecuritySlug,
                 getApplicationSecurityBySlug,
-                getApplicationSecurityLogBySlug,
-                getGitCredentials,
             } = this.props;
-            // get a particular application security
-            getApplicationSecurityBySlug({
+            if (projectId && componentId) {
+                // get a particular container security
+                getApplicationSecurityBySlug({
+                    projectId,
+                    componentId,
+                    applicationSecuritySlug,
+                });
+            }
+        }
+        if (
+            prevProps.applicationSecurityId !== this.props.applicationSecurityId
+        ) {
+            const {
                 projectId,
                 componentId,
-                applicationSecuritySlug,
-            });
-            getApplicationSecurityLogBySlug({
-                projectId,
-                componentId,
-                applicationSecuritySlug,
-            });
-            getGitCredentials({ projectId });
+                applicationSecurityId,
+                getApplicationSecurityLog,
+            } = this.props;
+            if (applicationSecurityId) {
+                // get a container security log
+                getApplicationSecurityLog({
+                    projectId,
+                    componentId,
+                    applicationSecurityId,
+                });
+            }
         }
     }
     componentDidMount() {
@@ -58,21 +76,32 @@ class ApplicationSecurityDetail extends Component {
             componentId,
             applicationSecuritySlug,
             getApplicationSecurityBySlug,
-            getApplicationSecurityLogBySlug,
             getGitCredentials,
+            fetchComponent,
+            componentSlug,
+            applicationSecurityId,
+            getApplicationSecurityLog,
         } = this.props;
-        // get a particular application security
-        getApplicationSecurityBySlug({
-            projectId,
-            componentId,
-            applicationSecuritySlug,
-        });
-        getApplicationSecurityLogBySlug({
-            projectId,
-            componentId,
-            applicationSecuritySlug,
-        });
-        getGitCredentials({ projectId });
+        fetchComponent(componentSlug);
+        if (projectId && componentId) {
+            // get a particular container security
+            getApplicationSecurityBySlug({
+                projectId,
+                componentId,
+                applicationSecuritySlug,
+            });
+        }
+        if (projectId) {
+            getGitCredentials({ projectId });
+        }
+        if (applicationSecurityId) {
+            // get a container security log
+            getApplicationSecurityLog({
+                projectId,
+                componentId,
+                applicationSecurityId,
+            });
+        }
     }
 
     render() {
@@ -206,7 +235,10 @@ ApplicationSecurityDetail.propTypes = {
     componentId: PropTypes.string,
     componentSlug: PropTypes.string,
     applicationSecurityId: PropTypes.string,
+    fetchComponent: PropTypes.func,
+    getApplicationSecurityLog: PropTypes.func,
     applicationSecuritySlug: PropTypes.string,
+    getApplicationSecurityBySlug: PropTypes.func,
     applicationSecurity: PropTypes.object,
     isRequesting: PropTypes.bool,
     getApplicationError: PropTypes.oneOfType([
@@ -215,8 +247,6 @@ ApplicationSecurityDetail.propTypes = {
     ]),
     gettingSecurityLog: PropTypes.bool,
     applicationSecurityLog: PropTypes.object,
-    getApplicationSecurityLogBySlug: PropTypes.func,
-    getApplicationSecurityBySlug: PropTypes.func,
     getGitCredentials: PropTypes.func,
     gettingCredentials: PropTypes.bool,
     fetchLogError: PropTypes.oneOfType([
@@ -242,12 +272,12 @@ ApplicationSecurityDetail.propTypes = {
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            getApplicationSecurity,
-            getApplicationSecurityLogBySlug,
-            getApplicationSecurityBySlug,
             getGitCredentials,
             scanApplicationSecuritySuccess,
             getApplicationSecuritySuccess,
+            getApplicationSecurityLog,
+            fetchComponent,
+            getApplicationSecurityBySlug,
         },
         dispatch
     );
@@ -272,9 +302,7 @@ const mapStateToProps = (state, ownProps) => {
             state.component.currentComponent.component &&
             state.component.currentComponent.component._id,
 
-        componentSlug:
-            state.component.currentComponent.component &&
-            state.component.currentComponent.component.slug,
+        componentSlug,
         applicationSecuritySlug,
         applicationSecurityId: state.security.applicationSecurity._id,
         applicationSecurity: state.security.applicationSecurity,
