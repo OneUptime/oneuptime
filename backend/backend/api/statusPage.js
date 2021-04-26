@@ -90,7 +90,7 @@ router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
     const { projectId } = req.params;
     const { theme, statusPageId } = req.body;
     try {
-        const statusPage = await StatusPageService.updateOneBy(
+        await StatusPageService.updateOneBy(
             { projectId, _id: statusPageId },
             { theme }
         );
@@ -99,7 +99,7 @@ router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
             req.user.id
         );
         await RealTimeService.statusPageEdit(updatedStatusPage);
-        return sendItemResponse(req, res, statusPage);
+        return sendItemResponse(req, res, updatedStatusPage);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

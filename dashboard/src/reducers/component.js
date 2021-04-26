@@ -545,7 +545,6 @@ export default function component(state = INITIAL_STATE, action) {
             });
 
         case ADD_CURRENT_COMPONENT:
-            console.log('***** action payload *******', action.payload);
             return Object.assign({}, state, {
                 currentComponent: {
                     ...state.currentComponent,

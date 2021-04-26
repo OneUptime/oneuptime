@@ -8,9 +8,7 @@ import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal } from '../../actions/modal';
 import CreateSchedule from '../modals/CreateSchedule';
-import EditSchedule from '../modals/EditSchedule';
 import DataPathHoC from '../DataPathHoC';
-import DeleteSchedule from '../modals/DeleteSchedule';
 import { history } from '../../store';
 import { capitalize } from '../../config';
 import { ListLoader } from '../basic/Loader';
@@ -88,11 +86,9 @@ class EventBox extends Component {
             limit,
             count,
             skip,
-            profileSettings,
             error,
             requesting,
             projectId,
-            openModal,
             fetchingMonitors,
             monitors,
             currentProject,
@@ -306,12 +302,6 @@ class EventBox extends Component {
                                                             ).format(
                                                                 'MMMM Do YYYY, h:mm a'
                                                             )}
-                                                            <br />
-                                                            <strong>
-                                                                {
-                                                                    profileSettings.timezone
-                                                                }
-                                                            </strong>
                                                         </div>
                                                     </div>
                                                     <div className="bs-ObjectList-cell bs-u-v-middle">
@@ -321,12 +311,6 @@ class EventBox extends Component {
                                                             ).format(
                                                                 'MMMM Do YYYY, h:mm a'
                                                             )}
-                                                            <br />
-                                                            <strong>
-                                                                {
-                                                                    profileSettings.timezone
-                                                                }
-                                                            </strong>
                                                         </div>
                                                     </div>
                                                     <div className="bs-ObjectList-cell bs-u-v-middle">
@@ -336,6 +320,12 @@ class EventBox extends Component {
                                                                 title="view"
                                                                 className="bs-Button bs-DeprecatedButton"
                                                                 type="button"
+                                                                style={{
+                                                                    float:
+                                                                        'right',
+                                                                    marginRight:
+                                                                        '10px',
+                                                                }}
                                                                 onClick={e => {
                                                                     e.preventDefault();
                                                                     e.stopPropagation();
@@ -346,60 +336,6 @@ class EventBox extends Component {
                                                             >
                                                                 <span>
                                                                     View
-                                                                </span>
-                                                            </button>
-                                                            <button
-                                                                id={`editCredentialBtn_${index}`}
-                                                                title="edit"
-                                                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
-                                                                style={{
-                                                                    marginLeft: 20,
-                                                                }}
-                                                                type="button"
-                                                                onClick={e => {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    openModal({
-                                                                        id: createScheduledEventModalId,
-                                                                        content: EditSchedule,
-                                                                        event: scheduledEvent,
-                                                                        projectId,
-                                                                        switch:'false',
-                                                                    });
-                                                                }}
-                                                            >
-                                                                <span>
-                                                                    Edit
-                                                                </span>
-                                                            </button>
-                                                            <button
-                                                                id={`deleteCredentialBtn_${index}`}
-                                                                title="delete"
-                                                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
-                                                                style={{
-                                                                    marginLeft: 20,
-                                                                }}
-                                                                type="button"
-                                                                onClick={e => {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    openModal({
-                                                                        id:
-                                                                            scheduledEvent._id,
-                                                                        content: DataPathHoC(
-                                                                            DeleteSchedule,
-                                                                            {
-                                                                                projectId,
-                                                                                parentProjectId,
-                                                                                eventId:
-                                                                                    scheduledEvent._id,
-                                                                            }
-                                                                        ),
-                                                                    });
-                                                                }}
-                                                            >
-                                                                <span>
-                                                                    Delete
                                                                 </span>
                                                             </button>
                                                         </div>

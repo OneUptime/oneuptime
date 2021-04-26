@@ -4,13 +4,11 @@ import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { history } from '../../store';
+import ConfirmScanModal from '../modals/ConfirmScanModal';
 import SecurityDetail from './SecurityDetail';
 import IssueIndicator from './IssueIndicator';
 import Badge from '../common/Badge';
-import {
-    scanApplicationSecurity,
-    scanContainerSecurity,
-} from '../../actions/security';
+import { openModal } from '../../actions/modal';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import threatLevel from '../../utils/threatLevel';
@@ -23,12 +21,11 @@ const SecurityInfo = ({
     applicationSecurityId,
     applicationSecuritySlug,
     applicationSecurityLog,
-    scanApplicationSecurity,
     scanningApplication,
     containerSecurityId,
     containerSecuritySlug,
     containerSecurityLog,
-    scanContainerSecurity,
+    openModal,
     scanningContainer,
     applicationSecurities,
     containerSecurities,
@@ -40,14 +37,31 @@ const SecurityInfo = ({
 }) => {
     const scanSecurity = () => {
         if (applicationSecurityId) {
-            scanApplicationSecurity({
-                projectId,
-                applicationSecurityId,
+            openModal({
+                id: applicationSecurityId,
+                content: ConfirmScanModal,
+                propArr: [
+                    {
+                        projectId,
+                        applicationSecurityId,
+                        name: ' Application Security',
+                    },
+                ],
             });
         }
 
         if (containerSecurityId) {
-            scanContainerSecurity({ projectId, containerSecurityId });
+            openModal({
+                id: containerSecurityId,
+                content: ConfirmScanModal,
+                propArr: [
+                    {
+                        projectId,
+                        containerSecurityId,
+                        name: ' Container Security',
+                    },
+                ],
+            });
         }
     };
 
@@ -344,7 +358,7 @@ SecurityInfo.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
-    scanApplicationSecurity: PropTypes.func,
+    openModal: PropTypes.func,
     scanningApplication: PropTypes.bool,
     containerSecuritySlug: PropTypes.string,
     containerSecurityId: PropTypes.oneOfType([
@@ -355,7 +369,6 @@ SecurityInfo.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
-    scanContainerSecurity: PropTypes.func,
     scanningContainer: PropTypes.bool,
     containerSecurities: PropTypes.array,
     applicationSecurities: PropTypes.array,
@@ -373,10 +386,7 @@ SecurityInfo.propTypes = {
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { scanApplicationSecurity, scanContainerSecurity },
-        dispatch
-    );
+    bindActionCreators({ openModal }, dispatch);
 
 const mapStateToProps = state => {
     return {

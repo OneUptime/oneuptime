@@ -35,10 +35,10 @@ module.exports = {
             await page.click('input[name=confirmPassword]');
             await page.type('input[name=confirmPassword]', '1234567890');
 
-            await Promise.all([
-                page.waitForSelector(`form#card-form`),
-                page.click('button[type=submit]'),
-            ]);
+            await page.click('button[type=submit]');
+            await page.waitForSelector(`form#card-form`, {
+                visible: true,
+            });
 
             await page.waitForSelector('.__PrivateStripeElement > iframe', {
                 visible: true,
@@ -82,25 +82,14 @@ module.exports = {
             await page.type('input[name=zipCode]', utils.user.address.zipcode);
             await page.select('#country', 'India');
             await page.click('button[type=submit]');
-            try {
-                const signupResponse = await page.waitForResponse(
-                    response =>
-                        response.url().includes('/user/signup') &&
-                        response.status() === 200
-                );
-                if (signupResponse) {
-                    const signupData = await signupResponse.text();
-                    const parsedSignupData = JSON.parse(signupData);
-                    if (parsedSignupData.verificationToken) {
-                        await request
-                            .get(
-                                `/user/confirmation/${parsedSignupData.verificationToken}`
-                            )
-                            .redirects(0);
-                    }
-                }
-            } catch (error) {
-                //catch
+
+            const signupResponse = await page.waitForResponse(
+                response =>
+                    response.url().includes('/user/signup') &&
+                    response.status() === 200
+            );
+            if (signupResponse._status !== 200) {
+                throw new Error('Sign up did not return 200');
             }
         }
     },
@@ -255,6 +244,26 @@ module.exports = {
         await page.type('input[name=project_name]', newProjectName);
         await page.click('#btnCreateProject');
     },
+    addComponent: async function(componentName, page) {
+        await page.waitForSelector('#form-new-component', { visible: true });
+        await page.waitForSelector('input[id=name]', { visible: true });
+        await page.click('input[id=name]');
+        await page.type('input[id=name]', componentName);
+        await page.click('button[type=submit]');
+        await page.waitForSelector(`#cb${componentName}`, { visible: true });
+    },
+    addMonitor: async function(monitorName, description, page) {
+        await page.waitForSelector('#form-new-monitor', { visible: true });
+        await page.waitForSelector('input[id=name]', { visible: true });
+        await page.click('input[id=name]');
+        await page.type('input[id=name]', monitorName);
+        await page.click('[data-testId=type_manual]');
+        await page.waitForSelector('#description', { visible: true });
+        await page.click('#description');
+        await page.type('#description', description);
+        await page.click('button[type=submit]');
+        await page.waitForSelector(`#cb${monitorName}`, { visible: true });
+    },
     navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
         await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle0' });
@@ -290,18 +299,20 @@ module.exports = {
         await page.click('ul > li:last-of-type #manual-monitor-checkbox');
         await page.click('#btnAddStatusPageMonitors');
     },
+    clickStatusPageUrl: async function(page) {
+        await page.waitForSelector('#publicStatusPageUrl');
+        let link = await page.$('#publicStatusPageUrl > span > a');
+        link = await link.getProperty('href');
+        link = await link.jsonValue();
+        await page.goto(link);
+    },
     navigateToStatusPage: async function(page) {
         await page.waitForSelector('#statusPages');
         await page.click('#statusPages');
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
         await page.click('#viewStatusPage');
-
-        await page.waitForSelector('#publicStatusPageUrl');
-        let link = await page.$('#publicStatusPageUrl > span > a');
-        link = await link.getProperty('href');
-        link = await link.jsonValue();
-        await page.goto(link);
+        await this.clickStatusPageUrl(page);
     },
     navigateToMonitorDetails: async function(monitorName, page) {
         await page.waitForSelector('#components');

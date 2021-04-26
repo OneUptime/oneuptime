@@ -3877,7 +3877,11 @@ const _this = {
                 'Subscriber Scheduled Maintenance'
             );
 
-            //project name
+            const resourcesAffected = [];
+            schedule.monitors.map(monitor => {
+                resourcesAffected.push(monitor.monitorId.name);
+            });
+
             const data = {
                 scheduledTime,
                 monitorName,
@@ -3891,6 +3895,7 @@ const _this = {
                 eventCreateTime: schedule.createdAt,
                 eventStartTime: schedule.startDate,
                 eventEndTime: schedule.endDate,
+                resourcesAffected: resourcesAffected.toString(),
                 unsubscribeUrl,
                 year: DateTime.getCurrentYear,
             };
@@ -4088,6 +4093,10 @@ const _this = {
                 'Subscriber Scheduled Maintenance Resolved'
             );
 
+            const resourcesAffected = [];
+            schedule.monitors.map(monitor => {
+                resourcesAffected.push(monitor.monitorId.name);
+            });
             //project name
             const data = {
                 scheduledTime,
@@ -4100,6 +4109,7 @@ const _this = {
                 eventName: schedule.name,
                 eventResolveTime: schedule.resolvedAt,
                 unsubscribeUrl,
+                resourcesAffected: resourcesAffected.toString(),
                 year: DateTime.getCurrentYear,
             };
             template = template(data);
@@ -4285,11 +4295,17 @@ const _this = {
         projectName,
         monitorName,
         projectId,
-        unsubscribeUrl
+        unsubscribeUrl,
+        monitorsAffected
     ) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
+
+        const resourcesAffected = [];
+        monitorsAffected.map(monitor => {
+            resourcesAffected.push(monitor.name);
+        });
 
         const capitalizeStatus =
             status.charAt(0).toUpperCase() + status.slice(1);
@@ -4310,6 +4326,7 @@ const _this = {
                 projectName,
                 monitorName,
                 unsubscribeUrl,
+                resourcesAffected: resourcesAffected.toString(),
                 year: DateTime.getCurrentYear,
             };
             template = template(data);

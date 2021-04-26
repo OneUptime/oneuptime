@@ -15,6 +15,7 @@ import {
     getApplicationSecuritySuccess,
 } from '../actions/security';
 import { LargeSpinner } from '../components/basic/Loader';
+import { fetchComponent } from '../actions/component';
 import ShouldRender from '../components/basic/ShouldRender';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
@@ -38,6 +39,41 @@ class Application extends Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('Application Security page Loaded');
         }
+        this.props.fetchComponent(this.props.componentSlug);
+        const {
+            projectId,
+            componentId,
+            getApplicationSecurities,
+            getApplicationSecurityLogs,
+        } = this.props;
+        if (projectId && componentId) {
+            // load container security logs
+            getApplicationSecurityLogs({ projectId, componentId });
+
+            // load container security
+            getApplicationSecurities({ projectId, componentId });
+        }
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps.projectId !== this.props.projectId ||
+            prevProps.componentId !== this.props.componentId
+        ) {
+            const {
+                projectId,
+                componentId,
+                getApplicationSecurities,
+                getApplicationSecurityLogs,
+            } = this.props;
+            if (projectId && componentId) {
+                // load container security logs
+                getApplicationSecurityLogs({ projectId, componentId });
+
+                // load container security
+                getApplicationSecurities({ projectId, componentId });
+            }
+        }
     }
 
     ready = () => {
@@ -46,6 +82,8 @@ class Application extends Component {
             projectId,
             getApplicationSecurities,
             getApplicationSecurityLogs,
+            componentSlug,
+            fetchComponent,
         } = this.props;
         if (projectId && componentId) {
             // load all the available logs
@@ -53,6 +91,9 @@ class Application extends Component {
 
             // load all the application securities
             getApplicationSecurities({ projectId, componentId });
+        }
+        if (componentSlug) {
+            fetchComponent(componentSlug);
         }
     };
 
@@ -189,6 +230,7 @@ Application.propTypes = {
     componentSlug: PropTypes.string,
     slug: PropTypes.string,
     projectId: PropTypes.string,
+    fetchComponent: PropTypes.func,
     getApplicationSecurities: PropTypes.func,
     applicationSecurities: PropTypes.array,
     getApplicationSecurityLogs: PropTypes.func,
@@ -197,11 +239,7 @@ Application.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    component: PropTypes.arrayOf(
-        PropTypes.shape({
-            name: PropTypes.string,
-        })
-    ),
+    component: PropTypes.object,
     scanApplicationSecuritySuccess: PropTypes.func,
     getApplicationSecuritySuccess: PropTypes.func,
 };
@@ -233,6 +271,7 @@ const mapDispatchToProps = dispatch =>
             getApplicationSecurityLogs,
             scanApplicationSecuritySuccess,
             getApplicationSecuritySuccess,
+            fetchComponent,
         },
         dispatch
     );

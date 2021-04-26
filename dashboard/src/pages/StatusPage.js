@@ -126,7 +126,8 @@ class StatusPage extends Component {
         const projectId = this.props.projectId;
         const data = {
             statusPageId: status._id,
-            projectId,
+            projectId:
+                status.projectId && (status.projectId._id || status.projectId),
             theme: status.theme,
         };
 
