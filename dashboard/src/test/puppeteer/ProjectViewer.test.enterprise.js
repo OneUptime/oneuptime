@@ -21,7 +21,7 @@ const role = 'Viewer';
 describe('Sub-Project API', () => {
     const operationTimeOut = 50000;
 
-    let cluster;
+    //let cluster;
 
     beforeAll(async done => {
         jest.setTimeout(200000);
@@ -44,9 +44,9 @@ describe('Sub-Project API', () => {
     test(
         'should create a new sub-project',
         async done => {           
-                await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle0',
-                });
+                // await page.goto(utils.DASHBOARD_URL, {
+                //     waitUntil: 'networkidle0',
+                // });
                 //Growth Plan is needed for a subproject
                 await init.growthPlanUpgrade(page);                
                 await page.goto(utils.DASHBOARD_URL, {
