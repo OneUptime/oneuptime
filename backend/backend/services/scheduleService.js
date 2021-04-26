@@ -82,6 +82,13 @@ module.exports = {
                     scheduleModel.userIds.push(monitorId);
                 }
             }
+
+            if (data && data.name) {
+                let name = data.name;
+                name = slugify(name);
+                name = `${name}-${generate('1234567890', 8)}`;
+                scheduleModel.slug = name.toLowerCase();
+            }
             const schedule = await scheduleModel.save();
             return schedule;
         } catch (error) {
@@ -211,6 +218,12 @@ module.exports = {
                     { $set: { isDefault: false } },
                     { new: true }
                 );
+            }
+            if (data && data.name) {
+                let name = data.name;
+                name = slugify(name);
+                name = `${name}-${generate('1234567890', 8)}`;
+                data.slug = name.toLowerCase();
             }
 
             schedule = await ScheduleModel.findOneAndUpdate(
@@ -423,3 +436,5 @@ module.exports = {
 const ScheduleModel = require('../models/schedule');
 const EscalationService = require('../services/escalationService');
 const ErrorService = require('../services/errorService');
+const generate = require('nanoid/generate');
+const slugify = require('slugify');

@@ -5,18 +5,18 @@ const ipaddr = require('ipaddr.js');
 
 const _this = {
     ipWhitelist: async function(req, res, next) {
-        const statusPageId = apiMiddleware.getStatusPageId(req);
+        const statusPageSlug = apiMiddleware.getStatusPageSlug(req);
         const statusPageUrl = apiMiddleware.getStatusPageUrl(req);
         let statusPage;
 
         try {
             if (
-                statusPageId &&
-                statusPageId.length &&
-                statusPageId !== 'null'
+                statusPageSlug &&
+                statusPageSlug.length &&
+                statusPageSlug !== 'null'
             ) {
                 statusPage = await StatusPageService.findOneBy({
-                    _id: statusPageId,
+                    slug: statusPageSlug,
                 });
             } else {
                 statusPage = await StatusPageService.findOneBy({

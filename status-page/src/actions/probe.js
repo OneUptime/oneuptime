@@ -3,7 +3,7 @@ import * as types from '../constants/probe';
 import errors from '../errors';
 
 // Fetch Project Probes list
-export function getProbes(statusPageId, skip, limit) {
+export function getProbes(projectId, skip, limit) {
     skip = parseInt(skip);
     limit = parseInt(limit);
 
@@ -11,10 +11,10 @@ export function getProbes(statusPageId, skip, limit) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
             promise = getApi(
-                `statusPage/${statusPageId}/probes?skip=${skip}&limit=${limit}`
+                `statusPage/${projectId}/probes?skip=${skip}&limit=${limit}`
             );
         } else {
-            promise = getApi(`statusPage/${statusPageId}/probes`);
+            promise = getApi(`statusPage/${projectId}/probes`);
         }
         dispatch(probeRequest(promise));
 
@@ -69,3 +69,72 @@ export const resetProbe = () => {
         type: types.PROBE_RESET,
     };
 };
+
+// Fetch Status Page Probes list
+
+export function probeRequestStatusPage(promise) {
+    return {
+        type: types.PROBE_REQUEST_STATUSPAGE,
+        payload: promise,
+    };
+}
+
+export function probeErrorStatusPage(error) {
+    return {
+        type: types.PROBE_FAILED_STATUSPAGE,
+        payload: error,
+    };
+}
+
+export function probeSuccessStatusPage(probes) {
+    return {
+        type: types.PROBE_SUCCESS_STATUSPAGE,
+        payload: probes,
+    };
+}
+
+export const resetProbeStatusPage = () => {
+    return {
+        type: types.PROBE_RESET_STATUSPAGE,
+    };
+};
+
+export function getProbesStatusPage(statusPageSlug, skip, limit) {
+    skip = parseInt(skip);
+    limit = parseInt(limit);
+
+    return function(dispatch) {
+        let promise = null;
+        if (skip >= 0 && limit >= 0) {
+            promise = getApi(
+                `${statusPageSlug}/probes/statusPage?skip=${skip}&limit=${limit}`
+            );
+        } else {
+            promise = getApi(`${statusPageSlug}/probes/statusPage`);
+        }
+        dispatch(probeRequestStatusPage(promise));
+
+        promise.then(
+            function(probes) {
+                probes.data.skip = skip || 0;
+                probes.data.limit = limit || 10;
+                dispatch(probeSuccessStatusPage(probes.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(probeErrorStatusPage(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}

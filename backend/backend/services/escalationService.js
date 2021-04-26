@@ -25,7 +25,7 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate({
                     path: 'scheduleId',
-                    select: 'name isDefault',
+                    select: 'name isDefault slug',
                     populate: { path: 'monitorIds', select: 'name' },
                 })
                 .populate({
@@ -50,7 +50,7 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate({
                     path: 'scheduleId',
-                    select: 'name isDefault',
+                    select: 'name isDefault slug',
                     populate: { path: 'monitorIds', select: 'name' },
                 })
                 .populate({

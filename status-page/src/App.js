@@ -32,17 +32,17 @@ const App = () => (
                 <Route exact path="/status-page" component={Main} />
                 <Route
                     exact
-                    path="/status-page/:statusPageId"
+                    path="/status-page/:statusPageSlug"
                     component={Main}
                 />
                 <Route
                     exact
-                    path="/status-page/:statusPageId/scheduledEvent/:eventId"
+                    path="/status-page/:statusPageSlug/scheduledEvent/:eventId"
                     component={ScheduledEvent}
                 />
                 <Route
                     exact
-                    path="/status-page/:statusPageId/incident/:incidentId"
+                    path="/status-page/:statusPageSlug/incident/:incidentId"
                     component={Incident}
                 />
                 <Redirect to="/" />

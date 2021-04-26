@@ -16,7 +16,8 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import Tooltip from '../basic/Tooltip';
 
 function submitMonitorForm(values, dispatch, props) {
-    const { subProjectId, scheduleId } = props.match.params;
+    const subProjectId = props && props.subProjectId;
+    const scheduleId = props && props.scheduleId;
     const monitors = [];
     /* eslint-disable no-unused-vars */
     for (const id in values) {
@@ -340,18 +341,18 @@ const AddMonitorsForm = new reduxForm({
 })(MonitorBox);
 
 const mapStateToProps = (state, props) => {
-    const { subProjectId, scheduleId } = props.match.params;
+    const { subProjectId, scheduleSlug } = props.match.params;
     const initialValues = {};
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {
             return subProjectSchedule.schedules.find(
-                schedule => schedule._id === scheduleId
+                schedule => schedule.slug === scheduleSlug
             );
         }
     );
 
     schedule = schedule.find(
-        schedule => schedule && schedule._id === scheduleId
+        schedule => schedule && schedule.slug === scheduleSlug
     );
 
     const monitors = state.monitor.monitorsList.monitors
@@ -383,6 +384,7 @@ const mapStateToProps = (state, props) => {
         subProjectId,
         currentProject,
         subProjects,
+        scheduleId: schedule && schedule._id,
     };
 };
 

@@ -35,6 +35,24 @@ class Schedule extends Component {
         }
     }
 
+    async componentDidUpdate(prevProps) {
+        if (
+            prevProps.match.params.scheduleSlug !==
+            this.props.match.params.scheduleSlug
+        ) {
+            const { subProjectId, scheduleId } = this.props;
+            try {
+                await Promise.all([
+                    this.props.getEscalation(subProjectId, scheduleId),
+                    this.props.subProjectTeamLoading(subProjectId),
+                    this.props.teamLoading(subProjectId),
+                ]);
+            } catch (e) {
+                this.setState({ error: e });
+            }
+        }
+    }
+
     render() {
         const { editSchedule, error } = this.state;
         const {
@@ -135,18 +153,18 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, props) => {
-    const { scheduleId } = props.match.params;
+    const { scheduleSlug } = props.match.params;
 
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {
             return subProjectSchedule.schedules.find(
-                schedule => schedule._id === scheduleId
+                schedule => schedule.slug === scheduleSlug
             );
         }
     );
 
     schedule = schedule.find(
-        schedule => schedule && schedule._id === scheduleId
+        schedule => schedule && schedule.slug === scheduleSlug
     );
     const escalations = state.schedule.scheduleEscalations;
 
@@ -157,7 +175,7 @@ const mapStateToProps = (state, props) => {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
         subProjectId,
-        scheduleId,
+        scheduleId: schedule && schedule._id,
         teamMembers: state.team.teamMembers,
     };
 };
@@ -172,6 +190,7 @@ Schedule.propTypes = {
     teamLoading: PropTypes.func.isRequired,
     escalations: PropTypes.array.isRequired,
     teamMembers: PropTypes.array.isRequired,
+    match: PropTypes.object.isRequired,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),

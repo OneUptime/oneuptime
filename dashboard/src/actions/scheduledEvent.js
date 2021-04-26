@@ -292,31 +292,33 @@ export function deleteScheduledEventFailure(error) {
     };
 }
 
-export const updateScheduledEvent = (
-    projectId,
-    scheduledEventId,
-    values
-) => async dispatch => {
-    try {
-        dispatch(updateScheduledEventRequest());
-
-        const response = await putApi(
+export function updateScheduledEvent(projectId, scheduledEventId, values) {
+    return function(dispatch) {
+        const promise = putApi(
             `scheduledEvent/${projectId}/${scheduledEventId}`,
             values
         );
-        dispatch(updateScheduledEventSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(updateScheduledEventFailure(errorMsg));
-    }
-};
+        dispatch(updateScheduledEventRequest());
+
+        promise.then(
+            function(scheduledEvent) {
+                dispatch(updateScheduledEventSuccess(scheduledEvent.data));
+            },
+            function(error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(updateScheduledEventFailure(errorMsg));
+            }
+        );
+        return promise;
+    };
+}
 
 export function updateScheduledEventSuccess(updatedScheduledEvent) {
     return {
@@ -610,3 +612,49 @@ export const prevPage = projectId => {
         payload: projectId,
     };
 };
+
+export function fetchScheduledEventRequest() {
+    return {
+        type: types.FETCH_SCHEDULED_EVENT_REQUEST_SLUG,
+    };
+}
+
+export function fetchScheduledEventSuccess(payload) {
+    return {
+        type: types.FETCH_SCHEDULED_EVENT_SUCCESS_SLUG,
+        payload,
+    };
+}
+
+export function fetchScheduledEventFailure(error) {
+    return {
+        type: types.FETCH_SCHEDULED_EVENT_FAILURE_SLUG,
+        payload: error,
+    };
+}
+
+export function fetchScheduledEvent(projectId, slug) {
+    return function(dispatch) {
+        const promise = getApi(`scheduledEvent/${projectId}/slug/${slug}`);
+        dispatch(fetchScheduledEventRequest());
+
+        promise.then(
+            function(component) {
+                dispatch(fetchScheduledEventSuccess(component.data));
+            },
+            function(error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(fetchScheduledEventFailure(errorMsg));
+            }
+        );
+
+        return promise;
+    };
+}

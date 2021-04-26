@@ -62,7 +62,6 @@ function ScheduledEventDescription({
     const startDate = moment(scheduledEvent.startDate).format();
     const currentDate = moment().format();
     const isFutureScheduledEvent = startDate > currentDate;
-
     return (
         <div className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -95,7 +94,7 @@ function ScheduledEventDescription({
                                     type="button"
                                     onClick={() =>
                                         history.push(
-                                            `/dashboard/project/${slug}/scheduledEvents/${scheduledEvent._id}`
+                                            `/dashboard/project/${slug}/scheduledEvents/${scheduledEvent.slug}`
                                         )
                                     }
                                 >
@@ -118,6 +117,7 @@ function ScheduledEventDescription({
                                         content: EditSchedule,
                                         event: scheduledEvent,
                                         projectId: scheduledEvent.projectId._id,
+                                        switch: 'true',
                                     })
                                 }
                             >
