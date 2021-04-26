@@ -788,70 +788,79 @@ class Main extends Component {
                                     this.props.events.length > 0 &&
                                     this.props.statusData &&
                                     this.props.statusData._id &&
-                                    this.props.events.map(event => (
-                                        <div
-                                            className="content box box__yellow--dark"
-                                            style={{
-                                                margin: '40px 0px',
-                                                cursor: 'pointer',
-                                            }}
-                                            key={event._id}
-                                            onClick={() => {
-                                                this.props.history.push(
-                                                    `/status-page/${this.props.statusData._id}/scheduledEvent/${event._id}`
-                                                );
-                                            }}
-                                        >
-                                            <div className="box-inner ongoing__schedulebox">
+                                    this.props.events.map(
+                                        event =>
+                                            !event.cancelled && (
                                                 <div
+                                                    className="content box box__yellow--dark"
                                                     style={{
-                                                        textTransform:
-                                                            'uppercase',
-                                                        fontSize: 11,
-                                                        fontWeight: 900,
+                                                        margin: '40px 0px',
+                                                        cursor: 'pointer',
+                                                    }}
+                                                    key={event._id}
+                                                    onClick={() => {
+                                                        this.props.history.push(
+                                                            `/status-page/${this.props.statusData._id}/scheduledEvent/${event._id}`
+                                                        );
                                                     }}
                                                 >
-                                                    Ongoing Scheduled Event
-                                                </div>
-                                                <div className="ongoing__scheduleitem">
-                                                    <span>{event.name}</span>
-                                                    <span>
-                                                        {event.description}
-                                                    </span>
-                                                </div>
-                                                <div className="ongoing__affectedmonitor">
-                                                    <AffectedResources
-                                                        event={event}
-                                                        monitorState={
-                                                            this.props
-                                                                .monitorState
-                                                        }
-                                                    />
-                                                </div>
+                                                    <div className="box-inner ongoing__schedulebox">
+                                                        <div
+                                                            style={{
+                                                                textTransform:
+                                                                    'uppercase',
+                                                                fontSize: 11,
+                                                                fontWeight: 900,
+                                                            }}
+                                                        >
+                                                            Ongoing Scheduled
+                                                            Event
+                                                        </div>
+                                                        <div className="ongoing__scheduleitem">
+                                                            <span>
+                                                                {event.name}
+                                                            </span>
+                                                            <span>
+                                                                {
+                                                                    event.description
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                        <div className="ongoing__affectedmonitor">
+                                                            <AffectedResources
+                                                                event={event}
+                                                                monitorState={
+                                                                    this.props
+                                                                        .monitorState
+                                                                }
+                                                            />
+                                                        </div>
 
-                                                <span
-                                                    style={{
-                                                        display: 'inline-block',
-                                                        fontSize: 12,
-                                                        marginTop: 5,
-                                                    }}
-                                                >
-                                                    {moment(
-                                                        event.startDate
-                                                    ).format(
-                                                        'MMMM Do YYYY, h:mm a'
-                                                    )}
-                                                    &nbsp;&nbsp;-&nbsp;&nbsp;
-                                                    {moment(
-                                                        event.endDate
-                                                    ).format(
-                                                        'MMMM Do YYYY, h:mm a'
-                                                    )}
-                                                </span>
-                                                <span className="sp__icon sp__icon--more"></span>
-                                            </div>
-                                        </div>
-                                    ))}
+                                                        <span
+                                                            style={{
+                                                                display:
+                                                                    'inline-block',
+                                                                fontSize: 12,
+                                                                marginTop: 5,
+                                                            }}
+                                                        >
+                                                            {moment(
+                                                                event.startDate
+                                                            ).format(
+                                                                'MMMM Do YYYY, h:mm a'
+                                                            )}
+                                                            &nbsp;&nbsp;-&nbsp;&nbsp;
+                                                            {moment(
+                                                                event.endDate
+                                                            ).format(
+                                                                'MMMM Do YYYY, h:mm a'
+                                                            )}
+                                                        </span>
+                                                        <span className="sp__icon sp__icon--more"></span>
+                                                    </div>
+                                                </div>
+                                            )
+                                    )}
                                 <ShouldRender
                                     if={
                                         this.props.statusData &&
