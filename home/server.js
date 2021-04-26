@@ -80,17 +80,11 @@ app.get('/enterprise/demo', function(req, res) {
 });
 
 app.get('/product/status-page', function(req, res) {
-    res.render('status-page', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
-    });
+    res.redirect('/product/public-status-page');
 });
 
 app.get('/status-page', function(req, res) {
-    res.redirect('/product/status-page');
+    res.redirect('/product/public-status-page');
 });
 
 app.get('/product/public-status-page', function(req, res) {

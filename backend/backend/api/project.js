@@ -839,14 +839,14 @@ router.get('/projects/allProjects', getUser, isUserMasterAdmin, async function(
     }
 });
 
-router.get('/projects/:projectId', getUser, isUserMasterAdmin, async function(
+router.get('/projects/:slug', getUser, isUserMasterAdmin, async function(
     req,
     res
 ) {
     try {
-        const projectId = req.params.projectId;
+        const slug = req.params.slug;
         const project = await ProjectService.findOneBy({
-            _id: projectId,
+            slug: slug,
             deleted: { $ne: null },
         });
 
