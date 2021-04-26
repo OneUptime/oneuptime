@@ -153,7 +153,7 @@ class StatusPagesTable extends Component {
                                             subProjectStatusPages.length
                                         }
                                         modalList={this.props.modalList}
-                                        project={subProject}
+                                        project={currentProject}
                                         pages={
                                             this.state[subProjectStatusPage._id]
                                         }
