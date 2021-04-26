@@ -13,6 +13,7 @@ import { fetchComponent } from '../actions/component';
 import {
     fetchPerformanceTracker,
     removeQuickStart,
+    resetPerformanceTrackerKeyReset,
 } from '../actions/performanceTracker';
 import {
     updateThroughputMetrics,
@@ -24,6 +25,7 @@ import TransactionMetricsTable from '../components/performanceTracker/Transactio
 import QuickStart from '../components/performanceTracker/QuickStart';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
+import PerformanceTrackerHeader from '../components/performanceTracker/PerformanceTrackerHeader';
 
 const socket = io.connect(API_URL.replace('/api', ''), {
     path: '/api/socket.io',
@@ -77,6 +79,7 @@ class PerformanceTrackerView extends Component {
             currentProject,
             performanceTrackerSlug,
             fetchPerformanceTracker,
+            resetPerformanceTrackerKeyReset,
         } = this.props;
         fetchComponent(componentSlug);
         currentProject &&
@@ -84,6 +87,8 @@ class PerformanceTrackerView extends Component {
                 projectId: currentProject._id,
                 slug: performanceTrackerSlug,
             });
+
+        resetPerformanceTrackerKeyReset();
     }
 
     componentWillUnmount() {
@@ -112,6 +117,7 @@ class PerformanceTrackerView extends Component {
             removeQuickStart,
             currentProject,
             trackerObj,
+            resetTrackerObj,
         } = this.props;
         const componentName = component ? component.name : '';
         return (
@@ -145,7 +151,12 @@ class PerformanceTrackerView extends Component {
                             this.state.showQuickStart && (
                                 <QuickStart
                                     appId={performanceTracker._id}
-                                    appKey={performanceTracker.key}
+                                    appKey={
+                                        (resetTrackerObj.performanceTracker &&
+                                            resetTrackerObj.performanceTracker
+                                                .key) ||
+                                        performanceTracker.key
+                                    }
                                     close={() =>
                                         removeQuickStart({
                                             projectId: currentProject._id,
@@ -159,6 +170,14 @@ class PerformanceTrackerView extends Component {
                                     }
                                 />
                             )}
+                        {!trackerObj.requesting && performanceTracker && (
+                            <PerformanceTrackerHeader
+                                performanceTracker={performanceTracker}
+                                componentSlug={component.slug}
+                                project={currentProject}
+                                component={component}
+                            />
+                        )}
                         <Tabs
                             selectedTabClassName={'custom-tab-selected'}
                             onSelect={tabIndex => this.tabSelected(tabIndex)}
@@ -287,6 +306,7 @@ const mapDispatchToProps = dispatch => {
             updateTimeMetrics,
             updateThroughputMetrics,
             removeQuickStart,
+            resetPerformanceTrackerKeyReset,
         },
         dispatch
     );
@@ -304,11 +324,13 @@ const mapStateToProps = (state, ownProps) => {
             state.performanceTracker.fetchPerformanceTracker &&
             state.performanceTracker.fetchPerformanceTracker.performanceTracker,
         trackerObj: state.performanceTracker.fetchPerformanceTracker,
+        resetTrackerObj: state.performanceTracker.resetPerformanceTrackerKey,
     };
 };
 PerformanceTrackerView.propTypes = {
     component: PropTypes.shape({
         name: PropTypes.any,
+        slug: PropTypes.any,
     }),
     location: PropTypes.any,
     fetchComponent: PropTypes.func,
@@ -321,6 +343,8 @@ PerformanceTrackerView.propTypes = {
     updateThroughputMetrics: PropTypes.func,
     removeQuickStart: PropTypes.func,
     trackerObj: PropTypes.object,
+    resetPerformanceTrackerKeyReset: PropTypes.func,
+    resetTrackerObj: PropTypes.object,
 };
 export default connect(
     mapStateToProps,
