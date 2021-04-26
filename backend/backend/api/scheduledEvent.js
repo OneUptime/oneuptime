@@ -3,6 +3,7 @@ const router = express.Router();
 const { isAuthorized } = require('../middlewares/authorization');
 const { getUser, checkUserBelongToProject } = require('../middlewares/user');
 const ScheduledEventService = require('../services/scheduledEventService');
+const AlertService = require('../services/AlertService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -275,6 +276,17 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
         const userId = req.user ? req.user.id : null;
         const { eventId } = req.params;
 
+        const fetchEvent = await ScheduledEventService.findOneBy({
+            _id: eventId,
+        });
+
+        if (fetchEvent.resolved) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Event has already been resolved',
+            });
+        }
+
         const event = await ScheduledEventService.updateBy(
             { _id: eventId },
             {
@@ -283,6 +295,13 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
                 cancelledById: userId,
             }
         );
+
+        if (event.alertSubscriber) {
+            // handle this asynchronous operation in the background
+            AlertService.sendCancelledScheduledEventToSubscribers(
+                scheduledEvent
+            );
+        }
 
         return sendItemResponse(req, res, event);
     } catch (error) {

@@ -39,7 +39,7 @@ class CancelSchedule extends Component {
         } = this.props;
         const { projectId, eventId } = data;
         cancelScheduledEvent(projectId, eventId).then(() => {
-            if (!cancelError) {
+            if (cancelError && cancelError === null) {
                 closeModal({ id: modalId });
                 return history.push(
                     `/dashboard/project/${this.props.slug}/scheduledEvents`
@@ -74,10 +74,7 @@ class CancelSchedule extends Component {
                                     </span>
                                 </div>
                                 <div className="bs-Modal-footer">
-                                    <div
-                                        className="bs-Modal-footer-actions"
-                                        style={{ width: 280 }}
-                                    >
+                                    <div className="bs-Modal-footer-actions">
                                         <ShouldRender
                                             if={!isRequesting && cancelError}
                                         >
