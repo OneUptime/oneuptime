@@ -40,6 +40,7 @@ describe('Status Page', () => {
         async (done) => {
           
                 await init.loginUser(user, page);
+                //Pricing Plan is selectable for a user under growth plane.
                 await init.growthPlanUpgrade(page);
                 await page.reload({
                     waitUntil : 'networkidle0'
