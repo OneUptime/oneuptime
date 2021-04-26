@@ -47,6 +47,26 @@ router.put(
     }
 );
 
+router.put(
+    '/:projectId/unverify/:domainId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { domainId } = req.params;
+            const response = await DomainVerificationService.updateOneBy(
+                {
+                    _id: domainId,
+                },
+                { verified: false }
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 router.get('/:projectId/domains', getUser, isAuthorized, async (req, res) => {
     const { projectId } = req.params;
     const { skip, limit } = req.query;
