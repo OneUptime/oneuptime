@@ -64,10 +64,16 @@ class PerformanceChart extends Component {
     };
 
     parseDate(a) {
-        return new Date(a).toLocaleString();
+        if (moment(a).isValid()) {
+            return new Date(a).toLocaleString();
+        }
+        return '';
     }
     getTime(a) {
-        return moment(a).format('LT');
+        if (moment(a).isValid()) {
+            return moment(a).format('LT');
+        }
+        return '';
     }
     render() {
         const { data, name, symbol, requesting } = this.props;
