@@ -14,6 +14,7 @@ import {
     scanContainerSecuritySuccess,
     getContainerSecuritySuccess,
 } from '../actions/security';
+import { fetchComponent } from '../actions/component';
 import { LargeSpinner } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -37,9 +38,7 @@ class Container extends Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('Container Security page Loaded');
         }
-    }
-
-    ready = () => {
+        this.props.fetchComponent(this.props.componentSlug);
         const {
             projectId,
             componentId,
@@ -52,6 +51,48 @@ class Container extends Component {
 
             // load container security
             getContainerSecurities({ projectId, componentId });
+        }
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps.projectId !== this.props.projectId ||
+            prevProps.componentId !== this.props.componentId
+        ) {
+            const {
+                projectId,
+                componentId,
+                getContainerSecurities,
+                getContainerSecurityLogs,
+            } = this.props;
+            if (projectId && componentId) {
+                // load container security logs
+                getContainerSecurityLogs({ projectId, componentId });
+
+                // load container security
+                getContainerSecurities({ projectId, componentId });
+            }
+        }
+    }
+
+    ready = () => {
+        const {
+            projectId,
+            componentId,
+            getContainerSecurities,
+            getContainerSecurityLogs,
+            componentSlug,
+            fetchComponent,
+        } = this.props;
+        if (projectId && componentId) {
+            // load container security logs
+            getContainerSecurityLogs({ projectId, componentId });
+
+            // load container security
+            getContainerSecurities({ projectId, componentId });
+        }
+        if (componentSlug) {
+            fetchComponent(componentSlug);
         }
     };
 
@@ -196,6 +237,7 @@ Container.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
     componentSlug: PropTypes.string,
+    fetchComponent: PropTypes.func,
     slug: PropTypes.string,
     containerSecurities: PropTypes.array,
     getContainerSecurities: PropTypes.func,
@@ -205,11 +247,7 @@ Container.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    component: PropTypes.arrayOf(
-        PropTypes.shape({
-            name: PropTypes.string,
-        })
-    ),
+    component: PropTypes.object,
     scanContainerSecuritySuccess: PropTypes.func,
     getContainerSecuritySuccess: PropTypes.func,
 };
@@ -241,6 +279,7 @@ const mapDispatchToProps = dispatch =>
             getContainerSecurityLogs,
             scanContainerSecuritySuccess,
             getContainerSecuritySuccess,
+            fetchComponent,
         },
         dispatch
     );

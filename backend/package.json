@@ -84,5 +84,12 @@
     },
     "resolutions": {
         "xml-crypto": "2.0.0"
+    },
+    "nodemonConfig": {
+        "ignore": [
+            "greenlock.d/*",
+            "container_security_dir/*",
+            "application_security_dir/*"
+        ]
     }
 }
