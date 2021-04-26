@@ -66,7 +66,7 @@ describe('Status Page', () => {
                     visible: true,
                 });
                 await page.$$eval('ul#customTabList > li', elems =>
-                    elems[5].click()
+                    elems[5].click() // 'isPrivate' is under 'Advanced options' which is the last tab
                 );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
