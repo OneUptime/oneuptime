@@ -266,6 +266,30 @@ router.delete('/:projectId/:eventId', getUser, isAuthorized, async function(
     }
 });
 
+// cancel a scheduled event
+router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
+    req,
+    res
+) {
+    try {
+        const userId = req.user ? req.user.id : null;
+        const { eventId } = req.params;
+
+        const event = await ScheduledEventService.updateBy(
+            { _id: eventId },
+            {
+                cancelled: true,
+                cancelledAt: Date.now(),
+                cancelledById: userId,
+            }
+        );
+
+        return sendItemResponse(req, res, event);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 // get ongoing scheduled events
 router.get('/:projectId/ongoingEvent', getUser, isAuthorized, async function(
     req,
@@ -327,6 +351,7 @@ router.get(
                     startDate: { $lte: currentDate },
                     endDate: { $gt: currentDate },
                     resolved: false,
+                    cancelled: false,
                 }
             );
             return sendItemResponse(req, res, ongoingScheduledEvents);

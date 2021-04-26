@@ -292,6 +292,50 @@ export function deleteScheduledEventFailure(error) {
     };
 }
 
+export const cancelScheduledEvent = (
+    projectId,
+    scheduledEventId
+) => async dispatch => {
+    try {
+        dispatch(cancelScheduledEventRequest());
+
+        const response = await putApi(
+            `scheduledEvent/${projectId}/${scheduledEventId}/cancel`
+        );
+        dispatch(cancelScheduledEventSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(cancelScheduledEventFailure(errorMsg));
+    }
+};
+
+export function cancelScheduledEventSuccess(payload) {
+    return {
+        type: types.CANCEL_SCHEDULED_EVENT_SUCCESS,
+        payload,
+    };
+}
+
+export function cancelScheduledEventRequest() {
+    return {
+        type: types.CANCEL_SCHEDULED_EVENT_REQUEST,
+    };
+}
+
+export function cancelScheduledEventFailure(error) {
+    return {
+        type: types.CANCEL_SCHEDULED_EVENT_FAILURE,
+        payload: error,
+    };
+}
+
 export const updateScheduledEvent = (
     projectId,
     scheduledEventId,
