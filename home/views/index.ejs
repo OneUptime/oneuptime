@@ -266,6 +266,33 @@
                 <% include ./cta-buttons %>
             </section>
 
+            <%- include("testimonials", {
+                title: "Software teams around the world love Fyipe!",
+                description: "Software development teams around the world have switched to Fyipe to fundamentally improve their SRE workflow to build better and more reliable software.",
+                quotes: [
+                    {
+                        quote: "Having a public status page built accountability in our team towards our customers ‘We were responsible for for our software reliability.’",
+                        by: "Tony Yao, Autonomic"
+                    },
+                    {
+                        quote: "We are all collaborating on any ops issues, it increases transparency for our team.",
+                        by: "Laurent Canis, BNC National"
+                    },
+                    {
+                        quote: "No more replying to support emails from our customers. We just point them to our status page.",
+                        by: "Ross Mcduff, Lightspeed"
+                    },
+                    {
+                        quote: "Customer communication looks more effective and professional.",
+                        by: "Anton S, Loblaw"
+                    },
+                    {
+                        quote: "We can see exactly what the state of the software and our service is. Less confusion and we're much more efficient.",
+                        by: "Trevos Crosse, PNI Digital"
+                    }
+                ]
+            }) %>
+
             <% include ./integration %>
         </main>
 
