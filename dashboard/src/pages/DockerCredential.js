@@ -18,6 +18,19 @@ class DockerCredential extends Component {
         this.props = props;
     }
 
+    componentDidUpdate(prevProps) {
+        if (prevProps.projectId !== this.props.projectId) {
+            const { projectId, getDockerCredentials } = this.props;
+
+            if (SHOULD_LOG_ANALYTICS) {
+                logEvent('Docker Credential page Loaded');
+            }
+
+            // load all the Docker Credentials
+            getDockerCredentials({ projectId });
+        }
+    }
+
     componentDidMount() {
         const { projectId, getDockerCredentials } = this.props;
 

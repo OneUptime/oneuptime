@@ -68,16 +68,6 @@ class ChangeMonitorComponent extends React.Component {
         const projectId = data.monitor.projectId._id;
         const oldComponentId = data.monitor.componentId._id;
 
-        // console.log(
-        //     components.reduce((result, component) => {
-        //         if (component._id === projectId) {
-        //             return [...result, ...component.components];
-        //         }
-
-        //         return result;
-        //     }, [])
-        // );
-
         return (
             <div
                 className="ModalLayer-contents"

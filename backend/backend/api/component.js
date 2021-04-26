@@ -380,7 +380,6 @@ router.get(
                         icon: 'docker',
                         securityLog,
                         slug: elem.slug,
-                        component,
                     };
                     // add it to the total resources
                     totalResources.push(newElement);
@@ -411,7 +410,6 @@ router.get(
                         icon: 'security',
                         securityLog,
                         slug: elem.slug,
-                        component,
                     };
                     // add it to the total resources
                     totalResources.push(newElement);

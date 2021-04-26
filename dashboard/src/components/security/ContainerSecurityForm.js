@@ -16,8 +16,17 @@ import DockerCredentialModal from '../credential/DockerCredentialModal';
 class ContainerSecurityForm extends Component {
     componentDidMount() {
         const { projectId, getDockerCredentials } = this.props;
-
-        getDockerCredentials({ projectId });
+        if (projectId) {
+            getDockerCredentials({ projectId });
+        }
+    }
+    componentDidUpdate(prevProps) {
+        if (prevProps.projectId !== this.props.projectId) {
+            const { projectId, getDockerCredentials } = this.props;
+            if (projectId) {
+                getDockerCredentials({ projectId });
+            }
+        }
     }
 
     submitForm = (values, dispatch) => {
