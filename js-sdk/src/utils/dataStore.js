@@ -23,7 +23,7 @@ class DataStore {
     }
     runCron() {
         const _this = this;
-        return cron.schedule('5 * * * *', () => {
+        return cron.schedule('*/5 * * * *', () => {
             _this.sendData();
         });
     }
