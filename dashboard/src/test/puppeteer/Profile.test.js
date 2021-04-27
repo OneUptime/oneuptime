@@ -1,7 +1,6 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-//const { Cluster } = require('puppeteer-cluster');
 
 require('should');
 let browser, page;
@@ -18,31 +17,18 @@ describe('Profile -> Delete Account Component test', () => {
 
     beforeAll(async () => {
         jest.setTimeout(500000);
-
-        // cluster = await Cluster.launch({
-        //     concurrency: Cluster.CONCURRENCY_PAGE,
-        //     puppeteerOptions: utils.puppeteerLaunchConfig,
-        //     puppeteer,
-        //     timeout: utils.timeout,
-        // });
-
-        // cluster.on('taskerror', err => {
-        //     throw err;
-        // });
+       
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
         ); 
 
-        // Register user
-        //return await cluster.execute(null, async ({ page }) => {
-            await init.registerUser(user, page);
-       // });
+        // Register user        
+            await init.registerUser(user, page);       
     });
 
-    afterAll(async done => {
-        
+    afterAll(async done => {        
         await browser.close();
         done();
     });
@@ -50,9 +36,7 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should edit the user profile',
         async (done) => {
-            const name = utils.generateRandomString(10);
-
-            //return await cluster.execute(null, async ({ page }) => {
+            const name = utils.generateRandomString(10);            
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.waitForSelector('#profile-menu');
@@ -76,7 +60,7 @@ describe('Profile -> Delete Account Component test', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(name);
-            //});
+            
             done();
         },
         operationTimeOut
@@ -84,8 +68,7 @@ describe('Profile -> Delete Account Component test', () => {
 
     test(
         'Should change the user password',
-        async (done) => {
-            //return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.waitForSelector('#profile-menu');
@@ -110,8 +93,7 @@ describe('Profile -> Delete Account Component test', () => {
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(
                     'You’ve changed the password successfully.'
-                );
-            //});
+                );            
             done();
         },
         operationTimeOut
@@ -119,8 +101,7 @@ describe('Profile -> Delete Account Component test', () => {
 
     test(
         'Should not change password if new password and password are the same',
-        async (done) => {
-            //return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.waitForSelector('#profile-menu');
@@ -142,16 +123,14 @@ describe('Profile -> Delete Account Component test', () => {
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(
                     'New password should not be the same as current password.'
-                );
-            //});
+                );            
             done();
         },
         operationTimeOut
     );
     test(
         'Should not activate google authenticator if the verification code is wrong',
-        async (done) => {
-            //return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // visit the dashboard
                 await page.goto(utils.DASHBOARD_URL);
                 // click on the profile page
@@ -195,8 +174,7 @@ describe('Profile -> Delete Account Component test', () => {
                 });
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
-                spanElement.should.be.exactly('Invalid token.');
-           // });
+                spanElement.should.be.exactly('Invalid token.');           
            done();
         },
         operationTimeOut

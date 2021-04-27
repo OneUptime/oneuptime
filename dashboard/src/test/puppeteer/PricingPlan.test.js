@@ -14,8 +14,7 @@ const user = {
 
 describe('Status Page -> Pricing Plan Component', () => {
     const operationTimeOut = 500000;
-
-    let cluster;
+    
     beforeAll(async () => {
         jest.setTimeout(360000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -27,8 +26,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             await init.registerUser(user, page);       
     });
 
-    afterAll(async done => {
-       // await cluster.idle();
+    afterAll(async done => {       
         await browser.close();
         done();
     });
