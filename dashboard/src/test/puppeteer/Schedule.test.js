@@ -1,56 +1,47 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
+
+const user = {
+    email,
+    password
+};
 
 const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 
 describe('Schedule', () => {
     const operationTimeOut = 1000000;
-
-    let cluster;
+    
 
     beforeAll(async done => {
         jest.setTimeout(2000000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 1200000,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        await cluster.execute({ email, password }, async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        ); 
+           
             await init.registerUser(user, page);
-        });
+       
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {       
+        await browser.close();
         done();
     });
 
     test(
         'should show pricing plan modal when enable team rotation is clicked',
-        async () => {
-            await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 const projectName = 'newproject';
                 const newScheduleName = 'test';
                 await init.addProject(page, projectName);
@@ -81,16 +72,15 @@ describe('Schedule', () => {
                 const modal = await page.waitForSelector('#pricingPlanModal', {
                     visible: true,
                 });
-                expect(modal).toBeDefined();
-            });
+                expect(modal).toBeDefined();           
+           done();
         },
         operationTimeOut
     );
 
     test(
         'should show pricing plan modal when add on-call duty times is clicked',
-        async () => {
-            await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#onCallDuty', {
                     visible: true,
@@ -110,15 +100,15 @@ describe('Schedule', () => {
                     visible: true,
                 });
                 expect(modal).toBeDefined();
-            });
+            
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should show the component name on the monitors',
-        async () => {
-            await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await init.addComponent(componentName, page);
                 await init.addMonitorToComponent(
                     null,
@@ -144,16 +134,15 @@ describe('Schedule', () => {
                 );
                 monitor = await monitor.getProperty('innerText');
                 monitor = await monitor.jsonValue();
-                expect(monitor).toEqual(`${componentName} / ${monitorName}`);
-            });
+                expect(monitor).toEqual(`${componentName} / ${monitorName}`);            
+            done();
         },
         operationTimeOut
     );
 
     test(
         'it should navigate to the oncall schedule details page from the oncall schedule list when the view schedule button is clicked',
-        async () => {
-            await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 const projectName = 'newproject1';
                 const newScheduleName = 'test';
                 await init.addProject(page, projectName);
@@ -183,8 +172,8 @@ describe('Schedule', () => {
                     el => el.textContent
                 );
 
-                expect(onCallScheduleName).toEqual(newScheduleName);
-            });
+                expect(onCallScheduleName).toEqual(newScheduleName);            
+            done();
         },
         operationTimeOut
     );
