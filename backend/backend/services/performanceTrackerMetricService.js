@@ -164,6 +164,7 @@ module.exports = {
                     type,
                     callIdentifier: key,
                     performanceTrackerId: appId,
+                    method: value.method,
                     metrics: {
                         avgTime: value.avgTime,
                         maxTime: value.maxTime,

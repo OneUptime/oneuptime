@@ -27,16 +27,17 @@ class DataStore {
             _this.sendData();
         });
     }
-    mapValue(path, store, time) {
+    mapValue(path, store, time, method) {
         if (store.has(path)) {
             const s = store.get(path);
             return {
                 requests: s.requests + 1,
                 avgTime: (s.avgTime * s.requests + time) / s.requests + 1,
                 maxTime: s.maxTime < time ? time : s.maxTime,
+                method: s.method,
             };
         } else {
-            return { requests: 1, avgTime: time, maxTime: time };
+            return { requests: 1, avgTime: time, maxTime: time, method };
         }
     }
     destroy(id) {
@@ -69,12 +70,13 @@ class DataStore {
         const type = value.type;
         const path = value.path;
         const time = value.duration;
+        const method = value.method;
         let val = {};
         if (type === 'incoming') {
-            val = this.mapValue(path, this.#incoming, time);
+            val = this.mapValue(path, this.#incoming, time, method);
             return this.#incoming.set(path, val);
         } else if (type === 'outgoing') {
-            val = this.mapValue(path, this.#outgoing, time);
+            val = this.mapValue(path, this.#outgoing, time, method);
             return this.#outgoing.set(path, val);
         } else if (type === 'mongoose') {
             val = this.mapValue(path, this.#mongoose, time);
