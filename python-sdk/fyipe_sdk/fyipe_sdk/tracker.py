@@ -1,6 +1,6 @@
 
-from util import Util
-from fyipeListener import FyipeListener
+from fyipe_sdk.fyipe_sdk.util import Util
+from fyipe_sdk.fyipe_sdk.fyipeListener import FyipeListener
 
 class FyipeTracker:
     def __init__(self, apiUrl, errorTrackerId, errorTrackerKey, options = []):
@@ -13,6 +13,7 @@ class FyipeTracker:
         self.errorTrackerKey = errorTrackerKey
         self.apiUrl = apiUrl + "/error-tracker/" + errorTrackerId + "/track"
         self.util = Util(self.options)
+        self.setEventId()
         self.listenerObj = FyipeListener(self.eventId, self.options)
 
     # TODO set up options     
