@@ -3506,6 +3506,41 @@ module.exports = {
             throw error;
         }
     },
+
+    sendCancelledScheduledEventToSubscribers: async function(schedule) {
+        try {
+            const _this = this;
+            const uuid = new Date().getTime();
+            if (schedule) {
+                for (const monitor of schedule.monitors) {
+                    const subscribers = await SubscriberService.subscribersForAlert(
+                        {
+                            monitorId: monitor.monitorId._id,
+                            subscribed: true,
+                        }
+                    );
+
+                    for (const subscriber of subscribers) {
+                        await _this.sendSubscriberScheduledEventAlert(
+                            subscriber,
+                            schedule,
+                            'Subscriber Scheduled Maintenance Cancelled',
+                            null,
+                            subscribers.length,
+                            uuid
+                        );
+                    }
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendCancelledScheduledEventToSubscribers',
+                error
+            );
+            throw error;
+        }
+    },
+
     sendScheduledEventInvestigationNoteToSubscribers: async function(message) {
         try {
             const _this = this;
@@ -3968,7 +4003,11 @@ module.exports = {
                 const eventType =
                     templateType === 'Subscriber Scheduled Maintenance'
                         ? 'Scheduled maintenance created'
-                        : 'Scheduled maintenance resolved';
+                        : templateType ===
+                          'Subscriber Scheduled Maintenance Resolved'
+                        ? 'Scheduled maintenance resolved'
+                        : 'Scheduled maintenance cancelled';
+
                 let errorMessageText;
                 if (
                     (!areEmailAlertsEnabledInGlobalSettings &&
@@ -4035,6 +4074,25 @@ module.exports = {
                         'Subscriber Scheduled Maintenance Resolved'
                     ) {
                         await MailService.sendResolvedScheduledEventMailToSubscriber(
+                            date,
+                            subscriber.monitorName,
+                            subscriber.contactEmail,
+                            subscriber._id,
+                            subscriber.contactEmail,
+                            schedule,
+                            projectName,
+                            emailTemplate,
+                            componentName,
+                            project.replyAddress,
+                            unsubscribeUrl
+                        );
+
+                        alertStatus = 'Sent';
+                    } else if (
+                        templateType ===
+                        'Subscriber Scheduled Maintenance Cancelled'
+                    ) {
+                        await MailService.sendCancelledScheduledEventMailToSubscriber(
                             date,
                             subscriber.monitorName,
                             subscriber.contactEmail,

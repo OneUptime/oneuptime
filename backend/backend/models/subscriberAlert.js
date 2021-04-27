@@ -22,6 +22,7 @@ const subscriberAlertSchema = new Schema({
             'Scheduled maintenance created',
             'Scheduled maintenance note created',
             'Scheduled maintenance resolved',
+            'Scheduled maintenance cancelled',
         ],
         required: true,
     },

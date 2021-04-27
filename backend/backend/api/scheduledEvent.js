@@ -287,6 +287,13 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
             });
         }
 
+        if (fetchEvent.cancelled) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Event has already been cancelled',
+            });
+        }
+
         const event = await ScheduledEventService.updateBy(
             { _id: eventId },
             {
@@ -296,14 +303,14 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
             }
         );
 
-        if (event.alertSubscriber) {
+        const schedule = event[0];
+
+        if (event[0].alertSubscriber) {
             // handle this asynchronous operation in the background
-            AlertService.sendCancelledScheduledEventToSubscribers(
-                scheduledEvent
-            );
+            AlertService.sendCancelledScheduledEventToSubscribers(schedule);
         }
 
-        return sendItemResponse(req, res, event);
+        return sendItemResponse(req, res, schedule);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -760,7 +767,10 @@ router.delete(
     }
 );
 
-router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function(req, res) {
+router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function(
+    req,
+    res
+) {
     try {
         const { slug } = req.params;
         const scheduledEvent = await ScheduledEventService.findOneBy({
