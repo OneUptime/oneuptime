@@ -1659,6 +1659,7 @@
 }
 .ScrollableMenu {
   overflow-y: auto;
+  max-height: 26em;
 }
 .SearchableSelect-container {
   display: inline-block;
