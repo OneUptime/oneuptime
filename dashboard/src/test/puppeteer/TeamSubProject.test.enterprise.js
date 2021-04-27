@@ -16,7 +16,6 @@ const newUser = {
 
 describe('Enterprise Team SubProject API', () => {
     const operationTimeOut = 500000;
-    let cluster;
 
     beforeAll(async () => {
         jest.setTimeout(500000);

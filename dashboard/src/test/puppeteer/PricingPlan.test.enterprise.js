@@ -16,7 +16,6 @@ const user = {
 describe('Status Page', () => {
     const operationTimeOut = 500000;
 
-    let cluster;
     beforeAll(async () => {
         jest.setTimeout(360000);
 

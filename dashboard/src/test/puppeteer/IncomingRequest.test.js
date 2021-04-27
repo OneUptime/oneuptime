@@ -22,7 +22,6 @@ const incidentRequest = {
 describe('Incoming HTTP Request', () => {
     const operationTimeOut = 500000;
 
-    let cluster;
     beforeAll(async done => {
         jest.setTimeout(360000);
 
