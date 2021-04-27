@@ -361,6 +361,9 @@ class TableComponent extends Component {
                                                     >
                                                         <header className="bs-ObjectList-row bs-ObjectList-row--header">
                                                             <div className="bs-ObjectList-cell">
+                                                                Method
+                                                            </div>
+                                                            <div className="bs-ObjectList-cell">
                                                                 Path
                                                             </div>
                                                             <div className="bs-ObjectList-cell">
@@ -409,6 +412,13 @@ class TableComponent extends Component {
                                                                                 'pointer',
                                                                         }}
                                                                     >
+                                                                        <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
+                                                                            <div className="scheduled-event-name Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                {
+                                                                                    metric.method
+                                                                                }
+                                                                            </div>
+                                                                        </div>
                                                                         <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
                                                                             <div className="scheduled-event-name Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                                 {
@@ -646,6 +656,9 @@ class TableComponent extends Component {
                                                     >
                                                         <header className="bs-ObjectList-row bs-ObjectList-row--header">
                                                             <div className="bs-ObjectList-cell">
+                                                                Method
+                                                            </div>
+                                                            <div className="bs-ObjectList-cell">
                                                                 Path
                                                             </div>
                                                             <div className="bs-ObjectList-cell">
@@ -694,6 +707,13 @@ class TableComponent extends Component {
                                                                                 'pointer',
                                                                         }}
                                                                     >
+                                                                        <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
+                                                                            <div className="scheduled-event-name Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                {
+                                                                                    metric.method
+                                                                                }
+                                                                            </div>
+                                                                        </div>
                                                                         <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
                                                                             <div className="scheduled-event-name Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                                 {
