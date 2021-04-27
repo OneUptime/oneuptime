@@ -1,5 +1,5 @@
-from timelineMagager import FyipeTimelineManager
-from util import Util
+from fyipe_sdk.fyipe_sdk.timelineMagager import FyipeTimelineManager
+from fyipe_sdk.fyipe_sdk.util import Util
 
 
 class FyipeListener:
