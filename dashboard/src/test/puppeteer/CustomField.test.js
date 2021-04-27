@@ -59,8 +59,7 @@ describe('Incident Custom Field', () => {
 
     test(
         'should update a incident custom field in a project',
-        async done => {
-            
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -111,8 +110,7 @@ describe('Incident Custom Field', () => {
 
     test(
         'should delete a incident custom field in a project',
-        async done => {
-            //await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -146,7 +144,7 @@ describe('Incident Custom Field', () => {
                     { visible: true }
                 );
                 expect(noCustomFields).toBeDefined();
-            //});
+            
             done();
         },
         operationTimeOut

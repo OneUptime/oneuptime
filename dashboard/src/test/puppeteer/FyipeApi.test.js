@@ -28,8 +28,7 @@ describe('API test', () => {
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
         );  
 
-        // Register user
-     
+        // Register user     
             await init.registerUser(user, page);
             await init.logout(page);
             await init.registerUser(member, page);
@@ -46,8 +45,7 @@ describe('API test', () => {
 
     test(
         'Should render the API page',
-        async (done) => {
-            
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
@@ -70,8 +68,7 @@ describe('API test', () => {
 
     test(
         'Should display the API key when clicked',
-        async (done) => {
-            
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
@@ -98,8 +95,7 @@ describe('API test', () => {
 
     test(
         'Should reset the API Key',
-        async (done) => {
-            
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
@@ -136,7 +132,7 @@ describe('API test', () => {
         async (done) => {
             const projectName = 'Project1';
             const role = 'Member';
-            
+                        
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
