@@ -119,11 +119,7 @@ class Incident extends Component {
         };
 
         if (!requestingTimeline) {
-            if (
-                !lastIncidentTimeline.incident_state &&
-                lastIncidentTimeline.status !== 'resolved' &&
-                lastIncidentTimeline.status !== 'acknowledged'
-            ) {
+            if (!incident.acknowledged && !incident.resolved) {
                 timelineStatus = (
                     <span style={styles}>
                         <span style={incidentStatus}>Incident Status: </span>
@@ -156,10 +152,7 @@ class Incident extends Component {
                     </span>
                 );
             }
-            if (
-                incident.acknowledged &&
-                lastIncidentTimeline.status === 'acknowledged'
-            ) {
+            if (incident.acknowledged) {
                 timelineStatus = (
                     <span style={styles}>
                         <span style={incidentStatus}>Incident Status:</span>
@@ -176,10 +169,7 @@ class Incident extends Component {
                     </span>
                 );
             }
-            if (
-                incident.resolved &&
-                lastIncidentTimeline.status === 'resolved'
-            ) {
+            if (incident.resolved) {
                 timelineStatus = (
                     <span style={styles}>
                         <span style={incidentStatus}>Incident Status:</span>
