@@ -1,55 +1,42 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
-
+const user = {
+    email,
+    password,
+};
 describe('SMS Templates API', () => {
     const operationTimeOut = 100000;
 
-    let cluster, initialTemplate;
+    let initialTemplate;
     beforeAll(async done => {
         jest.setTimeout(200000);
-
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 120000,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        // Register user
-        await cluster.execute({ email, password }, async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        ); 
+        
             // user
-            await init.registerUser(user, page);
-        });
+            await init.registerUser(user, page);       
 
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'should not show reset button if sms template is not saved yet',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
@@ -72,7 +59,7 @@ describe('SMS Templates API', () => {
                     hidden: true,
                 });
                 expect(resetBtn).toBeNull();
-            });
+            
             done();
         },
         operationTimeOut
@@ -80,8 +67,7 @@ describe('SMS Templates API', () => {
 
     test(
         'Should update default sms template',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
@@ -116,8 +102,7 @@ describe('SMS Templates API', () => {
                     'textarea[name=body]',
                     el => el.value
                 );
-                expect(smsTemplateBody).toEqual(newTemplate);
-            });
+                expect(smsTemplateBody).toEqual(newTemplate);            
 
             done();
         },
@@ -126,8 +111,7 @@ describe('SMS Templates API', () => {
 
     test(
         'should show reset button when a template is already saved',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
@@ -144,8 +128,7 @@ describe('SMS Templates API', () => {
                 const resetBtn = await page.waitForSelector('#templateReset', {
                     visible: true,
                 });
-                expect(resetBtn).toBeDefined();
-            });
+                expect(resetBtn).toBeDefined();           
 
             done();
         },
@@ -154,8 +137,7 @@ describe('SMS Templates API', () => {
 
     test(
         'should reset template to default state',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
@@ -190,8 +172,7 @@ describe('SMS Templates API', () => {
                     '#templateField',
                     elem => elem.value
                 );
-                expect(template).toEqual(initialTemplate);
-            });
+                expect(template).toEqual(initialTemplate);            
 
             done();
         },
