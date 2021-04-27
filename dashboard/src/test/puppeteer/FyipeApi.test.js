@@ -17,8 +17,6 @@ const member = {
 describe('API test', () => {
     const operationTimeOut = 500000;
 
-    let cluster;
-
     beforeAll(async done => {
         jest.setTimeout(500000);
 

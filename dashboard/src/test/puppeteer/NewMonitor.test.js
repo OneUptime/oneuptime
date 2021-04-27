@@ -14,7 +14,6 @@ const user = {
 describe('New Monitor API', () => {
     const operationTimeOut = 500000;
 
-    let cluster;
     beforeAll(async done => {
         jest.setTimeout(360000);
 

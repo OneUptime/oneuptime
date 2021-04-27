@@ -735,10 +735,10 @@ module.exports = {
                 delay: 150,
             });
         }
-        await page.waitForSelector('#btnCreateProject', {visible:true});        
+        await page.waitForSelector('#btnCreateProject', { visible: true });
         await Promise.all([
             page.click('#btnCreateProject'),
-            page.waitForNavigation({ waitUntil: 'networkidle0' })
+            page.waitForNavigation({ waitUntil: 'networkidle0' }),
         ]);
     },
     growthPlanUpgrade: async function(page) {

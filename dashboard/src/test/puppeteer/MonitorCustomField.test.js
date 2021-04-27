@@ -23,7 +23,6 @@ const user = {
 describe('Monitor Custom Field', () => {
     const operationTimeOut = 500000;
 
-    let cluster;
     beforeAll(async done => {
         jest.setTimeout(360000);
 
