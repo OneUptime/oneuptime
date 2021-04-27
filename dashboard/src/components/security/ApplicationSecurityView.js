@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { scanApplicationSecurity } from '../../actions/security';
+import ConfirmScanModal from '../modals/ConfirmScanModal';
 import { openModal } from '../../actions/modal';
 import DeleteApplicationSecurity from '../modals/DeleteApplicationSecurity';
 import SecurityDetail from './SecurityDetail';
@@ -23,7 +23,6 @@ const ApplicationSecurityView = ({
     componentSlug,
     openModal,
     securityLog,
-    scanApplicationSecurity,
     scanning,
     applicationSecurity,
     scanError,
@@ -49,6 +48,21 @@ const ApplicationSecurityView = ({
             ],
         });
     };
+
+    const handleSubmit = ({ projectId, applicationSecurityId }) => {
+        openModal({
+            id: applicationSecurityId,
+            content: ConfirmScanModal,
+            propArr: [
+                {
+                    projectId,
+                    applicationSecurityId,
+                    name: ' Application Security'
+                },
+            ],
+        });
+    };
+
 
     const handleEdit = ({
         projectId,
@@ -217,7 +231,7 @@ const ApplicationSecurityView = ({
                                         className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--security-scan"
                                         type="button"
                                         onClick={() =>
-                                            scanApplicationSecurity({
+                                            handleSubmit({
                                                 projectId,
                                                 applicationSecurityId,
                                             })
@@ -321,7 +335,6 @@ ApplicationSecurityView.propTypes = {
     componentSlug: PropTypes.string,
     openModal: PropTypes.func,
     securityLog: PropTypes.object,
-    scanApplicationSecurity: PropTypes.func,
     scanning: PropTypes.bool,
     applicationSecurity: PropTypes.object,
     scanError: PropTypes.oneOfType([
@@ -335,7 +348,6 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             openModal,
-            scanApplicationSecurity,
         },
         dispatch
     );

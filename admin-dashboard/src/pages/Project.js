@@ -30,10 +30,8 @@ class Project extends Component {
     }
 
     ready = async () => {
-        const { fetchProject } = this.props;
-        await fetchProject(
-            this.props.currentProject && this.props.currentProject._id
-        );
+        const { fetchProject, slug } = this.props;
+        await fetchProject(slug);
     };
 
     render() {
@@ -249,11 +247,13 @@ const mapDispatchToProps = dispatch => {
 const mapStateToProps = (state, props) => {
     const project = state.project.project.project || {};
     const projectUsers = state.project.projectTeam;
+    const { slug } = props.match.params;
     const currentProject = state.project.projects.projects.find(el => {
         return el.slug === props.match.params.slug;
     });
     return {
         project,
+        slug,
         currentProject,
         projectUsers,
         adminNote: state.adminNote,
@@ -274,6 +274,7 @@ Project.propTypes = {
     fetchProjectTeam: PropTypes.func.isRequired,
     projectUsers: PropTypes.object.isRequired,
     paginate: PropTypes.func.isRequired,
+    slug: PropTypes.string,
 };
 
 Project.displayName = 'Project';

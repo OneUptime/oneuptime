@@ -17,6 +17,7 @@ import { RenderTextArea } from '../basic/RenderTextArea';
 import { RenderSelect } from '../basic/RenderSelect';
 import DateTimeSelector from '../basic/DateTimeSelector';
 import { ValidateField } from '../../config';
+import { history } from '../../store';
 
 function validate(values) {
     const errors = {};
@@ -104,17 +105,27 @@ class UpdateSchedule extends React.Component {
             return;
         }
 
-        updateScheduledEvent(projectId, scheduledEventId, postObj).then(() => {
-            this.setState({
-                monitorError: null,
-            });
-
-            if (!this.props.scheduledEventError) {
-                closeModal({
-                    id: updateScheduledEventModalId,
+        updateScheduledEvent(projectId, scheduledEventId, postObj).then(
+            data => {
+                this.setState({
+                    monitorError: null,
                 });
+                if (this.props.switch === 'true') {
+                    history.replace(
+                        `/dashboard/project/${this.props.currentProject &&
+                            this.props.currentProject._id}/scheduledEvents/${
+                            data.data.slug
+                        }`
+                    );
+                }
+
+                if (!this.props.scheduledEventError) {
+                    closeModal({
+                        id: updateScheduledEventModalId,
+                    });
+                }
             }
-        });
+        );
     };
 
     handleKeyBoard = e => {
@@ -976,6 +987,7 @@ UpdateSchedule.propTypes = {
     formValues: PropTypes.object,
     monitors: PropTypes.array,
     change: PropTypes.func,
+    switch: PropTypes.string,
 };
 
 const NewUpdateSchedule = reduxForm({
@@ -1058,6 +1070,7 @@ const mapStateToProps = state => {
         formValues:
             state.form.newUpdateSchedule && state.form.newUpdateSchedule.values,
         monitors,
+        switch: state.modal.modals[0].switch,
     };
 };
 

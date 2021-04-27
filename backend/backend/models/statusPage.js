@@ -40,6 +40,7 @@ const statusSchema = new Schema({
         },
     ],
     links: Array,
+    slug: String,
     title: { type: String, default: 'Status Page' },
     name: String,
     isPrivate: {

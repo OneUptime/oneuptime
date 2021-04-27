@@ -63,7 +63,7 @@ export class SidebarNavItem extends Component {
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':componentSlug', match.params.componentSlug)
             .replace(/:issueId/, match.params.issueId)
-            .replace(/:scheduleId/, match.params.scheduleId)
+            .replace(/:scheduleSlug/, match.params.scheduleSlug)
             .replace(/:incidentId/, match.params.incidentId)
             .replace(/:monitorSlug/, match.params.monitorSlug);
         const projectSettingsSubRoutes =
@@ -163,7 +163,10 @@ export class SidebarNavItem extends Component {
         const isChildLinkActive = route.subRoutes.some(link => {
             let newPath = link.path.replace(/:slug/, match.params.slug);
             newPath = newPath.replace(/:issueId/, match.params.issueId);
-            newPath = newPath.replace(/:scheduleId/, match.params.scheduleId);
+            newPath = newPath.replace(
+                /:scheduleSlug/,
+                match.params.scheduleSlug
+            );
             newPath = newPath.replace(/:incidentId/, match.params.incidentId);
             newPath = newPath.replace(/:monitorSlug/, match.params.monitorSlug);
             newPath = newPath.replace(
@@ -392,8 +395,8 @@ export class SidebarNavItem extends Component {
                     .replace(':slug', slug)
                     .replace(':componentSlug', componentSlug);
                 link =
-                    schedule && schedule._id
-                        ? link.replace(':scheduleId', schedule._id)
+                    schedule && schedule.slug
+                        ? link.replace(':scheduleSlug', schedule.slug)
                         : link;
                 const incidentLogLink = active.match(
                     /project\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
@@ -412,7 +415,7 @@ export class SidebarNavItem extends Component {
                     ? active
                     : false;
                 const scheduledEventDetailLink = active.match(
-                    /project\/([A-Za-z0-9-]+)\/scheduledEvents\/([0-9]|[a-z]+)/
+                    /project\/([A-Za-z0-9-]+)\/scheduledEvents\/([A-Za-z0-9-]+)/
                 )
                     ? active
                     : false;

@@ -2,16 +2,9 @@ smoke_test_staging:
     stage: SmokeTest
     allow_failure: true
     script:
-        - export HOME_URL=https://staging.fyipe.com
-        - export ACCOUNTS_URL=https://staging.fyipe.com/accounts
-        - export DASHBOARD_URL=https://staging.fyipe.com/dashboard
-        - export BACKEND_URL=https://staging.fyipe.com/api
-        - export STATUSPAGE_URL=https://staging.fyipe.com/status-page
-        - export APIDOCS_URL=https://staging.fyipe.com/docs
-        - export LICENSING_URL=https://staging.fyipe.com/license
         - cd smoke-test
         - npm ci
-        - npm run test
+        - npm run-script staging-test
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh

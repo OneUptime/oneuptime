@@ -357,7 +357,6 @@ class TopContent extends Component {
                 const tempObj = { ...userSchedule, isOnDutyAllTheTime };
                 tempObj.startTime = startTime;
                 tempObj.endTime = endTime;
-
                 if (isUserActive) {
                     activeSchedules.push(tempObj);
                 } else {
