@@ -5,6 +5,7 @@ const performanceTrackerMetricSchema = new Schema({
     type: String,
     metrics: Object,
     callIdentifier: String,
+    method: String,
     performanceTrackerId: {
         type: Schema.Types.ObjectId,
         ref: 'PerformanceTracker',
