@@ -1,0 +1,1 @@
+export const POPULATE_SEARCH = 'POPULATE_SEARCH';

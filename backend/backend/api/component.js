@@ -543,6 +543,22 @@ router.get(
         }
     }
 );
+router.post('/search/:projectId', getUser, async function(req, res) {
+    try {
+        const filter = req.body.search;
+        const { projectId } = req.params;
+        const components = await ComponentService.findBy({
+            projectId: projectId,
+            deleted: { $ne: null },
+            $or: [{ name: { $regex: new RegExp(filter), $options: 'i' } }],
+        });
+
+        return sendListResponse(req, res, components);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.delete(
     '/:projectId/:componentId',
     getUser,
