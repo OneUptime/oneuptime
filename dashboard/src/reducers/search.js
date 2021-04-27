@@ -21,10 +21,6 @@ export default function search(state = initialState, action) {
                 requesting: false,
                 error: null,
             });
-        case RESET_SEARCH_FIELDS:
-            return Object.assign({}, state, {
-                search: [],
-            });
         case POPULATE_SEARCH_REQUEST:
             return Object.assign({}, state, {
                 success: false,
