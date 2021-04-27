@@ -7,6 +7,7 @@ import { capitalize } from '../config';
 
 class Notes extends Component {
     handleIncidentStatus = (incident, timelines) => {
+        console.log('ttttt', incident);
         let incidentTimeline = null,
             timelineStatus = null;
         timelines.map(timeline => {
@@ -17,29 +18,27 @@ class Notes extends Component {
         });
 
         if (incidentTimeline) {
-            if (
-                !incidentTimeline.incident_state &&
-                incidentTimeline.status !== 'resolved' &&
-                incidentTimeline.status !== 'acknowledged'
-            ) {
+            if (incident.resolved) {
+                timelineStatus = <span className="note_status">Resolved</span>;
+            }
+
+            if (incident.acknowledged && !incident.resolved) {
+                timelineStatus = (
+                    <span className="note_status">Acknowledged</span>
+                );
+            }
+            if (!incident.resolved && !incident.acknowledged) {
                 timelineStatus = (
                     <span className="note_status">Identified</span>
                 );
             }
+
             if (
                 !incidentTimeline.incident_state &&
                 incidentTimeline.status === 'investigation notes deleted'
             ) {
                 timelineStatus = (
                     <span className="note_status">Deleted a note</span>
-                );
-            }
-            if (incidentTimeline.status === 'resolved') {
-                timelineStatus = <span className="note_status">Resolved</span>;
-            }
-            if (incidentTimeline.status === 'acknowledged') {
-                timelineStatus = (
-                    <span className="note_status">Acknowledged</span>
                 );
             }
             if (incidentTimeline.incident_state) {
