@@ -1,5 +1,5 @@
 
-from logtype import LogType
+from fyipe_sdk.fyipe_sdk.logtype import LogType
 import uuid
 
 class Util:
@@ -11,4 +11,4 @@ class Util:
         return LogType
     
     def v4(self):
-        return uuid.uuid4();
+        return uuid.uuid4().__str__();
