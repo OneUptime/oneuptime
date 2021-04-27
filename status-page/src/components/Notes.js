@@ -7,7 +7,6 @@ import { capitalize } from '../config';
 
 class Notes extends Component {
     handleIncidentStatus = (incident, timelines) => {
-        console.log('ttttt', incident);
         let incidentTimeline = null,
             timelineStatus = null;
         timelines.map(timeline => {
