@@ -1,8 +1,8 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
+let browser, page;
 // user credentials
 const user = {
     email: utils.generateRandomBusinessEmail(),
@@ -11,38 +11,28 @@ const user = {
 
 describe('Custom Tutorial With SubProjects', () => {
     const operationTimeOut = 500000;
-
-    let cluster;
-
-    beforeAll(async () => {
+  
+    beforeAll(async (done) => {
         jest.setTimeout(500000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_CONTEXT,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        return await cluster.execute(null, async ({ page }) => {
-            await init.registerUser(user, page);
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );         
+        
+            await init.registerUser(user, page);                    
+        done();
     });
 
-    afterAll(async () => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async (done) => {
+        await browser.close();
+        done();
     });
-
+    // User is automatically route to dashboard after registration.
     test(
         'Should show indicator on how to create component, on visiting component page, it should also appear',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
-                await init.loginUser(user, page);
+        async (done) => {                
                 const customTutorialType = 'component';
                 // Navigate to home page
                 await page.goto(utils.DASHBOARD_URL, {
@@ -62,21 +52,20 @@ describe('Custom Tutorial With SubProjects', () => {
                     `#info-${customTutorialType}`
                 );
                 expect(newComponentBoxElement).toBeDefined();
-            });
+            
+            done();
         },
         operationTimeOut
     );
     test(
         'Should show indicator on how to create component, and after closing, quick tip for component should appear',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
-                await init.loginUser(user, page);
+        async (done) => {                           
                 const customTutorialType = 'component';
                 // Navigate to home page
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
-                await page.waitForTimeout(5000);
+                
                 const componentBoxElement = await page.waitForSelector(
                     `#info-${customTutorialType}`
                 );
@@ -93,28 +82,26 @@ describe('Custom Tutorial With SubProjects', () => {
                 expect(newComponentBoxElement).toBeDefined();
                 // click on the call to action button
                 await page.waitForSelector(`#close-${customTutorialType}`);
-                await page.click(`#close-${customTutorialType}`);
-                await page.waitForTimeout(2000);
+                await page.click(`#close-${customTutorialType}`);                
                 // find component quick tip and confirm it shows
                 const componentQuickTip = await page.waitForSelector(
                     `#quick-tip-${customTutorialType}`
                 );
                 expect(componentQuickTip).toBeDefined();
-            });
+                done();
+            
         },
         operationTimeOut
     );
     test(
         'Should show indicator on how to create monitor, and after closing, it should not reapprear',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
-                await init.loginUser(user, page);
+        async (done) => {                            
                 const customTutorialType = 'monitor';
                 // Navigate to home page
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
-                await page.waitForTimeout(5000);
+                
                 const componentBoxElement = await page.waitForSelector(
                     `#info-${customTutorialType}`
                 );
@@ -123,21 +110,20 @@ describe('Custom Tutorial With SubProjects', () => {
                 // click on the call to action button
                 await page.waitForSelector(`#close-${customTutorialType}`);
                 await page.click(`#close-${customTutorialType}`);
-            });
+            
+            done();
         },
         operationTimeOut
     );
     test(
         'Should show indicator on how to invite team member, and after closing, it should not reapprear',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
-                await init.loginUser(user, page);
+        async (done) => {                           
                 const customTutorialType = 'teamMember';
                 // Navigate to home page
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
-                await page.waitForTimeout(5000);
+                
                 const componentBoxElement = await page.waitForSelector(
                     `#info-${customTutorialType}`
                 );
@@ -146,7 +132,8 @@ describe('Custom Tutorial With SubProjects', () => {
                 // click on the call to action button
                 await page.waitForSelector(`#close-${customTutorialType}`);
                 await page.click(`#close-${customTutorialType}`);
-            });
+            
+            done();
         },
         operationTimeOut
     );

@@ -62,10 +62,11 @@ class OnCallScheduleModal extends Component {
                                                                         }/sub-project/${schedule.projectId &&
                                                                             schedule
                                                                                 .projectId
-                                                                                ._id}/schedule/${schedule.scheduleId &&
+                                                                                ._id}/schedule/${
                                                                             schedule
                                                                                 .scheduleId
-                                                                                ._id}`
+                                                                                .slug
+                                                                        }`
                                                                     );
 
                                                                     this.props.closeThisDialog();

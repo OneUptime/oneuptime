@@ -1068,7 +1068,7 @@ export class IncidentMessageThread extends Component {
                                                                                                 incidentMessage.project}/schedule/${incidentMessage.schedule &&
                                                                                                 incidentMessage
                                                                                                     .schedule
-                                                                                                    ._id}`
+                                                                                                    .slug}`
                                                                                         );
                                                                                     }}
                                                                                 >

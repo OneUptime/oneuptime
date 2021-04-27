@@ -82,7 +82,7 @@ class NewErrorTracker extends Component {
                 postObj
             ).then(
                 data => {
-                    history.push(
+                    history.replace(
                         `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/error-trackers/${data.data.slug}`
                     );
                     thisObj.props.reset();

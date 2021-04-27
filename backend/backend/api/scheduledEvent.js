@@ -760,4 +760,17 @@ router.delete(
     }
 );
 
+router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function(req, res) {
+    try {
+        const { slug } = req.params;
+        const scheduledEvent = await ScheduledEventService.findOneBy({
+            slug,
+        });
+
+        return sendItemResponse(req, res, scheduledEvent);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;

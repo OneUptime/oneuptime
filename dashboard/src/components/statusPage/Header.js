@@ -7,16 +7,16 @@ import { IS_LOCALHOST } from '../../config';
 export class StatusHeader extends Component {
     render() {
         const { statusPage } = this.props;
-        let statusPageId, publicStatusPageUrl;
-        if (statusPage && statusPage.status && statusPage.status._id) {
-            statusPageId = this.props.statusPage.status._id;
+        let publicStatusPageUrl, statusPageSlug;
+        if (statusPage && statusPage.status && statusPage.status.slug) {
+            statusPageSlug = this.props.statusPage.status.slug;
         }
 
         if (IS_LOCALHOST) {
-            publicStatusPageUrl = `http://${statusPageId}.localhost:3006`;
+            publicStatusPageUrl = `http://${statusPageSlug}.localhost:3006`;
         } else {
             publicStatusPageUrl =
-                window.location.origin + '/status-page/' + statusPageId;
+                window.location.origin + '/status-page/' + statusPageSlug;
         }
 
         return (

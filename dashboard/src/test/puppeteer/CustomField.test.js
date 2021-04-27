@@ -1,13 +1,16 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
+const user = {
+    email,
+    password
+};
 const incidentFieldText = {
         fieldName: 'textField',
         fieldType: 'text',
@@ -19,52 +22,36 @@ const incidentFieldText = {
 
 describe('Incident Custom Field', () => {
     const operationTimeOut = 500000;
-
-    let cluster;
+   
     beforeAll(async done => {
         jest.setTimeout(360000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 500000,
-        });
-
-        cluster.on('error', err => {
-            throw err;
-        });
-
-        await cluster.execute({ email, password }, async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );          
             // user
-            await init.registerUser(user, page);
-        });
+            await init.registerUser(user, page);       
 
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {       
+        await browser.close();
         done();
     });
 
     test(
         'should configure incident custom field in a project',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await init.addCustomField(page, incidentFieldText, 'incident');
 
                 const firstCustomField = await page.waitForSelector(
                     `#customfield_${incidentFieldText.fieldName}`,
                     { visible: true }
                 );
-                expect(firstCustomField).toBeDefined();
-            });
+                expect(firstCustomField).toBeDefined();           
             done();
         },
         operationTimeOut
@@ -72,8 +59,7 @@ describe('Incident Custom Field', () => {
 
     test(
         'should update a incident custom field in a project',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -104,7 +90,7 @@ describe('Incident Custom Field', () => {
                     incidentFieldNumber.fieldType,
                     page
                 );
-                await page.waitForSelector('#updaCustomField', {
+                await page.waitForSelector('#updateCustomField', {
                     visible: true,
                 });
                 await page.click('#updateCustomField');
@@ -116,8 +102,7 @@ describe('Incident Custom Field', () => {
                     `#customfield_${incidentFieldNumber.fieldName}`,
                     { visible: true }
                 );
-                expect(updatedField).toBeDefined();
-            });
+                expect(updatedField).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -125,8 +110,7 @@ describe('Incident Custom Field', () => {
 
     test(
         'should delete a incident custom field in a project',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -160,7 +144,7 @@ describe('Incident Custom Field', () => {
                     { visible: true }
                 );
                 expect(noCustomFields).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut

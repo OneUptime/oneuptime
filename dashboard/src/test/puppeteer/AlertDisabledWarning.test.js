@@ -1,79 +1,65 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
+const user = {
+    email,
+    password
+};
 describe('Alert Warning', () => {
     const operationTimeOut = 1000000;
 
-    let cluster;
-
     beforeAll(async done => {
-        jest.setTimeout(2000000);
+        jest.setTimeout(2000000);       
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 1200000,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        return await cluster.execute(
-            { email, password },
-            async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );        
+                
                 await init.registerUser(user, page);
-                done();
-            }
-        );
+                done();            
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {       
+        await browser.close();
         done();
     });
 
     test(
         'Should show a warning alert if call and sms alerts are disabled',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {
+           
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#projectSettings');
+                await page.waitForSelector('#projectSettings',{visible:true});
                 await page.click('#projectSettings');
-                await page.waitForSelector('#billing');
+                await page.waitForSelector('#billing',{visible:true});
                 await page.click('#billing');
 
-                const element = await page.waitForSelector('#alertWarning');
+                const element = await page.waitForSelector('#alertWarning',{visible:true});
                 expect(element).toBeDefined();
-            });
+                done();
+            
         },
         operationTimeOut
     );
 
     test(
         'Should not show any warning alert if call and sms alerts are enabled',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#projectSettings');
+                await page.waitForSelector('#projectSettings',{visible:true});
                 await page.click('#projectSettings');
-                await page.waitForSelector('#billing');
+                await page.waitForSelector('#billing',{visible:true});
                 await page.click('#billing a');
-                await page.waitForSelector('#alertEnable');
+                await page.waitForSelector('#alertEnable',{visible:true});
 
                 const rowLength = await page.$$eval(
                     '#alertOptionRow > div.bs-Fieldset-row',
@@ -92,7 +78,7 @@ describe('Alert Warning', () => {
                     hidden: true,
                 });
                 expect(element).toBeNull();
-            });
+                done();            
         },
         operationTimeOut
     );

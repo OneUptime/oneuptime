@@ -1,14 +1,16 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
-
+const user = {
+    email,
+    password
+};
 const incidentRequest = {
     name: 'pyInt',
     incidentTitle: 'Test Incident',
@@ -24,39 +26,25 @@ describe('Incoming HTTP Request', () => {
     beforeAll(async done => {
         jest.setTimeout(360000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 500000,
-        });
-
-        cluster.on('error', err => {
-            throw err;
-        });
-
-        await cluster.execute({ email, password }, async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );            
             // user
-            await init.registerUser(user, page);
-        });
+            await init.registerUser(user, page);        
 
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {       
+        await browser.close();
         done();
     });
 
     test(
         'should configure incoming http request to create incident in a project',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -101,7 +89,7 @@ describe('Incoming HTTP Request', () => {
                     { visible: true }
                 );
                 expect(firstIncomingHttpRequest).toBeDefined();
-            });
+          
             done();
         },
         operationTimeOut
@@ -109,8 +97,7 @@ describe('Incoming HTTP Request', () => {
 
     test(
         'should update an incoming http request in a project',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -136,8 +123,7 @@ describe('Incoming HTTP Request', () => {
                     '#incomingRequest_newName',
                     { visible: true }
                 );
-                expect(updatedRequest).toBeDefined();
-            });
+                expect(updatedRequest).toBeDefined();          
             done();
         },
         operationTimeOut
@@ -145,8 +131,7 @@ describe('Incoming HTTP Request', () => {
 
     test(
         'should delete an incoming http request in a project',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -171,8 +156,7 @@ describe('Incoming HTTP Request', () => {
                     '#noIncomingRequest',
                     { visible: true }
                 );
-                expect(noIncomingRequest).toBeDefined();
-            });
+                expect(noIncomingRequest).toBeDefined();           
             done();
         },
         operationTimeOut

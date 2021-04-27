@@ -50,12 +50,13 @@ class StatusPage extends Component {
     async componentDidMount() {
         if (!this.props.statusPage.status._id) {
             const projectId = this.props.projectId && this.props.projectId;
-            const statusPageId = history.location.pathname
+            const statusPageSlug = history.location.pathname
                 .split('status-page/')[1]
                 .split('/')[0];
-            await this.props.fetchProjectStatusPage(projectId);
-            await this.props.fetchSubProjectStatusPages(projectId);
-
+            if (projectId) {
+                await this.props.fetchProjectStatusPage(projectId);
+                await this.props.fetchSubProjectStatusPages(projectId);
+            }
             if (
                 this.props.statusPage.subProjectStatusPages &&
                 this.props.statusPage.subProjectStatusPages.length > 0
@@ -64,7 +65,7 @@ class StatusPage extends Component {
                 subProjectStatusPages.forEach(subProject => {
                     const statusPages = subProject.statusPages;
                     const statusPage = statusPages.find(
-                        page => page._id === statusPageId
+                        page => page.slug === statusPageSlug
                     );
                     if (statusPage) {
                         this.props.switchStatusPage(statusPage);
@@ -92,12 +93,13 @@ class StatusPage extends Component {
         if (prevProps.projectId !== this.props.projectId) {
             if (!this.props.statusPage.status._id) {
                 const projectId = this.props.projectId && this.props.projectId;
-                const statusPageId = history.location.pathname
+                const statusPageSlug = history.location.pathname
                     .split('status-page/')[1]
                     .split('/')[0];
-                await this.props.fetchProjectStatusPage(projectId);
-                await this.props.fetchSubProjectStatusPages(projectId);
-
+                if (projectId) {
+                    await this.props.fetchProjectStatusPage(projectId);
+                    await this.props.fetchSubProjectStatusPages(projectId);
+                }
                 if (
                     this.props.statusPage.subProjectStatusPages &&
                     this.props.statusPage.subProjectStatusPages.length > 0
@@ -106,7 +108,7 @@ class StatusPage extends Component {
                     subProjectStatusPages.forEach(subProject => {
                         const statusPages = subProject.statusPages;
                         const statusPage = statusPages.find(
-                            page => page._id === statusPageId
+                            page => page.slug === statusPageSlug
                         );
                         if (statusPage) {
                             this.props.switchStatusPage(statusPage);
@@ -126,7 +128,8 @@ class StatusPage extends Component {
         const projectId = this.props.projectId;
         const data = {
             statusPageId: status._id,
-            projectId,
+            projectId:
+                status.projectId && (status.projectId._id || status.projectId),
             theme: status.theme,
         };
 
