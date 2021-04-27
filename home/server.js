@@ -94,7 +94,8 @@ app.get('/product/public-status-page', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        footerCtaText: "Start with Status Pages, expand into everything else. Sign up today."
+        footerCtaText:
+            'Start with Status Pages, expand into everything else. Sign up today.',
     });
 });
 
@@ -109,7 +110,8 @@ app.get('/product/private-status-page', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        footerCtaText: "Start with Status Pages, expand into everything else. Sign up today."
+        footerCtaText:
+            'Start with Status Pages, expand into everything else. Sign up today.',
     });
 });
 
@@ -277,7 +279,8 @@ app.get('/product/api-monitoring', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        footerCtaText: "Start with API monitoring, expand into everything else. Sign up today."
+        footerCtaText:
+            'Start with API monitoring, expand into everything else. Sign up today.',
     });
 });
 

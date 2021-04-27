@@ -9,7 +9,7 @@ async function run() {
     });
     for (let i = 0; i < statusPages.length; i++) {
         let { name } = statusPages[i];
-        name = slugify(name || "statuspage");
+        name = slugify(name || 'statuspage');
         name = `${name}-${generate('1234567890', 8)}`;
         statusPages[i].slug = name.toLowerCase();
         await update(

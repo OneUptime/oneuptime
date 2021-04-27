@@ -716,7 +716,10 @@ router.delete(
     }
 );
 
-router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function(req, res) {
+router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function(
+    req,
+    res
+) {
     try {
         const { slug } = req.params;
         const scheduledEvent = await ScheduledEventService.findOneBy({
