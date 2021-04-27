@@ -23,11 +23,13 @@ class IncomingListener {
                 if (type === 'request') {
                     const [req, res] = [arguments[1], arguments[2]];
                     const path = req.pathname || req.path || req.url || '/';
+                    const method = req.method;
                     req.apm = {};
                     req.apm.uuid = uuidv4();
                     const result = _this.#start(req.apm.uuid, {
                         path,
                         type: 'incoming',
+                        method,
                     });
                     res.on('finish', () => {
                         _this.#end(req.apm.uuid, result, 'request');

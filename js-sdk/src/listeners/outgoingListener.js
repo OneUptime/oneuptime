@@ -22,14 +22,20 @@ class OutgoingListener {
             function wrapper(outgoing) {
                 // Store a call to the original in req
                 const req = original.apply(this, arguments);
+
+                const host = outgoing.host || outgoing.hostname;
+                const protocol = outgoing.protocol;
                 const path =
                     outgoing.pathname || outgoing.path || outgoing.url || '/';
+                const method = outgoing.method;
+
                 const emit = req.emit;
                 req.apm = {};
                 req.apm.uuid = uuidv4();
                 const result = _this.#start(req.apm.uuid, {
-                    path,
+                    path: `${protocol}//${host}${path}`, // store full path for outgoing requests
                     type: 'outgoing',
+                    method,
                 });
                 req.emit = function(eventName, response) {
                     switch (eventName) {
