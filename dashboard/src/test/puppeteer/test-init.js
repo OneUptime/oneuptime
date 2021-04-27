@@ -735,8 +735,11 @@ module.exports = {
                 delay: 150,
             });
         }
-        await page.click('#btnCreateProject');
-        await page.waitForNavigation({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('#btnCreateProject', {visible:true});        
+        await Promise.all([
+            page.click('#btnCreateProject'),
+            page.waitForNavigation({ waitUntil: 'networkidle0' })
+        ]);
     },
     growthPlanUpgrade: async function(page) {
         await page.goto(utils.DASHBOARD_URL);

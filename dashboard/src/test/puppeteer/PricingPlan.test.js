@@ -1,52 +1,39 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
+const user = {
+    email,
+    password
+};
 
 describe('Status Page -> Pricing Plan Component', () => {
     const operationTimeOut = 500000;
-
-    let cluster;
+    
     beforeAll(async () => {
         jest.setTimeout(360000);
-
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 500000,
-        });
-
-        cluster.on('error', err => {
-            throw err;
-        });
-
-        await cluster.execute({ email, password }, async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );        
             // user
-            await init.registerUser(user, page);
-        });
+            await init.registerUser(user, page);       
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {       
+        await browser.close();
         done();
     });
 
     test(
         'should show upgrade modal if project is not available in a particular plan',
-        async () => {
-            await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await init.addProject(page, 'test');
                 await page.$eval('#statusPages', elem => elem.click());
                 await page.waitForSelector('#btnCreateStatusPage_test');
@@ -66,7 +53,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                 });
                 await page.$$eval(
                     'ul#customTabList > li',
-                    elems => elems[4].click() // Advanced Option is now in a new tab position.
+                    elems => elems[5].click() // Advanced Option is in tab 6
                 );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
@@ -75,7 +62,8 @@ describe('Status Page -> Pricing Plan Component', () => {
                     visible: true,
                 });
                 expect(modal).toBeDefined();
-            });
+           
+           done();
         },
         operationTimeOut
     );
@@ -121,8 +109,7 @@ describe('Status Page -> Pricing Plan Component', () => {
 
     test(
         'should not show upgrade modal if project is subscribed to a particular plan',
-        async () => {
-            await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
@@ -148,16 +135,15 @@ describe('Status Page -> Pricing Plan Component', () => {
                 const elem = await page.waitForSelector('#pricingPlanModal', {
                     hidden: true,
                 });
-                expect(elem).toBeNull();
-            });
+                expect(elem).toBeNull();           
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should not upgrade a project when cancel button is clicked',
-        async () => {
-            await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.$eval('#statusPages', elem => elem.click());
                 // select the first item from the table row
@@ -170,7 +156,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                     visible: true,
                 });
                 await page.$$eval('ul#customTabList > li', elems =>
-                    elems[4].click()
+                    elems[5].click()
                 );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
@@ -184,20 +170,21 @@ describe('Status Page -> Pricing Plan Component', () => {
                     { visible: true }
                 );
                 growthOption.click();
+                await page.waitForSelector('#cancelPlanUpgrade', {visible:true});
                 await page.click('#cancelPlanUpgrade');
                 const elem = await page.waitForSelector('#pricingPlanModal', {
                     hidden: true,
                 });
                 expect(elem).toBeNull();
-            });
+            
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should upgrade a plan when upgrade is triggered from pricing plan component',
-        async () => {
-            await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.$eval('#statusPages', elem => elem.click());
                 // select the first item from the table row
@@ -210,7 +197,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                     visible: true,
                 });
                 await page.$$eval('ul#customTabList > li', elems =>
-                    elems[4].click()
+                    elems[5].click()
                 );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
@@ -224,6 +211,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                     { visible: true }
                 );
                 growthOption.click();
+                await page.waitForSelector('#confirmPlanUpgrade', {visible:true});
                 await page.click('#confirmPlanUpgrade');
 
                 await page.waitForSelector('#pricingPlanModal', {
@@ -231,7 +219,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                 });
                 await page.reload({ waitUntil: 'networkidle2' });
                 await page.$$eval('ul#customTabList > li', elems =>
-                    elems[4].click()
+                    elems[5].click()
                 );
 
                 await page.$eval('input[name="isPrivate"]', elem =>
@@ -241,8 +229,8 @@ describe('Status Page -> Pricing Plan Component', () => {
                     'input[name="isPrivate"]',
                     elem => elem.value
                 );
-                expect(utils.parseBoolean(value)).toBe(true);
-            });
+                expect(utils.parseBoolean(value)).toBe(true);           
+           done();
         },
         operationTimeOut
     );
