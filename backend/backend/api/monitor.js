@@ -925,4 +925,19 @@ router.post(
     }
 );
 
+router.post('/search/:projectId', getUser, async function(req, res) {
+    try {
+        const filter = req.body.search;
+        const { projectId } = req.params;
+        const monitors = await MonitorService.findBy({
+            projectId: projectId,
+            deleted: { $ne: null },
+            $or: [{ name: { $regex: new RegExp(filter), $options: 'i' } }],
+        });
+        return sendListResponse(req, res, monitors);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;
