@@ -6,6 +6,7 @@ import {
     fetchComponents,
     fetchComponentResources,
     addCurrentComponent,
+    searchComponents,
 } from '../../actions/component';
 import { fetchMonitors } from '../../actions/monitor';
 import { closeModal } from '../../actions/modal';
@@ -127,6 +128,23 @@ export class ComponentDetail extends Component {
             5
         );
     }
+    // componentDidUpdate(prevState) {
+    //     const { component } = this.props;
+
+    //     if (
+    //         prevState.searchValues &&
+    //         prevState.searchValues.search !== this.props.searchValues &&
+    //         this.props.searchValues.search && this.props.searchValues &&
+    //         this.props.searchValues.search !== ''
+    //     ) {
+    //         console.log('running')
+    //         this.props.searchComponents(
+    //             component.projectId._id,
+    //             this.props.searchValues
+    //         );
+    //     }
+    //     //
+    // }
 
     render() {
         const { component, componentState, currentProject } = this.props;
@@ -273,6 +291,7 @@ const mapDispatchToProps = dispatch => {
             fetchComponentResources,
             fetchMonitors,
             animateSidebar,
+            searchComponents,
         },
         dispatch
     );
@@ -290,12 +309,14 @@ function mapStateToProps(state, props) {
             monitor.componentId &&
             monitor.componentId._id === props.component._id
     );
+    const searchValues = state.form.search && state.form.search.values;
     return {
         componentMonitors,
         componentState: state.component,
         currentProject: state.project.currentProject,
         subProject: state.subProject,
         componentResources: state.component.componentResourceList,
+        searchValues,
     };
 }
 
@@ -316,6 +337,7 @@ ComponentDetail.propTypes = {
     ]),
     //  fetchMonitors: PropTypes.func, unused
     animateSidebar: PropTypes.func,
+    searchComponents: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ComponentDetail);

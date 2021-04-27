@@ -1264,3 +1264,42 @@ export const fetchBreachedMonitorSla = projectId => async dispatch => {
         dispatch(fetchBreachedMonitorSlaFailure(errorMsg));
     }
 };
+
+export function searchMonitorSuccess(payload) {
+    return {
+        type: 'POPULATE_SEARCH',
+        payload,
+    };
+}
+export function searchMonitors(projectId, values) {
+    return function(dispatch) {
+        const promise = postApi(`monitor/search/${projectId}`, values);
+        promise.then(
+            function(monitors) {
+                const monitor = monitors.data;
+                if (monitor.data.length > 0) {
+                    const obj = {
+                        title: 'Monitors',
+                        values: monitor.data.map(mon => mon.name),
+                    };
+                    dispatch(searchMonitorSuccess(obj));
+                }
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                //dispatch(fetchComponentFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
