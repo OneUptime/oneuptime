@@ -11,6 +11,7 @@ import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import ProjectVerifyDomain from './ProjectVerifyDomain';
 import ProjectUnverifyDomain from './ProjectUnverifyDomain';
+import ProjectResetDomain from './ProjectResetDomain';
 
 class ProjectDomain extends Component {
     constructor() {
@@ -169,7 +170,7 @@ class ProjectDomain extends Component {
                                                     {!eachDomain.verified && (
                                                         <button
                                                             id={`verifyProjectDomain_${index}`}
-                                                            title="edit"
+                                                            title="verify"
                                                             className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
                                                             style={{
                                                                 marginLeft: 20,
@@ -194,7 +195,7 @@ class ProjectDomain extends Component {
                                                     {eachDomain.verified && (
                                                         <button
                                                             id={`unVerifyProjectDomain_${index}`}
-                                                            title="edit"
+                                                            title="unverify"
                                                             className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
                                                             style={{
                                                                 marginLeft: 20,
@@ -219,8 +220,31 @@ class ProjectDomain extends Component {
                                                         </button>
                                                     )}
                                                     <button
+                                                        id={`unVerifyProjectDomain_${index}`}
+                                                        title="reset"
+                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings"
+                                                        style={{
+                                                            marginLeft: 20,
+                                                        }}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            openModal({
+                                                                id:
+                                                                    eachDomain._id,
+                                                                content: ProjectResetDomain,
+                                                                projectId,
+                                                                verificationToken:
+                                                                    eachDomain.verificationToken,
+                                                                domain:
+                                                                    eachDomain.domain,
+                                                            });
+                                                        }}
+                                                    >
+                                                        <span>Reset</span>
+                                                    </button>
+                                                    <button
                                                         id={`deleteProjectDomain_${index}`}
-                                                        title="delete"
+                                                        title="remove"
                                                         className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
                                                         style={{
                                                             marginLeft: 20,
