@@ -1,54 +1,42 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
+const user = {
+    email,
+    password
+};
 describe('Keyboard Shortcut: Dashboard', () => {
     const operationTimeOut = 500000;
-
-    let cluster;
+    
     beforeAll(async done => {
         jest.setTimeout(360000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 500000,
-        });
-
-        cluster.on('error', err => {
-            throw err;
-        });
-
-        await cluster.execute({ email, password }, async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );                   
             // user
             await init.registerUser(user, page);
-        });
-
+    
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'should navigate to component pages with keyboard shortcut (f + c)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
                 await page.keyboard.press('f');
@@ -58,7 +46,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(componentForm).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -66,8 +54,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to incident logs page with keyboard shortcut (f + i)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#incidents', { visible: true });
                 await page.keyboard.press('f');
@@ -77,7 +64,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(incidentLogs).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -85,8 +72,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to status pages with keyboard shortcut (f + p)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#statusPages', { visible: true });
                 await page.keyboard.press('f');
@@ -96,7 +82,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(statusPageTable).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -104,8 +90,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to on-call schedule page with keyboard shortcut (f + o)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#onCallDuty', {
                     visible: true,
@@ -117,7 +102,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(onCall).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -125,8 +110,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to alert log page with keyboard shortcut (o + a)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#onCallDuty', {
                     visible: true,
@@ -137,7 +121,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     visible: true,
                 });
                 expect(alertLog).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -145,8 +129,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate scheduled events page with keyboard shortcut (f + e)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
@@ -158,7 +141,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(scheduledEventsPage).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -166,8 +149,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to reports page with keyboard shortcut (f + v)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {        
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#reports', { visible: true });
                 await page.keyboard.press('f');
@@ -176,7 +158,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     visible: true,
                 });
                 expect(report).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -184,8 +166,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to team members page with keyboard shortcut (f + u)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#teamMembers', { visible: true });
                 await page.keyboard.press('f');
@@ -195,7 +176,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(teamMember).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -203,8 +184,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to project settings page with keyboard shortcut (f + s)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -216,15 +196,14 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(projectSettings).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
     );
     test(
         'should navigate to consulting and services page with keyboard shortcut (f + q)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#consultingServices', {
                     visible: true,
@@ -236,7 +215,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(consultingServicesPage).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -244,8 +223,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to billing settings page with keyboard shortcut (s + b)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {                
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -256,7 +234,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     visible: true,
                 });
                 expect(billing).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -264,8 +242,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to resource category page with keyboard shortcut (s + r)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -277,7 +254,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(resourceCategory).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -285,8 +262,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to monitor page (project settings) with keyboard shortcut (s + m)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -298,7 +274,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(monitorSettings).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -306,8 +282,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to incidents page (project settings) with keyboard shortcut (s + t)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -319,7 +294,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(incidentSettings).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -327,8 +302,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to integrations page with keyboard shortcut (s + i)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -342,7 +316,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     }
                 );
                 expect(integrations).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -350,8 +324,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to email settings page with keyboard shortcut (s + e)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -363,7 +336,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(emailTemplate).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -371,8 +344,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to sms settings page with keyboard shortcut (s + c)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -383,7 +355,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     visible: true,
                 });
                 expect(smsTemplate).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -391,8 +363,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to webhooks page (project settings) with keyboard shortcut (s + w)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -404,7 +375,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(webhooksSettingsPage).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -412,8 +383,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to probe in settings page with keyboard shortcut (s + p)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -424,7 +394,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     visible: true,
                 });
                 expect(probe).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -432,8 +402,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to git credential page with keyboard shortcut (s + g)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -445,28 +414,27 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(gitCredential).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
     );
 
     test(
-        'should navigate to docker credential page with keyboard shortcut (s + d)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        'should navigate to docker credential page with keyboard shortcut (s + k)',
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
                 await page.keyboard.press('s');
-                await page.keyboard.press('d');
+                await page.keyboard.press('k'); // k is the new addition
                 const dockerCredential = await page.waitForSelector(
                     '#dockerCredentialPage',
                     { visible: true }
                 );
                 expect(dockerCredential).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -474,8 +442,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to git credentials page (project settings) with keyboard shortcut (s + g)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -487,7 +454,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(gitCredentialsSettings).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -495,20 +462,19 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to docker credentials page (project settings) with keyboard shortcut (s + d)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
                 await page.keyboard.press('s');
-                await page.keyboard.press('d');
+                await page.keyboard.press('k'); // k is the new addition
                 const dockerCredentialsSettings = await page.waitForSelector(
                     '#dockerCredentialPage',
                     { visible: true }
                 );
                 expect(dockerCredentialsSettings).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -516,8 +482,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to api page with keyboard shortcut (s + a)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -528,7 +493,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     visible: true,
                 });
                 expect(fyipeApi).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -536,8 +501,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to advanced page (project settings) with keyboard shortcut (s + v)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -549,7 +513,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(advancedSettingsPage).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -557,8 +521,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to profile settings with keyboard shortcut (f + n)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#profile-menu', { visible: true });
                 await page.click('#profile-menu');
@@ -575,7 +538,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(profileSetting).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -583,8 +546,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to change password page with keyboard shortcut (f + w)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#profile-menu', { visible: true });
                 await page.click('#profile-menu');
@@ -601,7 +563,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(changePassword).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -609,8 +571,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to profile billing page with keyboard shortcut (f + b)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#profile-menu', { visible: true });
                 await page.click('#profile-menu');
@@ -625,7 +586,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(profileBilling).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -633,8 +594,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate to advanced page with keyboard shortcut (f + a)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#profile-menu', { visible: true });
                 await page.click('#profile-menu');
@@ -649,7 +609,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     { visible: true }
                 );
                 expect(deleteBtn).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -657,8 +617,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
     test(
         'should navigate back to dashboard from profile using keyboard shortcut (f + k)',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#profile-menu', { visible: true });
                 await page.click('#profile-menu');
@@ -674,7 +633,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     visible: true,
                 });
                 expect(component).toBeDefined();
-            });
+
             done();
         },
         operationTimeOut

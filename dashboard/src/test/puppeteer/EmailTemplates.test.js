@@ -1,56 +1,46 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 let defaultSubject;
 
+const user = {
+    email,
+    password
+};
+
 describe('Email Templates API', () => {
     const operationTimeOut = 100000;
 
-    let cluster;
+   
     beforeAll(async done => {
         jest.setTimeout(200000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 120000,
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        // Register user
-        await cluster.execute({ email, password }, async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
-            // user
-            await init.registerUser(user, page);
-        });
+        // Register user       
+            await init.registerUser(user, page);        
 
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {       
+        await browser.close();
         done();
     });
 
     test(
         'should not show reset button when no template is saved',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
@@ -68,8 +58,7 @@ describe('Email Templates API', () => {
                 const resetBtn = await page.waitForSelector('#templateReset', {
                     hidden: true,
                 });
-                expect(resetBtn).toBeNull();
-            });
+                expect(resetBtn).toBeNull();           
 
             done();
         },
@@ -78,8 +67,7 @@ describe('Email Templates API', () => {
 
     test(
         'Should update default email template',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
@@ -112,7 +100,7 @@ describe('Email Templates API', () => {
                 );
 
                 expect(finalSubject).toEqual(subject);
-            });
+           
             done();
         },
         operationTimeOut
@@ -120,8 +108,7 @@ describe('Email Templates API', () => {
 
     test(
         'should show reset button when a template is already saved',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
@@ -137,8 +124,7 @@ describe('Email Templates API', () => {
                 const resetBtn = await page.waitForSelector('#templateReset', {
                     visible: true,
                 });
-                expect(resetBtn).toBeDefined();
-            });
+                expect(resetBtn).toBeDefined();            
 
             done();
         },
@@ -147,8 +133,7 @@ describe('Email Templates API', () => {
 
     test(
         'should reset template to default state',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
@@ -178,8 +163,7 @@ describe('Email Templates API', () => {
                     '#name',
                     elem => elem.value
                 );
-                expect(defaultSubject).toEqual(finalSubject);
-            });
+                expect(defaultSubject).toEqual(finalSubject);            
 
             done();
         },
