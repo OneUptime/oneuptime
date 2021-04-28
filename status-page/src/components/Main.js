@@ -17,7 +17,7 @@ import {
     selectedProbe,
     getScheduledEvent,
 } from '../actions/status';
-import { getProbesStatusPage } from '../actions/probe';
+import { getProbes } from '../actions/probe';
 import LineChartsContainer from './LineChartsContainer';
 import AffectedResources from './basic/AffectedResources';
 import NewThemeEvent from './NewThemeEvent';
@@ -73,6 +73,11 @@ class Main extends Component {
             }
 
             this.setLastAlive();
+        }
+        if (prevProps.statusData !== this.props.statusData) {
+            this.props.getProbes(this.props.statusData._id, 0, 10).then(() => {
+                this.selectbutton(this.props.activeProbe);
+            });
         }
         if (
             prevProps.statusData.customJS !== this.props.statusData.customJS &&
@@ -132,10 +137,11 @@ class Main extends Component {
             statusPageSlug = 'null';
             url = window.location.host;
         }
-
-        this.props.getProbesStatusPage(statusPageSlug, 0, 10).then(() => {
-            this.selectbutton(this.props.activeProbe);
-        });
+        if (this.props.statusData._id) {
+            this.props.getProbes(this.props.statusData._id, 0, 10).then(() => {
+                this.selectbutton(this.props.activeProbe);
+            });
+        }
 
         this.props.getStatusPage(statusPageSlug, url).catch(err => {
             if (err.message === 'Request failed with status code 401') {
@@ -1253,9 +1259,9 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             getStatusPage,
-            getProbesStatusPage,
             selectedProbe,
             getScheduledEvent,
+            getProbes,
         },
         dispatch
     );
@@ -1264,7 +1270,7 @@ Main.propTypes = {
     statusData: PropTypes.object,
     status: PropTypes.object,
     getStatusPage: PropTypes.func,
-    getProbesStatusPage: PropTypes.func,
+    getProbes: PropTypes.func,
     login: PropTypes.object.isRequired,
     monitorState: PropTypes.array,
     monitors: PropTypes.array,

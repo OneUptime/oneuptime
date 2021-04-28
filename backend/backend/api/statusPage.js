@@ -1154,18 +1154,6 @@ router.get('/:projectId/probes', checkUser, async function(req, res) {
     }
 });
 
-router.get('/:statusPageSlug/probes/statusPage', checkUser, async function(req, res) {
-    try {
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 0;
-        const probes = await ProbeService.findBy({}, limit, skip);
-        const count = await ProbeService.countBy({});
-        return sendListResponse(req, res, probes, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
 router.delete(
     '/:projectId/:statusPageSlug',
     getUser,

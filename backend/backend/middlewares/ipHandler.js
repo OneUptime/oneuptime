@@ -26,7 +26,7 @@ const _this = {
             if (statusPage === null) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Status Page name is null',
+                    message: 'Page Not Found',
                 });
             }
         } catch (error) {
