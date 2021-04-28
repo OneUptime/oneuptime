@@ -1275,7 +1275,6 @@ router.post('/search/:projectId', getUser, async function(req, res) {
     try {
         const filter = req.body.search;
         const projectIds = req.body.projectIds;
-        console.log(projectIds)
         const statusPage = await statusPageService.findBy({
             projectId: { $in: projectIds },
             deleted: { $ne: null },
