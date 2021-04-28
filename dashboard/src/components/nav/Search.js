@@ -1,30 +1,18 @@
 import React, { Component } from 'react';
+import { bindActionCreators } from 'redux';
 import { reduxForm, Field } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { connect } from 'react-redux';
+import PropTypes from 'prop-types';
+import { history } from '../../store';
+import { addCurrentComponent } from '../../actions/component';
+import { animateSidebar } from '../../actions/animateSidebar';
+import { resetSearch } from '../../actions/search';
 
 class Search extends Component {
     state = {
         scroll: 0,
         sectionActive: 0,
-        searchObj: [
-            {
-                title: 'Component',
-                values: ['kolawole'],
-            },
-            {
-                title: 'Monitors',
-                values: ['messi'],
-            },
-            {
-                title: 'Monitors',
-                values: ['messi'],
-            },
-            {
-                title: 'Monitorss',
-                values: ['messi'],
-            },
-        ],
     };
 
     componentDidMount() {
@@ -83,15 +71,75 @@ class Search extends Component {
             }
         }
     };
+    handleEnter = () => {
+        const { currentProject, componentList } = this.props;
+        if (
+            this.props.searcResult.length > 0 &&
+            this.props.searchValues &&
+            this.props.searchValues.search !== ''
+        ) {
+            const searchObj = this.props.searcResult[this.state.sectionActive]
+                .values[this.state.scroll];
+            const component =
+                componentList &&
+                componentList.components
+                    .filter(project => project._id === searchObj.projectId)[0]
+                    .components.filter(
+                        component => component._id === searchObj.componentId
+                    )[0];
+
+            setTimeout(() => {
+                history.push(
+                    '/dashboard/project/' +
+                        currentProject.slug +
+                        '/' +
+                        searchObj.url
+                );
+                this.props.animateSidebar(false);
+            }, 500);
+            this.props.animateSidebar(true);
+            this.props.addCurrentComponent(component);
+        }
+    };
+    handleSearchClick = (sectionActive, scroll) => {
+        const { currentProject, componentList } = this.props;
+        const searchObj = this.props.searcResult[sectionActive].values[scroll];
+        const component =
+            componentList &&
+            componentList.components
+                .filter(project => project._id === searchObj.projectId)[0]
+                .components.filter(
+                    component => component._id === searchObj.componentId
+                )[0];
+        setTimeout(() => {
+            history.push(
+                '/dashboard/project/' +
+                    currentProject.slug +
+                    '/' +
+                    searchObj.url
+            );
+            this.props.animateSidebar(false);
+        }, 500);
+        this.props.animateSidebar(true);
+        this.props.addCurrentComponent(component);
+    };
     handleKeyBoardScroll = e => {
         switch (e.key) {
             case 'ArrowUp':
                 return this.ArrowUp();
             case 'ArrowDown':
                 return this.ArrowDown();
+            case 'Enter':
+                return this.handleEnter();
             default:
                 return false;
         }
+    };
+    handleFocus = () => {
+        console.log('hey baby i am so fucussed on you');
+    };
+    handleBlur = () => {
+        this.props.resetSearch()
     };
     render() {
         const searchObj = this.props.searcResult;
@@ -105,9 +153,11 @@ class Search extends Component {
                     name="search"
                     id="search"
                     placeholder="Search"
-                    autofilled={false}
+                    autofilled={'off'}
+                    handleFocus={this.handleFocus}
+                    handleBlur={this.handleBlur}
                 />
-                <div>
+                <div className="search-list-li">
                     <ul
                         style={{
                             backgroundColor: '#fff',
@@ -129,10 +179,10 @@ class Search extends Component {
                                     >
                                         {result.title}
                                     </h3>
-                                    {result.values.map((name, i) => {
+                                    {result.values.map((val, i) => {
                                         return (
                                             <li
-                                                key={name}
+                                                key={val.name}
                                                 style={{
                                                     padding: '5px 10px',
 
@@ -142,11 +192,15 @@ class Search extends Component {
                                                         j ===
                                                             this.state
                                                                 .sectionActive
-                                                            ? '#f7f7f7'
+                                                            ? '#eee'
                                                             : '',
                                                 }}
+                                                tabIndex="0"
+                                                onClick={() =>
+                                                    this.handleSearchClick(j, i)
+                                                }
                                             >
-                                                {name}
+                                                {val.name}
                                             </li>
                                         );
                                     })}
@@ -174,12 +228,35 @@ const SearchBox = new reduxForm({
     enableReinitialize: true,
 })(Search);
 
+Search.propTypes = {
+    searcResult: PropTypes.array,
+    searchValues: PropTypes.object,
+    addCurrentComponent: PropTypes.func,
+    animateSidebar: PropTypes.func,
+    componentList: PropTypes.object,
+    resetSearch: PropTypes.func,
+};
+
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        {
+            addCurrentComponent,
+            animateSidebar,
+            resetSearch,
+        },
+        dispatch
+    );
+};
+
 function mapStateToProps(state) {
     const searcResult = state.search.search;
     return {
         initialValues: { search: '' },
         searcResult,
         searchValues: state.form.search && state.form.search.values,
+        currentProject: state.project.currentProject,
+        componentList: state.component.componentList,
     };
 }
-export default connect(mapStateToProps)(SearchBox);
+
+export default connect(mapStateToProps, mapDispatchToProps)(SearchBox);
