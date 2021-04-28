@@ -1370,3 +1370,47 @@ export const showDuplicateStatusPage = function(obj) {
         payload: obj,
     };
 };
+
+export function searchStatusPagesSuccess(data) {
+    return {
+        type: 'POPULATE_SEARCH',
+        payload: data,
+    };
+}
+
+// Calls the API to search status pages
+export function searchStatusPages(projectId, data) {
+    return function(dispatch) {
+        const promise = postApi(`statusPage/search/${projectId}`, data);
+        promise.then(
+            function(response) {
+                const statusPage = response.data;
+                if (statusPage.data.length > 0) {
+                    const obj = {
+                        title: 'Status Page',
+                        values: statusPage.data.map(page => ({
+                            name: page.name,
+                        })),
+                    };
+                    dispatch(searchStatusPagesSuccess(obj));
+                }
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                //todo - handle error here bro
+                //dispatch(resetStatusPageEmbeddedCssError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
