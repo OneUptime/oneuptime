@@ -1068,3 +1068,55 @@ export function unVerifyProjectDomain(projectId, domainId) {
         return promise;
     };
 }
+
+export function resetProjectDomainRequest() {
+    return {
+        type: types.RESET_PROJECT_DOMAIN_REQUEST,
+    };
+}
+
+export function resetProjectDomainSuccess(payload) {
+    return {
+        type: types.RESET_PROJECT_DOMAIN_SUCCESS,
+        payload,
+    };
+}
+
+export function resetProjectDomainFailure(error) {
+    return {
+        type: types.RESET_PROJECT_DOMAIN_FAILURE,
+        payload: error,
+    };
+}
+
+export function resetProjectDomainOnMount() {
+    return {
+        type: types.RESET_PROJECT_DOMAIN_ON_MOUNT,
+    };
+}
+
+export function resetProjectDomain(projectId, domainId) {
+    return async function(dispatch) {
+        dispatch(resetProjectDomainRequest());
+        const promise = putApi(
+            `domainVerificationToken/${projectId}/resetDomain/${domainId}`
+        );
+        promise.then(
+            function(response) {
+                dispatch(resetProjectDomainSuccess(response.data));
+            },
+            function(error) {
+                const errorMessage =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(resetProjectDomainFailure(errorMessage));
+            }
+        );
+        return promise;
+    };
+}
