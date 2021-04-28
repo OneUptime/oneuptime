@@ -294,7 +294,11 @@ export function deleteScheduledEventFailure(error) {
 
 export const cancelScheduledEvent = (
     projectId,
-    scheduledEventId
+    scheduledEventId,
+    history,
+    redirect,
+    closeModal,
+    modalId
 ) => async dispatch => {
     try {
         dispatch(cancelScheduledEventRequest());
@@ -302,7 +306,10 @@ export const cancelScheduledEvent = (
         const response = await putApi(
             `scheduledEvent/${projectId}/${scheduledEventId}/cancel`
         );
+
         dispatch(cancelScheduledEventSuccess(response.data));
+        closeModal({ id: modalId });
+        history.push(redirect);
     } catch (error) {
         const errorMsg =
             error.response && error.response.data

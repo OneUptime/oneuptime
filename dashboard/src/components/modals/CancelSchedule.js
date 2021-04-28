@@ -30,22 +30,18 @@ class CancelSchedule extends Component {
     };
 
     handleCancel = () => {
-        const {
-            cancelScheduledEvent,
-            cancelError,
-            closeModal,
-            modalId,
-            data,
-        } = this.props;
+        const { cancelScheduledEvent, closeModal, modalId, data } = this.props;
         const { projectId, eventId } = data;
-        cancelScheduledEvent(projectId, eventId).then(() => {
-            if (cancelError && cancelError === null) {
-                closeModal({ id: modalId });
-                return history.push(
-                    `/dashboard/project/${this.props.slug}/scheduledEvents`
-                );
-            }
-        });
+        const redirect = `/dashboard/project/${this.props.slug}/scheduledEvents`;
+
+        cancelScheduledEvent(
+            projectId,
+            eventId,
+            history,
+            redirect,
+            closeModal,
+            modalId
+        );
     };
 
     render() {

@@ -18,6 +18,10 @@ class ScheduleEventDeleteBox extends Component {
     deleteScheduleEvent = () => {
         alert('im to delete');
     };
+
+    cancelScheduleEvent = () => {
+        alert('im to cancel');
+    };
     render() {
         const { deleteModalId, cancelModalId } = this.state;
         const { projectId, scheduledEventId, openModal, deleting } = this.props;
@@ -54,7 +58,7 @@ class ScheduleEventDeleteBox extends Component {
                                                     id: cancelModalId,
                                                     onClose: () => '',
                                                     onConfirm: () =>
-                                                        this.deleteScheduleEvent(),
+                                                        this.cancelScheduleEvent(),
                                                     content: DataPathHoC(
                                                         CancelSchedule,
                                                         {
