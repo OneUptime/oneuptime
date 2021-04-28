@@ -132,6 +132,26 @@ router.post('/:projectId/domain', getUser, isAuthorized, async (req, res) => {
     }
 });
 
+//  resets a domain.
+//  req.params-> {projectId, domainId}
+//  Returns: response domain, error message
+router.put(
+    '/:projectId/resetDomain/:domainId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { domainId } = req.params;
+            const domain = await DomainVerificationService.resetDomain(
+                domainId
+            );
+            return sendItemResponse(req, res, domain);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 router.put(
     '/:projectId/domain/:domainId',
     getUser,
