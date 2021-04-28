@@ -7,9 +7,10 @@ axios.defaults.adapter = require('axios/lib/adapters/http');
 let serverMonitor;
 try {
     // try to use local package (with recent changes)
-    serverMonitor = require('../../../../server-monitor/lib/api');
+    serverMonitor = require('../../../../js-sdk/src/cli/server-monitor/lib/api');
 } catch (error) {
-    serverMonitor = require('fyipe-server-monitor');
+    const fyipe = require('fyipe');
+    serverMonitor = fyipe.ServerMonitor;
 }
 
 require('should');

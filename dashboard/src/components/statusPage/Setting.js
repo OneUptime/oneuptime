@@ -147,6 +147,7 @@ export class Setting extends Component {
 
     render() {
         let statusPageId = '';
+        let statusPageSlug = '';
         let hosted = '';
         let publicStatusPageUrl = '';
         let { projectId } = this.props.statusPage.status;
@@ -165,12 +166,19 @@ export class Setting extends Component {
         ) {
             statusPageId = this.props.statusPage.status._id;
         }
+        if (
+            this.props.statusPage &&
+            this.props.statusPage.status &&
+            this.props.statusPage.status.slug
+        ) {
+            statusPageSlug = this.props.statusPage.status.slug;
+        }
 
         if (IS_LOCALHOST) {
-            publicStatusPageUrl = `http://${statusPageId}.localhost:3006`;
+            publicStatusPageUrl = `http://${statusPageSlug}.localhost:3006`;
         } else {
             publicStatusPageUrl =
-                window.location.origin + '/status-page/' + statusPageId;
+                window.location.origin + '/status-page/' + statusPageSlug;
         }
 
         const { subProjects, currentProject } = this.props;

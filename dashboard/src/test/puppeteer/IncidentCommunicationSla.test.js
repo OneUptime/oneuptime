@@ -1,10 +1,9 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
@@ -14,46 +13,35 @@ const alertTime = '10';
 const component = utils.generateRandomString();
 const monitor = utils.generateRandomString();
 
+const user = {
+    email,
+    password,
+};
 describe('Incident Communication SLA', () => {
     const operationTimeOut = 500000;
 
-    let cluster;
     beforeAll(async done => {
         jest.setTimeout(360000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 500000,
-        });
-
-        cluster.on('error', err => {
-            throw err;
-        });
-
-        await cluster.execute({ email, password }, async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );                    
             // user
             await init.registerUser(user, page);
-        });
 
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'should not add incident communication SLA if no name was specified',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -94,7 +82,7 @@ describe('Incident Communication SLA', () => {
                     visible: true,
                 });
                 expect(slaError).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -102,8 +90,7 @@ describe('Incident Communication SLA', () => {
 
     test(
         'should not add incident communication SLA if alert time is greater or equal to duration',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -144,7 +131,7 @@ describe('Incident Communication SLA', () => {
                     visible: true,
                 });
                 expect(slaError).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -152,8 +139,7 @@ describe('Incident Communication SLA', () => {
 
     test(
         'should not add incident communication SLA if alert time is not a number',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -194,7 +180,7 @@ describe('Incident Communication SLA', () => {
                     visible: true,
                 });
                 expect(slaError).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -202,8 +188,7 @@ describe('Incident Communication SLA', () => {
 
     test(
         'should add incident communication SLA',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -248,7 +233,7 @@ describe('Incident Communication SLA', () => {
                     { visible: true }
                 );
                 expect(sla).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -256,8 +241,7 @@ describe('Incident Communication SLA', () => {
 
     test(
         'should not edit an incident communication SLA if there is no name',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -295,7 +279,7 @@ describe('Incident Communication SLA', () => {
                     visible: true,
                 });
                 expect(slaError).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -303,8 +287,7 @@ describe('Incident Communication SLA', () => {
 
     test(
         'should edit an incident communication SLA',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -346,7 +329,7 @@ describe('Incident Communication SLA', () => {
                     { visible: true }
                 );
                 expect(sla).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -354,8 +337,7 @@ describe('Incident Communication SLA', () => {
 
     test(
         'should show incident communication SLA notification when an incident is created',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await init.addMonitorToComponent(component, monitor, page);
                 await page.waitForSelector(`#createIncident_${monitor}`, {
                     visible: true,
@@ -385,7 +367,7 @@ describe('Incident Communication SLA', () => {
                 await page.click('#btnResolve_0');
 
                 expect(slaIndicator).toBeDefined();
-            });
+            
             done();
         },
         operationTimeOut
@@ -393,8 +375,7 @@ describe('Incident Communication SLA', () => {
 
     test(
         'should hide incident communication SLA notification when an incident is acknowledged',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await init.addIncident(monitor, 'offline', page);
                 await page.waitForSelector(`#incident_${monitor}_0`, {
                     visible: true,
@@ -413,7 +394,7 @@ describe('Incident Communication SLA', () => {
                     { hidden: true }
                 );
                 expect(slaIndicator).toBeNull();
-            });
+            
             done();
         },
         operationTimeOut
@@ -421,8 +402,7 @@ describe('Incident Communication SLA', () => {
 
     test(
         'should delete an incident communication SLA',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -461,7 +441,7 @@ describe('Incident Communication SLA', () => {
                     { hidden: true }
                 );
                 expect(sla).toBeNull();
-            });
+            
             done();
         },
         operationTimeOut

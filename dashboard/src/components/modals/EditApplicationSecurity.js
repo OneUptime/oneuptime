@@ -64,7 +64,7 @@ class EditApplicationSecurity extends Component {
             applicationSecurityId,
             data: values,
         }).then(data => {
-            history.push(
+            history.replace(
                 `/dashboard/project/${this.props.projectSlug}/${this.props.componentSlug}/security/application/${data.data.slug}`
             );
         });

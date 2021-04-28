@@ -80,17 +80,11 @@ app.get('/enterprise/demo', function(req, res) {
 });
 
 app.get('/product/status-page', function(req, res) {
-    res.render('status-page', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
-    });
+    res.redirect('/product/public-status-page');
 });
 
 app.get('/status-page', function(req, res) {
-    res.redirect('/product/status-page');
+    res.redirect('/product/public-status-page');
 });
 
 app.get('/product/public-status-page', function(req, res) {
@@ -100,6 +94,8 @@ app.get('/product/public-status-page', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        footerCtaText:
+            'Start with Status Pages, expand into everything else. Sign up today.',
     });
 });
 
@@ -114,6 +110,8 @@ app.get('/product/private-status-page', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        footerCtaText:
+            'Start with Status Pages, expand into everything else. Sign up today.',
     });
 });
 
@@ -177,7 +175,7 @@ app.get('/unsubscribe/:monitorId/:subscriberId', async function(req, res) {
     }
 
     try {
-        let subscriptions = await axios({
+        const subscriptions = await axios({
             method: 'GET',
             url: `${apiHost}/subscriber/monitorList/${subscriberId}`,
         });
@@ -281,6 +279,8 @@ app.get('/product/api-monitoring', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        footerCtaText:
+            'Start with API monitoring, expand into everything else. Sign up today.',
     });
 });
 

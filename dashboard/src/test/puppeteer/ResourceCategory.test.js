@@ -131,7 +131,7 @@ describe('Resource Category', () => {
                     page
                 );
                 await page.click('[data-testId=type_url]');
-                await page.waitForSelector('#url');
+                await page.waitForSelector('#url', {visible: true});
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await Promise.all([

@@ -133,9 +133,9 @@ export class Plans extends Component {
                                         <ShouldRender
                                             if={!isRequesting && trialEndDate}
                                         >
-                                            <div class="Badge Badge--color--blue Box-background--red bg-red-700 Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                <span class="Badge-text bg-red-700 Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                    <span class="Text-color--white">
+                                            <div className="Badge Badge--color--blue Box-background--red bg-red-700 Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                <span className="Badge-text bg-red-700 Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <span className="Text-color--white">
                                                         Trial period (
                                                         {trialLeft} days left)
                                                     </span>

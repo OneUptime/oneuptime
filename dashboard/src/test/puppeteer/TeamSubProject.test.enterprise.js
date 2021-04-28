@@ -1,10 +1,9 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const user = {
     email: utils.generateRandomBusinessEmail(),
@@ -17,57 +16,57 @@ const newUser = {
 
 describe('Enterprise Team SubProject API', () => {
     const operationTimeOut = 500000;
-    let cluster;
 
     beforeAll(async () => {
         jest.setTimeout(500000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 500000,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
         // Register users
-        return await cluster.execute(null, async ({ page }) => {
-            await init.registerEnterpriseUser(user, page);
-            await init.createUserFromAdminDashboard(newUser, page);
-            await init.adminLogout(page);
-        });
+        await init.registerEnterpriseUser(user, page);
+        await init.createUserFromAdminDashboard(newUser, page);
+        await init.adminLogout(page);
     });
 
     afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+        await browser.close();
         done();
     });
 
     test(
         'Should add a new user to sub-project (role -> `Member`)',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
-                const subProjectName = utils.generateRandomString();
+        async done => {
+            const subProjectName = utils.generateRandomString();
 
-                await init.loginUser(user, page);
-                await init.addSubProject(subProjectName, page);
-                const role = 'Member';
-
-                await page.waitForSelector('#teamMembers');
-                await page.click('#teamMembers');
-                await page.waitForSelector(`#btn_${subProjectName}`);
-                await page.click(`#btn_${subProjectName}`);
-                await page.waitForSelector(`#frm_${subProjectName}`);
-                await page.click(`#emails_${subProjectName}`);
-                await page.type(`#emails_${subProjectName}`, newUser.email);
-                await page.click(`#${role}_${subProjectName}`);
-                await page.click(`#btn_modal_${subProjectName}`);
-                await page.waitForTimeout(5000);
+            await init.loginUser(user, page);
+            //SubProject is only available for 'Growth Plan and above'
+            await init.growthPlanUpgrade(page);
+            await page.reload({
+                waitUntil: 'networkidle0',
             });
+            await init.addSubProject(subProjectName, page);
+            const role = 'Member';
+
+            await page.waitForSelector('#teamMembers', { visible: true });
+            await page.click('#teamMembers');
+            await page.waitForSelector(`#btn_${subProjectName}`, {
+                visible: true,
+            });
+            await page.click(`#btn_${subProjectName}`);
+            await page.waitForSelector(`#frm_${subProjectName}`, {
+                visible: true,
+            });
+            await page.click(`#emails_${subProjectName}`);
+            await page.type(`#emails_${subProjectName}`, newUser.email);
+            await page.click(`#${role}_${subProjectName}`);
+            await page.click(`#btn_modal_${subProjectName}`);
+            await page.waitForSelector(`#btn_modal_${subProjectName}`, {
+                hidden: true,
+            });
+            done();
         },
         operationTimeOut
     );

@@ -3506,10 +3506,57 @@ module.exports = {
             throw error;
         }
     },
+
+    sendCancelledScheduledEventToSubscribers: async function(schedule) {
+        try {
+            const _this = this;
+            const uuid = new Date().getTime();
+            if (schedule) {
+                for (const monitor of schedule.monitors) {
+                    const subscribers = await SubscriberService.subscribersForAlert(
+                        {
+                            monitorId: monitor.monitorId._id,
+                            subscribed: true,
+                        }
+                    );
+
+                    for (const subscriber of subscribers) {
+                        await _this.sendSubscriberScheduledEventAlert(
+                            subscriber,
+                            schedule,
+                            'Subscriber Scheduled Maintenance Cancelled',
+                            null,
+                            subscribers.length,
+                            uuid
+                        );
+                    }
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendCancelledScheduledEventToSubscribers',
+                error
+            );
+            throw error;
+        }
+    },
+
     sendScheduledEventInvestigationNoteToSubscribers: async function(message) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+
+            const monitorIds =
+                message.scheduledEventId &&
+                message.scheduledEventId.monitors.map(
+                    monitor => monitor.monitorId
+                );
+
+            const monitorsAffected = await MonitorService.findBy({
+                _id: { $in: monitorIds },
+                deleted: false,
+            });
+
             if (message) {
                 for (const monitor of message.scheduledEventId.monitors) {
                     const subscribers = await SubscriberService.subscribersForAlert(
@@ -3633,7 +3680,8 @@ module.exports = {
                                     project.name,
                                     monitor.name,
                                     projectId,
-                                    unsubscribeUrl
+                                    unsubscribeUrl,
+                                    monitorsAffected
                                 );
                                 alertStatus = 'Sent';
                                 await SubscriberAlertService.updateOneBy(
@@ -3929,6 +3977,14 @@ module.exports = {
                 _id: projectId,
             });
 
+            const eventType =
+                templateType === 'Subscriber Scheduled Maintenance'
+                    ? 'Scheduled maintenance created'
+                    : templateType ===
+                      'Subscriber Scheduled Maintenance Resolved'
+                    ? 'Scheduled maintenance resolved'
+                    : 'Scheduled maintenance cancelled';
+
             if (subscriber.alertVia === AlertType.Email) {
                 const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
                     {
@@ -3952,10 +4008,6 @@ module.exports = {
                     emailType: templateType,
                 });
 
-                const eventType =
-                    templateType === 'Subscriber Scheduled Maintenance'
-                        ? 'Scheduled maintenance created'
-                        : 'Scheduled maintenance resolved';
                 let errorMessageText;
                 if (
                     (!areEmailAlertsEnabledInGlobalSettings &&
@@ -3978,7 +4030,7 @@ module.exports = {
                         projectId,
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Email,
-                        eventType: eventType,
+                        eventType,
                         alertStatus: null,
                         error: true,
                         errorMessage: errorMessageText,
@@ -4036,6 +4088,25 @@ module.exports = {
                         );
 
                         alertStatus = 'Sent';
+                    } else if (
+                        templateType ===
+                        'Subscriber Scheduled Maintenance Cancelled'
+                    ) {
+                        await MailService.sendCancelledScheduledEventMailToSubscriber(
+                            date,
+                            subscriber.monitorName,
+                            subscriber.contactEmail,
+                            subscriber._id,
+                            subscriber.contactEmail,
+                            schedule,
+                            projectName,
+                            emailTemplate,
+                            componentName,
+                            project.replyAddress,
+                            unsubscribeUrl
+                        );
+
+                        alertStatus = 'Sent';
                     }
 
                     await SubscriberAlertService.updateOneBy(
@@ -4070,10 +4141,6 @@ module.exports = {
 
                     const investigationNoteNotificationSMSDisabled = !project.enableInvestigationNoteNotificationSMS;
 
-                    const eventType =
-                        templateType === 'Subscriber Scheduled Maintenance'
-                            ? 'Scheduled maintenance created'
-                            : 'Scheduled maintenance resolved';
                     if (
                         (!hasCustomTwilioSettings &&
                             ((IS_SAAS_SERVICE &&
@@ -4187,7 +4254,7 @@ module.exports = {
                             subscriberId: subscriber._id,
                             alertVia: AlertType.SMS,
                             alertStatus: 'Pending',
-                            eventType: eventType,
+                            eventType,
                             totalSubscribers,
                             id,
                         }
@@ -4220,7 +4287,6 @@ module.exports = {
                         ) {
                             if (project.sendResolvedIncidentNotificationSms) {
                                 sendResult = await TwilioService.sendScheduledMaintenanceResolvedToSubscriber(
-                                    date,
                                     contactPhone,
                                     smsTemplate,
                                     schedule,
@@ -4232,22 +4298,22 @@ module.exports = {
                                 alertStatus = 'Disabled';
                             }
                         } else if (
-                            templateType == 'Investigation note is created'
+                            templateType ===
+                            'Subscriber Scheduled Maintenance Cancelled'
                         ) {
-                            sendResult = await TwilioService.sendInvestigationNoteToSubscribers(
-                                date,
-                                subscriber.monitorName,
-                                contactPhone,
-                                smsTemplate,
-                                null,
-                                project.name,
-                                null,
-                                null,
-                                null,
-                                null,
-                                null
-                            );
-                            alertStatus = 'Success';
+                            if (project.sendResolvedIncidentNotificationSms) {
+                                sendResult = await TwilioService.sendScheduledMaintenanceCancelledToSubscriber(
+                                    contactPhone,
+                                    smsTemplate,
+                                    schedule,
+                                    project.name,
+                                    projectId
+                                );
+
+                                alertStatus = 'Success';
+                            } else {
+                                alertStatus = 'Disabled';
+                            }
                         }
 
                         if (

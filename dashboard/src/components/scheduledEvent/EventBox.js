@@ -51,9 +51,9 @@ class EventBox extends Component {
         } and ${monitors.length - 2} others`;
     };
 
-    handleScheduledEventDetail = scheduledEventId => {
+    handleScheduledEventDetail = scheduledEventSlug => {
         history.push(
-            `/dashboard/project/${this.props.slug}/scheduledEvents/${scheduledEventId}`
+            `/dashboard/project/${this.props.slug}/scheduledEvents/${scheduledEventSlug}`
         );
     };
 
@@ -86,11 +86,9 @@ class EventBox extends Component {
             limit,
             count,
             skip,
-            profileSettings,
             error,
             requesting,
             projectId,
-            openModal,
             fetchingMonitors,
             monitors,
             currentProject,
@@ -250,7 +248,7 @@ class EventBox extends Component {
                                                         e.preventDefault();
                                                         e.stopPropagation();
                                                         this.handleScheduledEventDetail(
-                                                            scheduledEvent._id
+                                                            scheduledEvent.slug
                                                         );
                                                     }}
                                                 >
@@ -317,29 +315,57 @@ class EventBox extends Component {
                                                     </div>
                                                     <div className="bs-ObjectList-cell bs-u-v-middle">
                                                         <div className="Box-root">
-                                                            <button
-                                                                id={`viewScheduledEvent_${index}`}
-                                                                title="view"
-                                                                className="bs-Button bs-DeprecatedButton"
-                                                                type="button"
-                                                                style={{
-                                                                    float:
-                                                                        'right',
-                                                                    marginRight:
-                                                                        '10px',
-                                                                }}
-                                                                onClick={e => {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    this.handleScheduledEventDetail(
-                                                                        scheduledEvent._id
-                                                                    );
-                                                                }}
+                                                            <ShouldRender
+                                                                if={
+                                                                    scheduledEvent.cancelled
+                                                                }
                                                             >
-                                                                <span>
-                                                                    View
-                                                                </span>
-                                                            </button>
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        float:
+                                                                            'right',
+                                                                        marginLeft: 20,
+                                                                    }}
+                                                                >
+                                                                    <Badge
+                                                                        color={
+                                                                            'red'
+                                                                        }
+                                                                    >
+                                                                        Cancelled
+                                                                    </Badge>
+                                                                </div>
+                                                            </ShouldRender>
+                                                            <ShouldRender
+                                                                if={
+                                                                    !scheduledEvent.cancelled
+                                                                }
+                                                            >
+                                                                {' '}
+                                                                <button
+                                                                    id={`viewScheduledEvent_${index}`}
+                                                                    title="view"
+                                                                    className="bs-Button bs-DeprecatedButton"
+                                                                    type="button"
+                                                                    style={{
+                                                                        float:
+                                                                            'right',
+                                                                        marginLeft: 20,
+                                                                    }}
+                                                                    onClick={e => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        this.handleScheduledEventDetail(
+                                                                            scheduledEvent.slug
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    <span>
+                                                                        View
+                                                                    </span>
+                                                                </button>
+                                                            </ShouldRender>
                                                         </div>
                                                     </div>
                                                 </div>

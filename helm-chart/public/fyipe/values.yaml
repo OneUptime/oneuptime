@@ -2,7 +2,9 @@
 ## Important: If you're implenting this in the enterprise environment, this should always be `false`. 
 ## This is for Fyipe SaaS service. This will deploy all the SaaS env vars
 ################################################################################## 
-saas: 
+saas:
+  isMongoPrimaryBackupServiceEnabled: false
+  isMongoSecondaryBackupServiceEnabled: false
   isSaasService: false
   stripe: 
     publicKey: #Stripe public and private key

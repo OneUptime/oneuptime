@@ -21,6 +21,7 @@ const emailTemplateSchema = new Schema({
             'Subscriber Scheduled Maintenance',
             'Subscriber Scheduled Maintenance Note',
             'Subscriber Scheduled Maintenance Resolved',
+            'Subscriber Scheduled Maintenance Cancelled',
         ],
         required: true,
     },

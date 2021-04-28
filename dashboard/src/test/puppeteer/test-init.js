@@ -382,7 +382,7 @@ module.exports = {
         await page.waitForSelector('button[id=showMoreMonitors]');
         await page.click('button[id=showMoreMonitors]');
         await page.click('[data-testId=type_url]');
-        await page.waitForSelector('#url');
+        await page.waitForSelector('#url', {visible: true});
         await page.click('#url');
         await page.type('#url', 'https://google.com');
         await page.click('button[type=submit]');
@@ -404,7 +404,7 @@ module.exports = {
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
         await page.click('[data-testId=type_url]');
-        await page.waitForSelector('#url');
+        await page.waitForSelector('#url', {visible: true});
         await page.click('#url');
         await page.type('#url', 'https://google.com');
         await page.click('button[type=submit]');
@@ -428,7 +428,7 @@ module.exports = {
         await page.type('input[id=name]', monitorName);
         await page.click('input[data-testId=type_api]');
         await this.selectByText('#method', 'get', page);
-        await page.waitForSelector('#url');
+        await page.waitForSelector('#url', {visible: true});
         await page.click('#url');
         await page.type('#url', utils.HTTP_TEST_SERVER_URL);
         await page.waitForSelector('#advanceOptions');
@@ -735,8 +735,11 @@ module.exports = {
                 delay: 150,
             });
         }
-        await page.click('#btnCreateProject');
-        await page.waitForNavigation({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('#btnCreateProject', { visible: true });
+        await Promise.all([
+            page.click('#btnCreateProject'),
+            page.waitForNavigation({ waitUntil: 'networkidle0' }),
+        ]);
     },
     growthPlanUpgrade: async function(page) {
         await page.goto(utils.DASHBOARD_URL);
