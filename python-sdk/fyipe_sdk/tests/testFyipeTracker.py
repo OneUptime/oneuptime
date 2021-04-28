@@ -128,7 +128,7 @@ class TrackerTest(unittest.TestCase):
             "content": {"message": "tester"}
         }
 
-        # add 3 timelinee events
+        # add 3 timeline events
         tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
         tracker.addToTimeline(customTimeline2["category"], customTimeline2["content"], customTimeline2["type"])
         tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], "debug")
