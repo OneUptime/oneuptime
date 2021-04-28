@@ -113,6 +113,24 @@ module.exports = {
             throw error;
         }
     },
+    resetDomain: async function(domain) {
+        try {
+            const _this = this;
+            const updateObj = {
+                verificationToken: 'fyipe=' + randomChar(),
+                verified: false,
+                updatedAt: new Date(),
+            };
+            const updatedDomain = await _this.updateOneBy(
+                { _id: domain },
+                updateObj
+            );
+            return updatedDomain;
+        } catch (error) {
+            ErrorService.log('domainVerificationService.resetDomain', error);
+            throw error;
+        }
+    },
     doesTxtRecordExist: async function(subDomain, verificationToken) {
         const parsed = psl.parse(subDomain);
         const host = 'fyipe';

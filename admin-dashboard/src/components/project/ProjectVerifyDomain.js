@@ -27,7 +27,7 @@ class ProjectVerifyDomain extends Component {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
-                return this.handleDelete();
+                return this.handleVerifyDomain();
             default:
                 return false;
         }
