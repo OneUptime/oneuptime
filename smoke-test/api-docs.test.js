@@ -28,5 +28,5 @@ describe('Check api-docs up', () => {
         });
         expect(response).toBe('Fyipe API Documentation');
         done();
-    }, 30000);
+    }, 60000);
 });

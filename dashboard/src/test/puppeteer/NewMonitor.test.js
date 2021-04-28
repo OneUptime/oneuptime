@@ -160,7 +160,7 @@ describe('New Monitor API', () => {
             await page.type('input[id=name]', monitorName);
             // Added new URL-Montior
             await page.click('[data-testId=type_url]');
-            await page.waitForSelector('#url');
+            await page.waitForSelector('#url', {visible: true});
             await page.click('#url');
             await page.type('#url', 'https://google.com');
             await page.click('button[type=submit]');
