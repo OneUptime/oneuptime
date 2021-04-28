@@ -30,9 +30,14 @@ class DataStore {
     mapValue(path, store, time, method) {
         if (store.has(path)) {
             const s = store.get(path);
+            const avg = s.avgTime,
+                rq = s.requests,
+                ct = time;
+            let total = avg * rq + ct;
+            total = total / (rq + 1);
             return {
                 requests: s.requests + 1,
-                avgTime: (s.avgTime * s.requests + time) / s.requests + 1,
+                avgTime: total,
                 maxTime: s.maxTime < time ? time : s.maxTime,
                 method: s.method,
             };
