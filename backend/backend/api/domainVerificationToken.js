@@ -1,6 +1,6 @@
 const express = require('express');
 const psl = require('psl');
-const { getUser } = require('../middlewares/user');
+const { getUser, isUserMasterAdmin } = require('../middlewares/user');
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -50,7 +50,7 @@ router.put(
 router.put(
     '/:projectId/unverify/:domainId',
     getUser,
-    isAuthorized,
+    isUserMasterAdmin,
     async (req, res) => {
         try {
             const { domainId } = req.params;
@@ -138,7 +138,7 @@ router.post('/:projectId/domain', getUser, isAuthorized, async (req, res) => {
 router.put(
     '/:projectId/resetDomain/:domainId',
     getUser,
-    isAuthorized,
+    isUserMasterAdmin,
     async (req, res) => {
         try {
             const { domainId } = req.params;
