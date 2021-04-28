@@ -492,7 +492,7 @@ router.get(
 
             await Promise.all(
                 performanceTrackers.map(async performanceTracker => {
-                    let trackerStatus = 'Not tracking yet';
+                    let trackerStatus = 'Not tracking requesting';
                     const metrics = await PerformanceTrackerMetricService.findBy(
                         { performanceTrackerId: performanceTracker._id },
                         1,
