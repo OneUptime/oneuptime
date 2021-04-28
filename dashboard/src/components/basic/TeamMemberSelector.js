@@ -39,7 +39,6 @@ const TeamMemberSelector = ({
         form[policyIndex].teams[teamIndex].teamMembers
     );
 
-
     const allowedOptionsForDropdown =
         renderType === 'team'
             ? [

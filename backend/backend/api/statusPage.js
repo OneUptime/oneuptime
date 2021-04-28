@@ -622,8 +622,11 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
 });
 
 // External status page api - get the data to show on status page
-router.get('/:statusPageId', checkUser, ipWhitelist, async function(req, res) {
-    const statusPageId = req.params.statusPageId;
+router.get('/:statusPageSlug', checkUser, ipWhitelist, async function(
+    req,
+    res
+) {
+    const statusPageSlug = req.params.statusPageSlug;
     const url = req.query.url;
     const user = req.user;
     let statusPage = {};
@@ -634,9 +637,9 @@ router.get('/:statusPageId', checkUser, ipWhitelist, async function(req, res) {
                 { domains: { $elemMatch: { domain: url } } },
                 user
             );
-        } else if ((!url || url === 'null') && statusPageId) {
+        } else if ((!url || url === 'null') && statusPageSlug) {
             statusPage = await StatusPageService.getStatusPage(
-                { _id: statusPageId },
+                { slug: statusPageSlug },
                 user
             );
         } else {
@@ -757,18 +760,18 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
     }
 });
 router.get(
-    '/:projectId/:statusPageId/notes',
+    '/:projectId/:statusPageSlug/notes',
     checkUser,
     ipWhitelist,
     async function(req, res) {
         let result;
-        const statusPageId = req.params.statusPageId;
+        const statusPageSlug = req.params.statusPageSlug;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 5;
         try {
             // Call the StatusPageService.
             const response = await StatusPageService.getNotes(
-                { _id: statusPageId },
+                { slug: statusPageSlug },
                 skip,
                 limit
             );
@@ -919,18 +922,18 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
 });
 
 router.get(
-    '/:projectId/:statusPageId/events',
+    '/:projectId/:statusPageSlug/events',
     checkUser,
     ipWhitelist,
     async function(req, res) {
-        const statusPageId = req.params.statusPageId;
+        const statusPageSlug = req.params.statusPageSlug;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 5;
         const theme = req.query.theme;
         try {
             // Call the StatusPageService.
             const response = await StatusPageService.getEvents(
-                { _id: statusPageId },
+                { slug: statusPageSlug },
                 skip,
                 limit,
                 theme
@@ -963,16 +966,16 @@ router.get(
 );
 
 router.get(
-    '/:projectId/:statusPageId/futureEvents',
+    '/:projectId/:statusPageSlug/futureEvents',
     checkUser,
     ipWhitelist,
     async function(req, res) {
         try {
-            const { statusPageId } = req.params;
+            const { statusPageSlug } = req.params;
             const { skip = 0, limit = 5 } = req.query;
 
             const response = await StatusPageService.getFutureEvents(
-                { _id: statusPageId },
+                { slug: statusPageSlug },
                 skip,
                 limit
             );
@@ -1151,18 +1154,33 @@ router.get('/:projectId/probes', checkUser, async function(req, res) {
     }
 });
 
+router.get('/:statusPageSlug/probes/statusPage', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 0;
+        const probes = await ProbeService.findBy({}, limit, skip);
+        const count = await ProbeService.countBy({});
+        return sendListResponse(req, res, probes, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.delete(
-    '/:projectId/:statusPageId',
+    '/:projectId/:statusPageSlug',
     getUser,
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
-        const statusPageId = req.params.statusPageId;
+        const statusPageSlug = req.params.statusPageSlug;
         const userId = req.user ? req.user.id : null;
         try {
             // Call the StatusPageService.
             const statusPage = await StatusPageService.deleteBy(
-                { _id: statusPageId },
+                { slug: statusPageSlug },
                 userId
             );
             return sendItemResponse(req, res, statusPage);
@@ -1200,15 +1218,15 @@ router.get('/:projectId/timeline/:incidentId', checkUser, async function(
 });
 
 router.get(
-    '/:projectId/:statusPageId/timelines',
+    '/:projectId/:statusPageSlug/timelines',
     checkUser,
     ipWhitelist,
     async function(req, res) {
         try {
-            const { statusPageId } = req.params;
+            const { statusPageSlug } = req.params;
 
             const incidents = await StatusPageService.getNotes({
-                _id: statusPageId,
+                slug: statusPageSlug,
             });
             const response = await IncidentTimelineService.getIncidentLastTimelines(
                 incidents.notes

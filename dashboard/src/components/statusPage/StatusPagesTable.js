@@ -25,15 +25,17 @@ class StatusPagesTable extends Component {
     }
 
     componentDidMount() {
-        this.props
-            .fetchSubProjectStatusPages(this.props.projectId)
-            .then(res => {
-                if (res.data.length > 0) {
-                    res.data.forEach(proj => {
-                        this.setState({ [proj._id]: 1 });
-                    });
-                }
-            });
+        if (this.props.projectId) {
+            this.props
+                .fetchSubProjectStatusPages(this.props.projectId)
+                .then(res => {
+                    if (res.data.length > 0) {
+                        res.data.forEach(proj => {
+                            this.setState({ [proj._id]: 1 });
+                        });
+                    }
+                });
+        }
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'PAGE VIEW: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE'
