@@ -170,14 +170,16 @@ class PerformanceTrackerView extends Component {
                                     }
                                 />
                             )}
-                        {!trackerObj.requesting && performanceTracker && (
-                            <PerformanceTrackerHeader
-                                performanceTracker={performanceTracker}
-                                componentSlug={component.slug}
-                                project={currentProject}
-                                component={component}
-                            />
-                        )}
+                        {!trackerObj.requesting &&
+                            performanceTracker &&
+                            component && (
+                                <PerformanceTrackerHeader
+                                    performanceTracker={performanceTracker}
+                                    componentSlug={component.slug}
+                                    project={currentProject}
+                                    component={component}
+                                />
+                            )}
                         <Tabs
                             selectedTabClassName={'custom-tab-selected'}
                             onSelect={tabIndex => this.tabSelected(tabIndex)}
