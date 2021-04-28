@@ -13,6 +13,7 @@ class FyipeTracker:
         self.errorTrackerId = errorTrackerId
         self.errorTrackerKey = errorTrackerKey
         self.apiUrl = apiUrl + "/error-tracker/" + errorTrackerId + "/track"
+        self.tags = []
         self.setUpOptions(options)
         self.util = Util(self.options)
         self.setEventId()
@@ -62,6 +63,41 @@ class FyipeTracker:
 
     def getTimeline(self):
         return self.listenerObj.getTimeline();
+    
+    def setTag(self, key, value):
+    
+        if ( not (isinstance(key, str) or isinstance(value, str)) ):
+            raise Exception("Invalid Tag")
+        
+        exist = False;
+        for tag in self.tags:
+            if(tag['key'] == key):
+                # set the round flag
+                exist = True
+                # replace value if it exist
+                tag["value"] = value
+                break
+            
+        if not exist:
+            # push key and value if it doesnt
+            tag = {
+                "key": key,
+                "value": value
+            }
+            self.tags.append(tag)
+        
+    def setTags(self, tags):
+    
+        if (not isinstance(tags, list) ):
+            raise Exception("Invalid Tags")
+        
+        for tag in tags:
+            if(tag['key'] is not None and tag['value'] is not None):
+                self.setTag(tag['key'], tag['value'])
+
+    def getTags(self):
+        return self.tags
+
 
 
 
