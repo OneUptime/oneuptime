@@ -5,6 +5,8 @@ const RealTimeService = require('./realTimeService');
 const ScheduledEventNoteService = require('./scheduledEventNoteService');
 const AlertService = require('./alertService');
 const moment = require('moment');
+const generate = require('nanoid/generate');
+const slugify = require('slugify');
 
 module.exports = {
     create: async function({ projectId }, data, recurring) {
@@ -16,7 +18,6 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
-
             if (!isArrayUnique(data.monitors)) {
                 const error = new Error(
                     'You cannot have multiple selection of a monitor'
@@ -31,6 +32,12 @@ module.exports = {
             }));
 
             data.projectId = projectId;
+            if (data && data.name) {
+                let name = data.name;
+                name = slugify(name);
+                name = `${name}-${generate('1234567890', 8)}`;
+                data.slug = name.toLowerCase();
+            }
 
             let scheduledEvent = await ScheduledEventModel.create({
                 ...data,
@@ -46,7 +53,6 @@ module.exports = {
                 .populate('projectId', 'name slug')
                 .populate('createdById', 'name')
                 .execPopulate();
-
             // add note when a scheduled event is created
             await ScheduledEventNoteService.create({
                 content: 'THIS SCHEDULED EVENT HAS BEEN CREATED',
@@ -112,7 +118,12 @@ module.exports = {
             data.monitors = data.monitors.map(monitor => ({
                 monitorId: monitor,
             }));
-
+            if (data && data.name) {
+                let name = data.name;
+                name = slugify(name);
+                name = `${name}-${generate('1234567890', 8)}`;
+                data.slug = name.toLowerCase();
+            }
             let updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
                 { _id: query._id },
                 {

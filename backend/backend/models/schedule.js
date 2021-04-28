@@ -3,6 +3,7 @@ const mongoose = require('../config/db');
 const Schema = mongoose.Schema;
 const scheduleSchema = new Schema({
     name: String,
+    slug: String,
     projectId: {
         type: Schema.Types.ObjectId,
         ref: 'Project',

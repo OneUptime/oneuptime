@@ -19,6 +19,7 @@ const scheduledEventsSchema = new Schema(
             },
         ],
         name: String,
+        slug: String,
         createdById: {
             type: String,
             ref: 'User',

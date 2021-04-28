@@ -91,7 +91,7 @@ class NewApplicationLog extends Component {
                 )
                 .then(
                     data => {
-                        history.push(
+                        history.replace(
                             `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/application-logs/${data.data.slug}`
                         );
                         thisObj.props.reset();

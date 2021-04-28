@@ -22,7 +22,7 @@ const OngoingScheduledEvent = ({ event, monitorList, history, slug }) => {
             key={event._id}
             onClick={() => {
                 history.push(
-                    `/dashboard/project/${slug}/scheduledEvents/${event._id}`
+                    `/dashboard/project/${slug}/scheduledEvents/${event.slug}`
                 );
             }}
         >

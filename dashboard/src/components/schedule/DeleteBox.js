@@ -109,18 +109,18 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, props) => {
-    const { scheduleId, subProjectId, userId } = props.match.params;
+    const { scheduleSlug, subProjectId, userId } = props.match.params;
 
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {
             return subProjectSchedule.schedules.find(
-                schedule => schedule._id === scheduleId
+                schedule => schedule.slug === scheduleSlug
             );
         }
     );
 
     schedule = schedule.find(
-        schedule => schedule && schedule._id === scheduleId
+        schedule => schedule && schedule.slug === scheduleSlug
     );
 
     const scheduleName = schedule && schedule.name;
@@ -130,7 +130,7 @@ const mapStateToProps = (state, props) => {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
         subProjectId,
-        scheduleId,
+        scheduleId: schedule && schedule._id,
         slug: state.project.currentProject && state.project.currentProject.slug,
         userId,
         isRequesting: state.schedule.deleteSchedule.requesting,
