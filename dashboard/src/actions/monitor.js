@@ -1280,7 +1280,15 @@ export function searchMonitors(projectId, values) {
                 if (monitor.data.length > 0) {
                     const obj = {
                         title: 'Monitors',
-                        values: monitor.data.map(mon => mon.name),
+                        values: monitor.data.map(mon => ({
+                            name: mon.name,
+                            url:
+                                mon.componentId.slug +
+                                '/monitoring/' +
+                                mon.slug,
+                            componentId:  mon.componentId._id,
+                            projectId,
+                        })),
                     };
                     dispatch(searchMonitorSuccess(obj));
                 }

@@ -37,6 +37,10 @@ export default function search(state = initialState, action) {
                 error: action.payload,
                 requesting: false,
             });
+        case RESET_SEARCH_FIELDS:
+            return Object.assign({}, state, {
+                search: [],
+            });
         default:
             return state;
     }

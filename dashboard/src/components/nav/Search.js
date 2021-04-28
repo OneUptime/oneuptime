@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { reduxForm, Field } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
@@ -353,7 +352,4 @@ function mapStateToProps(state) {
     };
 }
 
-export default connect(
-    mapStateToProps,
-    mapDispatchToProps
-)(withRouter(SearchBox));
+export default connect(mapStateToProps, mapDispatchToProps)(SearchBox);

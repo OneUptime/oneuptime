@@ -129,23 +129,6 @@ export class ComponentDetail extends Component {
         );
         this.props.fetchMonitors(currentProject._id)
     }
-    // componentDidUpdate(prevState) {
-    //     const { component } = this.props;
-
-    //     if (
-    //         prevState.searchValues &&
-    //         prevState.searchValues.search !== this.props.searchValues &&
-    //         this.props.searchValues.search && this.props.searchValues &&
-    //         this.props.searchValues.search !== ''
-    //     ) {
-    //         console.log('running')
-    //         this.props.searchComponents(
-    //             component.projectId._id,
-    //             this.props.searchValues
-    //         );
-    //     }
-    //     //
-    // }
 
     render() {
         const { component, componentState, currentProject } = this.props;
