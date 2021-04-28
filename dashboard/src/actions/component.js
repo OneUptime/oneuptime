@@ -504,7 +504,12 @@ export function searchComponents(projectId, values) {
                 if (compo.data.length > 0) {
                     const obj = {
                         title: 'Component',
-                        values: compo.data.map(com => com.name),
+                        values: compo.data.map(com => ({
+                            name: com.name,
+                            url: com.slug + '/monitoring',
+                            componentId: com._id,
+                            projectId,
+                        })),
                     };
                     dispatch(searchComponentSuccess(obj));
                 }

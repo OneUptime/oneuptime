@@ -33,6 +33,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const uuid = require('uuid');
 const defaultStatusPageColors = require('../config/statusPageColors');
 const SubscriberService = require('../services/subscriberService');
+const statusPageService = require('../services/statusPageService');
 
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
@@ -1154,7 +1155,10 @@ router.get('/:projectId/probes', checkUser, async function(req, res) {
     }
 });
 
-router.get('/:statusPageSlug/probes/statusPage', checkUser, async function(req, res) {
+router.get('/:statusPageSlug/probes/statusPage', checkUser, async function(
+    req,
+    res
+) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
@@ -1261,6 +1265,23 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
             monitorId: monitors,
         });
         return sendItemResponse(req, res, { subscribers, skip, limit, count });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+//searching status pages
+router.post('/search/:projectId', getUser, async function(req, res) {
+    try {
+        const filter = req.body.search;
+        const projectIds = req.body.projectIds;
+        console.log(projectIds)
+        const statusPage = await statusPageService.findBy({
+            projectId: { $in: projectIds },
+            deleted: { $ne: null },
+            $or: [{ name: { $regex: new RegExp(filter), $options: 'i' } }],
+        });
+        return sendListResponse(req, res, statusPage);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
