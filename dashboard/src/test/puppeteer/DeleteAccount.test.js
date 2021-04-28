@@ -1,10 +1,9 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const user = {
     email: utils.generateRandomBusinessEmail(),
@@ -22,35 +21,27 @@ describe('Profile -> Delete Account Component test', () => {
 
     beforeAll(async () => {
         jest.setTimeout(500000);
-
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        // Register user
-        return await cluster.execute(null, async ({ page }) => {
+        
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
+        // Register user       
             await init.registerUser(user, page);
-        });
+       
     });
 
-    afterAll(async () => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async (done) => {      
+        await browser.close();
+        done();
     });
 
     test(
         'Should not delete account with single project -> multiple users -> single owner',
-        async () => {
+        async (done) => {
             const projectName = 'Project1';
-            const role = 'Member';
-            return await cluster.execute(null, async ({ page }) => {
+            const role = 'Member';          
                 await page.goto(utils.DASHBOARD_URL);
                 // Rename project
                 await page.waitForSelector('#projectSettings');
@@ -96,18 +87,17 @@ describe('Profile -> Delete Account Component test', () => {
                     '#projectDeletion'
                 );
 
-                expect(projectDeletion).toBeDefined();
-            });
+                expect(projectDeletion).toBeDefined();            
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should not delete account with multiple projects -> multiple users -> single owner',
-        async () => {
+        async (done) => {
             const projectName = 'Project2';
-            const role = 'Member';
-            return await cluster.execute(null, async ({ page }) => {
+            const role = 'Member';            
                 await page.goto(utils.DASHBOARD_URL);
                 await init.addProject(page, projectName);
 
@@ -144,17 +134,17 @@ describe('Profile -> Delete Account Component test', () => {
                 );
 
                 expect(projectDeletion).toBeDefined();
-            });
+            
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should not delete account without confirmation',
-        async () => {
+        async (done) => {
             const role = 'Owner';
-            const projectName = 'Project1';
-            return await cluster.execute(null, async ({ page }) => {
+            const projectName = 'Project1';            
                 await page.goto(utils.DASHBOARD_URL);
 
                 // Change member role -> Owner
@@ -200,15 +190,15 @@ describe('Profile -> Delete Account Component test', () => {
                 );
 
                 expect(projectDeletion).toBeDefined();
-            });
+           s
+           done();
         },
         operationTimeOut
     );
 
     test(
         'Should delete account with multiple projects -> multiple users -> multiple owners',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL);
 
                 // Navigate to profile page and delete account
@@ -228,7 +218,8 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.waitForNavigation();
                 const url = await page.url();
                 expect(url).toEqual(`${utils.ACCOUNTS_URL}/accounts/login`);
-            });
+            
+            done();
         },
         operationTimeOut
     );
