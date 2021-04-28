@@ -1,10 +1,9 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const user = {
     email: utils.generateRandomBusinessEmail(),
@@ -15,39 +14,29 @@ const applicationLogName = utils.generateRandomString();
 let applicationLogKey = '';
 
 describe('Log Containers', () => {
-    const operationTimeOut = 900000;
-
-    let cluster;
+    const operationTimeOut = 900000;    
 
     beforeAll(async () => {
         jest.setTimeout(200000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 120000,
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        return await cluster.execute(null, async ({ page }) => {
             await init.registerUser(user, page);
-        });
+        
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {       
+        await browser.close();
         done();
     });
 
     test(
         'Should create new component',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
@@ -73,14 +62,14 @@ describe('Log Containers', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(componentName);
-            });
+           
+           done();
         },
         operationTimeOut
     );
     test(
         'Should create new log container and confirm that it redirects to the details page',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitForSelector('#logs');
@@ -105,14 +94,14 @@ describe('Log Containers', () => {
                     `#key_${applicationLogName}`
                 );
                 expect(logKeyElement).toBeDefined();
-            });
+           
+           done();
         },
         operationTimeOut
     );
     test(
         'Should create new resource category then redirect to application log page to create a container under that',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {          
                 const categoryName = 'Random-Category';
                 const appLogName = `${applicationLogName}-sample`;
                 // create a new resource category
@@ -141,14 +130,14 @@ describe('Log Containers', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(categoryName.toUpperCase());
-            });
+           
+           done();
         },
         operationTimeOut
     );
     test(
         'Should not create new log container',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitForSelector('#logs');
@@ -172,14 +161,14 @@ describe('Log Containers', () => {
                 spanElement.should.be.exactly(
                     'This field cannot be left blank'
                 );
-            });
+
+           done();
         },
         operationTimeOut
     );
     test(
         'Should open details page of created log container',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {           
                 await init.navigateToApplicationLogDetails(
                     componentName,
                     applicationLogName,
@@ -192,14 +181,14 @@ describe('Log Containers', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(applicationLogName);
-            });
+            
+            done();
         },
         operationTimeOut
     );
     test(
         'Should display warning for empty log container',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // goto thee details page
                 await init.navigateToApplicationLogDetails(
                     componentName,
@@ -212,14 +201,14 @@ describe('Log Containers', () => {
                     `#${applicationLogName}-no-log-warning`
                 );
                 expect(errorElement).toBeDefined();
-            });
+          
+          done();
         },
         operationTimeOut
     );
     test(
         'Should filter log container by selected log type',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // goto thee details page
                 await init.navigateToApplicationLogDetails(
                     componentName,
@@ -295,14 +284,14 @@ describe('Log Containers', () => {
 
                 logTypeElement = await logTypeElement.jsonValue();
                 logTypeElement.should.be.exactly('');
-            });
+            
+            done();
         },
         operationTimeOut
     );
     test(
         'Should open edit component for created log container',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await init.navigateToApplicationLogDetails(
                     componentName,
                     applicationLogName,
@@ -319,14 +308,14 @@ describe('Log Containers', () => {
                 spanElement.should.be.exactly(
                     `Edit Log Container ${applicationLogName}`
                 );
-            });
+           
+           done();
         },
         operationTimeOut
     );
     test(
         'Should open application key for created log container',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await init.navigateToApplicationLogDetails(
                     componentName,
                     applicationLogName,
@@ -359,14 +348,14 @@ describe('Log Containers', () => {
                 await page.click(
                     `#cancel_application_log_key_${applicationLogName}`
                 );
-            });
+            
+            done();
         },
         operationTimeOut
     );
     test(
         'Should open application key for created log container and hide it back',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await init.navigateToApplicationLogDetails(
                     componentName,
                     applicationLogName,
@@ -402,14 +391,14 @@ describe('Log Containers', () => {
                 spanElement = await spanElement.jsonValue();
 
                 expect(spanElement).toEqual('Click here to reveal Log API key');
-            });
+            
+            done();
         },
         operationTimeOut
     );
     test(
         'Should reset application key for created log container',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await init.navigateToApplicationLogDetails(
                     componentName,
                     applicationLogName,
@@ -475,14 +464,14 @@ describe('Log Containers', () => {
 
                 expect(spanElement).toBeDefined();
                 spanElement.should.not.be.equal(applicationLogKey);
-            });
+            
+            done();
         },
         operationTimeOut
     );
     test(
         'Should update name for created log container',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await init.navigateToApplicationLogDetails(
                     componentName,
                     applicationLogName,
@@ -506,14 +495,14 @@ describe('Log Containers', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(`${applicationLogName}-new`);
-            });
+            
+            done();
         },
         operationTimeOut
     );
     test(
         'Should update category for created log container',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {           
                 const categoryName = 'Another-Category';
                 // create a new resource category
                 await init.addResourceCategory(categoryName, page);
@@ -548,14 +537,14 @@ describe('Log Containers', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(categoryName.toUpperCase());
-            });
+           
+           done();
         },
         operationTimeOut
     );
     test(
         'Should delete category for created log container and reflect',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {           
                 const categoryName = 'Another-Category';
 
                 // confirm the application log has a category
@@ -594,7 +583,8 @@ describe('Log Containers', () => {
                     { hidden: true }
                 );
                 expect(spanElementBadge).toBeNull();
-            });
+          
+          done();
         },
         operationTimeOut
     );
