@@ -138,5 +138,93 @@ class TrackerTest(unittest.TestCase):
         self.assertEqual(timeline[0]["type"], self.customTimeline["type"]) 
         self.assertEqual(timeline[1]["category"], customTimeline2["category"])
     
+    def test_should_add_tags(self):
+        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+
+        tag = {
+            "key": "location",
+            "value": "Warsaw"
+        } 
+        tracker.setTag(tag['key'], tag['value'])
+        
+        availableTags = tracker.getTags()
+        self.assertIsInstance(availableTags, list)
+        self.assertEqual(1, len(availableTags))
+        self.assertEqual(tag['key'], availableTags[0]['key'])
+    
+    def test_should_add_multiple_tags(self):
+        
+        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tags = []
+        tag = {
+            "key": "location",
+            "value": "Warsaw"
+        } 
+        tags.append(tag)
+
+        tagB = {
+            "key": "city",
+            "value": "Leeds"
+        } 
+        tags.append(tagB)
+
+        tagC = {
+            "key": "device",
+            "value": "iPhone"
+        } 
+        tags.append(tagC)
+
+        tracker.setTags(tags)
+
+        availableTags = tracker.getTags()
+        self.assertIsInstance(availableTags, list)
+        self.assertEqual(len(tags), len(availableTags))
+    
+    def test_should_overwrite_existing_keys_to_avoid_duplicate_tags(self):
+        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+
+        tags = []
+        tag = {
+            "key": "location",
+            "value": "Warsaw"
+        } 
+        tags.append(tag)
+
+        tagB = {
+            "key": "city",
+            "value": "Leeds"
+        } 
+        tags.append(tagB)
+
+        tagC = {
+            "key": "location",
+            "value": "Paris"
+        } 
+        tags.append(tagC)
+
+        tagD = {
+            "key": "device",
+            "value": "iPhone"
+        } 
+        tags.append(tagD)
+
+        tagE = {
+            "key": "location",
+            "value": "London"
+        } 
+        tags.append(tagE)
+
+        tracker.setTags(tags)
+
+        availableTags = tracker.getTags()
+        self.assertIsInstance(availableTags, list)
+        self.assertEqual(3, len(availableTags)) # only 3 unique tags
+        self.assertEqual(tagC["key"], availableTags[0]["key"]) 
+        self.assertNotEqual(tagC["value"], availableTags[0]["value"])# old value for that tag location
+        self.assertEqual(tagE["key"], availableTags[0]["key"]) 
+        self.assertEqual(tagE["value"], availableTags[0]["value"])# latest value for that tag location
+    
+    
+    
     
     
