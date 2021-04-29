@@ -33,11 +33,11 @@ class DataStore {
             const avg = s.avgTime,
                 rq = s.requests,
                 ct = time;
-            let total = avg * rq + ct;
-            total = total / (rq + 1);
+            let avgTime = avg * rq + ct;
+            avgTime = avgTime / (rq + 1);
             return {
                 requests: s.requests + 1,
-                avgTime: total,
+                avgTime: avgTime,
                 maxTime: s.maxTime < time ? time : s.maxTime,
                 method: s.method,
             };
