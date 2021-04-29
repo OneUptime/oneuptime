@@ -19,21 +19,23 @@ router.put(
     getUser,
     isAuthorized,
     async (req, res) => {
-        const { domain: subDomain, verificationToken } = req.body;
+        const { domain: subDomain, verificationToken, forceVerify } = req.body;
         // id of the base domain
         const { domainId } = req.params;
 
         try {
-            const doesTxtRecordExist = await DomainVerificationService.doesTxtRecordExist(
-                subDomain,
-                verificationToken
-            );
+            if (!forceVerify) {
+                const doesTxtRecordExist = await DomainVerificationService.doesTxtRecordExist(
+                    subDomain,
+                    verificationToken
+                );
 
-            if (!doesTxtRecordExist) {
-                return sendErrorResponse(req, res, {
-                    message: 'TXT record not found',
-                    code: 400,
-                });
+                if (!doesTxtRecordExist) {
+                    return sendErrorResponse(req, res, {
+                        message: 'TXT record not found',
+                        code: 400,
+                    });
+                }
             }
 
             const response = await DomainVerificationService.updateOneBy(
