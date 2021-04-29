@@ -2,7 +2,7 @@ smoke_test_staging:
     stage: SmokeTest
     allow_failure: true
     script:
-        - cd smoke-test
+        - cd tests
         - npm ci
         - npm run-script staging-test
         - cd ..

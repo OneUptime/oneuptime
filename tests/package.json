@@ -1,5 +1,5 @@
 {
-    "name": "smoke-test",
+    "name": "tests",
     "version": "1.0.0",
     "description": "Smoke tests for fyipe",
     "main": "index.test.js",

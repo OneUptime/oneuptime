@@ -11,7 +11,7 @@ e2e_microk8s_enterprise_test:
         - export DASHBOARD_URL=http://localhost/dashboard
         - export BACKEND_URL=http://localhost/api
         - export LICENSING_URL=http://localhost/license
-        - cd smoke-test
+        - cd tests
         - npm ci
         - npm run enterprise-test
         - cd ..

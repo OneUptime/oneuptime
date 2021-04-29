@@ -15,7 +15,7 @@ e2e_docker_compose_enterprise_test:
         - export ADMIN_DASHBOARD_URL=http://localhost:3100
         - export DASHBOARD_URL=http://localhost:3000
         - export BACKEND_URL=http://localhost:3002
-        - cd smoke-test
+        - cd tests
         - npm ci
         - npm run enterprise-test
         - cd ..

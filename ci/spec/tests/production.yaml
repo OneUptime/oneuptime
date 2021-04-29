@@ -9,7 +9,7 @@ smoke_test_production:
         - export STATUSPAGE_URL=https://statuspage.fyipe.com
         - export APIDOCS_URL=https://fyipe.com/docs
         - export LICENSING_URL=https://fyipe.com/license
-        - cd smoke-test
+        - cd tests
         - npm ci
         - npm run test
         - cd ..
