@@ -941,27 +941,36 @@ export function deleteProjectDomainFailure(error) {
     };
 }
 
+export function resetDeleteProjectDomain() {
+    return {
+        type: types.RESET_DELETE_PROJECT_DOMAIN,
+    };
+}
+
 export function deleteProjectDomain({ projectId, domainId }) {
     return async function(dispatch) {
         dispatch(deleteProjectDomainRequest());
-
-        try {
-            const response = await deleteApi(
-                `domainVerificationToken/${projectId}/domain/${domainId}`
-            );
-            dispatch(deleteProjectDomainSuccess(response.data));
-            return response.data;
-        } catch (error) {
-            const errorMessage =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(deleteProjectDomainFailure(errorMessage));
-        }
+        const promise = deleteApi(
+            `domainVerificationToken/${projectId}/domain/${domainId}`
+        );
+        promise.then(
+            function(response) {
+                dispatch(deleteProjectDomainSuccess(response.data));
+                return response.data;
+            },
+            function(error) {
+                const errorMessage =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(deleteProjectDomainFailure(errorMessage));
+            }
+        );
+        return promise;
     };
 }
 
@@ -991,14 +1000,13 @@ export function resetVerifyProjectDomain() {
     };
 }
 
-export function verifyProjectDomain({ projectId, domainId, data }) {
+export function verifyProjectDomain({ projectId, domainId }) {
     return async function(dispatch) {
         dispatch(verifyProjectDomainRequest());
 
         try {
             const response = await putApi(
-                `domainVerificationToken/${projectId}/verify/${domainId}`,
-                data
+                `domainVerificationToken/${projectId}/forceVerify/${domainId}`
             );
             dispatch(verifyProjectDomainSuccess(response.data));
             return response.data;
