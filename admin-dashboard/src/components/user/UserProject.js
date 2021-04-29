@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import ProjectUserList from '../project/ProjectUserList';
+import ProjectList from '../project/ProjectList';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { fetchUserProjects } from '../../actions/project';
@@ -48,7 +48,7 @@ class UserProject extends React.Component {
                                 <div></div>
                             </div>
                         </div>
-                        <ProjectUserList
+                        <ProjectList
                             projects={this.props.projects || {}}
                             prevClicked={this.prevClicked}
                             nextClicked={this.nextClicked}
