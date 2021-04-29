@@ -7,6 +7,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const DomainVerificationService = require('../services/domainVerificationService');
 const { sendListResponse } = require('../middlewares/response');
 const StatusPageService = require('../services/statusPageService');
+const ProjectService = require('../services/projectService');
 
 const router = express.Router();
 
@@ -226,10 +227,14 @@ router.delete(
     async (req, res) => {
         try {
             const { projectId, domainId } = req.params;
-
+            const projectArr = await ProjectService.findSubprojectId(projectId);
+            const projectIdInArr = await DomainVerificationService.findDomain(
+                domainId,
+                projectArr
+            );
             const response = await DomainVerificationService.deleteBy({
                 _id: domainId,
-                projectId,
+                projectId: projectIdInArr,
             });
             return sendItemResponse(req, res, response);
         } catch (error) {
