@@ -324,7 +324,7 @@ function calcAvgThroughput(metric) {
     });
 
     return {
-        avgThroughput: numDecimal(sum / length),
+        avgThroughput: numDecimal(sum / length, 0), // we rounded off value here
     };
 }
 

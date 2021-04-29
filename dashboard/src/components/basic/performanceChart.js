@@ -107,7 +107,7 @@ class PerformanceChart extends Component {
                 return {
                     name: a.intervalDate || this.parseDate(a.createdAt),
                     v: a.value,
-                    display: `${Math.round(a.value || 0)} ${symbol || ''}`,
+                    display: `${a.value || 0} ${symbol || ''}`,
                     xData: a.createdAt,
                 };
             });
