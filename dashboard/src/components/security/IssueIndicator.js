@@ -34,7 +34,7 @@ const IssueIndicator = ({ status, resourceName, count }) => {
                           count
                               ? count > 1
                                   ? 'issues'
-                                  : 'issue'
+                                  : 'issue' 
                               : ''
                       }`}{' '}
                   </span>
