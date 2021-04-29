@@ -515,7 +515,7 @@ export function acknowledgeIncident(projectId, incidentId, userId, multiple) {
                 });
                 dispatch(
                     fetchIncidentMessagesSuccess({
-                        incidentId,
+                        incidentId: result.data.incident.idNumber,
                         incidentMessages: result.data.data,
                         count: result.data.data.length,
                         type: result.data.type,
@@ -604,7 +604,7 @@ export function resolveIncident(projectId, incidentId, userId, multiple) {
                 });
                 dispatch(
                     fetchIncidentMessagesSuccess({
-                        incidentId,
+                        incidentId: result.data.incident.idNumber,
                         incidentMessages: result.data.data,
                         count: result.data.data.length,
                         type: result.data.type,
