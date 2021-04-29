@@ -262,6 +262,19 @@ class TrackerTest(unittest.TestCase):
         self.assertEqual(event["type"], "message") 
         self.assertEqual(event["exception"]["message"], errorMessage) 
     
+    def test_should_create_an_event_ready_for_the_server_while_having_the_timeline_with_same_event_id(self):
+        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
+
+        
+        errorMessage = 'This is a test'
+        tracker.captureMessage(errorMessage)
+        event = tracker.getCurrentEvent()
+
+
+        self.assertEqual(2, len(event["timeline"]))
+        self.assertEqual(event["eventId"], event["timeline"][0]["eventId"])
+        self.assertEqual(event["exception"]["message"], errorMessage)
     
     
     
