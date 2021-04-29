@@ -1022,13 +1022,21 @@ router.post('/:projectId/addNote', getUser, isUserMasterAdmin, async function(
                     projectId,
                     data
                 );
-                return sendItemResponse(req, res, adminNotes);
+                const result = await ProjectService.updateOneBy(
+                    { _id: projectId },
+                    adminNotes
+                );
+                return sendItemResponse(req, res, result);
             } else {
                 const adminNotes = await ProjectService.addNotes(
                     projectId,
                     data
                 );
-                return sendItemResponse(req, res, adminNotes);
+                const result = await ProjectService.updateOneBy(
+                    { _id: projectId },
+                    adminNotes
+                );
+                return sendItemResponse(req, res, result);
             }
         } else {
             return sendErrorResponse(req, res, {
