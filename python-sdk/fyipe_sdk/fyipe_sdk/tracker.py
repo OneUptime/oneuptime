@@ -14,6 +14,7 @@ class FyipeTracker:
         self.errorTrackerKey = errorTrackerKey
         self.apiUrl = apiUrl + "/error-tracker/" + errorTrackerId + "/track"
         self.tags = []
+        self.fingerprint = []
         self.setUpOptions(options)
         self.util = Util(self.options)
         self.setEventId()
@@ -97,6 +98,68 @@ class FyipeTracker:
 
     def getTags(self):
         return self.tags
+    
+    def setFingerPrint(self, key):
+    
+        if not isinstance(key, (str, list)):
+            raise Exception("Invalid Fingerprint")
+
+        fingerprint = key
+        if isinstance(key, str):
+            fingerprint = [key]
+        
+        self.fingerprint = fingerprint
+    
+    def getFingerprint(self, errorMessage):
+    
+        # if no fingerprint exist currently
+        if (len(self.fingerprint) < 1):
+            # set up finger print based on error since none exist
+            self.setFingerprint(errorMessage)
+        
+        return self.fingerprint
+    def captureMessage(self, message):
+        # set the a handled tag
+        self.setTag('handled', 'true')
+        messageObj = {
+            "message": message
+        }
+
+        self.prepareErrorObject('message', messageObj);
+
+        # TODO send to the server
+        # return self.sendErrorEventToServer();
+    
+    def prepareErrorObject(self, eventType, errorStackTrace):
+        # set a last timeline as the error message
+        self.listenerObj.logErrorEvent(errorStackTrace["message"], type)
+        
+        # get current timeline
+        timeline = self.getTimeline()
+        # TODO get device location and details
+        
+        tags = self.getTags()
+        fingerprint = self.getFingerprint(errorStackTrace["message"]) # default fingerprint will be the message from the error stacktrace
+        # get event ID
+        # Temporary display the state of the error stack, timeline and device details when an error occur
+        # prepare the event so it can be sent to the server
+        self.event = {
+            "type": eventType,
+            "timeline": timeline,
+            "exception": errorStackTrace,
+            "eventId": self.getEventId(),
+            "tags": tags,
+            "fingerprint": fingerprint,
+            "errorTrackerKey": self.errorTrackerKey
+        }
+    
+    # def sendErrorEventToServer(self):
+
+    def getCurrentEvent(self):
+        return self.event
+
+
+
 
 
 
