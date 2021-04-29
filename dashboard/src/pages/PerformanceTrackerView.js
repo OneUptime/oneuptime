@@ -61,14 +61,14 @@ class PerformanceTrackerView extends Component {
             JSON.stringify(prevProps.performanceTracker) !==
             JSON.stringify(performanceTracker)
         ) {
-            performanceTracker &&
+            if (performanceTracker) {
                 socket.on(`timeMetrics-${performanceTracker._id}`, data =>
                     updateTimeMetrics(data)
                 );
-            performanceTracker &&
                 socket.on(`throughputMetrics-${performanceTracker._id}`, data =>
                     updateThroughputMetrics(data)
                 );
+            }
         }
     }
 
@@ -80,7 +80,18 @@ class PerformanceTrackerView extends Component {
             performanceTrackerSlug,
             fetchPerformanceTracker,
             resetPerformanceTrackerKeyReset,
+            performanceTracker,
         } = this.props;
+
+        if (performanceTracker) {
+            socket.on(`timeMetrics-${performanceTracker._id}`, data =>
+                updateTimeMetrics(data)
+            );
+            socket.on(`throughputMetrics-${performanceTracker._id}`, data =>
+                updateThroughputMetrics(data)
+            );
+        }
+
         fetchComponent(componentSlug);
         currentProject &&
             fetchPerformanceTracker({
