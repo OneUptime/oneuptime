@@ -1000,14 +1000,13 @@ export function resetVerifyProjectDomain() {
     };
 }
 
-export function verifyProjectDomain({ projectId, domainId, data }) {
+export function verifyProjectDomain({ projectId, domainId }) {
     return async function(dispatch) {
         dispatch(verifyProjectDomainRequest());
 
         try {
             const response = await putApi(
-                `domainVerificationToken/${projectId}/verify/${domainId}`,
-                data
+                `domainVerificationToken/${projectId}/forceVerify/${domainId}`
             );
             dispatch(verifyProjectDomainSuccess(response.data));
             return response.data;
