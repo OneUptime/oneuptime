@@ -1,52 +1,40 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
-
+const user = {
+    email,
+    password
+};
 describe('Project Settings Page - (Email and SMS & Calls)', () => {
     const operationTimeOut = 500000;
-    let cluster;
+
     beforeAll(async done => {
         jest.setTimeout(operationTimeOut);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: operationTimeOut,
-        });
-
-        cluster.on('error', err => {
-            throw err;
-        });
-
-        await cluster.execute({ email, password }, async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );            
             // user
             await init.registerUser(user, page);
-            done();
-        });
+            done();      
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'should enable sending email notification when incident is created, acknowledged, resolved or investigated',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.waitForSelector('#projectSettings', {
@@ -96,7 +84,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 expect(sendAcknowledgedIncidentNotification).toBeTruthy();
                 expect(sendResolvedIncidentNotification).toBeTruthy();
                 expect(sendInvestigationNoteNotification).toBeTruthy();
-            });
+            
             done();
         },
         operationTimeOut
@@ -104,8 +92,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
     test(
         'should disable sending email notification when incident is created',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.waitForSelector('#projectSettings', {
@@ -144,7 +131,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 );
                 checkedState = utils.parseBoolean(checkedState);
                 expect(checkedState).toBeFalsy();
-            });
+            
             done();
         },
         operationTimeOut
@@ -152,8 +139,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
     test(
         'should disable sending email notification when incident is acknowledged',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.waitForSelector('#projectSettings', {
@@ -192,7 +178,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 );
                 checkedState = utils.parseBoolean(checkedState);
                 expect(checkedState).toBeFalsy();
-            });
+            
             done();
         },
         operationTimeOut
@@ -200,8 +186,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
     test(
         'should disable sending email notification when incident is resolved',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.waitForSelector('#projectSettings', {
@@ -240,7 +225,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 );
                 checkedState = utils.parseBoolean(checkedState);
                 expect(checkedState).toBeFalsy();
-            });
+            
             done();
         },
         operationTimeOut
@@ -248,8 +233,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
     test(
         'should disable sending email notification for investigation note',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.waitForSelector('#projectSettings', {
@@ -288,7 +272,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 );
                 checkedState = utils.parseBoolean(checkedState);
                 expect(checkedState).toBeFalsy();
-            });
+
             done();
         },
         operationTimeOut
@@ -296,8 +280,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
     test(
         'should enable sending sms notification when incident is created, acknowledged, resolved or investigated',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.waitForSelector('#projectSettings', {
@@ -347,7 +330,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 expect(sendAcknowledgedIncidentNotification).toBeTruthy();
                 expect(sendResolvedIncidentNotification).toBeTruthy();
                 expect(sendInvestigationNoteNotification).toBeTruthy();
-            });
+            
             done();
         },
         operationTimeOut
@@ -355,8 +338,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
     test(
         'should disable sending sms notification when incident is created',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.waitForSelector('#projectSettings', {
@@ -394,7 +376,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 );
                 checkedState = utils.parseBoolean(checkedState);
                 expect(checkedState).toBeFalsy();
-            });
+            
             done();
         },
         operationTimeOut
@@ -402,8 +384,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
     test(
         'should disable sending sms notification when incident is acknowledged',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.waitForSelector('#projectSettings', {
@@ -441,7 +422,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 );
                 checkedState = utils.parseBoolean(checkedState);
                 expect(checkedState).toBeFalsy();
-            });
+            
             done();
         },
         operationTimeOut
@@ -449,8 +430,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
     test(
         'should disable sending sms notification when incident is resolved',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.waitForSelector('#projectSettings', {
@@ -489,15 +469,14 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 );
                 checkedState = utils.parseBoolean(checkedState);
                 expect(checkedState).toBeFalsy();
-            });
+            
             done();
         },
         operationTimeOut
     );
     test(
         'should disable sending sms notification for investigation note',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.waitForSelector('#projectSettings', {
@@ -536,7 +515,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 );
                 checkedState = utils.parseBoolean(checkedState);
                 expect(checkedState).toBeFalsy();
-            });
+            
             done();
         },
         operationTimeOut

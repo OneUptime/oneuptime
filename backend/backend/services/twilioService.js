@@ -974,7 +974,6 @@ const _this = {
     },
 
     sendScheduledMaintenanceResolvedToSubscriber: async function(
-        incidentTime,
         number,
         smsTemplate,
         schedule,
@@ -1077,7 +1076,124 @@ const _this = {
             }
         } catch (error) {
             ErrorService.log(
-                'twillioService.sendScheduledMaintenanceCreatedToSubscriber',
+                'twillioService.sendScheduledMaintenanceResolvedToSubscriber',
+                error
+            );
+            await SmsCountService.create(
+                null,
+                number,
+                projectId,
+                smsBody,
+                'Error',
+                error.message
+            );
+            throw error;
+        }
+    },
+    sendScheduledMaintenanceCancelledToSubscriber: async function(
+        number,
+        smsTemplate,
+        schedule,
+        projectName,
+        projectId
+    ) {
+        let smsBody;
+        try {
+            const _this = this;
+            let { template } = await _this.getTemplate(
+                smsTemplate,
+                'Subscriber Scheduled Maintenance Cancelled'
+            );
+            const data = {
+                eventName: schedule.name,
+                eventCancelTime: schedule.cancelledAt,
+                projectName,
+            };
+            template = template(data);
+            smsBody = template;
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
+
+            if (customTwilioSettings) {
+                const options = {
+                    body: template,
+                    from: customTwilioSettings.phoneNumber,
+                    to: number,
+                };
+                const twilioClient = _this.getClient(
+                    customTwilioSettings.accountSid,
+                    customTwilioSettings.authToken
+                );
+                const message = await twilioClient.messages.create(options);
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Success'
+                );
+                return message;
+            } else {
+                const creds = await _this.getSettings();
+                if (!creds['sms-enabled']) {
+                    const error = new Error('SMS Not Enabled');
+                    error.code = 400;
+                    await SmsCountService.create(
+                        null,
+                        number,
+                        projectId,
+                        smsBody,
+                        'Error',
+                        error.message
+                    );
+                    return error;
+                }
+                const options = {
+                    body: template,
+                    from: creds.phone,
+                    to: number,
+                };
+                const twilioClient = _this.getClient(
+                    creds['account-sid'],
+                    creds['authentication-token']
+                );
+                let alertLimit = true;
+
+                alertLimit = await AlertService.checkPhoneAlertsLimit(
+                    projectId
+                );
+
+                if (alertLimit) {
+                    const message = await twilioClient.messages.create(options);
+                    await SmsCountService.create(
+                        null,
+                        number,
+                        projectId,
+                        smsBody,
+                        'Success'
+                    );
+                    return message;
+                } else {
+                    const error = new Error(
+                        'Alerts limit reached for the day.'
+                    );
+                    await SmsCountService.create(
+                        null,
+                        number,
+                        projectId,
+                        smsBody,
+                        'Error',
+                        error.message
+                    );
+                    error.code = 400;
+                    return error;
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'twillioService.sendScheduledMaintenanceCancelledToSubscriber',
                 error
             );
             await SmsCountService.create(

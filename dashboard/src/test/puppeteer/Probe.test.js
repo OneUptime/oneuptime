@@ -1,10 +1,9 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const user = {
     email: utils.generateRandomBusinessEmail(),
@@ -14,57 +13,46 @@ const user = {
 describe('API test', () => {
     const operationTimeOut = 500000;
 
-    let cluster;
-
     beforeAll(async () => {
         jest.setTimeout(500000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        // Register user
-        return await cluster.execute(null, async ({ page }) => {
-            // user
-            await init.registerUser(user, page);
-        });
+        // user
+        await init.registerUser(user, page);
     });
 
-    afterAll(async () => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {
+        await browser.close();
+        done();
     });
 
     test(
         'Should open the probes details modal if probe is offline',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle0',
-                });
-                await page.waitForSelector('#projectSettings');
-                await page.click('#projectSettings');
-                await page.waitForSelector('#more');
-                await page.click('#more');
-                await page.waitForSelector('#probe');
-                await page.click('#probe a');
-                await page.waitForSelector('#probe_0', { visible: true });
-                const elementHandle = await page.$('#offline_0 > span > span');
-                if (elementHandle) {
-                    // Probe is offline
-                    expect(elementHandle).toBeDefined();
-                } else {
-                    // Probe is online
-                    expect(elementHandle).toBeNull();
-                }
+        async done => {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: 'networkidle0',
             });
+            await page.waitForSelector('#projectSettings');
+            await page.click('#projectSettings');
+            await page.waitForSelector('#more');
+            await page.click('#more');
+            await page.waitForSelector('#probe');
+            await page.click('#probe a');
+            await page.waitForSelector('#probe_0', { visible: true });
+            const elementHandle = await page.$('#offline_0 > span > span');
+            if (elementHandle) {
+                // Probe is offline
+                expect(elementHandle).toBeDefined();
+            } else {
+                // Probe is online
+                expect(elementHandle).toBeNull();
+            }
+            done();
         },
         operationTimeOut
     );

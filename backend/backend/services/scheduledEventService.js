@@ -518,7 +518,11 @@ module.exports = {
 
             //fetch events that have started
             const scheduledEventList = await this.findBy(
-                { startDate: { $lte: currentTime }, deleted: false },
+                {
+                    startDate: { $lte: currentTime },
+                    deleted: false,
+                    cancelled: false,
+                },
                 0,
                 0
             );
