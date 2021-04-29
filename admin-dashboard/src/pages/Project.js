@@ -33,7 +33,7 @@ class Project extends Component {
     }
 
     componentDidUpdate(prevProps) {
-        if (prevProps.project !== this.props.project) {
+        if (prevProps.project._id !== this.props.project._id) {
             if (this.props.project._id) {
                 this.props.fetchProjectTeam(this.props.project._id);
             }
