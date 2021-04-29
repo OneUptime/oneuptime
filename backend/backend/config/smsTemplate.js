@@ -95,4 +95,14 @@ module.exports = [
         body:
             'A new note has been added to the scheduled maintenance event - {{eventName}}. Note: "{{eventNoteContent}}."',
     },
+    {
+        allowedVariables: [
+            '{{eventName}} : Name of the scheduled event.',
+            '{{eventCancelTime}} : Time at which scheduled event is cancelled.',
+            '{{projectName}} : Name of the project on which the event is created.',
+        ],
+        smsType: 'Subscriber Scheduled Maintenance Cancelled',
+        body:
+            'Scheduled maintenance event for {{projectName}} - {{eventName}}, has been cancelled.',
+    },
 ];

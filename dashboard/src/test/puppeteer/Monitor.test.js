@@ -61,7 +61,7 @@ describe('Monitor API', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
                 await page.click('[data-testId=type_url]');
-                await page.waitForSelector('#url');
+                await page.waitForSelector('#url', {visible: true});
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
@@ -89,7 +89,7 @@ describe('Monitor API', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
                 await page.click('input[data-testId=type_url]');
-                await page.waitForSelector('#url');
+                await page.waitForSelector('#url', {visible: true});
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
 
@@ -144,7 +144,7 @@ describe('Monitor API', () => {
             await page.click('input[id=name]');
             await page.type('input[id=name]', monitorName);
             await page.click('input[data-testId=type_url]');
-            await page.waitForSelector('#url');
+            await page.waitForSelector('#url', {visible: true});
             await page.click('#url');
             await page.type('#url', 'https://google.com');
 
@@ -346,7 +346,7 @@ describe('Monitor API', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
                 await page.click('[data-testId=type_url]');
-                await page.waitForSelector('#url');
+                await page.waitForSelector('#url', {visible: true});
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 // select multiple schedules
@@ -388,7 +388,7 @@ describe('Monitor API', () => {
 
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('[data-testId=type_url]');
-                await page.waitForSelector('#url');
+                await page.waitForSelector('#url', {visible: true});
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
 
@@ -439,7 +439,7 @@ describe('Monitor API', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', testServerMonitorName);
                 await page.click('[data-testId=type_url]');
-                await page.waitForSelector('#url');
+                await page.waitForSelector('#url', {visible: true});
                 await page.click('#url');
                 await page.type('#url', utils.HTTP_TEST_SERVER_URL);
                 await page.click('button[type=submit]');
@@ -471,7 +471,7 @@ describe('Monitor API', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', selfSignedMonitorName);
                 await init.selectByText('#type', 'url', page);
-                await page.waitForSelector('#url');
+                await page.waitForSelector('#url', {visible: true});
                 await page.click('#url');
                 await page.type('#url', 'https://self-signed.badssl.com');
                 await page.click('button[type=submit]');
@@ -727,7 +727,7 @@ describe('API Monitor API', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
                 await page.click('input[data-testId=type_api]');
-                await page.waitForSelector('#url');
+                await page.waitForSelector('#url', {visible: true});
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await init.selectByText('#method', 'get', page);
@@ -758,7 +758,7 @@ describe('API Monitor API', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
                 await page.click('input[data-testId=type_api]');
-                await page.waitForSelector('#url');
+                await page.waitForSelector('#url', {visible: true});
                 await page.click('#url');
                 await page.type(
                     '#url',
@@ -789,7 +789,7 @@ describe('API Monitor API', () => {
                 await page.type('input[id=name]', monitorName);
                 await page.click('input[data-testId=type_api]');
                 await init.selectByText('#method', 'post', page);
-                await page.waitForSelector('#url');
+                await page.waitForSelector('#url', {visible: true});
                 await page.click('#url');
                 await page.type(
                     '#url',
@@ -837,7 +837,7 @@ describe('API Monitor API', () => {
                 await page.type('input[id=name]', monitorName);
                 await page.click('input[data-testId=type_api]');
                 await init.selectByText('#method', 'get', page);
-                await page.waitForSelector('#url');
+                await page.waitForSelector('#url', {visible: true});
                 await page.click('#url');
                 await page.type('#url', 'http://localhost:3002');
                 await page.click('button[type=submit]');

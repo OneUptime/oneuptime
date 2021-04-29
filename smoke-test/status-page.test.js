@@ -42,7 +42,7 @@ describe('Check status-page up', () => {
         });
         expect(response).toBe('Page Not Found');
         done();
-    }, 30000);
+    }, 60000);
 
     test('should create a status-page', async done => {
         await init.registerUser(user, page);

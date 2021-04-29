@@ -8,6 +8,9 @@ import {
     DELETE_SCHEDULED_EVENT_SUCCESS,
     DELETE_SCHEDULED_EVENT_REQUEST,
     DELETE_SCHEDULED_EVENT_FAILURE,
+    CANCEL_SCHEDULED_EVENT_SUCCESS,
+    CANCEL_SCHEDULED_EVENT_REQUEST,
+    CANCEL_SCHEDULED_EVENT_FAILURE,
     UPDATE_SCHEDULED_EVENT_SUCCESS,
     UPDATE_SCHEDULED_EVENT_REQUEST,
     UPDATE_SCHEDULED_EVENT_FAILURE,
@@ -86,6 +89,12 @@ const INITIAL_STATE = {
         success: false,
     },
     updatedScheduledEvent: {
+        scheduledEvent: null,
+        error: null,
+        requesting: false,
+        success: false,
+    },
+    cancelScheduledEvent: {
         scheduledEvent: null,
         error: null,
         requesting: false,
@@ -582,6 +591,120 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 ...state,
                 deletedScheduledEvent: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case CANCEL_SCHEDULED_EVENT_SUCCESS: {
+            const currentDate = moment().format();
+            const startDate = moment(action.payload.startDate).format();
+            const endDate = moment(action.payload.endDate).format();
+            const scheduledEvents = state.scheduledEventList.scheduledEvents.map(
+                scheduledEvent => {
+                    if (
+                        String(action.payload._id) ===
+                        String(scheduledEvent._id)
+                    ) {
+                        return action.payload;
+                    }
+                    return scheduledEvent;
+                }
+            );
+            const subEvents = state.subProjectScheduledEventList.scheduledEvents.map(
+                subEvent => {
+                    if (
+                        String(subEvent.project) ===
+                        String(action.payload.projectId._id)
+                    ) {
+                        subEvent.scheduledEvents = subEvent.scheduledEvents.map(
+                            event => {
+                                if (
+                                    String(event._id) ===
+                                    String(action.payload._id)
+                                ) {
+                                    event = action.payload;
+                                }
+                                return event;
+                            }
+                        );
+                    }
+                    return subEvent;
+                }
+            );
+
+            const events = state.subProjectOngoingScheduledEvent.events.map(
+                eventData => {
+                    if (
+                        String(eventData.project) ===
+                        String(action.payload.projectId._id)
+                    ) {
+                        eventData.ongoingScheduledEvents = eventData.ongoingScheduledEvents.filter(
+                            event => {
+                                return (
+                                    String(event._id) !==
+                                    String(action.payload._id)
+                                );
+                            }
+                        );
+                        if (startDate <= currentDate && endDate > currentDate) {
+                            eventData.ongoingScheduledEvents = [
+                                action.payload,
+                                ...eventData.ongoingScheduledEvents,
+                            ];
+                        }
+                        eventData.count =
+                            eventData.ongoingScheduledEvents.length;
+                    }
+
+                    return eventData;
+                }
+            );
+
+            return Object.assign({}, state, {
+                cancelScheduledEvent: {
+                    scheduledEvent: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: false,
+                },
+
+                newScheduledEvent: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    scheduledEvent: action.payload,
+                },
+                scheduledEventList: {
+                    ...state.scheduledEventList,
+                    scheduledEvents,
+                },
+                subProjectScheduledEventList: {
+                    ...state.subProjectScheduledEventList,
+                    scheduledEvents: subEvents,
+                },
+                subProjectOngoingScheduledEvent: {
+                    ...state.subProjectOngoingScheduledEvent,
+                    events,
+                },
+            });
+        }
+
+        case CANCEL_SCHEDULED_EVENT_FAILURE:
+            return Object.assign({}, state, {
+                ...state,
+                cancelScheduledEvent: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case CANCEL_SCHEDULED_EVENT_REQUEST:
+            return Object.assign({}, state, {
+                ...state,
+                cancelScheduledEvent: {
                     requesting: true,
                     success: false,
                     error: null,

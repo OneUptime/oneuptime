@@ -46,7 +46,7 @@ describe('Incident Reports API', () => {
             await page.$eval('input[id=name]', e => e.click());
             await page.type('input[id=name]', monitorName);
             await page.click('[data-testId=type_url]');
-            await page.waitForSelector('#url');
+            await page.waitForSelector('#url', {visible: true});
             await page.$eval('#url', e => e.click());
             await page.type('#url', utils.HTTP_TEST_SERVER_URL);
             await page.$eval('button[type=submit]', e => e.click());
