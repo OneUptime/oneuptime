@@ -48,7 +48,7 @@ class ProjectVerifyDomain extends Component {
             fetchProjectDomains,
             verificationToken,
         } = this.props;
-        const data = { domain, verificationToken };
+        const data = { domain, verificationToken, forceVerify: true };
         verifyProjectDomain({ projectId, domainId, data }).then(() => {
             if (!this.props.verifyError) {
                 fetchProjectDomains(projectId, 0, 10);
