@@ -224,6 +224,45 @@ class TrackerTest(unittest.TestCase):
         self.assertEqual(tagE["key"], availableTags[0]["key"]) 
         self.assertEqual(tagE["value"], availableTags[0]["value"])# latest value for that tag location
     
+    def test_should_create_fingerprint_as_message_for_error_capture_without_any_fingerprint(self):
+        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+
+        errorMessage = "Uncaught Exception"
+        tracker.captureMessage(errorMessage)
+        event = tracker.getCurrentEvent()
+        self.assertEqual(event["fingerprint"][0], errorMessage)
+    
+    def test_should_use_defined_fingerprint_array_for_error_capture_with_fingerprint(self):
+        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+
+        fingerprints = ['custom', 'errors']
+        tracker.setFingerPrint(fingerprints)
+        errorMessage = 'Uncaught Exception'
+        tracker.captureMessage(errorMessage)
+        event = tracker.getCurrentEvent()
+        self.assertEqual(event["fingerprint"][0], fingerprints[0])
+        self.assertEqual(event["fingerprint"][1], fingerprints[1])
+    
+    def test_should_use_defined_fingerprint_string_for_error_capture_with_fingerprint(self):
+        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+
+        fingerprint = 'custom-fingerprint'
+        tracker.setFingerPrint(fingerprint)
+        errorMessage = 'Uncaught Exception'
+        tracker.captureMessage(errorMessage)
+        event = tracker.getCurrentEvent()
+        self.assertEqual(event["fingerprint"][0], fingerprint)
+    
+    def test_should_create_an_event_ready_for_the_server_using_capture_message(self):
+        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+
+        errorMessage = 'This is a test'
+        tracker.captureMessage(errorMessage)
+        event = tracker.getCurrentEvent()
+        self.assertEqual(event["type"], "message") 
+        self.assertEqual(event["exception"]["message"], errorMessage) 
+    
+    
     
     
     
