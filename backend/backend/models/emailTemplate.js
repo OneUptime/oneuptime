@@ -18,7 +18,7 @@ const emailTemplateSchema = new Schema({
             'Subscriber Incident Acknowldeged',
             'Subscriber Incident Resolved',
             'Investigation note is created',
-            'Subscriber Scheduled Maintenance',
+            'Subscriber Scheduled Maintenance Created',
             'Subscriber Scheduled Maintenance Note',
             'Subscriber Scheduled Maintenance Resolved',
             'Subscriber Scheduled Maintenance Cancelled',
