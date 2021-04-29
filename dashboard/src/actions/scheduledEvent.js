@@ -292,6 +292,57 @@ export function deleteScheduledEventFailure(error) {
     };
 }
 
+export const cancelScheduledEvent = (
+    projectId,
+    scheduledEventId,
+    history,
+    redirect,
+    closeModal,
+    modalId
+) => async dispatch => {
+    try {
+        dispatch(cancelScheduledEventRequest());
+
+        const response = await putApi(
+            `scheduledEvent/${projectId}/${scheduledEventId}/cancel`
+        );
+
+        dispatch(cancelScheduledEventSuccess(response.data));
+        closeModal({ id: modalId });
+        history.push(redirect);
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(cancelScheduledEventFailure(errorMsg));
+    }
+};
+
+export function cancelScheduledEventSuccess(payload) {
+    return {
+        type: types.CANCEL_SCHEDULED_EVENT_SUCCESS,
+        payload,
+    };
+}
+
+export function cancelScheduledEventRequest() {
+    return {
+        type: types.CANCEL_SCHEDULED_EVENT_REQUEST,
+    };
+}
+
+export function cancelScheduledEventFailure(error) {
+    return {
+        type: types.CANCEL_SCHEDULED_EVENT_FAILURE,
+        payload: error,
+    };
+}
+
 export function updateScheduledEvent(projectId, scheduledEventId, values) {
     return function(dispatch) {
         const promise = putApi(

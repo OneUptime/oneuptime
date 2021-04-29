@@ -19,12 +19,24 @@ const scheduledEventsSchema = new Schema(
             },
         ],
         name: String,
+        cancelled: {
+            type: Boolean,
+            default: false,
+        },
+        cancelledAt: Date,
+
+        cancelledById: {
+            type: String,
+            ref: 'User',
+            index: true,
+        },
         slug: String,
         createdById: {
             type: String,
             ref: 'User',
             index: true,
         },
+
         deleted: {
             type: Boolean,
             default: false,

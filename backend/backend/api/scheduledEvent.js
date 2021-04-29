@@ -3,6 +3,7 @@ const router = express.Router();
 const { isAuthorized } = require('../middlewares/authorization');
 const { getUser, checkUserBelongToProject } = require('../middlewares/user');
 const ScheduledEventService = require('../services/scheduledEventService');
+const AlertService = require('../services/AlertService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -266,6 +267,55 @@ router.delete('/:projectId/:eventId', getUser, isAuthorized, async function(
     }
 });
 
+// cancel a scheduled event
+router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
+    req,
+    res
+) {
+    try {
+        const userId = req.user ? req.user.id : null;
+        const { eventId } = req.params;
+
+        const fetchEvent = await ScheduledEventService.findOneBy({
+            _id: eventId,
+        });
+
+        if (fetchEvent.resolved) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Event has already been resolved',
+            });
+        }
+
+        if (fetchEvent.cancelled) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Event has already been cancelled',
+            });
+        }
+
+        const event = await ScheduledEventService.updateBy(
+            { _id: eventId },
+            {
+                cancelled: true,
+                cancelledAt: Date.now(),
+                cancelledById: userId,
+            }
+        );
+
+        const schedule = event[0];
+
+        if (event[0].alertSubscriber) {
+            // handle this asynchronous operation in the background
+            AlertService.sendCancelledScheduledEventToSubscribers(schedule);
+        }
+
+        return sendItemResponse(req, res, schedule);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 // get ongoing scheduled events
 router.get('/:projectId/ongoingEvent', getUser, isAuthorized, async function(
     req,
@@ -327,6 +377,7 @@ router.get(
                     startDate: { $lte: currentDate },
                     endDate: { $gt: currentDate },
                     resolved: false,
+                    cancelled: false,
                 }
             );
             return sendItemResponse(req, res, ongoingScheduledEvents);
