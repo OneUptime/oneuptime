@@ -9,8 +9,8 @@ stages:
   - BuildAndTest
   - Deploy
   - RollbackIfDeploymentFail
-  - SmokeTest
-  - RollbackIfSmokeTestFail
+  - Tests
+  - RollbackIfTestsFail
 
 include:
   # GLOBAL JOBS

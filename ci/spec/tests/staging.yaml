@@ -1,5 +1,5 @@
 smoke_test_staging:
-    stage: SmokeTest
+    stage: Tests
     allow_failure: true
     script:
         - cd tests

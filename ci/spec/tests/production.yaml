@@ -1,6 +1,6 @@
 ## SMOKE TEST STAGE
 smoke_test_production:
-    stage: SmokeTest
+    stage: Tests
     script:
         - export HOME_URL=https://fyipe.com
         - export ACCOUNTS_URL=https://fyipe.com/accounts
