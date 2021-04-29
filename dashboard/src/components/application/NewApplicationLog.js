@@ -91,8 +91,8 @@ class NewApplicationLog extends Component {
                 )
                 .then(
                     data => {
-                        history.replace(
-                            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/application-logs/${data.data.slug}`
+                        history.push(
+                            `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/application-logs/${data.data.slug}`
                         );
                         thisObj.props.reset();
                         thisObj.props.closeCreateApplicationLogModal();

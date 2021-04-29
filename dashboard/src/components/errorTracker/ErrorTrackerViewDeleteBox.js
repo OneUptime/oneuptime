@@ -27,7 +27,7 @@ class ErrorTrackerViewDeleteBox extends Component {
             errorTracker._id
         );
         history.push(
-            `/dashboard/project/${currentProject.slug}/${this.props.component &&
+            `/dashboard/project/${currentProject.slug}/component/${this.props.component &&
                 this.props.component.slug}/error-tracker`
         );
         if (SHOULD_LOG_ANALYTICS) {

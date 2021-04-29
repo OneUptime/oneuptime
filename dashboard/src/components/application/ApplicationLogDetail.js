@@ -41,7 +41,7 @@ class ApplicationLogDetail extends Component {
             this.props.index
         );
         history.push(
-            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/application-log`
+            `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/application-log`
         );
         // crashing the application
         // if (SHOULD_LOG_ANALYTICS) {

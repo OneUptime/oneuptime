@@ -26,7 +26,7 @@ class MonitorViewChangeComponentBox extends Component {
 
         const { projectId, _id: monitorId, componentId, slug } = monitor;
 
-        const redirectTo = `/dashboard/project/${currentProject.slug}/${monitor.componentId.slug}/monitoring/${slug}`;
+        const redirectTo = `/dashboard/project/${currentProject.slug}/component/${monitor.componentId.slug}/monitoring/${slug}`;
         history.push(redirectTo);
 
         if (SHOULD_LOG_ANALYTICS) {
