@@ -15,8 +15,14 @@ module.exports = {
             throw error;
         }
     },
-    //Description: Gets all application logs by component.
-    findBy: async function(query, limit, skip, sort = -1) {
+    //Description: Gets all performance metrics by component.
+    findBy: async function(
+        query,
+        limit,
+        skip,
+        sortCriteria = 'createdAt',
+        sort = -1
+    ) {
         try {
             if (!skip) skip = 0;
 
@@ -38,7 +44,7 @@ module.exports = {
             const performanceTrackerMetrics = await PerformanceTrackerMetricModel.find(
                 query
             )
-                .sort([['createdAt', sort]])
+                .sort([[sortCriteria, sort]])
                 .limit(limit)
                 .skip(skip)
                 .populate({
@@ -205,6 +211,7 @@ module.exports = {
                 },
                 0,
                 0,
+                null,
                 1
             );
             timeMetrics.forEach(metric => {
@@ -259,6 +266,7 @@ module.exports = {
                 },
                 0,
                 0,
+                null,
                 1
             );
 

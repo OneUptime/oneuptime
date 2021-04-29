@@ -219,7 +219,8 @@ router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
         const performanceTrackerMetrics = await PerformanceTrackerMetricService.findBy(
             query,
             limit,
-            skip
+            skip,
+            'metrics.avgTime'
         );
         const count = await PerformanceTrackerMetricService.countBy(query);
         return sendListResponse(req, res, performanceTrackerMetrics, count);
