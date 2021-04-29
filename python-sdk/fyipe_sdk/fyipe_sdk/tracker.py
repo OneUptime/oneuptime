@@ -115,7 +115,7 @@ class FyipeTracker:
         # if no fingerprint exist currently
         if (len(self.fingerprint) < 1):
             # set up finger print based on error since none exist
-            self.setFingerprint(errorMessage)
+            self.setFingerPrint(errorMessage)
         
         return self.fingerprint
     def captureMessage(self, message):
