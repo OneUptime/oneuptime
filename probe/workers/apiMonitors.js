@@ -82,7 +82,15 @@ const pingfetch = async (url, method, body, headers) => {
             payload.body = body;
         }
         try {
-            response = await fetch(url, { ...payload });
+            /* Try with a normal http / https agent. 
+               If this fails we'll try with an agent which has 
+                {
+                    rejectUnauthorized: false,
+                }
+
+                to check for self-signed SSL certs. 
+            */
+            response = await fetch(url, { ...payload }); 
             res = new Date().getTime() - now;
             data = await response.json();
             if (urlObject.protocol === 'https:') {
@@ -97,6 +105,16 @@ const pingfetch = async (url, method, body, headers) => {
                 }
             }
         } catch (e) {
+
+            /* Retry with an agent which has 
+
+                {
+                    rejectUnauthorized: false,
+                }
+
+                to check for self-signed SSL certs. 
+            */
+
             response = await fetch(url, {
                 ...payload,
                 ...(url.startsWith('https')
