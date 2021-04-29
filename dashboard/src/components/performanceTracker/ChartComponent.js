@@ -12,6 +12,8 @@ import {
     setTimeEndDate,
     setThroughputEndDate,
     setThroughputStartDate,
+    resetTimeDate,
+    resetThroughputDate,
 } from '../../actions/performanceTrackerMetric';
 
 //import ShouldRender from '../../components/basic/ShouldRender';
@@ -21,29 +23,35 @@ export class ChartComponent extends Component {
         const {
             performanceTracker,
             type,
-            timeStartDate,
-            timeEndDate,
-            throughputStartDate,
-            throughputEndDate,
             fetchTimeMetrics,
             fetchThroughputMetrics,
+            resetTimeDate,
+            resetThroughputDate,
         } = this.props;
+
+        this.currentDate = moment(Date.now()).format();
+        this.startDate = moment(this.currentDate)
+            .subtract(30, 'days')
+            .format();
+
+        resetTimeDate(this.startDate, this.currentDate);
+        resetThroughputDate(this.startDate, this.currentDate);
 
         if (performanceTracker && type === 'throughput') {
             const { _id, key } = performanceTracker;
             fetchTimeMetrics({
                 appId: _id,
                 key,
-                startDate: throughputStartDate,
-                endDate: throughputEndDate,
+                startDate: this.startDate,
+                endDate: this.currentDate,
             });
         } else if (performanceTracker && type === 'transactionTime') {
             const { _id, key } = performanceTracker;
             fetchThroughputMetrics({
                 appId: _id,
                 key,
-                startDate: timeStartDate,
-                endDate: timeEndDate,
+                startDate: this.startDate,
+                endDate: this.currentDate,
             });
         }
     }
@@ -56,10 +64,6 @@ export class ChartComponent extends Component {
             const {
                 performanceTracker,
                 type,
-                timeStartDate,
-                timeEndDate,
-                throughputStartDate,
-                throughputEndDate,
                 fetchTimeMetrics,
                 fetchThroughputMetrics,
             } = this.props;
@@ -69,36 +73,23 @@ export class ChartComponent extends Component {
                 fetchTimeMetrics({
                     appId: _id,
                     key,
-                    startDate: throughputStartDate,
-                    endDate: throughputEndDate,
+                    startDate: this.startDate,
+                    endDate: this.currentDate,
                 });
             } else if (performanceTracker && type === 'transactionTime') {
                 const { _id, key } = performanceTracker;
                 fetchThroughputMetrics({
                     appId: _id,
                     key,
-                    startDate: timeStartDate,
-                    endDate: timeEndDate,
+                    startDate: this.startDate,
+                    endDate: this.currentDate,
                 });
             }
         }
     }
 
     handleCurrentDateRange = () => {
-        const {
-            type,
-            timeStartDate,
-            timeEndDate,
-            throughputStartDate,
-            throughputEndDate,
-        } = this.props;
-        let startDate = timeStartDate,
-            endDate = timeEndDate;
-        if (type === 'throughput') {
-            startDate = throughputStartDate;
-            endDate = throughputEndDate;
-        }
-        return { startDate, endDate };
+        return { startDate: this.startDate, endDate: this.currentDate };
     };
 
     handleStartDate = val => {
@@ -209,11 +200,13 @@ export class ChartComponent extends Component {
                                             currentDateRange={this.handleCurrentDateRange()}
                                             handleStartDateTimeChange={val =>
                                                 this.handleStartDate(
-                                                    moment(val)
+                                                    moment(val).format()
                                                 )
                                             }
                                             handleEndDateTimeChange={val =>
-                                                this.handleEndDate(moment(val))
+                                                this.handleEndDate(
+                                                    moment(val).format()
+                                                )
                                             }
                                             formId={`performanceTrackeringDateTime-${heading}`}
                                         />
@@ -331,6 +324,8 @@ ChartComponent.propTypes = {
     throughputMetrics: PropTypes.object,
     type: PropTypes.string,
     performanceTracker: PropTypes.object,
+    resetTimeDate: PropTypes.func,
+    resetThroughputDate: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -342,6 +337,8 @@ const mapDispatchToProps = dispatch =>
             setThroughputEndDate,
             setTimeStartDate,
             setTimeEndDate,
+            resetTimeDate,
+            resetThroughputDate,
         },
         dispatch
     );

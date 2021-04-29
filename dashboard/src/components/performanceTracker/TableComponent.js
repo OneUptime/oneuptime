@@ -11,6 +11,8 @@ import {
     setIncomingStartDate,
     setOutgoingEndDate,
     setOutgoingStartDate,
+    resetIncomingDate,
+    resetOutgoingDate,
 } from '../../actions/performanceTrackerMetric';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
@@ -23,21 +25,27 @@ class TableComponent extends Component {
         const {
             performanceTracker,
             type,
-            incomingStartDate,
-            incomingEndDate,
-            outgoingStartDate,
-            outgoingEndDate,
             fetchIncomingMetrics,
             fetchOutgoingMetrics,
+            resetIncomingDate,
+            resetOutgoingDate,
         } = this.props;
+
+        this.currentDate = moment(Date.now()).format();
+        this.startDate = moment(this.currentDate)
+            .subtract(30, 'days')
+            .format();
+
+        resetIncomingDate(this.startDate, this.currentDate);
+        resetOutgoingDate(this.startDate, this.currentDate);
 
         if (performanceTracker && type === 'incoming') {
             const { _id, key } = performanceTracker;
             fetchIncomingMetrics({
                 appId: _id,
                 key,
-                startDate: incomingStartDate,
-                endDate: incomingEndDate,
+                startDate: this.startDate,
+                endDate: this.currentDate,
                 skip: 0,
                 limit: 10,
             });
@@ -46,8 +54,8 @@ class TableComponent extends Component {
             fetchOutgoingMetrics({
                 appId: _id,
                 key,
-                startDate: outgoingStartDate,
-                endDate: outgoingEndDate,
+                startDate: this.startDate,
+                endDate: this.currentDate,
                 skip: 0,
                 limit: 10,
             });
@@ -62,10 +70,6 @@ class TableComponent extends Component {
             const {
                 performanceTracker,
                 type,
-                incomingStartDate,
-                incomingEndDate,
-                outgoingStartDate,
-                outgoingEndDate,
                 fetchIncomingMetrics,
                 fetchOutgoingMetrics,
             } = this.props;
@@ -75,8 +79,8 @@ class TableComponent extends Component {
                 fetchIncomingMetrics({
                     appId: _id,
                     key,
-                    startDate: incomingStartDate,
-                    endDate: incomingEndDate,
+                    startDate: this.startDate,
+                    endDate: this.currentDate,
                     skip: 0,
                     limit: 10,
                 });
@@ -85,8 +89,8 @@ class TableComponent extends Component {
                 fetchOutgoingMetrics({
                     appId: _id,
                     key,
-                    startDate: outgoingStartDate,
-                    endDate: outgoingEndDate,
+                    startDate: this.startDate,
+                    endDate: this.currentDate,
                     skip: 0,
                     limit: 10,
                 });
@@ -95,20 +99,7 @@ class TableComponent extends Component {
     }
 
     handleCurrentDateRange = () => {
-        const {
-            type,
-            incomingStartDate,
-            incomingEndDate,
-            outgoingStartDate,
-            outgoingEndDate,
-        } = this.props;
-        let startDate = incomingStartDate,
-            endDate = incomingEndDate;
-        if (type === 'outgoing') {
-            startDate = outgoingStartDate;
-            endDate = outgoingEndDate;
-        }
-        return { startDate, endDate };
+        return { startDate: this.startDate, endDate: this.currentDate };
     };
 
     handleStartDate = val => {
@@ -308,11 +299,13 @@ class TableComponent extends Component {
                                             currentDateRange={this.handleCurrentDateRange()}
                                             handleStartDateTimeChange={val =>
                                                 this.handleStartDate(
-                                                    moment(val)
+                                                    moment(val).format()
                                                 )
                                             }
                                             handleEndDateTimeChange={val =>
-                                                this.handleEndDate(moment(val))
+                                                this.handleEndDate(
+                                                    moment(val).format()
+                                                )
                                             }
                                             formId={`performanceTrackeringDateTime-${heading}`}
                                         />
@@ -973,6 +966,8 @@ TableComponent.propTypes = {
     incomingMetrics: PropTypes.object,
     outgoingMetrics: PropTypes.object,
     openModal: PropTypes.func,
+    resetOutgoingDate: PropTypes.func,
+    resetIncomingDate: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -985,6 +980,8 @@ const mapDispatchToProps = dispatch =>
             setOutgoingStartDate,
             setOutgoingEndDate,
             openModal,
+            resetOutgoingDate,
+            resetIncomingDate,
         },
         dispatch
     );

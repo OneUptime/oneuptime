@@ -1,6 +1,7 @@
 import { getApi, deleteApi } from '../api';
 import * as types from '../constants/performanceTrackerMetric';
 import moment from 'moment';
+import { encode } from 'js-base64';
 
 // fetch performance tracker metrics - TIME
 export const fetchTimeMetricsRequest = () => ({
@@ -25,12 +26,9 @@ export const fetchTimeMetrics = ({
 }) => dispatch => {
     dispatch(fetchTimeMetricsRequest());
 
-    startDate = moment(startDate)
-        .utc()
-        .format();
-    endDate = moment(endDate)
-        .utc()
-        .format();
+    startDate = encode(moment(startDate).format());
+    endDate = encode(moment(endDate).format());
+
     const promise = getApi(
         `performanceMetric/${appId}/key/${key}/time?startDate=${startDate}&endDate=${endDate}`
     );
@@ -78,12 +76,9 @@ export const fetchThroughputMetrics = ({
 }) => dispatch => {
     dispatch(fetchThroughputMetricsRequest());
 
-    startDate = moment(startDate)
-        .utc()
-        .format();
-    endDate = moment(endDate)
-        .utc()
-        .format();
+    startDate = encode(moment(startDate).format());
+    endDate = encode(moment(endDate).format());
+
     const promise = getApi(
         `performanceMetric/${appId}/key/${key}/throughput?startDate=${startDate}&endDate=${endDate}`
     );
@@ -127,6 +122,26 @@ export const setThroughputEndDate = date => ({
     payload: date,
 });
 
+export const resetTimeDate = (startDate, endDate) => ({
+    type: types.RESET_TIME_DATE,
+    payload: { startDate, endDate },
+});
+
+export const resetThroughputDate = (startDate, endDate) => ({
+    type: types.RESET_THROUGHPUT_DATE,
+    payload: { startDate, endDate },
+});
+
+export const resetIncomingDate = (startDate, endDate) => ({
+    type: types.RESET_INCOMING_DATE,
+    payload: { startDate, endDate },
+});
+
+export const resetOutgoingDate = (startDate, endDate) => ({
+    type: types.RESET_OUTGOING_DATE,
+    payload: { startDate, endDate },
+});
+
 // update metrics from realtime update
 export const updateTimeMetrics = payload => ({
     type: types.UPDATE_TIME_METRICS,
@@ -163,12 +178,9 @@ export const fetchIncomingMetrics = ({
 }) => dispatch => {
     dispatch(fetchIncomingMetricsRequest());
 
-    startDate = moment(startDate)
-        .utc()
-        .format();
-    endDate = moment(endDate)
-        .utc()
-        .format();
+    startDate = encode(moment(startDate).format());
+    endDate = encode(moment(endDate).format());
+
     const promise = getApi(
         `performanceMetric/${appId}/key/${key}?type=incoming&skip=${skip}&limit=${limit}&startDate=${startDate}&endDate=${endDate}`
     );
@@ -217,12 +229,9 @@ export const fetchOutgoingMetrics = ({
 }) => dispatch => {
     dispatch(fetchOutgoingMetricsRequest());
 
-    startDate = moment(startDate)
-        .utc()
-        .format();
-    endDate = moment(endDate)
-        .utc()
-        .format();
+    startDate = encode(moment(startDate).format());
+    endDate = encode(moment(endDate).format());
+
     const promise = getApi(
         `performanceMetric/${appId}/key/${key}?type=outgoing&skip=${skip}&limit=${limit}&startDate=${startDate}&endDate=${endDate}`
     );

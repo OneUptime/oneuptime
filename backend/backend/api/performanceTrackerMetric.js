@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const PerformanceTrackerMetricService = require('../services/performanceTrackerMetricService');
 const moment = require('moment');
+const { decode } = require('js-base64');
 
 const {
     sendErrorResponse,
@@ -50,6 +51,9 @@ router.get('/:appId/key/:key/time', isValidAPIKey, async function(req, res) {
     try {
         const { appId } = req.params;
         let { startDate, endDate } = req.query;
+        startDate = decode(startDate);
+        endDate = decode(endDate);
+
         if (!startDate) {
             const error = new Error(
                 'Please specify startDate in the query parameter'
@@ -105,6 +109,9 @@ router.get('/:appId/key/:key/throughput', isValidAPIKey, async function(
     try {
         const { appId } = req.params;
         let { startDate, endDate } = req.query;
+        startDate = decode(startDate);
+        endDate = decode(endDate);
+
         if (!startDate) {
             const error = new Error(
                 'Please specify startDate in the query parameter'
@@ -159,6 +166,9 @@ router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
         const { appId } = req.params;
         const { type, skip, limit } = req.query;
         let { startDate, endDate } = req.query;
+        startDate = decode(startDate);
+        endDate = decode(endDate);
+
         if (!type) {
             const error = new Error(
                 'Please specify the type in the query parameter'

@@ -1,24 +1,14 @@
 import * as types from '../constants/performanceTrackerMetric';
-import moment from 'moment';
 
-// set default date
-// last 30 days from today
-const currentDate = moment(Date.now())
-    .utc()
-    .format();
-const startDate = moment(currentDate)
-    .subtract(30, 'days')
-    .utc()
-    .format();
 const INITIAL_STATE = {
-    timeStartDate: startDate,
-    timeEndDate: currentDate,
-    throughputStartDate: startDate,
-    throughputEndDate: currentDate,
-    incomingStartDate: startDate,
-    incomingEndDate: currentDate,
-    outgoingStartDate: startDate,
-    outgoingEndDate: currentDate,
+    timeStartDate: null,
+    timeEndDate: null,
+    throughputStartDate: null,
+    throughputEndDate: null,
+    incomingStartDate: null,
+    incomingEndDate: null,
+    outgoingStartDate: null,
+    outgoingEndDate: null,
     timeMetrics: {
         requesting: false,
         success: false,
@@ -85,6 +75,34 @@ export default function(state = INITIAL_STATE, action) {
             return {
                 ...state,
                 throughputEndDate: action.payload,
+            };
+
+        case types.RESET_TIME_DATE:
+            return {
+                ...state,
+                timeStartDate: action.payload.startDate,
+                timeEndDate: action.payload.endDate,
+            };
+
+        case types.RESET_THROUGHPUT_DATE:
+            return {
+                ...state,
+                throughputStartDate: action.payload.startDate,
+                throughputEndDate: action.payload.endDate,
+            };
+
+        case types.RESET_INCOMING_DATE:
+            return {
+                ...state,
+                incomingStartDate: action.payload.startDate,
+                incomingEndDate: action.payload.endDate,
+            };
+
+        case types.RESET_OUTGOING_DATE:
+            return {
+                ...state,
+                outgoingStartDate: action.payload.startDate,
+                outgoingEndDate: action.payload.endDate,
             };
 
         case types.FETCH_TIME_METRICS_REQUEST:
