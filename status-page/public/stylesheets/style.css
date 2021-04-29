@@ -1214,7 +1214,8 @@ margin-left:10px;
 }
 
 .ongoing__affectedmonitor--title {
-  font-weight: 900;
+  font-weight: 700;
+  font-size: 14px;
 }
 
 .scheduledEvent,
