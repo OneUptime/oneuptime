@@ -19,29 +19,46 @@ router.put(
     getUser,
     isAuthorized,
     async (req, res) => {
-        const { domain: subDomain, verificationToken, forceVerify } = req.body;
+        const { domain: subDomain, verificationToken } = req.body;
         // id of the base domain
         const { domainId } = req.params;
 
         try {
-            if (!forceVerify) {
-                const doesTxtRecordExist = await DomainVerificationService.doesTxtRecordExist(
-                    subDomain,
-                    verificationToken
-                );
+            const doesTxtRecordExist = await DomainVerificationService.doesTxtRecordExist(
+                subDomain,
+                verificationToken
+            );
 
-                if (!doesTxtRecordExist) {
-                    return sendErrorResponse(req, res, {
-                        message: 'TXT record not found',
-                        code: 400,
-                    });
-                }
+            if (!doesTxtRecordExist) {
+                return sendErrorResponse(req, res, {
+                    message: 'TXT record not found',
+                    code: 400,
+                });
             }
 
             const response = await DomainVerificationService.updateOneBy(
                 { _id: domainId },
                 { verified: true, verifiedAt: Date.now() },
                 subDomain
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.put(
+    '/:projectId/forceVerify/:domainId',
+    getUser,
+    isUserMasterAdmin,
+    async (req, res) => {
+        // id of the base domain
+        const { domainId } = req.params;
+        try {
+            const response = await DomainVerificationService.updateOneBy(
+                { _id: domainId },
+                { verified: true, verifiedAt: Date.now() }
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
