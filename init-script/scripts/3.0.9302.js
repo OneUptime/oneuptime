@@ -1,9 +1,9 @@
-const { updateAll } = require('../util/db');
+const { updateMany } = require('../util/db');
 
 const scheduledCollection = 'scheduledevents';
 
 async function run() {
-    await updateAll(
+    await updateMany(
         scheduledCollection,
         { cancelled: { $exists: false } },
         { cancelled: false }

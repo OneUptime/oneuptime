@@ -22,8 +22,8 @@ async function update(collection, query, value) {
     return global.db.collection(collection).updateOne(query, { $set: value });
 }
 
-async function updateAll(collection, query, value) {
-    return global.db.collection(collection).update(query, { $set: value });
+async function updateMany(collection, query, value) {
+    return global.db.collection(collection).updateMany(query, { $set: value });
 }
 
 async function removeField(collection, query, field) {
@@ -66,5 +66,5 @@ module.exports = {
     getVersion,
     removeField,
     rename,
-    updateAll,
+    updateMany,
 };
