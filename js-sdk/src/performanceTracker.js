@@ -15,6 +15,7 @@ class PerformanceTracker {
     #nodeUse;
     #start;
     #end;
+    #store;
     constructor({ apiUrl, appId, appKey }) {
         this.#apiUrl = apiUrl;
         this.#appId = appId;
@@ -27,18 +28,20 @@ class PerformanceTracker {
         }
         if (this.#nodeUse) {
             const perf = new PerfTimer(this.#apiUrl, this.#appId, this.#appKey);
-            const { start, end } = perf;
+            const { start, end, store } = perf;
             this.#start = start;
             this.#end = end;
+            this.#store = store(); // returns the store instance
         } else {
             const hrt = new HrTimer(this.#apiUrl, this.#appId, this.#appKey);
-            const { start, end } = hrt;
+            const { start, end, store } = hrt;
             this.#start = start;
             this.#end = end;
+            this.#store = store(); // returns the store instance
         }
     }
     setUpOutgoingListener() {
-        return new OutgoingListener(this.#start, this.#end);
+        return new OutgoingListener(this.#start, this.#end, this.#store);
     }
     setUpDataBaseListener() {
         const load = Module._load;
@@ -53,7 +56,7 @@ class PerformanceTracker {
         };
     }
     setUpIncomingListener() {
-        return new IncomingListener(this.#start, this.#end);
+        return new IncomingListener(this.#start, this.#end, this.#store);
     }
 }
 export default PerformanceTracker;

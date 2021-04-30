@@ -8,9 +8,11 @@ const { v4: uuidv4 } = require('uuid');
 class OutgoingListener {
     #start;
     #end;
-    constructor(start, end) {
+    #store;
+    constructor(start, end, store) {
         this.#start = start;
         this.#end = end;
+        this.#store = store;
         this._setUpOutgoingListener();
     }
     _setUpOutgoingListener() {
@@ -43,6 +45,21 @@ class OutgoingListener {
                             response.on('end', () => {
                                 _this.#end(req.apm.uuid, result, 'response');
                             });
+                            break;
+                        }
+                        case 'error': {
+                            const originalValue = _this.#store.getValue(
+                                req.apm.uuid
+                            );
+                            if (originalValue && originalValue !== undefined) {
+                                originalValue.errorCount = 1;
+                                _this.#store.setValue(
+                                    req.apm.uuid,
+                                    originalValue
+                                );
+                            }
+                            _this.#end(req.apm.uuid, result, 'response');
+                            break;
                         }
                     }
                     return emit.apply(this, arguments);

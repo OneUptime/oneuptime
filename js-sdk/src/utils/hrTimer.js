@@ -34,5 +34,7 @@ class HrTimer {
         }
         return;
     };
+
+    store = () => this.#dataStore;
 }
 export default HrTimer;

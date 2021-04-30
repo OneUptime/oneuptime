@@ -27,7 +27,7 @@ class DataStore {
             _this.sendData();
         });
     }
-    mapValue(path, store, time, method) {
+    mapValue(path, store, time, method, errorCount) {
         if (store.has(path)) {
             const s = store.get(path);
             const avg = s.avgTime,
@@ -40,9 +40,16 @@ class DataStore {
                 avgTime: avgTime,
                 maxTime: s.maxTime < time ? time : s.maxTime,
                 method: s.method,
+                errorCount: s.errorCount + errorCount,
             };
         } else {
-            return { requests: 1, avgTime: time, maxTime: time, method };
+            return {
+                requests: 1,
+                avgTime: time,
+                maxTime: time,
+                method,
+                errorCount,
+            };
         }
     }
     destroy(id) {
@@ -76,12 +83,13 @@ class DataStore {
         const path = value.path;
         const time = value.duration;
         const method = value.method;
+        const errorCount = value.errorCount || 0;
         let val = {};
         if (type === 'incoming') {
-            val = this.mapValue(path, this.#incoming, time, method);
+            val = this.mapValue(path, this.#incoming, time, method, errorCount);
             return this.#incoming.set(path, val);
         } else if (type === 'outgoing') {
-            val = this.mapValue(path, this.#outgoing, time, method);
+            val = this.mapValue(path, this.#outgoing, time, method, errorCount);
             return this.#outgoing.set(path, val);
         } else if (type === 'mongoose') {
             val = this.mapValue(path, this.#mongoose, time);
