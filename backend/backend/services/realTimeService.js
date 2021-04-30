@@ -1092,6 +1092,18 @@ module.exports = {
             throw error;
         }
     },
+    sendErrorMetrics: async (appId, data) => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            global.io.emit(`errorMetrics-${appId}`, data);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendErrorMetrics', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');
