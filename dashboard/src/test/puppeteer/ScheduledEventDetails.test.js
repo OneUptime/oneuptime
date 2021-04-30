@@ -1,8 +1,8 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const anotherEmail = utils.generateRandomBusinessEmail();
@@ -12,6 +12,10 @@ const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 const scheduledEventName = utils.generateRandomString();
 
+const user = {
+    email,
+    password,
+};
 require('should');
 
 describe('Scheduled Event Note', () => {
@@ -21,24 +25,14 @@ describe('Scheduled Event Note', () => {
 
     beforeAll(async done => {
         jest.setTimeout(200000);
-
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        // Register user
-        await cluster.execute(null, async ({ page }) => {
-            const user = {
-                email,
-                password,
-            };
+       
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
+        // Register user        
+            
 
             // user
             await init.registerUser(user, page);
@@ -58,21 +52,19 @@ describe('Scheduled Event Note', () => {
                 componentName,
                 page
             );
-        });
+        
 
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'should create an internal note',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
@@ -104,8 +96,7 @@ describe('Scheduled Event Note', () => {
                     '#Internal_incident_message_0',
                     { visible: true }
                 );
-                expect(note).toBeDefined();
-            });
+                expect(note).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -113,8 +104,7 @@ describe('Scheduled Event Note', () => {
 
     test(
         'should edit an internal note',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
@@ -147,8 +137,7 @@ describe('Scheduled Event Note', () => {
                     '#edited_Internal_incident_message_0',
                     { visible: true }
                 );
-                expect(edited).toBeDefined();
-            });
+                expect(edited).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -156,8 +145,7 @@ describe('Scheduled Event Note', () => {
 
     test(
         'should delete an internal note',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
@@ -183,8 +171,7 @@ describe('Scheduled Event Note', () => {
                     '#delete_Internal_incident_message_0',
                     { hidden: true }
                 );
-                expect(note).toBeNull();
-            });
+                expect(note).toBeNull();            
             done();
         },
         operationTimeOut
@@ -193,26 +180,19 @@ describe('Scheduled Event Note', () => {
 });
 
 describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
-    const operationTimeOut = 50000;
-
-    let cluster;
+    const operationTimeOut = 50000;    
 
     beforeAll(async done => {
         jest.setTimeout(2000000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
+       
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        // Register user
-        await cluster.execute(null, async ({ page }) => {
+        // Register user        
             const user = {
                 email: anotherEmail,
                 password,
@@ -238,22 +218,19 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                     'viewScheduledEvent_0',
                     noteDescription
                 );
-            }
-        });
+            }        
 
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'should load first 10 scheduled maintenance note => internal note',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
@@ -270,8 +247,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                     '#Internal_incident_message_9',
                     { visible: true }
                 );
-                expect(tenthItem).toBeDefined();
-            });
+                expect(tenthItem).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -279,8 +255,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
 
     test(
         'should load the remaining 5 scheduled maintenance note => internal note',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
@@ -306,16 +281,14 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                 );
 
                 expect(fifthItem).toBeDefined();
-                expect(sixthItem).toBeNull();
-            });
+                expect(sixthItem).toBeNull();            
             done();
         },
         operationTimeOut
     );
     test(
         'should visit the advance section and delete the schedule maintenance',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
@@ -350,8 +323,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                         hidden: true,
                     }
                 );
-                expect(scheduledEventList).toBeNull();
-            });
+                expect(scheduledEventList).toBeNull();            
             done();
         },
         operationTimeOut
