@@ -100,7 +100,7 @@ class ApplicationLogDetail extends Component {
         history.push(
             '/dashboard/project/' +
                 currentProject.slug +
-                '/' +
+                '/component/' +
                 componentSlug +
                 '/application-logs/' +
                 applicationLog.slug
