@@ -1,5 +1,5 @@
 staging_rollback_probe:
-    stage: RollbackIfSmokeTestFail
+    stage: RollbackIfTestsFail
     script:
         - chmod +x ./ci/scripts/deployment-setup.sh
         - ./ci/scripts/deployment-setup.sh
@@ -21,7 +21,7 @@ staging_rollback_probe:
         - $STAGING_SMOKE_TEST_STATUS
 
 production_rollback_probe:
-    stage: RollbackIfSmokeTestFail
+    stage: RollbackIfTestsFail
     script:
         - chmod +x ./ci/scripts/deployment-setup.sh
         - ./ci/scripts/deployment-setup.sh

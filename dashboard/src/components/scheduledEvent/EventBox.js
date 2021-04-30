@@ -262,7 +262,7 @@ class EventBox extends Component {
                                                         moment(
                                                             scheduledEvent.endDate
                                                         ) ? (
-                                                        <Badge color={'Black'}>
+                                                        <Badge color={'blue'}>
                                                             Scheduled
                                                         </Badge>
                                                     ) : moment() >=

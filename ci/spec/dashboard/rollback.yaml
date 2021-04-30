@@ -1,6 +1,6 @@
 ## STAGING ROLLBACK
 staging_rollback_dashboard:
-    stage: RollbackIfSmokeTestFail
+    stage: RollbackIfTestsFail
     script:
         - chmod +x ./ci/scripts/deployment-setup.sh
         - ./ci/scripts/deployment-setup.sh
@@ -21,7 +21,7 @@ staging_rollback_dashboard:
 
 ## PRODUCTION ROLLBACK
 production_rollback_dashboard:
-    stage: RollbackIfSmokeTestFail
+    stage: RollbackIfTestsFail
     script:
         - chmod +x ./ci/scripts/deployment-setup.sh
         - ./ci/scripts/deployment-setup.sh

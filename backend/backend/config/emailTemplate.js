@@ -2037,7 +2037,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             '{{resourcesAffected}} : List of monitors affected by scheduled maintenance event',
         ],
 
-        emailType: 'Subscriber Scheduled Maintenance',
+        emailType: 'Subscriber Scheduled Maintenance Created',
         subject: `New Scheduled Maintenance Event for {{projectName}} - {{eventName}}`,
         body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">

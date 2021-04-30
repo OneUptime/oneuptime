@@ -9,8 +9,8 @@ stages:
   - BuildAndTest
   - Deploy
   - RollbackIfDeploymentFail
-  - SmokeTest
-  - RollbackIfSmokeTestFail
+  - Tests
+  - RollbackIfTestsFail
 
 include:
   # GLOBAL JOBS
@@ -101,8 +101,8 @@ include:
   - '/ci/spec/e2e/kubernetes-test.yaml'
 
   # SMOKE TEST
-  - '/ci/spec/smoke-tests/staging.yaml'
-  - '/ci/spec/smoke-tests/production.yaml'
+  - '/ci/spec/tests/staging.yaml'
+  - '/ci/spec/tests/production.yaml'
 
   # JS-SDK
   - '/ci/spec/js-sdk/audit.yaml'

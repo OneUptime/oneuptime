@@ -67,9 +67,7 @@ class NewIncidentMessage extends Component {
         } else {
             mode = 'EDIT';
         }
-        if (postObj.post_statuspage) {
-            postObj.type = 'investigation';
-        }
+        
         if (this.props.data.type === 'investigation') {
             this.props
                 .setInvestigationNote(

@@ -3874,7 +3874,7 @@ const _this = {
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
-                'Subscriber Scheduled Maintenance'
+                'Subscriber Scheduled Maintenance Created'
             );
 
             const resourcesAffected = [];

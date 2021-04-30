@@ -126,7 +126,8 @@ class SmsTemplatesBox extends React.Component {
                                                                           template => ({
                                                                               value:
                                                                                   template.smsType,
-                                                                              label: `External ${template.smsType}`,
+                                                                              label:
+                                                                                  template.smsType,
                                                                           })
                                                                       )
                                                                     : []),

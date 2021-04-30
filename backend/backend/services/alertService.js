@@ -3456,7 +3456,7 @@ module.exports = {
                         await _this.sendSubscriberScheduledEventAlert(
                             subscriber,
                             schedule,
-                            'Subscriber Scheduled Maintenance',
+                            'Subscriber Scheduled Maintenance Created',
                             component,
                             subscribers.length,
                             uuid
@@ -3963,7 +3963,7 @@ module.exports = {
     sendSubscriberScheduledEventAlert: async function(
         subscriber,
         schedule,
-        templateType = 'Subscriber Scheduled Maintenance',
+        templateType = 'Subscriber Scheduled Maintenance Created',
         componentName,
         totalSubscribers,
         id
@@ -3978,7 +3978,7 @@ module.exports = {
             });
 
             const eventType =
-                templateType === 'Subscriber Scheduled Maintenance'
+                templateType === 'Subscriber Scheduled Maintenance Created'
                     ? 'Scheduled maintenance created'
                     : templateType ===
                       'Subscriber Scheduled Maintenance Resolved'
@@ -4053,7 +4053,7 @@ module.exports = {
 
                 let alertStatus = null;
                 try {
-                    if (templateType === 'Subscriber Scheduled Maintenance') {
+                    if (templateType === 'Subscriber Scheduled Maintenance Created') {
                         await MailService.sendScheduledEventMailToSubscriber(
                             date,
                             subscriber.monitorName,
@@ -4264,7 +4264,7 @@ module.exports = {
                     let alertStatus = null;
                     try {
                         if (
-                            templateType === 'Subscriber Scheduled Maintenance'
+                            templateType === 'Subscriber Scheduled Maintenance Created'
                         ) {
                             if (
                                 project.sendAcknowledgedIncidentNotificationSms
