@@ -438,6 +438,21 @@ module.exports = {
         }
     },
 
+    findSubprojectId: async function(projectId) {
+        try {
+            const _this = this;
+            const subProject = await _this.findBy({
+                parentProjectId: projectId,
+            });
+            const subProjectId = subProject.map(sub => String(sub._id));
+            const projectIdArr = [projectId, ...subProjectId];
+            return projectIdArr;
+        } catch (error) {
+            ErrorService.log('projectService.findSubprojectId', error);
+            throw error;
+        }
+    },
+
     exitProject: async function(projectId, userId, deletedById, saveUserSeat) {
         try {
             const _this = this;
@@ -708,15 +723,13 @@ module.exports = {
 
     addNotes: async function(projectId, notes) {
         const _this = this;
-        const adminNotes = (
-            await _this.updateOneBy(
-                { _id: projectId },
-                {
-                    adminNotes: notes,
-                }
-            )
-        ).adminNotes;
-        return adminNotes;
+        const project = await _this.updateOneBy(
+            { _id: projectId },
+            {
+                adminNotes: notes,
+            }
+        );
+        return project;
     },
 
     searchProjects: async function(query, skip, limit) {

@@ -885,17 +885,15 @@ module.exports = {
 
     addNotes: async function(userId, notes) {
         const _this = this;
-        const adminNotes = (
-            await _this.updateOneBy(
-                {
-                    _id: userId,
-                },
-                {
-                    adminNotes: notes,
-                }
-            )
-        ).adminNotes;
-        return adminNotes;
+        const user = await _this.updateOneBy(
+            {
+                _id: userId,
+            },
+            {
+                adminNotes: notes,
+            }
+        );
+        return user;
     },
 
     searchUsers: async function(query, skip, limit) {

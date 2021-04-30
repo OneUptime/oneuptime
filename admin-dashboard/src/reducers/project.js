@@ -78,6 +78,7 @@ import {
     RESET_PROJECT_DOMAIN_SUCCESS,
     RESET_PROJECT_DOMAIN_FAILURE,
     RESET_PROJECT_DOMAIN_ON_MOUNT,
+    RESET_DELETE_PROJECT_DOMAIN,
 } from '../constants/project';
 
 const INITIAL_STATE = {
@@ -473,6 +474,15 @@ export default function project(state = INITIAL_STATE, action) {
                 deleteDomain: {
                     requesting: false,
                     success: true,
+                    error: null,
+                },
+            };
+        case RESET_DELETE_PROJECT_DOMAIN:
+            return {
+                ...state,
+                deleteDomain: {
+                    requesting: false,
+                    success: false,
                     error: null,
                 },
             };
@@ -924,6 +934,17 @@ export default function project(state = INITIAL_STATE, action) {
 
         case ADD_PROJECT_NOTE_SUCCESS:
             return Object.assign({}, state, {
+                projects: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    projects: state.projects.projects.map(project => {
+                        if (project._id === action.payload._id) {
+                            project = action.payload;
+                        }
+                        return project;
+                    }),
+                },
                 project: {
                     requesting: false,
                     error: null,

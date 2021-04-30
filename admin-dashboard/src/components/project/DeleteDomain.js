@@ -8,11 +8,13 @@ import { FormLoader } from '../basic/Loader';
 import {
     deleteProjectDomain,
     fetchProjectDomains,
+    resetDeleteProjectDomain,
 } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 
 class DeleteDomain extends Component {
     componentDidMount() {
+        this.props.resetDeleteProjectDomain();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -93,6 +95,9 @@ class DeleteDomain extends Component {
                                                     className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
                                                     style={{
                                                         marginTop: '10px',
+                                                        display: 'flex',
+                                                        justifyContent:
+                                                            'center',
                                                     }}
                                                 >
                                                     <div className="Box-root Margin-right--8">
@@ -158,6 +163,7 @@ DeleteDomain.propTypes = {
     closeModal: PropTypes.func,
     deleteProjectDomain: PropTypes.func,
     fetchProjectDomains: PropTypes.func,
+    resetDeleteProjectDomain: PropTypes.func,
     data: PropTypes.object,
     domainId: PropTypes.string,
     deleteError: PropTypes.oneOfType([
@@ -177,7 +183,12 @@ const mapStateToProps = state => {
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { closeModal, deleteProjectDomain, fetchProjectDomains },
+        {
+            closeModal,
+            deleteProjectDomain,
+            fetchProjectDomains,
+            resetDeleteProjectDomain,
+        },
         dispatch
     );
 

@@ -41,15 +41,12 @@ class ProjectVerifyDomain extends Component {
 
     handleVerifyDomain = () => {
         const {
-            domain,
             domainId,
             projectId,
             verifyProjectDomain,
             fetchProjectDomains,
-            verificationToken,
         } = this.props;
-        const data = { domain, verificationToken };
-        verifyProjectDomain({ projectId, domainId, data }).then(() => {
+        verifyProjectDomain({ projectId, domainId }).then(() => {
             if (!this.props.verifyError) {
                 fetchProjectDomains(projectId, 0, 10);
                 this.handleCloseModal();
@@ -312,7 +309,6 @@ ProjectVerifyDomain.propTypes = {
     fetchProjectDomains: PropTypes.func,
     verifyProjectDomain: PropTypes.func,
     resetVerifyProjectDomain: PropTypes.func,
-    domain: PropTypes.string,
 };
 
 export default connect(

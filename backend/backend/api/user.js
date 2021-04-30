@@ -1401,11 +1401,11 @@ router.post('/:userId/addNote', getUser, isUserMasterAdmin, async function(
                     data.push(val);
                 }
 
-                const adminNotes = await UserService.addNotes(userId, data);
-                return sendItemResponse(req, res, adminNotes);
+                const user = await UserService.addNotes(userId, data);
+                return sendItemResponse(req, res, user);
             } else {
-                const adminNotes = await UserService.addNotes(userId, data);
-                return sendItemResponse(req, res, adminNotes);
+                const user = await UserService.addNotes(userId, data);
+                return sendItemResponse(req, res, user);
             }
         } else {
             return sendErrorResponse(req, res, {
