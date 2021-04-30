@@ -1,4 +1,4 @@
-const { find, updateAll } = require('../util/db');
+const { updateAll } = require('../util/db');
 
 const scheduledCollection = 'scheduledevents';
 
