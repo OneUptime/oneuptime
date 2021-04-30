@@ -21,6 +21,12 @@ const INITIAL_STATE = {
         error: null,
         metrics: [],
     },
+    errorMetrics: {
+        requesting: false,
+        error: null,
+        success: false,
+        metrics: [],
+    },
     incomingMetrics: {
         requesting: false,
         success: false,
@@ -153,7 +159,7 @@ export default function(state = INITIAL_STATE, action) {
             return {
                 ...state,
                 throughputMetrics: {
-                    ...state.timeMetrics,
+                    ...state.throughputMetrics,
                     requesting: true,
                     success: false,
                     error: null,
@@ -187,6 +193,50 @@ export default function(state = INITIAL_STATE, action) {
                 ...state,
                 throughputMetrics: {
                     ...state.throughputMetrics,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.FETCH_ERROR_METRICS_REQUEST:
+            return {
+                ...state,
+                errorMetrics: {
+                    ...state.errorMetrics,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.FETCH_ERROR_METRICS_SUCCESS:
+            return {
+                ...state,
+                errorMetrics: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    metrics: action.payload, // update the data
+                },
+            };
+
+        case types.UPDATE_ERROR_METRICS:
+            return {
+                ...state,
+                errorMetrics: {
+                    ...state.errorMetrics,
+                    metrics: state.errorMetrics.metrics.concat(
+                        ...action.payload
+                    ),
+                },
+            };
+
+        case types.FETCH_ERROR_METRICS_FAILURE:
+            return {
+                ...state,
+                errorMetrics: {
+                    ...state.errorMetrics,
                     requesting: false,
                     success: false,
                     error: action.payload,
