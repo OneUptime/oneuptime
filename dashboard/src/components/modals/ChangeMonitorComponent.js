@@ -4,16 +4,29 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { reduxForm, Field } from 'redux-form';
 import ClickOutside from 'react-click-outside';
-import { closeModal } from '../../actions/modal';
+import { closeModal, openModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { changeMonitorComponent } from '../../actions/monitor';
 import ComponentSelector from '../basic/ComponentSelector';
 import { ValidateField } from '../../config';
+import { history } from '../../store';
+import { logEvent } from '../../analytics';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
+import MessageBox from '../modals/MessageBox';
+import DataPathHoC from '../DataPathHoC';
+import { v4 as uuidv4 } from 'uuid';
+import { addCurrentComponent } from '../../actions/component';
 
 const formName = 'changeMonitorComponentForm';
 
 class ChangeMonitorComponent extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            changeMonitorSuccessMessageBoxId: uuidv4(),
+        };
+    }
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -22,15 +35,88 @@ class ChangeMonitorComponent extends React.Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
+    showSuccessMessageBox = async newComponent => {
+        this.props.openModal({
+            id: this.state.changeMonitorSuccessMessageBoxId,
+            content: DataPathHoC(MessageBox, {
+                message: `Monitor component successfully changed to ${newComponent.name}`,
+                title: 'Change Successful',
+            }),
+        });
+    };
+
+    handleMonitorComponentChanged = async (monitor, oldComponentId) => {
+        this.props.closeModal({
+            id: this.state.changeMonitorComponentModalId,
+        });
+
+        const newComponent = monitor.componentId;
+        const { projectId } = monitor;
+
+        // get component from component list
+        let componentWithProjects;
+        this.props.components.find(subCompo => {
+            const belongsToProject = subCompo._id === projectId._id;
+            if (!belongsToProject) return false;
+
+            return subCompo.components.find(compo => {
+                if (compo._id === newComponent._id) {
+                    componentWithProjects = compo;
+                    return true;
+                }
+
+                return false;
+            });
+        });
+
+        this.props.addCurrentComponent(componentWithProjects);
+
+        this.showSuccessMessageBox(newComponent);
+        this.handleRedirectOnSuccess(monitor, oldComponentId);
+
+        return;
+    };
+
+    handleRedirectOnSuccess = async (monitor, oldComponentId) => {
+        const { currentProject } = this.props;
+        const {
+            projectId,
+            _id: monitorId,
+            slug,
+            componentId: newComponent,
+        } = monitor;
+
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR COMPONENT CHANGED',
+                {
+                    projectId,
+                    monitorId,
+                    oldComponentId,
+                    newComponentId: newComponent.id,
+                }
+            );
+        }
+
+        const redirectTo = `/dashboard/project/${currentProject.slug}/${newComponent.slug}/monitoring/${slug}`;
+
+        return history.push(redirectTo);
+    };
+
     submitForm = values => {
         const { data, changeMonitorComponent } = this.props;
         const projectId = data.monitor.projectId._id;
         const monitorId = data.monitor._id;
+        const { oldComponentId } = data;
         const { newComponentId } = values;
         changeMonitorComponent(projectId, monitorId, newComponentId).then(
             response => {
                 if (!this.props.changeMonitorComponentError) {
-                    this.props.confirmThisDialog(response.data);
+                    this.handleMonitorComponentChanged(
+                        response.data,
+                        oldComponentId,
+                        newComponentId
+                    );
                 }
             }
         );
@@ -245,6 +331,7 @@ ChangeMonitorComponent.displayName = 'ChangeMonitorComponent';
 
 ChangeMonitorComponent.propTypes = {
     closeModal: PropTypes.func.isRequired,
+    openModal: PropTypes.func,
     handleSubmit: PropTypes.func.isRequired,
     changeMonitorComponent: PropTypes.func.isRequired,
     changeMonitorComponentModalId: PropTypes.string,
@@ -255,7 +342,8 @@ ChangeMonitorComponent.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     components: PropTypes.array,
-    confirmThisDialog: PropTypes.func,
+    currentProject: PropTypes.object,
+    addCurrentComponent: PropTypes.func,
 };
 
 const ChangeMonitorComponentForm = reduxForm({
@@ -269,6 +357,8 @@ const mapDispatchToProps = dispatch =>
         {
             changeMonitorComponent,
             closeModal,
+            openModal,
+            addCurrentComponent,
         },
         dispatch
     );
@@ -279,6 +369,7 @@ const mapStateToProps = state => {
         requesting: state.monitor.changeMonitorComponent.requesting,
         changeMonitorComponentError: state.monitor.changeMonitorComponent.error,
         changeMonitorComponentModalId: state.modal.modals[0].id,
+        currentProject: state.project.currentProject,
     };
 };
 
