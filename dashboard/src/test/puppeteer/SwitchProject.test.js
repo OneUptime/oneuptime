@@ -1,13 +1,16 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
+const user = {
+    email,
+    password,
+};
 
 describe('Project API', () => {
     const operationTimeOut = 50000;
@@ -15,64 +18,30 @@ describe('Project API', () => {
     beforeAll(async done => {
         jest.setTimeout(200000);
 
-        const cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 120000,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
 
         // Register user
-        await cluster.task(async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
-
-            // user
-            await init.registerUser(user, page);
-        });
-
-        await cluster.queue({ email, password });
-
-        await cluster.idle();
-        await cluster.close();
+            await init.registerUser(user, page);        
+        
         done();
     });
 
     afterAll(async done => {
+        await browser.close();
         done();
     });
 
     test(
         'Should create new project from dropdown after login',
         async done => {
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
-                await page.waitForSelector('#selector');
-                await page.$eval('#create-project', e => e.click());
-                await page.waitForTimeout(1000);
-                await page.waitForSelector('#name');
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#selector', {visible: true});
+                await page.$eval('#create-project', e => e.click());                
+                await page.waitForSelector('#name', {visible: true});
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', utils.generateRandomString());
                 await page.click('input[id=Startup_month]');
@@ -90,12 +59,8 @@ describe('Project API', () => {
                     return json;
                 });
                 // eslint-disable-next-line no-undef
-                localStorageData.should.have.property('project');
-            });
-
-            cluster.queue({ email, password });
-            await cluster.idle();
-            await cluster.close();
+                localStorageData.should.have.property('project');  
+                            
             done();
         },
         operationTimeOut
@@ -104,27 +69,10 @@ describe('Project API', () => {
     test(
         'Should switch project using project switcher',
         async done => {
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
-                await page.waitForSelector('#AccountSwitcherId');
+                await page.goto(utils.DASHBOARD_URL);                
+                await page.waitForSelector('#AccountSwitcherId', {visible: true});
                 await page.click('#AccountSwitcherId');
-                await page.waitForSelector('#accountSwitcher');
+                await page.waitForSelector('#accountSwitcher', {visible: true});
 
                 const element = await page.$(
                     '#accountSwitcher > div[title="Unnamed Project"]'
@@ -143,11 +91,7 @@ describe('Project API', () => {
                 });
                 // eslint-disable-next-line no-undef
                 localStorageData.should.have.property('project');
-            });
-
-            cluster.queue({ email, password });
-            await cluster.idle();
-            await cluster.close();
+          
             done();
         },
         operationTimeOut

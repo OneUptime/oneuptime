@@ -117,6 +117,16 @@ const pingfetch = async url => {
                 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36',
         };
         try {
+
+             /* Try with a normal http / https agent. 
+               If this fails we'll try with an agent which has 
+                {
+                    rejectUnauthorized: false,
+                }
+
+                to check for self-signed SSL certs. 
+            */
+
             response = await fetch(url, { timeout: 120000, headers });
             res = new Date().getTime() - now;
             data = await response.text();
@@ -132,6 +142,16 @@ const pingfetch = async url => {
                 }
             }
         } catch (e) {
+
+             /* Retry with an agent which has 
+
+                {
+                    rejectUnauthorized: false,
+                }
+
+                to check for self-signed SSL certs. 
+            */
+
             response = await fetch(url, {
                 timeout: 120000,
                 ...(url.startsWith('https')
