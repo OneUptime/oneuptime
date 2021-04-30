@@ -934,6 +934,17 @@ export default function project(state = INITIAL_STATE, action) {
 
         case ADD_PROJECT_NOTE_SUCCESS:
             return Object.assign({}, state, {
+                projects: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    projects: state.projects.projects.map(project => {
+                        if (project._id === action.payload._id) {
+                            project = action.payload;
+                        }
+                        return project;
+                    }),
+                },
                 project: {
                     requesting: false,
                     error: null,

@@ -15,7 +15,6 @@ import ProjectUpgrade from '../components/project/ProjectUpgrade';
 import AdminNotes from '../components/adminNote/AdminNotes';
 import { addProjectNote, fetchProject, paginate } from '../actions/project';
 import { IS_SAAS_SERVICE } from '../config';
-import { fetchProjects } from '../actions/project';
 import { fetchProjectTeam } from '../actions/project';
 import ProjectBalance from '../components/project/ProjectBalance';
 import ProjectDomain from '../components/project/ProjectDomain';
@@ -25,7 +24,6 @@ class Project extends Component {
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Project page Loaded');
         }
-        this.props.fetchProjects();
         this.props.fetchProject(this.props.slug);
         if (this.props.project._id) {
             this.props.fetchProjectTeam(this.props.project._id);
@@ -41,14 +39,7 @@ class Project extends Component {
     }
 
     ready = async () => {
-        const {
-            fetchProject,
-            slug,
-            fetchProjectTeam,
-            project,
-            fetchProjects,
-        } = this.props;
-        fetchProjects();
+        const { fetchProject, slug, fetchProjectTeam, project } = this.props;
         fetchProject(slug);
         if (project._id) {
             fetchProjectTeam(project._id);
@@ -255,7 +246,6 @@ const mapDispatchToProps = dispatch => {
         {
             addProjectNote,
             fetchProject,
-            fetchProjects,
             fetchProjectTeam,
             paginate,
         },
@@ -286,7 +276,6 @@ Project.propTypes = {
     fetchProject: PropTypes.func.isRequired,
     project: PropTypes.object.isRequired,
     fetchProjectTeam: PropTypes.func.isRequired,
-    fetchProjects: PropTypes.func.isRequired,
     projectUsers: PropTypes.object.isRequired,
     paginate: PropTypes.func.isRequired,
     slug: PropTypes.string,
