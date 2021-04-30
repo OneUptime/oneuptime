@@ -25,8 +25,8 @@ describe('Project API', () => {
         );
 
         // Register user
-            await init.registerUser(user, page);        
-        
+        await init.registerUser(user, page);
+
         done();
     });
 
@@ -38,29 +38,29 @@ describe('Project API', () => {
     test(
         'Should create new project from dropdown after login',
         async done => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#selector', {visible: true});
-                await page.$eval('#create-project', e => e.click());                
-                await page.waitForSelector('#name', {visible: true});
-                await page.click('input[id=name]');
-                await page.type('input[id=name]', utils.generateRandomString());
-                await page.click('input[id=Startup_month]');
-                await Promise.all([
-                    page.click('button[type=submit]'),
-                    page.waitForNavigation(),
-                ]);
-                // eslint-disable-next-line no-undef
-                localStorageData = await page.evaluate(() => {
-                    const json = {};
-                    for (let i = 0; i < localStorage.length; i++) {
-                        const key = localStorage.key(i);
-                        json[key] = localStorage.getItem(key);
-                    }
-                    return json;
-                });
-                // eslint-disable-next-line no-undef
-                localStorageData.should.have.property('project');  
-                            
+            await page.goto(utils.DASHBOARD_URL);
+            await page.waitForSelector('#selector', { visible: true });
+            await page.$eval('#create-project', e => e.click());
+            await page.waitForSelector('#name', { visible: true });
+            await page.click('input[id=name]');
+            await page.type('input[id=name]', utils.generateRandomString());
+            await page.click('input[id=Startup_month]');
+            await Promise.all([
+                page.click('button[type=submit]'),
+                page.waitForNavigation(),
+            ]);
+            // eslint-disable-next-line no-undef
+            localStorageData = await page.evaluate(() => {
+                const json = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    json[key] = localStorage.getItem(key);
+                }
+                return json;
+            });
+            // eslint-disable-next-line no-undef
+            localStorageData.should.have.property('project');
+
             done();
         },
         operationTimeOut
@@ -69,29 +69,29 @@ describe('Project API', () => {
     test(
         'Should switch project using project switcher',
         async done => {
-                await page.goto(utils.DASHBOARD_URL);                
-                await page.waitForSelector('#AccountSwitcherId', {visible: true});
-                await page.click('#AccountSwitcherId');
-                await page.waitForSelector('#accountSwitcher', {visible: true});
+            await page.goto(utils.DASHBOARD_URL);
+            await page.waitForSelector('#AccountSwitcherId', { visible: true });
+            await page.click('#AccountSwitcherId');
+            await page.waitForSelector('#accountSwitcher', { visible: true });
 
-                const element = await page.$(
-                    '#accountSwitcher > div[title="Unnamed Project"]'
-                );
+            const element = await page.$(
+                '#accountSwitcher > div[title="Unnamed Project"]'
+            );
 
-                await element.click();
-                await page.waitForNavigation();
-                // eslint-disable-next-line no-undef
-                localStorageData = await page.evaluate(() => {
-                    const json = {};
-                    for (let i = 0; i < localStorage.length; i++) {
-                        const key = localStorage.key(i);
-                        json[key] = localStorage.getItem(key);
-                    }
-                    return json;
-                });
-                // eslint-disable-next-line no-undef
-                localStorageData.should.have.property('project');
-          
+            await element.click();
+            await page.waitForNavigation();
+            // eslint-disable-next-line no-undef
+            localStorageData = await page.evaluate(() => {
+                const json = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    json[key] = localStorage.getItem(key);
+                }
+                return json;
+            });
+            // eslint-disable-next-line no-undef
+            localStorageData.should.have.property('project');
+
             done();
         },
         operationTimeOut

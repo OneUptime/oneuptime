@@ -29,7 +29,8 @@
         "delete-all-local-branches": "git branch | grep -v 'master' | xargs git branch -D",
         "lint": "eslint '**/*.js' -c .eslintrc.json --ignore-path .eslintignore",
         "fix-lint": "eslint '**/*.js' -c .eslintrc.json --ignore-path .eslintignore --fix",
-        "staging-test": "cd tests && npm run-script staging-test"
+        "staging-test": "cd tests && npm run-script staging-test",
+        "debug-staging-test": "cd tests && npm run-script debug-staging-test"
     },
     "repository": {
         "type": "git",

@@ -4053,7 +4053,10 @@ module.exports = {
 
                 let alertStatus = null;
                 try {
-                    if (templateType === 'Subscriber Scheduled Maintenance Created') {
+                    if (
+                        templateType ===
+                        'Subscriber Scheduled Maintenance Created'
+                    ) {
                         await MailService.sendScheduledEventMailToSubscriber(
                             date,
                             subscriber.monitorName,
@@ -4264,7 +4267,8 @@ module.exports = {
                     let alertStatus = null;
                     try {
                         if (
-                            templateType === 'Subscriber Scheduled Maintenance Created'
+                            templateType ===
+                            'Subscriber Scheduled Maintenance Created'
                         ) {
                             if (
                                 project.sendAcknowledgedIncidentNotificationSms

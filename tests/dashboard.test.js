@@ -129,7 +129,7 @@ describe('Monitor API', () => {
             await page.click('input[id=name]', { visible: true });
             await page.type('input[id=name]', monitorName);
             await page.click('[data-testId=type_url]');
-            await page.waitForSelector('#url', {visible: true});
+            await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
             await page.type('#url', 'https://google.com');
             await page.click('button[type=submit]');
@@ -168,7 +168,7 @@ describe('Monitor API', () => {
             await page.click('input[id=name]', { visible: true });
             await page.type('input[id=name]', '');
             await page.click('[data-testId=type_url]');
-            await page.waitForSelector('#url', {visible: true});
+            await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
             await page.type('#url', 'https://google.com');
             await page.click('button[type=submit]');

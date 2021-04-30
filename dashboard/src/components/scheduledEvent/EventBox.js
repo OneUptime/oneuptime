@@ -244,7 +244,7 @@ class EventBox extends Component {
                                     {scheduledEvents.length > 0 &&
                                         scheduledEvents.map(
                                             (scheduledEvent, index) => {
-                                                let scheduleStatus = scheduledEvent.resolved ? (
+                                                const scheduleStatus = scheduledEvent.resolved ? (
                                                     <Badge color={'green'}>
                                                         Completed
                                                     </Badge>

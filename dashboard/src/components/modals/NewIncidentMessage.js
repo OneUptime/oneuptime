@@ -67,7 +67,7 @@ class NewIncidentMessage extends Component {
         } else {
             mode = 'EDIT';
         }
-        
+
         if (this.props.data.type === 'investigation') {
             this.props
                 .setInvestigationNote(
