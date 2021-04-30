@@ -1018,17 +1018,11 @@ router.post('/:projectId/addNote', getUser, isUserMasterAdmin, async function(
                     data.push(val);
                 }
 
-                const adminNotes = await ProjectService.addNotes(
-                    projectId,
-                    data
-                );
-                return sendItemResponse(req, res, adminNotes);
+                const project = await ProjectService.addNotes(projectId, data);
+                return sendItemResponse(req, res, project);
             } else {
-                const adminNotes = await ProjectService.addNotes(
-                    projectId,
-                    data
-                );
-                return sendItemResponse(req, res, adminNotes);
+                const project = await ProjectService.addNotes(projectId, data);
+                return sendItemResponse(req, res, project);
             }
         } else {
             return sendErrorResponse(req, res, {

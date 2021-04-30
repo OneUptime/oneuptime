@@ -29,6 +29,15 @@ class ProjectDomain extends Component {
         }
     }
 
+    componentDidUpdate(prevProps) {
+        if (prevProps.projectId !== this.props.projectId) {
+            const projectId = this.props.projectId;
+            if (projectId) {
+                this.props.fetchProjectDomains(projectId, 0, this.limit);
+            }
+        }
+    }
+
     prevClicked = (projectId, skip) => {
         const { fetchProjectDomains } = this.props;
         fetchProjectDomains(
