@@ -159,6 +159,60 @@ router.get('/:appId/key/:key/throughput', isValidAPIKey, async function(
     }
 });
 
+router.get('/:appId/key/:key/error', isValidAPIKey, async function(req, res) {
+    try {
+        const { appId } = req.params;
+        let { startDate, endDate } = req.query;
+        startDate = decode(startDate);
+        endDate = decode(endDate);
+
+        if (!startDate) {
+            const error = new Error(
+                'Please specify startDate in the query parameter'
+            );
+            error.code = 400;
+            throw error;
+        }
+        if (!moment(startDate).isValid()) {
+            const error = new Error(
+                'Please specify startDate as utc time or millisecond time'
+            );
+            error.code = 400;
+            throw error;
+        }
+        if (!endDate) {
+            const error = new Error(
+                'Please specify endDate in the query parameter'
+            );
+            error.code = 400;
+            throw error;
+        }
+        if (!moment(endDate).isValid()) {
+            const error = new Error(
+                'Please specify endDate as utc time or millisecond time'
+            );
+            error.code = 400;
+            throw error;
+        }
+        if (!isNaN(startDate)) {
+            startDate = Number(startDate);
+        }
+        if (!isNaN(endDate)) {
+            endDate = Number(endDate);
+        }
+
+        const metrics = await PerformanceTrackerMetricService.structureMetricsError(
+            appId,
+            startDate,
+            endDate
+        );
+
+        return sendItemResponse(req, res, metrics);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 // Route
 // Description: Fetch all the Performance metrics for a particular identifier
 router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
