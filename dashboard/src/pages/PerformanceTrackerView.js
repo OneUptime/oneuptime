@@ -18,6 +18,7 @@ import {
 import {
     updateThroughputMetrics,
     updateTimeMetrics,
+    updateErrorMetrics,
 } from '../actions/performanceTrackerMetric';
 import io from 'socket.io-client';
 import { API_URL } from '../config';
@@ -45,6 +46,7 @@ class PerformanceTrackerView extends Component {
             performanceTracker,
             updateTimeMetrics,
             updateThroughputMetrics,
+            updateErrorMetrics,
         } = this.props;
         if (
             JSON.stringify(prevProps.currentProject) !==
@@ -68,6 +70,9 @@ class PerformanceTrackerView extends Component {
                 socket.on(`throughputMetrics-${performanceTracker._id}`, data =>
                     updateThroughputMetrics(data)
                 );
+                socket.on(`errorMetrics-${performanceTracker._id}`, data =>
+                    updateErrorMetrics(data)
+                );
             }
         }
     }
@@ -81,6 +86,7 @@ class PerformanceTrackerView extends Component {
             fetchPerformanceTracker,
             resetPerformanceTrackerKeyReset,
             performanceTracker,
+            updateErrorMetrics,
         } = this.props;
 
         if (performanceTracker) {
@@ -89,6 +95,9 @@ class PerformanceTrackerView extends Component {
             );
             socket.on(`throughputMetrics-${performanceTracker._id}`, data =>
                 updateThroughputMetrics(data)
+            );
+            socket.on(`errorMetrics-${performanceTracker._id}`, data =>
+                updateErrorMetrics(data)
             );
         }
 
@@ -109,6 +118,7 @@ class PerformanceTrackerView extends Component {
             socket.removeListener(
                 `throughputMetrics-${performanceTracker._id}`
             );
+            socket.removeListener(`errorMetrics-${performanceTracker._id}`);
         }
     }
 
@@ -229,10 +239,7 @@ class PerformanceTrackerView extends Component {
                                                 <div>
                                                     <WebTransactionsChart
                                                         heading="Web Transactions Time"
-                                                        title={[
-                                                            'Node.js',
-                                                            'Response time',
-                                                        ]}
+                                                        title={[]}
                                                         subHeading="shows graph of web transactions initiated through http requests"
                                                         type="transactionTime"
                                                     />
@@ -242,9 +249,7 @@ class PerformanceTrackerView extends Component {
                                                 <div>
                                                     <WebTransactionsChart
                                                         heading="Throughput"
-                                                        title={[
-                                                            'Web throughput',
-                                                        ]}
+                                                        title={[]}
                                                         subHeading="shows graph of number of web transactions per minute"
                                                         type="throughput"
                                                     />
@@ -254,11 +259,9 @@ class PerformanceTrackerView extends Component {
                                                 <div>
                                                     <WebTransactionsChart
                                                         heading="Error rate"
-                                                        title={[
-                                                            'Web errors',
-                                                            'All errors',
-                                                        ]}
+                                                        title={[]}
                                                         subHeading="shows graph of errors occuring per minute"
+                                                        type="errorRate"
                                                     />
                                                 </div>
                                             </div>
@@ -266,10 +269,7 @@ class PerformanceTrackerView extends Component {
                                                 <div>
                                                     <WebTransactionsChart
                                                         heading="Apdex Score"
-                                                        title={[
-                                                            'App server',
-                                                            'End user',
-                                                        ]}
+                                                        title={[]}
                                                         subHeading="shows graph of satisfied requests against total requests"
                                                     />
                                                 </div>
@@ -320,6 +320,7 @@ const mapDispatchToProps = dispatch => {
             updateThroughputMetrics,
             removeQuickStart,
             resetPerformanceTrackerKeyReset,
+            updateErrorMetrics,
         },
         dispatch
     );
@@ -358,6 +359,7 @@ PerformanceTrackerView.propTypes = {
     trackerObj: PropTypes.object,
     resetPerformanceTrackerKeyReset: PropTypes.func,
     resetTrackerObj: PropTypes.object,
+    updateErrorMetrics: PropTypes.func,
 };
 export default connect(
     mapStateToProps,

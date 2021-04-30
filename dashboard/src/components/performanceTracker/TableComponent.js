@@ -370,6 +370,9 @@ class TableComponent extends Component {
                                                                 Throughput
                                                             </div>
                                                             <div className="bs-ObjectList-cell">
+                                                                Error Count
+                                                            </div>
+                                                            <div className="bs-ObjectList-cell">
                                                                 Created At
                                                             </div>
                                                             <div
@@ -442,6 +445,12 @@ class TableComponent extends Component {
                                                                                 {
                                                                                     metric.throughput
                                                                                 }
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                            <div className="bs-ObjectList-cell-row">
+                                                                                {metric.errorCount ||
+                                                                                    0}
                                                                             </div>
                                                                         </div>
                                                                         <div className="bs-ObjectList-cell bs-u-v-middle">
@@ -665,6 +674,9 @@ class TableComponent extends Component {
                                                                 Throughput
                                                             </div>
                                                             <div className="bs-ObjectList-cell">
+                                                                Error Count
+                                                            </div>
+                                                            <div className="bs-ObjectList-cell">
                                                                 Created At
                                                             </div>
                                                             <div
@@ -736,6 +748,13 @@ class TableComponent extends Component {
                                                                             <div className="bs-ObjectList-cell-row">
                                                                                 {
                                                                                     metric.throughput
+                                                                                }
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                            <div className="bs-ObjectList-cell-row">
+                                                                                {
+                                                                                    metric.errorCount
                                                                                 }
                                                                             </div>
                                                                         </div>

@@ -8,12 +8,16 @@ import moment from 'moment';
 import {
     fetchTimeMetrics,
     fetchThroughputMetrics,
+    fetchErrorMetrics,
     setTimeStartDate,
     setTimeEndDate,
     setThroughputEndDate,
     setThroughputStartDate,
+    setErrorStartDate,
+    setErrorEndDate,
     resetTimeDate,
     resetThroughputDate,
+    resetErrorDate,
 } from '../../actions/performanceTrackerMetric';
 
 //import ShouldRender from '../../components/basic/ShouldRender';
@@ -25,8 +29,10 @@ export class ChartComponent extends Component {
             type,
             fetchTimeMetrics,
             fetchThroughputMetrics,
+            fetchErrorMetrics,
             resetTimeDate,
             resetThroughputDate,
+            resetErrorDate,
         } = this.props;
 
         this.currentDate = moment(Date.now()).format();
@@ -36,6 +42,7 @@ export class ChartComponent extends Component {
 
         resetTimeDate(this.startDate, this.currentDate);
         resetThroughputDate(this.startDate, this.currentDate);
+        resetErrorDate(this.startDate, this.currentDate);
 
         if (performanceTracker && type === 'throughput') {
             const { _id, key } = performanceTracker;
@@ -48,6 +55,14 @@ export class ChartComponent extends Component {
         } else if (performanceTracker && type === 'transactionTime') {
             const { _id, key } = performanceTracker;
             fetchThroughputMetrics({
+                appId: _id,
+                key,
+                startDate: this.startDate,
+                endDate: this.currentDate,
+            });
+        } else if (performanceTracker && type === 'errorRate') {
+            const { _id, key } = performanceTracker;
+            fetchErrorMetrics({
                 appId: _id,
                 key,
                 startDate: this.startDate,
@@ -66,6 +81,7 @@ export class ChartComponent extends Component {
                 type,
                 fetchTimeMetrics,
                 fetchThroughputMetrics,
+                fetchErrorMetrics,
             } = this.props;
 
             if (performanceTracker && type === 'throughput') {
@@ -84,6 +100,14 @@ export class ChartComponent extends Component {
                     startDate: this.startDate,
                     endDate: this.currentDate,
                 });
+            } else if (performanceTracker && type === 'errorRate') {
+                const { _id, key } = performanceTracker;
+                fetchErrorMetrics({
+                    appId: _id,
+                    key,
+                    startDate: this.startDate,
+                    endDate: this.currentDate,
+                });
             }
         }
     }
@@ -97,10 +121,13 @@ export class ChartComponent extends Component {
             type,
             setTimeStartDate,
             setThroughputStartDate,
+            setErrorStartDate,
             fetchTimeMetrics,
             fetchThroughputMetrics,
+            fetchErrorMetrics,
             timeEndDate,
             throughputEndDate,
+            errorEndDate,
             performanceTracker,
         } = this.props;
 
@@ -124,6 +151,16 @@ export class ChartComponent extends Component {
                     startDate: val,
                     endDate: timeEndDate,
                 });
+        } else if (type === 'errorRate') {
+            setErrorStartDate(val);
+
+            performanceTracker &&
+                fetchErrorMetrics({
+                    appId: performanceTracker._id,
+                    key: performanceTracker.key,
+                    startDate: val,
+                    endDate: errorEndDate,
+                });
         }
     };
 
@@ -132,10 +169,13 @@ export class ChartComponent extends Component {
             type,
             setTimeEndDate,
             setThroughputEndDate,
+            setErrorEndDate,
             fetchTimeMetrics,
             fetchThroughputMetrics,
+            fetchErrorMetrics,
             timeStartDate,
             throughputStartDate,
+            errorStartDate,
             performanceTracker,
         } = this.props;
 
@@ -159,6 +199,16 @@ export class ChartComponent extends Component {
                     startDate: timeStartDate,
                     endDate: val,
                 });
+        } else if (type === 'errorRate') {
+            setErrorEndDate(val);
+
+            performanceTracker &&
+                fetchErrorMetrics({
+                    appId: performanceTracker._id,
+                    key: performanceTracker.key,
+                    startDate: errorStartDate,
+                    endDate: val,
+                });
         }
     };
 
@@ -170,6 +220,7 @@ export class ChartComponent extends Component {
             type,
             timeMetrics,
             throughputMetrics,
+            errorMetrics,
         } = this.props;
         const status = {
             display: 'inline-block',
@@ -267,6 +318,17 @@ export class ChartComponent extends Component {
                                                 }
                                             />
                                         )}
+                                        {type === 'errorRate' && (
+                                            <PerformanceChart
+                                                type={`url`}
+                                                data={errorMetrics.metrics}
+                                                name={'request per time'}
+                                                symbol=""
+                                                requesting={
+                                                    errorMetrics.requesting
+                                                }
+                                            />
+                                        )}
                                     </div>
                                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20">
                                         <div className="Box-root">
@@ -316,16 +378,23 @@ ChartComponent.propTypes = {
     setThroughputEndDate: PropTypes.func,
     setTimeStartDate: PropTypes.func,
     setTimeEndDate: PropTypes.func,
-    timeStartDate: PropTypes.string,
-    timeEndDate: PropTypes.string,
-    throughputStartDate: PropTypes.string,
-    throughputEndDate: PropTypes.string,
+    timeStartDate: PropTypes.any,
+    timeEndDate: PropTypes.any,
+    throughputStartDate: PropTypes.any,
+    throughputEndDate: PropTypes.any,
     timeMetrics: PropTypes.object,
     throughputMetrics: PropTypes.object,
     type: PropTypes.string,
     performanceTracker: PropTypes.object,
     resetTimeDate: PropTypes.func,
     resetThroughputDate: PropTypes.func,
+    fetchErrorMetrics: PropTypes.func,
+    setErrorStartDate: PropTypes.func,
+    setErrorEndDate: PropTypes.func,
+    resetErrorDate: PropTypes.func,
+    errorMetrics: PropTypes.object,
+    errorStartDate: PropTypes.any,
+    errorEndDate: PropTypes.any,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -339,6 +408,10 @@ const mapDispatchToProps = dispatch =>
             setTimeEndDate,
             resetTimeDate,
             resetThroughputDate,
+            fetchErrorMetrics,
+            setErrorStartDate,
+            setErrorEndDate,
+            resetErrorDate,
         },
         dispatch
     );
@@ -350,8 +423,11 @@ function mapStateToProps(state) {
         timeEndDate: state.performanceTrackerMetric.timeEndDate,
         throughputStartDate: state.performanceTrackerMetric.throughputStartDate,
         throughputEndDate: state.performanceTrackerMetric.throughputEndDate,
+        errorStartDate: state.performanceTrackerMetric.errorStartDate,
+        errorEndDate: state.performanceTrackerMetric.errorEndDate,
         timeMetrics: state.performanceTrackerMetric.timeMetrics,
         throughputMetrics: state.performanceTrackerMetric.throughputMetrics,
+        errorMetrics: state.performanceTrackerMetric.errorMetrics,
         performanceTracker:
             state.performanceTracker.fetchPerformanceTracker &&
             state.performanceTracker.fetchPerformanceTracker.performanceTracker,
