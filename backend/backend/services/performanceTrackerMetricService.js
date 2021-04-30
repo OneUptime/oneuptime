@@ -177,6 +177,7 @@ module.exports = {
                     },
                     createdAt: receivedAt,
                     throughput: value.requests,
+                    errorCount: value.errorCount,
                 });
             }
 
@@ -186,6 +187,7 @@ module.exports = {
             await Promise.all([
                 _this.structureMetricsTime(appId, receivedAt, receivedAt),
                 _this.structureMetricsCount(appId, receivedAt, receivedAt),
+                _this.structureMetricsError(appId, receivedAt, receivedAt),
             ]);
         } catch (error) {
             ErrorService.log(
@@ -305,6 +307,61 @@ module.exports = {
             throw error;
         }
     },
+
+    structureMetricsError: async function(appId, startDate, endDate) {
+        const _this = this;
+        startDate = moment(startDate).format();
+        endDate = moment(endDate).format();
+        try {
+            // store the metrics according to createdAt
+            // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
+            const dataBank = {};
+            const timeMetrics = await _this.findBy(
+                {
+                    performanceTrackerId: appId,
+                    createdAt: { $gte: startDate, $lte: endDate },
+                },
+                0,
+                0,
+                null,
+                1
+            );
+
+            timeMetrics.forEach(metric => {
+                const date = moment(metric.createdAt).format();
+                if (!(date in dataBank)) {
+                    dataBank[date] = [metric];
+                } else {
+                    dataBank[date] = dataBank[date].concat(metric);
+                }
+            });
+
+            // finally calculate the avg per data per time
+            // finalOutput should have the structure:
+            // [{createdAt: '2021-04-21T17:15:00+01:00', errorCount: 20, value: errorCount}]
+            const finalOutput = [];
+            for (const [key, value] of Object.entries(dataBank)) {
+                const result = { createdAt: key };
+                const { avgErrorCount } = calcAvgError(value);
+                result.avgErrorCount = avgErrorCount;
+                result.value = avgErrorCount;
+                finalOutput.push(result);
+            }
+
+            // send realtime update to frontend
+            // handle this in the backend, so we don't delay api calls
+            RealTimeService.sendErrorMetrics(appId, finalOutput);
+
+            // send result back to api
+            return finalOutput;
+        } catch (error) {
+            ErrorService.log(
+                'performanceTrackerMetricService.structureMetricsError',
+                error
+            );
+            throw error;
+        }
+    },
 };
 
 function calcAvgTime(metric) {
@@ -333,6 +390,19 @@ function calcAvgThroughput(metric) {
 
     return {
         avgThroughput: numDecimal(sum / length, 0), // we rounded off value here
+    };
+}
+
+function calcAvgError(metric) {
+    const length = metric.length;
+
+    let cumulative = 0;
+    metric.forEach(data => {
+        cumulative += data.errorCount;
+    });
+
+    return {
+        avgErrorCount: numDecimal(cumulative / length, 0), // round-off the value
     };
 }
 
