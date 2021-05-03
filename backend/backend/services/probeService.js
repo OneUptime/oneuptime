@@ -6353,7 +6353,7 @@ const checkOr = async (
  * @param {'and' | 'or'} conditionLogic
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */
-const checkScriptCondition = (condition, payload, body) => {
+const checkScriptCondition = (condition, body) => {
     if (!condition || !condition.responseType) {
         return;
     }
@@ -6362,29 +6362,7 @@ const checkScriptCondition = (condition, payload, body) => {
      */
     const validity = {};
 
-    if (condition.responseType === 'executes') {
-        if (!condition.filter || !condition.field1 || !payload) {
-            return;
-        }
-
-        if (condition.filter === 'executesIn') {
-            if (payload <= condition.field1) {
-                validity.valid = true;
-                validity.reason = `Script executed in ${condition.field1} ms`;
-            } else {
-                validity.valid = false;
-                validity.reason = `Script did not execute in ${condition.field1} ms`;
-            }
-        } else if (condition.filter === 'doesNotExecuteIn') {
-            if (payload > condition.field1) {
-                validity.valid = true;
-                validity.reason = `Script did not execute in ${condition.field1} ms`;
-            } else {
-                validity.valid = false;
-                validity.reason = `Script executed in ${condition.field1} ms`;
-            }
-        }
-    } else if (condition.responseType === 'error') {
+    if (condition.responseType === 'error') {
         if (!condition.filter || !body) {
             return;
         }
@@ -6406,14 +6384,9 @@ const checkScriptCondition = (condition, payload, body) => {
                 validity.reason = `Script did not throw error`;
             }
         }
-    } else if (condition.responseType === 'javascriptExpression') {
-        if (condition.filter === body) {
-            validity.valid = true;
-            validity.reason = `Script has matching Javascript expression`;
-        } else {
-            validity.valid = false;
-            validity.reason = `Script did not have Javascript expression`;
-        }
+    } else {
+        // if for some strange reason
+        return;
     }
 
     return validity;
