@@ -9,6 +9,7 @@ import {
     fetchSubProjectStatusPages,
     fetchProjectStatusPage,
     paginate,
+    searchStatusPages,
 } from '../../actions/statusPage';
 import { openModal, closeModal } from '../../actions/modal';
 import Badge from '../common/Badge';
@@ -255,6 +256,7 @@ const mapDispatchToProps = dispatch =>
             fetchSubProjectStatusPages,
             paginate,
             fetchProjectStatusPage,
+            searchStatusPages,
         },
         dispatch
     );
@@ -306,6 +308,7 @@ function mapStateToProps(state) {
               };
     });
     subProjectStatusPages.unshift(projectStatusPage);
+    const searchValues = state.form.search && state.form.search.values;
     return {
         currentProject,
         subProjectStatusPages,
@@ -314,6 +317,7 @@ function mapStateToProps(state) {
         subProjects,
         modalList: state.modal.modals,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        searchValues,
     };
 }
 
@@ -334,6 +338,8 @@ StatusPagesTable.propTypes = {
     subProjects: PropTypes.array.isRequired,
     modalList: PropTypes.array,
     switchToProjectViewerNav: PropTypes.bool,
+    searchValues: PropTypes.object,
+    searchStatusPages: PropTypes.func,
 };
 
 StatusPagesTable.displayName = 'StatusPagesTable';
