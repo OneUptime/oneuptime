@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { reduxForm, Field } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
@@ -7,7 +8,12 @@ import PropTypes from 'prop-types';
 import { history } from '../../store';
 import { addCurrentComponent } from '../../actions/component';
 import { animateSidebar } from '../../actions/animateSidebar';
-import { resetSearch } from '../../actions/search';
+import { resetSearch, search } from '../../actions/search';
+import { fetchMonitors } from '../../actions/monitor';
+import { IS_LOCALHOST, User } from '../../config';
+import { switchStatusPage } from '../../actions/statusPage';
+import isSubProjectViewer from '../../utils/isSubProjectViewer';
+import { addScheduleEvent } from '../../actions/scheduledEvent';
 
 class Search extends Component {
     state = {
@@ -53,7 +59,6 @@ class Search extends Component {
         for (let i = 0; i < searchObj.length; i++) {
             if (i === this.state.sectionActive) {
                 //check if its the last section
-                //if not
                 if (searchObj[i].values.length - 1 === this.state.scroll) {
                     return this.setState({
                         sectionActive:
@@ -71,8 +76,115 @@ class Search extends Component {
             }
         }
     };
-    handleEnter = () => {
+
+    //generate monitor url
+    generateUrlLink(searchObj) {
+        const { currentProject } = this.props;
+        const baseUrl = `/dashboard/project/${currentProject.slug}/${searchObj.componentSlug}/`;
+        let route = '';
+        switch (searchObj.type) {
+            case 'website':
+            case 'device':
+            case 'manual':
+            case 'api':
+            case 'server':
+            case 'script':
+            case 'incomingHttpRequest':
+            case 'kubernetes':
+            case 'IP':
+                route = 'monitoring';
+                break;
+            case 'application security':
+                route = 'security/application';
+                break;
+            case 'container security':
+                route = 'security/container';
+                break;
+            case 'log container':
+                route = 'application-logs';
+                break;
+            case 'error tracker':
+                route = 'error-trackers';
+                break;
+            default:
+                break;
+        }
+        return `${baseUrl}${route}/${searchObj.monitorSlug}`;
+    }
+
+    switchStatusPages = (searchObj, path) => {
+        this.props.switchStatusPage(searchObj);
+        history.push(path);
+    };
+    loadComponent = (currentProject, searchObj) => {
+        history.push(
+            '/dashboard/project/' + currentProject.slug + '/' + searchObj.url
+        );
+        window.location.reload();
+    };
+    navigate = (type, searchObj) => {
         const { currentProject, componentList } = this.props;
+        let component, publicStatusPageUrl, path, userId;
+        switch (type) {
+            case 'Monitors':
+            case 'Components':
+                component =
+                    componentList &&
+                    componentList.components
+                        .filter(
+                            project => project._id === searchObj.projectId
+                        )[0]
+                        .components.filter(
+                            component => component._id === searchObj.componentId
+                        )[0];
+                setTimeout(
+                    () => {
+                        type === 'Monitors'
+                            ? history.push(this.generateUrlLink(searchObj))
+                            : this.loadComponent(currentProject, searchObj);
+
+                        this.props.animateSidebar(false);
+                    },
+                    type === 'Monitors' ? 500 : 200
+                );
+                this.props.animateSidebar(true);
+                this.props.addCurrentComponent(component);
+                break;
+            case 'Status Pages':
+                path = `/dashboard/project/${currentProject.slug}/sub-project/${searchObj.projectId._id}/status-page/${searchObj.statusPageSlug}`;
+                userId = User.getUserId();
+                if (IS_LOCALHOST) {
+                    publicStatusPageUrl = `http://${searchObj.statusPageSlug}.localhost:3006`;
+                } else {
+                    publicStatusPageUrl =
+                        window.location.origin +
+                        '/status-page/' +
+                        searchObj.statusPageSlug;
+                }
+
+                isSubProjectViewer(userId, currentProject)
+                    ? window.open(publicStatusPageUrl, '_blank')
+                    : this.switchStatusPages(searchObj.statusPage, path);
+                break;
+            case 'Team Members':
+                history.push('/dashboard/profile/' + searchObj.userId);
+                break;
+            case 'On-Call Duty':
+                history.push(
+                    `/dashboard/project/${currentProject.slug}/sub-project/${searchObj.projectId}/schedule/${searchObj.scheduleSlug}`
+                );
+                break;
+            case 'Schedule Events':
+                history.push(
+                    `/dashboard/project/${currentProject.slug}/scheduledEvents/${searchObj.scheduleEventSlug}`
+                );
+                this.props.addScheduleEvent(searchObj.scheduleEvents);
+                break;
+            default:
+                return null;
+        }
+    };
+    handleEnter = () => {
         if (
             this.props.searcResult.length > 0 &&
             this.props.searchValues &&
@@ -80,48 +192,16 @@ class Search extends Component {
         ) {
             const searchObj = this.props.searcResult[this.state.sectionActive]
                 .values[this.state.scroll];
-            const component =
-                componentList &&
-                componentList.components
-                    .filter(project => project._id === searchObj.projectId)[0]
-                    .components.filter(
-                        component => component._id === searchObj.componentId
-                    )[0];
-
-            setTimeout(() => {
-                history.push(
-                    '/dashboard/project/' +
-                        currentProject.slug +
-                        '/' +
-                        searchObj.url
-                );
-                this.props.animateSidebar(false);
-            }, 500);
-            this.props.animateSidebar(true);
-            this.props.addCurrentComponent(component);
+            const type = this.props.searcResult[this.state.sectionActive].title;
+            this.navigate(type, searchObj);
+            this.handleBlur();
         }
     };
     handleSearchClick = (sectionActive, scroll) => {
-        const { currentProject, componentList } = this.props;
         const searchObj = this.props.searcResult[sectionActive].values[scroll];
-        const component =
-            componentList &&
-            componentList.components
-                .filter(project => project._id === searchObj.projectId)[0]
-                .components.filter(
-                    component => component._id === searchObj.componentId
-                )[0];
-        setTimeout(() => {
-            history.push(
-                '/dashboard/project/' +
-                    currentProject.slug +
-                    '/' +
-                    searchObj.url
-            );
-            this.props.animateSidebar(false);
-        }, 500);
-        this.props.animateSidebar(true);
-        this.props.addCurrentComponent(component);
+        const type = this.props.searcResult[sectionActive].title;
+        this.navigate(type, searchObj);
+        this.handleBlur();
     };
     handleKeyBoardScroll = e => {
         switch (e.key) {
@@ -135,11 +215,18 @@ class Search extends Component {
                 return false;
         }
     };
-    handleFocus = () => {
-        console.log('hey baby i am so fucussed on you');
-    };
     handleBlur = () => {
-        this.props.resetSearch()
+        this.props.resetSearch();
+    };
+    handleSearch = val => {
+        if (val) {
+            this.props.search(this.props.currentProject._id, { search: val });
+        } else {
+            this.setState({
+                scroll: 0,
+                sectionActive: 0,
+            });
+        }
     };
     render() {
         const searchObj = this.props.searcResult;
@@ -154,8 +241,7 @@ class Search extends Component {
                     id="search"
                     placeholder="Search"
                     autofilled={'off'}
-                    handleFocus={this.handleFocus}
-                    handleBlur={this.handleBlur}
+                    onChange={(e, newValue) => this.handleSearch(newValue)}
                 />
                 <div className="search-list-li">
                     <ul
@@ -182,7 +268,7 @@ class Search extends Component {
                                     {result.values.map((val, i) => {
                                         return (
                                             <li
-                                                key={val.name}
+                                                key={val.name + i}
                                                 style={{
                                                     padding: '5px 10px',
 
@@ -235,6 +321,10 @@ Search.propTypes = {
     animateSidebar: PropTypes.func,
     componentList: PropTypes.object,
     resetSearch: PropTypes.func,
+    search: PropTypes.func,
+    currentProject: PropTypes.object,
+    switchStatusPage: PropTypes.func,
+    addScheduleEvent: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -243,6 +333,10 @@ const mapDispatchToProps = dispatch => {
             addCurrentComponent,
             animateSidebar,
             resetSearch,
+            search,
+            fetchMonitors,
+            switchStatusPage,
+            addScheduleEvent,
         },
         dispatch
     );
@@ -259,4 +353,7 @@ function mapStateToProps(state) {
     };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(SearchBox);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(withRouter(SearchBox));
