@@ -76,7 +76,7 @@ describe('Schedule API With SubProjects', () => {
                     );
 
                     expect(createButton).toBe(null);                            
-                    //await init.logout(page);
+                    await init.logout(page);
             done();
         },
         operationTimeOut
@@ -87,7 +87,7 @@ describe('Schedule API With SubProjects', () => {
         async done => {
             const scheduleName = utils.generateRandomString();
                                                                                
-                   // await init.loginUser(user, page);
+                    await init.loginUser(user, page);
                     await init.addScheduleToProject(
                         scheduleName,
                         subProjectName,
@@ -105,7 +105,7 @@ describe('Schedule API With SubProjects', () => {
                     );
 
                     textContent = await textContent.jsonValue();
-                    expect(textContent).toEqual('Page 1 of 1 (1 duty)');
+                    expect(textContent).toMatch('Page 1 of 1 (1 duty)');
             
             done();
         },
@@ -113,24 +113,18 @@ describe('Schedule API With SubProjects', () => {
     );
 
     // test('should get list schedules in sub-projects and paginate schedules in sub-project', async done => {
-    //     const fn = async ({ page, data }) => {
-    //         const user = {
-    //             email: data.email,
-    //             password: data.password,
-    //         };
-
-    //         await init.loginUser(user, page);
-    //         if (data.isParentUser) {
+        
+    //             await page.goto(utils.DASHBOARD_URL);
     //             // add 10 more schedules to sub-project to test for pagination
     //             for (let i = 0; i < 10; i++) {
     //                 const scheduleName = utils.generateRandomString();
     //                 await init.addScheduleToProject(
     //                     scheduleName,
-    //                     data.subProjectName,
+    //                     subProjectName,
     //                     page
     //                 );
     //             }
-    //         } else {
+            
     //             // await cluster.waitForOne();
     //             // // switch to invited project for new user
     //             // await init.switchProject(data.projectName, page);
@@ -158,22 +152,7 @@ describe('Schedule API With SubProjects', () => {
     //             scheduleRows = await page.$$('tr.scheduleListItem');
     //             countSchedules = scheduleRows.length;
     //             expect(countSchedules).toEqual(10);
-    //         }
-    //     };
-
-    //     await cluster.execute(
-    //         { email, password, subProjectName, isParentUser: true },
-    //         fn
-    //     );
-    //     await cluster.execute(
-    //         {
-    //             email: newEmail,
-    //             password: newPassword,
-    //             projectName,
-    //             isParentUser: false,
-    //         },
-    //         fn
-    //     );
+                            
 
     //     done();
     // }, 200000);

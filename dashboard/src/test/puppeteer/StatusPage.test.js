@@ -1,7 +1,6 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
 
@@ -12,6 +11,7 @@ const componentName = 'hackerbay';
 const monitorName = 'fyipe';
 const monitorName1 = 'testFyipe';
 
+let browser, page;
 const gotoTheFirstStatusPage = async page => {
     await page.goto(utils.DASHBOARD_URL);
     await page.waitForSelector('#statusPages');
@@ -30,23 +30,18 @@ describe('Status Page', () => {
     beforeAll(async () => {
         jest.setTimeout(360000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 500000,
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );  
 
-        cluster.on('error', err => {
-            throw err;
-        });
-
-        return await cluster.execute(
-            { email, password },
-            async ({ page, data }) => {
+        
+            
+            
                 const user = {
-                    email: data.email,
-                    password: data.password,
+                    email,
+                    password,
                 };
 
                 // user
@@ -79,19 +74,17 @@ describe('Status Page', () => {
                     page,
                     componentName
                 );
-            }
-        );
+        
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'should indicate that no monitor is set yet for a status page',
-        async () => {
+        async (done) => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
                 const elem = await page.waitForSelector('#app-loading', {
