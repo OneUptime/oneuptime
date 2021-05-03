@@ -27,7 +27,8 @@ module.exports = {
                 !(
                     scheduledEventMessage.event_state === 'Resolved' ||
                     scheduledEventMessage.event_state === 'Created' ||
-                    scheduledEventMessage.event_state === 'Started'
+                    scheduledEventMessage.event_state === 'Started' ||
+                    scheduledEventMessage.event_state === 'Cancelled'
                 )
             ) {
                 AlertService.sendScheduledEventInvestigationNoteToSubscribers(

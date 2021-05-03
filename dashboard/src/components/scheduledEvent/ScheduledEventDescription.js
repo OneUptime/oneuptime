@@ -306,11 +306,14 @@ function ScheduledEventDescription({
                                                                         scheduledEvent.cancelled
                                                                     }
                                                                 >
-                                                                    <span>
-                                                                        Event
-                                                                        has been
-                                                                        cancelled
-                                                                    </span>
+                                                                    <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
+                                                                            Event
+                                                                            has
+                                                                            been
+                                                                            cancelled
+                                                                        </span>
+                                                                    </div>
                                                                 </ShouldRender>
                                                                 <ShouldRender
                                                                     if={

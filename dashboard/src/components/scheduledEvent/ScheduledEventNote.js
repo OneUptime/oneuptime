@@ -167,7 +167,8 @@ export class ScheduledEventNote extends Component {
                                           note.event_state !== 'Deleted' &&
                                           note.event_state !== 'Resolved' &&
                                           note.event_state !== 'Created' &&
-                                          note.event_state !== 'Started' ? (
+                                          note.event_state !== 'Started' &&
+                                          note.event_state !== 'Cancelled' ? (
                                               <div
                                                   key={i}
                                                   id={`${type}_incident_message_${i}`}
@@ -377,7 +378,9 @@ export class ScheduledEventNote extends Component {
                                                 note.event_state ===
                                                     'Created' ||
                                                 note.event_state ===
-                                                    'Resolved') ? (
+                                                    'Resolved' ||
+                                                note.event_state ===
+                                                    'Cancelled') ? (
                                               <>
                                                   <ShouldRender if={i !== 0}>
                                                       <div className="bs-thread-line-up bs-ex-up"></div>
@@ -387,7 +390,9 @@ export class ScheduledEventNote extends Component {
                                                           className={`bs-incident-notes 
                                                                     ${
                                                                         note.event_state ===
-                                                                        'Deleted'
+                                                                            'Deleted' ||
+                                                                        note.event_state ===
+                                                                            'Cancelled'
                                                                             ? 'bs-note-offline'
                                                                             : note.event_state ===
                                                                                   'Resolved' ||
