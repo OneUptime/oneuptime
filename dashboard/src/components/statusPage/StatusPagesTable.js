@@ -255,7 +255,6 @@ const mapDispatchToProps = dispatch =>
             fetchSubProjectStatusPages,
             paginate,
             fetchProjectStatusPage,
-            searchStatusPages,
         },
         dispatch
     );
