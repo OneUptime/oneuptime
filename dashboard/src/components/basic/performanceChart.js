@@ -120,7 +120,7 @@ class PerformanceChart extends Component {
                     <YAxis
                         type="number"
                         domain={[0, 'dataMax']}
-                        tickCount={5}
+                        allowDecimals={false}
                         axisLine={false}
                         tickLine={false}
                         mirror={true}
