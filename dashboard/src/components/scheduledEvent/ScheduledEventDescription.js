@@ -222,7 +222,7 @@ function ScheduledEventDescription({
                                                     {moment(
                                                         scheduledEvent.startDate
                                                     ).format(
-                                                        'MMMM Do YYYY, h:mm:ss a'
+                                                        'MMMM Do YYYY, h:mm a'
                                                     )}
                                                 </span>
                                             </div>
@@ -246,7 +246,7 @@ function ScheduledEventDescription({
                                                     {moment(
                                                         scheduledEvent.endDate
                                                     ).format(
-                                                        'MMMM Do YYYY, h:mm:ss a'
+                                                        'MMMM Do YYYY, h:mm a'
                                                     )}
                                                 </span>
                                             </div>
