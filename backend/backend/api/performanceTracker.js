@@ -8,8 +8,8 @@ const express = require('express');
 const router = express.Router();
 const NotificationService = require('../services/notificationService');
 const PerformanceTrackerService = require('../services/performanceTrackerService');
-// const RealTimeService = require('../services/realTimeService');
-
+const PerformanceTrackerMetricService = require('../services/performanceTrackerMetricService');
+const { decode } = require('js-base64');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
@@ -296,6 +296,57 @@ router.put(
                 performanceTrackerData
             );
             return sendItemResponse(req, res, performanceTracker);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// fetch last metric result for web transaction, throughput and error rate
+// to be displayed on the performance tracker list
+router.get(
+    '/:projectId/last-metrics/:performanceTrackerId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { performanceTrackerId } = req.params;
+            let { startDate, endDate } = req.query;
+            startDate = decode(startDate);
+            endDate = decode(endDate);
+
+            // get each of the individual metrics
+            // for web transaction, throughput and error rate
+            const [time, throughput, errorRate] = await Promise.all([
+                PerformanceTrackerMetricService.structureMetricsTime(
+                    performanceTrackerId,
+                    startDate,
+                    endDate
+                ),
+                PerformanceTrackerMetricService.structureMetricsCount(
+                    performanceTrackerId,
+                    startDate,
+                    endDate
+                ),
+                PerformanceTrackerMetricService.structureMetricsError(
+                    performanceTrackerId,
+                    startDate,
+                    endDate
+                ),
+            ]);
+
+            const result = {
+                time: time.length > 0 ? time[time.length - 1].value : 0,
+                throughput:
+                    throughput.length > 0
+                        ? throughput[throughput.length - 1].value
+                        : 0,
+                errorRate:
+                    errorRate.length > 0
+                        ? errorRate[errorRate.length - 1].value
+                        : 0,
+            };
+            return sendItemResponse(req, res, result);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
