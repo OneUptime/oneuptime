@@ -222,7 +222,7 @@ function ScheduledEventDescription({
                                                     {moment(
                                                         scheduledEvent.startDate
                                                     ).format(
-                                                        'MMMM Do YYYY, h:mm:ss a'
+                                                        'MMMM Do YYYY, h:mm a'
                                                     )}
                                                 </span>
                                             </div>
@@ -246,7 +246,7 @@ function ScheduledEventDescription({
                                                     {moment(
                                                         scheduledEvent.endDate
                                                     ).format(
-                                                        'MMMM Do YYYY, h:mm:ss a'
+                                                        'MMMM Do YYYY, h:mm a'
                                                     )}
                                                 </span>
                                             </div>
@@ -283,7 +283,8 @@ function ScheduledEventDescription({
                                                             <div>
                                                                 <ShouldRender
                                                                     if={
-                                                                        !resolving
+                                                                        !resolving &&
+                                                                        !scheduledEvent.cancelled
                                                                     }
                                                                 >
                                                                     <label
@@ -299,6 +300,20 @@ function ScheduledEventDescription({
                                                                             event
                                                                         </span>
                                                                     </label>
+                                                                </ShouldRender>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        scheduledEvent.cancelled
+                                                                    }
+                                                                >
+                                                                    <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
+                                                                            Event
+                                                                            has
+                                                                            been
+                                                                            cancelled
+                                                                        </span>
+                                                                    </div>
                                                                 </ShouldRender>
                                                                 <ShouldRender
                                                                     if={
