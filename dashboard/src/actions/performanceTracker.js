@@ -1,5 +1,6 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/performanceTracker';
+import { encode } from 'js-base64';
 
 export function setStartDate(date) {
     return function(dispatch) {
@@ -355,6 +356,56 @@ export const removeQuickStart = ({
                     ? error.message
                     : 'Network Error';
             dispatch(removeQuickStartFailure(errorMsg));
+        }
+    );
+
+    return promise;
+};
+
+// fetch last metrics
+export const fetchLastMetricsRequest = () => ({
+    type: types.FETCH_LAST_METRICS_REQUEST,
+});
+
+export const fetchLastMetricsSuccess = payload => ({
+    type: types.FETCH_LAST_METRICS_SUCCESS,
+    payload,
+});
+
+export const fetchLastMetricsFailure = error => ({
+    type: types.FETCH_LAST_METRICS_FAILURE,
+    payload: error,
+});
+
+export const fetchLastMetrics = ({
+    projectId,
+    performanceTrackerId,
+    startDate,
+    endDate,
+}) => dispatch => {
+    dispatch(fetchLastMetricsRequest());
+
+    startDate = encode(startDate);
+    endDate = encode(endDate);
+
+    const promise = getApi(
+        `performanceTracker/${projectId}/last-metrics/${performanceTrackerId}?startDate=${startDate}&endDate=${endDate}`
+    );
+
+    promise.then(
+        function(response) {
+            dispatch(fetchLastMetricsSuccess(response.data));
+        },
+        function(error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(fetchLastMetricsFailure(errorMsg));
         }
     );
 

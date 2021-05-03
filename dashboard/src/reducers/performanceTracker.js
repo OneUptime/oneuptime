@@ -50,6 +50,14 @@ const INITIAL_STATE = {
         success: false,
         error: null,
     },
+    lastMetrics: {
+        requesting: false,
+        error: null,
+        success: false,
+        time: 0,
+        throughput: 0,
+        errorRate: 0,
+    },
 };
 
 export default function(state = INITIAL_STATE, action) {
@@ -345,6 +353,41 @@ export default function(state = INITIAL_STATE, action) {
             return {
                 ...state,
                 removeQuickStart: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.FETCH_LAST_METRICS_REQUEST:
+            return {
+                ...state,
+                lastMetrics: {
+                    ...state.lastMetrics,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.FETCH_LAST_METRICS_SUCCESS:
+            return {
+                ...state,
+                lastMetrics: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    time: action.payload.time,
+                    throughput: action.payload.throughput,
+                    errorRate: action.payload.errorRate,
+                },
+            };
+
+        case types.FETCH_LAST_METRICS_FAILURE:
+            return {
+                ...state,
+                lastMetrics: {
+                    ...state.lastMetrics,
                     requesting: false,
                     success: false,
                     error: action.payload,
