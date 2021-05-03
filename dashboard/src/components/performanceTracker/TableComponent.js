@@ -372,10 +372,7 @@ class TableComponent extends Component {
                                                             <div className="bs-ObjectList-cell">
                                                                 Error Count
                                                             </div>
-                                                            <div className="bs-ObjectList-cell">
-                                                                Created At
-                                                            </div>
-                                                            <div
+                                                            {/* <div
                                                                 className="bs-ObjectList-cell"
                                                                 style={{
                                                                     float:
@@ -385,7 +382,7 @@ class TableComponent extends Component {
                                                                 }}
                                                             >
                                                                 Action
-                                                            </div>
+                                                            </div> */}
                                                         </header>
                                                         {incomingMetrics &&
                                                             incomingMetrics
@@ -453,56 +450,53 @@ class TableComponent extends Component {
                                                                                     0}
                                                                             </div>
                                                                         </div>
-                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                                            <div className="bs-ObjectList-cell-row">
-                                                                                {moment(
-                                                                                    metric.createdAt
-                                                                                ).format(
-                                                                                    'MMMM Do YYYY, h:mm a'
-                                                                                )}
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                false
+                                                                            }
+                                                                        >
+                                                                            <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                                <div className="Box-root">
+                                                                                    <button
+                                                                                        id={`viewScheduledEvent_${index}`}
+                                                                                        title="view"
+                                                                                        className="bs-Button bs-DeprecatedButton"
+                                                                                        type="button"
+                                                                                        style={{
+                                                                                            float:
+                                                                                                'right',
+                                                                                            marginRight:
+                                                                                                '10px',
+                                                                                        }}
+                                                                                        onClick={() =>
+                                                                                            openModal(
+                                                                                                {
+                                                                                                    content: DeletePerformanceMetric,
+                                                                                                    appId:
+                                                                                                        performanceTracker._id,
+                                                                                                    metricId:
+                                                                                                        metric._id,
+                                                                                                    key:
+                                                                                                        performanceTracker.key,
+                                                                                                    type:
+                                                                                                        'incoming',
+                                                                                                    startDate: incomingStartDate,
+                                                                                                    endDate: incomingEndDate,
+                                                                                                    skip:
+                                                                                                        incomingMetrics.skip,
+                                                                                                    limit:
+                                                                                                        incomingMetrics.limit,
+                                                                                                }
+                                                                                            )
+                                                                                        }
+                                                                                    >
+                                                                                        <span>
+                                                                                            Delete
+                                                                                        </span>
+                                                                                    </button>
+                                                                                </div>
                                                                             </div>
-                                                                        </div>
-                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                                            <div className="Box-root">
-                                                                                <button
-                                                                                    id={`viewScheduledEvent_${index}`}
-                                                                                    title="view"
-                                                                                    className="bs-Button bs-DeprecatedButton"
-                                                                                    type="button"
-                                                                                    style={{
-                                                                                        float:
-                                                                                            'right',
-                                                                                        marginRight:
-                                                                                            '10px',
-                                                                                    }}
-                                                                                    onClick={() =>
-                                                                                        openModal(
-                                                                                            {
-                                                                                                content: DeletePerformanceMetric,
-                                                                                                appId:
-                                                                                                    performanceTracker._id,
-                                                                                                metricId:
-                                                                                                    metric._id,
-                                                                                                key:
-                                                                                                    performanceTracker.key,
-                                                                                                type:
-                                                                                                    'incoming',
-                                                                                                startDate: incomingStartDate,
-                                                                                                endDate: incomingEndDate,
-                                                                                                skip:
-                                                                                                    incomingMetrics.skip,
-                                                                                                limit:
-                                                                                                    incomingMetrics.limit,
-                                                                                            }
-                                                                                        )
-                                                                                    }
-                                                                                >
-                                                                                    <span>
-                                                                                        Delete
-                                                                                    </span>
-                                                                                </button>
-                                                                            </div>
-                                                                        </div>
+                                                                        </ShouldRender>
                                                                     </div>
                                                                 )
                                                             )}
@@ -676,10 +670,7 @@ class TableComponent extends Component {
                                                             <div className="bs-ObjectList-cell">
                                                                 Error Count
                                                             </div>
-                                                            <div className="bs-ObjectList-cell">
-                                                                Created At
-                                                            </div>
-                                                            <div
+                                                            {/* <div
                                                                 className="bs-ObjectList-cell"
                                                                 style={{
                                                                     float:
@@ -689,7 +680,7 @@ class TableComponent extends Component {
                                                                 }}
                                                             >
                                                                 Action
-                                                            </div>
+                                                            </div> */}
                                                         </header>
                                                         {outgoingMetrics &&
                                                             outgoingMetrics
@@ -758,56 +749,53 @@ class TableComponent extends Component {
                                                                                 }
                                                                             </div>
                                                                         </div>
-                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                                            <div className="bs-ObjectList-cell-row">
-                                                                                {moment(
-                                                                                    metric.createdAt
-                                                                                ).format(
-                                                                                    'MMMM Do YYYY, h:mm a'
-                                                                                )}
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                false
+                                                                            }
+                                                                        >
+                                                                            <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                                <div className="Box-root">
+                                                                                    <button
+                                                                                        id={`viewScheduledEvent_${index}`}
+                                                                                        title="view"
+                                                                                        className="bs-Button bs-DeprecatedButton"
+                                                                                        type="button"
+                                                                                        style={{
+                                                                                            float:
+                                                                                                'right',
+                                                                                            marginRight:
+                                                                                                '10px',
+                                                                                        }}
+                                                                                        onClick={() =>
+                                                                                            openModal(
+                                                                                                {
+                                                                                                    content: DeletePerformanceMetric,
+                                                                                                    appId:
+                                                                                                        performanceTracker._id,
+                                                                                                    metricId:
+                                                                                                        metric._id,
+                                                                                                    key:
+                                                                                                        performanceTracker.key,
+                                                                                                    type:
+                                                                                                        'outgoing',
+                                                                                                    startDate: outgoingStartDate,
+                                                                                                    endDate: outgoingEndDate,
+                                                                                                    skip:
+                                                                                                        outgoingMetrics.skip,
+                                                                                                    limit:
+                                                                                                        outgoingMetrics.limit,
+                                                                                                }
+                                                                                            )
+                                                                                        }
+                                                                                    >
+                                                                                        <span>
+                                                                                            Delete
+                                                                                        </span>
+                                                                                    </button>
+                                                                                </div>
                                                                             </div>
-                                                                        </div>
-                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                                            <div className="Box-root">
-                                                                                <button
-                                                                                    id={`viewScheduledEvent_${index}`}
-                                                                                    title="view"
-                                                                                    className="bs-Button bs-DeprecatedButton"
-                                                                                    type="button"
-                                                                                    style={{
-                                                                                        float:
-                                                                                            'right',
-                                                                                        marginRight:
-                                                                                            '10px',
-                                                                                    }}
-                                                                                    onClick={() =>
-                                                                                        openModal(
-                                                                                            {
-                                                                                                content: DeletePerformanceMetric,
-                                                                                                appId:
-                                                                                                    performanceTracker._id,
-                                                                                                metricId:
-                                                                                                    metric._id,
-                                                                                                key:
-                                                                                                    performanceTracker.key,
-                                                                                                type:
-                                                                                                    'outgoing',
-                                                                                                startDate: outgoingStartDate,
-                                                                                                endDate: outgoingEndDate,
-                                                                                                skip:
-                                                                                                    outgoingMetrics.skip,
-                                                                                                limit:
-                                                                                                    outgoingMetrics.limit,
-                                                                                            }
-                                                                                        )
-                                                                                    }
-                                                                                >
-                                                                                    <span>
-                                                                                        Delete
-                                                                                    </span>
-                                                                                </button>
-                                                                            </div>
-                                                                        </div>
+                                                                        </ShouldRender>
                                                                     </div>
                                                                 )
                                                             )}
