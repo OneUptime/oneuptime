@@ -1,6 +1,6 @@
 // TODO - make this configurable from admin-dashboard
 const runConfig = {
-    availableImports: ['axios'], // init allowed modules
+    availableImports: ['axios', 'puppeteer', 'request'], // init allowed modules
     maxSyncStatementDuration: 3000,
     maxScriptRunTime: 5000,
 };
