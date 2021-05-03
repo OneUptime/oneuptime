@@ -1,20 +1,41 @@
-import { POPULATE_SEARCH, RESET_SEARCH_FIELDS } from '../constants/search';
+import {
+    POPULATE_SEARCH_SUCCESS,
+    POPULATE_SEARCH_REQUEST,
+    POPULATE_SEARCH_FAILURE,
+    RESET_SEARCH_FIELDS,
+} from '../constants/search';
 
 const initialState = {
+    requesting: false,
+    success: false,
+    error: null,
     search: [],
 };
 
 export default function search(state = initialState, action) {
     switch (action.type) {
-        case POPULATE_SEARCH:
+        case POPULATE_SEARCH_SUCCESS:
             return Object.assign({}, state, {
-                search: state.search
-                    .filter(s => s.title !== action.payload.title)
-                    .concat(action.payload),
+                search: action.payload,
+                success: true,
+                requesting: false,
+                error: null,
             });
         case RESET_SEARCH_FIELDS:
             return Object.assign({}, state, {
                 search: [],
+            });
+        case POPULATE_SEARCH_REQUEST:
+            return Object.assign({}, state, {
+                success: false,
+                error: null,
+                requesting: true,
+            });
+        case POPULATE_SEARCH_FAILURE:
+            return Object.assign({}, state, {
+                success: false,
+                error: action.payload,
+                requesting: false,
             });
         default:
             return state;
