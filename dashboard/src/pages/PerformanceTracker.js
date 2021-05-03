@@ -69,6 +69,7 @@ class PerformanceTracker extends Component {
             performanceTrackerList,
             componentSlug,
             projectSlug,
+            component,
         } = this.props;
         return performanceTrackerList.performanceTrackers.map(
             performanceTracker => (
@@ -77,6 +78,7 @@ class PerformanceTracker extends Component {
                     performanceTracker={performanceTracker}
                     componentSlug={componentSlug}
                     projectSlug={projectSlug}
+                    projectId={component.projectId._id || component.projectId}
                 />
             )
         );
@@ -174,11 +176,7 @@ PerformanceTracker.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    component: PropTypes.arrayOf(
-        PropTypes.shape({
-            name: PropTypes.string,
-        })
-    ),
+    component: PropTypes.object,
     componentId: PropTypes.string,
     componentSlug: PropTypes.string,
     loadPage: PropTypes.func,

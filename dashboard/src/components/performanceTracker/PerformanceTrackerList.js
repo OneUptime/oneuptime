@@ -1,9 +1,31 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import moment from 'moment';
 import { history } from '../../store';
+import ShouldRender from '../basic/ShouldRender';
+import AlertPanel from '../basic/AlertPanel';
+import { fetchLastMetrics } from '../../actions/performanceTracker';
+import { ListLoader } from '../basic/Loader';
 
 class PerformanceTrackerList extends Component {
+    componentDidMount() {
+        const { fetchLastMetrics, performanceTracker, projectId } = this.props;
+
+        const endDate = moment(Date.now()).format();
+        const startDate = moment(endDate)
+            .subtract(30, 'days')
+            .format();
+
+        fetchLastMetrics({
+            projectId,
+            performanceTrackerId: performanceTracker._id,
+            startDate,
+            endDate,
+        });
+    }
+
     viewMore = () => {
         const { componentSlug, projectSlug, performanceTracker } = this.props;
         history.push(
@@ -12,7 +34,7 @@ class PerformanceTrackerList extends Component {
     };
 
     render() {
-        const { performanceTracker } = this.props;
+        const { performanceTracker, lastMetricsObj } = this.props;
 
         return (
             <div>
@@ -55,6 +77,116 @@ class PerformanceTrackerList extends Component {
                                 </div>
                             </div>
                         </div>
+                        <ShouldRender
+                            if={
+                                lastMetricsObj &&
+                                !lastMetricsObj.requesting &&
+                                lastMetricsObj.time === 0 &&
+                                lastMetricsObj.throughput === 0 &&
+                                lastMetricsObj.errorRate === 0
+                            }
+                        >
+                            <AlertPanel
+                                id={`${performanceTracker.name}-no-log-warning`}
+                                message={
+                                    <span>
+                                        This Performance Tracker is currently
+                                        not receiving any metrics.
+                                    </span>
+                                }
+                            />
+                        </ShouldRender>
+                        <ShouldRender
+                            if={!lastMetricsObj || lastMetricsObj.requesting}
+                        >
+                            <ListLoader />
+                        </ShouldRender>
+                        <ShouldRender
+                            if={lastMetricsObj && !lastMetricsObj.requesting}
+                        >
+                            <div
+                                className="db-TrendRow db-ListViewItem-header db-Trends-header"
+                                style={{
+                                    zIndex: 'unset',
+                                }}
+                            >
+                                <div
+                                    className="db-Trend-colInformation"
+                                    id={`${performanceTracker.name}-all`}
+                                >
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Web Transaction Time"
+                                    >
+                                        <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
+                                            <span className="chart-font">
+                                                Web Transaction Time
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    {lastMetricsObj.time}
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    className="db-Trend-colInformation"
+                                    id={`${performanceTracker.name}-error`}
+                                >
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Throughput"
+                                    >
+                                        <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
+                                            <span className="chart-font">
+                                                Throughput
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    {lastMetricsObj.throughput}
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    className="db-Trend-colInformation"
+                                    id={`${performanceTracker.name}-warning`}
+                                >
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Error Rate"
+                                    >
+                                        <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
+                                            <span className="chart-font">
+                                                Error Rate
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    {lastMetricsObj.errorRate}
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </ShouldRender>
                     </div>
                 </div>
             </div>
@@ -68,5 +200,21 @@ PerformanceTrackerList.propTypes = {
     performanceTracker: PropTypes.object,
     componentSlug: PropTypes.string,
     projectSlug: PropTypes.string,
+    lastMetricsObj: PropTypes.object,
+    fetchLastMetrics: PropTypes.func,
+    projectId: PropTypes.string,
 };
-export default connect(null)(PerformanceTrackerList);
+
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ fetchLastMetrics }, dispatch);
+
+const mapStateToProps = state => {
+    return {
+        lastMetricsObj: state.performanceTracker.lastMetrics,
+    };
+};
+
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(PerformanceTrackerList);
