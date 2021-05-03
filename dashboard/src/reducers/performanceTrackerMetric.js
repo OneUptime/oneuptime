@@ -32,7 +32,7 @@ const INITIAL_STATE = {
         success: false,
         error: null,
         skip: 0,
-        limit: 0,
+        limit: 10,
         count: 0,
         metrics: [],
     },
@@ -41,7 +41,7 @@ const INITIAL_STATE = {
         success: false,
         error: null,
         skip: 0,
-        limit: 0,
+        limit: 10,
         count: 0,
         metrics: [],
     },
@@ -282,13 +282,12 @@ export default function(state = INITIAL_STATE, action) {
             return {
                 ...state,
                 incomingMetrics: {
+                    ...state.incomingMetrics,
                     requesting: false,
                     success: true,
                     error: null,
-                    skip: action.payload.skip,
-                    limit: action.payload.limit,
-                    count: action.payload.count,
-                    metrics: action.payload.data,
+                    count: action.payload.length,
+                    metrics: action.payload,
                 },
             };
 
@@ -318,13 +317,12 @@ export default function(state = INITIAL_STATE, action) {
             return {
                 ...state,
                 outgoingMetrics: {
+                    ...state.outgoingMetrics,
                     requesting: false,
                     success: true,
                     error: null,
-                    skip: action.payload.skip,
-                    limit: action.payload.limit,
-                    count: action.payload.count,
-                    metrics: action.payload.data,
+                    count: action.payload.length,
+                    metrics: action.payload,
                 },
             };
 

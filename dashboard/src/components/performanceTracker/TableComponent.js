@@ -19,8 +19,16 @@ import { ListLoader } from '../basic/Loader';
 import { numDecimal } from '../../utils/formatNumber';
 import DeletePerformanceMetric from './DeletePerformanceMetric';
 import { openModal } from '../../actions/modal';
+import paginate from '../../utils/paginate';
 
 class TableComponent extends Component {
+    state = {
+        page: 1,
+    };
+
+    prev = () => this.setState(prevState => ({ page: prevState.page - 1 }));
+    next = () => this.setState(prevState => ({ page: prevState.page + 1 }));
+
     componentDidMount() {
         const {
             performanceTracker,
@@ -262,21 +270,25 @@ class TableComponent extends Component {
             outgoingEndDate,
             openModal,
         } = this.props;
-        const canNextIncoming =
-            incomingMetrics.count >
-            Number(incomingMetrics.skip) + Number(incomingMetrics.limit)
-                ? true
-                : false;
-        const canPrevIncoming =
-            Number(incomingMetrics.skip) <= 0 ? false : true;
+        const { page } = this.state;
+        const incomingMetricsData = paginate(incomingMetrics.metrics, page);
+        const outgoingMetricsData = paginate(outgoingMetrics.metrics, page);
 
-        const canNextOutgoing =
-            outgoingMetrics.count >
-            Number(outgoingMetrics.skip) + Number(outgoingMetrics.limit)
-                ? true
-                : false;
-        const canPrevOutgoing =
-            Number(outgoingMetrics.skip) <= 0 ? false : true;
+        // const canNextIncoming =
+        //     incomingMetrics.count >
+        //     Number(incomingMetrics.skip) + Number(incomingMetrics.limit)
+        //         ? true
+        //         : false;
+        // const canPrevIncoming =
+        //     Number(incomingMetrics.skip) <= 0 ? false : true;
+
+        // const canNextOutgoing =
+        //     outgoingMetrics.count >
+        //     Number(outgoingMetrics.skip) + Number(outgoingMetrics.limit)
+        //         ? true
+        //         : false;
+        // const canPrevOutgoing =
+        //     Number(outgoingMetrics.skip) <= 0 ? false : true;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -384,11 +396,11 @@ class TableComponent extends Component {
                                                                 Action
                                                             </div> */}
                                                         </header>
-                                                        {incomingMetrics &&
-                                                            incomingMetrics
-                                                                .metrics
-                                                                .length > 0 &&
-                                                            incomingMetrics.metrics.map(
+                                                        {incomingMetricsData &&
+                                                            incomingMetricsData
+                                                                .data.length >
+                                                                0 &&
+                                                            incomingMetricsData.data.map(
                                                                 (
                                                                     metric,
                                                                     index
@@ -574,20 +586,18 @@ class TableComponent extends Component {
                                                             <div className="Box-root Margin-right--8">
                                                                 <button
                                                                     id="btnPrevSchedule"
-                                                                    onClick={() =>
-                                                                        this.handlePrev(
-                                                                            incomingMetrics.skip,
-                                                                            incomingMetrics.limit
-                                                                        )
+                                                                    onClick={
+                                                                        this
+                                                                            .prev
                                                                     }
                                                                     className={
                                                                         'Button bs-ButtonLegacy' +
-                                                                        (canPrevIncoming
+                                                                        (incomingMetricsData.pre_page
                                                                             ? ''
                                                                             : 'Is--disabled')
                                                                     }
                                                                     disabled={
-                                                                        !canPrevIncoming
+                                                                        !incomingMetricsData.pre_page
                                                                     }
                                                                     data-db-analytics-name="list_view.pagination.previous"
                                                                     type="button"
@@ -604,20 +614,18 @@ class TableComponent extends Component {
                                                             <div className="Box-root">
                                                                 <button
                                                                     id="btnNextSchedule"
-                                                                    onClick={() =>
-                                                                        this.handleNext(
-                                                                            incomingMetrics.skip,
-                                                                            incomingMetrics.limit
-                                                                        )
+                                                                    onClick={
+                                                                        this
+                                                                            .next
                                                                     }
                                                                     className={
                                                                         'Button bs-ButtonLegacy' +
-                                                                        (canNextIncoming
+                                                                        (incomingMetricsData.next_page
                                                                             ? ''
                                                                             : 'Is--disabled')
                                                                     }
                                                                     disabled={
-                                                                        !canNextIncoming
+                                                                        !incomingMetricsData.next_page
                                                                     }
                                                                     data-db-analytics-name="list_view.pagination.next"
                                                                     type="button"
@@ -682,11 +690,11 @@ class TableComponent extends Component {
                                                                 Action
                                                             </div> */}
                                                         </header>
-                                                        {outgoingMetrics &&
-                                                            outgoingMetrics
-                                                                .metrics
-                                                                .length > 0 &&
-                                                            outgoingMetrics.metrics.map(
+                                                        {outgoingMetricsData &&
+                                                            outgoingMetricsData
+                                                                .data.length >
+                                                                0 &&
+                                                            outgoingMetricsData.data.map(
                                                                 (
                                                                     metric,
                                                                     index
@@ -873,20 +881,18 @@ class TableComponent extends Component {
                                                             <div className="Box-root Margin-right--8">
                                                                 <button
                                                                     id="btnPrevSchedule"
-                                                                    onClick={() =>
-                                                                        this.handlePrev(
-                                                                            outgoingMetrics.skip,
-                                                                            outgoingMetrics.limit
-                                                                        )
+                                                                    onClick={
+                                                                        this
+                                                                            .prev
                                                                     }
                                                                     className={
                                                                         'Button bs-ButtonLegacy' +
-                                                                        (canPrevOutgoing
+                                                                        (outgoingMetricsData.pre_page
                                                                             ? ''
                                                                             : 'Is--disabled')
                                                                     }
                                                                     disabled={
-                                                                        !canPrevOutgoing
+                                                                        !outgoingMetricsData.pre_page
                                                                     }
                                                                     data-db-analytics-name="list_view.pagination.previous"
                                                                     type="button"
@@ -903,20 +909,18 @@ class TableComponent extends Component {
                                                             <div className="Box-root">
                                                                 <button
                                                                     id="btnNextSchedule"
-                                                                    onClick={() =>
-                                                                        this.handleNext(
-                                                                            outgoingMetrics.skip,
-                                                                            outgoingMetrics.limit
-                                                                        )
+                                                                    onClick={
+                                                                        this
+                                                                            .next
                                                                     }
                                                                     className={
                                                                         'Button bs-ButtonLegacy' +
-                                                                        (canNextOutgoing
+                                                                        (outgoingMetricsData.next_page
                                                                             ? ''
                                                                             : 'Is--disabled')
                                                                     }
                                                                     disabled={
-                                                                        !canNextOutgoing
+                                                                        !outgoingMetricsData.next_page
                                                                     }
                                                                     data-db-analytics-name="list_view.pagination.next"
                                                                     type="button"
