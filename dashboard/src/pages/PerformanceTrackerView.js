@@ -267,11 +267,11 @@ class PerformanceTrackerView extends Component {
                                             </div>
                                             <div>
                                                 <div>
-                                                    <WebTransactionsChart
+                                                    {/* <WebTransactionsChart
                                                         heading="Apdex Score"
                                                         title={[]}
                                                         subHeading="shows graph of satisfied requests against total requests"
-                                                    />
+                                                    /> */}
                                                 </div>
                                             </div>
                                         </div>
