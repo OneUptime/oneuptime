@@ -229,7 +229,7 @@ class ResourceTabularList extends Component {
                 );
                 break;
             case 'performance tracker':
-                if (componentResource.status === 'Listening for Requests')
+                if (componentResource.status === 'Monitoring performance')
                     statusColor = 'green';
                 statusDescription = componentResource.status;
                 indicator = (
