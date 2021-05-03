@@ -283,7 +283,8 @@ function ScheduledEventDescription({
                                                             <div>
                                                                 <ShouldRender
                                                                     if={
-                                                                        !resolving
+                                                                        !resolving &&
+                                                                        !scheduledEvent.cancelled
                                                                     }
                                                                 >
                                                                     <label
@@ -299,6 +300,17 @@ function ScheduledEventDescription({
                                                                             event
                                                                         </span>
                                                                     </label>
+                                                                </ShouldRender>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        scheduledEvent.cancelled
+                                                                    }
+                                                                >
+                                                                    <span>
+                                                                        Event
+                                                                        has been
+                                                                        cancelled
+                                                                    </span>
                                                                 </ShouldRender>
                                                                 <ShouldRender
                                                                     if={

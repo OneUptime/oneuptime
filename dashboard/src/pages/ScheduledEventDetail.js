@@ -246,6 +246,7 @@ class ScheduledEvent extends Component {
                                         <ScheduleEventDeleteBox
                                             projectId={this.props.projectId}
                                             scheduledEventId={scheduledEventId}
+                                            scheduledEvent={scheduledEvent}
                                         />
                                     </ShouldRender>
                                 </Fade>
