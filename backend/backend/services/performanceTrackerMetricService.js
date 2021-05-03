@@ -60,6 +60,95 @@ module.exports = {
         }
     },
 
+    mergeMetrics: async function(
+        query,
+        limit,
+        skip,
+        sortCriteria = 'createdAt',
+        sort = -1
+    ) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            if (!query.deleted) query.deleted = false;
+
+            const performanceTrackerMetrics = await PerformanceTrackerMetricModel.find(
+                query
+            )
+                .sort([[sortCriteria, sort]])
+                .populate({
+                    path: 'performanceTrackerId',
+                    populate: {
+                        path: 'componentId',
+                    },
+                });
+
+            // restructure performance metrics
+            // same path and method should be merged together
+            const ptm = {};
+            for (const metric of performanceTrackerMetrics) {
+                const key = `${metric.callIdentifier}__${metric.method}`;
+                if (!(key in ptm)) {
+                    ptm[key] = [metric];
+                } else {
+                    ptm[key] = ptm[key].concat(metric);
+                }
+            }
+
+            const trackerMetrics = [];
+            for (const [, value] of Object.entries(ptm)) {
+                const valueLength = value.length;
+                if (valueLength > 0) {
+                    const {
+                        type,
+                        callIdentifier,
+                        performanceTrackerId,
+                        method,
+                    } = value[0];
+                    const result = {
+                        type,
+                        callIdentifier,
+                        performanceTrackerId,
+                        method,
+                    };
+
+                    let avgTime = 0,
+                        maxTime = 0,
+                        throughput = 0,
+                        errorCount = 0;
+                    value.forEach(eachValue => {
+                        avgTime += eachValue.metrics.avgTime;
+                        maxTime += eachValue.metrics.maxTime;
+                        throughput += eachValue.throughput;
+                        errorCount += eachValue.errorCount;
+                    });
+
+                    avgTime = numDecimal(avgTime / valueLength);
+                    maxTime = numDecimal(maxTime / valueLength);
+                    throughput = numDecimal(throughput / valueLength, 0);
+                    errorCount = numDecimal(errorCount / valueLength, 0);
+
+                    result.throughput = throughput;
+                    result.errorCount = errorCount;
+                    result.metrics = {
+                        avgTime,
+                        maxTime,
+                    };
+                    trackerMetrics.push(result);
+                }
+            }
+
+            return trackerMetrics;
+        } catch (error) {
+            ErrorService.log(
+                'performanceTrackerMetricService.mergeMetrics',
+                error
+            );
+            throw error;
+        }
+    },
+
     findOneBy: async function(query) {
         try {
             if (!query) {

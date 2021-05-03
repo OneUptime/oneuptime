@@ -13,7 +13,6 @@ const { decode } = require('js-base64');
 const {
     sendErrorResponse,
     sendItemResponse,
-    sendListResponse,
 } = require('../middlewares/response');
 const { isValidAPIKey } = require('../middlewares/performanceTracker');
 
@@ -270,14 +269,14 @@ router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
             type,
             createdAt: { $gte: startDate, $lte: endDate },
         };
-        const performanceTrackerMetrics = await PerformanceTrackerMetricService.findBy(
+        const performanceTrackerMetrics = await PerformanceTrackerMetricService.mergeMetrics(
             query,
             limit,
             skip,
             'metrics.avgTime'
         );
-        const count = await PerformanceTrackerMetricService.countBy(query);
-        return sendListResponse(req, res, performanceTrackerMetrics, count);
+
+        return sendItemResponse(req, res, performanceTrackerMetrics);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
