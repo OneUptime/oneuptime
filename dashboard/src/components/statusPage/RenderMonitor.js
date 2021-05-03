@@ -316,8 +316,8 @@ const mapStateToProps = (state, ownProps) => {
     let monitors = selector(state, 'monitors');
     
     /** On Theme change, the updated monitor state becomes a monitor nested object
-     * This monitor nested object(monitor.monitor._id) is then extracted and used to update 'monitor.monitor'
-     * and this is the required id used in setting the initial values at by default.
+     * This monitor nested object(monitor.monitor._id) is then extracted and used to update 'monitor.monitor'.
+     * monitor.monitor is the required id used in setting the initial values by default.
      */
     monitors.map(monitor =>{    
         if(monitor.monitor && typeof monitor.monitor === 'object' ){            
