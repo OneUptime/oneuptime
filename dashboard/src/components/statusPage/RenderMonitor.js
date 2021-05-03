@@ -53,7 +53,7 @@ let RenderMonitor = ({
     fields,
     dispatch,
     errors,
-}) => {
+}) => {    
     const currentMonitorForm = monitors[monitorIndex];
     const { monitor: currentMonitorID } = currentMonitorForm;
     const getParentComponent = monitor =>
@@ -313,7 +313,15 @@ const mapStateToProps = (state, ownProps) => {
         .filter(monitor => String(monitor._id) === String(subProjectId))
         .map(monitor => monitor.monitors)
         .flat();
-    const monitors = selector(state, 'monitors');
+    let monitors = selector(state, 'monitors');
+    
+    monitors.map(monitor =>{    
+        if(monitor.monitor && typeof monitor.monitor === 'object' ){            
+            monitor.monitor = monitor.monitor._id;
+        }
+        return monitor;
+    })
+    
     const {
         form: {
             StatuspageMonitors: { syncErrors: errors },
