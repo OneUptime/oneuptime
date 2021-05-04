@@ -34,15 +34,15 @@ class FyipeTracker:
             if option not in self.configKeys:
                 # if key is allowed in options
                 if self.options[option] is not None:
-                    # set max timeline properly after checking conditions
+                    # set max timeline properly after hecking conditions
                     if option == 'maxTimeline':
                         allowedValue = value
                         if value > self.MAX_ITEMS_ALLOWED_IN_STACK or value < 1 :
                             allowedValue = self.MAX_ITEMS_ALLOWED_IN_STACK
                         
-                        self.options[option] = allowedValue;
+                        self.options[option] = allowedValue
                     else:
-                        self.options[option] = value;
+                        self.options[option] = value
                             
 
 
@@ -66,11 +66,10 @@ class FyipeTracker:
         return self.listenerObj.getTimeline();
     
     def setTag(self, key, value):
-    
         if ( not (isinstance(key, str) or isinstance(value, str)) ):
             raise Exception("Invalid Tag")
         
-        exist = False;
+        exist = False
         for tag in self.tags:
             if(tag['key'] == key):
                 # set the round flag
@@ -130,7 +129,7 @@ class FyipeTracker:
         # TODO send to the server
         # return self.sendErrorEventToServer();
     
-    def prepareErrorObject(self, eventType, errorStackTrace):
+    def prepareErrorObject(self, eventType, errorStackTrace):   
         # set a last timeline as the error message
         self.listenerObj.logErrorEvent(errorStackTrace["message"], type)
         
@@ -157,6 +156,19 @@ class FyipeTracker:
 
     def getCurrentEvent(self):
         return self.event
+
+    def captureException(self, exception):
+    
+        # construct the error object
+        exceptionObj = self.util.getExceptionStackTrace(exception)
+
+        # set the a handled tag
+        self.setTag('handled', 'true')
+
+        self.prepareErrorObject('exception', exceptionObj)
+
+        # TODO send to the server
+        # return $this->sendErrorEventToServer();
 
 
 
