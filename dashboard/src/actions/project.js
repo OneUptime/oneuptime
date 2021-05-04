@@ -120,7 +120,7 @@ export const resetProjects = () => {
 
 export function getProjects(switchToProjectId) {
     return function(dispatch) {
-        const promise = getApi(`project/projects?limit=${9999}&skip${0}`, null);
+        const promise = getApi(`project/projects?skip${0}&limit=${9999}`, null);
         dispatch(projectsRequest(promise));
 
         promise.then(
