@@ -11,10 +11,8 @@ const password = '1234567890';
 const projectName = utils.generateRandomString();
 // sub-project user credentials
 const newEmail = utils.generateRandomBusinessEmail();
-const newPassword = '1234567890';
 // another user credentials
 const anotherEmail = utils.generateRandomBusinessEmail();
-const anotherPassword = '1234567890';
 
 const subProjectName = utils.generateRandomString();
 
@@ -36,12 +34,10 @@ describe('Team API With SubProjects', () => {
             };
 
             // user
-            await init.registerUser(user, page);                
-        
-            
+            await init.registerUser(user, page);                        
+            // Growth Plan is needed for subproject
             await init.renameProject(projectName, page);
-            await init.growthPlanUpgrade(page);
-            
+            await init.growthPlanUpgrade(page);            
 
             // add sub-project
             await init.addSubProject(subProjectName, page);
@@ -53,11 +49,9 @@ describe('Team API With SubProjects', () => {
         await browser.close();
         done();
     });
-
+    // No need for switchProject as the tests were carried out in the created project from 'email' and 'password'
     test('should add a new user to parent project and all sub-projects (role -> `Administrator`)', async done => {
-                await page.goto(utils.DASHBOARD_URL);
-                //await init.switchProject(projectName, page);
-
+                await page.goto(utils.DASHBOARD_URL);               
                 const role = 'Administrator';
 
                 await page.waitForSelector('#teamMembers');
@@ -92,9 +86,6 @@ describe('Team API With SubProjects', () => {
 
     test('should not allow project owner to add other project owners', async (done) => {        
                 await page.goto(utils.DASHBOARD_URL);
-               
-               // await init.switchProject(projectName, page);
-
                 const role = 'Owner';
 
                 await page.waitForSelector('#teamMembers');
@@ -109,13 +100,8 @@ describe('Team API With SubProjects', () => {
         done();
     }, 200000);
 
-    test('should not allow administrator to add project owners', async done => {
-      
+    test('should not allow administrator to add project owners', async done => {      
                  await page.goto(utils.DASHBOARD_URL);
-
-              
-               // await init.switchProject(projectName, page);
-
                 const role = 'Owner';
 
                 await page.waitForSelector('#teamMembers');
@@ -131,12 +117,8 @@ describe('Team API With SubProjects', () => {
         done();
     }, 200000);
 
-    test('should add a new user to sub-project (role -> `Member`)', async done => {
-       
+    test('should add a new user to sub-project (role -> `Member`)', async done => {       
                 await page.goto(utils.DASHBOARD_URL);
-              
-              //  await init.switchProject(projectName, page);
-
                 const role = 'Member';
 
                 await page.waitForSelector('#teamMembers', { visible: true });
@@ -172,13 +154,10 @@ describe('Team API With SubProjects', () => {
     test(
         'should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)',
         async done => {
-            const newRole = 'Member';
-            
+                    const newRole = 'Member';            
                     const emailSelector = anotherEmail.split('@')[0];
-
                     await page.goto(utils.DASHBOARD_URL);
-                    
-                 //   await init.switchProject(projectName, page);
+                                
                     await page.waitForSelector('#teamMembers');
                     await page.click('#teamMembers');
                     await page.waitForSelector(`#changeRole_${emailSelector}`);
@@ -202,11 +181,9 @@ describe('Team API With SubProjects', () => {
     test(
         'should remove user from project Team Members and all sub-projects.',
         async done => {
-           
                     const emailSelector = anotherEmail.split('@')[0];
-
                     await page.goto(utils.DASHBOARD_URL);
-                  //  await init.loginUser(user, page);
+                  
                     await page.waitForSelector('#teamMembers');
                     await page.click('#teamMembers');
                     await page.waitForSelector(
@@ -234,14 +211,11 @@ describe('Team API With SubProjects', () => {
 
     test(
         'should not add team members without business emails',
-        async done => {
-           
+        async done => {           
                     const role = 'Member';
-                    const nonBusinessEmail =
-                        utils.generateRandomString() + '@gmail.com';
-
+                    const nonBusinessEmail = utils.generateRandomString() + '@gmail.com';
                     await page.goto(utils.DASHBOARD_URL);
-                  //  await init.loginUser(user, page);
+
                     await page.waitForSelector('#teamMembers');
                     await page.click('#teamMembers');
                     await page.waitForSelector(`button[id=btn_${projectName}]`);
@@ -270,14 +244,11 @@ describe('Team API With SubProjects', () => {
     test(
         'should assign a new owner of the project',
         async done => {
-            const newRole = 'Owner';
-            
+                    const newRole = 'Owner';        
                     const memberEmailSelector = anotherEmail.split('@')[0];
                     const ownerEmailSelector = email.split('@')[0];
 
-                    await page.goto(utils.DASHBOARD_URL);
-                   // await init.loginUser(user, page);
-                 //   await init.switchProject(projectName, page);
+                    await page.goto(utils.DASHBOARD_URL);               
                     await page.waitForSelector('#teamMembers');
                     await page.click('#teamMembers');
 
