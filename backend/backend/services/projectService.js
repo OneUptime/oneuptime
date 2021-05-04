@@ -723,15 +723,13 @@ module.exports = {
 
     addNotes: async function(projectId, notes) {
         const _this = this;
-        const adminNotes = (
-            await _this.updateOneBy(
-                { _id: projectId },
-                {
-                    adminNotes: notes,
-                }
-            )
-        ).adminNotes;
-        return adminNotes;
+        const project = await _this.updateOneBy(
+            { _id: projectId },
+            {
+                adminNotes: notes,
+            }
+        );
+        return project;
     },
 
     searchProjects: async function(query, skip, limit) {

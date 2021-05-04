@@ -24,7 +24,13 @@ class ScheduleEventDeleteBox extends Component {
     };
     render() {
         const { deleteModalId, cancelModalId } = this.state;
-        const { projectId, scheduledEventId, openModal, deleting } = this.props;
+        const {
+            projectId,
+            scheduledEventId,
+            openModal,
+            scheduledEvent,
+            deleting,
+        } = this.props;
         return (
             <div>
                 <div
@@ -50,32 +56,54 @@ class ScheduleEventDeleteBox extends Component {
                                 <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--0 Padding-vertical--12">
                                     <span className="db-SettingsForm-footerMessage"></span>
                                     <div>
-                                        <button
-                                            className="bs-Button bs-Button--red Box-background--blue"
-                                            id={`cancelScheduleEvent`}
-                                            onClick={() =>
-                                                openModal({
-                                                    id: cancelModalId,
-                                                    onClose: () => '',
-                                                    onConfirm: () =>
-                                                        this.cancelScheduleEvent(),
-                                                    content: DataPathHoC(
-                                                        CancelSchedule,
-                                                        {
-                                                            projectId,
-                                                            eventId: scheduledEventId,
-                                                        }
-                                                    ),
-                                                })
-                                            }
-                                        >
-                                            <ShouldRender if={!deleting}>
-                                                <span>Cancel</span>
-                                            </ShouldRender>
-                                            <ShouldRender if={deleting}>
-                                                <FormLoader />
-                                            </ShouldRender>
-                                        </button>
+                                        {scheduledEvent.resolved ? (
+                                            <button
+                                                className="bs-Button bs-Button--blue Box-background--blue"
+                                                id={`cancelScheduleEvent`}
+                                                disabled
+                                            >
+                                                <span>
+                                                    Event has been resolved
+                                                </span>
+                                            </button>
+                                        ) : scheduledEvent.cancelled ? (
+                                            <button
+                                                className="bs-Button bs-Button--blue Box-background--blue"
+                                                id={`cancelScheduleEvent`}
+                                                disabled
+                                            >
+                                                <span>
+                                                    Event has been cancelled
+                                                </span>
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className="bs-Button bs-Button--blue Box-background--blue"
+                                                id={`cancelScheduleEvent`}
+                                                onClick={() =>
+                                                    openModal({
+                                                        id: cancelModalId,
+                                                        onClose: () => '',
+                                                        onConfirm: () =>
+                                                            this.cancelScheduleEvent(),
+                                                        content: DataPathHoC(
+                                                            CancelSchedule,
+                                                            {
+                                                                projectId,
+                                                                eventId: scheduledEventId,
+                                                            }
+                                                        ),
+                                                    })
+                                                }
+                                            >
+                                                <ShouldRender if={!deleting}>
+                                                    <span>Cancel</span>
+                                                </ShouldRender>
+                                                <ShouldRender if={deleting}>
+                                                    <FormLoader />
+                                                </ShouldRender>
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -155,6 +183,7 @@ ScheduleEventDeleteBox.propTypes = {
     scheduledEventId: PropTypes.string.isRequired,
     deleting: PropTypes.bool,
     openModal: PropTypes.func.isRequired,
+    scheduledEvent: PropTypes.object.isRequired,
 };
 ScheduleEventDeleteBox.displayName = 'ScheduleEventDeleteBox';
 export default connect(

@@ -3,6 +3,69 @@
 
 <head>
   <meta charset="utf-8">
+  <style>
+    .wrapper {
+      display: flex;
+      justify-content: center;
+      flex-direction: column;
+      width: 100%;
+      align-items: center;
+      height: 100vh;
+      background: #EEEEEE;
+    }
+
+    .card {
+      font-family: 'Source Sans Pro', sans-serif;
+      padding: 5em;
+      background: #EEEEEE;
+      border: 1px solid #CCCCCC;
+      text-align: center;
+      width: 50%;
+      background-color: #fff;
+      border-radius: 4px;
+      border: none;
+      box-shadow: 0 7px 14px 0 rgb(50 50 93 / 10%), 0 3px 6px 0 rgb(0 0 0 / 7%);
+    }
+
+    .card_p {
+      padding: 15px;
+      margin: 0;
+      font-size: 3.1em;
+      font-weight: bold;
+      color: #000;
+    }
+
+    .monitor_section_wrapper {
+      padding: 2px;
+      text-align: center;
+      width: 100%;
+    }
+
+    .card_form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-around;
+    }
+
+    .monitors {
+      font-size: 18px;
+      color: #000;
+      margin-top: 10px;
+      font-family: 'Source Sans Pro', sans-serif;
+    }
+
+    .card_btn {
+      margin-top: 20px;
+      padding: 1em 1em;
+      font-size: 16px;
+      color: white;
+      border-radius: 4px;
+      background-color: #000;
+      border: none;
+      font-family: 'Source Sans Pro', sans-serif;
+    }
+  </style>
   <title>Fyipe | Help and Support</title>
 
   <meta name="description"
@@ -20,24 +83,18 @@
 </head>
 
 <body>
-  <div style="    display: flex;
-  justify-content: center;
-  flex-direction: column;
-  width: 100%;
-  align-items: center;
-">
-    <div
-      style=" padding: 2px;background: #EEEEEE; border: 1px solid #CCCCCC;margin-top: 10px;text-align: center; width: 70%;">
-      <p style="padding: 8px; margin: 0;">
+  <div class="wrapper">
+    <div class="card">
+      <p class="card_p">
         Select monitors you want to unsubscribe from:
       </p>
-      <div style="padding: 2px; ;margin-top: 10px;text-align: center; width: 100%;padding-bottom: 40px;">
+      <div class="monitor_section_wrapper">
         <form id="monitorForm" action="/unsubscribe" method="POST"
           style="display:flex; flex-direction:column;align-items:center;justify-content: space-around;padding:10px">
           <input name="email[]" value="<%=subscriptions[0].contactEmail%>" hidden>
           <% for(var i=0; i < subscriptions.length; i++) { %>
             <% if(subscriptions[i].monitorId==defaultMonitor){%>
-              <div style="font-size: 18px;margin-top: 10px;">
+              <div class="monitors">
                 <input type="checkbox" name="monitors[]" value=<%=subscriptions[i].monitorId%> checked>
                 <label for="default">
                   <%= subscriptions[i].monitorName%>
@@ -54,14 +111,7 @@
                 </div>
                 <%}%>
                   <%}%>
-                    <input type="submit" value="Unsubscribe" style="margin-top: 80px;
-                    width: 100px;
-                    height: 40px;
-                    font-size: 16px;
-                    color: white;
-                    border-radius: 5px;
-                    background-color: black;
-                   ">
+                    <input type="submit" value="Unsubscribe" class="card_btn">
 
         </form>
 

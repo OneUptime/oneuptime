@@ -10,43 +10,15 @@ import { openModal, closeModal } from '../../actions/modal';
 import { changeMonitorComponent } from '../../actions/monitor';
 import { addCurrentComponent } from '../../actions/component';
 import DataPathHoC from '../DataPathHoC';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
 import ChangeMonitorComponent from '../modals/ChangeMonitorComponent';
-import { history } from '../../store';
 
 class MonitorViewChangeComponentBox extends Component {
     constructor(props) {
         super(props);
-        this.state = { changeMonitorComponentModalId: uuidv4() };
+        this.state = {
+            changeMonitorComponentModalId: uuidv4(),
+        };
     }
-
-    handleMonitorComponentChanged = async (monitor, oldComponentId) => {
-        const { currentProject } = this.props;
-
-        const { projectId, _id: monitorId, componentId, slug } = monitor;
-
-        const redirectTo = `/dashboard/project/${currentProject.slug}/component/${monitor.componentId.slug}/monitoring/${slug}`;
-        history.push(redirectTo);
-
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR COMPONENT CHANGED',
-                {
-                    projectId,
-                    monitorId,
-                    oldComponentId,
-                    newComponentId: componentId,
-                }
-            );
-        }
-        this.props.addCurrentComponent(this.props.component);
-        this.props.closeModal({
-            id: this.state.changeMonitorComponentModalId,
-        });
-
-        return;
-    };
 
     handleKeyBoard = e => {
         switch (e.key) {
@@ -104,17 +76,15 @@ class MonitorViewChangeComponentBox extends Component {
                                             this.props.openModal({
                                                 id: changeMonitorComponentModalId,
                                                 onClose: () => '',
-                                                onConfirm: monitor =>
-                                                    this.handleMonitorComponentChanged(
-                                                        monitor,
-                                                        oldComponentId,
-                                                        newComponent
-                                                    ),
                                                 content: DataPathHoC(
                                                     ChangeMonitorComponent,
                                                     {
                                                         monitor: this.props
                                                             .monitor,
+                                                        oldComponentId,
+                                                        newComponent,
+                                                        component: this.props
+                                                            .component,
                                                     }
                                                 ),
                                             });
@@ -169,8 +139,6 @@ MonitorViewChangeComponentBox.propTypes = {
     monitorState: PropTypes.object.isRequired,
     monitor: PropTypes.object.isRequired,
     changeMonitorComponent: PropTypes.func.isRequired,
-    addCurrentComponent: PropTypes.func.isRequired,
-    currentProject: PropTypes.object,
     component: PropTypes.object,
 };
 

@@ -244,7 +244,7 @@ class EventBox extends Component {
                                     {scheduledEvents.length > 0 &&
                                         scheduledEvents.map(
                                             (scheduledEvent, index) => {
-                                                let scheduleStatus = scheduledEvent.resolved ? (
+                                                const scheduleStatus = scheduledEvent.resolved ? (
                                                     <Badge color={'green'}>
                                                         Completed
                                                     </Badge>
@@ -255,13 +255,9 @@ class EventBox extends Component {
                                                 ) : !scheduledEvent.cancelled &&
                                                   !scheduledEvent.resolved ? (
                                                     moment() <
-                                                        moment(
-                                                            scheduledEvent.startDate
-                                                        ) ||
-                                                    moment() >
-                                                        moment(
-                                                            scheduledEvent.endDate
-                                                        ) ? (
+                                                    moment(
+                                                        scheduledEvent.startDate
+                                                    ) ? (
                                                         <Badge color={'blue'}>
                                                             Scheduled
                                                         </Badge>
@@ -275,6 +271,13 @@ class EventBox extends Component {
                                                           ) ? (
                                                         <Badge color={'yellow'}>
                                                             Ongoing
+                                                        </Badge>
+                                                    ) : moment() >
+                                                      moment(
+                                                          scheduledEvent.endDate
+                                                      ) ? (
+                                                        <Badge color={'blue'}>
+                                                            Ended
                                                         </Badge>
                                                     ) : null
                                                 ) : null;

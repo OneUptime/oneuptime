@@ -90,7 +90,7 @@ const pingfetch = async (url, method, body, headers) => {
 
                 to check for self-signed SSL certs. 
             */
-            response = await fetch(url, { ...payload }); 
+            response = await fetch(url, { ...payload });
             res = new Date().getTime() - now;
             data = await response.json();
             if (urlObject.protocol === 'https:') {
@@ -105,7 +105,6 @@ const pingfetch = async (url, method, body, headers) => {
                 }
             }
         } catch (e) {
-
             /* Retry with an agent which has 
 
                 {

@@ -163,7 +163,8 @@ export class GroupList extends Component {
                                                         <span>
                                                             Add New Group
                                                         </span>
-                                                        {count === 0 ? (
+                                                        {count === 0 &&
+                                                        parentProject ? (
                                                             <span className="new-btn__keycode">
                                                                 N
                                                             </span>

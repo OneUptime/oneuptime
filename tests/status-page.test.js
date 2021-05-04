@@ -106,7 +106,7 @@ describe('Check status-page up', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 200000);
+    }, 200000);    
 
     test('should add monitor to status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -146,6 +146,35 @@ describe('Check status-page up', () => {
         done();
     }, 200000);
 
+    test('Should confirm status-page monitor values does not change on theme change', async done=>{
+        await page.goto(utils.DASHBOARD_URL,{
+            waitUntil: 'networkidle2'
+        });
+        await page.waitForSelector('#statusPages', {visible: true});
+        await page.click('#statusPages');
+        await page.waitForSelector('#statusPagesListContainer', {visible: true});
+        await page.waitForSelector('#viewStatusPage', {visible: true});
+        await page.click('#viewStatusPage');
+        await init.themeNavigationAndConfirmation(page,'Classic');        
+        let spanElement;
+            spanElement = await page.waitForSelector(
+                '#monitor-name', {visible: true}
+            );
+            spanElement = await spanElement.getProperty('innerText');
+            spanElement = await spanElement.jsonValue();
+            expect(spanElement).toMatch(`${componentName} / ${monitorName}`);
+
+        // Changing it back to Clean theme as this is the team that other tests depend on.   
+        await init.themeNavigationAndConfirmation(page,'Clean');     
+            spanElement = await page.waitForSelector(
+                '#monitor-name', {visible: true}
+            );
+            spanElement = await spanElement.getProperty('innerText');
+            spanElement = await spanElement.jsonValue();
+            expect(spanElement).toMatch(`${componentName} / ${monitorName}`); // Another Confirmation
+        done();
+    }, 200000);
+
     test('should add more monitors and see if they are present on the status-page', async done => {
         // This creates 2 additonal monitors
         for (let i = 0; i < 2; i++) {
@@ -168,7 +197,7 @@ describe('Check status-page up', () => {
         expect(monitorLength).toEqual(3);
 
         done();
-    }, 200000);
+    }, 200000);   
 
     test('should create an offline incident and view it on status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
