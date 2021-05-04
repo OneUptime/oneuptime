@@ -1155,21 +1155,6 @@ router.get('/:projectId/probes', checkUser, async function(req, res) {
     }
 });
 
-router.get('/:statusPageSlug/probes/statusPage', checkUser, async function(
-    req,
-    res
-) {
-    try {
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 0;
-        const probes = await ProbeService.findBy({}, limit, skip);
-        const count = await ProbeService.countBy({});
-        return sendListResponse(req, res, probes, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
 router.delete(
     '/:projectId/:statusPageSlug',
     getUser,
@@ -1265,22 +1250,6 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
             monitorId: monitors,
         });
         return sendItemResponse(req, res, { subscribers, skip, limit, count });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-//searching status pages
-router.post('/search/:projectId', getUser, async function(req, res) {
-    try {
-        const filter = req.body.search;
-        const projectIds = req.body.projectIds;
-        const statusPage = await statusPageService.findBy({
-            projectId: { $in: projectIds },
-            deleted: { $ne: null },
-            $or: [{ name: { $regex: new RegExp(filter), $options: 'i' } }],
-        });
-        return sendListResponse(req, res, statusPage);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
