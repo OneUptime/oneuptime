@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { reduxForm, Field } from 'redux-form';
-import { RenderField } from '../basic/RenderField';
+import { RenderSearchField } from '../basic/RenderSearchField';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { history } from '../../store';
@@ -233,14 +233,17 @@ class Search extends Component {
         return (
             <>
                 <Field
-                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                    component={RenderField}
+                    className="db-BusinessSettings-input TextInput bs-TextInput search-input"
+                    component={RenderSearchField}
                     type="text"
                     name="search"
                     id="search"
                     placeholder="Search"
                     autofilled={'off'}
                     onChange={(e, newValue) => this.handleSearch(newValue)}
+                    style={{
+                        boxShadow: 'none',
+                    }}
                 />
                 <div className="search-list-li">
                     <ul
