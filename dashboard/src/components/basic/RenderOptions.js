@@ -35,10 +35,6 @@ const firstField = [
     'ltEqualTo',
     'contains',
     'doesNotContain',
-    'jsExpression',
-    'evaluateResponse',
-    'executesIn',
-    'doesNotExecuteIn',
     'throwsError',
     'doesNotThrowError',
 ];
@@ -66,10 +62,6 @@ const mapValue = {
     ltEqualTo: 'Less Than Equal To',
     contains: 'Contains',
     doesNotContain: 'Does not Contain',
-    jsExpression: 'Javascript Expression',
-    evaluateResponse: 'Evaluate Response',
-    executesIn: 'Executes Less Than',
-    doesNotExecuteIn: 'Executes Greater Than',
     throwsError: 'Throws error',
     doesNotThrowError: 'Does not throw error',
 };
@@ -142,18 +134,6 @@ const placeholders = {
     },
     doesNotContain: {
         responseBody: 'Does not Contain',
-    },
-    jsExpression: {
-        responseBody: 'request.body === {}',
-    },
-    evaluateResponse: {
-        responseBody: "typeof response === 'object'",
-    },
-    executesIn: {
-        executes: '2000',
-    },
-    doesNotExecuteIn: {
-        executes: '5000',
     },
     throwsError: {
         error: 'response.error !== {}',
@@ -271,18 +251,8 @@ export class RenderOption extends Component {
                                         type !== 'ip',
                                 },
                                 {
-                                    value: 'executes',
-                                    label: 'Executes',
-                                    show: type === 'script',
-                                },
-                                {
                                     value: 'error',
                                     label: 'Error',
-                                    show: type === 'script',
-                                },
-                                {
-                                    value: 'javascriptExpression',
-                                    label: 'JavaScript Expression',
                                     show: type === 'script',
                                 },
                                 {
@@ -583,15 +553,6 @@ export class RenderOption extends Component {
                                                 'responseBody',
                                     },
                                     {
-                                        value: 'jsExpression',
-                                        label: 'Javascript Expression',
-                                        show:
-                                            bodyfield &&
-                                            bodyfield.responseType ===
-                                                'responseBody' &&
-                                            type !== 'api',
-                                    },
-                                    {
                                         value: 'evaluateResponse',
                                         label: 'Evaluate Response',
                                         show:
@@ -615,22 +576,6 @@ export class RenderOption extends Component {
                                             bodyfield &&
                                             bodyfield.responseType ===
                                                 'responseBody',
-                                    },
-                                    {
-                                        value: 'executesIn',
-                                        label: 'Executes Less Than',
-                                        show:
-                                            bodyfield &&
-                                            bodyfield.responseType ===
-                                                'executes',
-                                    },
-                                    {
-                                        value: 'doesNotExecuteIn',
-                                        label: 'Executes Greater Than',
-                                        show:
-                                            bodyfield &&
-                                            bodyfield.responseType ===
-                                                'executes',
                                     },
                                     {
                                         value: 'throwsError',
@@ -993,8 +938,7 @@ export class RenderOption extends Component {
 
                         {bodyfield &&
                         filterval !== '' &&
-                        (bodyfield.responseType === 'responseTime' ||
-                            bodyfield.responseType === 'executes') ? (
+                        bodyfield.responseType === 'responseTime' ? (
                             <span
                                 style={{
                                     display: 'inline-block',
