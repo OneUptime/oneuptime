@@ -15,7 +15,7 @@ class FyipeTimelineManager:
         # current date and time
         now = datetime.now()
 
-        timestamp = datetime.timestamp(now)
+        timestamp = datetime.utcnow()
         item["timestamp"] = timestamp;
         
         # add a new item to the stack
