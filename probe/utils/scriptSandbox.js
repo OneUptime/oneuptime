@@ -1,3 +1,5 @@
+const { join } = require('path');
+
 // TODO - make this configurable from admin-dashboard
 const runConfig = {
     availableImports: ['axios', 'puppeteer', 'request'], // init allowed modules
@@ -148,9 +150,12 @@ const runScript = async (
         };
 
         const code = workerData.functionCode;
-        const sandboxFunction = vm.run(`module.exports = ${code}`);
-
         setInterval(() => parentPort.postMessage('ping'), 500);
+        const sandboxFunction = await vm.run(
+            `module.exports = ${code}`,
+            join(process.cwd(), 'node_modules')
+        );
+
         await sandboxFunction(scriptCompletedCallback);
         process.exit();
     }
