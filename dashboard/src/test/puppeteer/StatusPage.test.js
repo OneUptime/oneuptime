@@ -364,12 +364,12 @@ describe('Status Page', () => {
         },
         operationTimeOut
     );
-
+    // Domain is in react tab 4
     test(
         'should indicate that no domain is set yet for a status page.',
         async (done) => {            
                 await gotoTheFirstStatusPage(page);
-                await init.gotoTab(4, page); // Domain is in react tab 4
+                await init.gotoTab(4, page); 
                 const elem = await page.waitForSelector('#domainNotSet', {
                     visible: true,
                 });
