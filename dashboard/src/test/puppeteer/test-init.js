@@ -185,7 +185,7 @@ module.exports = {
         await page.click('#components');
 
         // Navigate to details page of component assumed created
-        await page.waitForSelector(`#more-details-${component}`);
+        await page.waitForSelector(`#more-details-${component}`, { visible: true });
         await page.$eval(`#more-details-${component}`, e => e.click());
     },
     navigateToMonitorDetails: async function(component, monitor, page) {
@@ -622,8 +622,8 @@ module.exports = {
             await page.type('#name', scheduleName);
             await page.click('#btnCreateSchedule');
         } else {
-            await page.waitForSelector('#onCallSchedules');
-            await page.click('#onCallSchedules');
+            await page.waitForSelector('#onCallDuty');
+            await page.click('#onCallDuty');
             await page.waitForSelector(`#btnCreateSchedule_${projectName}`);
             await page.click(`#btnCreateSchedule_${projectName}`);
             await page.waitForSelector('#btnCreateSchedule');
@@ -1048,4 +1048,12 @@ module.exports = {
         await page.click('#createCustomFieldButton');
         await page.waitForSelector('#customFieldForm', { visible: 'hidden' });
     },
+    themeNavigationAndConfirmation: async function(page, theme){
+        await this.gotoTab(6,page);    
+        await page.waitForSelector(`#${theme}`, {visible: true});
+        await page.click(`#${theme}`);
+        await page.waitForSelector('#changePlanBtn', {visible: true});
+        await page.click('#changePlanBtn');    
+        await this.gotoTab(0,page);
+    }
 };
