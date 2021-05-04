@@ -1048,4 +1048,12 @@ module.exports = {
         await page.click('#createCustomFieldButton');
         await page.waitForSelector('#customFieldForm', { visible: 'hidden' });
     },
+    themeNavigationAndConfirmation: async function(page, theme){
+        await this.gotoTab(6,page);    
+        await page.waitForSelector(`#${theme}`, {visible: true});
+        await page.click(`#${theme}`);
+        await page.waitForSelector('#changePlanBtn', {visible: true});
+        await page.click('#changePlanBtn');    
+        await this.gotoTab(0,page);
+    }
 };

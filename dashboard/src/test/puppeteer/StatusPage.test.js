@@ -25,8 +25,7 @@ const gotoTheFirstStatusPage = async page => {
 
 describe('Status Page', () => {
     const operationTimeOut = 500000;
-
-    let cluster;
+    
     beforeAll(async () => {
         jest.setTimeout(360000);
 
@@ -34,11 +33,7 @@ describe('Status Page', () => {
         page = await browser.newPage();
         await page.setUserAgent(
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );  
-
-        
-            
-            
+        );            
                 const user = {
                     email,
                     password,
@@ -53,26 +48,18 @@ describe('Status Page', () => {
                 await init.addStatusPageToProject('test', 'test', page);
 
                 //component + monitor
-                // await init.addComponent(componentName, page);
-                await init.addMonitorToComponent(
+                await init.addComponent(componentName, page);
+                await init.addNewMonitorToComponent(
+                    page,
                     componentName,
                     monitorName,
-                    page,
-                    componentName
+                                      
                 );
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
-                await page.waitForSelector(`#more-details-${componentName}`, {
-                    visible: true,
-                });
-                await page.click(`#more-details-${componentName}`);
-                await page.waitForSelector('#monitors', { visible: true });
-                await init.addMonitorToComponent(
-                    null,
-                    monitorName1,
+                // Creates the second monitor
+                await init.addNewMonitorToComponent(
                     page,
-                    componentName
+                    componentName,
+                    monitorName1,                                      
                 );
         
     });
@@ -84,8 +71,7 @@ describe('Status Page', () => {
 
     test(
         'should indicate that no monitor is set yet for a status page',
-        async (done) => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
                 const elem = await page.waitForSelector('#app-loading', {
                     visible: true,
@@ -97,15 +83,14 @@ describe('Status Page', () => {
                 expect(element).toContain(
                     'No monitors are added to this status page.'
                 );
-            });
+                done();
         },
         operationTimeOut
     );
 
     test(
         'should show error message and not submit the form if no monitor is selected and user clicks on save.',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
                 await page.waitForSelector('#addMoreMonitors');
                 await page.click('#addMoreMonitors');
@@ -124,15 +109,14 @@ describe('Status Page', () => {
                     hidden: true,
                 });
                 expect(monitor).toBeNull();
-            });
+            done();
         },
         operationTimeOut
     );
-
-    test(
+        // Status-page monitor can now be saved without chart type
+    test.skip(
         'should show error message and not submit the form if no chart is selected.',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
                 await page.waitForSelector('#addMoreMonitors');
                 await page.click('#addMoreMonitors');
@@ -159,15 +143,14 @@ describe('Status Page', () => {
                     hidden: true,
                 });
                 expect(monitor).toBeNull();
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should show an error message and not submit the form if the users select the same monitor twice.',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
                 await page.waitForSelector('#addMoreMonitors');
                 await page.click('#addMoreMonitors');
@@ -203,15 +186,14 @@ describe('Status Page', () => {
                     hidden: true,
                 });
                 expect(monitor1).toBeNull();
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should add a new monitor.',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
                 await page.waitForSelector('#addMoreMonitors');
                 await page.click('#addMoreMonitors');
@@ -230,15 +212,14 @@ describe('Status Page', () => {
                     visible: true,
                 });
                 expect(elem).toBeDefined();
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should remove monitor.',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
                 await page.waitForSelector('#monitor-0');
                 await page.click('#delete-monitor-0');
@@ -256,15 +237,14 @@ describe('Status Page', () => {
                 expect(element).toContain(
                     'No monitors are added to this status page.'
                 );
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should add more than one monitor.',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
                 await page.waitForSelector('#addMoreMonitors');
                 await page.click('#addMoreMonitors');
@@ -299,15 +279,26 @@ describe('Status Page', () => {
                     }
                 );
                 expect(secondMonitorContainer).toBeDefined();
-            });
+            done();
         },
         operationTimeOut
     );
-
+    test('Should change status-page theme to Classic theme',
+        async done =>{
+            await gotoTheFirstStatusPage(page);
+            await init.themeNavigationAndConfirmation(page,'Classic');
+            let link = await page.$('#publicStatusPageUrl > span > a');
+                link = await link.getProperty('href');
+                link = await link.jsonValue();
+                await page.goto(link);
+            let classicTheme = await page.waitForSelector('.uptime-stat-name');
+            expect(classicTheme).toBeDefined();
+            done();
+        })
+        // The test below depends on Classic team
     test(
         'Status page should render monitors in the same order as in the form.',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
                 await page.waitForSelector('#publicStatusPageUrl');
 
@@ -370,32 +361,30 @@ describe('Status Page', () => {
                 );
                 expect(firstMonitorAfterSwap).toEqual(secondMonitorBeforeSwap);
                 expect(secondMonitorAfterSwap).toEqual(firstMonitorBeforeSwap);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should indicate that no domain is set yet for a status page.',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
-                await init.gotoTab(2, page);
+                await init.gotoTab(4, page); // Domain is in react tab 4
                 const elem = await page.waitForSelector('#domainNotSet', {
                     visible: true,
                 });
                 expect(elem).toBeDefined();
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should create a domain',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
-                await init.gotoTab(2, page);
+                await init.gotoTab(4, page);
                 await page.waitForSelector('#addMoreDomain');
                 await page.click('#addMoreDomain');
 
@@ -419,7 +408,7 @@ describe('Status Page', () => {
                     { visible: true }
                 );
                 expect(list).toBeDefined();
-            });
+            done();
         },
         operationTimeOut
     );
@@ -427,8 +416,7 @@ describe('Status Page', () => {
     // this test case is no longer viable for custom domains
     test.skip(
         'should indicate if domain(s) is set on a status page',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.$eval('#statusPages', elem => elem.click());
 
@@ -436,19 +424,18 @@ describe('Status Page', () => {
                     visible: true,
                 });
                 expect(elem).toBeDefined();
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should update a domain',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 const finalValue = 'status.fyipeapp.com';
 
                 await gotoTheFirstStatusPage(page);
-                await init.gotoTab(2, page);
+                await init.gotoTab(4, page);
 
                 await page.waitForSelector('#editDomain_0', { visible: true });
                 await page.click('#editDomain_0');
@@ -468,7 +455,7 @@ describe('Status Page', () => {
                 });
                 await page.reload({ waitUntil: 'networkidle0' });
 
-                await init.gotoTab(2, page);
+                await init.gotoTab(4, page);
 
                 const finalInputValue = await page.$eval(
                     'fieldset[name="added-domain"] input[type="text"]',
@@ -476,17 +463,16 @@ describe('Status Page', () => {
                 );
 
                 expect(finalInputValue).toEqual(finalValue);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should not verify a domain when txt record does not match token',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
-                await init.gotoTab(2, page);
+                await init.gotoTab(4, page);
                 await page.waitForSelector('#btnVerifyDomain_0');
                 await page.click('#btnVerifyDomain_0');
 
@@ -497,17 +483,16 @@ describe('Status Page', () => {
                     visible: true,
                 });
                 expect(elem).toBeDefined();
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should delete a domain in a status page',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
-                await init.gotoTab(2, page);
+                await init.gotoTab(4, page);
                 await page.waitForSelector('fieldset[name="added-domain"]', {
                     visible: true,
                 });
@@ -531,7 +516,7 @@ describe('Status Page', () => {
                 });
                 await page.reload({ waitUntil: 'networkidle0' });
 
-                await init.gotoTab(2, page);
+                await init.gotoTab(4, page);
                 await page.waitForSelector('#btnDeleteDomain_0');
                 await page.$eval('#btnDeleteDomain_0', elem => elem.click());
                 await page.waitForSelector('#confirmDomainDelete', {
@@ -544,7 +529,7 @@ describe('Status Page', () => {
 
                 await page.reload({ waitUntil: 'networkidle0' });
                 // get the final length of domains after deleting
-                await init.gotoTab(2, page);
+                await init.gotoTab(4, page);
                 await page.waitForSelector('fieldset[name="added-domain"]');
                 const finalLength = await page.$$eval(
                     'fieldset[name="added-domain"]',
@@ -552,17 +537,16 @@ describe('Status Page', () => {
                 );
 
                 expect(finalLength).toEqual(initialLength);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should cancel deleting of a domain in a status page',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
-                await init.gotoTab(2, page);
+                await init.gotoTab(4, page);
 
                 await page.waitForSelector('fieldset[name="added-domain"]', {
                     visible: true,
@@ -586,14 +570,14 @@ describe('Status Page', () => {
                 });
                 await page.reload({ waitUntil: 'networkidle0' });
 
-                await init.gotoTab(2, page);
+                await init.gotoTab(4, page);
 
                 await page.waitForSelector('#btnDeleteDomain_0');
                 await page.$eval('#btnDeleteDomain_0', elem => elem.click());
                 await page.$eval('#cancelDomainDelete', elem => elem.click());
 
                 await page.reload({ waitUntil: 'networkidle0' });
-                await init.gotoTab(2, page);
+                await init.gotoTab(4, page);
                 await page.waitForSelector('fieldset[name="added-domain"]');
                 // get the final length of domains after cancelling
                 const finalLength = await page.$$eval(
@@ -602,19 +586,18 @@ describe('Status Page', () => {
                 );
 
                 expect(finalLength).toBeGreaterThan(initialLength);
-            });
+            done();
         },
         operationTimeOut
     );
-
+    //Custom HTML,CSS and JS are now in react-tab-6
     test(
         'should create custom HTML and CSS',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
 
-                await page.waitForSelector('#react-tabs-4');
-                await page.click('#react-tabs-4');
+                await page.waitForSelector('#react-tabs-6');
+                await page.click('#react-tabs-6');
                 await page.type('#headerHTML textarea', '<div>My header'); // Ace editor completes the div tag
                 await page.click('#btnAddCustomStyles');
                 await page.waitForTimeout(2000);
@@ -634,21 +617,20 @@ describe('Status Page', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly('My header');
-            });
+            done()
         },
         operationTimeOut
     );
 
     test(
         'should create custom Javascript',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 const javascript = `console.log('this is a js code');`;
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'load' });
 
-                await page.waitForSelector('#react-tabs-4');
-                await page.click('#react-tabs-4');
+                await page.waitForSelector('#react-tabs-6');
+                await page.click('#react-tabs-6');
                 await page.waitForSelector('#customJS textarea');
                 await page.type(
                     '#customJS textarea',
@@ -673,15 +655,14 @@ describe('Status Page', () => {
                     script => script.innerHTML
                 );
                 expect(code).toEqual(javascript);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should show incidents in the top of status page',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
                 await page.waitForSelector('#publicStatusPageUrl');
 
@@ -710,17 +691,16 @@ describe('Status Page', () => {
                     elem => elem.value
                 );
                 expect(checked).toBeTruthy();
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should not add a domain when the field is empty',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
-                await init.gotoTab(2, page);
+                await init.gotoTab(4, page);
                 await page.waitForSelector('#addMoreDomain');
                 await page.click('#addMoreDomain');
                 await page.waitForSelector('#createCustomDomainBtn', {
@@ -732,17 +712,16 @@ describe('Status Page', () => {
                     return e.innerHTML;
                 });
                 expect(element).toContain('Domain is required');
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should not add an invalid domain',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
-                await init.gotoTab(2, page);
+                await init.gotoTab(4, page);
                 await page.waitForSelector('#addMoreDomain');
                 await page.click('#addMoreDomain');
                 await page.waitForSelector('#addMoreDomainModal', {
@@ -758,7 +737,7 @@ describe('Status Page', () => {
                     return e.innerHTML;
                 });
                 expect(element).toContain('Domain is not valid.');
-            });
+            done();
         },
         operationTimeOut
     );
@@ -766,8 +745,7 @@ describe('Status Page', () => {
     // test case is no longer valid
     test.skip(
         'should add multiple domains',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
                 await page.waitForSelector('#react-tabs-2');
@@ -789,18 +767,17 @@ describe('Status Page', () => {
                     domains => domains.length
                 );
                 expect(domains).toEqual(4);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should not add an existing domain',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await gotoTheFirstStatusPage(page);
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
-                await init.gotoTab(2, page);
+                await init.gotoTab(4, page);
                 await page.waitForSelector('#addMoreDomain');
                 await page.click('#addMoreDomain');
                 await page.waitForSelector('#addMoreDomainModal', {
@@ -813,7 +790,7 @@ describe('Status Page', () => {
                     hidden: true,
                 });
                 await page.reload({ waitUntil: 'networkidle0' });
-                await init.gotoTab(2, page);
+                await init.gotoTab(4, page);
 
                 await page.waitForSelector('#addMoreDomain');
                 await page.click('#addMoreDomain');
@@ -830,7 +807,7 @@ describe('Status Page', () => {
                     }
                 );
                 expect(addDomainError).toBeDefined();
-            });
+            done();
         },
         operationTimeOut
     );
