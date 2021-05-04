@@ -431,43 +431,38 @@ describe('Status Page', () => {
     test(
         'should update a domain',
         async (done) => {            
-                const finalValue = 'status.fyipeapp.com';
+            const finalValue = 'status.fyipeapp.com';
 
-                await gotoTheFirstStatusPage(page);
-                await init.gotoTab(4, page);
+            await gotoTheFirstStatusPage(page);
+            await init.gotoTab(4, page);
 
-                await page.waitForSelector('#editDomain_0', { visible: true });
-                await page.click('#editDomain_0');
-                await page.waitForSelector('#editMoreDomainModal', {
-                    visible: true,
-                });
-                await page.waitForSelector('#customDomain');
-                const input = await page.$('#customDomain');
-                await input.click({ clickCount: 3 });
-                await input.type(finalValue);
+            await page.waitForSelector('#editDomain_0', { visible: true });
+            await page.click('#editDomain_0');
+            await page.waitForSelector('#editMoreDomainModal', {
+                visible: true,
+            });
+            await page.waitForSelector('#customDomain');
+            const input = await page.$('#customDomain');
+            await input.click({ clickCount: 3 });
+            await input.type(finalValue);
 
-                await page.click('#updateCustomDomainBtn');
-                await page.waitForSelector('.ball-beat', { visible: true });
-                await page.waitForSelector('.ball-beat', { hidden: true });
-                await page.waitForSelector('#editMoreDomainModal', {
-                    hidden: true,
-                });
-                await page.reload({ waitUntil: 'networkidle0' });
+            await page.click('#updateCustomDomainBtn');
+            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.waitForSelector('.ball-beat', { hidden: true });
+            await page.waitForSelector('#editMoreDomainModal', {
+                hidden: true,
+            });
+            await page.reload({ waitUntil: 'networkidle0' });
 
-                await init.gotoTab(4, page);
-
-                // const finalInputValue = await page.$eval(
-                //     '#domain_name',
-                //     domain => domain.value
-                // );               
+            await init.gotoTab(4, page);
             let finalInputValue;
             finalInputValue = await page.waitForSelector(
                 '#domain-name', { visible: true }
             );
             finalInputValue = await finalInputValue.getProperty('innerText');
-            finalInputValue = await finalInputValue.jsonValue();            
+            finalInputValue = await finalInputValue.jsonValue();
 
-                expect(finalInputValue).toMatch(finalValue);
+            expect(finalInputValue).toMatch(finalValue);
             done();
         },
         operationTimeOut
