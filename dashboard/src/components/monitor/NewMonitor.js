@@ -2548,6 +2548,15 @@ class NewMonitor extends Component {
                                                                             'degraded'
                                                                     )
                                                                         return false;
+                                                                    else if (
+                                                                        criterionType.type ===
+                                                                            criterion.type &&
+                                                                        type ===
+                                                                            'script' &&
+                                                                        criterionType.type ===
+                                                                            'degraded'
+                                                                    )
+                                                                        return false;
                                                                     else {
                                                                         return (
                                                                             criterionType.type ===
