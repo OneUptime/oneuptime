@@ -122,9 +122,7 @@ describe('Schedule API With SubProjects', () => {
                 page
             );
         }
-        // await cluster.waitForOne();
-        // // switch to invited project for new user
-        // await init.switchProject(data.projectName, page);
+        
         await page.waitForSelector('#onCallDuty');
         await page.click('#onCallDuty');
         await page.waitForTimeout(3000);
@@ -156,10 +154,7 @@ describe('Schedule API With SubProjects', () => {
     test(
         'should add monitor to sub-project schedule',
         async done => {            
-                                
-                    
-
-                    
+                    await page.goto(utils.DASHBOARD_URL);                    
                     await page.waitForSelector('#onCallDuty');
                     await page.click('#onCallDuty');
                     await page.waitForSelector('tr.scheduleListItem');
@@ -178,11 +173,8 @@ describe('Schedule API With SubProjects', () => {
                         'input[type=checkbox]',
                         el => el.value
                     );
-
                     expect(monitorSelectValue).toBe('true');
-                
-            
-
+                            
             done();
         },
         operationTimeOut
@@ -191,7 +183,7 @@ describe('Schedule API With SubProjects', () => {
     test(
         'should delete sub-project schedule',
         async done => {
-                                               
+                    await page.goto(utils.DASHBOARD_URL);                        
                     await page.waitForSelector('#onCallDuty');
                     await page.click('#onCallDuty');
                     await page.waitForSelector('tr.scheduleListItem');
@@ -209,8 +201,7 @@ describe('Schedule API With SubProjects', () => {
                     const scheduleRows = await page.$$('tr.scheduleListItem');
                     const countSchedules = scheduleRows.length;
 
-                    expect(countSchedules).toEqual(10);
-                
+                    expect(countSchedules).toEqual(10);                
 
             done();
         },
