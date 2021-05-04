@@ -70,10 +70,9 @@ class NewMonitor extends Component {
         this.state = {
             advance: false,
             script:
-                (props.editMonitorProp &&
-                    props.editMonitorProp.data &&
-                    props.editMonitorProp.data.script) ||
-                '',
+                props.editMonitorProp &&
+                props.editMonitorProp.data &&
+                props.editMonitorProp.data.script,
 
             showAllMonitors: false,
             type: props.edit ? props.editMonitorProp.type : props.type,
@@ -916,6 +915,12 @@ class NewMonitor extends Component {
             },
         ];
 
+        const defaultScript =
+            '// objects available - request, puppeteer, axios. We can add more later. \n\n' +
+            'async function (done) {\n' +
+            '   // write any javascript here \n' +
+            '   done();\n' +
+            '}\n';
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -1958,6 +1963,9 @@ class NewMonitor extends Component {
                                                                             this
                                                                                 .state
                                                                                 .script
+                                                                        }
+                                                                        defaultValue={
+                                                                            defaultScript
                                                                         }
                                                                         style={{
                                                                             backgroundColor:
