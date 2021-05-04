@@ -693,7 +693,6 @@ module.exports = {
                                 {
                                     'monitors.monitorId': monitorId,
                                     showEventOnStatusPage: true,
-                                    resolved: false,
                                 }
                             );
                         } else {
