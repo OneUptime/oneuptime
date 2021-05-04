@@ -613,10 +613,10 @@ describe('Status Page', () => {
                 await page.goto(link);
                 await page.waitForSelector('#customHeaderHTML > div');
 
-                let finalInputValue = await page.$('#customHeaderHTML > div');
-                finalInputValue = await finalInputValue.getProperty('innerText');
-                finalInputValue = await finalInputValue.jsonValue();
-                finalInputValue.should.be.exactly('My header');
+                let spanElement = await page.$('#customHeaderHTML > div');
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly('My header');
             done()
         },
         operationTimeOut
@@ -666,7 +666,7 @@ describe('Status Page', () => {
                 await gotoTheFirstStatusPage(page);
                 await page.waitForSelector('#publicStatusPageUrl');
 
-                await page.waitForSelector('#react-tabs-10');
+                await page.waitForSelector('#react-tabs-10'); // Advanced tab
                 await page.click('#react-tabs-10');
 
                 await page.waitForSelector('#moreAdvancedOptions', {
