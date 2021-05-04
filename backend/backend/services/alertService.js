@@ -907,7 +907,7 @@ module.exports = {
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const ack_url = `${global.apiHost}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
         const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -1070,7 +1070,7 @@ module.exports = {
                 const reason = incident.reason;
                 const componentSlug = incident.monitorId.componentId.slug;
                 const componentName = incident.monitorId.componentId.name;
-                const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/${componentSlug}/incidents/${incident.idNumber}`;
+                const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.idNumber}`;
                 let incidentSlaTimeline =
                     incidentCommunicationSla.duration * 60;
                 incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
@@ -1855,7 +1855,7 @@ module.exports = {
 
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -2162,7 +2162,7 @@ module.exports = {
         });
 
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -2448,7 +2448,7 @@ module.exports = {
                         ? monitor.componentId._id
                         : monitor.componentId,
             });
-            const statusUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/${component.slug}/incidents/${incident.idNumber}`;
+            const statusUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${component.slug}/incidents/${incident.idNumber}`;
 
             let statusPageUrl;
             if (statusPage) {
