@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, createRef } from 'react';
 import { bindActionCreators } from 'redux';
 import { reduxForm, Field } from 'redux-form';
 import { RenderSearchField } from '../basic/RenderSearchField';
@@ -15,6 +15,11 @@ import isSubProjectViewer from '../../utils/isSubProjectViewer';
 import { addScheduleEvent } from '../../actions/scheduledEvent';
 
 class Search extends Component {
+    constructor() {
+        super();
+        this.activeRef = createRef();
+        this.containerRef = createRef();
+    }
     state = {
         scroll: 0,
         sectionActive: 0,
@@ -26,7 +31,23 @@ class Search extends Component {
     componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoardScroll);
     }
+    scrollToViewPort() {
+        const panel = this.containerRef.current;
+        const node = this.activeRef.current;
+        const searchObj = this.props.searcResult;
+
+        if (
+            this.state.scroll ===
+                searchObj[searchObj.length - 1].values.length - 1 &&
+            this.state.sectionActive === searchObj.length - 1
+        ) {
+            panel.scrollTop = 0;
+        } else {
+            node.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
+    }
     ArrowUp = () => {
+        this.scrollToViewPort();
         const searchObj = this.props.searcResult;
         for (let i = 0; i < searchObj.length; i++) {
             if (i === this.state.sectionActive) {
@@ -54,6 +75,7 @@ class Search extends Component {
         }
     };
     ArrowDown = () => {
+        this.scrollToViewPort();
         const searchObj = this.props.searcResult;
         for (let i = 0; i < searchObj.length; i++) {
             if (i === this.state.sectionActive) {
@@ -245,7 +267,16 @@ class Search extends Component {
                         boxShadow: 'none',
                     }}
                 />
-                <div className="search-list-li">
+                <div
+                    className="search-list-li"
+                    style={{
+                        maxHeight: '30rem',
+                        overflowY: 'auto',
+                        boxShadow:
+                            '0 2px 5px 0 rgb(50 50 93 / 10%), 0 1px 1px 0 rgb(0 0 0 / 7%)',
+                    }}
+                    ref={this.containerRef}
+                >
                     <ul
                         style={{
                             backgroundColor: '#fff',
@@ -283,7 +314,14 @@ class Search extends Component {
                                                             ? '#eee'
                                                             : '',
                                                 }}
-                                                tabIndex="0"
+                                                tabIndex="-1"
+                                                ref={
+                                                    this.state.scroll === i &&
+                                                    j ===
+                                                        this.state.sectionActive
+                                                        ? this.activeRef
+                                                        : null
+                                                }
                                                 onClick={() =>
                                                     this.handleSearchClick(j, i)
                                                 }
@@ -298,7 +336,6 @@ class Search extends Component {
                                             width: '100%',
                                             height: '1px',
                                             marginTop: '8px',
-                                            marginBottom: '8px',
                                         }}
                                     ></div>
                                 </>
