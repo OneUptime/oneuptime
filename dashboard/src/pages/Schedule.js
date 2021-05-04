@@ -22,24 +22,8 @@ class Schedule extends Component {
         this.state = { editSchedule: false };
     }
 
-    async componentDidMount() {
-        const { subProjectId, scheduleId } = this.props;
-        try {
-            await Promise.all([
-                this.props.getEscalation(subProjectId, scheduleId),
-                this.props.subProjectTeamLoading(subProjectId),
-                this.props.teamLoading(subProjectId),
-            ]);
-        } catch (e) {
-            this.setState({ error: e });
-        }
-    }
-
     async componentDidUpdate(prevProps) {
-        if (
-            prevProps.match.params.scheduleSlug !==
-            this.props.match.params.scheduleSlug
-        ) {
+        if (prevProps.scheduleId !== this.props.scheduleId) {
             const { subProjectId, scheduleId } = this.props;
             try {
                 await Promise.all([
@@ -190,7 +174,6 @@ Schedule.propTypes = {
     teamLoading: PropTypes.func.isRequired,
     escalations: PropTypes.array.isRequired,
     teamMembers: PropTypes.array.isRequired,
-    match: PropTypes.object.isRequired,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),

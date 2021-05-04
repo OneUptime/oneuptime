@@ -111,10 +111,17 @@ function validate(values) {
 
 export class OnCallAlertBox extends Component {
     componentDidMount() {
-        const { subProjectId, scheduleId, getProjectGroups } = this.props;
-        this.props.getEscalation(subProjectId, scheduleId);
+        const { subProjectId, getProjectGroups } = this.props;
         this.props.subProjectTeamLoading(subProjectId);
         getProjectGroups(subProjectId, 0, 0, true);
+    }
+    componentDidUpdate(prevProps) {
+        if (prevProps.scheduleId !== this.props.scheduleId) {
+            const { scheduleId, subProjectId, getEscalation } = this.props;
+            if (scheduleId) {
+                getEscalation(subProjectId, scheduleId);
+            }
+        }
     }
     submitForm = async values => {
         const { subProjectId, scheduleId } = this.props;
