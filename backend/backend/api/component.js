@@ -541,6 +541,7 @@ router.get(
         }
     }
 );
+
 router.delete(
     '/:projectId/:componentId',
     getUser,

@@ -11197,6 +11197,26 @@ table {
     border-radius: 5px;
     padding: 3px;
 }
+#search-input-container {
+    position:relative;
+    box-shadow: 0 2px 5px 0 rgb(50 50 93 / 10%), 0 1px 1px 0 rgb(0 0 0 / 7%);
+    border: none;
+    background-color: #f7f7f7!important;
+}
+.search-input {
+    margin:0;
+    padding-left: 30px;
+    background-color: #f7f7f7!important;
+}
+#search-input-img {
+    position:absolute;
+    bottom:2px;
+    left: 5px;
+    width: 15px;
+    height: 22px;
+    opacity: 0.3;
+    z-index: 99;
+}
 
 @media only screen and (max-width: 807px) {
     .action-bar-holder {
