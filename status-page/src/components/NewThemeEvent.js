@@ -162,7 +162,7 @@ class NewThemeEvent extends Component {
                                         >
                                             <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                 <sdpan id="ongoing-event">
-                                                    Cancelled event
+                                                    Cancelled
                                                 </sdpan>
                                             </span>
                                         </div>
@@ -175,7 +175,7 @@ class NewThemeEvent extends Component {
                                         >
                                             <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                 <sdpan id="ongoing-event">
-                                                    Completed event
+                                                    Completed
                                                 </sdpan>
                                             </span>
                                         </div>
@@ -190,7 +190,7 @@ class NewThemeEvent extends Component {
                                             >
                                                 <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                     <span id="ongoing-event">
-                                                        Ongoing event
+                                                        Ongoing
                                                     </span>
                                                 </span>
                                             </div>
