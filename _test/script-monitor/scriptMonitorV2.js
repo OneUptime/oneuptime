@@ -1,3 +1,5 @@
+const { join } = require("path");
+
 // TODO - make this configurable from admin-dashboard
 const runConfig = {
     availableImports: ['axios'], // init allowed modules
@@ -133,9 +135,9 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
         };
 
         const code = workerData.functionCode;
-        const sandboxFunction = vm.run(`module.exports = ${code}`);
-
         setInterval(() => parentPort.postMessage('ping'), 500);
+        const sandboxFunction = await vm.run(`module.exports = ${code}`, join(process.cwd(), "node_modules"));
+        
         await sandboxFunction(scriptCompletedCallback);
         process.exit();
 
@@ -144,27 +146,3 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
 
 module.exports = runScript();
 module.exports.runScript = runScript;
-
-/* module.exports = {
-    // run: async monitor => {
-    //     try {
-    //         if (monitor && monitor.type) {
-    //             if (monitor.data.script) {
-    //                 // start worker thread to run script
-    //                 const inputCode = monitor.data.script;
-    //                 const { res, resp } = await runScript(inputCode);
-    //                 await ApiService.ping(monitor._id, {
-    //                     monitor,
-    //                     res,
-    //                     resp,
-    //                     type: monitor.type,
-    //                 });
-    //             }
-    //         }
-    //     } catch (error) {
-    //         ErrorService.log('scriptMonitors.run', error);
-    //         throw error;
-    //     }
-    // },
-    runScript,
-}; */
