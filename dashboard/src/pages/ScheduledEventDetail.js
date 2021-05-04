@@ -12,6 +12,7 @@ import {
     updateScheduledEventNoteInternalSuccess,
     deleteScheduledEventNoteSuccess,
     createScheduledEventNoteSuccess,
+    fetchScheduledEvent,
 } from '../actions/scheduledEvent';
 import getParentRoute from '../utils/getParentRoute';
 import { LoadingState } from '../components/basic/Loader';
@@ -41,52 +42,73 @@ class ScheduledEvent extends Component {
         const tabSlider = document.getElementById('tab-slider');
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
     };
+    componentDidUpdate(prevProps) {
+        if (
+            String(prevProps.scheduledEventId) !==
+            String(this.props.scheduledEventId)
+        ) {
+            const {
+                fetchScheduledEventNotesInternal,
+                updateScheduledEventNoteInvestigationSuccess,
+                updateScheduledEventNoteInternalSuccess,
+                deleteScheduledEventNoteSuccess,
+                createScheduledEventNoteSuccess,
+                scheduledEventId,
+            } = this.props;
+            // fetch scheduled event notes
+            if (scheduledEventId) {
+                fetchScheduledEventNotesInternal(
+                    this.props.projectId,
+                    scheduledEventId,
+                    this.limit,
+                    0
+                );
+            }
+            socket.on(
+                `addScheduledEventInternalNote-${scheduledEventId}`,
+                event => createScheduledEventNoteSuccess(event)
+            );
+            socket.on(
+                `addScheduledEventInvestigationNote-${scheduledEventId}`,
+                event => createScheduledEventNoteSuccess(event)
+            );
+            socket.on(
+                `updateScheduledEventInternalNote-${scheduledEventId}`,
+                event => updateScheduledEventNoteInternalSuccess(event)
+            );
+            socket.on(
+                `updateScheduledEventInvestigationNote-${scheduledEventId}`,
+                event => updateScheduledEventNoteInvestigationSuccess(event)
+            );
+            socket.on(
+                `deleteScheduledEventInternalNote-${scheduledEventId}`,
+                event => deleteScheduledEventNoteSuccess(event)
+            );
+            socket.on(
+                `deleteScheduledEventInvestigationNote-${scheduledEventId}`,
+                event => deleteScheduledEventNoteSuccess(event)
+            );
+        }
+    }
     ready = () => {
         resetIdCounter();
-        const {
-            match,
-            fetchscheduledEvent,
-            fetchScheduledEventNotesInternal,
-            updateScheduledEventNoteInvestigationSuccess,
-            updateScheduledEventNoteInternalSuccess,
-            deleteScheduledEventNoteSuccess,
-            createScheduledEventNoteSuccess,
-        } = this.props;
-        const { scheduledEventId } = match.params;
-        // fetch scheduled event
-        fetchscheduledEvent(this.props.projectId, scheduledEventId);
+        if (this.props.scheduledEventSlug) {
+            const { fetchScheduledEvent } = this.props;
 
-        // fetch scheduled event notes
-        fetchScheduledEventNotesInternal(
-            this.props.projectId,
-            scheduledEventId,
-            this.limit,
-            0
-        );
-
-        socket.on(`addScheduledEventInternalNote-${scheduledEventId}`, event =>
-            createScheduledEventNoteSuccess(event)
-        );
-        socket.on(
-            `addScheduledEventInvestigationNote-${scheduledEventId}`,
-            event => createScheduledEventNoteSuccess(event)
-        );
-        socket.on(
-            `updateScheduledEventInternalNote-${scheduledEventId}`,
-            event => updateScheduledEventNoteInternalSuccess(event)
-        );
-        socket.on(
-            `updateScheduledEventInvestigationNote-${scheduledEventId}`,
-            event => updateScheduledEventNoteInvestigationSuccess(event)
-        );
-        socket.on(
-            `deleteScheduledEventInternalNote-${scheduledEventId}`,
-            event => deleteScheduledEventNoteSuccess(event)
-        );
-        socket.on(
-            `deleteScheduledEventInvestigationNote-${scheduledEventId}`,
-            event => deleteScheduledEventNoteSuccess(event)
-        );
+            //fetch scheduledEvent with slug
+            fetchScheduledEvent(
+                this.props.projectId,
+                this.props.scheduledEventSlug
+            );
+        }
+        if (this.props.scheduledEventId) {
+            fetchScheduledEventNotesInternal(
+                this.props.projectId,
+                this.props.scheduledEventId,
+                this.limit,
+                0
+            );
+        }
     };
 
     render() {
@@ -94,11 +116,10 @@ class ScheduledEvent extends Component {
             location: { pathname },
             requesting,
             scheduledEvent,
+            scheduledEventId,
             internalNotesList,
-            match,
             monitorList,
         } = this.props;
-        const { scheduledEventId } = match.params;
         const eventName = scheduledEvent ? scheduledEvent.name : '';
 
         return (
@@ -225,6 +246,7 @@ class ScheduledEvent extends Component {
                                         <ScheduleEventDeleteBox
                                             projectId={this.props.projectId}
                                             scheduledEventId={scheduledEventId}
+                                            scheduledEvent={scheduledEvent}
                                         />
                                     </ShouldRender>
                                 </Fade>
@@ -240,12 +262,13 @@ class ScheduledEvent extends Component {
 ScheduledEvent.displayName = 'ScheduledEvent';
 
 ScheduledEvent.propTypes = {
-    match: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    fetchscheduledEvent: PropTypes.func,
+    scheduledEventId: PropTypes.string,
+    fetchScheduledEvent: PropTypes.func,
     projectId: PropTypes.string,
+    scheduledEventSlug: PropTypes.string,
     scheduledEvent: PropTypes.object,
     requesting: PropTypes.bool,
     fetchScheduledEventNotesInternal: PropTypes.func,
@@ -257,7 +280,8 @@ ScheduledEvent.propTypes = {
     monitorList: PropTypes.array,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
+    const { scheduledEventSlug } = props.match.params;
     const monitorList = [];
     state.monitor.monitorsList.monitors.map(data => {
         data.monitors.map(monitor => {
@@ -269,15 +293,19 @@ const mapStateToProps = state => {
 
     return {
         scheduledEvent:
-            state.scheduledEvent.newScheduledEvent.scheduledEvent &&
-            state.scheduledEvent.newScheduledEvent.scheduledEvent,
+            state.scheduledEvent.currentScheduledEvent &&
+            state.scheduledEvent.currentScheduledEvent.scheduledEvent,
         requesting: state.scheduledEvent.newScheduledEvent.requesting,
         internalNotesList: state.scheduledEvent.scheduledEventInternalList,
         investigationNotesList:
             state.scheduledEvent.scheduledEventInvestigationList,
         monitorList,
+        scheduledEventSlug,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
+        scheduledEventId:
+            state.scheduledEvent.currentScheduledEvent.scheduledEvent &&
+            state.scheduledEvent.currentScheduledEvent.scheduledEvent._id,
     };
 };
 
@@ -290,6 +318,7 @@ const mapDispatchToProps = dispatch =>
             updateScheduledEventNoteInternalSuccess,
             deleteScheduledEventNoteSuccess,
             createScheduledEventNoteSuccess,
+            fetchScheduledEvent,
         },
         dispatch
     );

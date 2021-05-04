@@ -3,9 +3,9 @@ const puppeteer = require('puppeteer');
 
 let page, browser;
 
-describe('Enterprise Backend API', () => {
+describe('Check Backend', () => {
     beforeAll(async done => {
-        jest.setTimeout(30000);
+        jest.setTimeout(60000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         done();

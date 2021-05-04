@@ -1,8 +1,8 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
+let browser,page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
@@ -12,33 +12,24 @@ const monitorName = utils.generateRandomString();
 const scheduleMaintenanceName = utils.generateRandomString();
 const newScheduledMaintenanceName = utils.generateRandomString();
 
+const user = {
+    email,
+    password,
+};
 describe('Scheduled event', () => {
     const operationTimeOut = 50000;
-
-    let cluster;
+    
 
     beforeAll(async () => {
         jest.setTimeout(200000);
-
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
+        
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
 
         // Register user
-        return await cluster.execute(null, async ({ page }) => {
-            const user = {
-                email,
-                password,
-            };
-
-            // user
             await init.registerUser(user, page);
             // Create component
             await init.addComponent(componentName, page);
@@ -47,20 +38,17 @@ describe('Scheduled event', () => {
                 monitorName,
                 page,
                 componentName
-            );
-        });
+            );        
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'should not create a new scheduled event for duplicate monitor selection',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
@@ -111,8 +99,7 @@ describe('Scheduled event', () => {
                     '#monitorError',
                     { visible: true }
                 );
-                expect(monitorError).toBeDefined();
-            });
+                expect(monitorError).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -120,8 +107,7 @@ describe('Scheduled event', () => {
 
     test(
         'should create a new scheduled event for a monitor',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
@@ -177,8 +163,7 @@ describe('Scheduled event', () => {
 
                 expect(scheduledMaintenanceList.length).toBeGreaterThanOrEqual(
                     1
-                );
-            });
+                );            
             done();
         },
         operationTimeOut
@@ -186,17 +171,20 @@ describe('Scheduled event', () => {
 
     test(
         'should update the created scheduled event for a monitor',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
                 });
                 await page.click('#scheduledMaintenance');
-                await page.waitForSelector('#editCredentialBtn_0', {
+                //Refactored UI
+                await page.waitForSelector('#viewScheduledEvent_0', {visible: true});
+                await page.click('#viewScheduledEvent_0');
+                await page.waitForSelector(`#editScheduledEvent-${scheduleMaintenanceName}`, {
                     visible: true,
                 });
-                await page.click('#editCredentialBtn_0');
+                await page.click(`#editScheduledEvent-${scheduleMaintenanceName}`);
+
                 await page.waitForSelector('#editScheduledEventForm', {
                     visible: true,
                 });
@@ -208,6 +196,12 @@ describe('Scheduled event', () => {
                     hidden: true,
                 });
 
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#scheduledMaintenance', {
+                    visible: true,
+                });
+                await page.click('#scheduledMaintenance');
+
                 await page.waitForSelector('.scheduled-event-name', {
                     visible: true,
                 });
@@ -216,10 +210,9 @@ describe('Scheduled event', () => {
                         document.querySelector('.scheduled-event-name')
                             .textContent
                 );
-                expect(eventName).toBe(
+                expect(eventName).toMatch(
                     utils.capitalize(newScheduledMaintenanceName)
-                );
-            });
+                );            
             done();
         },
         operationTimeOut
@@ -227,18 +220,26 @@ describe('Scheduled event', () => {
 
     test(
         'should delete the created scheduled event for a monitor',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#scheduledMaintenance', {
                     visible: true,
                 });
                 await page.click('#scheduledMaintenance');
-
-                await page.waitForSelector('#deleteCredentialBtn_0', {
+                //Refactored UI
+                await page.waitForSelector('#viewScheduledEvent_0', {visible: true});
+                await page.click('#viewScheduledEvent_0');
+                await page.waitForSelector('ul#customTabList > li', {
                     visible: true,
                 });
-                await page.click('#deleteCredentialBtn_0');
+                await page.$$eval('ul#customTabList > li', elems =>
+                    elems[2].click() // To navigate to advanced section of the scheduled maintenance
+                );
+
+                await page.waitForSelector('#deleteScheduleEvent', {
+                    visible: true,
+                });
+                await page.click('#deleteScheduleEvent');
                 await page.waitForSelector('#deleteScheduleModalBtn', {
                     visible: true,
                 });
@@ -252,8 +253,7 @@ describe('Scheduled event', () => {
                         hidden: true,
                     }
                 );
-                expect(scheduledEventList).toBeNull();
-            });
+                expect(scheduledEventList).toBeNull();            
             done();
         },
         operationTimeOut

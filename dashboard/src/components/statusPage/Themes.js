@@ -36,10 +36,12 @@ export class Themes extends Component {
             {
                 value: 'Clean Theme',
                 screenshot: '/dashboard/assets/img/clean.png',
+                id: 'Clean'
             },
             {
                 value: 'Classic Theme',
                 screenshot: '/dashboard/assets/img/classic.png',
+                id: 'Classic'
             },
         ];
         return (
@@ -77,6 +79,7 @@ export class Themes extends Component {
                                                                 cursor:
                                                                     'pointer',
                                                             }}
+                                                            id={theme.id}
                                                         >
                                                             <div
                                                                 className={`radio-field monitor-type-item Box-background--white bs-theme-block`}

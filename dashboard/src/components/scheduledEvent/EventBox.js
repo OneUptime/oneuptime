@@ -51,9 +51,9 @@ class EventBox extends Component {
         } and ${monitors.length - 2} others`;
     };
 
-    handleScheduledEventDetail = scheduledEventId => {
+    handleScheduledEventDetail = scheduledEventSlug => {
         history.push(
-            `/dashboard/project/${this.props.slug}/scheduledEvents/${scheduledEventId}`
+            `/dashboard/project/${this.props.slug}/scheduledEvents/${scheduledEventSlug}`
         );
     };
 
@@ -226,6 +226,14 @@ class EventBox extends Component {
                                         <div
                                             className="bs-ObjectList-cell"
                                             style={{
+                                                marginRight: '10px',
+                                            }}
+                                        >
+                                            Status
+                                        </div>
+                                        <div
+                                            className="bs-ObjectList-cell"
+                                            style={{
                                                 float: 'right',
                                                 marginRight: '10px',
                                             }}
@@ -235,113 +243,161 @@ class EventBox extends Component {
                                     </header>
                                     {scheduledEvents.length > 0 &&
                                         scheduledEvents.map(
-                                            (scheduledEvent, index) => (
-                                                <div
-                                                    key={scheduledEvent._id}
-                                                    className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
-                                                    style={{
-                                                        backgroundColor:
-                                                            'white',
-                                                        cursor: 'pointer',
-                                                    }}
-                                                    onClick={e => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        this.handleScheduledEventDetail(
-                                                            scheduledEvent._id
-                                                        );
-                                                    }}
-                                                >
-                                                    <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
-                                                        <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
-                                                            {this.props.name}
-                                                        </div>
-                                                        <div className="scheduled-event-name Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            {capitalize(
-                                                                scheduledEvent.name
-                                                            )}{' '}
-                                                            {scheduledEvent.recurring ? (
-                                                                <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
-                                                                        <span>
-                                                                            {
-                                                                                'Recurring Event'
-                                                                            }
+                                            (scheduledEvent, index) => {
+                                                const scheduleStatus = scheduledEvent.resolved ? (
+                                                    <Badge color={'green'}>
+                                                        Completed
+                                                    </Badge>
+                                                ) : scheduledEvent.cancelled ? (
+                                                    <Badge color={'red'}>
+                                                        Cancelled
+                                                    </Badge>
+                                                ) : !scheduledEvent.cancelled &&
+                                                  !scheduledEvent.resolved ? (
+                                                    moment() <
+                                                    moment(
+                                                        scheduledEvent.startDate
+                                                    ) ? (
+                                                        <Badge color={'blue'}>
+                                                            Scheduled
+                                                        </Badge>
+                                                    ) : moment() >=
+                                                          moment(
+                                                              scheduledEvent.startDate
+                                                          ) &&
+                                                      moment() <
+                                                          moment(
+                                                              scheduledEvent.endDate
+                                                          ) ? (
+                                                        <Badge color={'yellow'}>
+                                                            Ongoing
+                                                        </Badge>
+                                                    ) : moment() >
+                                                      moment(
+                                                          scheduledEvent.endDate
+                                                      ) ? (
+                                                        <Badge color={'blue'}>
+                                                            Ended
+                                                        </Badge>
+                                                    ) : null
+                                                ) : null;
+
+                                                return (
+                                                    <div
+                                                        key={scheduledEvent._id}
+                                                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                                                        style={{
+                                                            backgroundColor:
+                                                                'white',
+                                                            cursor: 'pointer',
+                                                        }}
+                                                        onClick={e => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            this.handleScheduledEventDetail(
+                                                                scheduledEvent.slug
+                                                            );
+                                                        }}
+                                                    >
+                                                        <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
+                                                            <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
+                                                                {
+                                                                    this.props
+                                                                        .name
+                                                                }
+                                                            </div>
+                                                            <div className="scheduled-event-name Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                {capitalize(
+                                                                    scheduledEvent.name
+                                                                )}{' '}
+                                                                {scheduledEvent.recurring ? (
+                                                                    <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                                            <span>
+                                                                                {
+                                                                                    'Recurring Event'
+                                                                                }
+                                                                            </span>
                                                                         </span>
-                                                                    </span>
-                                                                </div>
-                                                            ) : null}
+                                                                    </div>
+                                                                ) : null}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                        <div className="bs-ObjectList-cell-row">
-                                                            {
-                                                                scheduledEvent
-                                                                    .createdById
-                                                                    .name
-                                                            }
+                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                            <div className="bs-ObjectList-cell-row">
+                                                                {
+                                                                    scheduledEvent
+                                                                        .createdById
+                                                                        .name
+                                                                }
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                        <div
-                                                            className="bs-ObjectList-cell-row"
-                                                            id={`monitor-${this.handleMonitorList(
-                                                                scheduledEvent.monitors
-                                                            )}`}
-                                                        >
-                                                            {scheduledEvent.monitors &&
-                                                                this.handleMonitorList(
+                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                            <div
+                                                                className="bs-ObjectList-cell-row"
+                                                                id={`monitor-${this.handleMonitorList(
                                                                     scheduledEvent.monitors
-                                                                )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                        <div className="bs-ObjectList-cell-row">
-                                                            {moment(
-                                                                scheduledEvent.startDate
-                                                            ).format(
-                                                                'MMMM Do YYYY, h:mm a'
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                        <div className="bs-ObjectList-cell-row">
-                                                            {moment(
-                                                                scheduledEvent.endDate
-                                                            ).format(
-                                                                'MMMM Do YYYY, h:mm a'
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                        <div className="Box-root">
-                                                            <button
-                                                                id={`viewScheduledEvent_${index}`}
-                                                                title="view"
-                                                                className="bs-Button bs-DeprecatedButton"
-                                                                type="button"
-                                                                style={{
-                                                                    float:
-                                                                        'right',
-                                                                    marginRight:
-                                                                        '10px',
-                                                                }}
-                                                                onClick={e => {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    this.handleScheduledEventDetail(
-                                                                        scheduledEvent._id
-                                                                    );
-                                                                }}
+                                                                )}`}
                                                             >
-                                                                <span>
-                                                                    View
-                                                                </span>
-                                                            </button>
+                                                                {scheduledEvent.monitors &&
+                                                                    this.handleMonitorList(
+                                                                        scheduledEvent.monitors
+                                                                    )}
+                                                            </div>
+                                                        </div>
+                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                            <div className="bs-ObjectList-cell-row">
+                                                                {moment(
+                                                                    scheduledEvent.startDate
+                                                                ).format(
+                                                                    'MMMM Do YYYY, h:mm a'
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                            <div className="bs-ObjectList-cell-row">
+                                                                {moment(
+                                                                    scheduledEvent.endDate
+                                                                ).format(
+                                                                    'MMMM Do YYYY, h:mm a'
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                            <div className="Box-root">
+                                                                {scheduleStatus}
+                                                            </div>
+                                                        </div>
+                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                            <div className="Box-root">
+                                                                <button
+                                                                    id={`viewScheduledEvent_${index}`}
+                                                                    title="view"
+                                                                    className="bs-Button bs-DeprecatedButton"
+                                                                    type="button"
+                                                                    style={{
+                                                                        float:
+                                                                            'right',
+                                                                        marginLeft: 10,
+                                                                    }}
+                                                                    onClick={e => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        this.handleScheduledEventDetail(
+                                                                            scheduledEvent.slug
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    <span>
+                                                                        View
+                                                                    </span>
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            )
+                                                );
+                                            }
                                         )}
                                     <ShouldRender
                                         if={

@@ -153,6 +153,36 @@ class NewThemeEvent extends Component {
                                     <b id={`event-name-${event.name}`}>
                                         {event.name}
                                     </b>
+                                    {event.cancelled ? (
+                                        <div
+                                            style={{
+                                                marginLeft: 5,
+                                            }}
+                                            className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                        >
+                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <sdpan id="ongoing-event">
+                                                    Cancelled event
+                                                </sdpan>
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        currentTime > moment(event.startDate) &&
+                                        currentTime < moment(event.endDate) && (
+                                            <div
+                                                style={{
+                                                    marginLeft: 5,
+                                                }}
+                                                className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                            >
+                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <span id="ongoing-event">
+                                                        Ongoing event
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        )
+                                    )}
                                 </div>
                                 <ShouldRender if={event.description}>
                                     <div
@@ -178,31 +208,24 @@ class NewThemeEvent extends Component {
                                         className="incident-date"
                                         id="event-date"
                                     >
-                                        <span>
-                                            {moment(event.startDate).format(
-                                                'LLL'
-                                            )}{' '}
-                                            -{' '}
-                                            {moment(event.endDate).format(
-                                                'LLL'
-                                            )}
-                                        </span>
-                                    </div>
-                                    {currentTime > moment(event.startDate) &&
-                                        currentTime < moment(event.endDate) && (
-                                            <div
-                                                style={{
-                                                    marginLeft: 5,
-                                                }}
-                                                className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                            >
-                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                    <span id="ongoing-event">
-                                                        Ongoing event
-                                                    </span>
-                                                </span>
-                                            </div>
+                                        {event.cancelled ? (
+                                            <span>
+                                                {moment(
+                                                    event.cancelledAt
+                                                ).format('LLL')}
+                                            </span>
+                                        ) : (
+                                            <span>
+                                                {moment(event.startDate).format(
+                                                    'LLL'
+                                                )}{' '}
+                                                -{' '}
+                                                {moment(event.endDate).format(
+                                                    'LLL'
+                                                )}
+                                            </span>
                                         )}
+                                    </div>
                                 </div>
                                 {event &&
                                     event.notes &&

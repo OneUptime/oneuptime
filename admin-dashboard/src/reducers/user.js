@@ -472,15 +472,20 @@ export default function user(state = INITIAL_STATE, action) {
                     error: null,
                     success: true,
                     users: state.users.users.map(user => {
-                        user.adminNotes =
-                            user._id === action.payload.projectId
-                                ? action.payload.notes
-                                : user.adminNotes;
+                        if (user._id === action.payload._id) {
+                            user = action.payload;
+                        }
                         return user;
                     }),
                     count: state.users.count,
                     limit: state.users.limit,
                     skip: state.users.skip,
+                },
+                user: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    user: action.payload,
                 },
                 newUserNote: {
                     requesting: false,

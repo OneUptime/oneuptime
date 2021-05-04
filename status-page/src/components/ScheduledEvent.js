@@ -33,26 +33,26 @@ class ScheduledEvent extends Component {
                 'none transparent';
         }
 
-        let url, statusPageId;
+        let url, statusPageSlug;
 
         if (
             window.location.pathname.includes('/status-page/') &&
             window.location.pathname.split('/').length >= 3
         ) {
-            statusPageId = window.location.pathname.split('/')[2];
+            statusPageSlug = window.location.pathname.split('/')[2];
             url = 'null';
         } else if (
             window.location.href.indexOf('localhost') > -1 ||
             window.location.href.indexOf('fyipeapp.com') > 0
         ) {
-            statusPageId = window.location.host.split('.')[0];
+            statusPageSlug = window.location.host.split('.')[0];
             url = 'null';
         } else {
-            statusPageId = 'null';
+            statusPageSlug = 'null';
             url = window.location.host;
         }
 
-        this.props.getStatusPage(statusPageId, url).catch(err => {
+        this.props.getStatusPage(statusPageSlug, url).catch(err => {
             if (err.message === 'Request failed with status code 401') {
                 const { loginRequired } = this.props.login;
                 if (loginRequired) {

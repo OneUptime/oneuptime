@@ -374,7 +374,7 @@ export const groups = [
                     {
                         title: 'Status Page',
                         path:
-                            '/dashboard/project/:slug/sub-project/:subProjectId/status-page/:scheduleId',
+                            '/dashboard/project/:slug/sub-project/:subProjectId/status-page/:statusPageSlug',
                         icon: 'radar',
                         visible: true,
                         subRoutes: [],
@@ -406,7 +406,7 @@ export const groups = [
                     {
                         title: 'Schedule',
                         path:
-                            '/dashboard/project/:slug/sub-project/:subProjectId/schedule/:scheduleId',
+                            '/dashboard/project/:slug/sub-project/:subProjectId/schedule/:scheduleSlug',
                         icon: 'call',
                         visible: true,
                         subRoutes: [],
@@ -429,7 +429,7 @@ export const groups = [
                     {
                         title: 'Scheduled Event Detail',
                         path:
-                            '/dashboard/project/:slug/scheduledEvents/:scheduledEventId',
+                            '/dashboard/project/:slug/scheduledEvents/:scheduledEventSlug',
                         icon: 'connect',
                         visible: true,
                         component: ScheduledEventDetail,

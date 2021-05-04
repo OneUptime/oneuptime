@@ -1,45 +1,34 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
-
+const user = {
+    email,
+    password,
+};
 describe('New Monitor API', () => {
     const operationTimeOut = 500000;
 
-    let cluster;
-    beforeAll(async () => {
+    beforeAll(async done => {
         jest.setTimeout(360000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 500000,
-        });
-
-        cluster.on('error', err => {
-            throw err;
-        });
-
-        await cluster.execute({ email, password }, async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
-            // user
-            await init.registerUser(user, page);
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
+        // user
+        await init.registerUser(user, page);
+        done();
     });
 
     afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+        await browser.close();
         done();
     });
 
@@ -47,47 +36,43 @@ describe('New Monitor API', () => {
         "should show upgrade modal if the current monitor count of a project equals it's monitor limit (Startup plan => 5 Monitors/User)",
         async done => {
             const componentName = utils.generateRandomString();
+            // create a component
+            // Redirects automatically component to details page
+            await init.addComponent(componentName, page);
 
-            await cluster.execute(null, async ({ page }) => {
-                // create a component
-                // Redirects automatically component to details page
-                await init.addComponent(componentName, page);
-
-                for (let i = 0; i < 5; i++) {
-                    const monitorName = utils.generateRandomString();
-
-                    await init.addNewMonitorToComponent(
-                        page,
-                        componentName,
-                        monitorName
-                    );
-                    await page.waitForSelector('.ball-beat', { hidden: true });
-                }
-
-                // try to add more monitor
+            for (let i = 0; i < 5; i++) {
                 const monitorName = utils.generateRandomString();
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
-                await page.waitForSelector('#component0', { visible: true });
-                await page.click(`#more-details-${componentName}`);
-                await page.waitForSelector('#form-new-monitor');
-                await page.waitForSelector('input[id=name]');
-                await page.click('input[id=name]');
-                await page.type('input[id=name]', monitorName);
-                // Added new URL-Montior
-                await page.click('[data-testId=type_url]');
-                await page.waitForSelector('#url');
-                await page.click('#url');
-                await page.type('#url', 'https://google.com');
-                await page.click('button[type=submit]');
 
-                const pricingPlanModal = await page.waitForSelector(
-                    '#pricingPlanModal',
-                    { visible: true }
+                await init.addNewMonitorToComponent(
+                    page,
+                    componentName,
+                    monitorName
                 );
-                expect(pricingPlanModal).toBeTruthy();
-            });
+                await page.waitForSelector('.ball-beat', { hidden: true });
+            }
+            // try to add more monitor
+            const monitorName = utils.generateRandomString();
+            await page.goto(utils.DASHBOARD_URL);
+            await page.waitForSelector('#components', { visible: true });
+            await page.click('#components');
+            await page.waitForSelector('#component0', { visible: true });
+            await page.click(`#more-details-${componentName}`);
+            await page.waitForSelector('#form-new-monitor', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.click('input[id=name]');
+            await page.type('input[id=name]', monitorName);
+            // Added new URL-Montior
+            await page.click('[data-testId=type_url]');
+            await page.waitForSelector('#url', { visible: true });
+            await page.click('#url');
+            await page.type('#url', 'https://google.com');
+            await page.click('button[type=submit]');
+
+            const pricingPlanModal = await page.waitForSelector(
+                '#pricingPlanModal',
+                { visible: true }
+            );
+            expect(pricingPlanModal).toBeTruthy();
             done();
         },
         operationTimeOut
@@ -98,48 +83,44 @@ describe('New Monitor API', () => {
         async done => {
             const projectName = utils.generateRandomString();
             const componentName = utils.generateRandomString();
-            await cluster.execute(null, async ({ page }) => {
-                await init.addGrowthProject(projectName, page);
+            await init.addGrowthProject(projectName, page);
+            // create a component
+            // Redirects automatically component to details page
+            await init.addComponent(componentName, page);
 
-                // create a component
-                // Redirects automatically component to details page
-                await init.addComponent(componentName, page);
-
-                for (let i = 0; i < 10; i++) {
-                    const monitorName = utils.generateRandomString();
-
-                    await init.addNewMonitorToComponent(
-                        page,
-                        componentName,
-                        monitorName
-                    );
-                    await page.waitForSelector('.ball-beat', { hidden: true });
-                }
-
-                // try to add more monitor
+            for (let i = 0; i < 10; i++) {
                 const monitorName = utils.generateRandomString();
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
-                await page.waitForSelector('#component0', { visible: true });
-                await page.click(`#more-details-${componentName}`);
-                await page.waitForSelector('#form-new-monitor');
-                await page.waitForSelector('input[id=name]');
-                await page.click('input[id=name]');
-                await page.type('input[id=name]', monitorName);
-                // Added new URL-Montior
-                await page.click('[data-testId=type_url]');
-                await page.waitForSelector('#url');
-                await page.click('#url');
-                await page.type('#url', 'https://google.com');
-                await page.click('button[type=submit]');
 
-                const pricingPlanModal = await page.waitForSelector(
-                    '#pricingPlanModal',
-                    { visible: true }
+                await init.addNewMonitorToComponent(
+                    page,
+                    componentName,
+                    monitorName
                 );
-                expect(pricingPlanModal).toBeTruthy();
-            });
+                await page.waitForSelector('.ball-beat', { hidden: true });
+            }
+            // try to add more monitor
+            const monitorName = utils.generateRandomString();
+            await page.goto(utils.DASHBOARD_URL);
+            await page.waitForSelector('#components', { visible: true });
+            await page.click('#components');
+            await page.waitForSelector('#component0', { visible: true });
+            await page.click(`#more-details-${componentName}`);
+            await page.waitForSelector('#form-new-monitor', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.click('input[id=name]');
+            await page.type('input[id=name]', monitorName);
+            // Added new URL-Montior
+            await page.click('[data-testId=type_url]');
+            await page.waitForSelector('#url', { visible: true });
+            await page.click('#url');
+            await page.type('#url', 'https://google.com');
+            await page.click('button[type=submit]');
+
+            const pricingPlanModal = await page.waitForSelector(
+                '#pricingPlanModal',
+                { visible: true }
+            );
+            expect(pricingPlanModal).toBeTruthy();
             done();
         },
         operationTimeOut
@@ -150,48 +131,45 @@ describe('New Monitor API', () => {
         async done => {
             const projectName = utils.generateRandomString();
             const componentName = utils.generateRandomString();
-            await cluster.execute(null, async ({ page }) => {
-                await init.addScaleProject(projectName, page);
+            await init.addScaleProject(projectName, page);
+            // create a component
+            // Redirects automatically component to details page
+            await init.addComponent(componentName, page);
 
-                // create a component
-                // Redirects automatically component to details page
-                await init.addComponent(componentName, page);
-
-                for (let i = 0; i < 15; i++) {
-                    const monitorName = utils.generateRandomString();
-
-                    await init.addNewMonitorToComponent(
-                        page,
-                        componentName,
-                        monitorName
-                    );
-                    await page.waitForSelector('.ball-beat', { hidden: true });
-                }
-
-                // try to add more monitor
+            for (let i = 0; i < 15; i++) {
                 const monitorName = utils.generateRandomString();
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
-                await page.waitForSelector('#component0', { visible: true });
-                await page.click(`#more-details-${componentName}`);
-                await page.waitForSelector('#form-new-monitor');
-                await page.waitForSelector('input[id=name]');
-                await page.click('input[id=name]');
-                await page.type('input[id=name]', monitorName);
-                // Added new URL-Montior
-                await page.click('[data-testId=type_url]');
-                await page.waitForSelector('#url');
-                await page.click('#url');
-                await page.type('#url', 'https://google.com');
-                await page.click('button[type=submit]');
 
-                const pricingPlanModal = await page.waitForSelector(
-                    '#pricingPlanModal',
-                    { hidden: true }
+                await init.addNewMonitorToComponent(
+                    page,
+                    componentName,
+                    monitorName
                 );
-                expect(pricingPlanModal).toBeNull();
-            });
+                await page.waitForSelector('.ball-beat', { hidden: true });
+            }
+
+            // try to add more monitor
+            const monitorName = utils.generateRandomString();
+            await page.goto(utils.DASHBOARD_URL);
+            await page.waitForSelector('#components', { visible: true });
+            await page.click('#components');
+            await page.waitForSelector('#component0', { visible: true });
+            await page.click(`#more-details-${componentName}`);
+            await page.waitForSelector('#form-new-monitor');
+            await page.waitForSelector('input[id=name]');
+            await page.click('input[id=name]');
+            await page.type('input[id=name]', monitorName);
+            // Added new URL-Montior
+            await page.click('[data-testId=type_url]');
+            await page.waitForSelector('#url', { visible: true });
+            await page.click('#url');
+            await page.type('#url', 'https://google.com');
+            await page.click('button[type=submit]');
+
+            const pricingPlanModal = await page.waitForSelector(
+                '#pricingPlanModal',
+                { hidden: true }
+            );
+            expect(pricingPlanModal).toBeNull();
             done();
         },
         operationTimeOut

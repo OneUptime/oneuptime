@@ -1,8 +1,8 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
@@ -11,58 +11,46 @@ const secondEmail = utils.generateRandomBusinessEmail();
 const teamEmail = utils.generateRandomBusinessEmail();
 const newProjectName = 'Test';
 const resourceCategory = 'stat';
+const user = {
+    email,
+    password,
+};
 
 describe('Resource Category', () => {
     const operationTimeOut = 50000;
 
-    let cluster;
-
     beforeAll(async () => {
-        jest.setTimeout(200000);
+        jest.setTimeout(200000);        
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        // Register user
-        return await cluster.execute(async ({ page }) => {
-            const user = {
-                email,
-                password,
-            };
-
-            // user
+        // Register user              
             await init.registerUser(user, page);
             // Create Component first
-            await init.addComponent(componentName, page);
-        });
+            await init.addComponent(componentName, page);        
     });
 
-    afterAll(async () => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async (done) => {        
+        await browser.close();
+        done();
     });
 
     test(
         'should create a new resource category',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#projectSettings');
+                await page.waitForSelector('#projectSettings', {visible: true});
                 await page.click('#projectSettings');
-                await page.waitForSelector('#more');
+                await page.waitForSelector('#more', {visible: true});
                 await page.click('#more');
 
-                await page.waitForSelector('li#resources a');
+                await page.waitForSelector('li#resources a', {visible: true});
                 await page.click('li#resources a');
-                await page.waitForSelector('#createResourceCategoryButton');
+                await page.waitForSelector('#createResourceCategoryButton', {visible: true});
                 await page.click('#createResourceCategoryButton');
                 await page.type(
                     '#resourceCategoryName',
@@ -73,7 +61,7 @@ describe('Resource Category', () => {
                 const createdResourceCategorySelector =
                     '#resourceCategoryList #resource-category-name:nth-child(2)';
 
-                await page.waitForSelector(createdResourceCategorySelector);
+                await page.waitForSelector(createdResourceCategorySelector, {visible: true});
 
                 const createdResourceCategoryName = await page.$eval(
                     createdResourceCategorySelector,
@@ -82,19 +70,18 @@ describe('Resource Category', () => {
 
                 expect(createdResourceCategoryName).toEqual(
                     utils.resourceCategoryName
-                );
-            });
+                );    
+                done();
         },
         operationTimeOut
     );
 
     test(
         'should show created resource category in new monitor dropdown',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitForSelector('#form-new-monitor');
+                await page.waitForSelector('#form-new-monitor', {visible: true});
 
                 let resourceCategoryCheck = false;
 
@@ -110,19 +97,18 @@ describe('Resource Category', () => {
                     resourceCategoryCheck = true;
                 }
                 expect(resourceCategoryCheck).toEqual(true);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should create a new monitor by selecting resource category from dropdown',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
 
-                await page.waitForSelector('#form-new-monitor');
+                await page.waitForSelector('#form-new-monitor', {visible: true});
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', utils.monitorName);
                 await init.selectByText(
@@ -131,7 +117,7 @@ describe('Resource Category', () => {
                     page
                 );
                 await page.click('[data-testId=type_url]');
-                await page.waitForSelector('#url');
+                await page.waitForSelector('#url', { visible: true });
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await Promise.all([
@@ -150,31 +136,30 @@ describe('Resource Category', () => {
                 );
 
                 expect(createdMonitorName).toEqual(utils.monitorName);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should delete the created resource category',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#projectSettings');
+                await page.waitForSelector('#projectSettings', {visible: true});
                 await page.click('#projectSettings');
-                await page.waitForSelector('#more');
+                await page.waitForSelector('#more', {visible: true});
                 await page.click('#more');
 
-                await page.waitForSelector('li#resources a');
+                await page.waitForSelector('li#resources a', {visible: true});
                 await page.click('li#resources a');
 
                 const deleteButtonSelector = `button#delete_${utils.resourceCategoryName}`;
 
-                await page.waitForSelector(deleteButtonSelector);
+                await page.waitForSelector(deleteButtonSelector, {visible: true});
                 await page.click(deleteButtonSelector);
-                await page.waitForSelector('#deleteResourceCategory');
+                await page.waitForSelector('#deleteResourceCategory', {visible: true});
                 await page.click('#deleteResourceCategory');
-                await page.waitForTimeout(5000);
+                await page.waitForSelector('#resourceCategoryCount', {visible: true});
 
                 const resourceCategoryCounterSelector =
                     '#resourceCategoryCount';
@@ -184,7 +169,7 @@ describe('Resource Category', () => {
                 );
 
                 expect(resourceCategoryCount).toEqual('0 Resource Category');
-            });
+            done();
         },
         operationTimeOut
     );
@@ -193,32 +178,17 @@ describe('Resource Category', () => {
 describe('Member Restriction', () => {
     const operationTimeOut = 50000;
 
-    let cluster;
 
     beforeAll(async done => {
         jest.setTimeout(200000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 120000,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        await cluster.execute(
-            { secondEmail, password },
-            async ({ page, data }) => {
-                const user = {
-                    email: data.secondEmail,
-                    password: data.password,
-                };
-
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
                 // user
-                await init.registerUser(user, page);
+                await init.registerUser({email: secondEmail, password}, page);
                 await init.renameProject(newProjectName, page);
                 await page.goto(utils.DASHBOARD_URL);
                 await init.addUserToProject(
@@ -230,23 +200,18 @@ describe('Member Restriction', () => {
                     page
                 );
                 await init.addResourceCategory(resourceCategory, page);
-                await init.logout(page);
-            }
-        );
-
+                await init.logout(page);                
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'should show unauthorised modal when trying to add a resource category for a member who is not the admin or owner of the project',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 // A Subproject user has to register his/her mail before login in.
                 await init.registerAndLoggingTeamMember(
                     { email: teamEmail, password },
@@ -259,18 +224,17 @@ describe('Member Restriction', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
-                await page.waitForSelector('#more');
+                await page.waitForSelector('#more', {visible: true});
                 await page.click('#more');
 
-                await page.waitForSelector('#resources');
+                await page.waitForSelector('#resources', {visible: true});
                 await page.click('#resources');
                 await page.waitForSelector('#createResourceCategoryButton', {
                     visible: true,
                 });
                 await page.click('#createResourceCategoryButton');
-                const modal = await page.waitForSelector('#unauthorisedModal');
-                expect(modal).toBeDefined();
-            });
+                const modal = await page.waitForSelector('#unauthorisedModal', {visible: true});
+                expect(modal).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -278,26 +242,24 @@ describe('Member Restriction', () => {
 
     test(
         'should show unauthorised modal when trying to edit a resource category for a member who is not the admin or owner of the project',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
                 await page.click('#projectSettings');
-                await page.waitForSelector('#more');
+                await page.waitForSelector('#more', {visible: true});
                 await page.click('#more');
 
-                await page.waitForSelector('#resources');
+                await page.waitForSelector('#resources', {visible: true});
                 await page.click('#resources');
                 const editBtn = `#edit_${resourceCategory}`;
                 await page.waitForSelector(editBtn, {
                     visible: true,
                 });
                 await page.click(editBtn);
-                const modal = await page.waitForSelector('#unauthorisedModal');
-                expect(modal).toBeDefined();
-            });
+                const modal = await page.waitForSelector('#unauthorisedModal', {visible: true});
+                expect(modal).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -305,26 +267,24 @@ describe('Member Restriction', () => {
 
     test(
         'should show unauthorised modal when trying to delete a resource category for a member who is not the admin or owner of the project',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
                 await page.click('#projectSettings');
-                await page.waitForSelector('#more');
+                await page.waitForSelector('#more', {visible: true});
                 await page.click('#more');
 
-                await page.waitForSelector('#resources');
+                await page.waitForSelector('#resources', {visible: true});
                 await page.click('#resources');
                 const deleteBtn = `#delete_${resourceCategory}`;
                 await page.waitForSelector(deleteBtn, {
                     visible: true,
                 });
                 await page.click(deleteBtn);
-                const modal = await page.waitForSelector('#unauthorisedModal');
-                expect(modal).toBeDefined();
-            });
+                const modal = await page.waitForSelector('#unauthorisedModal', {visible: true});
+                expect(modal).toBeDefined();            
             done();
         },
         operationTimeOut

@@ -57,12 +57,11 @@ const ApplicationSecurityView = ({
                 {
                     projectId,
                     applicationSecurityId,
-                    name: ' Application Security'
+                    name: ' Application Security',
                 },
             ],
         });
     };
-
 
     const handleEdit = ({
         projectId,

@@ -66,24 +66,31 @@ module.exports = {
 
 const pingfetch = async (url, method, body, headers) => {
     const now = new Date().getTime();
-    let resp = null;
-    let res = null;
-    let sslCertificate, response, data;
+    let resp, res, response;
+
     try {
+        let sslCertificate, data;
+        const urlObject = new URL(url);
+        const payload = {
+            method: method,
+            timeout: 120000,
+        };
+        if (headers && Object.keys(headers).length) {
+            payload.headers = headers;
+        }
+        if (body && Object.keys(body).length) {
+            payload.body = body;
+        }
         try {
-            const urlObject = new URL(url);
-            const payload = {
-                method: method,
-                timeout: 120000,
-                agent: urlObject.protocol === 'https:' ? httpsAgent : httpAgent,
-            };
-            if (headers && Object.keys(headers).length) {
-                payload.headers = headers;
-            }
-            if (body && Object.keys(body).length) {
-                payload.body = body;
-            }
-            response = await fetch(url, payload);
+            /* Try with a normal http / https agent. 
+               If this fails we'll try with an agent which has 
+                {
+                    rejectUnauthorized: false,
+                }
+
+                to check for self-signed SSL certs. 
+            */
+            response = await fetch(url, { ...payload });
             res = new Date().getTime() - now;
             data = await response.json();
             if (urlObject.protocol === 'https:') {
@@ -98,20 +105,42 @@ const pingfetch = async (url, method, body, headers) => {
                 }
             }
         } catch (e) {
-            if (e.code === 'DEPTH_ZERO_SELF_SIGNED_CERT') {
-                response = { status: 200 };
-                sslCertificate = {
-                    selfSigned: true,
-                };
-            } else {
-                throw e;
+            /* Retry with an agent which has 
+
+                {
+                    rejectUnauthorized: false,
+                }
+
+                to check for self-signed SSL certs. 
+            */
+
+            response = await fetch(url, {
+                ...payload,
+                ...(url.startsWith('https')
+                    ? { agent: httpsAgent }
+                    : { agent: httpAgent }),
+            });
+            res = new Date().getTime() - now;
+            data = await response.json();
+            if (urlObject.protocol === 'https:') {
+                const certificate = await sslCert.get(urlObject.hostname);
+                if (certificate) {
+                    sslCertificate = {
+                        issuer: certificate.issuer,
+                        expires: certificate.valid_to,
+                        fingerprint: certificate.fingerprint,
+                        selfSigned: e.code === 'DEPTH_ZERO_SELF_SIGNED_CERT',
+                    };
+                }
             }
         }
+
         resp = { status: response.status, body: data, sslCertificate };
     } catch (error) {
         res = new Date().getTime() - now;
         resp = { status: 408, body: error };
     }
+
     return {
         res,
         resp,

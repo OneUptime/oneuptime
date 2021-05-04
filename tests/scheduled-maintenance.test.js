@@ -43,22 +43,29 @@ describe('Check scheduled maintenace', () => {
             waitUntil: 'networkidle2',
         });
 
-        await page.waitForSelector('#statusPages');
+        await page.waitForSelector('#statusPages', { visible: true });
         await page.click('#statusPages');
-        await page.waitForSelector(`#btnCreateStatusPage_${projectName}`);
+        await page.waitForSelector(`#btnCreateStatusPage_${projectName}`, {
+            visible: true,
+        });
         await page.click(`#btnCreateStatusPage_${projectName}`);
-        await page.waitForSelector('#name');
+        await page.waitForSelector('#name', { visible: true });
         await page.click('input[id=name]');
         await page.type('input[id=name]', statusPageName);
         await page.click('#btnCreateStatusPage');
-        await page.waitForSelector('#statusPagesListContainer');
+        await page.waitForSelector('#statusPagesListContainer', {
+            visible: true,
+        });
         await page.waitForSelector('#viewStatusPage');
         await page.click('#viewStatusPage');
-        await page.waitForSelector(`#header-${statusPageName}`);
+        await page.waitForSelector(`#header-${statusPageName}`, {
+            visible: true,
+        });
 
         // To confirm the status-page name.
         let spanElement = await page.waitForSelector(
-            `#header-${statusPageName}`
+            `#header-${statusPageName}`,
+            { visible: true }
         );
         spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
@@ -72,11 +79,11 @@ describe('Check scheduled maintenace', () => {
             waitUntil: 'networkidle2',
         });
 
-        await page.waitForSelector('#components');
+        await page.waitForSelector('#components', { visible: true });
         await page.$eval('#components', el => el.click());
 
         // Fill and submit New Component form
-        await page.waitForSelector('#form-new-component');
+        await page.waitForSelector('#form-new-component', { visible: true });
         await page.click('input[id=name]');
         await page.type('input[id=name]', componentName);
         await page.click('button[type=submit]');
@@ -86,14 +93,15 @@ describe('Check scheduled maintenace', () => {
         await page.click('input[id=name]', { visible: true });
         await page.type('input[id=name]', monitorName);
         await page.click('[data-testId=type_manual]');
-        await page.waitForSelector('#description');
+        await page.waitForSelector('#description', { visible: true });
         await page.click('#description');
         await page.type('#description', 'My Manual Monitor');
         await page.click('button[type=submit]');
 
         // To confirm the manual monitor is created
         let spanElement = await page.waitForSelector(
-            `#monitor-title-${monitorName}`
+            `#monitor-title-${monitorName}`,
+            { visible: true }
         );
         spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
@@ -107,12 +115,14 @@ describe('Check scheduled maintenace', () => {
             waitUntil: 'networkidle2',
         });
 
-        await page.waitForSelector('#statusPages');
+        await page.waitForSelector('#statusPages', { visible: true });
         await page.click('#statusPages');
-        await page.waitForSelector('#statusPagesListContainer');
-        await page.waitForSelector('#viewStatusPage');
+        await page.waitForSelector('#statusPagesListContainer', {
+            visible: true,
+        });
+        await page.waitForSelector('#viewStatusPage', { visible: true });
         await page.click('#viewStatusPage');
-        await page.waitForSelector('#addMoreMonitors');
+        await page.waitForSelector('#addMoreMonitors', { visible: true });
         await page.click('#addMoreMonitors');
         await init.selectByText(
             '#monitor-name',
@@ -124,14 +134,17 @@ describe('Check scheduled maintenace', () => {
         await page.click('#manual-monitor-checkbox');
         await page.click('#btnAddStatusPageMonitors');
 
-        await page.waitForSelector('#publicStatusPageUrl');
+        await page.waitForSelector('#publicStatusPageUrl', { visible: true });
         let link = await page.$('#publicStatusPageUrl > span > a');
         link = await link.getProperty('href');
         link = await link.jsonValue();
         await page.goto(link);
 
         // To confirm the monitor is present in the status-page
-        let spanElement = await page.waitForSelector(`#monitor-${monitorName}`);
+        let spanElement = await page.waitForSelector(
+            `#monitor-${monitorName}`,
+            { visible: true }
+        );
         spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         expect(spanElement).toMatch(monitorName);
@@ -156,13 +169,13 @@ describe('Check scheduled maintenace', () => {
         await page.waitForSelector('#scheduledEventForm', {
             visible: true,
         });
-        await page.waitForSelector('#name');
+        await page.waitForSelector('#name', { visible: true });
         await page.click('#name');
         await page.type('#name', scheduledMaintenanceName);
 
         await page.click('#description');
         await page.type('#description', scheduledMaintenanceDescription);
-        await page.waitForSelector('input[name=startDate]');
+        await page.waitForSelector('input[name=startDate]', { visible: true });
         await page.click('input[name=startDate]');
         await page.click('div.MuiDialogActions-root button:nth-child(2)');
         await page.waitForSelector(
@@ -203,13 +216,15 @@ describe('Check scheduled maintenace', () => {
     }, 200000);
 
     test('should view scheduled maintenance details in status-page', async done => {
-        await page.waitForSelector('#statusPages');
+        await page.waitForSelector('#statusPages', { visible: true });
         await page.click('#statusPages');
-        await page.waitForSelector('#statusPagesListContainer');
-        await page.waitForSelector('#viewStatusPage');
+        await page.waitForSelector('#statusPagesListContainer', {
+            visible: true,
+        });
+        await page.waitForSelector('#viewStatusPage', { visible: true });
         await page.click('#viewStatusPage');
 
-        await page.waitForSelector('#publicStatusPageUrl');
+        await page.waitForSelector('#publicStatusPageUrl', { visible: true });
         let link = await page.$('#publicStatusPageUrl > span > a');
         link = await link.getProperty('href');
         link = await link.jsonValue();
@@ -225,7 +240,8 @@ describe('Check scheduled maintenace', () => {
 
         // To confirm scheduled maintenance description
         await page.waitForSelector(
-            `#event-description-${scheduledMaintenanceDescription}`
+            `#event-description-${scheduledMaintenanceDescription}`,
+            { visible: true }
         );
         const eventDescription = await page.$eval(
             `#event-description-${scheduledMaintenanceDescription}`,
@@ -234,7 +250,7 @@ describe('Check scheduled maintenace', () => {
         expect(eventDescription).toMatch(scheduledMaintenanceDescription);
 
         // To confirm scheduled maintenance date
-        await page.waitForSelector('#event-date');
+        await page.waitForSelector('#event-date', { visible: true });
         const eventDate = await page.$eval(
             '#event-date',
             elem => elem.textContent
@@ -242,7 +258,7 @@ describe('Check scheduled maintenace', () => {
         expect(eventDate).toBeDefined();
 
         // To confirm this is a future scheduled maintenance
-        await page.waitForSelector('#ongoing-event');
+        await page.waitForSelector('#ongoing-event', { visible: true });
         const futureEvent = await page.$eval(
             '#ongoing-event',
             elem => elem.textContent

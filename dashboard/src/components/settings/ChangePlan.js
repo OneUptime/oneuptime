@@ -121,18 +121,20 @@ export class Plans extends Component {
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
                                 <div className="Box-root">
-                                    <div
-                                        className="Padding-horizontal--20 Padding-vertical--16 Flex-justifyContent--flexStart"
-                                        style={{ paddingBottom: '5px' }}
-                                    >
-                                        <ShouldRender if={isRequestingTrial}>
+                                    <ShouldRender if={isRequestingTrial}>
+                                        <div className="Padding-horizontal--20 Padding-top--20 Flex-justifyContent--flexStart">
                                             <ListLoader
-                                                style={{ textAlign: 'left' }}
+                                                style={{
+                                                    textAlign: 'left',
+                                                    marginTop: 0,
+                                                }}
                                             />
-                                        </ShouldRender>
-                                        <ShouldRender
-                                            if={!isRequesting && trialEndDate}
-                                        >
+                                        </div>
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={!isRequesting && trialEndDate}
+                                    >
+                                        <div className="Padding-horizontal--20 Padding-top--20 Flex-justifyContent--flexStart">
                                             <div className="Badge Badge--color--blue Box-background--red bg-red-700 Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                 <span className="Badge-text bg-red-700 Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                     <span className="Text-color--white">
@@ -141,8 +143,8 @@ export class Plans extends Component {
                                                     </span>
                                                 </span>
                                             </div>
-                                        </ShouldRender>
-                                    </div>
+                                        </div>
+                                    </ShouldRender>
 
                                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                                         <div className="Box-root">

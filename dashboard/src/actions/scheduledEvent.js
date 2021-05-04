@@ -292,19 +292,24 @@ export function deleteScheduledEventFailure(error) {
     };
 }
 
-export const updateScheduledEvent = (
+export const cancelScheduledEvent = (
     projectId,
     scheduledEventId,
-    values
+    history,
+    redirect,
+    closeModal,
+    modalId
 ) => async dispatch => {
     try {
-        dispatch(updateScheduledEventRequest());
+        dispatch(cancelScheduledEventRequest());
 
         const response = await putApi(
-            `scheduledEvent/${projectId}/${scheduledEventId}`,
-            values
+            `scheduledEvent/${projectId}/${scheduledEventId}/cancel`
         );
-        dispatch(updateScheduledEventSuccess(response.data));
+
+        dispatch(cancelScheduledEventSuccess(response.data));
+        closeModal({ id: modalId });
+        history.push(redirect);
     } catch (error) {
         const errorMsg =
             error.response && error.response.data
@@ -314,9 +319,57 @@ export const updateScheduledEvent = (
                 : error.message
                 ? error.message
                 : 'Network Error';
-        dispatch(updateScheduledEventFailure(errorMsg));
+        dispatch(cancelScheduledEventFailure(errorMsg));
     }
 };
+
+export function cancelScheduledEventSuccess(payload) {
+    return {
+        type: types.CANCEL_SCHEDULED_EVENT_SUCCESS,
+        payload,
+    };
+}
+
+export function cancelScheduledEventRequest() {
+    return {
+        type: types.CANCEL_SCHEDULED_EVENT_REQUEST,
+    };
+}
+
+export function cancelScheduledEventFailure(error) {
+    return {
+        type: types.CANCEL_SCHEDULED_EVENT_FAILURE,
+        payload: error,
+    };
+}
+
+export function updateScheduledEvent(projectId, scheduledEventId, values) {
+    return function(dispatch) {
+        const promise = putApi(
+            `scheduledEvent/${projectId}/${scheduledEventId}`,
+            values
+        );
+        dispatch(updateScheduledEventRequest());
+
+        promise.then(
+            function(scheduledEvent) {
+                dispatch(updateScheduledEventSuccess(scheduledEvent.data));
+            },
+            function(error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(updateScheduledEventFailure(errorMsg));
+            }
+        );
+        return promise;
+    };
+}
 
 export function updateScheduledEventSuccess(updatedScheduledEvent) {
     return {
@@ -610,3 +663,49 @@ export const prevPage = projectId => {
         payload: projectId,
     };
 };
+
+export function fetchScheduledEventRequest() {
+    return {
+        type: types.FETCH_SCHEDULED_EVENT_REQUEST_SLUG,
+    };
+}
+
+export function fetchScheduledEventSuccess(payload) {
+    return {
+        type: types.FETCH_SCHEDULED_EVENT_SUCCESS_SLUG,
+        payload,
+    };
+}
+
+export function fetchScheduledEventFailure(error) {
+    return {
+        type: types.FETCH_SCHEDULED_EVENT_FAILURE_SLUG,
+        payload: error,
+    };
+}
+
+export function fetchScheduledEvent(projectId, slug) {
+    return function(dispatch) {
+        const promise = getApi(`scheduledEvent/${projectId}/slug/${slug}`);
+        dispatch(fetchScheduledEventRequest());
+
+        promise.then(
+            function(component) {
+                dispatch(fetchScheduledEventSuccess(component.data));
+            },
+            function(error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(fetchScheduledEventFailure(errorMsg));
+            }
+        );
+
+        return promise;
+    };
+}

@@ -923,10 +923,10 @@ export function deleteStatusPageError(error) {
 }
 
 // Calls the API to get status page.
-export function deleteStatusPage(projectId, statusPageId) {
+export function deleteStatusPage(projectId, statusPageSlug) {
     return function(dispatch) {
         const promise = deleteApi(
-            `statusPage/${projectId}/${statusPageId}`,
+            `statusPage/${projectId}/${statusPageSlug}`,
             null
         );
         dispatch(deleteStatusPageRequest());

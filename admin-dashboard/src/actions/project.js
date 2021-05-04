@@ -941,27 +941,36 @@ export function deleteProjectDomainFailure(error) {
     };
 }
 
+export function resetDeleteProjectDomain() {
+    return {
+        type: types.RESET_DELETE_PROJECT_DOMAIN,
+    };
+}
+
 export function deleteProjectDomain({ projectId, domainId }) {
     return async function(dispatch) {
         dispatch(deleteProjectDomainRequest());
-
-        try {
-            const response = await deleteApi(
-                `domainVerificationToken/${projectId}/domain/${domainId}`
-            );
-            dispatch(deleteProjectDomainSuccess(response.data));
-            return response.data;
-        } catch (error) {
-            const errorMessage =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(deleteProjectDomainFailure(errorMessage));
-        }
+        const promise = deleteApi(
+            `domainVerificationToken/${projectId}/domain/${domainId}`
+        );
+        promise.then(
+            function(response) {
+                dispatch(deleteProjectDomainSuccess(response.data));
+                return response.data;
+            },
+            function(error) {
+                const errorMessage =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(deleteProjectDomainFailure(errorMessage));
+            }
+        );
+        return promise;
     };
 }
 
@@ -991,14 +1000,13 @@ export function resetVerifyProjectDomain() {
     };
 }
 
-export function verifyProjectDomain({ projectId, domainId, data }) {
+export function verifyProjectDomain({ projectId, domainId }) {
     return async function(dispatch) {
         dispatch(verifyProjectDomainRequest());
 
         try {
             const response = await putApi(
-                `domainVerificationToken/${projectId}/verify/${domainId}`,
-                data
+                `domainVerificationToken/${projectId}/forceVerify/${domainId}`
             );
             dispatch(verifyProjectDomainSuccess(response.data));
             return response.data;
@@ -1013,5 +1021,110 @@ export function verifyProjectDomain({ projectId, domainId, data }) {
                     : 'Network Error';
             dispatch(verifyProjectDomainFailure(errorMessage));
         }
+    };
+}
+
+export function unVerifyProjectDomainRequest() {
+    return {
+        type: types.UNVERIFY_PROJECT_DOMAIN_REQUEST,
+    };
+}
+
+export function unVerifyProjectDomainSuccess(payload) {
+    return {
+        type: types.UNVERIFY_PROJECT_DOMAIN_SUCCESS,
+        payload,
+    };
+}
+
+export function unVerifyProjectDomainFailure(error) {
+    return {
+        type: types.UNVERIFY_PROJECT_DOMAIN_FAILURE,
+        payload: error,
+    };
+}
+
+export function resetUnverifyProjectDomain() {
+    return {
+        type: types.RESET_UNVERIFY_PROJECT_DOMAIN,
+    };
+}
+
+export function unVerifyProjectDomain(projectId, domainId) {
+    return async function(dispatch) {
+        dispatch(unVerifyProjectDomainRequest());
+
+        const promise = putApi(
+            `domainVerificationToken/${projectId}/unverify/${domainId}`
+        );
+        promise.then(
+            function(response) {
+                dispatch(unVerifyProjectDomainSuccess(response.data));
+            },
+            function(error) {
+                const errorMessage =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(unVerifyProjectDomainFailure(errorMessage));
+            }
+        );
+        return promise;
+    };
+}
+
+export function resetProjectDomainRequest() {
+    return {
+        type: types.RESET_PROJECT_DOMAIN_REQUEST,
+    };
+}
+
+export function resetProjectDomainSuccess(payload) {
+    return {
+        type: types.RESET_PROJECT_DOMAIN_SUCCESS,
+        payload,
+    };
+}
+
+export function resetProjectDomainFailure(error) {
+    return {
+        type: types.RESET_PROJECT_DOMAIN_FAILURE,
+        payload: error,
+    };
+}
+
+export function resetProjectDomainOnMount() {
+    return {
+        type: types.RESET_PROJECT_DOMAIN_ON_MOUNT,
+    };
+}
+
+export function resetProjectDomain(projectId, domainId) {
+    return async function(dispatch) {
+        dispatch(resetProjectDomainRequest());
+        const promise = putApi(
+            `domainVerificationToken/${projectId}/resetDomain/${domainId}`
+        );
+        promise.then(
+            function(response) {
+                dispatch(resetProjectDomainSuccess(response.data));
+            },
+            function(error) {
+                const errorMessage =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(resetProjectDomainFailure(errorMessage));
+            }
+        );
+        return promise;
     };
 }

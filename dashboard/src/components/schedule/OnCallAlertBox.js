@@ -294,7 +294,7 @@ const mapStateToProps = (state, props) => {
      }) : */
     const { escalations } = state.schedule;
 
-    const { scheduleId } = props.match.params;
+    const { scheduleSlug } = props.match.params;
     const { subProjectId } = props.match.params;
 
     const OnCallAlertBox =
@@ -324,13 +324,23 @@ const mapStateToProps = (state, props) => {
                       ],
                   },
               ];
+    let schedule = state.schedule.subProjectSchedules.map(
+        subProjectSchedule => {
+            return subProjectSchedule.schedules.find(
+                schedule => schedule.slug === scheduleSlug
+            );
+        }
+    );
 
+    schedule = schedule.find(
+        schedule => schedule && schedule.slug === scheduleSlug
+    );
     return {
         initialValues: { OnCallAlertBox },
         escalationPolicy: state.schedule.escalation,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
-        scheduleId,
+        scheduleId: schedule && schedule._id,
         subProjectId,
     };
 };
