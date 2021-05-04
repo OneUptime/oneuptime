@@ -10,10 +10,12 @@
     "license": "ISC",
     "devDependencies": {
         "chai": "^4.3.4",
-        "mocha": "^8.3.2"
+        "mocha": "^8.3.2",
+        "request": "^2.88.2"
     },
     "dependencies": {
         "axios": "^0.21.1",
+        "express": "^4.17.1",
         "vm2": "^3.9.2"
     }
 }
