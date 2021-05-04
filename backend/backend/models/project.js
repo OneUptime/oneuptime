@@ -86,6 +86,34 @@ const projectSchema = new Schema({
     sendResolvedIncidentNotificationEmail: { type: Boolean, default: true },
     enableInvestigationNoteNotificationSMS: { type: Boolean, default: true },
     enableInvestigationNoteNotificationEmail: { type: Boolean, default: true },
+
+    sendCreatedScheduledEventNotificationSms: { type: Boolean, default: true },
+    sendCreatedScheduledEventNotificationEmail: {
+        type: Boolean,
+        default: true,
+    },
+    sendScheduledEventResolvedNotificationSms: { type: Boolean, default: true },
+    sendScheduledEventResolvedNotificationEmail: {
+        type: Boolean,
+        default: true,
+    },
+    sendNewScheduledEventInvestigationNoteNotificationSms: {
+        type: Boolean,
+        default: true,
+    },
+    sendNewScheduledEventInvestigationNoteNotificationEmail: {
+        type: Boolean,
+        default: true,
+    },
+    sendScheduledEventCancelledNotificationSms: {
+        type: Boolean,
+        default: true,
+    },
+    sendScheduledEventCancelledNotificationEmail: {
+        type: Boolean,
+        default: true,
+    },
+
     enableInvestigationNoteNotificationWebhook: {
         type: Boolean,
         default: true,

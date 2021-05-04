@@ -937,36 +937,36 @@ export function checkCard(data) {
     };
 }
 
-export function setEmailIncidentNotificationRequest() {
+export function setEmailNotificationRequest() {
     return {
         type: types.SET_EMAIL_INCIDENT_NOTIFICATION_REQUEST,
     };
 }
 
-export function setEmailIncidentNotificationSuccess(payload) {
+export function setEmailNotificationSuccess(payload) {
     return {
         type: types.SET_EMAIL_INCIDENT_NOTIFICATION_SUCCESS,
         payload,
     };
 }
 
-export function setEmailIncidentNotificationFailure(error) {
+export function setEmailNotificationFailure(error) {
     return {
         type: types.SET_EMAIL_INCIDENT_NOTIFICATION_FAILURE,
         payload: error,
     };
 }
 
-export function setEmailIncidentNotification({ projectId, data }) {
+export function setEmailNotification({ projectId, data }) {
     return async function(dispatch) {
-        dispatch(setEmailIncidentNotificationRequest());
+        dispatch(setEmailNotificationRequest());
 
         try {
             const response = await putApi(
                 `project/${projectId}/advancedOptions/email`,
                 data
             );
-            dispatch(setEmailIncidentNotificationSuccess(response.data));
+            dispatch(setEmailNotificationSuccess(response.data));
         } catch (error) {
             const errorMsg =
                 error.response && error.response.data
@@ -976,41 +976,41 @@ export function setEmailIncidentNotification({ projectId, data }) {
                     : error.message
                     ? error.message
                     : 'Network Error';
-            dispatch(setEmailIncidentNotificationFailure(errorMsg));
+            dispatch(setEmailNotificationFailure(errorMsg));
         }
     };
 }
 
-export function setSmsIncidentNotificationRequest() {
+export function setSmsNotificationRequest() {
     return {
         type: types.SET_SMS_INCIDENT_NOTIFICATION_REQUEST,
     };
 }
 
-export function setSmsIncidentNotificationSuccess(payload) {
+export function setSmsNotificationSuccess(payload) {
     return {
         type: types.SET_SMS_INCIDENT_NOTIFICATION_SUCCESS,
         payload,
     };
 }
 
-export function setSmsIncidentNotificationFailure(error) {
+export function setSmsNotificationFailure(error) {
     return {
         type: types.SET_SMS_INCIDENT_NOTIFICATION_FAILURE,
         payload: error,
     };
 }
 
-export function setSmsIncidentNotification({ projectId, data }) {
+export function setSmsNotification({ projectId, data }) {
     return async function(dispatch) {
-        dispatch(setSmsIncidentNotificationRequest());
+        dispatch(setSmsNotificationRequest());
 
         try {
             const response = await putApi(
                 `project/${projectId}/advancedOptions/sms`,
                 data
             );
-            dispatch(setSmsIncidentNotificationSuccess(response.data));
+            dispatch(setSmsNotificationSuccess(response.data));
         } catch (error) {
             const errorMsg =
                 error.response && error.response.data
@@ -1020,7 +1020,7 @@ export function setSmsIncidentNotification({ projectId, data }) {
                     : error.message
                     ? error.message
                     : 'Network Error';
-            dispatch(setSmsIncidentNotificationFailure(errorMsg));
+            dispatch(setSmsNotificationFailure(errorMsg));
         }
     };
 }
