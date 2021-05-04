@@ -607,7 +607,7 @@ class NewMonitor extends Component {
                         values
                     );
                 }
-                history.push(
+                history.replace(
                     `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.component.slug}/monitoring/${data.data.slug}`
                 );
             });
