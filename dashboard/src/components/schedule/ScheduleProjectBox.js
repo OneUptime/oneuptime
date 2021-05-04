@@ -204,7 +204,7 @@ const ScheduleProjectBox = props => {
                     </div>
                     <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                            <div className="Box-root Margin-right--8">
+                            <div className="Box-root Margin-right--8" id={`btnPrev-${props.subProjectName}`}>  {/** Needed for identifying subproject */}
                                 <button
                                     id="btnPrev"
                                     className={`Button bs-ButtonLegacy ${
@@ -230,7 +230,7 @@ const ScheduleProjectBox = props => {
                                     </div>
                                 </button>
                             </div>
-                            <div className="Box-root">
+                            <div className="Box-root" id={`btnNext-${props.subProjectName}`}> {/** Needed for identifying subproject */}
                                 <button
                                     id="btnNext"
                                     className={`Button bs-ButtonLegacy ${

@@ -125,24 +125,27 @@ describe('Schedule API With SubProjects', () => {
         
         await page.waitForSelector('#onCallDuty');
         await page.click('#onCallDuty');
-        await page.waitForTimeout(3000);
+        await page.waitForSelector('tr.scheduleListItem');
 
         let scheduleRows = await page.$$('tr.scheduleListItem');
         let countSchedules = scheduleRows.length;
 
         expect(countSchedules).toEqual(10);
 
-        const nextSelector = await page.waitForSelector('#btnNext', {visible:true});
+        //const nextSelector = 
+        await page.waitForSelector(`#btnNext-${subProjectName}`, {visible:true});
 
-        await nextSelector.click();
+       // await nextSelector.click();
+        await page.click(`#btnNext-${subProjectName}`);
         await page.waitForTimeout(5000);
         scheduleRows = await page.$$('tr.scheduleListItem');
         countSchedules = scheduleRows.length;
         expect(countSchedules).toEqual(1);
 
-        const prevSelector = await page.waitForSelector('#btnPrev', {visible:true});
-
-        await prevSelector.click();
+       // const prevSelector = 
+        await page.waitForSelector(`#btnPrev-${subProjectName}`, {visible:true});
+        await page.click(`#btnPrev-${subProjectName}`);
+        //await prevSelector.click();
         await page.waitForTimeout(5000);
         scheduleRows = await page.$$('tr.scheduleListItem');
         countSchedules = scheduleRows.length;
@@ -192,7 +195,7 @@ describe('Schedule API With SubProjects', () => {
                     await page.click('#delete');
                     await page.waitForSelector('#confirmDelete');
                     await page.click('#confirmDelete');
-                    await page.waitForTimeout(2000);
+                    await page.waitForSelector('#confirmDelete', {hidden: true});
 
                     await page.waitForSelector('#onCallDuty');
                     await page.click('#onCallDuty');
