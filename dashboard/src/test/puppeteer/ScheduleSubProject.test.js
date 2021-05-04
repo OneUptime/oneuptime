@@ -1,8 +1,8 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
+const { Cluster } = require('puppeteer-cluster');
 
-let browser, page;
 // parent user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
@@ -14,27 +14,57 @@ const newPassword = '1234567890';
 const subProjectName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
-const user = {
-    email,
-    password,
-};
-
 describe('Schedule API With SubProjects', () => {
     const operationTimeOut = 500000;
 
+    let cluster;
     beforeAll(async done => {
-        jest.setTimeout(200000);   
-        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-        page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );     
+        jest.setTimeout(200000);
 
-        // Register user            
-            await init.registerUser(user, page); // This auto log in the user.
-       
-            await init.renameProject(projectName, page);
-            await init.growthPlanUpgrade(page);
+        cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_CONTEXT,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: utils.timeout,
+        });
+
+        cluster.on('taskerror', err => {
+            throw err;
+        });
+
+        // Register user
+        const task = async ({ page, data }) => {
+            await page.setDefaultTimeout(utils.timeout);
+            const user = {
+                email: data.email,
+                password: data.password,
+            };
+
+            // user
+            await init.registerUser(user, page);
+        };
+
+        await cluster.execute(
+            {
+                email,
+                password,
+            },
+            task
+        );
+
+        await cluster.execute(
+            {
+                email: newEmail,
+                password: newPassword,
+            },
+            task
+        );
+
+        await cluster.execute(null, async ({ page }) => {
+            const user = { email, password };
+            await init.loginUser(user, page);
+
+            await init.addGrowthProject(projectName, page);
 
             // add sub-project
             await init.addSubProject(subProjectName, page);
@@ -50,21 +80,44 @@ describe('Schedule API With SubProjects', () => {
                 },
                 page
             );
-            // Navigate to details page of component created            
-            await init.addNewMonitorToComponent(page, componentName, subProjectMonitorName);
-            await init.logout(page);
+            // Navigate to details page of component created
+            await init.navigateToComponentDetails(componentName, page);
+            // add new monitor to sub-project
+            await init.addMonitorToSubProject(
+                subProjectMonitorName,
+                subProjectName,
+                componentName,
+                page
+            );
+        });
+
         done();
     });
 
-    afterAll(async done => {        
-        await browser.close();
+    afterAll(async done => {
+        await cluster.idle();
+        await cluster.close();
         done();
     });
 
     test(
         'should not display create schedule button for subproject `member` role.',
-        async done => {                                                                                                
-                    await init.registerAndLoggingTeamMember({email: newEmail, password: newPassword}, page); // This is for subproject
+        async done => {
+            await cluster.execute(
+                {
+                    email: newEmail,
+                    password: newPassword,
+                    projectName,
+                    subProjectName,
+                },
+                async ({ page, data }) => {
+                    await page.setDefaultTimeout(utils.timeout);
+                    const user = {
+                        email: data.email,
+                        password: data.password,
+                    };
+
+                    await init.loginUser(user, page);
                     // switch to invited project for new user
                     // await init.switchProject(data.projectName, page);
 
@@ -72,11 +125,13 @@ describe('Schedule API With SubProjects', () => {
                     await page.click('#onCallDuty');
 
                     const createButton = await page.$(
-                        `#btnCreateSchedule_${subProjectName}`
+                        `#btnCreateSchedule_${data.subProjectName}`
                     );
 
-                    expect(createButton).toBe(null);                            
-                    await init.logout(page);
+                    expect(createButton).toBe(null);
+                }
+            );
+
             done();
         },
         operationTimeOut
@@ -86,162 +141,194 @@ describe('Schedule API With SubProjects', () => {
         'should create a schedule in sub-project for sub-project `admin`',
         async done => {
             const scheduleName = utils.generateRandomString();
-                                                                               
+
+            await cluster.execute(
+                { email, password, subProjectName, scheduleName },
+                async ({ page, data }) => {
+                    await page.setDefaultTimeout(utils.timeout);
+                    const user = {
+                        email: data.email,
+                        password: data.password,
+                    };
+
                     await init.loginUser(user, page);
                     await init.addScheduleToProject(
-                        scheduleName,
-                        subProjectName,
+                        data.scheduleName,
+                        data.subProjectName,
                         page
                     );
                     await page.waitForSelector(
-                        `#schedule_count_${subProjectName}`
+                        `#schedule_count_${data.subProjectName}`
                     );
 
                     const scheduleCountSelector = await page.$(
-                        `#schedule_count_${subProjectName}`
+                        `#schedule_count_${data.subProjectName}`
                     );
                     let textContent = await scheduleCountSelector.getProperty(
                         'innerText'
                     );
 
                     textContent = await textContent.jsonValue();
-                    expect(textContent).toMatch('Page 1 of 1 (1 duty)');
-            
+                    expect(textContent).toEqual('1 schedule');
+                }
+            );
+
             done();
         },
         operationTimeOut
     );
 
-    // test('should get list schedules in sub-projects and paginate schedules in sub-project', async done => {
-        
-    //             await page.goto(utils.DASHBOARD_URL);
-    //             // add 10 more schedules to sub-project to test for pagination
-    //             for (let i = 0; i < 10; i++) {
-    //                 const scheduleName = utils.generateRandomString();
-    //                 await init.addScheduleToProject(
-    //                     scheduleName,
-    //                     subProjectName,
-    //                     page
-    //                 );
-    //             }
-            
-    //             // await cluster.waitForOne();
-    //             // // switch to invited project for new user
-    //             // await init.switchProject(data.projectName, page);
-    //             await page.waitForSelector('#onCallDuty');
-    //             await page.click('#onCallDuty');
-    //             await page.waitForTimeout(3000);
+    test('should get list schedules in sub-projects and paginate schedules in sub-project', async done => {
+        const fn = async ({ page, data }) => {
+            const user = {
+                email: data.email,
+                password: data.password,
+            };
 
-    //             let scheduleRows = await page.$$('tr.scheduleListItem');
-    //             let countSchedules = scheduleRows.length;
+            await init.loginUser(user, page);
+            if (data.isParentUser) {
+                // add 10 more schedules to sub-project to test for pagination
+                for (let i = 0; i < 10; i++) {
+                    const scheduleName = utils.generateRandomString();
+                    await init.addScheduleToProject(
+                        scheduleName,
+                        data.subProjectName,
+                        page
+                    );
+                }
+            } else {
+                // await cluster.waitForOne();
+                // // switch to invited project for new user
+                // await init.switchProject(data.projectName, page);
+                await page.waitForSelector('#onCallDuty');
+                await page.click('#onCallDuty');
+                await page.waitForTimeout(3000);
 
-    //             expect(countSchedules).toEqual(10);
+                let scheduleRows = await page.$$('tr.scheduleListItem');
+                let countSchedules = scheduleRows.length;
 
-    //             const nextSelector = await page.$('#btnNext');
+                expect(countSchedules).toEqual(10);
 
-    //             await nextSelector.click();
-    //             await page.waitForTimeout(5000);
-    //             scheduleRows = await page.$$('tr.scheduleListItem');
-    //             countSchedules = scheduleRows.length;
-    //             expect(countSchedules).toEqual(1);
+                const nextSelector = await page.$('#btnNext');
 
-    //             const prevSelector = await page.$('#btnPrev');
+                await nextSelector.click();
+                await page.waitForTimeout(5000);
+                scheduleRows = await page.$$('tr.scheduleListItem');
+                countSchedules = scheduleRows.length;
+                expect(countSchedules).toEqual(1);
 
-    //             await prevSelector.click();
-    //             await page.waitForTimeout(5000);
-    //             scheduleRows = await page.$$('tr.scheduleListItem');
-    //             countSchedules = scheduleRows.length;
-    //             expect(countSchedules).toEqual(10);
-                            
+                const prevSelector = await page.$('#btnPrev');
 
-    //     done();
-    // }, 200000);
+                await prevSelector.click();
+                await page.waitForTimeout(5000);
+                scheduleRows = await page.$$('tr.scheduleListItem');
+                countSchedules = scheduleRows.length;
+                expect(countSchedules).toEqual(10);
+            }
+        };
 
-    // test(
-    //     'should add monitor to sub-project schedule',
-    //     async done => {
-    //         await cluster.execute(
-    //             {
-    //                 email,
-    //                 password,
-    //                 projectName,
-    //                 subProjectMonitorName,
-    //             },
-    //             async ({ page, data }) => {
-    //                 const user = {
-    //                     email: data.email,
-    //                     password: data.password,
-    //                 };
+        await cluster.execute(
+            { email, password, subProjectName, isParentUser: true },
+            fn
+        );
+        await cluster.execute(
+            {
+                email: newEmail,
+                password: newPassword,
+                projectName,
+                isParentUser: false,
+            },
+            fn
+        );
 
-    //                 await init.loginUser(user, page);
-    //                 await page.waitForSelector('#onCallDuty');
-    //                 await page.click('#onCallDuty');
-    //                 await page.waitForSelector('tr.scheduleListItem');
-    //                 await page.click('tr.scheduleListItem');
-    //                 await page.waitForSelector(
-    //                     `span[title="${data.subProjectMonitorName}"]`
-    //                 );
-    //                 await page.click(
-    //                     `span[title="${data.subProjectMonitorName}"]`
-    //                 );
-    //                 await page.waitForSelector('#btnSaveMonitors');
-    //                 await page.click('#btnSaveMonitors');
-    //                 await page.waitForTimeout(5000);
+        done();
+    }, 200000);
 
-    //                 const monitorSelectValue = await page.$eval(
-    //                     'input[type=checkbox]',
-    //                     el => el.value
-    //                 );
+    test(
+        'should add monitor to sub-project schedule',
+        async done => {
+            await cluster.execute(
+                {
+                    email,
+                    password,
+                    projectName,
+                    subProjectMonitorName,
+                },
+                async ({ page, data }) => {
+                    const user = {
+                        email: data.email,
+                        password: data.password,
+                    };
 
-    //                 expect(monitorSelectValue).toBe('true');
-    //             }
-    //         );
+                    await init.loginUser(user, page);
+                    await page.waitForSelector('#onCallDuty');
+                    await page.click('#onCallDuty');
+                    await page.waitForSelector('tr.scheduleListItem');
+                    await page.click('tr.scheduleListItem');
+                    await page.waitForSelector(
+                        `span[title="${data.subProjectMonitorName}"]`
+                    );
+                    await page.click(
+                        `span[title="${data.subProjectMonitorName}"]`
+                    );
+                    await page.waitForSelector('#btnSaveMonitors');
+                    await page.click('#btnSaveMonitors');
+                    await page.waitForTimeout(5000);
 
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+                    const monitorSelectValue = await page.$eval(
+                        'input[type=checkbox]',
+                        el => el.value
+                    );
 
-    // test(
-    //     'should delete sub-project schedule',
-    //     async done => {
-    //         await cluster.execute(
-    //             {
-    //                 email,
-    //                 password,
-    //                 projectName,
-    //                 subProjectMonitorName,
-    //             },
-    //             async ({ page, data }) => {
-    //                 const user = {
-    //                     email: data.email,
-    //                     password: data.password,
-    //                 };
+                    expect(monitorSelectValue).toBe('true');
+                }
+            );
 
-    //                 await init.loginUser(user, page);
-    //                 await page.waitForSelector('#onCallDuty');
-    //                 await page.click('#onCallDuty');
-    //                 await page.waitForSelector('tr.scheduleListItem');
-    //                 await page.click('tr.scheduleListItem');
-    //                 await page.waitForSelector('#delete');
-    //                 await page.click('#delete');
-    //                 await page.waitForSelector('#confirmDelete');
-    //                 await page.click('#confirmDelete');
-    //                 await page.waitForTimeout(2000);
+            done();
+        },
+        operationTimeOut
+    );
 
-    //                 await page.waitForSelector('#onCallDuty');
-    //                 await page.click('#onCallDuty');
-    //                 await page.waitForSelector('tr.scheduleListItem');
+    test(
+        'should delete sub-project schedule',
+        async done => {
+            await cluster.execute(
+                {
+                    email,
+                    password,
+                    projectName,
+                    subProjectMonitorName,
+                },
+                async ({ page, data }) => {
+                    const user = {
+                        email: data.email,
+                        password: data.password,
+                    };
 
-    //                 const scheduleRows = await page.$$('tr.scheduleListItem');
-    //                 const countSchedules = scheduleRows.length;
+                    await init.loginUser(user, page);
+                    await page.waitForSelector('#onCallDuty');
+                    await page.click('#onCallDuty');
+                    await page.waitForSelector('tr.scheduleListItem');
+                    await page.click('tr.scheduleListItem');
+                    await page.waitForSelector('#delete');
+                    await page.click('#delete');
+                    await page.waitForSelector('#confirmDelete');
+                    await page.click('#confirmDelete');
+                    await page.waitForTimeout(2000);
 
-    //                 expect(countSchedules).toEqual(10);
-    //             }
-    //         );
+                    await page.waitForSelector('#onCallDuty');
+                    await page.click('#onCallDuty');
+                    await page.waitForSelector('tr.scheduleListItem');
 
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+                    const scheduleRows = await page.$$('tr.scheduleListItem');
+                    const countSchedules = scheduleRows.length;
+
+                    expect(countSchedules).toEqual(10);
+                }
+            );
+
+            done();
+        },
+        operationTimeOut
+    );
 });
