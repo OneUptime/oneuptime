@@ -135,13 +135,13 @@ describe('Monitor API With SubProjects', () => {
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
-                await page.waitForSelector(
+                let spanElement =  await page.waitForSelector(
                     `#monitor-title-${subProjectMonitorName}`,
                     { visible: true }
                 );
-                let spanElement = await page.$(
-                    `#monitor-title-${subProjectMonitorName}`
-                );
+                // let spanElement = await page.$(
+                //     `#monitor-title-${subProjectMonitorName}`
+                // );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 expect(spanElement).toBe(subProjectMonitorName);
@@ -169,18 +169,18 @@ describe('Monitor API With SubProjects', () => {
                     // Navigate to details page of component created
                     await init.navigateToComponentDetails(componentName, page);
 
-                    await page.waitForSelector('#form-new-monitor');
+                    await page.waitForSelector('#form-new-monitor', {visible: true});
                     await page.click('input[id=name]');
                     await page.type('input[id=name]', monitorName);
                     await page.click('[data-testId=type_manual]');
                     await page.click('button[type=submit]');
-                    await page.waitForSelector(
+                    let spanElement = await page.waitForSelector(
                         `#monitor-title-${monitorName}`,
                         { visible: true, timeout: operationTimeOut }
                     );
-                    let spanElement = await page.$(
-                        `#monitor-title-${monitorName}`
-                    );
+                    // let spanElement = await page.$(
+                    //     `#monitor-title-${monitorName}`
+                    // );
                     spanElement = await spanElement.getProperty('innerText');
                     spanElement = await spanElement.jsonValue();
                     expect(spanElement).toBe(monitorName);
@@ -192,123 +192,123 @@ describe('Monitor API With SubProjects', () => {
         operationTimeOut
     );
 
-    // test(
-    //     // eslint-disable-next-line quotes
-    //     "should get only sub-project's monitors for valid sub-project user",
-    //     async done => {
-    //         //await cluster.execute(
-    //             // {
-    //             //     email: newEmail,
-    //             //     password: newPassword,
-    //             //     projectName,
-    //             //     subProjectName,
-    //             // },
-    //            // async ({ page, data }) => {
-    //                 // const user = {
-    //                 //     email: data.email,
-    //                 //     password: data.password,
-    //                 // };
+    test(
+        // eslint-disable-next-line quotes
+        "should get only sub-project's monitors for valid sub-project user",
+        async done => {
+            //await cluster.execute(
+                // {
+                //     email: newEmail,
+                //     password: newPassword,
+                //     projectName,
+                //     subProjectName,
+                // },
+               // async ({ page, data }) => {
+                    // const user = {
+                    //     email: data.email,
+                    //     password: data.password,
+                    // };
 
-    //                 // await init.loginUser(user, page);
-    //                 await page.goto(utils.DASHBOARD_URL);
-    //                 // switch to invited project for new user
-    //                 // await init.switchProject(data.projectName, page); // Commented because project already switched to
-    //                 await page.waitForSelector('#components', {
-    //                     visible: true,
-    //                 });
-    //                 await page.click('#components');
+                    // await init.loginUser(user, page);
+                    await page.goto(utils.DASHBOARD_URL);
+                    // switch to invited project for new user
+                    // await init.switchProject(data.projectName, page); // Commented because project already switched to
+                    await page.waitForSelector('#components', {
+                        visible: true,
+                    });
+                    await page.click('#components');
 
-    //                 const projectBadgeSelector = await page.$(
-    //                     `#badge_${projectName}`
-    //                 );
+                    const projectBadgeSelector = await page.$(
+                        `#badge_${projectName}`
+                    );
 
-    //                 expect(projectBadgeSelector).toEqual(null);
+                    expect(projectBadgeSelector).toEqual(null);
 
-    //                 await page.waitForSelector(
-    //                     `#badge_${subProjectName}`,
-    //                     { visible: true }
-    //                 );
-    //                 const subProjectBadgeSelector = await page.$(
-    //                     `#badge_${subProjectName}`
-    //                 );
-    //                 let textContent = await subProjectBadgeSelector.getProperty(
-    //                     'innerText'
-    //                 );
+                    await page.waitForSelector(
+                        `#badge_${subProjectName}`,
+                        { visible: true }
+                    );
+                    const subProjectBadgeSelector = await page.$(
+                        `#badge_${subProjectName}`
+                    );
+                    let textContent = await subProjectBadgeSelector.getProperty(
+                        'innerText'
+                    );
 
-    //                 textContent = await textContent.jsonValue();
-    //                 expect(textContent).toEqual(
-    //                     subProjectName.toUpperCase()
-    //                 );
-    //            // }
-    //        // );
+                    textContent = await textContent.jsonValue();
+                    expect(textContent).toEqual(
+                        subProjectName.toUpperCase()
+                    );
+               // }
+           // );
 
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+            done();
+        },
+        operationTimeOut
+    );
 
-    // test(
-    //     'should get both project and sub-project monitors for valid parent project user.',
-    //     async done => {
-    //         const monitorName = utils.generateRandomString();
+    test(
+        'should get both project and sub-project monitors for valid parent project user.',
+        async done => {
+            const monitorName = utils.generateRandomString();
 
-    //         //await cluster.execute(
-    //             // {
-    //             //     email,
-    //             //     password,
-    //             //     projectName,
-    //             //     subProjectName,
-    //             //     monitorName,
-    //             // },
-    //            // async ({ page, data }) => {
-    //                 // const user = {
-    //                 //     email: data.email,
-    //                 //     password: data.password,
-    //                 // };
+            //await cluster.execute(
+                // {
+                //     email,
+                //     password,
+                //     projectName,
+                //     subProjectName,
+                //     monitorName,
+                // },
+               // async ({ page, data }) => {
+                    // const user = {
+                    //     email: data.email,
+                    //     password: data.password,
+                    // };
 
-    //                 // await init.loginUser(user, page);
-    //                 await page.goto(utils.DASHBOARD_URL);
-    //                 // Navigate to details page of component created
-    //                 await init.navigateToComponentDetails(componentName, page);
-    //                 await page.waitForSelector('#form-new-monitor');
-    //                 await page.click('input[id=name]');
-    //                 await page.type('input[id=name]', monitorName);
-    //                 await page.click('[data-testId=type_manual]');
-    //                 await page.click('#addMonitorButton');
-    //                 await page.waitForSelector('.ball-beat', { hidden: true });
-    //                 await page.waitForSelector('#cbMonitors', {
-    //                     visible: true,
-    //                 });
-    //                 await page.click('#cbMonitors');
-    //                 await page.waitForSelector('#form-new-monitor', {
-    //                     visible: true,
-    //                 });
-    //                 await page.click('input[id=name]');
-    //                 await page.type('input[id=name]', `${monitorName}1`);
-    //                 await page.click('[data-testId=type_manual]');
-    //                 await page.click('#addMonitorButton');
-    //                 await page.waitForSelector('.ball-beat', { hidden: true });
-    //                 await page.waitForSelector('#cbMonitors', {
-    //                     visible: true,
-    //                 });
-    //                 await page.click('#cbMonitors');
-    //                 await page.waitForSelector(`#badge_${subProjectName}`);
-    //                 const subProjectBadgeSelector = await page.$(
-    //                     `#badge_${subProjectName}`
-    //                 );
+                    // await init.loginUser(user, page);
+                    await page.goto(utils.DASHBOARD_URL);
+                    // Navigate to details page of component created
+                    await init.navigateToComponentDetails(componentName, page);
+                    await page.waitForSelector('#form-new-monitor');
+                    await page.click('input[id=name]');
+                    await page.type('input[id=name]', monitorName);
+                    await page.click('[data-testId=type_manual]');
+                    await page.click('#addMonitorButton');
+                    await page.waitForSelector('.ball-beat', { hidden: true });
+                    await page.waitForSelector('#cbMonitors', {
+                        visible: true,
+                    });
+                    await page.click('#cbMonitors');
+                    await page.waitForSelector('#form-new-monitor', {
+                        visible: true,
+                    });
+                    await page.click('input[id=name]');
+                    await page.type('input[id=name]', `${monitorName}1`);
+                    await page.click('[data-testId=type_manual]');
+                    await page.click('#addMonitorButton');
+                    await page.waitForSelector('.ball-beat', { hidden: true });
+                    await page.waitForSelector('#cbMonitors', {
+                        visible: true,
+                    });
+                    await page.click('#cbMonitors');
+                    await page.waitForSelector(`#badge_${subProjectName}`);
+                    const subProjectBadgeSelector = await page.$(
+                        `#badge_${subProjectName}`
+                    );
 
-    //                 let textContent = await subProjectBadgeSelector.getProperty(
-    //                     'innerText'
-    //                 );
-    //                 textContent = await textContent.jsonValue();
-    //                 expect(textContent.toUpperCase()).toEqual(
-    //                     subProjectName.toUpperCase()
-    //                 );
-    //            // }
-    //         //);
+                    let textContent = await subProjectBadgeSelector.getProperty(
+                        'innerText'
+                    );
+                    textContent = await textContent.jsonValue();
+                    expect(textContent.toUpperCase()).toEqual(
+                        subProjectName.toUpperCase()
+                    );
+               // }
+            //);
 
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+            done();
+        },
+        operationTimeOut
+    );
 });
