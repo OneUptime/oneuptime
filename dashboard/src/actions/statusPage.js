@@ -1273,6 +1273,199 @@ export function fetchStatusPageSubscribers(
     };
 }
 
+export function createAnnouncementRequest() {
+    return {
+        type: types.CREATE_ANNOUNCEMEMT_REQUEST,
+    };
+}
+
+export function createAnnouncementSuccess(data) {
+    return {
+        type: types.CREATE_ANNOUNCEMEMT_SUCCESS,
+        payload: data,
+    };
+}
+
+export function createAnnouncementFailure(error) {
+    return {
+        type: types.CREATE_ANNOUNCEMEMT_FAILURE,
+        payload: error,
+    };
+}
+
+export function createAnnouncement(projectId, statusPageId, data) {
+    return function(dispatch) {
+        const promise = postApi(
+            `statusPage/${projectId}/announcement/${statusPageId}`,
+            data
+        );
+        dispatch(createAnnouncementRequest());
+        promise.then(
+            function(response) {
+                dispatch(createAnnouncementSuccess(response.data));
+                return response.data;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(createAnnouncementFailure(error));
+                return error;
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchAnnouncementRequest() {
+    return {
+        type: types.FETCH_ANNOUNCEMEMT_REQUEST,
+    };
+}
+
+export function fetchAnnouncementSuccess(data) {
+    return {
+        type: types.FETCH_ANNOUNCEMEMT_SUCCESS,
+        payload: data,
+    };
+}
+
+export function fetchAnnouncementFailure(error) {
+    return {
+        type: types.FETCH_ANNOUNCEMEMT_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchAnnouncements(projectId, statusPageId, skip = 0, limit) {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}`
+        );
+        dispatch(fetchAnnouncementRequest());
+        promise.then(
+            function(response) {
+                dispatch(fetchAnnouncementSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchAnnouncementFailure(error));
+            }
+        );
+        return promise;
+    };
+}
+
+export function fetchSingleAnnouncementSuccess(data) {
+    return {
+        type: types.FETCH_SINCLE_ANNOUNCEMENT_SUCCESS,
+        payload: data,
+    };
+}
+
+export function fetchSingleAnnouncementFailure(error) {
+    return {
+        type: types.FETCH_SINCLE_ANNOUNCEMENT_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchSingleAnnouncement(
+    projectId,
+    statusPageSlug,
+    announcementSlug
+) {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
+        );
+        promise.then(
+            function(response) {
+                dispatch(fetchSingleAnnouncementSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchSingleAnnouncementFailure(error));
+            }
+        );
+        return promise;
+    };
+}
+
+export function handleAnnouncementSuccess(data) {
+    return {
+        type: types.HANDLE_ANNOUNCEMENT_SUCCESS,
+        payload: data,
+    };
+}
+
+export function handleAnnouncementFailure(error) {
+    return {
+        type: types.HANDLE_ANNOUNCEMENT_FAILURE,
+        payload: error,
+    };
+}
+
+export function resetHandleAnnouncement() {
+    return {
+        type: types.RESET_HANDLE_ANNOUNCEMENT,
+    };
+}
+
+export function handleAnnouncementFunc(projectId, statusPageSlug, data) {
+    return function(dispatch) {
+        const promise = putApi(
+            `statusPage/${projectId}/announcement/${statusPageSlug}/update`,
+            data
+        );
+        promise.then(
+            function(response) {
+                dispatch(handleAnnouncementSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(handleAnnouncementFailure(error));
+            }
+        );
+        return promise;
+    };
+}
+
 // Calls the API to delete StatusPages after deleting the project
 
 export function deleteProjectStatusPages(projectId) {
