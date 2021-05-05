@@ -126,8 +126,8 @@ class FyipeTracker:
 
         self.prepareErrorObject('message', messageObj);
 
-        # TODO send to the server
-        # return self.sendErrorEventToServer();
+        # send to the server
+        return self.sendErrorEventToServer()
     
     def prepareErrorObject(self, eventType, errorStackTrace):   
         # set a last timeline as the error message
@@ -152,7 +152,16 @@ class FyipeTracker:
             "errorTrackerKey": self.errorTrackerKey
         }
     
-    # def sendErrorEventToServer(self):
+    def sendErrorEventToServer(self):
+        response = None
+        # TODO send to API properly
+        # $response = $this->apiTransport->sendErrorEventToServer($this->event);
+        # generate a new event Id
+        self.setEventId()
+        # clear the timeline after a successful call to the server
+        self.clear(self.getEventId())
+        return response
+    
 
     def getCurrentEvent(self):
         return self.event
@@ -167,9 +176,17 @@ class FyipeTracker:
 
         self.prepareErrorObject('exception', exceptionObj)
 
-        # TODO send to the server
-        # return $this->sendErrorEventToServer();
-
+        # send to the server
+        return self.sendErrorEventToServer()
+    
+    def clear(self, newEventId):
+    
+        # clear tags
+        self.tags = []
+        # clear fingerprint
+        self.fingerprint = []
+        # clear timeline
+        self.listenerObj.clearTimeline(newEventId)
 
 
 

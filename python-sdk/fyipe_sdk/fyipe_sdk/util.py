@@ -38,5 +38,4 @@ class Util:
         obj["stacktrace"] = stacktrace
 
         # TODO set up and run only if user agreed to use this feature
-        print(obj)
         return obj;
