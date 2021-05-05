@@ -1,8 +1,8 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
+let browser, page;
 // parent user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
@@ -15,55 +15,28 @@ const subProjectName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
 describe('StatusPage API With SubProjects', () => {
-    const operationTimeOut = 500000;
-
-    let cluster;
+    const operationTimeOut = 500000;    
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(200000);        
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_CONTEXT,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );   
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        // Register user
-        const task = async ({ page, data }) => {
+        // Register user        
             const user = {
-                email: data.email,
-                password: data.password,
+                email,
+                password,
             };
 
             // user
             await init.registerUser(user, page);
-        };
-
-        await cluster.execute(
-            {
-                email,
-                password,
-            },
-            task
-        );
-
-        await cluster.execute(
-            {
-                email: newEmail,
-                password: newPassword,
-            },
-            task
-        );
-
-        await cluster.execute(null, async ({ page }) => {
-            const user = { email, password };
-            await init.loginUser(user, page);
-            await init.addGrowthProject(projectName, page);
+       
+           await init.renameProject(projectName, page);
+           await init.growthPlanUpgrade(page);
 
             // add sub-project
             await init.addSubProject(subProjectName, page);
@@ -79,54 +52,40 @@ describe('StatusPage API With SubProjects', () => {
                 },
                 page
             );
-            // Navigate to details page of component created
-            await init.navigateToComponentDetails(componentName, page);
-            // add new monitor to sub-project
-            await init.addMonitorToSubProject(
-                subProjectMonitorName,
-                subProjectName,
+            // Navigate to details page of component created            
+            await init.addNewMonitorToComponent(
+                page,
                 componentName,
-                page
-            );
-        });
+                subProjectMonitorName,                                      
+            );       
 
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'should not display create status page button for subproject `member` role.',
-        async done => {
-            await cluster.execute(
-                {
-                    email: newEmail,
-                    password: newPassword,
-                    projectName,
-                    subProjectName,
-                },
-                async ({ page, data }) => {
+        async done => {            
                     const user = {
-                        email: data.email,
-                        password: data.password,
+                        email: newEmail,
+                        password: newPassword,
                     };
-
-                    await init.loginUser(user, page);
+                    
+                    await init.logout(page); // Needed for subproject team member to login                   
+                    await init.registerAndLoggingTeamMember(user,page);
 
                     await page.waitForSelector('#statusPages');
                     await page.click('#statusPages');
 
                     const createButton = await page.$(
-                        `#btnCreateStatusPage_${data.subProjectName}`
+                        `#btnCreateStatusPage_${subProjectName}`
                     );
 
-                    expect(createButton).toBeNull();
-                }
-            );
+                    expect(createButton).toBeNull();              
 
             done();
         },
@@ -137,92 +96,72 @@ describe('StatusPage API With SubProjects', () => {
         'should create a status page in sub-project for sub-project `admin`',
         async done => {
             const statuspageName = utils.generateRandomString();
-            await cluster.execute(
-                { email, password, subProjectName, statuspageName },
-                async ({ page, data }) => {
+          
                     const user = {
-                        email: data.email,
-                        password: data.password,
+                        email: email,
+                        password: password,
                     };
+                    await init.logout(page);
                     await init.loginUser(user, page);
+                    await page.goto(utils.DASHBOARD_URL);
                     await init.addStatusPageToProject(
-                        data.statuspageName,
-                        data.subProjectName,
+                        statuspageName,
+                        subProjectName,
                         page
                     );
                     await page.waitForSelector(
-                        `#status_page_count_${data.subProjectName}`
+                        `#status_page_count_${subProjectName}`
                     );
 
                     const statusPageCountSelector = await page.$(
-                        `#status_page_count_${data.subProjectName}`
+                        `#status_page_count_${subProjectName}`
                     );
                     let textContent = await statusPageCountSelector.getProperty(
                         'innerText'
                     );
 
                     textContent = await textContent.jsonValue();
-                    expect(textContent).toEqual('1 Status Page');
-                }
-            );
+                    expect(textContent).toMatch('Page 1 of 1 (1 Status Page');
 
             done();
         },
         operationTimeOut
     );
 
-    test('should navigate to status page when view button is clicked on the status page table view', async done => {
-        const fn = async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
-            await init.loginUser(user, page);
+    test('should navigate to status page when view button is clicked on the status page table view', async done => {        
+            await page.goto(utils.DASHBOARD_URL);
             const statuspageName = utils.generateRandomString();
             await init.addStatusPageToProject(
                 statuspageName,
-                data.subProjectName,
+                subProjectName,
                 page
             );
             await page.waitForSelector('tr.statusPageListItem');
             await page.$$('tr.statusPageListItem');
             await page.waitForSelector('#viewStatusPage');
-            await page.click('#viewStatusPage');
+            await page.click('#viewStatusPage');            
+            await page.reload({waitUntil: 'networkidle0'});
 
-            const element = await page.$(`#cb${statuspageName}`);
-            const statusPageNameOnStatusPage = await (
-                await element.getProperty('textContent')
-            ).jsonValue();
+            let statusPageNameOnStatusPage = await page.waitForSelector(`#cb${statuspageName}`, {visible: true});
+            statusPageNameOnStatusPage = await statusPageNameOnStatusPage.getProperty('innerText');
+            statusPageNameOnStatusPage = await statusPageNameOnStatusPage.jsonValue();
+            expect(statuspageName).toMatch(statusPageNameOnStatusPage);
 
-            expect(statuspageName).toEqual(statusPageNameOnStatusPage);
-        };
-        await cluster.execute({ email, password, subProjectName }, fn);
         done();
     }, 50000);
 
-    test('should get list of status pages in sub-projects and paginate status pages in sub-project', async done => {
-        const fn = async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
-
-            await init.loginUser(user, page);
-            if (data.isParentUser) {
-                // add 10 more statuspages to sub-project to test for pagination
+    test('should get list of status pages in sub-projects and paginate status pages in sub-project', async done => {        
+            await page.goto(utils.DASHBOARD_URL);          
                 for (let i = 0; i < 10; i++) {
                     const statuspageName = utils.generateRandomString();
                     await init.addStatusPageToProject(
                         statuspageName,
-                        data.subProjectName,
+                        subProjectName,
                         page
                     );
                 }
-                await init.logout(page);
-            } else {
-                await page.waitForSelector('#statusPages');
-                await page.click('#statusPages');
-
+               
+                await page.reload({waitUntil: 'networkidle0'});
                 await page.waitForSelector('tr.statusPageListItem');
 
                 let statusPageRows = await page.$$('tr.statusPageListItem');
@@ -230,54 +169,30 @@ describe('StatusPage API With SubProjects', () => {
 
                 expect(countStatusPages).toEqual(10);
 
-                const nextSelector = await page.$('#btnNext');
+                await page.waitForSelector(`#btnNext-${subProjectName}`);
+                await page.click(`#btnNext-${subProjectName}`);
 
-                await nextSelector.click();
                 await page.waitForTimeout(5000);
                 statusPageRows = await page.$$('tr.statusPageListItem');
                 countStatusPages = statusPageRows.length;
                 expect(countStatusPages).toEqual(2);
 
-                const prevSelector = await page.$('#btnPrev');
+                await page.waitForSelector(`#btnPrev-${subProjectName}`);
+                await page.click(`#btnPrev-${subProjectName}`);
 
-                await prevSelector.click();
                 await page.waitForTimeout(5000);
                 statusPageRows = await page.$$('tr.statusPageListItem');
                 countStatusPages = statusPageRows.length;
 
                 expect(countStatusPages).toEqual(10);
-            }
-        };
-
-        await cluster.execute(
-            { email, password, subProjectName, isParentUser: true },
-            fn
-        );
-        await cluster.execute(
-            {
-                email: newEmail,
-                password: newPassword,
-                projectName,
-                isParentUser: false,
-            },
-            fn
-        );
-
+       
         done();
     }, 500000);
 
     test(
         'should update sub-project status page settings',
-        async done => {
-            await cluster.execute(
-                { email, password, projectName, subProjectName },
-                async ({ page, data }) => {
-                    const user = {
-                        email: data.email,
-                        password: data.password,
-                    };
-
-                    await init.loginUser(user, page);
+        async done => {           
+                    await page.goto(utils.DASHBOARD_URL);                   
                     await page.waitForSelector('#statusPages');
                     await page.click('#statusPages');
                     await page.waitForSelector('tr.statusPageListItem');
@@ -286,7 +201,7 @@ describe('StatusPage API With SubProjects', () => {
                     await page.waitForSelector('#customTabList > li');
                     // navigate to branding tab
                     await page.$$eval('#customTabList > li', elem =>
-                        elem[2].click()
+                        elem[3].click() //Branding is in fourth tab
                     );
                     const pageTitle = 'MyCompany';
                     const pageDescription = 'MyCompany description';
@@ -303,7 +218,7 @@ describe('StatusPage API With SubProjects', () => {
                     await page.waitForSelector('#customTabList > li');
                     // navigate to branding tab
                     await page.$$eval('#customTabList > li', elem =>
-                        elem[2].click()
+                        elem[3].click()
                     );
                     await page.waitForSelector('#title');
                     const title = await page.$eval(
@@ -311,9 +226,7 @@ describe('StatusPage API With SubProjects', () => {
                         elem => elem.value
                     );
 
-                    expect(title).toEqual(pageTitle);
-                }
-            );
+                    expect(title).toMatch(pageTitle);       
 
             done();
         },
@@ -322,20 +235,8 @@ describe('StatusPage API With SubProjects', () => {
 
     test(
         'should delete sub-project status page',
-        async done => {
-            await cluster.execute(
-                {
-                    email,
-                    password,
-                },
-                async ({ page, data }) => {
-                    await page.setDefaultTimeout(utils.timeout);
-                    const user = {
-                        email: data.email,
-                        password: data.password,
-                    };
-
-                    await init.loginUser(user, page);
+        async done => {        
+                    await page.goto(utils.DASHBOARD_URL);
                     await page.waitForSelector('#statusPages');
                     await page.click('#statusPages');
                     await page.waitForSelector('tr.statusPageListItem');
@@ -343,7 +244,7 @@ describe('StatusPage API With SubProjects', () => {
                     await page.waitForSelector('#customTabList > li');
                     // navigate to advanced options
                     await page.$$eval('#customTabList > li', elem =>
-                        elem[3].click()
+                        elem[5].click() // Advanced is in sixth tab
                     );
                     await page.waitForSelector('#delete');
                     await page.click('#delete');
@@ -361,10 +262,7 @@ describe('StatusPage API With SubProjects', () => {
                     );
                     const countStatusPages = statusPageRows.length;
 
-                    expect(countStatusPages).toEqual(10);
-                }
-            );
-
+                    expect(countStatusPages).toEqual(10);          
             done();
         },
         operationTimeOut
