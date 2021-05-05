@@ -328,7 +328,7 @@ module.exports = {
                 .populate('domains.domainVerificationToken')
                 .execPopulate();
         } catch (error) {
-            ErrorService.log('statusPageService.deleteDomain', error);
+            ErrorService.log('statusPageService.updateDomain', error);
             throw error;
         }
     },
@@ -423,6 +423,21 @@ module.exports = {
                         );
                     })
                 );
+
+                // delete all certificate pipeline for the custom domains
+                // handle this for autoprovisioned custom domains
+                const customDomains = [...statusPage.domains];
+                for (const eachDomain of customDomains) {
+                    if (eachDomain.enableHttps && eachDomain.autoProvisioning) {
+                        greenlock
+                            .remove({ subject: eachDomain.domain })
+                            .finally(() => {
+                                CertificateStoreService.deleteBy({
+                                    subject: eachDomain.domain,
+                                });
+                            });
+                    }
+                }
             }
             return statusPage;
         } catch (error) {
@@ -693,7 +708,6 @@ module.exports = {
                                 {
                                     'monitors.monitorId': monitorId,
                                     showEventOnStatusPage: true,
-                                    resolved: false,
                                 }
                             );
                         } else {

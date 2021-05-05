@@ -181,7 +181,7 @@ export class MonitorTabularList extends Component {
                                                         this.props
                                                             .currentProject
                                                             .slug +
-                                                        '/' +
+                                                        '/component/' +
                                                         this.props
                                                             .componentSlug +
                                                         '/monitoring/' +

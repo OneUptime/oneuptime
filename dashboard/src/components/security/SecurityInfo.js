@@ -73,7 +73,7 @@ const SecurityInfo = ({
             (type === 'application' && 'application');
 
         history.push(
-            `/dashboard/project/${slug}/${componentSlug}/security/${type}/${securitySlug}`
+            `/dashboard/project/${slug}/component/${componentSlug}/security/${type}/${securitySlug}`
         );
     };
 

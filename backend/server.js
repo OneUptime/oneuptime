@@ -265,6 +265,7 @@ app.use(
     ['/customField', '/api/customField'],
     require('./backend/api/customField')
 );
+app.use(['/search', '/api/search'], require('./backend/api/search'));
 app.use(
     ['/monitorCustomField', '/api/monitorCustomField'],
     require('./backend/api/monitorCustomField')

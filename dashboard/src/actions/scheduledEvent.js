@@ -38,6 +38,12 @@ export function fetchscheduledEventRequest() {
     };
 }
 
+export function addScheduleEvent(payload) {
+    return {
+        type: types.ADD_SCHEDULE_EVENT,
+        payload: payload,
+    };
+}
 export function fetchscheduledEventFailure(error) {
     return {
         type: types.FETCH_SCHEDULED_EVENT_FAILURE,

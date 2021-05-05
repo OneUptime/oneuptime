@@ -488,3 +488,42 @@ export function fetchComponent(slug) {
         return promise;
     };
 }
+
+export function searchComponentSuccess(payload) {
+    return {
+        type: 'POPULATE_SEARCH',
+        payload,
+    };
+}
+export function searchComponents(projectId, values) {
+    return function(dispatch) {
+        const promise = postApi(`component/search/${projectId}`, values);
+        promise.then(
+            function(component) {
+                const compo = component.data;
+                if (compo.data.length > 0) {
+                    const obj = {
+                        title: 'Component',
+                        values: compo.data.map(com => com.name),
+                    };
+                    dispatch(searchComponentSuccess(obj));
+                }
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchComponentFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}

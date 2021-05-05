@@ -39,7 +39,7 @@ export class IncidentDeleteBox extends Component {
                 );
             }
             history.push(
-                `/dashboard/project/${this.props.currentProject.slug}/${componentSlug}/monitoring/${monitorSlug}`
+                `/dashboard/project/${this.props.currentProject.slug}/component/${componentSlug}/monitoring/${monitorSlug}`
             );
         });
         return promise;
