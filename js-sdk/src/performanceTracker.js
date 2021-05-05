@@ -40,8 +40,12 @@ class PerformanceTracker {
             this.#store = store(); // returns the store instance
         }
     }
-    setUpOutgoingListener(app) {
-        return new OutgoingListener(this.#start, this.#end, this.#store, app);
+    initListener(app) {
+        this._setUpIncomingListener(app);
+        this._setUpOutgoingListener();
+    }
+    _setUpOutgoingListener() {
+        return new OutgoingListener(this.#start, this.#end, this.#store);
     }
     setUpDataBaseListener() {
         const load = Module._load;
@@ -55,7 +59,7 @@ class PerformanceTracker {
             return res;
         };
     }
-    setUpIncomingListener(app) {
+    _setUpIncomingListener(app) {
         return new IncomingListener(this.#start, this.#end, this.#store, app);
     }
 }
