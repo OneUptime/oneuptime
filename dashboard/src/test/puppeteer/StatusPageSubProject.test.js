@@ -52,8 +52,7 @@ describe('StatusPage API With SubProjects', () => {
                 },
                 page
             );
-            // Navigate to details page of component created
-            
+            // Navigate to details page of component created            
             await init.addNewMonitorToComponent(
                 page,
                 componentName,
@@ -123,21 +122,13 @@ describe('StatusPage API With SubProjects', () => {
 
                     textContent = await textContent.jsonValue();
                     expect(textContent).toMatch('Page 1 of 1 (1 Status Page');
-            //    }
-           // );
 
             done();
         },
         operationTimeOut
     );
 
-    test('should navigate to status page when view button is clicked on the status page table view', async done => {
-        //const fn = async ({ page, data }) => {
-            // const user = {
-            //     email: data.email,
-            //     password: data.password,
-            // };
-            // await init.loginUser(user, page);
+    test('should navigate to status page when view button is clicked on the status page table view', async done => {        
             await page.goto(utils.DASHBOARD_URL);
             const statuspageName = utils.generateRandomString();
             await init.addStatusPageToProject(
@@ -148,30 +139,19 @@ describe('StatusPage API With SubProjects', () => {
             await page.waitForSelector('tr.statusPageListItem');
             await page.$$('tr.statusPageListItem');
             await page.waitForSelector('#viewStatusPage');
-            await page.click('#viewStatusPage');
+            await page.click('#viewStatusPage');            
+            await page.reload({waitUntil: 'networkidle0'});
 
-            const element = await page.$(`#cb${statuspageName}`);
-            const statusPageNameOnStatusPage = await (
-                await element.getProperty('textContent')
-            ).jsonValue();
+            let statusPageNameOnStatusPage = await page.waitForSelector(`#cb${statuspageName}`, {visible: true});
+            statusPageNameOnStatusPage = await statusPageNameOnStatusPage.getProperty('innerText');
+            statusPageNameOnStatusPage = await statusPageNameOnStatusPage.jsonValue();
+            expect(statuspageName).toMatch(statusPageNameOnStatusPage);
 
-            expect(statuspageName).toEqual(statusPageNameOnStatusPage);
-        //};
-      //  await cluster.execute({ email, password, subProjectName }, fn);
         done();
     }, 50000);
 
-    test('should get list of status pages in sub-projects and paginate status pages in sub-project', async done => {
-        //const fn = async ({ page, data }) => {
-            // const user = {
-            //     email: data.email,
-            //     password: data.password,
-            // };
-
-            // await init.loginUser(user, page);
-            await page.goto(utils.DASHBOARD_URL);
-          //  if (data.isParentUser) {
-                // add 10 more statuspages to sub-project to test for pagination
+    test('should get list of status pages in sub-projects and paginate status pages in sub-project', async done => {        
+            await page.goto(utils.DASHBOARD_URL);          
                 for (let i = 0; i < 10; i++) {
                     const statuspageName = utils.generateRandomString();
                     await init.addStatusPageToProject(
@@ -180,10 +160,7 @@ describe('StatusPage API With SubProjects', () => {
                         page
                     );
                 }
-               // await init.logout(page);
-           // } else {
-                // await page.waitForSelector('#statusPages');
-                // await page.click('#statusPages');
+               
                 await page.reload({waitUntil: 'networkidle0'});
                 await page.waitForSelector('tr.statusPageListItem');
 
@@ -192,143 +169,102 @@ describe('StatusPage API With SubProjects', () => {
 
                 expect(countStatusPages).toEqual(10);
 
-                const nextSelector = await page.$('#btnNext');
+                await page.waitForSelector(`#btnNext-${subProjectName}`);
+                await page.click(`#btnNext-${subProjectName}`);
 
-                await nextSelector.click();
                 await page.waitForTimeout(5000);
                 statusPageRows = await page.$$('tr.statusPageListItem');
                 countStatusPages = statusPageRows.length;
                 expect(countStatusPages).toEqual(2);
 
-                const prevSelector = await page.$('#btnPrev');
+                await page.waitForSelector(`#btnPrev-${subProjectName}`);
+                await page.click(`#btnPrev-${subProjectName}`);
 
-                await prevSelector.click();
                 await page.waitForTimeout(5000);
                 statusPageRows = await page.$$('tr.statusPageListItem');
                 countStatusPages = statusPageRows.length;
 
                 expect(countStatusPages).toEqual(10);
-           // }
-       // };
-
-        // await cluster.execute(
-        //     { email, password, subProjectName, isParentUser: true },
-        //     fn
-        // );
-        // await cluster.execute(
-        //     {
-        //         email: newEmail,
-        //         password: newPassword,
-        //         projectName,
-        //         isParentUser: false,
-        //     },
-        //     fn
-        // );
-
+       
         done();
     }, 500000);
 
-    // test(
-    //     'should update sub-project status page settings',
-    //     async done => {
-    //         await cluster.execute(
-    //             { email, password, projectName, subProjectName },
-    //             async ({ page, data }) => {
-    //                 const user = {
-    //                     email: data.email,
-    //                     password: data.password,
-    //                 };
+    test(
+        'should update sub-project status page settings',
+        async done => {           
+                    await page.goto(utils.DASHBOARD_URL);                   
+                    await page.waitForSelector('#statusPages');
+                    await page.click('#statusPages');
+                    await page.waitForSelector('tr.statusPageListItem');
+                    await page.click('tr.statusPageListItem');
 
-    //                 await init.loginUser(user, page);
-    //                 await page.waitForSelector('#statusPages');
-    //                 await page.click('#statusPages');
-    //                 await page.waitForSelector('tr.statusPageListItem');
-    //                 await page.click('tr.statusPageListItem');
+                    await page.waitForSelector('#customTabList > li');
+                    // navigate to branding tab
+                    await page.$$eval('#customTabList > li', elem =>
+                        elem[3].click() //Branding is fourth tab
+                    );
+                    const pageTitle = 'MyCompany';
+                    const pageDescription = 'MyCompany description';
+                    await page.waitForSelector('#title');
+                    await page.type('#title', pageTitle);
+                    await page.type(
+                        '#account_app_product_description',
+                        pageDescription
+                    );
+                    await page.click('#saveBranding');
+                    await page.waitForSelector('.ball-beat', { hidden: true });
 
-    //                 await page.waitForSelector('#customTabList > li');
-    //                 // navigate to branding tab
-    //                 await page.$$eval('#customTabList > li', elem =>
-    //                     elem[2].click()
-    //                 );
-    //                 const pageTitle = 'MyCompany';
-    //                 const pageDescription = 'MyCompany description';
-    //                 await page.waitForSelector('#title');
-    //                 await page.type('#title', pageTitle);
-    //                 await page.type(
-    //                     '#account_app_product_description',
-    //                     pageDescription
-    //                 );
-    //                 await page.click('#saveBranding');
-    //                 await page.waitForSelector('.ball-beat', { hidden: true });
+                    await page.reload({ waitUntil: 'networkidle0' });
+                    await page.waitForSelector('#customTabList > li');
+                    // navigate to branding tab
+                    await page.$$eval('#customTabList > li', elem =>
+                        elem[3].click()
+                    );
+                    await page.waitForSelector('#title');
+                    const title = await page.$eval(
+                        '#title',
+                        elem => elem.value
+                    );
 
-    //                 await page.reload({ waitUntil: 'networkidle0' });
-    //                 await page.waitForSelector('#customTabList > li');
-    //                 // navigate to branding tab
-    //                 await page.$$eval('#customTabList > li', elem =>
-    //                     elem[2].click()
-    //                 );
-    //                 await page.waitForSelector('#title');
-    //                 const title = await page.$eval(
-    //                     '#title',
-    //                     elem => elem.value
-    //                 );
+                    expect(title).toMatch(pageTitle);       
 
-    //                 expect(title).toEqual(pageTitle);
-    //             }
-    //         );
+            done();
+        },
+        operationTimeOut
+    );
 
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+    test(
+        'should delete sub-project status page',
+        async done => {        
+                    await page.goto(utils.DASHBOARD_URL);
+                    await page.waitForSelector('#statusPages');
+                    await page.click('#statusPages');
+                    await page.waitForSelector('tr.statusPageListItem');
+                    await page.click('tr.statusPageListItem');
+                    await page.waitForSelector('#customTabList > li');
+                    // navigate to advanced options
+                    await page.$$eval('#customTabList > li', elem =>
+                        elem[5].click() // Advanced is on the sixth tab
+                    );
+                    await page.waitForSelector('#delete');
+                    await page.click('#delete');
+                    await page.waitForSelector('#confirmDelete');
+                    await page.click('#confirmDelete');
+                    await page.waitForSelector('#confirmDelete', {
+                        hidden: true,
+                    });
+                    await page.waitForSelector('#statusPages');
+                    await page.click('#statusPages');
 
-    // test(
-    //     'should delete sub-project status page',
-    //     async done => {
-    //         await cluster.execute(
-    //             {
-    //                 email,
-    //                 password,
-    //             },
-    //             async ({ page, data }) => {
-    //                 await page.setDefaultTimeout(utils.timeout);
-    //                 const user = {
-    //                     email: data.email,
-    //                     password: data.password,
-    //                 };
+                    await page.waitForSelector('tr.statusPageListItem');
+                    const statusPageRows = await page.$$(
+                        'tr.statusPageListItem'
+                    );
+                    const countStatusPages = statusPageRows.length;
 
-    //                 await init.loginUser(user, page);
-    //                 await page.waitForSelector('#statusPages');
-    //                 await page.click('#statusPages');
-    //                 await page.waitForSelector('tr.statusPageListItem');
-    //                 await page.click('tr.statusPageListItem');
-    //                 await page.waitForSelector('#customTabList > li');
-    //                 // navigate to advanced options
-    //                 await page.$$eval('#customTabList > li', elem =>
-    //                     elem[3].click()
-    //                 );
-    //                 await page.waitForSelector('#delete');
-    //                 await page.click('#delete');
-    //                 await page.waitForSelector('#confirmDelete');
-    //                 await page.click('#confirmDelete');
-    //                 await page.waitForSelector('#confirmDelete', {
-    //                     hidden: true,
-    //                 });
-    //                 await page.waitForSelector('#statusPages');
-    //                 await page.click('#statusPages');
-
-    //                 await page.waitForSelector('tr.statusPageListItem');
-    //                 const statusPageRows = await page.$$(
-    //                     'tr.statusPageListItem'
-    //                 );
-    //                 const countStatusPages = statusPageRows.length;
-
-    //                 expect(countStatusPages).toEqual(10);
-    //             }
-    //         );
-
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+                    expect(countStatusPages).toEqual(10);          
+            done();
+        },
+        operationTimeOut
+    );
 });
