@@ -52,6 +52,7 @@ import {
     FETCH_SCHEDULED_EVENT_REQUEST_SLUG,
     FETCH_SCHEDULED_EVENT_SUCCESS_SLUG,
     FETCH_SCHEDULED_EVENT_FAILURE_SLUG,
+    ADD_SCHEDULE_EVENT,
 } from '../constants/scheduledEvent';
 import moment from 'moment';
 
@@ -467,7 +468,14 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     scheduledEvent: action.payload,
                 },
             };
-
+        case ADD_SCHEDULE_EVENT:
+            return {
+                ...state,
+                currentScheduledEvent: {
+                    ...state.currentScheduledEvent,
+                    scheduledEvent: action.payload,
+                },
+            };
         case FETCH_SCHEDULED_EVENT_REQUEST:
             return {
                 ...state,

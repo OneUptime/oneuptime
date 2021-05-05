@@ -2,7 +2,7 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const userSchema = new Schema({
-    name: String,
+    name: { type: String, index: true },
     email: String,
     tempEmail: String,
     password: String,
