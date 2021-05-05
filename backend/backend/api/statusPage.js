@@ -1254,6 +1254,129 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
     }
 });
 
+router.post('/:projectId/announcement/:statusPageId', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { projectId, statusPageId } = req.params;
+        const { data } = req.body;
+        data.createdById = req.user ? req.user.id : null;
+
+        if (!data) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: "Values can't be null",
+            });
+        }
+
+        if (!data.name || !data.name.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Announcement name is required.',
+            });
+        }
+
+        // data.monitors should be an array containing id of monitor(s)
+        if (data.monitors && !Array.isArray(data.monitors)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitors is not of type array',
+            });
+        }
+
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project ID is required.',
+            });
+        }
+
+        data.projectId = projectId;
+        data.statusPageId = statusPageId;
+        const response = await StatusPageService.createAnnouncement(data);
+
+        return sendItemResponse(req, res, response);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/:projectId/announcement/:statusPageId', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { projectId, statusPageId } = req.params;
+        const { skip, limit } = req.query;
+
+        const allAnnouncements = await StatusPageService.getAnnouncements(
+            {
+                projectId,
+                statusPageId,
+            },
+            skip,
+            limit
+        );
+
+        const count = await StatusPageService.countAnnouncements({
+            projectId,
+            statusPageId,
+        });
+
+        return sendItemResponse(req, res, {
+            allAnnouncements,
+            skip,
+            limit,
+            count,
+        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get(
+    '/:projectId/announcement/:statusPageSlug/single/:announcementSlug',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, statusPageSlug, announcementSlug } = req.params;
+            const { _id } = await StatusPageService.findOneBy({
+                slug: statusPageSlug,
+            });
+            const response = await StatusPageService.getSingleAnnouncement({
+                projectId,
+                statusPageId: _id,
+                slug: announcementSlug,
+            });
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.put(
+    `/:projectId/announcement/:statusPageSlug/update`,
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, statusPageSlug } = req.params;
+            const { _id } = await StatusPageService.findOneBy({
+                slug: statusPageSlug,
+            });
+            const { hideAnnouncement } = req.body;
+            const response = await StatusPageService.updateAnnouncement(
+                { projectId, statusPageId: String(_id) },
+                { hideAnnouncement }
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 const formatNotes = (data = []) => {
     const result = [];
     const limit = 15;
