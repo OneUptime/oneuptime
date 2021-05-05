@@ -47,7 +47,7 @@ class DeleteApplicationSecurity extends Component {
 
         deleteApplicationSecurity(data).then(() => {
             history.push(
-                `/dashboard/project/${this.props.slug}/${componentSlug}/security/application`
+                `/dashboard/project/${this.props.slug}/component/${componentSlug}/security/application`
             );
 
             if (!deleteApplicationError) {

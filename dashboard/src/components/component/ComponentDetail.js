@@ -230,7 +230,7 @@ export class ComponentDetail extends Component {
                                         history.push(
                                             '/dashboard/project/' +
                                                 currentProject.slug +
-                                                '/' +
+                                                '/component/' +
                                                 component.slug +
                                                 '/monitoring'
                                         );

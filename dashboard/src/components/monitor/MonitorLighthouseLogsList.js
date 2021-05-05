@@ -180,7 +180,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                                   this.props
                                                                       .currentProject
                                                                       .slug +
-                                                                  '/' +
+                                                                  '/component/' +
                                                                   this.props
                                                                       .componentSlug +
                                                                   '/monitoring/' +

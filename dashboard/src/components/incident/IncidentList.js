@@ -213,7 +213,7 @@ export class IncidentList extends Component {
                                                             this.props
                                                                 .currentProject
                                                                 .slug +
-                                                            '/' +
+                                                            '/component/' +
                                                             incident.monitorId
                                                                 .componentId
                                                                 .slug +

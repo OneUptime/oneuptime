@@ -608,7 +608,7 @@ class NewMonitor extends Component {
                     );
                 }
                 history.replace(
-                    `/dashboard/project/${this.props.currentProject.slug}/${this.props.component.slug}/monitoring/${data.data.slug}`
+                    `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.component.slug}/monitoring/${data.data.slug}`
                 );
             });
         } else {
@@ -622,7 +622,7 @@ class NewMonitor extends Component {
                         );
                     }
                     history.push(
-                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/monitoring/${data.data.slug}`
+                        `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring/${data.data.slug}`
                     );
                 },
                 error => {
