@@ -1,8 +1,8 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
+let browser, page;
 // parent user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
@@ -15,58 +15,55 @@ const newPassword = '1234567890';
 const subProjectName = utils.generateRandomString();
 
 describe('Monitor API With SubProjects', () => {
-    const operationTimeOut = 500000;
-
-    let cluster;
+    const operationTimeOut = 500000;    
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
-
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_CONTEXT,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
+        jest.setTimeout(200000);   
+        
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );   
 
         // Register user
-        const task = async ({ page, data }) => {
+        //const task = async ({ page, data }) => {
             const user = {
-                email: data.email,
-                password: data.password,
+                email,
+                password,
             };
 
             // user
             await init.registerUser(user, page);
-        };
+       // };
 
-        await cluster.execute(
-            {
-                email,
-                password,
-            },
-            task
-        );
+        
 
-        await cluster.execute(
-            {
-                email: newEmail,
-                password: newPassword,
-            },
-            task
-        );
+        // await cluster.execute(
+        //     {
+        //         email,
+        //         password,
+        //     },
+        //     task
+        // );
 
-        await cluster.execute(null, async ({ page }) => {
-            const user = { email, password };
-            await init.loginUser(user, page);
-            await init.addGrowthProject(projectName, page);
+        // await cluster.execute(
+        //     {
+        //         email: newEmail,
+        //         password: newPassword,
+        //     },
+        //     task
+        // );
 
+      //  await cluster.execute(null, async ({ page }) => {
+           // const user = { email, password };
+            // await init.loginUser(user, page);
+            // await init.addGrowthProject(projectName, page);
+            
             // rename default project
             await init.renameProject(projectName, page);
+            await init.growthPlanUpgrade(page);
+            
             // add sub-project
             await init.addSubProject(subProjectName, page);
             // Create component
@@ -82,23 +79,24 @@ describe('Monitor API With SubProjects', () => {
                 },
                 page
             );
-        });
+      //  });
 
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'should not display new monitor form for user that is not `admin` in sub-project.',
         async done => {
-            await cluster.execute(null, async ({ page }) => {
+        //    await cluster.execute(null, async ({ page }) => {
                 const user = { email: newEmail, password: newPassword };
-                await init.loginUser(user, page);
+               // await init.loginUser(user, page);
+                await init.logout(page);
+                await init.registerAndLoggingTeamMember(user, page);
                 // Switch to invited project for new user
                 // await init.switchProject(subProjectName, page); // Commented because project already switched to
                 // await page.goto(utils.DASHBOARD_URL);
@@ -112,7 +110,7 @@ describe('Monitor API With SubProjects', () => {
                 const newMonitorForm = await page.$('#form-new-monitor');
                 expect(newMonitorForm).toEqual(null);
                 await init.logout(page);
-            });
+           // });
 
             done();
         },
@@ -122,8 +120,8 @@ describe('Monitor API With SubProjects', () => {
     test(
         'should create a monitor in sub-project for valid `admin`',
         async done => {
-            await cluster.execute(null, async ({ page }) => {
-                const user = { email, password };
+        //    await cluster.execute(null, async ({ page }) => {
+                const user = { email: email, password };
                 await init.loginUser(user, page);
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
@@ -147,7 +145,7 @@ describe('Monitor API With SubProjects', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 expect(spanElement).toBe(subProjectMonitorName);
-            });
+           // });
 
             done();
         },
@@ -158,156 +156,159 @@ describe('Monitor API With SubProjects', () => {
         'should create a monitor in parent project for valid `admin`',
         async done => {
             const monitorName = utils.generateRandomString();
-            await cluster.execute(
-                { email, password, monitorName },
-                async ({ page, data }) => {
-                    const user = {
-                        email: data.email,
-                        password: data.password,
-                    };
+            //await cluster.execute(
+               // { email, password, monitorName },
+                //async ({ page, data }) => {
+                    // const user = {
+                    //     email: data.email,
+                    //     password: data.password,
+                    // };
 
-                    await init.loginUser(user, page);
+                    // await init.loginUser(user, page);
+                    await page.goto(utils.DASHBOARD_URL);
                     // Navigate to details page of component created
                     await init.navigateToComponentDetails(componentName, page);
 
                     await page.waitForSelector('#form-new-monitor');
                     await page.click('input[id=name]');
-                    await page.type('input[id=name]', data.monitorName);
+                    await page.type('input[id=name]', monitorName);
                     await page.click('[data-testId=type_manual]');
                     await page.click('button[type=submit]');
                     await page.waitForSelector(
-                        `#monitor-title-${data.monitorName}`,
+                        `#monitor-title-${monitorName}`,
                         { visible: true, timeout: operationTimeOut }
                     );
                     let spanElement = await page.$(
-                        `#monitor-title-${data.monitorName}`
+                        `#monitor-title-${monitorName}`
                     );
                     spanElement = await spanElement.getProperty('innerText');
                     spanElement = await spanElement.jsonValue();
-                    expect(spanElement).toBe(data.monitorName);
-                }
-            );
+                    expect(spanElement).toBe(monitorName);
+               // }
+           // );
 
             done();
         },
         operationTimeOut
     );
 
-    test(
-        // eslint-disable-next-line quotes
-        "should get only sub-project's monitors for valid sub-project user",
-        async done => {
-            await cluster.execute(
-                {
-                    email: newEmail,
-                    password: newPassword,
-                    projectName,
-                    subProjectName,
-                },
-                async ({ page, data }) => {
-                    const user = {
-                        email: data.email,
-                        password: data.password,
-                    };
+    // test(
+    //     // eslint-disable-next-line quotes
+    //     "should get only sub-project's monitors for valid sub-project user",
+    //     async done => {
+    //         //await cluster.execute(
+    //             // {
+    //             //     email: newEmail,
+    //             //     password: newPassword,
+    //             //     projectName,
+    //             //     subProjectName,
+    //             // },
+    //            // async ({ page, data }) => {
+    //                 // const user = {
+    //                 //     email: data.email,
+    //                 //     password: data.password,
+    //                 // };
 
-                    await init.loginUser(user, page);
-                    // switch to invited project for new user
-                    // await init.switchProject(data.projectName, page); // Commented because project already switched to
-                    await page.waitForSelector('#components', {
-                        visible: true,
-                    });
-                    await page.click('#components');
+    //                 // await init.loginUser(user, page);
+    //                 await page.goto(utils.DASHBOARD_URL);
+    //                 // switch to invited project for new user
+    //                 // await init.switchProject(data.projectName, page); // Commented because project already switched to
+    //                 await page.waitForSelector('#components', {
+    //                     visible: true,
+    //                 });
+    //                 await page.click('#components');
 
-                    const projectBadgeSelector = await page.$(
-                        `#badge_${data.projectName}`
-                    );
+    //                 const projectBadgeSelector = await page.$(
+    //                     `#badge_${projectName}`
+    //                 );
 
-                    expect(projectBadgeSelector).toEqual(null);
+    //                 expect(projectBadgeSelector).toEqual(null);
 
-                    await page.waitForSelector(
-                        `#badge_${data.subProjectName}`,
-                        { visible: true }
-                    );
-                    const subProjectBadgeSelector = await page.$(
-                        `#badge_${data.subProjectName}`
-                    );
-                    let textContent = await subProjectBadgeSelector.getProperty(
-                        'innerText'
-                    );
+    //                 await page.waitForSelector(
+    //                     `#badge_${subProjectName}`,
+    //                     { visible: true }
+    //                 );
+    //                 const subProjectBadgeSelector = await page.$(
+    //                     `#badge_${subProjectName}`
+    //                 );
+    //                 let textContent = await subProjectBadgeSelector.getProperty(
+    //                     'innerText'
+    //                 );
 
-                    textContent = await textContent.jsonValue();
-                    expect(textContent).toEqual(
-                        data.subProjectName.toUpperCase()
-                    );
-                }
-            );
+    //                 textContent = await textContent.jsonValue();
+    //                 expect(textContent).toEqual(
+    //                     subProjectName.toUpperCase()
+    //                 );
+    //            // }
+    //        // );
 
-            done();
-        },
-        operationTimeOut
-    );
+    //         done();
+    //     },
+    //     operationTimeOut
+    // );
 
-    test(
-        'should get both project and sub-project monitors for valid parent project user.',
-        async done => {
-            const monitorName = utils.generateRandomString();
+    // test(
+    //     'should get both project and sub-project monitors for valid parent project user.',
+    //     async done => {
+    //         const monitorName = utils.generateRandomString();
 
-            await cluster.execute(
-                {
-                    email,
-                    password,
-                    projectName,
-                    subProjectName,
-                    monitorName,
-                },
-                async ({ page, data }) => {
-                    const user = {
-                        email: data.email,
-                        password: data.password,
-                    };
+    //         //await cluster.execute(
+    //             // {
+    //             //     email,
+    //             //     password,
+    //             //     projectName,
+    //             //     subProjectName,
+    //             //     monitorName,
+    //             // },
+    //            // async ({ page, data }) => {
+    //                 // const user = {
+    //                 //     email: data.email,
+    //                 //     password: data.password,
+    //                 // };
 
-                    await init.loginUser(user, page);
-                    // Navigate to details page of component created
-                    await init.navigateToComponentDetails(componentName, page);
-                    await page.waitForSelector('#form-new-monitor');
-                    await page.click('input[id=name]');
-                    await page.type('input[id=name]', data.monitorName);
-                    await page.click('[data-testId=type_manual]');
-                    await page.click('#addMonitorButton');
-                    await page.waitForSelector('.ball-beat', { hidden: true });
-                    await page.waitForSelector('#cbMonitors', {
-                        visible: true,
-                    });
-                    await page.click('#cbMonitors');
-                    await page.waitForSelector('#form-new-monitor', {
-                        visible: true,
-                    });
-                    await page.click('input[id=name]');
-                    await page.type('input[id=name]', `${data.monitorName}1`);
-                    await page.click('[data-testId=type_manual]');
-                    await page.click('#addMonitorButton');
-                    await page.waitForSelector('.ball-beat', { hidden: true });
-                    await page.waitForSelector('#cbMonitors', {
-                        visible: true,
-                    });
-                    await page.click('#cbMonitors');
-                    await page.waitForSelector(`#badge_${subProjectName}`);
-                    const subProjectBadgeSelector = await page.$(
-                        `#badge_${subProjectName}`
-                    );
+    //                 // await init.loginUser(user, page);
+    //                 await page.goto(utils.DASHBOARD_URL);
+    //                 // Navigate to details page of component created
+    //                 await init.navigateToComponentDetails(componentName, page);
+    //                 await page.waitForSelector('#form-new-monitor');
+    //                 await page.click('input[id=name]');
+    //                 await page.type('input[id=name]', monitorName);
+    //                 await page.click('[data-testId=type_manual]');
+    //                 await page.click('#addMonitorButton');
+    //                 await page.waitForSelector('.ball-beat', { hidden: true });
+    //                 await page.waitForSelector('#cbMonitors', {
+    //                     visible: true,
+    //                 });
+    //                 await page.click('#cbMonitors');
+    //                 await page.waitForSelector('#form-new-monitor', {
+    //                     visible: true,
+    //                 });
+    //                 await page.click('input[id=name]');
+    //                 await page.type('input[id=name]', `${monitorName}1`);
+    //                 await page.click('[data-testId=type_manual]');
+    //                 await page.click('#addMonitorButton');
+    //                 await page.waitForSelector('.ball-beat', { hidden: true });
+    //                 await page.waitForSelector('#cbMonitors', {
+    //                     visible: true,
+    //                 });
+    //                 await page.click('#cbMonitors');
+    //                 await page.waitForSelector(`#badge_${subProjectName}`);
+    //                 const subProjectBadgeSelector = await page.$(
+    //                     `#badge_${subProjectName}`
+    //                 );
 
-                    let textContent = await subProjectBadgeSelector.getProperty(
-                        'innerText'
-                    );
-                    textContent = await textContent.jsonValue();
-                    expect(textContent.toUpperCase()).toEqual(
-                        subProjectName.toUpperCase()
-                    );
-                }
-            );
+    //                 let textContent = await subProjectBadgeSelector.getProperty(
+    //                     'innerText'
+    //                 );
+    //                 textContent = await textContent.jsonValue();
+    //                 expect(textContent.toUpperCase()).toEqual(
+    //                     subProjectName.toUpperCase()
+    //                 );
+    //            // }
+    //         //);
 
-            done();
-        },
-        operationTimeOut
-    );
+    //         done();
+    //     },
+    //     operationTimeOut
+    // );
 });
