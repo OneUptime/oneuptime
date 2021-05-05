@@ -31,6 +31,7 @@ import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import Themes from '../components/statusPage/Themes';
 import StatusPageSubscriber from '../components/statusPage/StatusPageSubscriber';
+import Announcements from '../components/statusPage/Announcements';
 
 class StatusPage extends Component {
     state = {
@@ -166,6 +167,9 @@ class StatusPage extends Component {
                                     Subscribers
                                 </Tab>
                                 <Tab className={'custom-tab custom-tab-6'}>
+                                    Announcements
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-6'}>
                                     Custom Domains
                                 </Tab>
                                 <Tab className={'custom-tab custom-tab-6'}>
@@ -245,6 +249,23 @@ class StatusPage extends Component {
                                                                             this
                                                                                 .props
                                                                                 .subProjects
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </TabPanel>
+                                                            <TabPanel>
+                                                                <div className="Box-root Margin-bottom--12 bs-ContentSection Card-root Card-shadow--medium>">
+                                                                    <Announcements
+                                                                        projectId={
+                                                                            data.projectId
+                                                                        }
+                                                                        statusPage={
+                                                                            status
+                                                                        }
+                                                                        currentProject={
+                                                                            this
+                                                                                .props
+                                                                                .currentProject
                                                                         }
                                                                     />
                                                                 </div>
