@@ -1,14 +1,12 @@
-import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-//import PropTypes from 'prop-types';
-import { getMonitorLogs } from '../../actions/monitor';
-import ChartComponent from './ChartComponent';
+import TableComponent from './TableComponent';
 
-export class WebTransactionsChart extends Component {
+export class TransactionMetricsTable extends Component {
     render() {
-        const { heading, title, subHeading } = this.props;
+        const { heading, title, subHeading, type } = this.props;
         return (
             <div
                 className="Box-root Card-shadow--medium"
@@ -16,26 +14,27 @@ export class WebTransactionsChart extends Component {
                 onKeyDown={this.handleKeyBoard}
                 style={{ marginTop: '10px' }}
             >
-                <ChartComponent
+                <TableComponent
                     heading={heading}
                     title={title}
                     subHeading={subHeading}
+                    type={type}
                 />
             </div>
         );
     }
 }
 
-WebTransactionsChart.displayName = 'WebTransactionsChart';
+TransactionMetricsTable.displayName = 'TransactionMetricsTable';
 
-WebTransactionsChart.propTypes = {
+TransactionMetricsTable.propTypes = {
     heading: PropTypes.any,
     subHeading: PropTypes.any,
     title: PropTypes.any,
+    type: PropTypes.any,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ getMonitorLogs }, dispatch);
+const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
 
 function mapStateToProps(state) {
     return {
@@ -46,4 +45,4 @@ function mapStateToProps(state) {
 export default connect(
     mapStateToProps,
     mapDispatchToProps
-)(WebTransactionsChart);
+)(TransactionMetricsTable);

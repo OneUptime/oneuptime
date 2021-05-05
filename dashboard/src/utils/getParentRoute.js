@@ -139,6 +139,20 @@ function getParentRoute(childRoute, projectId = null, type) {
         );
         return urlParts.join('/');
     }
+    if (type === 'performance-tracker') {
+        const urlParts = childRoute.split('/');
+        urlParts.pop();
+        return urlParts.join('/');
+    }
+    if (type === 'component-tracker') {
+        const urlParts = childRoute.split('/');
+        urlParts.splice(
+            urlParts.indexOf('performance-tracker'),
+            urlParts.length,
+            'monitoring'
+        );
+        return urlParts.join('/');
+    }
     return urlParts.join('/');
 }
 

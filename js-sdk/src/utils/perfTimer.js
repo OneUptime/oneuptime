@@ -7,10 +7,16 @@ class PerfTimer {
     #dataStore;
     #apiUrl;
     #appId;
-    constructor(apiUrl, appId) {
+    #appKey;
+    constructor(apiUrl, appId, appKey) {
         this.#apiUrl = apiUrl;
         this.#appId = appId;
-        this.#dataStore = new DataStore(this.#apiUrl, this.#appId);
+        this.#appKey = appKey;
+        this.#dataStore = new DataStore(
+            this.#apiUrl,
+            this.#appId,
+            this.#appKey
+        );
         this.obs = new PerformanceObserver((list, observer) => {
             const entry = list.getEntries()[0];
             const id = entry.name.slice(entry.name.indexOf('-') + 1);
@@ -35,5 +41,7 @@ class PerfTimer {
         performance.mark(`end-${id}`);
         return performance.measure(`${type}-${id}`, `start-${id}`, `end-${id}`);
     };
+
+    store = () => this.#dataStore;
 }
 export default PerfTimer;

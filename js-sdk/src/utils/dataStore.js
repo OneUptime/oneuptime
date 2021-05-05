@@ -10,9 +10,11 @@ class DataStore {
     #mongoose;
     #apiUrl;
     #appId;
-    constructor(url, appId) {
+    #appKey;
+    constructor(url, appId, appKey) {
         this.#apiUrl = url;
         this.#appId = appId;
+        this.#appKey = appKey;
         this.#store = new Map();
         this.#incoming = new Map();
         this.#outgoing = new Map();
@@ -21,20 +23,33 @@ class DataStore {
     }
     runCron() {
         const _this = this;
-        return cron.schedule('5 * * * *', () => {
+        return cron.schedule('*/5 * * * *', () => {
             _this.sendData();
         });
     }
-    mapValue(path, store, time) {
+    mapValue(path, store, time, method, errorCount) {
         if (store.has(path)) {
             const s = store.get(path);
+            const avg = s.avgTime,
+                rq = s.requests,
+                ct = time;
+            let avgTime = avg * rq + ct;
+            avgTime = avgTime / (rq + 1);
             return {
                 requests: s.requests + 1,
-                avgTime: (s.avgTime * s.requests + time) / s.requests + 1,
+                avgTime: avgTime,
                 maxTime: s.maxTime < time ? time : s.maxTime,
+                method: s.method,
+                errorCount: s.errorCount + errorCount,
             };
         } else {
-            return { requests: 1, avgTime: time, maxTime: time };
+            return {
+                requests: 1,
+                avgTime: time,
+                maxTime: time,
+                method,
+                errorCount,
+            };
         }
     }
     destroy(id) {
@@ -67,12 +82,14 @@ class DataStore {
         const type = value.type;
         const path = value.path;
         const time = value.duration;
+        const method = value.method;
+        const errorCount = value.errorCount || 0;
         let val = {};
         if (type === 'incoming') {
-            val = this.mapValue(path, this.#incoming, time);
+            val = this.mapValue(path, this.#incoming, time, method, errorCount);
             return this.#incoming.set(path, val);
         } else if (type === 'outgoing') {
-            val = this.mapValue(path, this.#outgoing, time);
+            val = this.mapValue(path, this.#outgoing, time, method, errorCount);
             return this.#outgoing.set(path, val);
         } else if (type === 'mongoose') {
             val = this.mapValue(path, this.#mongoose, time);
@@ -93,10 +110,14 @@ class DataStore {
         this.clearData();
     }
     _makeApiRequest(data) {
-        console.log(data);
         return new Promise((resolve, reject) => {
             axios
-                .post(`${this.#apiUrl}/${this.#appId}`, data)
+                .post(
+                    `${this.#apiUrl}/performanceMetric/${this.#appId}/key/${
+                        this.#appKey
+                    }`,
+                    data
+                )
                 .then(res => {
                     resolve(res);
                 })

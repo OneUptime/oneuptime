@@ -1068,6 +1068,42 @@ module.exports = {
             throw error;
         }
     },
+    sendTimeMetrics: async (appId, data) => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            global.io.emit(`timeMetrics-${appId}`, data);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendTimeMetrics', error);
+            throw error;
+        }
+    },
+    sendThroughputMetrics: async (appId, data) => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            global.io.emit(`throughputMetrics-${appId}`, data);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendThroughputMetrics', error);
+            throw error;
+        }
+    },
+    sendErrorMetrics: async (appId, data) => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            global.io.emit(`errorMetrics-${appId}`, data);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendErrorMetrics', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');

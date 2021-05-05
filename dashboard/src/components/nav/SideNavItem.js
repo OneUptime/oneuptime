@@ -52,6 +52,10 @@ export class SidebarNavItem extends Component {
             .replace(':componentSlug', match.params.componentSlug)
             .replace(':monitor', match.params.monitorSlug)
             .replace(':applicationLogSlug', match.params.applicationLogSlug)
+            .replace(
+                ':performanceTrackerSlug',
+                match.params.performanceTrackerSlug
+            )
             .replace(':errorTrackerSlug', match.params.errorTrackerSlug);
     };
     handleShowMore = () => {
@@ -112,6 +116,10 @@ export class SidebarNavItem extends Component {
             .replace(':componentSlug', match.params.componentSlug)
             .replace(':monitorSlug', match.params.monitorSlug)
             .replace(':applicationLogSlug', match.params.applicationLogSlug)
+            .replace(
+                ':performanceTrackerSlug',
+                match.params.performanceTrackerSlug
+            )
             .replace(':errorTrackerSlug', match.params.errorTrackerSlug);
         const isLinkActive =
             location.pathname === path ||
@@ -141,6 +149,10 @@ export class SidebarNavItem extends Component {
                 /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/application-log/
             ) &&
                 route.title === 'Logs') ||
+            (location.pathname.match(
+                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/performance-tracker/
+            ) &&
+                route.title === 'Performance Tracker') ||
             (location.pathname.match(
                 /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security/
             ) &&
@@ -176,6 +188,10 @@ export class SidebarNavItem extends Component {
             newPath = newPath.replace(
                 /:applicationLogSlug/,
                 match.params.applicationLogSlug
+            );
+            newPath = newPath.replace(
+                /:performanceTrackerSlug/,
+                match.params.performanceTrackerSlug
             );
             newPath = newPath.replace(
                 /:errorTrackerSlug/,
@@ -374,6 +390,7 @@ export class SidebarNavItem extends Component {
                 'Scheduled Event Detail',
                 'Error Tracking View',
                 'Error Tracking Detail View',
+                'Performance Tracker View',
             ];
             const moreRoutes =
                 child.title === 'Monitor' ||

@@ -56,4 +56,10 @@ const format = number => {
     return formattedValue;
 };
 
+// return the provided number in a particular decimal place
+export function numDecimal(num, decimalPlace = 2) {
+    decimalPlace = Number(decimalPlace);
+    return Number.parseFloat(num).toFixed(decimalPlace);
+}
+
 export default format;

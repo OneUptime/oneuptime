@@ -52,7 +52,8 @@ const {
     CallRouting,
     DomainSettings,
     Groups,
-    PerformanceMonitoring,
+    PerformanceTrackerView,
+    PerformanceTracker,
 } = pages;
 
 export const groups = [
@@ -188,16 +189,28 @@ export const groups = [
                 ],
             },
             {
-                title: 'Performance Monitoring',
+                title: 'Performance Tracker',
                 path:
-                    '/dashboard/project/:slug/:componentId/performance-monitor',
-                icon: 'errorTracking',
+                    '/dashboard/project/:slug/:componentSlug/performance-tracker',
+                icon: 'performanceTracker',
                 visible: true,
                 exact: true,
-                component: PerformanceMonitoring,
+                component: PerformanceTracker,
                 index: 8,
-                shortcut: 'f+p',
-                subRoutes: [],
+                shortcut: 'p+m',
+                subRoutes: [
+                    {
+                        title: 'Performance Tracker View',
+                        path:
+                            '/dashboard/project/:slug/:componentSlug/performance-tracker/:performanceTrackerSlug',
+                        icon: 'performanceTracker',
+                        visible: true,
+                        subRoutes: [],
+                        component: PerformanceTrackerView,
+                        index: 1,
+                        shortcut: 'm+l',
+                    },
+                ],
             },
             {
                 title: 'Security',
