@@ -36,7 +36,7 @@ describe('Monitor API With SubProjects', () => {
                  
             // rename default project
             await init.renameProject(projectName, page);
-            await init.growthPlanUpgrade(page);
+            await init.growthPlanUpgrade(page); // Growth Plan is needed for subproject
             
             // add sub-project
             await init.addSubProject(subProjectName, page);
@@ -221,7 +221,7 @@ describe('Monitor API With SubProjects', () => {
                     expect(textContent.toUpperCase()).toEqual(
                         subProjectName.toUpperCase()
                     );
-                               
+
             done();
         },
         operationTimeOut
