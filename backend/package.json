@@ -20,6 +20,7 @@
         "ffyipe-acme-http-01": "^1.0.1",
         "ffyipe-le-store": "^1.0.4",
         "fyipe-acme-http-01": "^3.0.10432",
+        "fyipe-gl-manager": "^3.0.10506",
         "fyipe-le-store": "^3.0.10432",
         "geoip-lite": "^1.4.2",
         "greenlock": "^4.0.4",
