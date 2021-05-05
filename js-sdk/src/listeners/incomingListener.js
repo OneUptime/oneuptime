@@ -32,7 +32,7 @@ class IncomingListener {
                     let finalPattern = path;
 
                     // this will only work with express application
-                    if (_this.#app._router) {
+                    if (_this.#app && _this.#app._router) {
                         const routes = getRoutes(_this.#app);
                         for (const [key, value] of Object.entries(routes)) {
                             if (key === String(method).toLowerCase()) {
