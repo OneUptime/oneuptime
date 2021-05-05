@@ -51,6 +51,5 @@ deploy_production_fyipe-gl-manager:
         refs:
             - release
             - hotfix-release
-            - hotfix-master
     environment:
         name: production
