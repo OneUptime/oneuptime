@@ -58,6 +58,8 @@ import CallRouting from './CallRouting';
 import DomainSettings from './DomainSettings';
 import Groups from './Group';
 
+import StatusPageAnnouncement from './StatusPageAnnouncement';
+
 export default {
     ChangePassword,
     Home,
@@ -69,6 +71,7 @@ export default {
     TeamMemberProfile,
     StatusPage,
     StatusPages,
+    StatusPageAnnouncement,
     Profile,
     AlertLog,
     IncidentLog,
