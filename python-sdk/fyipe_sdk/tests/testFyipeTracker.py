@@ -314,4 +314,31 @@ class TrackerTest(unittest.TestCase):
         self.assertIn("methodName", frame)
         self.assertIn("lineNumber", frame)
         self.assertIn("fileName", frame)
+    
+    def test_should_create_an_event_and_new_event_should_have_different_id(self):
+        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        errorMessage = 'division by zero'
+        tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
+        tracker.captureMessage(errorMessage)
+        event = tracker.getCurrentEvent()
+
+        tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
+
+        newEvent = None
+        errorType = 'division by zero'
+        try:  
+            divByZero= 1/0
+        except Exception as ex:
+            tracker.captureException(ex)
+            newEvent = tracker.getCurrentEvent()
+        # ensure that the first event have a type message, same error message
+        self.assertEqual(event["type"], 'message')
+        self.assertEqual(event["exception"]["message"], errorMessage)
+
+        # ensure that the second event have a type exception, same error message
+        self.assertEqual(newEvent["type"], 'exception')
+        self.assertEqual(newEvent["exception"]["message"], errorMessage)
+        
+        # confim their eventId is different
+        self.assertNotEqual(event["eventId"], newEvent["eventId"])
 
