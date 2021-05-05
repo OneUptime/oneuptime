@@ -17,7 +17,7 @@ npm install --save fyipe-gl-manager
 ```js
 Greenlock.create({
     ...
-    manager: "@greenlock/manager",
+    manager: "fyipe-gl-manager",
     configDir: "./greenlock.d",
     packageRoot: __dirname
     ...
