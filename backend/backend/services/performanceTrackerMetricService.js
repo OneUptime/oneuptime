@@ -120,8 +120,8 @@ module.exports = {
                     value.forEach(eachValue => {
                         avgTime += eachValue.metrics.avgTime;
                         maxTime += eachValue.metrics.maxTime;
-                        throughput += eachValue.throughput;
-                        errorCount += eachValue.errorCount;
+                        throughput += eachValue.metrics.throughput;
+                        errorCount += eachValue.metrics.errorCount;
                     });
 
                     avgTime = numDecimal(avgTime / valueLength);
@@ -129,11 +129,11 @@ module.exports = {
                     throughput = numDecimal(throughput / valueLength, 0);
                     errorCount = numDecimal(errorCount / valueLength, 0);
 
-                    result.throughput = throughput;
-                    result.errorCount = errorCount;
                     result.metrics = {
                         avgTime,
                         maxTime,
+                        throughput,
+                        errorCount,
                     };
                     trackerMetrics.push(result);
                 }
@@ -263,10 +263,10 @@ module.exports = {
                     metrics: {
                         avgTime: value.avgTime,
                         maxTime: value.maxTime,
+                        throughput: value.requests,
+                        errorCount: value.errorCount,
                     },
                     createdAt: receivedAt,
-                    throughput: value.requests,
-                    errorCount: value.errorCount,
                 });
             }
 
@@ -474,7 +474,7 @@ function calcAvgThroughput(metric) {
 
     let sum = 0;
     metric.forEach(data => {
-        sum += data.throughput;
+        sum += data.metrics.throughput;
     });
 
     return {
@@ -487,7 +487,7 @@ function calcAvgError(metric) {
 
     let cumulative = 0;
     metric.forEach(data => {
-        cumulative += data.errorCount;
+        cumulative += data.metrics.errorCount;
     });
 
     return {
