@@ -88,6 +88,17 @@ import {
     FETCH_SUBSCRIBER_SUCCESS,
     FETCH_SUBSCRIBER_REQUEST,
     FETCH_SUBSCRIBER_FAILURE,
+    FETCH_ANNOUNCEMEMT_SUCCESS,
+    FETCH_ANNOUNCEMEMT_REQUEST,
+    FETCH_ANNOUNCEMEMT_FAILURE,
+    CREATE_ANNOUNCEMEMT_REQUEST,
+    CREATE_ANNOUNCEMEMT_FAILURE,
+    CREATE_ANNOUNCEMEMT_SUCCESS,
+    FETCH_SINCLE_ANNOUNCEMENT_SUCCESS,
+    HANDLE_ANNOUNCEMENT_SUCCESS,
+    HANDLE_ANNOUNCEMENT_FAILURE,
+    RESET_HANDLE_ANNOUNCEMENT,
+    FETCH_SINCLE_ANNOUNCEMENT_FAILURE,
 } from '../constants/statusPage';
 
 import {
@@ -258,6 +269,30 @@ const INITIAL_STATE = {
         success: false,
         error: null,
     },
+    announcements: {
+        announcementsList: [],
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    createAnnouncement: {
+        announcement: null,
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    singleAnnouncement: {
+        announcement: null,
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    updateAnnouncement: {
+        announcement: null,
+        requesting: false,
+        success: false,
+        error: null,
+    },
 };
 
 export default function statusPage(state = INITIAL_STATE, action) {
@@ -274,13 +309,127 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 },
             });
 
+        case HANDLE_ANNOUNCEMENT_SUCCESS:
+            return Object.assign({}, state, {
+                updateAnnouncement: {
+                    ...state.updateAnnouncement,
+                    announcement: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case HANDLE_ANNOUNCEMENT_FAILURE:
+            return Object.assign({}, state, {
+                updateAnnouncement: {
+                    ...state.updateAnnouncement,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case RESET_HANDLE_ANNOUNCEMENT:
+            return Object.assign({}, state, {
+                updateAnnouncement: {
+                    ...state.updateAnnouncement,
+                    requesting: false,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case FETCH_SINCLE_ANNOUNCEMENT_SUCCESS:
+            return Object.assign({}, state, {
+                singleAnnouncement: {
+                    ...state.singleAnnouncement,
+                    announcement: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case FETCH_SINCLE_ANNOUNCEMENT_FAILURE:
+            return Object.assign({}, state, {
+                singleAnnouncement: {
+                    ...state.singleAnnouncement,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case CREATE_ANNOUNCEMEMT_REQUEST:
+            return Object.assign({}, state, {
+                createAnnouncement: {
+                    ...state.createAnnouncement,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case CREATE_ANNOUNCEMEMT_SUCCESS:
+            return Object.assign({}, state, {
+                createAnnouncement: {
+                    ...state.createAnnouncement,
+                    announcement: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case CREATE_ANNOUNCEMEMT_FAILURE:
+            return Object.assign({}, state, {
+                createAnnouncement: {
+                    ...state.createAnnouncement,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case FETCH_ANNOUNCEMEMT_REQUEST:
+            return Object.assign({}, state, {
+                announcements: {
+                    ...state.announcements,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case FETCH_ANNOUNCEMEMT_SUCCESS:
+            return Object.assign({}, state, {
+                announcements: {
+                    ...state.announcements,
+                    announcementsList: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case FETCH_ANNOUNCEMEMT_FAILURE:
+            return Object.assign({}, state, {
+                announcements: {
+                    ...state.announcements,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
         case FETCH_SUBSCRIBER_REQUEST:
             return Object.assign({}, state, {
                 subscribers: {
                     ...state.subscribers,
                     requesting: true,
                     success: false,
-                    error: false,
+                    error: null,
                 },
             });
 
@@ -304,7 +453,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     limit: action.payload.limit,
                     requesting: false,
                     success: true,
-                    error: false,
+                    error: null,
                 },
             });
 
