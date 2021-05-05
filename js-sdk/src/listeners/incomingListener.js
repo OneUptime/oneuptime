@@ -29,6 +29,7 @@ class IncomingListener {
                 if (type === 'request') {
                     const path = req.pathname || req.path || req.url || '/';
                     const method = req.method;
+                    let finalPattern = path;
 
                     // this will only work with express application
                     if (_this.#app._router) {
@@ -40,52 +41,43 @@ class IncomingListener {
 
                                     if (pattern.match(path)) {
                                         // path pattern found
-                                        req.apm = {};
-                                        req.apm.uuid = uuidv4();
-                                        const result = _this.#start(
-                                            req.apm.uuid,
-                                            {
-                                                path: val,
-                                                type: 'incoming',
-                                                method,
-                                            }
-                                        );
-                                        res.on('finish', () => {
-                                            if (
-                                                res &&
-                                                res.statusCode &&
-                                                res.statusCode >= 400 &&
-                                                res.statusCode < 600
-                                            ) {
-                                                // error must have occurred
-                                                const originalValue = _this.#store.getValue(
-                                                    req.apm.uuid
-                                                );
-                                                if (
-                                                    originalValue &&
-                                                    originalValue !== undefined
-                                                ) {
-                                                    originalValue.errorCount = 1;
-                                                    _this.#store.setValue(
-                                                        req.apm.uuid,
-                                                        originalValue
-                                                    );
-                                                }
-                                            }
-
-                                            _this.#end(
-                                                req.apm.uuid,
-                                                result,
-                                                'request'
-                                            );
-                                        });
-
+                                        finalPattern = val;
                                         break;
                                     }
                                 }
                             }
                         }
                     }
+
+                    req.apm = {};
+                    req.apm.uuid = uuidv4();
+                    const result = _this.#start(req.apm.uuid, {
+                        path: finalPattern,
+                        type: 'incoming',
+                        method,
+                    });
+                    res.on('finish', () => {
+                        if (
+                            res &&
+                            res.statusCode &&
+                            res.statusCode >= 400 &&
+                            res.statusCode < 600
+                        ) {
+                            // error must have occurred
+                            const originalValue = _this.#store.getValue(
+                                req.apm.uuid
+                            );
+                            if (originalValue && originalValue !== undefined) {
+                                originalValue.errorCount = 1;
+                                _this.#store.setValue(
+                                    req.apm.uuid,
+                                    originalValue
+                                );
+                            }
+                        }
+
+                        _this.#end(req.apm.uuid, result, 'request');
+                    });
                 }
                 return emit.apply(this, arguments);
             };
