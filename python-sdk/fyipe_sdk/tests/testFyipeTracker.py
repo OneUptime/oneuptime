@@ -341,4 +341,40 @@ class TrackerTest(unittest.TestCase):
         
         # confim their eventId is different
         self.assertNotEqual(event["eventId"], newEvent["eventId"])
+    
+    def test_should_create_an_event_that_has_timeline_and_new_event_having_timeline_and_tags(self):
+        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        errorMessage = 'division by zero'
+        errorMessageObj = 'division by zero';
+        # add timeline to first tracker
+        tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
+        tracker.captureMessage(errorMessage)
+        event = tracker.getCurrentEvent()
+
+        # add timeline and tag to second tracker
+        tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
+        tag = {
+            "key": "location",
+            "value": "Warsaw"
+        } 
+        tracker.setTag(tag['key'], tag['value'])
+        newEvent = None
+        try:  
+            divByZero= 1/0
+        except Exception as ex:
+            tracker.captureException(ex)
+            newEvent = tracker.getCurrentEvent()
+
+        # ensure that the first event have a type message, same error message and two timeline (one custom, one generic)
+        self.assertEqual(event["type"], 'message')
+        self.assertEqual(event["exception"]["message"], errorMessage)
+        self.assertEqual(len(event["timeline"]), 2)
+        self.assertEqual(len(event["tags"]), 1) # the default event tag added
+
+        # ensure that the second event have a type exception, same error message and 2 tags
+        self.assertEqual(newEvent["type"], 'exception')
+        self.assertEqual(newEvent["exception"]["message"], errorMessageObj)
+        self.assertEqual(len(newEvent["timeline"]), 2)
+        self.assertEqual(len(newEvent["tags"]), 2) # the default and custom tag
+    
 
