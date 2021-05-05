@@ -201,7 +201,7 @@ describe('StatusPage API With SubProjects', () => {
                     await page.waitForSelector('#customTabList > li');
                     // navigate to branding tab
                     await page.$$eval('#customTabList > li', elem =>
-                        elem[3].click() //Branding is fourth tab
+                        elem[3].click() //Branding is in fourth tab
                     );
                     const pageTitle = 'MyCompany';
                     const pageDescription = 'MyCompany description';
@@ -244,7 +244,7 @@ describe('StatusPage API With SubProjects', () => {
                     await page.waitForSelector('#customTabList > li');
                     // navigate to advanced options
                     await page.$$eval('#customTabList > li', elem =>
-                        elem[5].click() // Advanced is on the sixth tab
+                        elem[5].click() // Advanced is in sixth tab
                     );
                     await page.waitForSelector('#delete');
                     await page.click('#delete');
