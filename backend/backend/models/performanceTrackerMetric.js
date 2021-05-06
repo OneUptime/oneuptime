@@ -11,8 +11,6 @@ const performanceTrackerMetricSchema = new Schema({
         ref: 'PerformanceTracker',
         index: true,
     },
-    throughput: Number,
-    errorCount: Number,
     deleted: { type: Boolean, default: false },
     deletedAt: {
         type: Date,
