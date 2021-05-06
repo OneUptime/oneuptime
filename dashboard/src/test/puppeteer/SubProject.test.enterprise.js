@@ -1,8 +1,8 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
@@ -10,49 +10,38 @@ let subProjectName = utils.generateRandomString();
 const newSubProjectName = utils.generateRandomString();
 
 describe('Sub-Project API', () => {
-    const operationTimeOut = 50000;
-
-    let cluster;
+    const operationTimeOut = 50000;    
 
     beforeAll(async done => {
         jest.setTimeout(200000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 120000,
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        ); 
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        // Register user
-        await cluster.task(async ({ page, data }) => {
+        // Register user        
             const user = {
-                email: data.email,
-                password: data.password,
+                email,
+                password,
             };
 
             // user
             await init.registerEnterpriseUser(user, page);
-        });
-
-        await cluster.queue({ email, password });
+            await init.growthPlanUpgrade(page);
+        
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'should not create a sub-project with no name',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
@@ -75,8 +64,7 @@ describe('Sub-Project API', () => {
                     await (
                         await spanSelector.getProperty('textContent')
                     ).jsonValue()
-                ).toEqual('Subproject name must be present.');
-            });
+                ).toEqual('Subproject name must be present.');            
             done();
         },
         operationTimeOut
@@ -84,8 +72,7 @@ describe('Sub-Project API', () => {
 
     test(
         'should create a new sub-project',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
@@ -107,8 +94,7 @@ describe('Sub-Project API', () => {
                     await (
                         await subProjectSelector.getProperty('textContent')
                     ).jsonValue()
-                ).toEqual(subProjectName);
-            });
+                ).toEqual(subProjectName);            
             done();
         },
         operationTimeOut
@@ -116,8 +102,7 @@ describe('Sub-Project API', () => {
 
     test(
         'should rename a sub-project',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
@@ -141,8 +126,7 @@ describe('Sub-Project API', () => {
                         await subProjectSelector.getProperty('textContent')
                     ).jsonValue()
                 ).toEqual(editSubProjectName);
-                subProjectName = editSubProjectName;
-            });
+                subProjectName = editSubProjectName;            
             done();
         },
         operationTimeOut
@@ -150,8 +134,7 @@ describe('Sub-Project API', () => {
 
     test(
         'should not create a sub-project with an existing sub-project name',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
@@ -171,8 +154,7 @@ describe('Sub-Project API', () => {
                     await (
                         await spanSelector.getProperty('textContent')
                     ).jsonValue()
-                ).toEqual('You already have a sub-project with same name.');
-            });
+                ).toEqual('You already have a sub-project with same name.');            
             done();
         },
         operationTimeOut
@@ -180,8 +162,7 @@ describe('Sub-Project API', () => {
 
     test(
         'should delete a sub-project',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
@@ -198,8 +179,7 @@ describe('Sub-Project API', () => {
                     { hidden: true }
                 );
 
-                expect(subProjectSelector).toEqual(null);
-            });
+                expect(subProjectSelector).toEqual(null);            
             done();
         },
         operationTimeOut
@@ -207,8 +187,7 @@ describe('Sub-Project API', () => {
 
     test(
         'should display confirmation message before resetting the sub project API Key',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
@@ -228,15 +207,14 @@ describe('Sub-Project API', () => {
                 modalTitle = await modalTitle.getProperty('innerText');
                 modalTitle = await modalTitle.jsonValue();
                 expect(modalTitle).toEqual('Confirm API Reset');
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should reset the sub project API Key',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
@@ -265,7 +243,7 @@ describe('Sub-Project API', () => {
                 newApiKey = await newApiKey.getProperty('innerText');
                 newApiKey = await newApiKey.jsonValue();
                 expect(oldApiKey).not.toEqual(newApiKey);
-            });
+            done();
         },
         operationTimeOut
     );
