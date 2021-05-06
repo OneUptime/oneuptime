@@ -341,6 +341,7 @@ SubProjectApiKey.propTypes = {
     subProjectResetToken: PropTypes.object,
     subproject: PropTypes.object,
     openModal: PropTypes.func,
+    modals: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SubProjectApiKey);
