@@ -101,7 +101,7 @@ class Search extends Component {
     //generate monitor url
     generateUrlLink(searchObj) {
         const { currentProject } = this.props;
-        const baseUrl = `/dashboard/project/${currentProject.slug}/${searchObj.componentSlug}/`;
+        const baseUrl = `/dashboard/project/${currentProject.slug}/component/${searchObj.componentSlug}/`;
         let route = '';
         switch (searchObj.type) {
             case 'website':
