@@ -1218,7 +1218,8 @@ export const metricsQuickStart = {
                         command: `
     $ npm install fyipe`,
                     },
-                    usage: `// If your env supports import
+                    usage: `
+    // If your env supports import
     import Fyipe from 'fyipe';
                                     
     // If your env supports require                  
@@ -1228,17 +1229,16 @@ export const metricsQuickStart = {
     const options = {                    
         apiUrl: '${apiUrl ? apiUrl : 'API_URL'}',
         appId: '${appId ? appId : 'APP_ID'}',
-        appKey: '${key ? key : 'APP_KEY'}'                 
+        appKey: '${key ? key : 'APP_KEY'}',
+        app, // express app instance (optional field)
+        trackIncomingRequest, // defaults to true
+        trackOutgoingRequest, // defaults to true               
     };
                                                         
     // constructor                    
-    const performanceTracker = new Fyipe.PerformanceTracker(
+    new Fyipe.PerformanceTracker(
         options
     );
-    
-    // setup listeners
-    performanceTracker.setUpIncomingListener();
-    performanceTracker.setUpOutgoingListener();
                     `,
                 },
             },
