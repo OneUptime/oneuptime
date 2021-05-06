@@ -22,6 +22,7 @@ import LineChartsContainer from './LineChartsContainer';
 import AffectedResources from './basic/AffectedResources';
 import NewThemeEvent from './NewThemeEvent';
 import NewThemeSubscriber from './NewThemeSubscriber';
+import Announcement from './Announcement';
 
 const greenBackground = {
     display: 'inline-block',
@@ -533,6 +534,12 @@ class Main extends Component {
                                     </ShouldRender>
                                 </div>
                             </ShouldRender>
+                            <Announcement
+                                monitorState={this.props.monitorState}
+                                theme={theme}
+                                heading={heading}
+                                {...this.props}
+                            />
                             <div className="new-main-container">
                                 <div
                                     className="sy-op"
@@ -897,6 +904,10 @@ class Main extends Component {
                                                 </div>
                                             )
                                     )}
+                                <Announcement
+                                    monitorState={this.props.monitorState}
+                                    {...this.props}
+                                />
                                 <ShouldRender
                                     if={
                                         this.props.statusData &&
