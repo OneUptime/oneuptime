@@ -29,6 +29,7 @@
         "history": "^4.7.2",
         "humanize-duration": "^3.15.3",
         "imrc-datetime-picker": "^2.1.1",
+        "js-base64": "^3.6.0",
         "js-uuid": "0.0.6",
         "loadable-components": "^2.2.3",
         "lodash": "^4.17.19",

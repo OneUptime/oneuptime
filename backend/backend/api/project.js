@@ -1089,6 +1089,23 @@ router.put(
                 data.replyAddress = null;
             }
 
+            if (!data.sendCreatedScheduledEventNotificationEmail) {
+                data.sendCreatedScheduledEventNotificationEmail = false;
+            }
+
+            if (!data.sendScheduledEventResolvedNotificationEmail) {
+                data.sendScheduledEventResolvedNotificationEmail = false;
+            }
+            if (!data.sendNewScheduledEventInvestigationNoteNotificationEmail) {
+                data.sendNewScheduledEventInvestigationNoteNotificationEmail = false;
+            }
+            if (!data.sendScheduledEventResolvedNotificationEmail) {
+                data.sendScheduledEventResolvedNotificationEmail = false;
+            }
+            if (!data.sendScheduledEventCancelledNotificationEmail) {
+                data.sendScheduledEventCancelledNotificationEmail = false;
+            }
+
             data.enableInvestigationNoteNotificationEmail = data.enableInvestigationNoteNotificationEmail
                 ? true
                 : false;
@@ -1125,6 +1142,23 @@ router.put(
             data.enableInvestigationNoteNotificationSMS = data.enableInvestigationNoteNotificationSMS
                 ? true
                 : false;
+
+            if (!data.sendCreatedScheduledEventNotificationSms) {
+                data.sendCreatedScheduledEventNotificationSms = false;
+            }
+
+            if (!data.sendScheduledEventResolvedNotificationSms) {
+                data.sendScheduledEventResolvedNotificationSms = false;
+            }
+            if (!data.sendNewScheduledEventInvestigationNoteNotificationSms) {
+                data.sendNewScheduledEventInvestigationNoteNotificationSms = false;
+            }
+            if (!data.sendScheduledEventResolvedNotificationSms) {
+                data.sendScheduledEventResolvedNotificationSms = false;
+            }
+            if (!data.sendScheduledEventCancelledNotificationSms) {
+                data.sendScheduledEventCancelledNotificationSms = false;
+            }
 
             const result = await ProjectService.updateOneBy(
                 { _id: projectId },

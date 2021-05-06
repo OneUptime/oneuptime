@@ -18,6 +18,8 @@ const ApplicationSecurityLogService = require('../services/applicationSecurityLo
 const ContainerSecurityLogService = require('../services/containerSecurityLogService');
 const ErrorTrackerService = require('../services/errorTrackerService');
 const IssueService = require('../services/issueService');
+const PerformanceTrackerService = require('../services/performanceTrackerService');
+const PerformanceTrackerMetricService = require('../services/performanceTrackerMetricService');
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -480,6 +482,39 @@ router.get(
                     return newElement;
                 })
             );
+
+            // fetch performance tracker
+            const performanceTrackers = await PerformanceTrackerService.getPerformanceTrackerByComponentId(
+                componentId,
+                limit,
+                skip
+            );
+
+            await Promise.all(
+                performanceTrackers.map(async performanceTracker => {
+                    let trackerStatus = 'Not monitoring performance';
+                    const metrics = await PerformanceTrackerMetricService.findBy(
+                        { performanceTrackerId: performanceTracker._id },
+                        1,
+                        0
+                    );
+                    if (metrics.length > 0) {
+                        trackerStatus = 'Monitoring performance';
+                    }
+                    const newElement = {
+                        _id: performanceTracker._id,
+                        name: performanceTracker.name,
+                        type: 'performance tracker',
+                        createdAt: performanceTracker.createdAt,
+                        icon: 'monitor',
+                        status: trackerStatus,
+                        slug: performanceTracker.slug,
+                    };
+                    // add it to the total resources
+                    totalResources.push(newElement);
+                    return newElement;
+                })
+            );
             // return response
             return sendItemResponse(req, res, {
                 totalResources,
@@ -541,6 +576,7 @@ router.get(
         }
     }
 );
+
 router.delete(
     '/:projectId/:componentId',
     getUser,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import originalMoment from 'moment';
@@ -16,9 +16,16 @@ function DateTimeRangePicker({
     style,
 }) {
     const currentDate = moment();
+    const [key, setkey] = useState(0);
+    useEffect(() => {
+        setkey(key + 1);
+    }, [
+        currentDateRange && currentDateRange.startDate,
+        currentDateRange && currentDateRange.endDate,
+    ]);
     return (
         <div>
-            <form id={formId}>
+            <form id={formId} key={key}>
                 <ShouldRender if={currentDateRange}>
                     <div className="db-DateRangeInputWithComparison">
                         <div
@@ -77,10 +84,10 @@ function DateTimeRangePicker({
 DateTimeRangePicker.displayName = 'DateTimeRangePicker';
 
 DateTimeRangePicker.propTypes = {
-    handleStartDateTimeChange: PropTypes.func,
-    handleEndDateTimeChange: PropTypes.func,
     currentDateRange: PropTypes.object,
     formId: PropTypes.string,
+    handleEndDateTimeChange: PropTypes.func,
+    handleStartDateTimeChange: PropTypes.func,
     style: PropTypes.object,
 };
 

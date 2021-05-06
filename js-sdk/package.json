@@ -51,12 +51,16 @@
         "commander": "^7.1.0",
         "cron": "^1.8.2",
         "dotenv": "^8.2.0",
+        "get-routes": "^2.1.0",
         "inquirer": "^8.0.0",
         "lru_map": "^0.4.1",
+        "node-cron": "^3.0.0",
         "pino": "^6.11.1",
         "pino-pretty": "^4.7.0",
         "promise": "^8.1.0",
+        "semver": "^5.7.1",
         "systeminformation": "^5.6.1",
+        "url-pattern": "^1.0.3",
         "uuid": "^8.3.1"
     },
     "directories": {

@@ -47,7 +47,7 @@ class ErrorTrackerDetail extends Component {
         history.push(
             '/dashboard/project/' +
                 currentProject.slug +
-                '/' +
+                '/component/' +
                 componentSlug +
                 '/error-trackers/' +
                 errorTracker.slug
@@ -95,7 +95,7 @@ class ErrorTrackerDetail extends Component {
         history.push(
             '/dashboard/project/' +
                 currentProject.slug +
-                '/' +
+                '/component/' +
                 componentSlug +
                 '/error-tracker'
         );

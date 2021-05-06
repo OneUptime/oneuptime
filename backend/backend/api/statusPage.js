@@ -33,6 +33,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const uuid = require('uuid');
 const defaultStatusPageColors = require('../config/statusPageColors');
 const SubscriberService = require('../services/subscriberService');
+const statusPageService = require('../services/statusPageService');
 
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}

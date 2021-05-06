@@ -1,4 +1,4 @@
-.sdlc-container {
+.feature-table-container {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -7,7 +7,7 @@
   position: relative;
   padding-top:35px;
 }
-.sdlc-description {
+.feature-table-description {
   max-width: 1020px;
   margin-bottom: 50px;
 }
@@ -24,19 +24,19 @@
   line-height: 1.2;
   font-size: 34px;
 }
-.sdlc-description p {
+.feature-table-description p {
   margin: 0 0 13.5px;
   display: block;
   font-size: 18px;
   line-height: 1.5;
   color: #797979;
 }
-.sdlc-table-container {
+.feature-table-table-container {
   position: relative;
   margin-left: 110px;
   min-width: 1055px; 
 }
-.sdlc-table-label {
+.feature-table-table-label {
   position: absolute;
   right: calc(100% + 10px);
   text-align: left;
@@ -50,7 +50,7 @@
   bottom: 0px;
   padding-right: 10px;
 }
-.sdlc-table {
+.feature-table-table {
   display: flex;
   position: relative;
   width: 95%;
@@ -58,20 +58,20 @@
   background: #FFFFFF;
   box-shadow: 0 0px 7px 1px rgba(0,0,0,0.1);
 }
-.sdlc-table p {
+.feature-table-table p {
   font-size: 15px;
 }
 .font-bold {
   line-height: 1.5;
   color:#000000
 }
-.sdlc-column {
+.feature-table-column {
   display: flex;
   flex-direction: column;
   width: 100%;
   position: relative;
 }
-.sdlc-column:not(:last-child) {
+.feature-table-column:not(:last-child) {
   border-right: 1px solid #ececec;
 }
 .stage-container {
@@ -268,20 +268,20 @@
   border-radius: 0.25rem;
 }
 @media (max-width: 1200px) {
-  .sdlc-table-container {
+  .feature-table-table-container {
     margin-left: 50px;
     min-width:0px;
   }
-  .sdlc-table-label{
+  .feature-table-table-label{
     display: none;
   }
-  .sdlc-table {
+  .feature-table-table {
     flex-wrap: wrap;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
   }
-  .sdlc-column {
+  .feature-table-column {
     width: calc(50% - 20px);
     margin: 10px;
     flex-shrink: 0;
@@ -289,7 +289,7 @@
     background: #FFFFFF;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
-  .sdlc-column:not(:last-child) {
+  .feature-table-column:not(:last-child) {
     border-right: 0;
   }
   .stage-container {
@@ -322,11 +322,11 @@
   }
 }
 @media (max-width: 1020px) {
-  .sdlc-table-container {
+  .feature-table-table-container {
     margin-left: 40px;
     min-width:0px;
   }
-  .sdlc-column {
+  .feature-table-column {
     width: 100%;
     margin: auto;
     margin-bottom: 20px;

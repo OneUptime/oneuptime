@@ -57,6 +57,8 @@ import ComponentSettingsAdvanced from './ComponentSettingsAdvanced';
 import CallRouting from './CallRouting';
 import DomainSettings from './DomainSettings';
 import Groups from './Group';
+import PerformanceTrackerView from './PerformanceTrackerView';
+import PerformanceTracker from './PerformanceTracker';
 
 import StatusPageAnnouncement from './StatusPageAnnouncement';
 
@@ -110,4 +112,6 @@ export default {
     CallRouting,
     DomainSettings,
     Groups,
+    PerformanceTrackerView,
+    PerformanceTracker,
 };

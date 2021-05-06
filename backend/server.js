@@ -265,6 +265,7 @@ app.use(
     ['/customField', '/api/customField'],
     require('./backend/api/customField')
 );
+app.use(['/search', '/api/search'], require('./backend/api/search'));
 app.use(
     ['/monitorCustomField', '/api/monitorCustomField'],
     require('./backend/api/monitorCustomField')
@@ -279,6 +280,14 @@ app.use(['/account', '/api/account'], require('./backend/api/accountStore'));
 app.use(
     ['/certificate', '/api/certificate'],
     require('./backend/api/certificateStore')
+);
+app.use(
+    ['/performanceTracker', '/api/performanceTracker'],
+    require('./backend/api/performanceTracker')
+);
+app.use(
+    ['/performanceMetric', '/api/performanceMetric'],
+    require('./backend/api/performanceTrackerMetric')
 );
 
 app.get(['/', '/api'], function(req, res) {

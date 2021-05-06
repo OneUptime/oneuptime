@@ -1,13 +1,12 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 const csvFile = `${__dirname}/MOCKS/subscribers.csv`;
 const emptyFile = `${__dirname}/MOCKS/emptyTemplateFile.csv`;
 const existingSubscribers = `${__dirname}/MOCKS/existing.csv`;
 
 require('should');
-
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
@@ -15,46 +14,35 @@ const monitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = 500000;
-
-    let cluster;
+    const operationTimeOut = 500000;    
 
     beforeAll(async () => {
         jest.setTimeout(500000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        // Register user
-        return await cluster.execute(null, async ({ page }) => {
+        // Register user        
             const user = {
                 email,
                 password,
             };
-
             // user
             await init.registerUser(user, page);
-            await init.addMonitorToComponent(componentName, monitorName, page);
-        });
+            await init.addMonitorToComponent(componentName, monitorName, page);        
     });
 
-    afterAll(async () => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async (done) => {        
+        await browser.close();
+        done();
     });
 
     test(
         'Should navigate to monitor details and create new subscriber from a csv file',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -87,15 +75,14 @@ describe('Monitor Detail API', () => {
                 const subscriberRows = await page.$$(createdSubscriberSelector);
                 const countSubscribers = subscriberRows.length;
                 expect(countSubscribers).toEqual(3);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should not create subscribers when an empty file is submitted',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -121,15 +108,14 @@ describe('Monitor Detail API', () => {
                 elementHandle = await elementHandle.getProperty('innerText');
                 elementHandle = await elementHandle.jsonValue();
                 elementHandle.should.be.exactly('Empty files submitted');
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should not subscribe if subscriber has already been subscribed to that monitor',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {        
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -159,15 +145,14 @@ describe('Monitor Detail API', () => {
                 const subscriberRows = await page.$$(createdSubscriberSelector);
                 const countSubscribers = subscriberRows.length;
                 expect(countSubscribers).toEqual(3);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should ignore exisiting subscribers and only add new ones',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -197,15 +182,14 @@ describe('Monitor Detail API', () => {
                 const subscriberRows = await page.$$(createdSubscriberSelector);
                 const countSubscribers = subscriberRows.length;
                 expect(countSubscribers).toEqual(4);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should delete a subscriber',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -239,15 +223,14 @@ describe('Monitor Detail API', () => {
 
                 expect(finalCount).toEqual(3);
                 expect(initialCount).toBeGreaterThan(finalCount);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should not delete a subscriber when the cancel button is clicked',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -278,7 +261,7 @@ describe('Monitor Detail API', () => {
 
                 expect(finalCount).toEqual(3);
                 expect(initialCount).toEqual(finalCount);
-            });
+            done();
         },
         operationTimeOut
     );
