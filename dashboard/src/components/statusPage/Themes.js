@@ -36,12 +36,12 @@ export class Themes extends Component {
             {
                 value: 'Clean Theme',
                 screenshot: '/dashboard/assets/img/clean.png',
-                id: 'Clean'
+                id: 'Clean',
             },
             {
                 value: 'Classic Theme',
                 screenshot: '/dashboard/assets/img/classic.png',
-                id: 'Classic'
+                id: 'Classic',
             },
         ];
         return (

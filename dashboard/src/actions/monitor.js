@@ -1286,7 +1286,7 @@ export function searchMonitors(projectId, values) {
                                 mon.componentId.slug +
                                 '/monitoring/' +
                                 mon.slug,
-                            componentId:  mon.componentId._id,
+                            componentId: mon.componentId._id,
                             projectId,
                         })),
                     };
