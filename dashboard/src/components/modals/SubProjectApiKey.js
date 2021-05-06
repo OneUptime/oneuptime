@@ -88,8 +88,7 @@ class SubProjectApiKey extends Component {
             openModal,
             data,
             resetSubProjectKeyReset,
-            subproject,
-            //closeThisDialog,
+            subproject,            
         } = this.props;
         const { hidden } = this.state;
 
@@ -338,8 +337,7 @@ const mapDispatchToProps = dispatch => {
 };
 
 SubProjectApiKey.propTypes = {
-    closeModal: PropTypes.func,
-   // closeThisDialog: PropTypes.func.isRequired,
+    closeModal: PropTypes.func,   
     data: PropTypes.object,
     resetSubProjectKeyReset: PropTypes.func,
     resetSubProjectToken: PropTypes.func,
