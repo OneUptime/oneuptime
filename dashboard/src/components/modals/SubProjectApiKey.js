@@ -13,7 +13,6 @@ import {
 import ShouldRender from '../basic/ShouldRender';
 import DataPathHoC from '../DataPathHoC';
 import ConfirmationDialog from './ConfirmationDialog';
-import SubProjectResetApiKey from './SubProjectResetApiKey';
 
 class SubProjectApiKey extends Component {
     state = {
@@ -57,14 +56,12 @@ class SubProjectApiKey extends Component {
         resetSubProjectToken(data.subProjectId);
     };
 
-    apiSubProjectReset = () => {        
-        //this.props.resetSubProjectToken(this.props.data.subProjectId);
-        this.props.openModal({
-            id: this.state.confirmationModalId,
-            onClose: ()=>'',
-            content: SubProjectResetApiKey,
-        })
-    };
+    handleCloseModal = () => {
+        
+        if (this.props.modals.length === 1) {
+            this.props.closeModal();
+        }
+    };   
 
     renderAPIKey = hidden => {
         const { subproject, subProjectResetToken } = this.props;
@@ -92,7 +89,7 @@ class SubProjectApiKey extends Component {
             data,
             resetSubProjectKeyReset,
             subproject,
-            closeThisDialog,
+            //closeThisDialog,
         } = this.props;
         const { hidden } = this.state;
 
@@ -105,7 +102,7 @@ class SubProjectApiKey extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--large">
-                            <ClickOutside onClickOutside={closeThisDialog}>
+                            <ClickOutside onClickOutside={this.handleCloseModal}>
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -287,11 +284,7 @@ class SubProjectApiKey extends Component {
                                                         <FormLoader />
                                                     )}
                                                 </button>
-                                                <button
-                                                    onClick={this.apiSubProjectReset}
-                                                >
-                                                    <span>Reset</span>
-                                                </button>
+                                                
                                             </>
                                         )}
                                     </div>
@@ -328,6 +321,7 @@ const mapStateToProps = (state, props) => {
     return {
         subproject: subproject && subproject._id ? subproject : {},
         subProjectResetToken: state.subProject.resetToken,
+        modals: state.modal.modals,
     };
 };
 
@@ -345,7 +339,7 @@ const mapDispatchToProps = dispatch => {
 
 SubProjectApiKey.propTypes = {
     closeModal: PropTypes.func,
-    closeThisDialog: PropTypes.func.isRequired,
+   // closeThisDialog: PropTypes.func.isRequired,
     data: PropTypes.object,
     resetSubProjectKeyReset: PropTypes.func,
     resetSubProjectToken: PropTypes.func,
