@@ -99,6 +99,10 @@ import {
     HANDLE_ANNOUNCEMENT_FAILURE,
     RESET_HANDLE_ANNOUNCEMENT,
     FETCH_SINCLE_ANNOUNCEMENT_FAILURE,
+    DELETE_ANNOUNCEMENT_FAILURE,
+    DELETE_ANNOUNCEMENT_REQUEST,
+    DELETE_ANNOUNCEMENT_SUCCESS,
+    RESET_DELETE_ANNOUNCEMENT,
 } from '../constants/statusPage';
 
 import {
@@ -306,6 +310,47 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: true,
                     error: null,
                     success: false,
+                },
+            });
+
+        case DELETE_ANNOUNCEMENT_SUCCESS:
+            return Object.assign({}, state, {
+                updateAnnouncement: {
+                    ...state.updateAnnouncement,
+                    announcement: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case DELETE_ANNOUNCEMENT_REQUEST:
+            return Object.assign({}, state, {
+                updateAnnouncement: {
+                    ...state.updateAnnouncement,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case DELETE_ANNOUNCEMENT_FAILURE:
+            return Object.assign({}, state, {
+                updateAnnouncement: {
+                    ...state.updateAnnouncement,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case RESET_DELETE_ANNOUNCEMENT:
+            return Object.assign({}, state, {
+                updateAnnouncement: {
+                    ...state.updateAnnouncement,
+                    requesting: false,
+                    success: false,
+                    error: null,
                 },
             });
 
