@@ -26,7 +26,9 @@ class ConfirmationDialog extends Component {
         }
     };
     handleCloseModal = () => {
-        this.props.closeModal();
+        this.props.closeModal({
+            id: this.props.data.ConfirmationDialogId,
+        });
     };
 
     render() {
