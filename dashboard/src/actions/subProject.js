@@ -173,7 +173,7 @@ export function resetSubProjectToken(subProjectId) {
 
         promise.then(
             function(subProject) {
-                dispatch(resetSubProjectTokenSuccess(subProject));
+                dispatch(resetSubProjectTokenSuccess(subProject))
             },
             function(error) {
                 if (error && error.response && error.response.data)
