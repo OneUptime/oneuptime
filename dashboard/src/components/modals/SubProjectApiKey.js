@@ -13,6 +13,7 @@ import {
 import ShouldRender from '../basic/ShouldRender';
 import DataPathHoC from '../DataPathHoC';
 import ConfirmationDialog from './ConfirmationDialog';
+import SubProjectResetApiKey from './SubProjectResetApiKey';
 
 class SubProjectApiKey extends Component {
     state = {
@@ -54,6 +55,15 @@ class SubProjectApiKey extends Component {
     resetSubProjectToken = () => {
         const { resetSubProjectToken, data } = this.props;
         resetSubProjectToken(data.subProjectId);
+    };
+
+    apiSubProjectReset = () => {        
+        //this.props.resetSubProjectToken(this.props.data.subProjectId);
+        this.props.openModal({
+            id: this.state.confirmationModalId,
+            onClose: ()=>'',
+            content: SubProjectResetApiKey,
+        })
     };
 
     renderAPIKey = hidden => {
@@ -276,6 +286,11 @@ class SubProjectApiKey extends Component {
                                                     {subProjectResetToken.requesting && (
                                                         <FormLoader />
                                                     )}
+                                                </button>
+                                                <button
+                                                    onClick={this.apiSubProjectReset}
+                                                >
+                                                    <span>Reset</span>
                                                 </button>
                                             </>
                                         )}
