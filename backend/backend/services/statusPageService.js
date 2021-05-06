@@ -1293,6 +1293,32 @@ module.exports = {
             throw error;
         }
     },
+
+    deleteAnnouncement: async function(query, userId) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const response = await AnnouncementModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
+                }
+            );
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.deleteAnnouncement', error);
+            throw error;
+        }
+    },
 };
 
 // handle the unique pagination for scheduled events on status page
