@@ -1,6 +1,7 @@
 
 from fyipe_sdk.fyipe_sdk.util import Util
 from fyipe_sdk.fyipe_sdk.fyipeListener import FyipeListener
+import sys
 
 class FyipeTracker:
     def __init__(self, apiUrl, errorTrackerId, errorTrackerKey, options = {}):
@@ -187,6 +188,35 @@ class FyipeTracker:
         self.fingerprint = []
         # clear timeline
         self.listenerObj.clearTimeline(newEventId)
+    
+    def get_version(self):    
+
+        sdkDetail = {
+            "name": '',
+            "version": ""
+        }
+        try:
+            filepath =  'setup.py'
+
+            with open( filepath ) as file:
+                for line in file.readlines():
+                    if line.startswith("    name"):
+                        sdkDetail["name"] = self.__getValueFromLine__(line)
+                    if line.startswith("    version"):
+                        sdkDetail["version"] = self.__getValueFromLine__(line)
+                        
+
+        except Exception as error:
+            sys.stderr.write( "Warning: Could get SDK version")
+        
+        return sdkDetail
+        
+    
+    def __getValueFromLine__(self, line):
+        start = line.index("\"")
+        end = line.rfind("\"")
+        return line[start+1: end]
+
 
 
 
