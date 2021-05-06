@@ -1231,8 +1231,8 @@ export const metricsQuickStart = {
         appId: '${appId ? appId : 'APP_ID'}',
         appKey: '${key ? key : 'APP_KEY'}',
         app, // express app instance (optional field)
-        trackIncomingRequest, // defaults to true
-        trackOutgoingRequest, // defaults to true               
+        trackIncomingRequest, // defaults to true (optional field)
+        trackOutgoingRequest, // defaults to true (optional field)              
     };
                                                         
     // constructor                    
