@@ -253,10 +253,10 @@ class SubProjectApiKey extends Component {
                                                                 }
                                                             ),
                                                         });
-                                                        return closeModal({
-                                                            id:
-                                                                data.subProjectModalId,
-                                                        });
+                                                        // return closeModal({
+                                                        //     id:
+                                                        //         data.subProjectModalId,
+                                                        // });
                                                     }}
                                                     disabled={
                                                         subProjectResetToken.requesting
