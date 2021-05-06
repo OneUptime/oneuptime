@@ -190,12 +190,13 @@ class FyipeTracker:
         self.listenerObj.clearTimeline(newEventId)
     
     def get_version(self):    
-
+        # default sdk details
         sdkDetail = {
             "name": '',
             "version": ""
         }
         try:
+            # ipen set up file to pick values 
             filepath =  'setup.py'
 
             with open( filepath ) as file:
@@ -207,12 +208,14 @@ class FyipeTracker:
                         
 
         except Exception as error:
+            # something terrible went wrog
             sys.stderr.write( "Warning: Could get SDK version")
         
         return sdkDetail
         
     
     def __getValueFromLine__(self, line):
+        # geet the content within the quote 
         start = line.index("\"")
         end = line.rfind("\"")
         return line[start+1: end]
