@@ -76,7 +76,7 @@ class PerformanceChart extends Component {
         return '';
     }
     render() {
-        const { data, name, symbol, requesting } = this.props;
+        const { data, name, symbol, requesting, type } = this.props;
         let processedData = [{ display: '', name: '', v: '' }];
         if (requesting) {
             return (
@@ -111,6 +111,33 @@ class PerformanceChart extends Component {
                     xData: a.createdAt,
                 };
             });
+        } else {
+            return (
+                <div style={noDataStyle}>
+                    <div
+                        className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
+                        style={{
+                            textAlign: 'center',
+                            width: '100%',
+                            fontSize: 14,
+                            fontWeight: '500',
+                            margin: 0,
+                            color: '#4c4c4c',
+                            lineHeight: 1.6,
+                        }}
+                    >
+                        No{' '}
+                        {type === 'transactionTime'
+                            ? 'web transaction time'
+                            : type === 'errorRate'
+                            ? 'error rate'
+                            : 'throughput'}{' '}
+                        metric data at the moment, please make sure you&apos;ve
+                        setup the performance tracker with the appropriate quick
+                        start guide
+                    </div>
+                </div>
+            );
         }
         return (
             <ResponsiveContainer width="100%" height={200}>
@@ -156,6 +183,7 @@ PerformanceChart.propTypes = {
     name: PropTypes.string,
     symbol: PropTypes.string,
     requesting: PropTypes.bool,
+    type: PropTypes.string,
 };
 
 export default connect(null)(PerformanceChart);

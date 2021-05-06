@@ -36,6 +36,14 @@ class PerformanceTrackerList extends Component {
     render() {
         const { performanceTracker, lastMetricsObj } = this.props;
 
+        const metrics = lastMetricsObj
+            ? lastMetricsObj.metrics.filter(
+                  metric =>
+                      String(metric.performanceTrackerId) ===
+                      String(performanceTracker._id)
+              )
+            : [];
+
         return (
             <div>
                 <div
@@ -77,116 +85,117 @@ class PerformanceTrackerList extends Component {
                                 </div>
                             </div>
                         </div>
-                        <ShouldRender
-                            if={
-                                lastMetricsObj &&
-                                !lastMetricsObj.requesting &&
-                                lastMetricsObj.time === 0 &&
-                                lastMetricsObj.throughput === 0 &&
-                                lastMetricsObj.errorRate === 0
-                            }
-                        >
-                            <AlertPanel
-                                id={`${performanceTracker.name}-no-log-warning`}
-                                message={
-                                    <span>
-                                        This Performance Tracker is currently
-                                        not receiving any metrics.
-                                    </span>
-                                }
-                            />
-                        </ShouldRender>
-                        <ShouldRender
-                            if={!lastMetricsObj || lastMetricsObj.requesting}
-                        >
+                        <ShouldRender if={metrics.length === 0}>
                             <ListLoader />
                         </ShouldRender>
-                        <ShouldRender
-                            if={lastMetricsObj && !lastMetricsObj.requesting}
-                        >
-                            <div
-                                className="db-TrendRow db-ListViewItem-header db-Trends-header"
-                                style={{
-                                    zIndex: 'unset',
-                                }}
-                            >
-                                <div
-                                    className="db-Trend-colInformation"
-                                    id={`${performanceTracker.name}-all`}
+                        {metrics.map(metric => (
+                            <>
+                                <ShouldRender
+                                    if={
+                                        metric &&
+                                        !metric.requesting &&
+                                        metric.time === 0 &&
+                                        metric.throughput === 0 &&
+                                        metric.errorRate === 0
+                                    }
                                 >
-                                    <div
-                                        className="db-Trend-rowTitle"
-                                        title="Web Transaction Time"
-                                    >
-                                        <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
-                                            <span className="chart-font">
-                                                Web Transaction Time
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="db-Trend-row">
-                                        <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
+                                    <AlertPanel
+                                        id={`${performanceTracker.name}-no-log-warning`}
+                                        message={
                                             <span>
-                                                {' '}
-                                                <span className="chart-font">
-                                                    {lastMetricsObj.time}
-                                                </span>
+                                                This Performance Tracker is
+                                                currently not receiving any
+                                                metrics.
                                             </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div
-                                    className="db-Trend-colInformation"
-                                    id={`${performanceTracker.name}-error`}
-                                >
+                                        }
+                                    />
+                                </ShouldRender>
+                                <ShouldRender if={metric && !metric.requesting}>
                                     <div
-                                        className="db-Trend-rowTitle"
-                                        title="Throughput"
+                                        className="db-TrendRow db-ListViewItem-header db-Trends-header"
+                                        style={{
+                                            zIndex: 'unset',
+                                        }}
                                     >
-                                        <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
-                                            <span className="chart-font">
-                                                Throughput
-                                            </span>
+                                        <div
+                                            className="db-Trend-colInformation"
+                                            id={`${performanceTracker.name}-all`}
+                                        >
+                                            <div
+                                                className="db-Trend-rowTitle"
+                                                title="Web Transaction Time"
+                                            >
+                                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
+                                                    <span className="chart-font">
+                                                        Web Transaction Time
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="db-Trend-row">
+                                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
+                                                    <span>
+                                                        {' '}
+                                                        <span className="chart-font">
+                                                            {metric.time}
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div
+                                            className="db-Trend-colInformation"
+                                            id={`${performanceTracker.name}-error`}
+                                        >
+                                            <div
+                                                className="db-Trend-rowTitle"
+                                                title="Throughput"
+                                            >
+                                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
+                                                    <span className="chart-font">
+                                                        Throughput
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="db-Trend-row">
+                                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
+                                                    <span>
+                                                        {' '}
+                                                        <span className="chart-font">
+                                                            {metric.throughput}
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div
+                                            className="db-Trend-colInformation"
+                                            id={`${performanceTracker.name}-warning`}
+                                        >
+                                            <div
+                                                className="db-Trend-rowTitle"
+                                                title="Error Rate"
+                                            >
+                                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
+                                                    <span className="chart-font">
+                                                        Error Rate
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="db-Trend-row">
+                                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
+                                                    <span>
+                                                        {' '}
+                                                        <span className="chart-font">
+                                                            {metric.errorRate}
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="db-Trend-row">
-                                        <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
-                                            <span>
-                                                {' '}
-                                                <span className="chart-font">
-                                                    {lastMetricsObj.throughput}
-                                                </span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div
-                                    className="db-Trend-colInformation"
-                                    id={`${performanceTracker.name}-warning`}
-                                >
-                                    <div
-                                        className="db-Trend-rowTitle"
-                                        title="Error Rate"
-                                    >
-                                        <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
-                                            <span className="chart-font">
-                                                Error Rate
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="db-Trend-row">
-                                        <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
-                                            <span>
-                                                {' '}
-                                                <span className="chart-font">
-                                                    {lastMetricsObj.errorRate}
-                                                </span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </ShouldRender>
+                                </ShouldRender>
+                            </>
+                        ))}
                     </div>
                 </div>
             </div>

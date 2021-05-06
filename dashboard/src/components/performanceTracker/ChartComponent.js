@@ -298,7 +298,7 @@ export class ChartComponent extends Component {
                                     >
                                         {type === 'transactionTime' && (
                                             <PerformanceChart
-                                                type={`url`}
+                                                type={type}
                                                 data={timeMetrics.metrics}
                                                 name={'response time'}
                                                 symbol="ms"
@@ -309,7 +309,7 @@ export class ChartComponent extends Component {
                                         )}
                                         {type === 'throughput' && (
                                             <PerformanceChart
-                                                type={`url`}
+                                                type={type}
                                                 data={throughputMetrics.metrics}
                                                 name={'request per time'}
                                                 symbol=""
@@ -320,7 +320,7 @@ export class ChartComponent extends Component {
                                         )}
                                         {type === 'errorRate' && (
                                             <PerformanceChart
-                                                type={`url`}
+                                                type={type}
                                                 data={errorMetrics.metrics}
                                                 name={'request per time'}
                                                 symbol=""
