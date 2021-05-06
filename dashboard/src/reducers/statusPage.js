@@ -310,7 +310,9 @@ export default function statusPage(state = INITIAL_STATE, action) {
 
         case CREATE_STATUSPAGE_SUCCESS:
             isExistingStatusPage = state.subProjectStatusPages.find(
-                statusPage => statusPage._id === action.payload.projectId
+                statusPage =>
+                    statusPage._id === action.payload.projectId ||
+                    statusPage._id === action.payload.projectId._id
             );
             return Object.assign({}, state, {
                 newStatusPage: {
@@ -322,9 +324,14 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 subProjectStatusPages: isExistingStatusPage
                     ? state.subProjectStatusPages.length > 0
                         ? state.subProjectStatusPages.map(statusPage => {
-                              return statusPage._id === action.payload.projectId
+                              return statusPage._id ===
+                                  action.payload.projectId ||
+                                  statusPage._id ===
+                                      action.payload.projectId._id
                                   ? {
-                                        _id: action.payload.projectId,
+                                        _id: action.payload.projectId._id
+                                            ? action.payload.projectId._id
+                                            : action.payload.projectId,
                                         statusPages: [
                                             action.payload,
                                             ...statusPage.statusPages.filter(
@@ -339,7 +346,9 @@ export default function statusPage(state = INITIAL_STATE, action) {
                           })
                         : [
                               {
-                                  _id: action.payload.projectId,
+                                  _id: action.payload.projectId._id
+                                      ? action.payload.projectId._id
+                                      : action.payload.projectId,
                                   statusPages: [action.payload],
                                   count: 1,
                                   skip: 0,
@@ -348,7 +357,9 @@ export default function statusPage(state = INITIAL_STATE, action) {
                           ]
                     : state.subProjectStatusPages.concat([
                           {
-                              _id: action.payload.projectId,
+                              _id: action.payload.projectId._id
+                                  ? action.payload.projectId._id
+                                  : action.payload.projectId,
                               statusPages: [action.payload],
                               count: 1,
                               skip: 0,
@@ -1066,9 +1077,12 @@ export default function statusPage(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 subProjectStatusPages: state.subProjectStatusPages.map(
                     statusPage => {
-                        return statusPage._id === action.payload.projectId
+                        return statusPage._id === action.payload.projectId ||
+                            statusPage._id === action.payload.projectId._id
                             ? {
-                                  _id: action.payload.projectId,
+                                  _id: action.payload.projectId._id
+                                      ? action.payload.projectId._id
+                                      : action.payload.projectId,
                                   statusPages: [...action.payload.data],
                                   count: action.payload.count,
                                   skip: action.payload.skip,
