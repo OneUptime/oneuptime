@@ -277,6 +277,7 @@ export class Setting extends Component {
                                                                                     width:
                                                                                         '100%',
                                                                                 }}
+                                                                                id="domain-name"
                                                                             >
                                                                                 {
                                                                                     domain.domain

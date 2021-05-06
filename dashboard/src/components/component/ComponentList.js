@@ -1,12 +1,22 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject';
 import ComponentDetail from './ComponentDetail';
 import sortByName from '../../utils/sortByName';
+import { searchComponents } from '../../actions/component';
+import { searchMonitors } from '../../actions/monitor';
 
 export function ComponentList(props) {
+    const { searchComponents, projectId, searchValues, searchMonitors } = props;
+    useEffect(() => {
+        if (searchValues && searchValues.search.length >= 1) {
+            searchComponents(projectId, searchValues);
+            searchMonitors(projectId, searchValues);
+        }
+    }, [searchValues, projectId, searchComponents, searchMonitors]);
     let componentDetails = null;
+
     const components = props.components ? sortByName(props.components) : [];
 
     if (components && components.length > 0) {
@@ -36,10 +46,12 @@ export function ComponentList(props) {
 
 ComponentList.displayName = 'ComponentList';
 
-const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ searchComponents, searchMonitors }, dispatch);
 
 const mapStateToProps = state => ({
     currentProject: state.project.currentProject,
+    searchValues: state.form.search && state.form.search.values,
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(ComponentList);

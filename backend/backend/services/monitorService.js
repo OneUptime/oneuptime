@@ -305,7 +305,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name')
-                .populate('componentId', 'name')
+                .populate('componentId', 'name slug')
                 .populate('resourceCategory', 'name')
                 .populate('incidentCommunicationSla')
                 .populate('monitorSla');

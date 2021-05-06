@@ -4,5 +4,6 @@ import ErrorTracker from './tracker.js';
 // we need to build the server-monitor project into the build folder then point to it there
 // This way we won't worry about whether we are using module/commonjs syntax
 import ServerMonitor from '../build/server-monitor/lib/api';
+import PerformanceTracker from './performanceTracker.js';
 
-export default { Logger, ErrorTracker, ServerMonitor };
+export default { Logger, ErrorTracker, ServerMonitor, PerformanceTracker };

@@ -98,7 +98,7 @@ class ChangeMonitorComponent extends React.Component {
             );
         }
 
-        const redirectTo = `/dashboard/project/${currentProject.slug}/${newComponent.slug}/monitoring/${slug}`;
+        const redirectTo = `/dashboard/project/${currentProject.slug}/component/${newComponent.slug}/monitoring/${slug}`;
 
         return history.push(redirectTo);
     };

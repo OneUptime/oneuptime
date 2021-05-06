@@ -213,7 +213,7 @@ export class IncidentList extends Component {
                                                             this.props
                                                                 .currentProject
                                                                 .slug +
-                                                            '/' +
+                                                            '/component/' +
                                                             incident.monitorId
                                                                 .componentId
                                                                 .slug +
@@ -1033,6 +1033,7 @@ function mapStateToProps(state) {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
         requesting: state.incident.incidents.requesting,
+        searchValues: state.form.search && state.form.search.values,
     };
 }
 

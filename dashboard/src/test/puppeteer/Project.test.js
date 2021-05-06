@@ -1,7 +1,6 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
@@ -9,45 +8,35 @@ const teamEmail = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 const newProjectName = 'Test';
 
-describe('Project Settings', () => {
-    const operationTimeOut = 50000;
+const user = {
+    email,
+    password,
+};
+const memberUser = {
+    email: teamEmail,
+    password: password,
+};
 
-    let cluster;
+let browser, page;
+
+describe('Project Settings', () => {
+    const operationTimeOut = 50000;    
 
     beforeAll(async done => {
         jest.setTimeout(200000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 120000,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        await cluster.execute(
-            { teamEmail, password },
-            async ({ page, data }) => {
-                const user = {
-                    email,
-                    password,
-                };
-                const memberUser = {
-                    email: data.teamEmail,
-                    password: data.password,
-                };
-
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );                                                
                 // user
                 await init.registerUser(user, page);
-                await init.logout(page);
-                await init.registerUser(memberUser, page);
-                await init.logout(page);
-                await init.loginUser({ email, password }, page);
+                
                 await init.renameProject(newProjectName, page);
-                await init.addUserToProject(
+                await init.growthPlanUpgrade(page); // Growth Plan is needed for subproject.
+                await page.goto(utils.DASHBOARD_URL);
+                await init.addUserToProject( 
                     {
                         email: teamEmail,
                         role: 'Member',
@@ -56,26 +45,20 @@ describe('Project Settings', () => {
                     page
                 );
                 await page.waitForSelector('#added_team_members');
-                await init.logout(page);
-            }
-        );
+                await init.logout(page);        
 
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'should show unauthorised modal when trying to save project name for non-admins',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
-                await init.loginUser({ email: teamEmail, password }, page);
-                await init.switchProject(newProjectName, page);
-                await page.goto(utils.DASHBOARD_URL);
+        async done => {                            
+                await init.registerAndLoggingTeamMember(memberUser, page);                
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
@@ -91,8 +74,7 @@ describe('Project Settings', () => {
                 );
 
                 expect(unauthorisedModal).toBeDefined();
-                await init.logout(page);
-            });
+                await init.logout(page);            
             done();
         },
         operationTimeOut
@@ -100,10 +82,8 @@ describe('Project Settings', () => {
 
     test(
         'should show delete project modal and click on cancel',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
-                await init.loginUser({ email, password }, page);
-                await page.goto(utils.DASHBOARD_URL);
+        async done => {            
+                await init.loginUser({ email, password }, page);                
                 // click on settings
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -146,8 +126,7 @@ describe('Project Settings', () => {
                         visible: true,
                     }
                 );
-                expect(createProjectBtn).toBeDefined();
-            });
+                expect(createProjectBtn).toBeDefined();            
             done();
         },
         operationTimeOut

@@ -314,14 +314,14 @@ export class IncidentStatus extends Component {
         const monitorRoute = this.props.currentProject
             ? '/dashboard/project/' +
               this.props.currentProject.slug +
-              '/' +
+              '/component/' +
               componentSlug +
               '/monitoring'
             : '';
         const incidentRoute = this.props.currentProject
             ? '/dashboard/project/' +
               this.props.currentProject.slug +
-              '/' +
+              '/component/' +
               componentSlug +
               '/incidents/' +
               this.props.incident.idNumber
@@ -741,7 +741,7 @@ export class IncidentStatus extends Component {
                                                                             .props
                                                                             .currentProject
                                                                             .slug +
-                                                                        '/' +
+                                                                        '/component/' +
                                                                         componentSlug +
                                                                         '/monitoring'
                                                                     }
@@ -770,7 +770,7 @@ export class IncidentStatus extends Component {
                                                                             .props
                                                                             .currentProject
                                                                             .slug +
-                                                                        '/' +
+                                                                        '/component/' +
                                                                         componentSlug +
                                                                         '/monitoring/' +
                                                                         this
@@ -2260,7 +2260,7 @@ export class IncidentStatus extends Component {
                                         onClick={() => {
                                             setTimeout(() => {
                                                 history.push(
-                                                    `/dashboard/project/${this.props.currentProject.slug}/${componentSlug}/incidents/${incidentIdNumber}`
+                                                    `/dashboard/project/${this.props.currentProject.slug}/component/${componentSlug}/incidents/${incidentIdNumber}`
                                                 );
                                                 this.props.animateSidebar(
                                                     false

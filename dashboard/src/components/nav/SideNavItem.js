@@ -52,6 +52,10 @@ export class SidebarNavItem extends Component {
             .replace(':componentSlug', match.params.componentSlug)
             .replace(':monitor', match.params.monitorSlug)
             .replace(':applicationLogSlug', match.params.applicationLogSlug)
+            .replace(
+                ':performanceTrackerSlug',
+                match.params.performanceTrackerSlug
+            )
             .replace(':errorTrackerSlug', match.params.errorTrackerSlug);
     };
     handleShowMore = () => {
@@ -112,6 +116,10 @@ export class SidebarNavItem extends Component {
             .replace(':componentSlug', match.params.componentSlug)
             .replace(':monitorSlug', match.params.monitorSlug)
             .replace(':applicationLogSlug', match.params.applicationLogSlug)
+            .replace(
+                ':performanceTrackerSlug',
+                match.params.performanceTrackerSlug
+            )
             .replace(':errorTrackerSlug', match.params.errorTrackerSlug);
         const isLinkActive =
             location.pathname === path ||
@@ -130,19 +138,23 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(/project\/([A-Za-z0-9-]+)\/components/) &&
                 route.title === 'Components') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/monitoring/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/monitoring/
             ) &&
                 route.title === 'Monitors') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
             ) &&
                 route.title === 'Incident Log') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/application-log/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/application-log/
             ) &&
                 route.title === 'Logs') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/performance-tracker/
+            ) &&
+                route.title === 'Performance Tracker') ||
+            (location.pathname.match(
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security/
             ) &&
                 route.title === 'Security') ||
             (location.pathname.match(
@@ -150,13 +162,13 @@ export class SidebarNavItem extends Component {
             ) &&
                 route.title === 'Component Settings') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/settings\/basic/
+                /project\/([A-Za-z0-9-]+)\/component\/settings\/basic/
             ) &&
                 route.title === 'Scheduled Maintenance') ||
             (location.pathname.match(/project\/([A-Za-z0-9-]+)\/consulting/) &&
                 route.title === 'Consulting & Services') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/error-track/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/error-track/
             ) &&
                 route.title === 'Error Tracking');
 
@@ -178,6 +190,10 @@ export class SidebarNavItem extends Component {
                 match.params.applicationLogSlug
             );
             newPath = newPath.replace(
+                /:performanceTrackerSlug/,
+                match.params.performanceTrackerSlug
+            );
+            newPath = newPath.replace(
                 /:errorTrackerSlug/,
                 match.params.errorTrackerSlug
             );
@@ -186,31 +202,31 @@ export class SidebarNavItem extends Component {
                 newPath === match.url
                     ? true
                     : (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
+                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
                       ) &&
                           link.title === 'Incident') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security\/container/
+                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/container/
                       ) &&
                           link.title === 'Container') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security\/application/
+                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/application/
                       ) &&
                           link.title === 'Application') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security\/application\/([A-Za-z0-9-]+)/
+                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/application\/([A-Za-z0-9-]+)/
                       ) &&
                           link.title === 'Application Detail') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security\/container\/([A-Za-z0-9-]+)/
+                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/container\/([A-Za-z0-9-]+)/
                       ) &&
                           link.title === 'Container Detail') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/settings\/advanced/
+                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/settings\/advanced/
                       ) &&
                           link.title === 'Advanced') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/settings\/basic/
+                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/settings\/basic/
                       ) &&
                           link.title === 'Basic')
                     ? true
@@ -374,6 +390,7 @@ export class SidebarNavItem extends Component {
                 'Scheduled Event Detail',
                 'Error Tracking View',
                 'Error Tracking Detail View',
+                'Performance Tracker View',
             ];
             const moreRoutes =
                 child.title === 'Monitor' ||
@@ -405,12 +422,12 @@ export class SidebarNavItem extends Component {
                     : false;
 
                 const applicationDetailLink = active.match(
-                    /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security\/application/
+                    /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/application/
                 )
                     ? active
                     : false;
                 const containerDetailLink = active.match(
-                    /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security\/container/
+                    /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/container/
                 )
                     ? active
                     : false;

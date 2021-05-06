@@ -127,3 +127,6 @@ include:
 
   # FYIPE-ACME-HTTP-01
   - '/ci/spec/fyipe-acme-http-01/deploy.yaml'
+
+  # FYIPE-GL-MANAGER
+  - '/ci/spec/fyipe-gl-manager/deploy.yaml'

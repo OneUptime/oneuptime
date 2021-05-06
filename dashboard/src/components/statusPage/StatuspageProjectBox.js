@@ -225,7 +225,12 @@ const StatusPageProjectBox = props => {
                 </div>
                 <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                        <div className="Box-root Margin-right--8">
+                        <div
+                            className="Box-root Margin-right--8"
+                            id={`btnPrev-${props.subProjectName}`}
+                        >
+                            {' '}
+                            {/** Needed to identify sub-project */}
                             <button
                                 id="btnPrev"
                                 className={`Button bs-ButtonLegacy ${
@@ -251,7 +256,12 @@ const StatusPageProjectBox = props => {
                                 </div>
                             </button>
                         </div>
-                        <div className="Box-root">
+                        <div
+                            className="Box-root"
+                            id={`btnNext-${props.subProjectName}`}
+                        >
+                            {' '}
+                            {/** Needed to identify sub-project */}
                             <button
                                 id="btnNext"
                                 className={`Button bs-ButtonLegacy ${

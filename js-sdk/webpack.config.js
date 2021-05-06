@@ -33,11 +33,12 @@ const serverBuild = {
         fs: 'empty',
         child_process: 'empty',
         net: 'empty',
+        module: 'empty',
     },
 };
-const webBuild = {
+/*const webBuild = {
     ...serverBuild,
     target: 'web',
     output: { ...serverBuild.output, filename: 'fyipe.min.js' },
-};
-module.exports = [serverBuild, webBuild];
+};*/
+module.exports = serverBuild;

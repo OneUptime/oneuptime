@@ -21,7 +21,7 @@ class ComponentSettings extends Component {
         }
         this.props.editComponent(this.props.projectId, values).then(data => {
             history.replace(
-                `/dashboard/project/${this.props.projectSlug}/${data.data.slug}/settings/basic`
+                `/dashboard/project/${this.props.projectSlug}/component/${data.data.slug}/settings/basic`
             );
         });
     };
