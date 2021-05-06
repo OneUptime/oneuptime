@@ -20,8 +20,16 @@ import { LoadingState } from '../components/basic/Loader';
 import { capitalize } from '../config';
 import { Field, reduxForm } from 'redux-form';
 import Header from '../components/statusPage/Header';
+import { openModal } from '../actions/modal';
+import { v4 as uuidv4 } from 'uuid';
+import DataPathHoC from '../components/DataPathHoC';
+import DeleteAnnouncement from '../components/modals/DeleteAnnouncement';
 
 class StatusPageAnnouncement extends Component {
+    constructor(props) {
+        super(props);
+        this.state = { deleteModalId: uuidv4() };
+    }
     async componentDidMount() {
         const {
             projectId,
@@ -74,10 +82,9 @@ class StatusPageAnnouncement extends Component {
         }
     };
 
-    handleHideAnnouncement = (e, val) => {
+    handleHideAnnouncement = (e, val, announcementId) => {
         const {
             projectId,
-            statusPageSlug,
             handleAnnouncementFunc,
             resetHandleAnnouncement,
         } = this.props;
@@ -85,7 +92,7 @@ class StatusPageAnnouncement extends Component {
             [e.target.name]: val,
         };
         resetHandleAnnouncement();
-        handleAnnouncementFunc(projectId, statusPageSlug, data);
+        handleAnnouncementFunc(projectId, announcementId, data);
     };
 
     handleMonitorListing = (announcement, monitorState) => {
@@ -131,7 +138,10 @@ class StatusPageAnnouncement extends Component {
             requesting,
             announcementErr,
             updateAnnouncement: { error },
+            openModal,
+            projectId,
         } = this.props;
+        const { deleteModalId } = this.state;
         const announcementName = announcement ? announcement.name : '';
 
         return (
@@ -354,7 +364,8 @@ class StatusPageAnnouncement extends Component {
                                                                                                         ) =>
                                                                                                             this.handleHideAnnouncement(
                                                                                                                 e,
-                                                                                                                val
+                                                                                                                val,
+                                                                                                                announcement._id
                                                                                                             )
                                                                                                         }
                                                                                                     />
@@ -419,7 +430,56 @@ class StatusPageAnnouncement extends Component {
                             </TabPanel>
                             <TabPanel>
                                 <Fade>
-                                    <div>na wa for you</div>
+                                    <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                        <div className="Box-root">
+                                            <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                <div className="Box-root">
+                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                        <span>
+                                                            Delete Announcement
+                                                        </span>
+                                                    </span>
+                                                    <p>
+                                                        <span>
+                                                            Click the button to
+                                                            permanently delete
+                                                            this announcement
+                                                            from the status
+                                                            page.
+                                                        </span>
+                                                    </p>
+                                                </div>
+                                                <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--0 Padding-vertical--12">
+                                                    <span className="db-SettingsForm-footerMessage"></span>
+                                                    <div>
+                                                        <button
+                                                            className="bs-Button bs-Button--red Box-background--red"
+                                                            id={`deleteAnnouncement`}
+                                                            onClick={() =>
+                                                                openModal({
+                                                                    id: deleteModalId,
+                                                                    onClose: () =>
+                                                                        '',
+                                                                    onConfirm: () =>
+                                                                        this.deleteAnnouncement(),
+                                                                    content: DataPathHoC(
+                                                                        DeleteAnnouncement,
+                                                                        {
+                                                                            projectId,
+                                                                            announcementId:
+                                                                                announcement._id,
+                                                                        }
+                                                                    ),
+                                                                })
+                                                            }
+                                                        >
+                                                            <span>Delete</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </Fade>
                             </TabPanel>
                         </Tabs>
@@ -460,6 +520,7 @@ StatusPageAnnouncement.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    openModal: PropTypes.func,
 };
 
 const mapStateToProps = (state, ownProps) => {
@@ -508,6 +569,7 @@ const mapDispatchToProps = dispatch =>
             fetchProjectStatusPage,
             fetchSubProjectStatusPages,
             switchStatusPage,
+            openModal,
         },
         dispatch
     );
