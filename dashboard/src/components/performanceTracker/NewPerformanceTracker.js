@@ -61,7 +61,7 @@ class NewPerformanceTracker extends Component {
                 .then(
                     data => {
                         history.push(
-                            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/performance-tracker/${data.data.slug}`
+                            `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/performance-tracker/${data.data.slug}`
                         );
                         if (SHOULD_LOG_ANALYTICS) {
                             logEvent(
@@ -87,7 +87,7 @@ class NewPerformanceTracker extends Component {
                 .then(
                     data => {
                         history.push(
-                            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/performance-tracker/${data.data.slug}`
+                            `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/performance-tracker/${data.data.slug}`
                         );
                         if (SHOULD_LOG_ANALYTICS) {
                             logEvent(

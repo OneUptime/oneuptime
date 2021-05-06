@@ -452,13 +452,17 @@ class TableComponent extends Component {
                                                                         <div className="bs-ObjectList-cell bs-u-v-middle">
                                                                             <div className="bs-ObjectList-cell-row">
                                                                                 {
-                                                                                    metric.throughput
+                                                                                    metric
+                                                                                        .metrics
+                                                                                        .throughput
                                                                                 }
                                                                             </div>
                                                                         </div>
                                                                         <div className="bs-ObjectList-cell bs-u-v-middle">
                                                                             <div className="bs-ObjectList-cell-row">
-                                                                                {metric.errorCount ||
+                                                                                {metric
+                                                                                    .metrics
+                                                                                    .errorCount ||
                                                                                     0}
                                                                             </div>
                                                                         </div>
@@ -746,14 +750,18 @@ class TableComponent extends Component {
                                                                         <div className="bs-ObjectList-cell bs-u-v-middle">
                                                                             <div className="bs-ObjectList-cell-row">
                                                                                 {
-                                                                                    metric.throughput
+                                                                                    metric
+                                                                                        .metrics
+                                                                                        .throughput
                                                                                 }
                                                                             </div>
                                                                         </div>
                                                                         <div className="bs-ObjectList-cell bs-u-v-middle">
                                                                             <div className="bs-ObjectList-cell-row">
                                                                                 {
-                                                                                    metric.errorCount
+                                                                                    metric
+                                                                                        .metrics
+                                                                                        .errorCount
                                                                                 }
                                                                             </div>
                                                                         </div>

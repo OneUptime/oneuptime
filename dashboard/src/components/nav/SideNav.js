@@ -159,43 +159,43 @@ class SideNav extends Component {
         } = this.props;
         const switchToComponentDetailNav =
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/monitoring/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/monitoring/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/issues/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/issues/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/incident-log/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/incident-log/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/application-log/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/application-log/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/performance-tracker/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/performance-tracker/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security\/container/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/container/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security\/application/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/application/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/security/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/error-tracker/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/error-tracker/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/performance-tracker/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/performance-tracker/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/settings\/basic/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/settings\/basic/
             ) ||
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)\/settings\/advanced/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/settings\/advanced/
             );
         const switchToProfileNav =
             location.pathname.match(/profile\/settings/) ||

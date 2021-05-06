@@ -29,7 +29,7 @@ class PerformanceTrackerList extends Component {
     viewMore = () => {
         const { componentSlug, projectSlug, performanceTracker } = this.props;
         history.push(
-            `/dashboard/project/${projectSlug}/${componentSlug}/performance-tracker/${performanceTracker.slug}`
+            `/dashboard/project/${projectSlug}/component/${componentSlug}/performance-tracker/${performanceTracker.slug}`
         );
     };
 

@@ -195,7 +195,7 @@ export const groups = [
             {
                 title: 'Performance Tracker',
                 path:
-                    '/dashboard/project/:slug/:componentSlug/performance-tracker',
+                    '/dashboard/project/:slug/component/:componentSlug/performance-tracker',
                 icon: 'performanceTracker',
                 visible: true,
                 exact: true,
@@ -206,7 +206,7 @@ export const groups = [
                     {
                         title: 'Performance Tracker View',
                         path:
-                            '/dashboard/project/:slug/:componentSlug/performance-tracker/:performanceTrackerSlug',
+                            '/dashboard/project/:slug/component/:componentSlug/performance-tracker/:performanceTrackerSlug',
                         icon: 'performanceTracker',
                         visible: true,
                         subRoutes: [],

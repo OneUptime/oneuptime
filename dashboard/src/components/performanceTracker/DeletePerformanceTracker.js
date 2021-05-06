@@ -46,7 +46,7 @@ class DeletePerformanceTracker extends Component {
                 closeModal();
 
                 history.push(
-                    `/dashboard/project/${project.slug}/${componentSlug}/performance-tracker`
+                    `/dashboard/project/${project.slug}/component/${componentSlug}/performance-tracker`
                 );
             }
         });
