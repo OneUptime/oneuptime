@@ -341,7 +341,7 @@ const AddMonitorsForm = new reduxForm({
 })(MonitorBox);
 
 const mapStateToProps = (state, props) => {
-    const { subProjectId, scheduleSlug } = props.match.params;
+    const { scheduleSlug } = props.match.params;
     const initialValues = {};
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {
@@ -354,7 +354,9 @@ const mapStateToProps = (state, props) => {
     schedule = schedule.find(
         schedule => schedule && schedule.slug === scheduleSlug
     );
-
+    const subProjectId =
+        state.subProject.currentSubProject.subProject &&
+        state.subProject.currentSubProject.subProject._id;
     const monitors = state.monitor.monitorsList.monitors
         .map(monitor => monitor.monitors)
         .flat();

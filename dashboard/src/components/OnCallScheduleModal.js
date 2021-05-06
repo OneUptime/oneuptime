@@ -62,7 +62,7 @@ class OnCallScheduleModal extends Component {
                                                                         }/sub-project/${schedule.projectId &&
                                                                             schedule
                                                                                 .projectId
-                                                                                ._id}/schedule/${
+                                                                                .slug}/schedule/${
                                                                             schedule
                                                                                 .scheduleId
                                                                                 .slug

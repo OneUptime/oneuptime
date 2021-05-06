@@ -22,7 +22,7 @@ module.exports = {
                 .sort(sort)
                 .limit(limit)
                 .skip(skip)
-                .populate('projectId', 'name')
+                .populate('projectId', ['_id', 'name', 'slug'])
                 .populate({
                     path: 'scheduleId',
                     select: 'name isDefault slug',
@@ -47,7 +47,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const escalation = await EscalationModel.findOne(query)
-                .populate('projectId', 'name')
+                .populate('projectId', ['_id', 'name', 'slug'])
                 .populate({
                     path: 'scheduleId',
                     select: 'name isDefault slug',

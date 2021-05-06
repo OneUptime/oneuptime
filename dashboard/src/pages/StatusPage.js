@@ -24,6 +24,7 @@ import {
     switchStatusPage,
     fetchProjectStatusPage,
 } from '../actions/statusPage';
+import { fetchSubProject } from '../actions/subProject';
 import CustomStyles from '../components/statusPage/CustomStyles';
 import EmbeddedBubble from '../components/statusPage/EmbeddedBubble';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -78,6 +79,7 @@ class StatusPage extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > STATUS PAGE LIST > STATUS PAGE'
             );
         }
+        this.props.fetchSubProject(this.props.subProjectSlug);
     }
     componentWillMount() {
         resetIdCounter();
@@ -208,8 +210,6 @@ class StatusPage extends Component {
                                                                         subProjectId={
                                                                             this
                                                                                 .props
-                                                                                .match
-                                                                                .params
                                                                                 .subProjectId
                                                                         }
                                                                     >
@@ -218,8 +218,6 @@ class StatusPage extends Component {
                                                                                 subProjectId={
                                                                                     this
                                                                                         .props
-                                                                                        .match
-                                                                                        .params
                                                                                         .subProjectId
                                                                                 }
                                                                             />
@@ -262,8 +260,6 @@ class StatusPage extends Component {
                                                                         subProjectId={
                                                                             this
                                                                                 .props
-                                                                                .match
-                                                                                .params
                                                                                 .subProjectId
                                                                         }
                                                                     >
@@ -299,8 +295,6 @@ class StatusPage extends Component {
                                                                         subProjectId={
                                                                             this
                                                                                 .props
-                                                                                .match
-                                                                                .params
                                                                                 .subProjectId
                                                                         }
                                                                     >
@@ -322,9 +316,12 @@ class StatusPage extends Component {
                                                                                     subProjectId={
                                                                                         this
                                                                                             .props
-                                                                                            .match
-                                                                                            .params
                                                                                             .subProjectId
+                                                                                    }
+                                                                                    subProjectSlug={
+                                                                                        this
+                                                                                            .props
+                                                                                            .subProjectSlug
                                                                                     }
                                                                                     projectId={
                                                                                         history.location.pathname
@@ -343,8 +340,6 @@ class StatusPage extends Component {
                                                                         subProjectId={
                                                                             this
                                                                                 .props
-                                                                                .match
-                                                                                .params
                                                                                 .subProjectId
                                                                         }
                                                                     >
@@ -353,6 +348,11 @@ class StatusPage extends Component {
                                                                                 this
                                                                                     .props
                                                                                     .match
+                                                                            }
+                                                                            subProjectId={
+                                                                                this
+                                                                                    .props
+                                                                                    .subProjectId
                                                                             }
                                                                         />
                                                                     </RenderIfSubProjectAdmin>
@@ -389,17 +389,23 @@ const mapDispatchToProps = dispatch => {
             fetchSubProjectStatusPages,
             switchStatusPage,
             fetchProjectStatusPage,
+            fetchSubProject,
         },
         dispatch
     );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state, props) {
+    const { subProjectSlug } = props.match.params;
     return {
         statusPage: state.statusPage,
+        subProjectSlug,
         showDuplicateStatusPage: state.statusPage.showDuplicateStatusPage,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
+        subProjectId:
+            state.subProject.currentSubProject.subProject &&
+            state.subProject.currentSubProject.subProject._id,
         subProjects: state.subProject.subProjects.subProjects,
         currentProject: state.project.currentProject,
     };
@@ -410,12 +416,15 @@ StatusPage.propTypes = {
     switchStatusPage: PropTypes.func,
     fetchProjectStatusPage: PropTypes.func,
     fetchSubProjectStatusPages: PropTypes.func,
+    fetchSubProject: PropTypes.func,
     showDuplicateStatusPage: PropTypes.bool,
     match: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
     projectId: PropTypes.string,
+    subProjectSlug: PropTypes.string,
+    subProjectId: PropTypes.string,
     currentProject: PropTypes.object,
     subProjects: PropTypes.array,
 };

@@ -379,7 +379,7 @@ export const groups = [
                     {
                         title: 'Status Page',
                         path:
-                            '/dashboard/project/:slug/sub-project/:subProjectId/status-page/:statusPageSlug',
+                            '/dashboard/project/:slug/sub-project/:subProjectSlug/status-page/:statusPageSlug',
                         icon: 'radar',
                         visible: true,
                         subRoutes: [],
@@ -411,7 +411,7 @@ export const groups = [
                     {
                         title: 'Schedule',
                         path:
-                            '/dashboard/project/:slug/sub-project/:subProjectId/schedule/:scheduleSlug',
+                            '/dashboard/project/:slug/sub-project/:subProjectSlug/schedule/:scheduleSlug',
                         icon: 'call',
                         visible: true,
                         subRoutes: [],

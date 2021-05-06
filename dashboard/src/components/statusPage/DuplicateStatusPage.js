@@ -63,10 +63,14 @@ export class DuplicateStatusPageBox extends Component {
                                                 content: DataPathHoC(
                                                     DuplicateStatusPageForm,
                                                     {
-                                                        statusPageId: this.props
-                                                            .statusPageId,
+                                                        statusPageSlug: this
+                                                            .props.match.params
+                                                            .statusPageSlug,
                                                         subProjectId: this.props
                                                             .subProjectId,
+                                                        subProjectSlug: this
+                                                            .props
+                                                            .subProjectSlug,
                                                         projectId: this.props
                                                             .projectId,
                                                     }
@@ -115,8 +119,10 @@ DuplicateStatusPageBox.propTypes = {
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-    statusPageId: PropTypes.object,
+    statusPageSlug: PropTypes.object,
     subProjectId: PropTypes.object,
+    subProjectSlug: PropTypes.string,
+    match: PropTypes.object.isRequired,
     projectId: PropTypes.object,
 };
 
