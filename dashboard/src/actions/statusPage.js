@@ -1438,10 +1438,10 @@ export function resetHandleAnnouncement() {
     };
 }
 
-export function handleAnnouncementFunc(projectId, statusPageSlug, data) {
+export function handleAnnouncementFunc(projectId, announcementId, data) {
     return function(dispatch) {
         const promise = putApi(
-            `statusPage/${projectId}/announcement/${statusPageSlug}/update`,
+            `statusPage/${projectId}/announcement/${announcementId}/update`,
             data
         );
         promise.then(
@@ -1460,6 +1460,60 @@ export function handleAnnouncementFunc(projectId, statusPageSlug, data) {
                     error = 'Network Error';
                 }
                 dispatch(handleAnnouncementFailure(error));
+            }
+        );
+        return promise;
+    };
+}
+
+export function resetDeleteAnnouncement() {
+    return {
+        type: types.RESET_DELETE_ANNOUNCEMENT,
+    };
+}
+
+export function deleteAnnouncementRequest() {
+    return {
+        type: types.DELETE_ANNOUNCEMENT_REQUEST,
+    };
+}
+
+export function deleteAnnouncementSuccess(data) {
+    return {
+        type: types.DELETE_ANNOUNCEMENT_SUCCESS,
+        payload: data,
+    };
+}
+
+export function deleteAnnouncementFailure(error) {
+    return {
+        type: types.DELETE_ANNOUNCEMENT_FAILURE,
+        payload: error,
+    };
+}
+
+export function deleteAnnouncement(projectId, announcementId) {
+    return function(dispatch) {
+        const promise = deleteApi(
+            `statusPage/${projectId}/announcement/${announcementId}/delete`
+        );
+        dispatch(deleteAnnouncementRequest());
+        promise.then(
+            function(response) {
+                dispatch(deleteAnnouncementSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(deleteAnnouncementFailure(error));
             }
         );
         return promise;
