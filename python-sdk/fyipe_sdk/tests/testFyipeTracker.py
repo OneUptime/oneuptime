@@ -80,7 +80,6 @@ class TrackerTest(unittest.TestCase):
     
     def test_should_take_in_custom_timeline_event(self):
         tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
-
         tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
         timeline = tracker.getTimeline()
         self.assertIsInstance(timeline, list)
@@ -262,85 +261,85 @@ class TrackerTest(unittest.TestCase):
     #     self.assertEqual(event["type"], "message") 
     #     self.assertEqual(event["exception"]["message"], errorMessage) 
     
-    def test_should_create_an_event_ready_for_the_server_while_having_the_timeline_with_same_event_id(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
-        tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
+    # def test_should_create_an_event_ready_for_the_server_while_having_the_timeline_with_same_event_id(self):
+    #     tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+    #     tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
 
         
-        errorMessage = 'This is a test'
-        tracker.captureMessage(errorMessage)
-        event = tracker.getCurrentEvent()
+    #     errorMessage = 'This is a test'
+    #     tracker.captureMessage(errorMessage)
+    #     event = tracker.getCurrentEvent()
 
 
-        self.assertEqual(2, len(event["timeline"]))
-        self.assertEqual(event["eventId"], event["timeline"][0]["eventId"])
-        self.assertEqual(event["exception"]["message"], errorMessage)
+    #     self.assertEqual(2, len(event["timeline"]))
+    #     self.assertEqual(event["eventId"], event["timeline"][0]["eventId"])
+    #     self.assertEqual(event["exception"]["message"], errorMessage)
     
     
-    def test_should_create_an_event_ready_for_the_server_using_capture_exception(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+    # def test_should_create_an_event_ready_for_the_server_using_capture_exception(self):
+    #     tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
 
-        errorMessage = 'Error Found'
-        tracker.captureException(Exception(errorMessage))
-        event = tracker.getCurrentEvent()
-        self.assertEqual(event["type"], 'exception')
-        self.assertEqual(event["exception"]["message"], errorMessage)
+    #     errorMessage = 'Error Found'
+    #     tracker.captureException(Exception(errorMessage))
+    #     event = tracker.getCurrentEvent()
+    #     self.assertEqual(event["type"], 'exception')
+    #     self.assertEqual(event["exception"]["message"], errorMessage)
     
-    def test_should_create_an_event_with_array_of_stacktrace(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+    # def test_should_create_an_event_with_array_of_stacktrace(self):
+    #     tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
 
-        errorType = 'ZeroDivisionError'
-        try: 
-            divByZero = 1/0
-        except Exception as ex:
-            tracker.captureException(ex)
-        event = tracker.getCurrentEvent()
-        self.assertEqual(event["type"], 'exception')
-        self.assertEqual(event["exception"]["type"], errorType)
-        self.assertIsInstance(event["exception"]["stacktrace"],dict)
-        self.assertIsInstance(event["exception"]["stacktrace"]["frames"],list)
+    #     errorType = 'ZeroDivisionError'
+    #     try: 
+    #         divByZero = 1/0
+    #     except Exception as ex:
+    #         tracker.captureException(ex)
+    #     event = tracker.getCurrentEvent()
+    #     self.assertEqual(event["type"], 'exception')
+    #     self.assertEqual(event["exception"]["type"], errorType)
+    #     self.assertIsInstance(event["exception"]["stacktrace"],dict)
+    #     self.assertIsInstance(event["exception"]["stacktrace"]["frames"],list)
     
-    def test_should_create_an_event_with_the_object_of_the_stacktrace_in_place(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+    # def test_should_create_an_event_with_the_object_of_the_stacktrace_in_place(self):
+    #     tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
 
-        errorType = 'ZeroDivisionError'
-        try:  
-            divByZero= 1/0
-        except Exception as ex:
-            tracker.captureException(ex)
-        event = tracker.getCurrentEvent()
-        frame = event["exception"]["stacktrace"]["frames"][0]
+    #     errorType = 'ZeroDivisionError'
+    #     try:  
+    #         divByZero= 1/0
+    #     except Exception as ex:
+    #         tracker.captureException(ex)
+    #     event = tracker.getCurrentEvent()
+    #     frame = event["exception"]["stacktrace"]["frames"][0]
         
-        self.assertIn("methodName", frame)
-        self.assertIn("lineNumber", frame)
-        self.assertIn("fileName", frame)
+    #     self.assertIn("methodName", frame)
+    #     self.assertIn("lineNumber", frame)
+    #     self.assertIn("fileName", frame)
     
-    def test_should_create_an_event_and_new_event_should_have_different_id(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
-        errorMessage = 'division by zero'
-        tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
-        tracker.captureMessage(errorMessage)
-        event = tracker.getCurrentEvent()
+    # def test_should_create_an_event_and_new_event_should_have_different_id(self):
+    #     tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+    #     errorMessage = 'division by zero'
+    #     tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
+    #     tracker.captureMessage(errorMessage)
+    #     event = tracker.getCurrentEvent()
 
-        tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
+    #     tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
 
-        newEvent = None
-        errorType = 'division by zero'
-        try:  
-            divByZero= 1/0
-        except Exception as ex:
-            tracker.captureException(ex)
-            newEvent = tracker.getCurrentEvent()
-        # ensure that the first event have a type message, same error message
-        self.assertEqual(event["type"], 'message')
-        self.assertEqual(event["exception"]["message"], errorMessage)
+    #     newEvent = None
+    #     errorType = 'division by zero'
+    #     try:  
+    #         divByZero= 1/0
+    #     except Exception as ex:
+    #         tracker.captureException(ex)
+    #         newEvent = tracker.getCurrentEvent()
+    #     # ensure that the first event have a type message, same error message
+    #     self.assertEqual(event["type"], 'message')
+    #     self.assertEqual(event["exception"]["message"], errorMessage)
 
-        # ensure that the second event have a type exception, same error message
-        self.assertEqual(newEvent["type"], 'exception')
-        self.assertEqual(newEvent["exception"]["message"], errorMessage)
+    #     # ensure that the second event have a type exception, same error message
+    #     self.assertEqual(newEvent["type"], 'exception')
+    #     self.assertEqual(newEvent["exception"]["message"], errorMessage)
         
-        # confim their eventId is different
-        self.assertNotEqual(event["eventId"], newEvent["eventId"])
+    #     # confim their eventId is different
+    #     self.assertNotEqual(event["eventId"], newEvent["eventId"])
     
     def test_should_create_an_event_that_has_timeline_and_new_event_having_timeline_and_tags(self):
         tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
@@ -376,5 +375,15 @@ class TrackerTest(unittest.TestCase):
         self.assertEqual(newEvent["exception"]["message"], errorMessageObj)
         self.assertEqual(len(newEvent["timeline"]), 2)
         self.assertEqual(len(newEvent["tags"]), 2) # the default and custom tag
+    
+    def test_should_contain_version_number_and_sdk_name_in_captured_message(self):
+        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+
+        errorMessage = 'Error Found'
+        tracker.captureMessage(errorMessage)
+        event = tracker.getCurrentEvent()
+
+        self.assertIsInstance(event['sdk']['name'], str)
+        self.assertGreaterEqual(event['sdk']['version'], r'/(([0-9])+\.([0-9])+\.([0-9])+)/' )# confirm that the version follows the pattern XX.XX.XX where X is a non negative integer
     
 

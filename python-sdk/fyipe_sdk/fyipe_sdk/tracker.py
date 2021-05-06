@@ -150,7 +150,9 @@ class FyipeTracker:
             "eventId": self.getEventId(),
             "tags": tags,
             "fingerprint": fingerprint,
-            "errorTrackerKey": self.errorTrackerKey
+            "errorTrackerKey": self.errorTrackerKey,
+            "sdk": self.getSDKDetails()
+
         }
     
     def sendErrorEventToServer(self):
@@ -189,7 +191,7 @@ class FyipeTracker:
         # clear timeline
         self.listenerObj.clearTimeline(newEventId)
     
-    def get_version(self):    
+    def getSDKDetails(self):    
         # default sdk details
         sdkDetail = {
             "name": '',
