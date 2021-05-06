@@ -74,7 +74,8 @@ export const groups = [
             },
             {
                 title: 'Monitors',
-                path: '/dashboard/project/:slug/component/:componentSlug/monitoring',
+                path:
+                    '/dashboard/project/:slug/component/:componentSlug/monitoring',
                 icon: 'monitor',
                 component: Monitor,
                 exact: true,
@@ -109,7 +110,8 @@ export const groups = [
             },
             {
                 title: 'Incident Log',
-                path: '/dashboard/project/:slug/component/:componentSlug/incident-log',
+                path:
+                    '/dashboard/project/:slug/component/:componentSlug/incident-log',
                 icon: 'info',
                 visible: true,
                 component: IncidentLog,
@@ -131,7 +133,8 @@ export const groups = [
             },
             {
                 title: 'Logs',
-                path: '/dashboard/project/:slug/component/:componentSlug/application-log',
+                path:
+                    '/dashboard/project/:slug/component/:componentSlug/application-log',
                 icon: 'appLog',
                 visible: true,
                 exact: true,
@@ -154,7 +157,8 @@ export const groups = [
             },
             {
                 title: 'Error Tracking',
-                path: '/dashboard/project/:slug/component/:componentSlug/error-tracker',
+                path:
+                    '/dashboard/project/:slug/component/:componentSlug/error-tracker',
                 icon: 'errorTracking',
                 visible: true,
                 exact: true,
@@ -191,7 +195,7 @@ export const groups = [
             {
                 title: 'Performance Tracker',
                 path:
-                    '/dashboard/project/:slug/:componentSlug/performance-tracker',
+                    '/dashboard/project/:slug/component/:componentSlug/performance-tracker',
                 icon: 'performanceTracker',
                 visible: true,
                 exact: true,
@@ -202,7 +206,7 @@ export const groups = [
                     {
                         title: 'Performance Tracker View',
                         path:
-                            '/dashboard/project/:slug/:componentSlug/performance-tracker/:performanceTrackerSlug',
+                            '/dashboard/project/:slug/component/:componentSlug/performance-tracker/:performanceTrackerSlug',
                         icon: 'performanceTracker',
                         visible: true,
                         subRoutes: [],
@@ -275,7 +279,8 @@ export const groups = [
             },
             {
                 title: 'Component Settings',
-                path: '/dashboard/project/:slug/component/:componentSlug/settings/basic',
+                path:
+                    '/dashboard/project/:slug/component/:componentSlug/settings/basic',
                 icon: 'businessSettings',
                 visible: true,
                 exact: true,
