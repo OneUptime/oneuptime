@@ -1307,6 +1307,132 @@ margin-left:10px;
   margin-top: 70px;
 }
 
+.annoucement_frame {
+  width: 90%;
+  max-width: 850px;
+  margin: auto;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+  font-size: 16px;
+  margin-top: 30px;
+  cursor: pointer;
+}
+
+.annoucement_frame2 {
+  margin-top: 120px !important;
+}
+
+.announcement_block {
+  padding: 10px;
+  border-style: solid;
+  border-top-width: 0;
+  border-right-width: 0;
+  border-left-width: 0;
+  border-bottom-width: 1px;
+  border-color: #dfe1df;
+}
+
+.announcement_block2 {
+  border-bottom-width: 0 !important;
+}
+
+.announce_title {
+  font-weight: 500;
+}
+
+.announcement_classic {
+  border-radius: 4px;
+  box-shadow: 0 7px 14px 0 rgb(50 50 93 / 10%), 0 3px 6px 0 rgb(0 0 0 / 7%);
+  padding: 35px;
+}
+.ann_header {
+  font-size: 14px;
+}
+
+.ul_announce {
+  padding: 0;
+}
+
+.ann_items {
+  background: rgba(238, 238, 238, 0.7);
+  padding-left: 20px;
+  padding-right: 20px;
+  border-radius: 10px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  cursor: pointer;
+  font-family: sans-serif;
+  margin-bottom: 10px;
+}
+
+.classic_ann_title {
+  font-size: 14px;
+  font-weight: bold;
+  color: rgba(76, 76, 76, 0.8);
+  margin-bottom: 6px;
+}
+
+.classic_ann_desc {
+  color: rgba(0, 0, 0, 0.5);
+  display: block;
+  text-align: justify;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.classic_res {
+  color: rgba(76, 76, 76, 0.8);
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.classic_res span:first-child {
+  font-weight: bold;
+}
+
+.new_res span:first-child {
+  font-weight: bold;
+}
+
+.affected_fonts {
+  font-weight: normal !important;
+}
+
+.classic_date {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  color: rgba(76, 76, 76, 0.52);
+  font-weight: 700;
+}
+
+.classic_more {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.new_show_btn {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  cursor: default;
+}
+
+.new_show_btn button, .new_show_btn button:hover, .new_show_btn button:focus {
+  border: none;
+  outline: none;
+  cursor: pointer;
+}
+
+.new_show_btn button {
+  background-color: #fff;
+  text-decoration: underline;
+  font-size: 14px;
+}
+
+.new_show_btn button:hover {
+  color: rgba(0,0,0,0.5);
+}
+
 .sy-op {
   background-color: #49c3b1;
   font-weight: 500;
@@ -1831,5 +1957,12 @@ margin-left:10px;
 @media screen and (max-width: 420px) {
   .feed-item div.message {
     width: auto !important;
+  }
+}
+
+@media(min-width: 768px) {
+  .annoucement_frame2 {
+    width: 70% !important;
+    max-width: 550px !important;
   }
 }
