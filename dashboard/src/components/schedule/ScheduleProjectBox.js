@@ -144,6 +144,7 @@ const ScheduleProjectBox = props => {
                                 requesting={props.isRequesting}
                                 subProjectId={props.subProjectSchedule._id}
                                 slug={props.currentProject.slug}
+                                subProjectSlug={props.subProjectSlug}
                                 bottonTitle="View On-Call Duty"
                             />
                         </tbody>
@@ -289,6 +290,7 @@ ScheduleProjectBox.propTypes = {
     currentProject: PropTypes.object.isRequired,
     subProject: PropTypes.object.isRequired,
     projectId: PropTypes.string.isRequired,
+    subProjectSlug: PropTypes.string.isRequired,
     scheduleModalId: PropTypes.string.isRequired,
     subProjects: PropTypes.array,
     allScheduleLength: PropTypes.number,

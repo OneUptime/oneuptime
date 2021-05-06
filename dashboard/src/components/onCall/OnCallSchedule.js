@@ -66,7 +66,7 @@ const OnCallSchedule = ({ status, schedules, slug }) => {
                                                                 `/dashboard/project/${slug}/sub-project/${schedule.projectId &&
                                                                     schedule
                                                                         .projectId
-                                                                        ._id}/schedule/${
+                                                                        .slug}/schedule/${
                                                                     schedule.slug
                                                                 }`
                                                             )

@@ -163,9 +163,6 @@ const StatusPageProjectBox = props => {
                             return (
                                 <StatusPage
                                     projectId={props.currentProjectId}
-                                    subProjectId={
-                                        props.subProjectStatusPage._id
-                                    }
                                     switchStatusPages={props.switchStatusPages}
                                     key={i}
                                     statusPage={o}

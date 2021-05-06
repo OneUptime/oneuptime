@@ -436,3 +436,51 @@ export function markSubProjectForDelete(projectId, subProjectId, feedback) {
         return promise;
     };
 }
+
+export function fetchSubProjectRequest() {
+    return {
+        type: types.FETCH_SUBPROJECT_REQUEST,
+    };
+}
+
+export function fetchSubProjectSuccess(payload) {
+    return {
+        type: types.FETCH_SUBPROJECT_SUCCESS,
+        payload,
+    };
+}
+
+export function fetchSubProjectFailure(error) {
+    return {
+        type: types.FETCH_SUBPROJECT_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchSubProject(slug) {
+    return function(dispatch) {
+        const promise = getApi(`project/projects/${slug}`);
+        dispatch(fetchSubProjectRequest());
+
+        promise.then(
+            function(subproject) {
+                dispatch(fetchSubProjectSuccess(subproject.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchSubProjectFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}

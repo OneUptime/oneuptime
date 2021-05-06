@@ -974,14 +974,15 @@ export function duplicateStatusPageError(error) {
     };
 }
 
-export function readStatusPage(statusPageId, data) {
+export function readStatusPage(statusPageSlug, data) {
     return function(dispatch) {
-        const promise = getApi(`statusPage/${statusPageId}`, data);
+        const promise = getApi(`statusPage/${statusPageSlug}`, data);
         dispatch(duplicateStatusPageRequest());
         promise.then(
             function(response) {
                 const statusPageData = response.data;
                 delete statusPageData._id;
+                delete statusPageData.slug;
                 statusPageData.name = data.name;
                 return response;
             },
@@ -1031,9 +1032,9 @@ export function createDuplicateStatusPage(statusPageData) {
     };
 }
 
-export function fetchStatusPage(statusPageId) {
+export function fetchStatusPage(statusPageSlug) {
     return function(dispatch) {
-        const promise = getApi(`statusPage/${statusPageId}`);
+        const promise = getApi(`statusPage/${statusPageSlug}`);
         promise.then(
             function(response) {
                 const statusPageData = response.data;

@@ -10,6 +10,7 @@ import PropTypes from 'prop-types';
 import EscalationSummary from '../components/schedule/EscalationSummary';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import { fetchSubProject } from '../actions/subProject';
 import { withRouter } from 'react-router';
 import { subProjectTeamLoading } from '../actions/team';
 import { getEscalation } from '../actions/schedule';
@@ -21,18 +22,31 @@ class Schedule extends Component {
         super(props);
         this.state = { editSchedule: false };
     }
-
+    componentDidMount() {
+        this.props.fetchSubProject(this.props.subProjectSlug);
+    }
     async componentDidUpdate(prevProps) {
-        if (prevProps.scheduleId !== this.props.scheduleId) {
-            const { subProjectId, scheduleId } = this.props;
-            try {
-                await Promise.all([
-                    this.props.getEscalation(subProjectId, scheduleId),
-                    this.props.subProjectTeamLoading(subProjectId),
-                    this.props.teamLoading(subProjectId),
-                ]);
-            } catch (e) {
-                this.setState({ error: e });
+        if (
+            prevProps.schedule !== this.props.schedule ||
+            prevProps.subProjectId !== this.props.subProjectId
+        ) {
+            const {
+                subProjectId,
+                scheduleId,
+                getEscalation,
+                subProjectTeamLoading,
+                teamLoading,
+            } = this.props;
+            if (scheduleId && subProjectId) {
+                try {
+                    await Promise.all([
+                        getEscalation(subProjectId, scheduleId),
+                        subProjectTeamLoading(subProjectId),
+                        teamLoading(subProjectId),
+                    ]);
+                } catch (e) {
+                    this.setState({ error: e });
+                }
             }
         }
     }
@@ -132,12 +146,12 @@ class Schedule extends Component {
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { getEscalation, subProjectTeamLoading, teamLoading },
+        { getEscalation, subProjectTeamLoading, teamLoading, fetchSubProject },
         dispatch
     );
 
 const mapStateToProps = (state, props) => {
-    const { scheduleSlug } = props.match.params;
+    const { scheduleSlug, subProjectSlug } = props.match.params;
 
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {
@@ -151,15 +165,16 @@ const mapStateToProps = (state, props) => {
         schedule => schedule && schedule.slug === scheduleSlug
     );
     const escalations = state.schedule.scheduleEscalations;
-
-    const { subProjectId } = props.match.params;
     return {
         schedule,
         escalations,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
-        subProjectId,
+        subProjectId:
+            state.subProject.currentSubProject.subProject &&
+            state.subProject.currentSubProject.subProject._id,
         scheduleId: schedule && schedule._id,
+        subProjectSlug,
         teamMembers: state.team.teamMembers,
     };
 };
@@ -170,6 +185,8 @@ Schedule.propTypes = {
     getEscalation: PropTypes.func.isRequired,
     subProjectTeamLoading: PropTypes.func.isRequired,
     subProjectId: PropTypes.string.isRequired,
+    subProjectSlug: PropTypes.string.isRequired,
+    fetchSubProject: PropTypes.func.isRequired,
     scheduleId: PropTypes.string.isRequired,
     teamLoading: PropTypes.func.isRequired,
     escalations: PropTypes.array.isRequired,

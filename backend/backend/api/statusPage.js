@@ -621,7 +621,7 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
     }
 });
 
-// External status page api - get the data to show on status page
+// External status page api - get the data to show on status page using Slug
 router.get('/:statusPageSlug', checkUser, ipWhitelist, async function(
     req,
     res
@@ -645,7 +645,7 @@ router.get('/:statusPageSlug', checkUser, ipWhitelist, async function(
         } else {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'StatusPage Id or Url required',
+                message: 'StatusPage Slug or Url required',
             });
         }
 
