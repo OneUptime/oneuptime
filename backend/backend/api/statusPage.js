@@ -1308,21 +1308,17 @@ router.get('/:projectId/announcement/:statusPageId', checkUser, async function(
 ) {
     try {
         const { projectId, statusPageId } = req.params;
-        const { skip, limit } = req.query;
+        const { skip, limit, show } = req.query;
+        const query = { projectId, statusPageId };
+        if (show) query.hideAnnouncement = false;
 
         const allAnnouncements = await StatusPageService.getAnnouncements(
-            {
-                projectId,
-                statusPageId,
-            },
+            query,
             skip,
             limit
         );
 
-        const count = await StatusPageService.countAnnouncements({
-            projectId,
-            statusPageId,
-        });
+        const count = await StatusPageService.countAnnouncements(query);
 
         return sendItemResponse(req, res, {
             allAnnouncements,
@@ -1357,18 +1353,36 @@ router.get(
 );
 
 router.put(
-    `/:projectId/announcement/:statusPageSlug/update`,
+    `/:projectId/announcement/:announcementId/update`,
     checkUser,
     async function(req, res) {
         try {
-            const { projectId, statusPageSlug } = req.params;
-            const { _id } = await StatusPageService.findOneBy({
-                slug: statusPageSlug,
-            });
+            const { projectId, announcementId } = req.params;
             const { hideAnnouncement } = req.body;
             const response = await StatusPageService.updateAnnouncement(
-                { projectId, statusPageId: String(_id) },
+                { projectId, _id: announcementId },
                 { hideAnnouncement }
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.delete(
+    `/:projectId/announcement/:announcementId/delete`,
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, announcementId } = req.params;
+            const userId = req.user ? req.user.id : null;
+            const response = await StatusPageService.deleteAnnouncement(
+                {
+                    projectId,
+                    _id: announcementId,
+                },
+                userId
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
