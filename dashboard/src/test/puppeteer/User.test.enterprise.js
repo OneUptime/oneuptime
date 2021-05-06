@@ -1,10 +1,9 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, browser2, page, browserPage;
 const admin = {
     email: 'masteradmin@hackerbay.io',
     password: '1234567890',
@@ -16,48 +15,34 @@ const user = {
 };
 
 describe('Users', () => {
-    const operationTimeOut = 500000;
-    let cluster, browser, browserPage;
+    const operationTimeOut = 500000;    
     beforeAll(async () => {
         jest.setTimeout(500000);
+    
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig); // User-Dashboard
+        browser2 = await puppeteer.launch(utils.puppeteerLaunchConfig); // Admin-Dashboard
+        page = await browser.newPage();
+        browserPage = await browser2.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );     
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 500000,
-        });
-
-        browser = await puppeteer.launch({
-            ...utils.puppeteerLaunchConfig,
-        });
-        browserPage = await browser.newPage();
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        // Register users
-        return await cluster.execute(null, async ({ page }) => {
-            await init.registerEnterpriseUser(user, page);
-            await init.adminLogout(page);
-        });
+        // Register users        
+            await init.registerEnterpriseUser(user, browserPage);            
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
         await browser.close();
         done();
     });
-
+    /**  This test works by running user dashboard and admin dashboard in two seperate browsers.
+     as two dashboards cannot be run in the same browser */
     it(
         'should logout the user if the admin deletes the account from the dashboard.',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {  
+                await page.bringToFront();
                 await init.loginUser(user, page);
-                await browserPage.bringToFront();
-                await init.loginUser(admin, browserPage);
+                await browserPage.bringToFront();               
                 await browserPage.waitForSelector(
                     `#${user.email.split('@')[0]}`,
                     { visible: true }
@@ -77,16 +62,15 @@ describe('Users', () => {
                 await page.bringToFront();
                 await page.waitForSelector('#statusPages');
                 await page.click('#statusPages');
-                await page.waitForSelector('#login-button', { visible: true });
-            });
+                await page.waitForSelector('#login-button', { visible: true });            
+            done();
         },
         operationTimeOut
     );
 
     it(
         'should be able to restore deleted users (using admin account)',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await init.loginUser(admin, page);
                 await page.waitForSelector(
                     `#deleted__${user.email.split('@')[0]}`,
@@ -100,7 +84,7 @@ describe('Users', () => {
                     visible: true,
                 });
                 expect(delBtn).toBeDefined();
-            });
+            done();
         },
         operationTimeOut
     );
