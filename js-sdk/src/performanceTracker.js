@@ -16,7 +16,14 @@ class PerformanceTracker {
     #start;
     #end;
     #store;
-    constructor({ apiUrl, appId, appKey }) {
+    constructor({
+        apiUrl,
+        appId,
+        appKey,
+        trackIncomingRequest = true,
+        trackOutgoingRequest = true,
+        app, // express app instance
+    }) {
         this.#apiUrl = apiUrl;
         this.#appId = appId;
         this.#appKey = appKey;
@@ -39,8 +46,15 @@ class PerformanceTracker {
             this.#end = end;
             this.#store = store(); // returns the store instance
         }
+
+        if (trackIncomingRequest) {
+            this._setUpIncomingListener(app);
+        }
+        if (trackOutgoingRequest) {
+            this._setUpOutgoingListener();
+        }
     }
-    setUpOutgoingListener() {
+    _setUpOutgoingListener() {
         return new OutgoingListener(this.#start, this.#end, this.#store);
     }
     setUpDataBaseListener() {
@@ -55,8 +69,8 @@ class PerformanceTracker {
             return res;
         };
     }
-    setUpIncomingListener() {
-        return new IncomingListener(this.#start, this.#end, this.#store);
+    _setUpIncomingListener(app) {
+        return new IncomingListener(this.#start, this.#end, this.#store, app);
     }
 }
 export default PerformanceTracker;

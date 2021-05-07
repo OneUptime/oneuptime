@@ -30,7 +30,7 @@ module.exports = {
                 .populate('projectId')
                 .populate('incidentId')
                 .populate('scheduleId')
-                .populate('schedule', 'name')
+                .populate('schedule', ['_id', 'name', 'slug'])
                 .populate('activeEscalationId');
 
             return items;

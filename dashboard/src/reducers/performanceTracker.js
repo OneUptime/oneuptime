@@ -54,9 +54,7 @@ const INITIAL_STATE = {
         requesting: false,
         error: null,
         success: false,
-        time: 0,
-        throughput: 0,
-        errorRate: 0,
+        metrics: [],
     },
 };
 
@@ -370,18 +368,24 @@ export default function(state = INITIAL_STATE, action) {
                 },
             };
 
-        case types.FETCH_LAST_METRICS_SUCCESS:
+        case types.FETCH_LAST_METRICS_SUCCESS: {
+            const metrics = state.lastMetrics.metrics
+                .filter(
+                    metric =>
+                        String(metric.performanceTrackerId) !==
+                        String(action.payload.performanceTrackerId)
+                )
+                .concat(action.payload);
             return {
                 ...state,
                 lastMetrics: {
                     requesting: false,
                     success: true,
                     error: null,
-                    time: action.payload.time,
-                    throughput: action.payload.throughput,
-                    errorRate: action.payload.errorRate,
+                    metrics,
                 },
             };
+        }
 
         case types.FETCH_LAST_METRICS_FAILURE:
             return {

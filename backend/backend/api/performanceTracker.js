@@ -336,6 +336,7 @@ router.get(
             ]);
 
             const result = {
+                performanceTrackerId,
                 time: time.length > 0 ? time[time.length - 1].value : 0,
                 throughput:
                     throughput.length > 0

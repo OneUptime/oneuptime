@@ -1,10 +1,9 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
@@ -15,44 +14,34 @@ const monitor = 'sampleMonitor';
 
 describe('Monitor SLA', () => {
     const operationTimeOut = 500000;
-
-    let cluster;
+    
     beforeAll(async done => {
         jest.setTimeout(360000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 500000,
-        });
-
-        cluster.on('error', err => {
-            throw err;
-        });
-
-        await cluster.execute({ email, password }, async ({ page, data }) => {
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
+        
             const user = {
-                email: data.email,
-                password: data.password,
+                email,
+                password,
             };
             // user
-            await init.registerUser(user, page);
-        });
+            await init.registerUser(user, page);        
 
         done();
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'should not add a monitor SLA if no name was specified',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -81,8 +70,7 @@ describe('Monitor SLA', () => {
                 const monitorSla = await page.waitForSelector(`#field-error`, {
                     visible: true,
                 });
-                expect(monitorSla).toBeDefined();
-            });
+                expect(monitorSla).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -90,8 +78,7 @@ describe('Monitor SLA', () => {
 
     test(
         'should not add a monitor SLA if monitor uptime was not specified',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -119,8 +106,7 @@ describe('Monitor SLA', () => {
                 const slaError = await page.waitForSelector(`#slaError`, {
                     visible: true,
                 });
-                expect(slaError).toBeDefined();
-            });
+                expect(slaError).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -128,8 +114,7 @@ describe('Monitor SLA', () => {
 
     test(
         'should not add a monitor SLA if monitor uptime is not a numeric value',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -159,8 +144,7 @@ describe('Monitor SLA', () => {
                 const uptimeError = await page.waitForSelector('#field-error', {
                     visible: true,
                 });
-                expect(uptimeError).toBeDefined();
-            });
+                expect(uptimeError).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -168,8 +152,7 @@ describe('Monitor SLA', () => {
 
     test(
         'should not add a monitor SLA if monitor uptime is greater than 100%',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -199,8 +182,7 @@ describe('Monitor SLA', () => {
                 const uptimeError = await page.waitForSelector('#field-error', {
                     visible: true,
                 });
-                expect(uptimeError).toBeDefined();
-            });
+                expect(uptimeError).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -208,8 +190,7 @@ describe('Monitor SLA', () => {
 
     test(
         'should not add a monitor SLA if monitor uptime is less than 1%',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -239,8 +220,7 @@ describe('Monitor SLA', () => {
                 const uptimeError = await page.waitForSelector('#field-error', {
                     visible: true,
                 });
-                expect(uptimeError).toBeDefined();
-            });
+                expect(uptimeError).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -248,8 +228,7 @@ describe('Monitor SLA', () => {
 
     test(
         'should not add a monitor SLA if frequency is not a numeric value',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -282,8 +261,7 @@ describe('Monitor SLA', () => {
                         visible: true,
                     }
                 );
-                expect(frequencyError).toBeDefined();
-            });
+                expect(frequencyError).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -291,8 +269,7 @@ describe('Monitor SLA', () => {
 
     test(
         'should add a monitor SLA',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -325,8 +302,7 @@ describe('Monitor SLA', () => {
                     `#monitorSla_${slaName}`,
                     { visible: true }
                 );
-                expect(monitorSla).toBeDefined();
-            });
+                expect(monitorSla).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -334,8 +310,7 @@ describe('Monitor SLA', () => {
 
     test(
         'should update a monitor SLA',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -362,8 +337,7 @@ describe('Monitor SLA', () => {
                     `#defaultMonitorSlaBtn_0`,
                     { hidden: true }
                 );
-                expect(setDefaultBtn).toBeDefined();
-            });
+                expect(setDefaultBtn).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -371,8 +345,7 @@ describe('Monitor SLA', () => {
 
     test(
         'should show monitor SLA indicator in a created monitor',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await init.addMonitorToComponent(component, monitor, page);
                 const slaIndicator = await page.waitForSelector(
                     `#noMonitorSlaBreached`,
@@ -380,8 +353,7 @@ describe('Monitor SLA', () => {
                         visible: true,
                     }
                 );
-                expect(slaIndicator).toBeDefined();
-            });
+                expect(slaIndicator).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -389,8 +361,7 @@ describe('Monitor SLA', () => {
 
     test(
         'should show breached monitor SLA indicator when a monitor uptime is less than the specified uptime in the SLA',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await init.addIncident(monitor, 'offline', page);
                 await init.navigateToMonitorDetails(component, monitor, page);
 
@@ -398,8 +369,7 @@ describe('Monitor SLA', () => {
                     '#monitorSlaBreached',
                     { visible: true }
                 );
-                expect(breachedIndicator).toBeDefined();
-            });
+                expect(breachedIndicator).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -407,8 +377,7 @@ describe('Monitor SLA', () => {
 
     test(
         'should delete a monitor SLA',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -432,8 +401,7 @@ describe('Monitor SLA', () => {
                     `#monitorSla_${slaName}`,
                     { hidden: true }
                 );
-                expect(monitorSla).toBeNull();
-            });
+                expect(monitorSla).toBeNull();            
             done();
         },
         operationTimeOut

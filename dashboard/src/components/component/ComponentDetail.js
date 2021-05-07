@@ -120,14 +120,14 @@ export class ComponentDetail extends Component {
         return promise;
     };
     componentDidMount() {
-        const { component, currentProject} = this.props;
+        const { component, currentProject } = this.props;
         this.props.fetchComponentResources(
             component.projectId._id,
             component._id,
             0,
             5
         );
-        this.props.fetchMonitors(currentProject._id)
+        this.props.fetchMonitors(currentProject._id);
     }
     // componentDidUpdate(prevState) {
     //     const { component } = this.props;
@@ -336,7 +336,7 @@ ComponentDetail.propTypes = {
         PropTypes.object,
         PropTypes.array,
     ]),
-     fetchMonitors: PropTypes.func,
+    fetchMonitors: PropTypes.func,
     animateSidebar: PropTypes.func,
     searchComponents: PropTypes.func,
 };

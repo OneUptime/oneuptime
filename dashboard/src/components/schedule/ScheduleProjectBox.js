@@ -144,6 +144,7 @@ const ScheduleProjectBox = props => {
                                 requesting={props.isRequesting}
                                 subProjectId={props.subProjectSchedule._id}
                                 slug={props.currentProject.slug}
+                                subProjectSlug={props.subProjectSlug}
                                 bottonTitle="View On-Call Duty"
                             />
                         </tbody>
@@ -204,7 +205,12 @@ const ScheduleProjectBox = props => {
                     </div>
                     <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                            <div className="Box-root Margin-right--8" id={`btnPrev-${props.subProjectName}`}>  {/** Needed for identifying subproject */}
+                            <div
+                                className="Box-root Margin-right--8"
+                                id={`btnPrev-${props.subProjectName}`}
+                            >
+                                {' '}
+                                {/** Needed for identifying subproject */}
                                 <button
                                     id="btnPrev"
                                     className={`Button bs-ButtonLegacy ${
@@ -230,7 +236,12 @@ const ScheduleProjectBox = props => {
                                     </div>
                                 </button>
                             </div>
-                            <div className="Box-root" id={`btnNext-${props.subProjectName}`}> {/** Needed for identifying subproject */}
+                            <div
+                                className="Box-root"
+                                id={`btnNext-${props.subProjectName}`}
+                            >
+                                {' '}
+                                {/** Needed for identifying subproject */}
                                 <button
                                     id="btnNext"
                                     className={`Button bs-ButtonLegacy ${
@@ -289,6 +300,7 @@ ScheduleProjectBox.propTypes = {
     currentProject: PropTypes.object.isRequired,
     subProject: PropTypes.object.isRequired,
     projectId: PropTypes.string.isRequired,
+    subProjectSlug: PropTypes.string.isRequired,
     scheduleModalId: PropTypes.string.isRequired,
     subProjects: PropTypes.array,
     allScheduleLength: PropTypes.number,

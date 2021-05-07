@@ -39,7 +39,7 @@ class PerformanceTrackerHeader extends Component {
         }).then(({ data }) => {
             if (!updateTrackerObj.error) {
                 history.replace(
-                    `/dashboard/project/${project.slug}/${component.slug}/performance-tracker/${data.slug}`
+                    `/dashboard/project/${project.slug}/component/${component.slug}/performance-tracker/${data.slug}`
                 );
                 this.cancelEdit();
             }

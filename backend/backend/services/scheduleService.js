@@ -19,7 +19,7 @@ module.exports = {
                 .populate('userIds', 'name')
                 .populate('createdById', 'name')
                 .populate('monitorIds', 'name')
-                .populate('projectId', 'name')
+                .populate('projectId', ['_id', 'name', 'slug'])
                 .populate({
                     path: 'escalationIds',
                     select: 'teams',
@@ -47,7 +47,7 @@ module.exports = {
                 .populate('userIds', 'name')
                 .populate('createdById', 'name')
                 .populate('monitorIds', 'name')
-                .populate('projectId', 'name')
+                .populate('projectId', ['_id', 'name', 'slug'])
                 .populate({
                     path: 'escalationIds',
                     select: 'teamMember',

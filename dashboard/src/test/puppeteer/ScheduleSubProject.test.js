@@ -30,7 +30,7 @@ describe('Schedule API With SubProjects', () => {
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
         );
 
-        // Register user 
+        // Register user
         await init.registerUser(user, page); // This auto log in the user.
         await init.renameProject(projectName, page);
         await init.growthPlanUpgrade(page);
@@ -49,8 +49,12 @@ describe('Schedule API With SubProjects', () => {
             },
             page
         );
-        // Navigate to details page of component created 
-        await init.addNewMonitorToComponent(page, componentName, subProjectMonitorName);
+        // Navigate to details page of component created
+        await init.addNewMonitorToComponent(
+            page,
+            componentName,
+            subProjectMonitorName
+        );
         await init.logout(page);
         done();
     });
@@ -63,7 +67,10 @@ describe('Schedule API With SubProjects', () => {
     test(
         'should not display create schedule button for subproject `member` role.',
         async done => {
-            await init.registerAndLoggingTeamMember({ email: newEmail, password: newPassword }, page); // This is for subproject
+            await init.registerAndLoggingTeamMember(
+                { email: newEmail, password: newPassword },
+                page
+            ); // This is for subproject
             // switch to invited project for new user
             // await init.switchProject(data.projectName, page);
 
@@ -83,28 +90,25 @@ describe('Schedule API With SubProjects', () => {
 
     test(
         'should create a schedule in sub-project for sub-project `admin`',
-        async done => {            
+        async done => {
             const scheduleName = utils.generateRandomString();
-            console.log("schedulename: ", scheduleName)
+            console.log('schedulename: ', scheduleName);
             await init.loginUser(user, page);
-            await init.addScheduleToProject(
-                scheduleName,
-                subProjectName,
-                page
-            );
-            await page.waitForSelector(
-                `#schedule_count_${subProjectName}`, { visible: true }
-            );
+            await init.addScheduleToProject(scheduleName, subProjectName, page);
+            await page.waitForSelector(`#schedule_count_${subProjectName}`, {
+                visible: true,
+            });
             await page.reload({ waitUntil: 'networkidle0' });
 
             const scheduleCountSelector = await page.waitForSelector(
-                `#schedule_count_${subProjectName}`, { visible: true }
+                `#schedule_count_${subProjectName}`,
+                { visible: true }
             );
             let textContent = await scheduleCountSelector.getProperty(
                 'innerText'
             );
 
-            textContent = await textContent.jsonValue();            
+            textContent = await textContent.jsonValue();
             expect(textContent).toMatch('Page 1 of 1 (1 duty)');
             done();
         },
@@ -116,13 +120,9 @@ describe('Schedule API With SubProjects', () => {
         // add 10 more schedules to sub-project to test for pagination
         for (let i = 0; i < 10; i++) {
             const scheduleName = utils.generateRandomString();
-            await init.addScheduleToProject(
-                scheduleName,
-                subProjectName,
-                page
-            );
+            await init.addScheduleToProject(scheduleName, subProjectName, page);
         }
-        
+
         await page.waitForSelector('#onCallDuty');
         await page.click('#onCallDuty');
         await page.waitForSelector('tr.scheduleListItem');
@@ -132,18 +132,22 @@ describe('Schedule API With SubProjects', () => {
 
         expect(countSchedules).toEqual(10);
 
-        //const nextSelector = 
-        await page.waitForSelector(`#btnNext-${subProjectName}`, {visible:true});
+        //const nextSelector =
+        await page.waitForSelector(`#btnNext-${subProjectName}`, {
+            visible: true,
+        });
 
-       // await nextSelector.click();
+        // await nextSelector.click();
         await page.click(`#btnNext-${subProjectName}`);
         await page.waitForTimeout(5000);
         scheduleRows = await page.$$('tr.scheduleListItem');
         countSchedules = scheduleRows.length;
         expect(countSchedules).toEqual(1);
 
-       // const prevSelector = 
-        await page.waitForSelector(`#btnPrev-${subProjectName}`, {visible:true});
+        // const prevSelector =
+        await page.waitForSelector(`#btnPrev-${subProjectName}`, {
+            visible: true,
+        });
         await page.click(`#btnPrev-${subProjectName}`);
         //await prevSelector.click();
         await page.waitForTimeout(5000);
@@ -156,28 +160,26 @@ describe('Schedule API With SubProjects', () => {
 
     test(
         'should add monitor to sub-project schedule',
-        async done => {            
-                    await page.goto(utils.DASHBOARD_URL);                    
-                    await page.waitForSelector('#onCallDuty');
-                    await page.click('#onCallDuty');
-                    await page.waitForSelector('tr.scheduleListItem');
-                    await page.click('tr.scheduleListItem');
-                    await page.waitForSelector(
-                        `span[title="${subProjectMonitorName}"]`
-                    );
-                    await page.click(
-                        `span[title="${subProjectMonitorName}"]`
-                    );
-                    await page.waitForSelector('#btnSaveMonitors');
-                    await page.click('#btnSaveMonitors');
-                    await page.waitForTimeout(5000);
+        async done => {
+            await page.goto(utils.DASHBOARD_URL);
+            await page.waitForSelector('#onCallDuty');
+            await page.click('#onCallDuty');
+            await page.waitForSelector('tr.scheduleListItem');
+            await page.click('tr.scheduleListItem');
+            await page.waitForSelector(
+                `span[title="${subProjectMonitorName}"]`
+            );
+            await page.click(`span[title="${subProjectMonitorName}"]`);
+            await page.waitForSelector('#btnSaveMonitors');
+            await page.click('#btnSaveMonitors');
+            await page.waitForTimeout(5000);
 
-                    const monitorSelectValue = await page.$eval(
-                        'input[type=checkbox]',
-                        el => el.value
-                    );
-                    expect(monitorSelectValue).toBe('true');
-                            
+            const monitorSelectValue = await page.$eval(
+                'input[type=checkbox]',
+                el => el.value
+            );
+            expect(monitorSelectValue).toBe('true');
+
             done();
         },
         operationTimeOut
@@ -186,29 +188,28 @@ describe('Schedule API With SubProjects', () => {
     test(
         'should delete sub-project schedule',
         async done => {
-                    await page.goto(utils.DASHBOARD_URL);                        
-                    await page.waitForSelector('#onCallDuty');
-                    await page.click('#onCallDuty');
-                    await page.waitForSelector('tr.scheduleListItem');
-                    await page.click('tr.scheduleListItem');
-                    await page.waitForSelector('#delete');
-                    await page.click('#delete');
-                    await page.waitForSelector('#confirmDelete');
-                    await page.click('#confirmDelete');
-                    await page.waitForSelector('#confirmDelete', {hidden: true});
+            await page.goto(utils.DASHBOARD_URL);
+            await page.waitForSelector('#onCallDuty');
+            await page.click('#onCallDuty');
+            await page.waitForSelector('tr.scheduleListItem');
+            await page.click('tr.scheduleListItem');
+            await page.waitForSelector('#delete');
+            await page.click('#delete');
+            await page.waitForSelector('#confirmDelete');
+            await page.click('#confirmDelete');
+            await page.waitForSelector('#confirmDelete', { hidden: true });
 
-                    await page.waitForSelector('#onCallDuty');
-                    await page.click('#onCallDuty');
-                    await page.waitForSelector('tr.scheduleListItem');
+            await page.waitForSelector('#onCallDuty');
+            await page.click('#onCallDuty');
+            await page.waitForSelector('tr.scheduleListItem');
 
-                    const scheduleRows = await page.$$('tr.scheduleListItem');
-                    const countSchedules = scheduleRows.length;
+            const scheduleRows = await page.$$('tr.scheduleListItem');
+            const countSchedules = scheduleRows.length;
 
-                    expect(countSchedules).toEqual(10);                
+            expect(countSchedules).toEqual(10);
 
             done();
         },
         operationTimeOut
     );
 });
-

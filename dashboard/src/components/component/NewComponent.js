@@ -60,7 +60,9 @@ class NewComponent extends Component {
     }
 
     viewCreatedComponent = (slug, componentSlug) => {
-        history.push(`/dashboard/project/${slug}/component/${componentSlug}/monitoring`);
+        history.push(
+            `/dashboard/project/${slug}/component/${componentSlug}/monitoring`
+        );
     };
 
     submitForm = values => {
