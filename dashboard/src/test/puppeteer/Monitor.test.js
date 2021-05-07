@@ -1,8 +1,8 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
+let browser, page;
 require('should');
 
 // user credentials
@@ -638,9 +638,7 @@ describe('Monitor API', () => {
 });
 
 describe('API Monitor API', () => {
-    const operationTimeOut = 500000;
-
-    let cluster;
+    const operationTimeOut = 500000;    
 
     const componentName = utils.generateRandomString();
     const monitorName = utils.generateRandomString();
@@ -649,18 +647,12 @@ describe('API Monitor API', () => {
     beforeAll(async () => {
         jest.setTimeout(500000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        const testServer = async ({ page }) => {
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
+        
             await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
             await page.evaluate(
                 () => (document.getElementById('responseTime').value = '')
@@ -692,34 +684,27 @@ describe('API Monitor API', () => {
             await page.type('textarea[name=body]', '{"status":"ok"}');
             await page.click('button[type=submit]');
             await page.waitForSelector('#save-btn');
-            await page.waitForSelector('#save-btn', { visible: true });
-        };
-
-        await cluster.execute(null, testServer);
-
-        await cluster.execute(null, async ({ page }) => {
+            await page.waitForSelector('#save-btn', { visible: true });       
+      
+        
             const user = {
                 email: utils.generateRandomBusinessEmail(),
                 password,
             };
-            await init.registerUser(user, page);
-        });
-
-        await cluster.execute(null, async ({ page }) => {
+            await init.registerUser(user, page);       
+       
             await init.addComponent(componentName, page);
-        });
+       
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'should not add API monitor with invalid url',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Create Component first
                 // Redirects automatically component to details page
                 await init.navigateToComponentDetails(componentName, page);
@@ -742,15 +727,14 @@ describe('API Monitor API', () => {
                 spanElement.should.be.exactly(
                     'API Monitor URL should not be a HTML page.'
                 );
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should not add API monitor with invalid payload',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
@@ -772,15 +756,14 @@ describe('API Monitor API', () => {
                     '#formNewMonitorError'
                 );
                 expect(spanElement).toBeDefined();
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should not add API monitor with invalid payload in advance options',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
@@ -820,15 +803,14 @@ describe('API Monitor API', () => {
                     '#formNewMonitorError'
                 );
                 expect(spanElement).toBeDefined();
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should add API monitor with valid url and payload',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
@@ -848,15 +830,14 @@ describe('API Monitor API', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(monitorName);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should add API monitor with valid url and evaluate response (online criteria) in advance options',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
@@ -885,15 +866,14 @@ describe('API Monitor API', () => {
                         monitorStatusElement.should.be.exactly('Online');
                     }
                 }
-            });
+            done();
         },
         operationTimeOut
     );
     // Second Monitor has been created an will be used in most of the remaining tests.
     test(
         'should strip trailing semicolons from evaluate response js expressions',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -934,15 +914,14 @@ describe('API Monitor API', () => {
                 expect(degradedExpression).toEqual(
                     "response.body.message === 'draining'"
                 );
-            });
+            done();
         },
         operationTimeOut
-    );
+    );  
 
     test(
         'should evaluate response (degraded criteria) in advance options',
-        async () => {
-            const testServer = async ({ page }) => {
+        async (done) => {            
                 await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
                 await page.evaluate(
                     () => (document.getElementById('responseTime').value = '')
@@ -962,11 +941,8 @@ describe('API Monitor API', () => {
                 await page.click('button[type=submit]');
                 await page.waitForSelector('#save-btn');
                 await page.waitForSelector('#save-btn', { visible: true });
-            };
-
-            await cluster.execute(null, testServer);
-
-            return await cluster.execute(null, async ({ page }) => {
+                        
+            
                 await page.goto(utils.DASHBOARD_URL);
 
                 // Navigate to Monitor details
@@ -974,8 +950,7 @@ describe('API Monitor API', () => {
                     componentName,
                     testMonitorName,
                     page
-                );
-
+                );                
                 const probeTabs = await page.$$('button[id^=probes-btn]');
                 for (const probeTab of probeTabs) {
                     await probeTab.click();
@@ -991,15 +966,15 @@ describe('API Monitor API', () => {
                         monitorStatusElement.should.be.exactly('Degraded');
                     }
                 }
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should evaluate response (offline criteria) in advance options',
-        async () => {
-            const testServer = async ({ page }) => {
+        async (done) => {   
+                // This navigates to http-server and creates the appropriate settings before dashboard page.      
                 await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
                 await page.evaluate(
                     () => (document.getElementById('statusCode').value = '')
@@ -1015,12 +990,9 @@ describe('API Monitor API', () => {
                 await page.type('textarea[name=body]', '{"message":"offline"}');
                 await page.click('button[type=submit]');
                 await page.waitForSelector('#save-btn');
-                await page.waitForSelector('#save-btn', { visible: true });
-            };
-
-            await cluster.execute(null, testServer);
-
-            return await cluster.execute(null, async ({ page }) => {
+                await page.waitForSelector('#save-btn', { visible: true });            
+            
+                // Dashboard Page
                 await page.goto(utils.DASHBOARD_URL);
 
                 // Navigate to Monitor details
@@ -1045,13 +1017,13 @@ describe('API Monitor API', () => {
                         monitorStatusElement.should.be.exactly('Offline');
                     }
                 }
-            });
+            done();
         },
         operationTimeOut
     );
 
-    test('should display offline status if evaluate response does not match in criteria', async () => {
-        const testServer = async ({ page }) => {
+    test('should display offline status if evaluate response does not match in criteria', async (done) => {        
+            // This navigates to http-server and creates the appropriate settings before dashboard page.    
             await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
             await page.evaluate(
                 () => (document.getElementById('responseTime').value = '')
@@ -1074,13 +1046,7 @@ describe('API Monitor API', () => {
             await page.click('button[type=submit]');
             await page.waitForSelector('#save-btn');
             await page.waitForSelector('#save-btn', { visible: true });
-        };
-
-        await cluster.execute(null, testServer);
-
-        return await cluster.execute(
-            null,
-            async ({ page }) => {
+                        
                 await page.goto(utils.DASHBOARD_URL);
 
                 // Navigate to Monitor details
@@ -1105,15 +1071,14 @@ describe('API Monitor API', () => {
                         monitorStatusElement.should.be.exactly('Offline');
                     }
                 }
-            },
-            operationTimeOut
-        );
+                done();
+            
+            operationTimeOut        
     });
 
     test(
         'should show specific property, button and modal for evaluate response',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
@@ -1155,16 +1120,15 @@ describe('API Monitor API', () => {
                 );
                 monitorIncidentModalElement = await monitorIncidentModalElement.jsonValue();
                 monitorIncidentModalElement.should.be.exactly('API Response');
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should delete API monitors',
-        async () => {
-            expect.assertions(1);
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {
+            expect.assertions(1);            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -1185,7 +1149,7 @@ describe('API Monitor API', () => {
                 const selector = `span#monitor-title-${testMonitorName}`;
                 const spanElement = await page.$(selector);
                 expect(spanElement).toBeNull();
-            });
+            done();
         },
         operationTimeOut
     );
