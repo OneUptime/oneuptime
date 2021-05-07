@@ -5,11 +5,9 @@ import { RenderSearchField } from '../basic/RenderSearchField';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { history } from '../../store';
-import ClickOutside from 'react-click-outside';
 import { addCurrentComponent } from '../../actions/component';
 import { animateSidebar } from '../../actions/animateSidebar';
 import { resetSearch, search } from '../../actions/search';
-import { fetchMonitors } from '../../actions/monitor';
 import { IS_LOCALHOST, User } from '../../config';
 import { switchStatusPage } from '../../actions/statusPage';
 import isSubProjectViewer from '../../utils/isSubProjectViewer';
@@ -17,6 +15,18 @@ import { addScheduleEvent } from '../../actions/scheduledEvent';
 import { markAsRead } from '../../actions/notification';
 import Badge from '../common/Badge';
 import { addIncident } from '../../actions/incident';
+import { getProbes } from '../../actions/probe';
+import {
+    fetchMonitors,
+    fetchMonitorsIncidents,
+    fetchMonitorsSubscribers,
+    getMonitorLogs,
+    fetchLighthouseLogs,
+} from '../../actions/monitor';
+import { fetchCommunicationSlas } from '../../actions/incidentCommunicationSla';
+import { fetchMonitorSlas } from '../../actions/monitorSla';
+import moment from 'moment';
+import { addPerformanceTracker } from '../../actions/performanceTracker';
 
 class Search extends Component {
     constructor() {
@@ -147,9 +157,50 @@ class Search extends Component {
             '/dashboard/project/' + currentProject.slug + '/' + searchObj.url
         );
     };
-    loadMonitor = (currentProject, searchObj) => {
-        this.props.fetchMonitors(currentProject._id);
+    loadMonitor = async (currentProject, searchObj) => {
         history.push(this.generateUrlLink(searchObj));
+        //fetch monitor resources as this does not load on search
+        const monitor = searchObj;
+        await this.props.fetchMonitors(currentProject._id);
+        this.props.getProbes(monitor.projectId, 0, 10); //
+        if (monitor.type === 'url') {
+            this.props.fetchLighthouseLogs(
+                monitor.projectId,
+                monitor.monitorId,
+                0,
+                1,
+                monitor.data.url
+            );
+            this.props.fetchLighthouseLogs(
+                monitor.projectId,
+                monitor.monitorId,
+                0,
+                5
+            ); //0 -> skip, 10-> limit.
+        }
+        this.props.fetchMonitorsIncidents(
+            monitor.projectId,
+            monitor.monitorId,
+            0,
+            10
+        ); //0 -> skip, 5-> limit.
+
+        this.props.getMonitorLogs(
+            monitor.projectId,
+            monitor.monitorId,
+            0,
+            10,
+            moment()
+                .subtract(1, 'd')
+                .utc(),
+            moment().utc(),
+            null,
+            null,
+            monitor.type
+        ); //0 -> skip, 5-> limit.
+
+        this.props.fetchMonitorSlas(monitor.projectId);
+        this.props.fetchCommunicationSlas(monitor.projectId);
     };
 
     loadIncident = (currentProject, searchObj) => {
@@ -171,6 +222,34 @@ class Search extends Component {
         );
         this.props.animateSidebar(true);
     };
+    loadErrorTracker = (currentProject, searchObj) => {
+        history.push(
+            '/dashboard/project/' +
+                currentProject.slug +
+                '/component/' +
+                searchObj.componentSlug +
+                '/error-trackers/' +
+                searchObj.errorTrackerSlug
+        );
+    };
+    loadLogContainer = (currentProject, searchObj) => {
+        history.push(
+            '/dashboard/project/' +
+                currentProject.slug +
+                '/component/' +
+                searchObj.componentSlug +
+                '/application-logs/' +
+                searchObj.logContainerSlug
+        );
+    };
+
+    loadPerformanceTracker = (currentProject, searchObj) => {
+        history.push(
+            `/dashboard/project/${currentProject.slug}/component/${searchObj.componentSlug}/performance-tracker/${searchObj.performanceTrackerSlug}`
+        );
+        this.props.addPerformanceTracker(searchObj.performanceTracker);
+    };
+
     navigate = (type, searchObj) => {
         const { currentProject, componentList } = this.props;
         let component, publicStatusPageUrl, path, userId;
@@ -231,6 +310,15 @@ class Search extends Component {
                 break;
             case 'Incidents':
                 this.loadIncident(currentProject, searchObj);
+                break;
+            case 'Error Trackers':
+                this.loadErrorTracker(currentProject, searchObj);
+                break;
+            case 'Log Containers':
+                this.loadLogContainer(currentProject, searchObj);
+                break;
+            case 'Performance Tracker':
+                this.loadPerformanceTracker(currentProject, searchObj);
                 break;
             default:
                 return null;
@@ -298,6 +386,12 @@ class Search extends Component {
                 return 'db-SideNav-icon--info';
             case 'Schedule Events':
                 return 'db-SideNav-icon--connect';
+            case 'Error Trackers':
+                return 'db-SideNav-icon--errorTracking';
+            case 'Log Containers':
+                return 'db-SideNav-icon--appLog';
+            case 'Performance Tracker':
+                return 'db-SideNav-icon--performanceTracker';
             default:
                 return '';
         }
@@ -475,6 +569,14 @@ Search.propTypes = {
     fetchMonitors: PropTypes.func,
     markAsRead: PropTypes.func,
     addIncident: PropTypes.func,
+    fetchMonitorsIncidents: PropTypes.func,
+    getMonitorLogs: PropTypes.func,
+    fetchLighthouseLogs: PropTypes.func,
+    getProbes: PropTypes.func,
+    fetchCommunicationSlas: PropTypes.func,
+    fetchMonitorSlas: PropTypes.func,
+    addPerformanceTracker: PropTypes.func,
+    subProject: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -489,6 +591,14 @@ const mapDispatchToProps = dispatch => {
             addScheduleEvent,
             markAsRead,
             addIncident,
+            fetchMonitorsIncidents,
+            fetchMonitorsSubscribers,
+            getMonitorLogs,
+            fetchLighthouseLogs,
+            getProbes,
+            fetchCommunicationSlas,
+            fetchMonitorSlas,
+            addPerformanceTracker,
         },
         dispatch
     );

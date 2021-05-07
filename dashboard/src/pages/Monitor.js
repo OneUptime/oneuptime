@@ -89,12 +89,6 @@ class DashboardView extends Component {
         });
     };
     componentDidUpdate(prevProps) {
-        if (prevProps.componentSlug !== this.props.componentSlug) {
-            const { currentProject } = this.props;
-            this.props.fetchMonitors(currentProject._id).then(() => {
-                this.fetchMonitorResources();
-            });
-        }
         if (prevProps.monitor.monitorsList.monitors.length === 0) {
             this.fetchMonitorResources();
         }

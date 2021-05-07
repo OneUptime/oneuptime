@@ -10,6 +10,9 @@ const ScheduleService = require('../services/scheduleService');
 const ProjectService = require('../services/projectService');
 const ScheduleEventService = require('../services/scheduledEventService');
 const IncidentService = require('../services/incidentService');
+const ErrorTrackerService = require('../services/errorTrackerService');
+const LogContainerService = require('../services/applicationLogService');
+const PerformanceTracker = require('../services/performanceTrackerService');
 const { getSubProjects } = require('../middlewares/subProject');
 
 const router = express.Router();
@@ -18,7 +21,6 @@ router.post('/:projectId', getUser, getSubProjects, async function(req, res) {
     try {
         const val = req.body.search;
         const parentProjectId = req.params.projectId;
-        console.log(parentProjectId);
         const subProjectIds = req.user.subProjects
             ? req.user.subProjects.map(project => project._id)
             : null;
@@ -73,6 +75,30 @@ router.post('/:projectId', getUser, getSubProjects, async function(req, res) {
         if (incidents) {
             searchResponse.push(incidents);
         }
+        const errorTrackers = await getErrorTrackers(
+            subProjectIds,
+            val,
+            parentProjectId
+        );
+        if (errorTrackers) {
+            searchResponse.push(errorTrackers);
+        }
+        const logContainers = await getLogContainers(
+            subProjectIds,
+            val,
+            parentProjectId
+        );
+        if (logContainers) {
+            searchResponse.push(logContainers);
+        }
+        const applicationTracker = await getPerformanceTrackers(
+            subProjectIds,
+            val,
+            parentProjectId
+        );
+        if (applicationTracker) {
+            searchResponse.push(applicationTracker);
+        }
         return sendListResponse(req, res, searchResponse);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -115,9 +141,10 @@ const getMonitors = async (projectIds, val, parentProjectId) => {
         const resultObj = {
             title: 'Monitors',
             values: monitors.map(monitor => ({
-                name: monitor.name,
+                name: monitor.componentId.name + '/' + monitor.name,
                 componentSlug: monitor.componentId.slug,
                 type: monitor.type,
+                monitorId: monitor._id,
                 monitorSlug: monitor.slug,
                 url: monitor.componentId.slug + '/monitoring/' + monitor.slug,
                 componentId: monitor.componentId._id,
@@ -254,7 +281,6 @@ const getIncidents = async (projectIds, val, parentProjectId) => {
             const resultObj = {
                 title: 'Incidents',
                 values: incidents.map(incident => {
-                    console.log(incident.notificationId);
                     return {
                         name: `incident #${incident.idNumber}`,
                         idNumber: incident.idNumber,
@@ -269,6 +295,102 @@ const getIncidents = async (projectIds, val, parentProjectId) => {
             };
             return resultObj;
         }
+    }
+
+    return null;
+};
+
+const getErrorTrackers = async (projectIds, val, parentProjectId) => {
+    const components = await ComponentService.findBy({
+        projectId: { $in: projectIds },
+        deleted: false,
+    });
+    const componentIds = components.map(component => component._id);
+    const errorTrackers = await ErrorTrackerService.findBy({
+        componentId: { $in: componentIds },
+        deleted: false,
+        $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+    });
+    if (errorTrackers.length > 0) {
+        const resultObj = {
+            title: 'Error Trackers',
+            values: errorTrackers.map(errorTracker => ({
+                name: errorTracker.name,
+                errorTrackerSlug: errorTracker.slug,
+                projectId: errorTracker.componentId.projectId._id,
+                errorTracker: errorTracker,
+                componentSlug: errorTracker.componentId.slug,
+                parentProject:
+                    parentProjectId ===
+                    String(errorTracker.componentId.projectId._id),
+                projectName: errorTracker.componentId.projectId.name,
+            })),
+        };
+        return resultObj;
+    }
+
+    return null;
+};
+
+const getLogContainers = async (projectIds, val, parentProjectId) => {
+    const components = await ComponentService.findBy({
+        projectId: { $in: projectIds },
+        deleted: false,
+    });
+    const componentIds = components.map(component => component._id);
+    const logContainers = await LogContainerService.findBy({
+        componentId: { $in: componentIds },
+        deleted: false,
+        $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+    });
+    if (logContainers.length > 0) {
+        const resultObj = {
+            title: 'Log Containers',
+            values: logContainers.map(logContainer => ({
+                name: logContainer.name,
+                logContainerSlug: logContainer.slug,
+                projectId: logContainer.componentId.projectId._id,
+                logContainer: logContainer,
+                componentSlug: logContainer.componentId.slug,
+                parentProject:
+                    parentProjectId ===
+                    String(logContainer.componentId.projectId._id),
+                projectName: logContainer.componentId.projectId.name,
+            })),
+        };
+        return resultObj;
+    }
+
+    return null;
+};
+
+const getPerformanceTrackers = async (projectIds, val, parentProjectId) => {
+    const components = await ComponentService.findBy({
+        projectId: { $in: projectIds },
+        deleted: false,
+    });
+    const componentIds = components.map(component => component._id);
+    const performanceTrackers = await PerformanceTracker.findBy({
+        componentId: { $in: componentIds },
+        deleted: false,
+        $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+    });
+    if (performanceTrackers.length > 0) {
+        const resultObj = {
+            title: 'Performance Tracker',
+            values: performanceTrackers.map(performanceTracker => ({
+                name: performanceTracker.name,
+                performanceTrackerSlug: performanceTracker.slug,
+                projectId: performanceTracker.componentId.projectId._id,
+                performanceTracker: performanceTracker,
+                componentSlug: performanceTracker.componentId.slug,
+                parentProject:
+                    parentProjectId ===
+                    String(performanceTracker.componentId.projectId._id),
+                projectName: performanceTracker.componentId.projectId.name,
+            })),
+        };
+        return resultObj;
     }
 
     return null;

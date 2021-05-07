@@ -61,11 +61,7 @@ class MonitorView extends React.Component {
             );
         }
 
-        const {
-            currentProject,
-            componentSlug,
-            fetchComponent,
-        } = this.props;
+        const { currentProject, componentSlug, fetchComponent } = this.props;
         fetchComponent(componentSlug);
 
         if (currentProject) {
@@ -73,7 +69,6 @@ class MonitorView extends React.Component {
             const projectMember = currentProject.users.find(
                 user => user.userId === userId
             );
-            //fetchMonitors(currentProject._id);
             if (projectMember) {
                 this.props.fetchSchedules(currentProject._id);
             }
@@ -82,8 +77,6 @@ class MonitorView extends React.Component {
 
     componentDidUpdate(prevProps) {
         const { monitor } = this.props;
-        console.log(prevProps.monitor,'previous')
-        console.log(monitor)
         if (monitor && String(prevProps.monitor._id) !== String(monitor._id)) {
             const subProjectId = monitor.projectId
                 ? monitor.projectId._id || monitor.projectId

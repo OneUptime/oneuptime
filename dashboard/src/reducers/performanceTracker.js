@@ -142,7 +142,14 @@ export default function(state = INITIAL_STATE, action) {
                     performanceTracker: action.payload,
                 },
             };
-
+        case types.ADD_PERFORMANCE_TRACKER:
+            return {
+                ...state,
+                fetchPerformanceTracker: {
+                    ...state.fetchPerformanceTracker,
+                    performanceTracker: action.payload,
+                },
+            };
         case types.FETCH_PERFORMANCE_TRACKER_FAILURE:
             return {
                 ...state,
