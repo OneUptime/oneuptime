@@ -129,9 +129,9 @@ const smtpCredential = {
 };
 
 const twilioCredentials = {
-    accountSid: 'AC4b957669470069d68cd5a09d7f91d7c6',//process.env.TEST_TWILIO_ACCOUNT_SID,
-    authToken: '79a35156d9967f0f6d8cc0761ef7d48d',//process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN,
-    phoneNumber: '+15005550006',//process.env.TEST_TWILIO_PHONE,
+    accountSid: process.env.TEST_TWILIO_ACCOUNT_SID,
+    authToken: process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN,
+    phoneNumber: process.env.TEST_TWILIO_PHONE,
 };
 
 const monitorTabIndexes = {
