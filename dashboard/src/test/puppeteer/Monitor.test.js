@@ -474,7 +474,7 @@ describe('Monitor API', () => {
         'should display monitor status online for monitor with large response header',
         async (done) => {
             const bodyText = utils.generateRandomString();
-            
+            // This navigates to hhtp-test server and create the settings for the test suite
                 await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
                 await page.evaluate(
                     () => (document.getElementById('responseTime').value = '')
@@ -550,7 +550,7 @@ describe('Monitor API', () => {
         'should degrade (not timeout and return status code 408) monitor with response time longer than 60000ms and status code 200',
         async (done) => {
             const bodyText = utils.generateRandomString();
-            
+            // This navigates to hhtp-test server and create the settings for the test suite
                 await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
                 await page.evaluate(
                     () => (document.getElementById('responseTime').value = '')
