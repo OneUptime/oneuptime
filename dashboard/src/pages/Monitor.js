@@ -18,6 +18,7 @@ import {
     fetchMonitorsIncidents,
     fetchMonitorStatuses,
     fetchLighthouseLogs,
+    fetchMonitors,
 } from '../actions/monitor';
 import { fetchComponentSummary, fetchComponent } from '../actions/component';
 import { loadPage } from '../actions/page';
@@ -48,45 +49,48 @@ class DashboardView extends Component {
         this.props.fetchComponent(this.props.componentSlug);
     }
 
-    componentDidUpdate(prevProps) {
-        if (prevProps.monitor.monitorsList.monitors.length === 0) {
-            this.props.monitor.monitorsList.monitors.forEach(subProject => {
-                if (subProject.monitors.length > 0) {
-                    subProject.monitors.forEach(monitor => {
-                        this.props.fetchMonitorLogs(
-                            monitor.projectId._id || monitor.projectId,
-                            monitor._id,
-                            this.props.startDate,
-                            this.props.endDate
-                        );
-                        this.props.fetchMonitorsIncidents(
+    fetchMonitorResources = () => {
+        this.props.monitor.monitorsList.monitors.forEach(subProject => {
+            if (subProject.monitors.length > 0) {
+                subProject.monitors.forEach(monitor => {
+                    this.props.fetchMonitorLogs(
+                        monitor.projectId._id || monitor.projectId,
+                        monitor._id,
+                        this.props.startDate,
+                        this.props.endDate
+                    );
+                    this.props.fetchMonitorsIncidents(
+                        monitor.projectId._id || monitor.projectId,
+                        monitor._id,
+                        0,
+                        3
+                    );
+                    this.props.fetchMonitorStatuses(
+                        monitor.projectId._id || monitor.projectId,
+                        monitor._id,
+                        this.props.startDate,
+                        this.props.endDate
+                    );
+                    if (
+                        monitor.type === 'url' &&
+                        monitor.data &&
+                        monitor.data.url
+                    ) {
+                        this.props.fetchLighthouseLogs(
                             monitor.projectId._id || monitor.projectId,
                             monitor._id,
                             0,
-                            3
-                        );
-                        this.props.fetchMonitorStatuses(
-                            monitor.projectId._id || monitor.projectId,
-                            monitor._id,
-                            this.props.startDate,
-                            this.props.endDate
-                        );
-                        if (
-                            monitor.type === 'url' &&
-                            monitor.data &&
+                            1,
                             monitor.data.url
-                        ) {
-                            this.props.fetchLighthouseLogs(
-                                monitor.projectId._id || monitor.projectId,
-                                monitor._id,
-                                0,
-                                1,
-                                monitor.data.url
-                            );
-                        }
-                    });
-                }
-            });
+                        );
+                    }
+                });
+            }
+        });
+    };
+    componentDidUpdate(prevProps) {
+        if (prevProps.monitor.monitorsList.monitors.length === 0) {
+            this.fetchMonitorResources();
         }
     }
 
@@ -482,6 +486,7 @@ const mapDispatchToProps = dispatch => {
             getProbes,
             fetchComponentSummary,
             fetchComponent,
+            fetchMonitors,
         },
         dispatch
     );

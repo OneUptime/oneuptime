@@ -76,7 +76,14 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('componentId', 'name')
+                .populate({
+                    path: 'componentId',
+                    select: 'name slug projectId',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name',
+                    },
+                })
                 .populate('resourceCategory', 'name');
             return applicationLogs;
         } catch (error) {
