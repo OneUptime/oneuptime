@@ -21,7 +21,7 @@ const puppeteerLaunchConfig = {
         '--disable-features=IsolateOrigins,site-per-process', // fix issue with cross origin policy
     ],
     defaultViewport: null,
-    headless: true, //change this to `false` debug locally.
+    headless: false, //change this to `false` debug locally.
 };
 
 const user = faker.helpers.createCard();
@@ -114,9 +114,9 @@ const dockerCredential = {
 };
 
 const gitCredential = {
-    gitUsername: process.env.GITHUB_UNMASKED_USERNAME,
-    gitPassword: process.env.GITHUB_UNMASKED_PASSWORD,
-    gitRepositoryUrl: process.env.GITHUB_SECURITY_SCAN_REPOSITORY_URL,
+    gitUsername: 'adeoluwadavid',//process.env.GITHUB_UNMASKED_USERNAME,
+    gitPassword: 'talodabijesu1',//process.env.GITHUB_UNMASKED_PASSWORD,
+    gitRepositoryUrl: 'https://github.com/adeoluwadavid/SocketIO',//process.env.GITHUB_SECURITY_SCAN_REPOSITORY_URL,
 };
 
 const smtpCredential = {
@@ -129,9 +129,9 @@ const smtpCredential = {
 };
 
 const twilioCredentials = {
-    accountSid: process.env.TEST_TWILIO_ACCOUNT_SID,
-    authToken: process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN,
-    phoneNumber: process.env.TEST_TWILIO_PHONE,
+    accountSid: 'AC4b957669470069d68cd5a09d7f91d7c6',//process.env.TEST_TWILIO_ACCOUNT_SID,
+    authToken: '79a35156d9967f0f6d8cc0761ef7d48d',//process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN,
+    phoneNumber: '+15005550006',//process.env.TEST_TWILIO_PHONE,
 };
 
 const monitorTabIndexes = {

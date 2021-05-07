@@ -1,10 +1,9 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
@@ -13,36 +12,27 @@ const applicationSecurityName = 'Test';
 
 describe('Application Security Page', () => {
     const operationTimeOut = 900000;
-
-    let cluster;
+    
     beforeAll(async done => {
         jest.setTimeout(operationTimeOut);
-
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: operationTimeOut,
-        });
-
-        cluster.on('error', err => {
-            throw err;
-        });
-
-        await cluster.execute({ email, password }, async ({ page, data }) => {
+        
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
+        
             const user = {
-                email: data.email,
-                password: data.password,
+                email,
+                password,
             };
             // user
             await init.registerUser(user, page);
-            done();
-        });
+            done();        
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
@@ -52,8 +42,7 @@ describe('Application Security Page', () => {
             const gitUsername = utils.gitCredential.gitUsername;
             const gitPassword = utils.gitCredential.gitPassword;
             const gitRepositoryUrl = utils.gitCredential.gitRepositoryUrl;
-
-            await cluster.execute(null, async ({ page }) => {
+            
                 await init.addComponent(component, page);
 
                 const categoryName = 'Random-Category';
@@ -116,8 +105,7 @@ describe('Application Security Page', () => {
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
-                spanElement.should.be.exactly(categoryName.toUpperCase());
-            });
+                spanElement.should.be.exactly(categoryName.toUpperCase());            
             done();
         },
         operationTimeOut
@@ -125,8 +113,7 @@ describe('Application Security Page', () => {
 
     test(
         'should scan an application security',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
                 await page.click('#components');
@@ -152,8 +139,7 @@ describe('Application Security Page', () => {
                 const issueCount = await page.waitForSelector('#issueCount', {
                     visible: true,
                 });
-                expect(issueCount).toBeDefined();
-            });
+                expect(issueCount).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -161,8 +147,7 @@ describe('Application Security Page', () => {
 
     test(
         'should view details of security log',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
                 await page.click('#components');
@@ -184,8 +169,7 @@ describe('Application Security Page', () => {
                     visible: true,
                 });
 
-                expect(securityLog).toBeDefined();
-            });
+                expect(securityLog).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -193,8 +177,7 @@ describe('Application Security Page', () => {
 
     test(
         'should also view details of a security log, on clicking the issue count section',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
                 await page.click('#components');
@@ -214,8 +197,7 @@ describe('Application Security Page', () => {
                     visible: true,
                 });
 
-                expect(securityLog).toBeDefined();
-            });
+                expect(securityLog).toBeDefined();            
             done();
         },
         operationTimeOut
@@ -223,8 +205,7 @@ describe('Application Security Page', () => {
 
     test(
         'should display log(s) of an application security scan',
-        async done => {
-            await cluster.execute(null, async ({ page }) => {
+        async done => {            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
                 await page.click('#components');
@@ -249,8 +230,7 @@ describe('Application Security Page', () => {
                 // make sure the added application security
                 // has atleast one security vulnerability
                 const logs = await page.$$('#securityLog tbody tr');
-                expect(logs.length).toBeGreaterThanOrEqual(1);
-            });
+                expect(logs.length).toBeGreaterThanOrEqual(1);            
             done();
         },
         operationTimeOut
@@ -259,8 +239,7 @@ describe('Application Security Page', () => {
     test(
         'should edit an application security',
         async done => {
-            const newApplicationName = 'AnotherName';
-            await cluster.execute(null, async ({ page }) => {
+            const newApplicationName = 'AnotherName';            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
                 await page.click('#components');
@@ -297,8 +276,7 @@ describe('Application Security Page', () => {
                     `#applicationSecurityTitle_${newApplicationName}`,
                     elem => elem.textContent
                 );
-                expect(textContent).toEqual(newApplicationName);
-            });
+                expect(textContent).toEqual(newApplicationName);            
             done();
         },
         operationTimeOut
@@ -307,8 +285,7 @@ describe('Application Security Page', () => {
     test(
         'should delete an application security',
         async done => {
-            const newApplicationName = 'AnotherName';
-            await cluster.execute(null, async ({ page }) => {
+            const newApplicationName = 'AnotherName';            
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
                 await page.click('#components');
@@ -341,8 +318,7 @@ describe('Application Security Page', () => {
                     `#applicationSecurityHeader_${newApplicationName}`,
                     { hidden: true }
                 );
-                expect(applicationSecurity).toBeNull();
-            });
+                expect(applicationSecurity).toBeNull();            
             done();
         },
         operationTimeOut

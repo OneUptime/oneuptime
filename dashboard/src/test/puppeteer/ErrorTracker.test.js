@@ -1,10 +1,9 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const user = {
     email: utils.generateRandomBusinessEmail(),
@@ -15,39 +14,29 @@ const errorTrackerName = utils.generateRandomString();
 let errorTrackerKey = '';
 
 describe('Error Trackers', () => {
-    const operationTimeOut = 900000;
-
-    let cluster;
+    const operationTimeOut = 900000;    
 
     beforeAll(async () => {
         jest.setTimeout(200000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 120000,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        return await cluster.execute(null, async ({ page }) => {
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );        
+        
             await init.registerUser(user, page);
-        });
+        
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'Should create new component',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
@@ -73,14 +62,13 @@ describe('Error Trackers', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(componentName);
-            });
+            done();
         },
         operationTimeOut
     );
     test(
         'Should create new error tracker container',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitForSelector('#errorTracking');
@@ -99,14 +87,13 @@ describe('Error Trackers', () => {
                 spanElement = await spanElement.jsonValue();
                 const title = `${errorTrackerName} (0)`;
                 spanElement.should.be.exactly(title);
-            });
+            done();
         },
         operationTimeOut
     );
     test(
         'Should create new resource category then redirect to error tracker page to create a error tracker under that',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 const categoryName = 'Random-Category';
                 const newErrorTrackerName = `${errorTrackerName}-sample`;
                 // create a new resource category
@@ -137,14 +124,13 @@ describe('Error Trackers', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(categoryName.toUpperCase());
-            });
+            done();
         },
         operationTimeOut
     );
     test(
         'Should not create new error tracker ',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitForSelector('#errorTracking');
@@ -168,14 +154,13 @@ describe('Error Trackers', () => {
                 spanElement.should.be.exactly(
                     'This field cannot be left blank'
                 );
-            });
+            done();
         },
         operationTimeOut
     );
     test(
         'Should open details page of created error tracker',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await init.navigateToErrorTrackerDetails(
                     componentName,
                     errorTrackerName,
@@ -189,14 +174,13 @@ describe('Error Trackers', () => {
                 spanElement = await spanElement.jsonValue();
                 const title = `${errorTrackerName} (0)`;
                 spanElement.should.be.exactly(title);
-            });
+            done();
         },
         operationTimeOut
     );
     test(
         'Should open edit created error tracker',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await init.navigateToErrorTrackerDetails(
                     componentName,
                     errorTrackerName,
@@ -217,14 +201,13 @@ describe('Error Trackers', () => {
                 spanElement.should.be.exactly(
                     `Edit Tracker ${errorTrackerName}`
                 );
-            });
+            done();
         },
         operationTimeOut
     );
     test(
         'Should open tracker key for created error tracker',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await init.navigateToErrorTrackerDetails(
                     componentName,
                     errorTrackerName,
@@ -255,14 +238,13 @@ describe('Error Trackers', () => {
                 await page.click(
                     `#cancel_error_tracker_key_${errorTrackerName}`
                 );
-            });
+            done();
         },
         operationTimeOut
     );
     test(
         'Should open tracker key for created error tracker container and hide it back',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await init.navigateToErrorTrackerDetails(
                     componentName,
                     errorTrackerName,
@@ -296,14 +278,13 @@ describe('Error Trackers', () => {
                 expect(spanElement).toEqual(
                     'Click here to reveal Tracker API key'
                 );
-            });
+            done();
         },
         operationTimeOut
     );
     test(
         'Should reset tracker key for created error tracker',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await init.navigateToErrorTrackerDetails(
                     componentName,
                     errorTrackerName,
@@ -365,14 +346,13 @@ describe('Error Trackers', () => {
 
                 expect(spanElement).toBeDefined();
                 spanElement.should.not.be.equal(errorTrackerKey);
-            });
+            done();
         },
         operationTimeOut
     );
     test(
         'Should update name for created error tracker',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await init.navigateToErrorTrackerDetails(
                     componentName,
                     errorTrackerName,
@@ -397,14 +377,13 @@ describe('Error Trackers', () => {
                 spanElement = await spanElement.jsonValue();
                 const title = `${errorTrackerName}-new (0)`;
                 spanElement.should.be.exactly(title);
-            });
+            done();
         },
         operationTimeOut
     );
     test(
         'Should update category for created error tracker',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 const categoryName = 'Another-Category';
                 // create a new resource category
                 await init.addResourceCategory(categoryName, page);
@@ -439,14 +418,13 @@ describe('Error Trackers', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(categoryName.toUpperCase());
-            });
+            done();
         },
         operationTimeOut
     );
     test(
         'Should delete category for created log container and reflect',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 const categoryName = 'Another-Category';
 
                 // confirm the error tracker has a category
@@ -488,7 +466,7 @@ describe('Error Trackers', () => {
                     { hidden: true }
                 );
                 expect(spanElementBadge).toBeNull();
-            });
+            done();
         },
         operationTimeOut
     );
