@@ -56,6 +56,9 @@ class Util:
             # update content of each frame
             self.updateFrameContent(frame)
             contentFrame.append(updateFrame)
+        
+        errorObj["stacktrace"]["frames"] = frames
+        return errorObj
 
     def getFrameContent(self, frame):
     
