@@ -2958,6 +2958,7 @@ const _this = {
                 trackEmailAsViewedUrl,
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
+                incidentDescription: incident.description,
                 componentName,
                 statusPageUrl,
                 unsubscribeUrl,
@@ -3513,7 +3514,7 @@ const _this = {
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
-                'Subscriber Incident Acknowledged'
+                'Subscriber Incident Acknowldeged'
             );
             const data = {
                 incidentTime,
@@ -3713,6 +3714,7 @@ const _this = {
         emailTemplate,
         componentName,
         incidentNote,
+        noteType,
         statusPageUrl,
         statusNoteStatus,
         customFields,
@@ -3726,6 +3728,7 @@ const _this = {
                 emailTemplate,
                 'Investigation note is created'
             );
+            
             const data = {
                 incidentTime,
                 monitorName,
@@ -3734,8 +3737,10 @@ const _this = {
                 projectName,
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
+                incidentId: incident.idNumber                ,
                 componentName,
                 incidentNote,
+                noteType,
                 statusPageUrl,
                 statusNoteStatus,
                 unsubscribeUrl,
