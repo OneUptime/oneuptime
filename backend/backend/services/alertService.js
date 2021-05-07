@@ -1622,6 +1622,7 @@ module.exports = {
                         {
                             note: data.content,
                             incidentState: data.incident_state,
+                            noteType: data.incident_state,
                             statusNoteStatus,
                         },
                         subscribers.length,
@@ -2421,7 +2422,7 @@ module.exports = {
         incident,
         templateType = 'Subscriber Incident Created',
         statusPage,
-        { note, incidentState, statusNoteStatus } = {},
+        { note, incidentState, noteType, statusNoteStatus } = {},
         totalSubscribers,
         id
     ) {
@@ -2645,6 +2646,7 @@ module.exports = {
                     projectId: incident.projectId,
                     emailType: templateType,
                 });
+
                 if (isStatusPageNoteAlert) {
                     eventType = statusPageNoteAlertEventType;
                 } else if (
@@ -2781,6 +2783,7 @@ module.exports = {
                             emailTemplate,
                             component.name,
                             note,
+                            noteType,
                             statusUrl,
                             statusNoteStatus,
                             customFields,
