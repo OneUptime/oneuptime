@@ -411,3 +411,10 @@ export const fetchLastMetrics = ({
 
     return promise;
 };
+
+export const addPerformanceTracker = payload => dispatch => {
+    return dispatch({
+        type: types.ADD_PERFORMANCE_TRACKER,
+        payload,
+    });
+};
