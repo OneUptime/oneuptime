@@ -263,7 +263,7 @@ const mapDispatchToProps = dispatch =>
 
 function mapStateToProps(state) {
     const currentProject = state.project.currentProject;
-    const currentProjectId = currentProject ? currentProject._id : null;
+    const currentProjectId = currentProject && currentProject._id;
     const statusPages = state.statusPage.subProjectStatusPages;
 
     let subProjects = state.subProject.subProjects.subProjects;

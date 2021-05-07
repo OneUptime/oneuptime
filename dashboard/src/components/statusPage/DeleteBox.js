@@ -19,9 +19,13 @@ export class DeleteStatusPageBox extends Component {
     }
 
     handleClick = () => {
-        const { deleteStatusPage, statusPageSlug, history } = this.props;
+        const {
+            deleteStatusPage,
+            statusPageSlug,
+            history,
+            subProjectId,
+        } = this.props;
         const { deleteModalId } = this.state;
-        const { subProjectId } = this.props.match.params;
         this.props.openModal({
             id: deleteModalId,
             onConfirm: () => {
@@ -127,7 +131,7 @@ DeleteStatusPageBox.propTypes = {
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     slug: PropTypes.string,
-    match: PropTypes.object,
+    subProjectId: PropTypes.string,
 };
 
 export default withRouter(

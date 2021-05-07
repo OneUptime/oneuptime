@@ -1065,7 +1065,9 @@ export class IncidentMessageThread extends Component {
                                                                                     onClick={() => {
                                                                                         history.push(
                                                                                             `/dashboard/project/${slug}/sub-project/${incidentMessage.project &&
-                                                                                                incidentMessage.project}/schedule/${incidentMessage.schedule &&
+                                                                                                incidentMessage
+                                                                                                    .project
+                                                                                                    .slug}/schedule/${incidentMessage.schedule &&
                                                                                                 incidentMessage
                                                                                                     .schedule
                                                                                                     .slug}`

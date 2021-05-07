@@ -79,7 +79,10 @@ module.exports = {
             }
 
             const statusPage = await statusPageModel.save();
-            return statusPage;
+            const newStatusPage = await this.findOneBy({
+                _id: statusPage._id,
+            });
+            return newStatusPage;
         } catch (error) {
             ErrorService.log('statusPageService.create', error);
             throw error;

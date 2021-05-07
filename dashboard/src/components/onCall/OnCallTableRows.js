@@ -5,8 +5,8 @@ import { OnCallTableBody } from './OnCallData';
 import { history } from '../../store';
 
 function Row(props) {
-    const { subProjectId } = props;
-    const path = `/dashboard/project/${props.slug}/sub-project/${subProjectId}/schedule/${props.scheduleSlug}`;
+    const { subProjectSlug } = props;
+    const path = `/dashboard/project/${props.slug}/sub-project/${subProjectSlug}/schedule/${props.scheduleSlug}`;
     return (
         <tr
             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink scheduleListItem"
@@ -43,7 +43,7 @@ Row.propTypes = {
     users: PropTypes.string,
     scheduleSlug: PropTypes.string.isRequired,
     monitors: PropTypes.string,
-    subProjectId: PropTypes.string,
+    subProjectSlug: PropTypes.string,
     slug: PropTypes.string,
     bottonTitle: PropTypes.string,
 };
@@ -93,6 +93,7 @@ function OnCallTableRows({
     isRequesting,
     match,
     subProjectId,
+    subProjectSlug,
     bottonTitle,
     slug,
 }) {
@@ -110,6 +111,7 @@ function OnCallTableRows({
                       key={`oncall ${index}`}
                       match={match}
                       subProjectId={subProjectId}
+                      subProjectSlug={subProjectSlug}
                       bottonTitle={bottonTitle}
                       slug={slug}
                       scheduleSlug={schedule.slug}
