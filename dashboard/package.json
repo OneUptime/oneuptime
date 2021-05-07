@@ -91,7 +91,7 @@
         "dev": "PORT=3000 react-scripts start",
         "build": "react-scripts build && npm run build-sw",
         "build-sw": "node ./src/sw-build.js",
-        "test": "jest --forceExit --testSequencer --runInBand ./src/test/puppeteer/ErrorTracker.test.js",
+        "test": "jest --forceExit --testSequencer --runInBand ./src/test/puppeteer/Monitor.test.js",
         "enterprise-test": "jest --forceExit --runInBand ./src/test/puppeteer/*.test.enterprise.js",
         "start": "node index.js",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,browserslist,loadable-components,@beam-australia/react-env'",
