@@ -14,45 +14,34 @@ const monitorName = utils.generateRandomString();
 const testServerMonitorName = utils.generateRandomString();
 
 describe('Monitor API', () => {
-    const operationTimeOut = 500000;
-
-    let cluster;
+    const operationTimeOut = 500000;    
 
     beforeAll(async () => {
         jest.setTimeout(500000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        return await cluster.execute(null, async ({ page }) => {
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );
+        
             const user = {
                 email,
                 password,
             };
             await init.registerUser(user, page);
             await init.addSchedule(callSchedule, page);
-            await init.addMonitorToComponent(componentName, monitorName, page); // This creates a default component and a monitor. The monitor created here will be used by other tests as required
-        });
+            await init.addMonitorToComponent(componentName, monitorName, page); // This creates a default component and a monitor. The monitor created here will be used by other tests as required        
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'Should create new monitor with default criteria settings',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Component is already created.
                 await init.navigateToComponentDetails(componentName, page);
                 const monitorName = utils.generateRandomString();
@@ -72,15 +61,14 @@ describe('Monitor API', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(monitorName);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should create new monitor with edited criteria names',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Component is already created.
                 await init.navigateToComponentDetails(componentName, page);
                 const monitorName = utils.generateRandomString();
@@ -129,13 +117,12 @@ describe('Monitor API', () => {
                     el => el.value
                 );
                 expect(criterionName).toEqual(upCriterionName);
-            });
+            done();
         },
         operationTimeOut
     );
 
-    test('Should create new monitor with multiple criteria on each category', async () => {
-        return await cluster.execute(null, async ({ page }) => {
+    test('Should create new monitor with multiple criteria on each category', async (done) => {        
             // Component is already created.
             await init.navigateToComponentDetails(componentName, page);
             const monitorName = utils.generateRandomString();
@@ -228,13 +215,12 @@ describe('Monitor API', () => {
             expect(
                 (await page.$$('[data-testId^=single_criterion_down]')).length
             ).toEqual(2);
-        });
+        done();
     });
 
     test(
         'should display lighthouse scores',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Component details
                 // This navigates to the monitor created alongside the created component
                 await init.navigateToMonitorDetails(
@@ -297,15 +283,14 @@ describe('Monitor API', () => {
                 );
                 lighthousePwaElement = await lighthousePwaElement.jsonValue();
                 lighthousePwaElement.should.endWith('%');
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should display multiple probes and monitor chart on refresh',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Component details
                 // This navigates to the monitor created alongside the created component
                 await init.navigateToMonitorDetails(
@@ -329,15 +314,14 @@ describe('Monitor API', () => {
 
                 expect(monitorStatus).toBeDefined();
                 expect(sslStatus).toBeDefined();
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should create new monitor with call schedules',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Create Component first
                 // Redirects automatically component to details page
                 await init.navigateToComponentDetails(componentName, page);
@@ -374,15 +358,14 @@ describe('Monitor API', () => {
                     checked => checked === true
                 );
                 expect(areAllChecked).toEqual(true);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should not create new monitor when details are incorrect',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
@@ -402,15 +385,14 @@ describe('Monitor API', () => {
                 spanElement.should.be.exactly(
                     'This field cannot be left blank'
                 );
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should display SSL enabled status',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
@@ -423,15 +405,14 @@ describe('Monitor API', () => {
                 );
                 sslStatusElement = await sslStatusElement.jsonValue();
                 sslStatusElement.should.be.exactly('Enabled');
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should display SSL not found status',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
@@ -453,17 +434,16 @@ describe('Monitor API', () => {
                 );
                 sslStatusElement = await sslStatusElement.jsonValue();
                 sslStatusElement.should.be.exactly('No SSL Found');
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should display SSL self-signed status',
-        async () => {
+        async (done) => {
             const selfSignedMonitorName = utils.generateRandomString();
-
-            return await cluster.execute(null, async ({ page }) => {
+            
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
@@ -485,17 +465,16 @@ describe('Monitor API', () => {
                 );
                 sslStatusElement = await sslStatusElement.jsonValue();
                 sslStatusElement.should.be.exactly('Self Signed');
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should display monitor status online for monitor with large response header',
-        async () => {
+        async (done) => {
             const bodyText = utils.generateRandomString();
-
-            const testServer = async ({ page }) => {
+            // This navigates to hhtp-test server and create the settings for the test suite
                 await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
                 await page.evaluate(
                     () => (document.getElementById('responseTime').value = '')
@@ -543,10 +522,8 @@ describe('Monitor API', () => {
                     `<h1 id="html"><span>${bodyText}</span></h1>`
                 );
                 await page.click('button[type=submit]');
-                await page.waitForSelector('#save-btn', { visible: true });
-            };
-
-            const dashboard = async ({ page }) => {
+                await page.waitForSelector('#save-btn', { visible: true });            
+            
                 // Component and Monitor are already created. This is code refactoring
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -563,20 +540,17 @@ describe('Monitor API', () => {
                 );
                 monitorStatusElement = await monitorStatusElement.jsonValue();
                 monitorStatusElement.should.be.exactly('Online');
-            };
 
-            await cluster.execute(null, testServer);
-            await cluster.execute(null, dashboard);
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should degrade (not timeout and return status code 408) monitor with response time longer than 60000ms and status code 200',
-        async () => {
+        async (done) => {
             const bodyText = utils.generateRandomString();
-
-            const testServer = async ({ page }) => {
+            // This navigates to hhtp-test server and create the settings for the test suite
                 await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
                 await page.evaluate(
                     () => (document.getElementById('responseTime').value = '')
@@ -604,10 +578,9 @@ describe('Monitor API', () => {
                     `<h1 id="html"><span>${bodyText}</span></h1>`
                 );
                 await page.click('button[type=submit]');
-                await page.waitForSelector('#save-btn', { visible: true });
-            };
+                await page.waitForSelector('#save-btn', { visible: true });            
 
-            const dashboard = async ({ page }) => {
+            
                 // Component and Monitor are already created. This is code refactoring
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -628,10 +601,9 @@ describe('Monitor API', () => {
                 );
                 monitorStatusElement = await monitorStatusElement.jsonValue();
                 monitorStatusElement.should.be.exactly('Degraded');
-            };
+            
 
-            await cluster.execute(null, testServer);
-            await cluster.execute(null, dashboard);
+            done();
         },
         operationTimeOut
     );
