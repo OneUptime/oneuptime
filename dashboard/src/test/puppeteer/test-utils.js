@@ -114,9 +114,9 @@ const dockerCredential = {
 };
 
 const gitCredential = {
-    gitUsername: 'adeoluwadavid',//process.env.GITHUB_UNMASKED_USERNAME,
-    gitPassword: 'talodabijesu1',//process.env.GITHUB_UNMASKED_PASSWORD,
-    gitRepositoryUrl: 'https://github.com/adeoluwadavid/SocketIO',//process.env.GITHUB_SECURITY_SCAN_REPOSITORY_URL,
+    gitUsername: process.env.GITHUB_UNMASKED_USERNAME,
+    gitPassword: process.env.GITHUB_UNMASKED_PASSWORD,
+    gitRepositoryUrl: process.env.GITHUB_SECURITY_SCAN_REPOSITORY_URL,
 };
 
 const smtpCredential = {
