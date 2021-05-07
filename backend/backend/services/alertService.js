@@ -1622,7 +1622,7 @@ module.exports = {
                         {
                             note: data.content,
                             incidentState: data.incident_state,
-                            noteType:data.type,
+                            noteType: data.incident_state,
                             statusNoteStatus,
                         },
                         subscribers.length,
@@ -2422,7 +2422,7 @@ module.exports = {
         incident,
         templateType = 'Subscriber Incident Created',
         statusPage,
-        { note, incidentState,noteType, statusNoteStatus } = {},
+        { note, incidentState, noteType, statusNoteStatus } = {},
         totalSubscribers,
         id
     ) {

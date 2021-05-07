@@ -1952,8 +1952,8 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
                   <p
                     style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                     <strong>Incident Id: </strong>
-                    <span>{{incidentId}}</span><br>
-                  </p> 
+                    <span>#{{incidentId}}</span><br>
+                  </p>  
                   <p
                   style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                   <strong>Note Type: </strong>
@@ -1964,7 +1964,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
                     <strong>Note: </strong>
                     <span>"{{incidentNote}}"</span><br>
                   </p>      
-                </td> 
+                </td>  
               </tr>
             </tbody>
           </table>

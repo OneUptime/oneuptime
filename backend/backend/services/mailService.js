@@ -3737,7 +3737,7 @@ const _this = {
                 projectName,
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
-                incidentId: incident._id,
+                incidentId: incident.idNumber                ,
                 componentName,
                 incidentNote,
                 noteType,
