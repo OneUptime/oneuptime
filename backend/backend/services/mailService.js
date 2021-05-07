@@ -2958,6 +2958,7 @@ const _this = {
                 trackEmailAsViewedUrl,
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
+                incidentDescription: incident.description,
                 componentName,
                 statusPageUrl,
                 unsubscribeUrl,
@@ -3513,7 +3514,7 @@ const _this = {
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
-                'Subscriber Incident Acknowledged'
+                'Subscriber Incident Acknowldeged'
             );
             const data = {
                 incidentTime,
