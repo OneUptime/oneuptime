@@ -411,6 +411,11 @@ export function getIncidentByIdNumber(projectId, incidentIdNumber) {
     };
 }
 
+export function addIncident(incident) {
+    return function(dispatch) {
+        dispatch(incidentSuccess(incident));
+    };
+}
 // Calls the API to get the incident timeline
 export function getIncidentTimeline(projectId, incidentId, skip, limit) {
     return function(dispatch) {

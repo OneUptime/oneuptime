@@ -5,6 +5,7 @@ import { RenderSearchField } from '../basic/RenderSearchField';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { history } from '../../store';
+import ClickOutside from 'react-click-outside';
 import { addCurrentComponent } from '../../actions/component';
 import { animateSidebar } from '../../actions/animateSidebar';
 import { resetSearch, search } from '../../actions/search';
@@ -13,6 +14,9 @@ import { IS_LOCALHOST, User } from '../../config';
 import { switchStatusPage } from '../../actions/statusPage';
 import isSubProjectViewer from '../../utils/isSubProjectViewer';
 import { addScheduleEvent } from '../../actions/scheduledEvent';
+import { markAsRead } from '../../actions/notification';
+import Badge from '../common/Badge';
+import { addIncident } from '../../actions/incident';
 
 class Search extends Component {
     constructor() {
@@ -37,13 +41,14 @@ class Search extends Component {
         const searchObj = this.props.searcResult;
 
         if (
+            searchObj.length > 0 &&
             this.state.scroll ===
                 searchObj[searchObj.length - 1].values.length - 1 &&
             this.state.sectionActive === searchObj.length - 1
         ) {
             panel.scrollTop = 0;
         } else {
-            node.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            node && node.scrollIntoView({ block: 'start', behavior: 'smooth' });
         }
     }
     ArrowUp = () => {
@@ -141,7 +146,30 @@ class Search extends Component {
         history.push(
             '/dashboard/project/' + currentProject.slug + '/' + searchObj.url
         );
-        window.location.reload();
+    };
+    loadMonitor = (currentProject, searchObj) => {
+        this.props.fetchMonitors(currentProject._id);
+        history.push(this.generateUrlLink(searchObj));
+    };
+
+    loadIncident = (currentProject, searchObj) => {
+        setTimeout(() => {
+            history.push(
+                '/dashboard/project/' +
+                    currentProject.slug +
+                    '/component/' +
+                    searchObj.componentId +
+                    '/incidents/' +
+                    searchObj.idNumber
+            );
+            this.props.addIncident(searchObj.incident);
+            this.props.animateSidebar(false);
+        }, 200);
+        this.props.markAsRead(
+            this.props.currentProject._id,
+            searchObj.notificationId
+        );
+        this.props.animateSidebar(true);
     };
     navigate = (type, searchObj) => {
         const { currentProject, componentList } = this.props;
@@ -161,7 +189,7 @@ class Search extends Component {
                 setTimeout(
                     () => {
                         type === 'Monitors'
-                            ? history.push(this.generateUrlLink(searchObj))
+                            ? this.loadMonitor(currentProject, searchObj)
                             : this.loadComponent(currentProject, searchObj);
 
                         this.props.animateSidebar(false);
@@ -201,6 +229,9 @@ class Search extends Component {
                 );
                 this.props.addScheduleEvent(searchObj.scheduleEvents);
                 break;
+            case 'Incidents':
+                this.loadIncident(currentProject, searchObj);
+                break;
             default:
                 return null;
         }
@@ -232,6 +263,8 @@ class Search extends Component {
                 return this.ArrowDown();
             case 'Enter':
                 return this.handleEnter();
+            case 'Escape':
+                return this.props.resetSearch();
             default:
                 return false;
         }
@@ -247,6 +280,26 @@ class Search extends Component {
                 scroll: 0,
                 sectionActive: 0,
             });
+        }
+    };
+    categoryIconClassName = type => {
+        switch (type) {
+            case 'Components':
+                return 'db-SideNav-icon--square';
+            case 'Monitors':
+                return 'db-SideNav-icon--monitor';
+            case 'Team Members':
+                return 'db-SideNav-icon--customers';
+            case 'Status Pages':
+                return 'db-SideNav-icon--radar';
+            case 'On-Call Duty':
+                return 'db-SideNav-icon--call';
+            case 'Incidents':
+                return 'db-SideNav-icon--info';
+            case 'Schedule Events':
+                return 'db-SideNav-icon--connect';
+            default:
+                return '';
         }
     };
     render() {
@@ -265,6 +318,7 @@ class Search extends Component {
                     onChange={(e, newValue) => this.handleSearch(newValue)}
                     style={{
                         boxShadow: 'none',
+                        width: '290px',
                     }}
                 />
                 <div
@@ -296,7 +350,25 @@ class Search extends Component {
                                         }}
                                         key={result.title}
                                     >
-                                        {result.title}
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                            }}
+                                        >
+                                            <div
+                                                className={`${this.categoryIconClassName(
+                                                    result.title
+                                                )} db-SideNav-icon`}
+                                            ></div>
+                                            <span
+                                                style={{
+                                                    paddingLeft: '10px',
+                                                }}
+                                            >
+                                                {result.title}
+                                            </span>
+                                        </div>
                                     </h3>
                                     {result.values.map((val, i) => {
                                         return (
@@ -326,7 +398,43 @@ class Search extends Component {
                                                     this.handleSearchClick(j, i)
                                                 }
                                             >
-                                                {val.name}
+                                                {result.title ===
+                                                'Team Members' ? (
+                                                    <span>
+                                                        <img
+                                                            src="/dashboard/assets/img/profile-user.svg"
+                                                            className="userIcon"
+                                                            alt=""
+                                                        />
+                                                    </span>
+                                                ) : this.props.subProject
+                                                      .count > 0 ? (
+                                                    <Badge
+                                                        color={
+                                                            val.parentProject
+                                                                ? 'red Badge-border-radius'
+                                                                : 'blue Badge-border-radius'
+                                                        }
+                                                    >
+                                                        {val.parentProject
+                                                            ? 'project'
+                                                            : val.projectName}
+                                                    </Badge>
+                                                ) : null}
+                                                <span
+                                                    style={{
+                                                        paddingLeft:
+                                                            result.title ===
+                                                                'Team Members' ||
+                                                            this.props
+                                                                .subProject
+                                                                .count === 0
+                                                                ? '0'
+                                                                : '10px',
+                                                    }}
+                                                >
+                                                    {val.name}
+                                                </span>
                                             </li>
                                         );
                                     })}
@@ -364,6 +472,9 @@ Search.propTypes = {
     currentProject: PropTypes.object,
     switchStatusPage: PropTypes.func,
     addScheduleEvent: PropTypes.func,
+    fetchMonitors: PropTypes.func,
+    markAsRead: PropTypes.func,
+    addIncident: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -376,6 +487,8 @@ const mapDispatchToProps = dispatch => {
             fetchMonitors,
             switchStatusPage,
             addScheduleEvent,
+            markAsRead,
+            addIncident,
         },
         dispatch
     );
@@ -383,12 +496,14 @@ const mapDispatchToProps = dispatch => {
 
 function mapStateToProps(state) {
     const searcResult = state.search.search;
+    const subProject = state.subProject.subProjects;
     return {
         initialValues: { search: '' },
         searcResult,
         searchValues: state.form.search && state.form.search.values,
         currentProject: state.project.currentProject,
         componentList: state.component.componentList,
+        subProject,
     };
 }
 

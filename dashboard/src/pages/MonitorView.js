@@ -7,7 +7,6 @@ import {
     fetchMonitorsSubscribers,
     getMonitorLogs,
     fetchLighthouseLogs,
-    fetchMonitors,
 } from '../actions/monitor';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import Dashboard from '../components/Dashboard';
@@ -66,7 +65,6 @@ class MonitorView extends React.Component {
             currentProject,
             componentSlug,
             fetchComponent,
-            fetchMonitors,
         } = this.props;
         fetchComponent(componentSlug);
 
@@ -75,7 +73,7 @@ class MonitorView extends React.Component {
             const projectMember = currentProject.users.find(
                 user => user.userId === userId
             );
-            fetchMonitors(currentProject._id);
+            //fetchMonitors(currentProject._id);
             if (projectMember) {
                 this.props.fetchSchedules(currentProject._id);
             }
@@ -84,6 +82,8 @@ class MonitorView extends React.Component {
 
     componentDidUpdate(prevProps) {
         const { monitor } = this.props;
+        console.log(prevProps.monitor,'previous')
+        console.log(monitor)
         if (monitor && String(prevProps.monitor._id) !== String(monitor._id)) {
             const subProjectId = monitor.projectId
                 ? monitor.projectId._id || monitor.projectId
@@ -1103,7 +1103,6 @@ const mapDispatchToProps = dispatch => {
             fetchMonitorSlas,
             fetchSchedules,
             fetchComponent,
-            fetchMonitors,
         },
         dispatch
     );
@@ -1142,7 +1141,6 @@ MonitorView.propTypes = {
     componentSlug: PropTypes.string,
     fetchComponent: PropTypes.func,
     requestingComponent: PropTypes.bool,
-    fetchMonitors: PropTypes.func,
 };
 
 MonitorView.displayName = 'MonitorView';
