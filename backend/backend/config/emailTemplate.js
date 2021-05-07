@@ -2,9 +2,9 @@ module.exports = [
     {
         allowedVariables: [
             '{{userName}} : User display name.',
-            '{{monitorName}} : Name of the monitor on which incident has occured.',
+            '{{monitorName}} : Name of the monitor on which incident has occurred.',
             '{{componentName}} : Name of the component the monitor belongs to',
-            '{{projectName}} : Name of the project on which the incident has occured.',
+            '{{projectName}} : Name of the project on which the incident has occurred.',
             '{{incidentTime}} : Time at which this incident occurred.',
             '{{incidentDescription}} : Description of the incident.',
             '{{incidentType}} : Type of incident.',
@@ -128,7 +128,7 @@ span.st-Delink.st-Delink--footer a {
   /** Modifier: gutter */
   body[override] td.st-Spacer.st-Spacer--gutter {
     width: 32px !important;
-  }
+  } 
   /** */
 
   /** Modifier: kill */
@@ -333,13 +333,9 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
                 <p
                   style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                   <strong>Monitor Name: </strong>
-                  <span>{{componentName}}/{{monitorName}}</span><br>
+                  <span>{{monitorName}}</span><br>
                 </p> 
-                <p
-                  style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
-                  <strong>Project Name: </strong>
-                  <span>{{projectName}}</span><br>
-                </p>               
+                              
                 <p
                   style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                   <strong>Incident Type: </strong>
@@ -364,35 +360,38 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
       </tr>
     </tbody>
   </table>
-  <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
-    <tbody>
-      <tr>
-        <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
-          <div class="st-Spacer st-Spacer--filler"></div>
-        </td>
-        <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
-
-        {{#if statusPageUrl}}
-          You can view the status of the incident here {{statusPageUrl}}
-        {{/if}}
-
-        </td>
-        <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
-          <div class="st-Spacer st-Spacer--filler"></div>
-        </td>
-      </tr>
-      <tr>
-        <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
-          <div class="st-Spacer st-Spacer--filler"></div>
-        </td>
-      </tr>
-    </tbody>
-  </table>
 </td>
 </tr>
 </tbody>
 </table>
 
+<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+<tbody>
+  <tr>
+    <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+    <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+    {{#if statusPageUrl}}
+      You can view the status of the incident 
+      <a href={{statusPageUrl}}
+        style="color:#222b35;font-family:sans-serif;font-size:16px;font-weight:bold;line-height:30px;text-align:center;text-decoration:none;-webkit-text-size-adjust:none;mso-hide:all;">
+        here
+      </a>{{/if}}
+
+    </td>
+    <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+  </tr>
+</tbody>
+</table>
 
 <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
 <tbody>
@@ -884,14 +883,9 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
                 <p
                   style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                   <strong>Monitor Name: </strong>
-                  <span>{{componentName}}/{{monitorName}}</span><br>
+                  <span>{{monitorName}}</span><br>
                 </p>
-                <p
-                  style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
-                  <strong>Project Name: </strong>
-                  <span>{{projectName}}</span><br>
-                </p>
-                <p
+                                <p
                   style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                   <strong>Acknowledged at: </strong>
                   <span>{{incidentTime}}</span><br>
@@ -904,35 +898,38 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
       </tr>
     </tbody>
   </table>
-  <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
-    <tbody>
-      <tr>
-        <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
-          <div class="st-Spacer st-Spacer--filler"></div>
-        </td>
-        <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
-
-        {{#if statusPageUrl}}
-          You can view the status of the incident here {{statusPageUrl}}
-        {{/if}}
-
-        </td>
-        <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
-          <div class="st-Spacer st-Spacer--filler"></div>
-        </td>
-      </tr>
-      <tr>
-        <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
-          <div class="st-Spacer st-Spacer--filler"></div>
-        </td>
-      </tr>
-    </tbody>
-  </table>
 </td>
 </tr>
 </tbody>
 </table>
 
+<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+<tbody>
+  <tr>
+    <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+    <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+    {{#if statusPageUrl}}
+      You can view the status of the incident 
+      <a href={{statusPageUrl}}
+        style="color:#222b35;font-family:sans-serif;font-size:16px;font-weight:bold;line-height:30px;text-align:center;text-decoration:none;-webkit-text-size-adjust:none;mso-hide:all;">
+        here
+      </a>{{/if}}
+
+    </td>
+    <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+  </tr>
+</tbody>
+</table>
 <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
 <tbody>
 <tr>
@@ -1424,17 +1421,12 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
                 <td align="left" style="padding:0;Margin:0;padding-top:30px">
                 <p
                   style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
-                  <strong>Resource Affected: </strong>
-                  <span>{{componentName}}/{{monitorName}}</span><br>
+                  <strong>Monitor Name: </strong>
+                  <span>{{monitorName}}</span><br>
                 </p>
-                <p
+                                <p
                   style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
-                  <strong>Project Name: </strong>
-                  <span>{{projectName}}</span><br>
-                </p>
-                <p
-                  style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
-                  <strong>Resolved at: </strong>
+                  <strong>Resolved At: </strong>
                   <span>{{incidentTime}}</span><br>
                 </p>                   
                 </td>
@@ -1445,35 +1437,38 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
       </tr>
     </tbody>
   </table>
-  <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
-    <tbody>
-      <tr>
-        <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
-          <div class="st-Spacer st-Spacer--filler"></div>
-        </td>
-        <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
-
-        {{#if statusPageUrl}}
-          You can view the status of the incident here {{statusPageUrl}}
-        {{/if}}
-
-        </td>
-        <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
-          <div class="st-Spacer st-Spacer--filler"></div>
-        </td>
-      </tr>
-      <tr>
-        <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
-          <div class="st-Spacer st-Spacer--filler"></div>
-        </td>
-      </tr>
-    </tbody>
-  </table>
 </td>
 </tr>
 </tbody>
 </table>
 
+<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+<tbody>
+  <tr>
+    <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+    <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+    {{#if statusPageUrl}}
+      You can view the status of the incident 
+      <a href={{statusPageUrl}}
+        style="color:#222b35;font-family:sans-serif;font-size:16px;font-weight:bold;line-height:30px;text-align:center;text-decoration:none;-webkit-text-size-adjust:none;mso-hide:all;">
+        here
+      </a>{{/if}}
+
+    </td>
+    <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+  </tr>
+</tbody>
+</table>
 
 <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
 <tbody>
@@ -1629,6 +1624,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
             '{{projectName}} : Name of the project on which the incident has occured.',
             '{{incidentTime}} : Time at which this incident occured.',
             '{{incidentType}} : Type of incident.',
+            '{{noteType}} : Type of note created.',
             '{{userId}} : Unique identifier for user account.',
             '{{projectId}} : Unique identifier for the current project.',
             "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
@@ -1883,7 +1879,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
         </td>
         <td class="st-Font st-Font--body" style="color: #000000 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
     
-         <h3>Investigation note is {{statusNoteStatus}}</h3>
+         <h3>Here’s an update on an incident</h3>
     
         </td>
         <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -1897,7 +1893,38 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
       </tr>
     </tbody>
     </table>
-    
+
+    <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+<tbody>
+<tr>
+<td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+  <div class="st-Spacer st-Spacer--filler"></div>
+</td>
+<td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+  Hi.
+</td>
+<td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+  <div class="st-Spacer st-Spacer--filler"></div>
+</td>
+</tr>
+<tr>
+<td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+  <div class="st-Spacer st-Spacer--filler"></div>
+</td>
+</tr>
+<tr>
+<td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+  <div class="st-Spacer st-Spacer--filler"></div>
+</td>
+<td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+  An investigation note has been created for {{projectName}}:
+</td>
+</tr>
+<td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+  <div class="st-Spacer st-Spacer--filler"></div>
+</td>
+</tbody>
+</table>
 <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0"
 width="500" style="min-width: 500px;margin: 40px 50px;">
 <tbody>
@@ -1916,13 +1943,28 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
             style="border-collapse:collapse;border-spacing:0px">
             <tbody>
               <tr style="border-collapse:collapse">
-                <td align="left" style="padding:0;Margin:0;padding-top:30px">                             
+                <td align="left" style="padding:0;Margin:0;padding-top:30px">   
+                  <p
+                    style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
+                    <strong>Monitor Name: </strong>
+                    <span>{{monitorName}}</span><br>
+                  </p>
+                  <p
+                    style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
+                    <strong>Incident Id: </strong>
+                    <span>{{incidentId}}</span><br>
+                  </p> 
+                  <p
+                  style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
+                  <strong>Note Type: </strong>
+                  <span>{{noteType}}</span><br>
+                </p>                          
                   <p
                     style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                     <strong>Note: </strong>
                     <span>"{{incidentNote}}"</span><br>
-                  </p>               
-                </td>
+                  </p>      
+                </td> 
               </tr>
             </tbody>
           </table>
@@ -1930,13 +1972,18 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
       </tr>
     </tbody>
   </table>
-  <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+  
+</td>
+</tr>
+</tbody>
+</table>
+<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
     <tbody>
       <tr>
         <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
           <div class="st-Spacer st-Spacer--filler"></div>
         </td>
-        <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+        <td align="left" class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
         {{#if statusPageUrl}}
             You can view the status of the incident 
@@ -1957,10 +2004,6 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
       </tr>
     </tbody>
   </table>
-</td>
-</tr>
-</tbody>
-</table>
   <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
     <tbody>
     <tr>

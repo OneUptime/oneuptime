@@ -3714,6 +3714,7 @@ const _this = {
         emailTemplate,
         componentName,
         incidentNote,
+        noteType,
         statusPageUrl,
         statusNoteStatus,
         customFields,
@@ -3727,6 +3728,7 @@ const _this = {
                 emailTemplate,
                 'Investigation note is created'
             );
+            
             const data = {
                 incidentTime,
                 monitorName,
@@ -3735,8 +3737,10 @@ const _this = {
                 projectName,
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
+                incidentId: incident._id,
                 componentName,
                 incidentNote,
+                noteType,
                 statusPageUrl,
                 statusNoteStatus,
                 unsubscribeUrl,
