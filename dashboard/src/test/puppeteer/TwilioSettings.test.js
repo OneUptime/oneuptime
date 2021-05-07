@@ -1,8 +1,9 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
+const { Cluster } = require('puppeteer-cluster');
 require('should');
-let browser, page;
+
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
@@ -18,35 +19,44 @@ const incidentTitle = utils.generateRandomString();
 
 describe('Custom Twilio Settings', () => {
     const operationTimeOut = 500000;
-    
+
+    let cluster;
     beforeAll(async done => {
         jest.setTimeout(360000);
+        cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_PAGE,
+            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteer,
+            timeout: 500000,
+        });
 
-        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-        page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
-        
+        cluster.on('error', err => {
+            throw err;
+        });
+
+        await cluster.execute({ email, password }, async ({ page, data }) => {
             const user = {
-                email,
-                password,
+                email: data.email,
+                password: data.password,
             };
             // user
             await init.registerUser(user, page);
-           // await init.addProject(page, projectName);        
+            await init.addProject(page, projectName);
+        });
 
         done();
     });
 
-    afterAll(async done => {        
-        await browser.close();
+    afterAll(async done => {
+        await cluster.idle();
+        await cluster.close();
         done();
     });
 
     test(
         'should create a custom twilio settings',
-        async done => {            
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
@@ -76,7 +86,8 @@ describe('Custom Twilio Settings', () => {
                     '#accountSid',
                     elem => elem.value
                 );
-                expect(savedAccountSid).toBe(twilioCredentials.accountSid);            
+                expect(savedAccountSid).toBe(twilioCredentials.accountSid);
+            });
 
             done();
         },
@@ -85,7 +96,8 @@ describe('Custom Twilio Settings', () => {
 
     test(
         'should send SMS to external subscribers if an incident is created.',
-        async done => {            
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
                 await init.addMonitorToComponent(
                     componentName,
                     monitorName,
@@ -134,7 +146,8 @@ describe('Custom Twilio Settings', () => {
                     '#subscriber',
                     elem => elem.textContent
                 );
-                expect(subscriber).toEqual(`${countryCode}${phoneNumber}`);            
+                expect(subscriber).toEqual(`${countryCode}${phoneNumber}`);
+            });
 
             done();
         },
@@ -143,7 +156,8 @@ describe('Custom Twilio Settings', () => {
 
     test(
         'should send SMS to external subscribers if an incident is acknowledged.',
-        async done => {            
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -175,7 +189,8 @@ describe('Custom Twilio Settings', () => {
                     '#eventType',
                     elem => elem.textContent
                 );
-                expect(eventType).toEqual('acknowledged');            
+                expect(eventType).toEqual('acknowledged');
+            });
 
             done();
         },
@@ -184,7 +199,8 @@ describe('Custom Twilio Settings', () => {
 
     test(
         'should send SMS to external subscribers if an incident is resolved.',
-        async done => {            
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -216,7 +232,8 @@ describe('Custom Twilio Settings', () => {
                     '#eventType',
                     elem => elem.textContent
                 );
-                expect(eventType).toEqual('resolved');            
+                expect(eventType).toEqual('resolved');
+            });
 
             done();
         },
@@ -225,7 +242,8 @@ describe('Custom Twilio Settings', () => {
 
     test(
         'should render an error message if the user try to update his alert phone number without typing the right verification code.',
-        async done => {            
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#profile-menu');
                 await page.click('#profile-menu');
@@ -242,87 +260,88 @@ describe('Custom Twilio Settings', () => {
                     '#smsVerificationErrors',
                     e => e.textContent
                 );
-                expect(message).toEqual('Invalid code !');            
+                expect(message).toEqual('Invalid code !');
+            });
 
             done();
         },
         operationTimeOut
     );
 
-    // test(
-    //     'should set the alert phone number if the user types the right verification code.',
-    //     async done => {
-    //         await cluster.execute(null, async ({ page }) => {
-    //             await page.goto(utils.DASHBOARD_URL);
-    //             await page.waitForSelector('#profile-menu');
-    //             await page.click('#profile-menu');
-    //             await page.waitForSelector('#userProfile');
-    //             await page.click('#userProfile');
-    //             await page.waitForSelector('input[type=tel]');
-    //             await page.click('input[type=tel]', { clickCount: 3 });
-    //             await page.type('input[type=tel]', alertPhone);
-    //             await page.waitForSelector('#sendVerificationSMS', {
-    //                 visible: true,
-    //             });
-    //             await page.click('#sendVerificationSMS');
-    //             await page.waitForSelector('#otp');
-    //             await page.type('#otp', '123456');
-    //             await page.click('#verify');
-    //             await page.waitForSelector('#successMessage', {
-    //                 visible: true,
-    //             });
-    //             const message = await page.$eval(
-    //                 '#successMessage',
-    //                 e => e.textContent
-    //             );
-    //             expect(message).toEqual(
-    //                 'Verification successful, this number has been updated.'
-    //             );
-    //         });
+    test(
+        'should set the alert phone number if the user types the right verification code.',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#profile-menu');
+                await page.click('#profile-menu');
+                await page.waitForSelector('#userProfile');
+                await page.click('#userProfile');
+                await page.waitForSelector('input[type=tel]');
+                await page.click('input[type=tel]', { clickCount: 3 });
+                await page.type('input[type=tel]', alertPhone);
+                await page.waitForSelector('#sendVerificationSMS', {
+                    visible: true,
+                });
+                await page.click('#sendVerificationSMS');
+                await page.waitForSelector('#otp');
+                await page.type('#otp', '123456');
+                await page.click('#verify');
+                await page.waitForSelector('#successMessage', {
+                    visible: true,
+                });
+                const message = await page.$eval(
+                    '#successMessage',
+                    e => e.textContent
+                );
+                expect(message).toEqual(
+                    'Verification successful, this number has been updated.'
+                );
+            });
 
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+            done();
+        },
+        operationTimeOut
+    );
 
-    // test(
-    //     'should update alert phone number if user types the right verification code.',
-    //     async done => {
-    //         await cluster.execute(null, async ({ page }) => {
-    //             await page.goto(utils.DASHBOARD_URL);
-    //             await page.waitForSelector('#profile-menu');
-    //             await page.click('#profile-menu');
-    //             await page.waitForSelector('#userProfile');
-    //             await page.click('#userProfile');
+    test(
+        'should update alert phone number if user types the right verification code.',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#profile-menu');
+                await page.click('#profile-menu');
+                await page.waitForSelector('#userProfile');
+                await page.click('#userProfile');
 
-    //             await page.reload({ waitUntil: 'networkidle0' });
-    //             await page.waitForSelector('input[type=tel]');
-    //             await page.click('input[type=tel]');
-    //             await page.keyboard.press('Backspace');
-    //             await page.type('input[type=tel]', '1', {
-    //                 delay: 150,
-    //             });
-    //             await page.waitForSelector('#sendVerificationSMS', {
-    //                 visible: true,
-    //             });
-    //             await page.click('#sendVerificationSMS');
-    //             await page.waitForSelector('#otp');
-    //             await page.type('#otp', '123456');
-    //             await page.click('#verify');
-    //             await page.waitForSelector('#successMessage', {
-    //                 visible: true,
-    //             });
-    //             const message = await page.$eval(
-    //                 '#successMessage',
-    //                 e => e.textContent
-    //             );
-    //             expect(message).toEqual(
-    //                 'Verification successful, this number has been updated.'
-    //             );
-    //         });
+                await page.reload({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('input[type=tel]');
+                await page.click('input[type=tel]');
+                await page.keyboard.press('Backspace');
+                await page.type('input[type=tel]', '1', {
+                    delay: 150,
+                });
+                await page.waitForSelector('#sendVerificationSMS', {
+                    visible: true,
+                });
+                await page.click('#sendVerificationSMS');
+                await page.waitForSelector('#otp');
+                await page.type('#otp', '123456');
+                await page.click('#verify');
+                await page.waitForSelector('#successMessage', {
+                    visible: true,
+                });
+                const message = await page.$eval(
+                    '#successMessage',
+                    e => e.textContent
+                );
+                expect(message).toEqual(
+                    'Verification successful, this number has been updated.'
+                );
+            });
 
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+            done();
+        },
+        operationTimeOut
+    );
 });
