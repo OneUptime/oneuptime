@@ -10,12 +10,16 @@ import { fetchAnnouncements } from '../../actions/statusPage';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 import { history } from '../../store';
+import Badge from '../common/Badge';
+import DeleteAnnouncement from '../modals/DeleteAnnouncement';
+import EditAnnouncement from '../modals/EditAnnouncement';
 
 class Announcements extends Component {
     constructor(props) {
         super(props);
         this.state = {
             createAnnounceentModalId: uuidv4(),
+            deleteModalId: uuidv4(),
             limit: 10,
         };
     }
@@ -74,7 +78,7 @@ class Announcements extends Component {
     };
 
     render() {
-        const { createAnnounceentModalId } = this.state;
+        const { createAnnounceentModalId, deleteModalId } = this.state;
         const {
             projectId,
             statusPage,
@@ -192,13 +196,6 @@ class Announcements extends Component {
                                                             'white',
                                                         cursor: 'pointer',
                                                     }}
-                                                    onClick={e => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        this.handleAnnouncementDetail(
-                                                            announcement.slug
-                                                        );
-                                                    }}
                                                 >
                                                     <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
                                                         <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
@@ -228,36 +225,98 @@ class Announcements extends Component {
 
                                                     <div className="bs-ObjectList-cell bs-u-v-middle">
                                                         <div className="Box-root">
-                                                            {announcement.hideAnnouncement
-                                                                ? 'hidden on status page'
-                                                                : 'visible on status page'}
+                                                            {announcement.hideAnnouncement ? (
+                                                                <Badge
+                                                                    color={
+                                                                        'red'
+                                                                    }
+                                                                >
+                                                                    not visible
+                                                                </Badge>
+                                                            ) : (
+                                                                <Badge
+                                                                    color={
+                                                                        'green'
+                                                                    }
+                                                                >
+                                                                    visible
+                                                                </Badge>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                    <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                        <div className="Box-root">
-                                                            <button
-                                                                id={`viewAnnouncement`}
-                                                                title="view"
-                                                                className="bs-Button bs-DeprecatedButton"
-                                                                type="button"
-                                                                style={{
-                                                                    float:
-                                                                        'right',
-                                                                    marginLeft: 10,
-                                                                }}
-                                                                onClick={e => {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    this.handleAnnouncementDetail(
-                                                                        announcement.slug
-                                                                    );
-                                                                }}
-                                                            >
-                                                                <span>
-                                                                    View
-                                                                </span>
-                                                            </button>
-                                                        </div>
+                                                    <div
+                                                        className="bs-ObjectList-cell bs-u-v-middle"
+                                                        style={{
+                                                            display: 'flex',
+                                                            justifyContent:
+                                                                'flex-end',
+                                                            alignItems:
+                                                                'center',
+                                                            paddingTop: '20px',
+                                                        }}
+                                                    >
+                                                        <button
+                                                            id={`editAnnouncement`}
+                                                            title="edit"
+                                                            className="bs-Button bs-DeprecatedButton"
+                                                            type="button"
+                                                            style={{
+                                                                float: 'right',
+                                                                marginLeft: 10,
+                                                            }}
+                                                            onClick={() => {
+                                                                this.props.openModal(
+                                                                    {
+                                                                        id: deleteModalId,
+                                                                        onClose: () =>
+                                                                            '',
+                                                                        onConfirm: () =>
+                                                                            this.deleteAnnouncement(),
+                                                                        content: DataPathHoC(
+                                                                            EditAnnouncement,
+                                                                            {
+                                                                                projectId,
+                                                                                announcement,
+                                                                                statusPage,
+                                                                            }
+                                                                        ),
+                                                                    }
+                                                                );
+                                                            }}
+                                                        >
+                                                            <span>Edit</span>
+                                                        </button>
+                                                        <button
+                                                            id={`deleteAnnouncement`}
+                                                            title="delete"
+                                                            className="bs-Button bs-DeprecatedButton"
+                                                            type="button"
+                                                            style={{
+                                                                float: 'right',
+                                                                marginLeft: 10,
+                                                            }}
+                                                            onClick={() =>
+                                                                this.props.openModal(
+                                                                    {
+                                                                        id: deleteModalId,
+                                                                        onClose: () =>
+                                                                            '',
+                                                                        onConfirm: () =>
+                                                                            this.deleteAnnouncement(),
+                                                                        content: DataPathHoC(
+                                                                            DeleteAnnouncement,
+                                                                            {
+                                                                                projectId,
+                                                                                announcementId:
+                                                                                    announcement._id,
+                                                                            }
+                                                                        ),
+                                                                    }
+                                                                )
+                                                            }
+                                                        >
+                                                            <span>Delete</span>
+                                                        </button>
                                                     </div>
                                                 </div>
                                             );
