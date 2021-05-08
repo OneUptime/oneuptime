@@ -1326,6 +1326,43 @@ export function createAnnouncement(projectId, statusPageId, data) {
     };
 }
 
+export function updateAnnouncement(
+    projectId,
+    statusPageId,
+    announcementId,
+    data
+) {
+    return function(dispatch) {
+        const promise = putApi(
+            `statusPage/${projectId}/announcement/${statusPageId}/${announcementId}`,
+            data
+        );
+        dispatch(createAnnouncementRequest());
+        promise.then(
+            function(response) {
+                dispatch(createAnnouncementSuccess(response.data));
+                return response.data;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(createAnnouncementFailure(error));
+                return error;
+            }
+        );
+
+        return promise;
+    };
+}
+
 export function fetchAnnouncementRequest() {
     return {
         type: types.FETCH_ANNOUNCEMEMT_REQUEST,
@@ -1439,33 +1476,33 @@ export function resetHandleAnnouncement() {
     };
 }
 
-export function handleAnnouncementFunc(projectId, announcementId, data) {
-    return function(dispatch) {
-        const promise = putApi(
-            `statusPage/${projectId}/announcement/${announcementId}/update`,
-            data
-        );
-        promise.then(
-            function(response) {
-                dispatch(handleAnnouncementSuccess(response.data));
-            },
-            function(error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(handleAnnouncementFailure(error));
-            }
-        );
-        return promise;
-    };
-}
+// export function handleAnnouncementFunc(projectId, announcementId, data) {
+//     return function(dispatch) {
+//         const promise = putApi(
+//             `statusPage/${projectId}/announcement/${announcementId}/update`,
+//             data
+//         );
+//         promise.then(
+//             function(response) {
+//                 dispatch(handleAnnouncementSuccess(response.data));
+//             },
+//             function(error) {
+//                 if (error && error.response && error.response.data)
+//                     error = error.response.data;
+//                 if (error && error.data) {
+//                     error = error.data;
+//                 }
+//                 if (error && error.message) {
+//                     error = error.message;
+//                 } else {
+//                     error = 'Network Error';
+//                 }
+//                 dispatch(handleAnnouncementFailure(error));
+//             }
+//         );
+//         return promise;
+//     };
+// }
 
 export function resetDeleteAnnouncement() {
     return {
