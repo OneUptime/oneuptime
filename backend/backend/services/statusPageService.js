@@ -1200,6 +1200,7 @@ module.exports = {
 
     createAnnouncement: async function(data) {
         try {
+            const _this = this;
             // reassign data.monitors with a restructured monitor data
             data.monitors = data.monitors.map(monitor => ({
                 monitorId: monitor,
@@ -1211,6 +1212,10 @@ module.exports = {
                 name = `${name}-${generate('1234567890', 8)}`;
                 data.slug = name.toLowerCase();
             }
+
+            await _this.updateManyAnnouncement({
+                statusPageId: data.statusPageId,
+            });
 
             const announcement = new AnnouncementModel();
             announcement.name = data.name || null;
@@ -1291,10 +1296,16 @@ module.exports = {
 
     updateAnnouncement: async function(query, data) {
         try {
+            const _this = this;
             if (!query) {
                 query = {};
             }
             query.deleted = false;
+            if (!data.hideAnnouncement) {
+                await _this.updateManyAnnouncement({
+                    statusPageId: query.statusPageId,
+                });
+            }
             const response = await AnnouncementModel.findOneAndUpdate(
                 query,
                 {
@@ -1307,6 +1318,28 @@ module.exports = {
             return response;
         } catch (error) {
             ErrorService.log('statusPageService.getSingleAnnouncement', error);
+            throw error;
+        }
+    },
+
+    updateManyAnnouncement: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const response = await AnnouncementModel.updateMany(
+                query,
+                {
+                    $set: { hideAnnouncement: true },
+                },
+                {
+                    new: true,
+                }
+            );
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.updateManyAnnouncement', error);
             throw error;
         }
     },
