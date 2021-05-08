@@ -1197,6 +1197,178 @@ module.exports = {
             throw error;
         }
     },
+
+    createAnnouncement: async function(data) {
+        try {
+            const _this = this;
+            // reassign data.monitors with a restructured monitor data
+            data.monitors = data.monitors.map(monitor => ({
+                monitorId: monitor,
+            }));
+            // slugify announcement name
+            if (data && data.name) {
+                let name = data.name;
+                name = slugify(name);
+                name = `${name}-${generate('1234567890', 8)}`;
+                data.slug = name.toLowerCase();
+            }
+
+            await _this.updateManyAnnouncement({
+                statusPageId: data.statusPageId,
+            });
+
+            const announcement = new AnnouncementModel();
+            announcement.name = data.name || null;
+            announcement.projectId = data.projectId || null;
+            announcement.statusPageId = data.statusPageId || null;
+            announcement.description = data.description || null;
+            announcement.monitors = data.monitors || null;
+            announcement.createdById = data.createdById || null;
+            announcement.slug = data.slug || null;
+            const newAnnouncement = await announcement.save();
+
+            return newAnnouncement;
+        } catch (error) {
+            ErrorService.log('statusPageService.createAnnouncement', error);
+            throw error;
+        }
+    },
+
+    getAnnouncements: async function(query, skip, limit) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof skip === 'string') {
+                skip = Number(skip);
+            }
+
+            if (typeof limit === 'string') {
+                limit = Number(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const allAnnouncements = await AnnouncementModel.find(query)
+                .sort([['createdAt', -1]])
+                .limit(limit)
+                .skip(skip)
+                .populate('createdById', 'name')
+                .populate('monitors.monitorId', 'name');
+            return allAnnouncements;
+        } catch (error) {
+            ErrorService.log('statusPageService.getAnnouncements', error);
+            throw error;
+        }
+    },
+
+    countAnnouncements: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const count = await AnnouncementModel.countDocuments(query);
+            return count;
+        } catch (error) {
+            ErrorService.log('statusPageService.countAnnouncements', error);
+            throw error;
+        }
+    },
+
+    getSingleAnnouncement: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const response = await AnnouncementModel.findOne(query);
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.getSingleAnnouncement', error);
+            throw error;
+        }
+    },
+
+    updateAnnouncement: async function(query, data) {
+        try {
+            const _this = this;
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            if (!data.hideAnnouncement) {
+                await _this.updateManyAnnouncement({
+                    statusPageId: query.statusPageId,
+                });
+            }
+            const response = await AnnouncementModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.getSingleAnnouncement', error);
+            throw error;
+        }
+    },
+
+    updateManyAnnouncement: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const response = await AnnouncementModel.updateMany(
+                query,
+                {
+                    $set: { hideAnnouncement: true },
+                },
+                {
+                    new: true,
+                }
+            );
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.updateManyAnnouncement', error);
+            throw error;
+        }
+    },
+
+    deleteAnnouncement: async function(query, userId) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const response = await AnnouncementModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
+                }
+            );
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.deleteAnnouncement', error);
+            throw error;
+        }
+    },
 };
 
 // handle the unique pagination for scheduled events on status page
@@ -1287,3 +1459,4 @@ const greenlock = require('../../greenlock');
 const slugify = require('slugify');
 const generate = require('nanoid/generate');
 const CertificateStoreService = require('./certificateStoreService');
+const AnnouncementModel = require('../models/announcements');

@@ -272,3 +272,42 @@ export const capitalize = words => {
 
     return words.join(' ').trim();
 };
+
+export const handleResources = (monitorState, announcement) => {
+    const affectedMonitors = [];
+    let monitorCount = 0;
+
+    if (announcement.monitors.length <= 0) {
+        return 'No resource is affected';
+    }
+
+    const announcementMonitors = [];
+    // populate the ids of the announcement monitors in an array
+    announcement &&
+        announcement.monitors &&
+        announcement.monitors.map(monitor => {
+            announcementMonitors.push(
+                String(monitor.monitorId._id ?? monitor.monitorId)
+            );
+            return monitor;
+        });
+
+    monitorState.map(monitor => {
+        if (announcementMonitors.includes(String(monitor._id))) {
+            affectedMonitors.push(monitor);
+            monitorCount += 1;
+        }
+        return monitor;
+    });
+    // check if the length of monitors on status page equals the monitor count
+    // if they are equal then all the monitors in status page is in a particular scheduled event
+    if (monitorCount === monitorState.length) {
+        return 'All resources are affected';
+    } else {
+        const result = affectedMonitors
+            .map(monitor => capitalize(monitor.name))
+            .join(', ')
+            .replace(/, ([^,]*)$/, ' and $1');
+        return result;
+    }
+};

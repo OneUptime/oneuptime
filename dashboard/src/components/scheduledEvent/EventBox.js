@@ -589,7 +589,6 @@ EventBox.propTypes = {
     name: PropTypes.string,
     slug: PropTypes.string,
     scheduledEvents: PropTypes.array,
-    profileSettings: PropTypes.object,
     error: PropTypes.object,
     requesting: PropTypes.bool,
     projectId: PropTypes.string,

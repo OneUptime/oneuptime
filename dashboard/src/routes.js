@@ -382,6 +382,7 @@ export const groups = [
                             '/dashboard/project/:slug/sub-project/:subProjectSlug/status-page/:statusPageSlug',
                         icon: 'radar',
                         visible: true,
+                        exact: true,
                         subRoutes: [],
                         component: StatusPage,
                         index: 1,

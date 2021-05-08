@@ -29,6 +29,11 @@ function getParentRoute(childRoute, projectId = null, type) {
         );
         return urlParts.join('/');
     }
+    if (type === 'announcement') {
+        const urlParts = childRoute.split('/');
+        urlParts.splice(urlParts.length - 1, 1);
+        return urlParts.join('/');
+    }
     if (type === 'application-log') {
         const urlParts = childRoute.split('/');
         urlParts.splice(
