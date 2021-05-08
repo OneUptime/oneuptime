@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { getSingleAnnouncement, getStatusPage } from '../actions/status';
 import { bindActionCreators } from 'redux';
-import moment from 'moment';
 import { handleResources } from '../config';
 
 class SingleAnnouncement extends Component {
@@ -42,28 +41,7 @@ class SingleAnnouncement extends Component {
                                     >
                                         Announcement Info
                                     </div>
-                                    <div
-                                        className="announcement_block announcement_block2"
-                                        onClick={e => {
-                                            e.preventDefault();
-                                            this.handleRouting(
-                                                announcement?.slug
-                                            );
-                                        }}
-                                    >
-                                        <div
-                                            style={{
-                                                fontSize: '18px',
-                                                borderBottom: '0',
-                                                marginBottom: '0',
-                                            }}
-                                            className="date-big"
-                                        >
-                                            {announcement &&
-                                                moment(
-                                                    announcement.createdAt
-                                                ).format('LL')}
-                                        </div>
+                                    <div className="announcement_block announcement_block2">
                                         <div className="announce_title">
                                             {announcement?.name}
                                         </div>
@@ -179,12 +157,6 @@ class SingleAnnouncement extends Component {
                                                             announcement
                                                         )}
                                                     </span>
-                                                </div>
-                                                <div className="classic_date">
-                                                    {announcement &&
-                                                        moment(
-                                                            announcement.createdAt
-                                                        ).format('LL')}
                                                 </div>
                                             </div>
                                         </div>
