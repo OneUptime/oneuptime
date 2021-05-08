@@ -390,7 +390,6 @@ export class SidebarNavItem extends Component {
                 'Scheduled Event Detail',
                 'Error Tracking View',
                 'Error Tracking Detail View',
-                'Status Page Announcements',
                 'Performance Tracker View',
             ];
             const moreRoutes =
@@ -438,12 +437,6 @@ export class SidebarNavItem extends Component {
                     ? active
                     : false;
 
-                const statusPageAnnouncementDetail = active.match(
-                    /project\/([A-Za-z0-9-]+)\/sub-project\/([A-Za-z0-9-]+)\/status-page\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)/
-                )
-                    ? active
-                    : false;
-
                 const isSubrouteActive =
                     child.title === 'Application'
                         ? applicationDetailLink === active
@@ -455,9 +448,6 @@ export class SidebarNavItem extends Component {
                             : false
                         : child.title === 'Scheduled Event Detail' &&
                           scheduledEventDetailLink === active
-                        ? true
-                        : child.title === 'Status Page Announcements' &&
-                          statusPageAnnouncementDetail === active
                         ? true
                         : false;
 

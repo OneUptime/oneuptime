@@ -60,8 +60,6 @@ import Groups from './Group';
 import PerformanceTrackerView from './PerformanceTrackerView';
 import PerformanceTracker from './PerformanceTracker';
 
-import StatusPageAnnouncement from './StatusPageAnnouncement';
-
 export default {
     ChangePassword,
     Home,
@@ -73,7 +71,6 @@ export default {
     TeamMemberProfile,
     StatusPage,
     StatusPages,
-    StatusPageAnnouncement,
     Profile,
     AlertLog,
     IncidentLog,
