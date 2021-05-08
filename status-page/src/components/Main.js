@@ -811,7 +811,7 @@ class Main extends Component {
                                         event =>
                                             !event.cancelled && (
                                                 <div
-                                                    className="content box box__yellow--dark"
+                                                    className="content"
                                                     style={{
                                                         margin: '40px 0px',
                                                         cursor: 'pointer',
@@ -823,9 +823,9 @@ class Main extends Component {
                                                         );
                                                     }}
                                                 >
-                                                    <div className="box-inner ongoing__schedulebox">
+                                                    <div className="ongoing__schedulebox">
                                                         <div
-                                                            className="content box box__yellow--dark"
+                                                            className="content box"
                                                             style={{
                                                                 margin:
                                                                     '40px 0px',
@@ -839,7 +839,15 @@ class Main extends Component {
                                                                 );
                                                             }}
                                                         >
-                                                            <div className="box-inner ongoing__schedulebox">
+                                                            <div
+                                                                className="ongoing__schedulebox content box box__yellow--dark"
+                                                                style={{
+                                                                    padding:
+                                                                        '30px',
+                                                                    boxShadow:
+                                                                        '0 7px 14px 0 rgb(50 50 93 / 10%)',
+                                                                }}
+                                                            >
                                                                 <div
                                                                     style={{
                                                                         textTransform:
