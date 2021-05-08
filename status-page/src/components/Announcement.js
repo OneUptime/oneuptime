@@ -3,10 +3,7 @@ import PropTypes from 'prop-types';
 import { getAnnouncements } from '../actions/status';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import moment from 'moment';
 import { handleResources } from '../config';
-import ShouldRender from './ShouldRender';
-
 class Announcement extends Component {
     constructor(props) {
         super(props);
@@ -39,191 +36,36 @@ class Announcement extends Component {
     };
 
     render() {
-        const {
-            announcements: { allAnnouncements, count },
-            monitorState,
-        } = this.props;
+        const { announcement, monitorState } = this.props;
         return (
             <>
-                {allAnnouncements && allAnnouncements.length > 0 && (
+                {announcement && (
                     <>
                         {this.props.theme ? (
-                            <div className="annoucement_frame">
-                                <div
-                                    className="font-largest"
-                                    style={{
-                                        ...this.props.heading,
-                                        fontSize: '20px',
-                                    }}
-                                >
-                                    Announcements
-                                </div>
-                                <div>
-                                    {allAnnouncements.map(
-                                        (announcement, index) => {
-                                            return (
-                                                <>
-                                                    <div
-                                                        className="announcement_block"
-                                                        onClick={e => {
-                                                            e.preventDefault();
-                                                            this.handleRouting(
-                                                                announcement.slug
-                                                            );
-                                                        }}
-                                                    >
-                                                        <div
-                                                            style={{
-                                                                fontSize:
-                                                                    '18px',
-                                                                borderBottom:
-                                                                    '0',
-                                                                marginBottom:
-                                                                    '0',
-                                                            }}
-                                                            className="date-big"
-                                                            key={index}
-                                                        >
-                                                            {moment(
-                                                                announcement.createdAt
-                                                            ).format('LL')}
-                                                        </div>
-                                                        <div className="announce_title">
-                                                            {announcement.name}
-                                                        </div>
-                                                        <div className="incident_desc">
-                                                            {announcement
-                                                                .description
-                                                                .length > 150
-                                                                ? announcement.description.slice(
-                                                                      0,
-                                                                      150
-                                                                  ) + '...'
-                                                                : announcement.description}
-                                                        </div>
-                                                        <div className="new_res">
-                                                            <span>
-                                                                Resource
-                                                                Affected:
-                                                            </span>{' '}
-                                                            <span>
-                                                                {handleResources(
-                                                                    monitorState,
-                                                                    announcement
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </>
-                                            );
-                                        }
-                                    )}
-                                </div>
-                                <ShouldRender if={this.limit < count}>
-                                    <div className="new_show_btn">
-                                        <button onClick={() => this.addMore()}>
-                                            show more
-                                        </button>
-                                    </div>
-                                </ShouldRender>
+                            <div
+                                className="clean_ann"
+                                onClick={e => {
+                                    e.preventDefault();
+                                    this.handleRouting(announcement.slug);
+                                }}
+                            >
+                                <AnnouncementBox
+                                    announcement={announcement}
+                                    monitorState={monitorState}
+                                />
                             </div>
                         ) : (
-                            <div className="announcement_classic">
-                                <div className="feed-title ann_header">
-                                    Announcements
-                                </div>
-                                <ul className="ul_announce">
-                                    {allAnnouncements.map(
-                                        (announcement, index) => {
-                                            return (
-                                                <>
-                                                    <li
-                                                        className="ann_items"
-                                                        key={index}
-                                                        onClick={e => {
-                                                            e.preventDefault();
-                                                            this.handleRouting(
-                                                                announcement.slug
-                                                            );
-                                                        }}
-                                                    >
-                                                        <div className="classic_ann_title">
-                                                            {announcement.name}
-                                                        </div>
-                                                        <div className="classic_ann_desc">
-                                                            {announcement
-                                                                .description
-                                                                .length > 150
-                                                                ? announcement.description.slice(
-                                                                      0,
-                                                                      150
-                                                                  ) + '...'
-                                                                : announcement.description}
-                                                        </div>
-                                                        <div className="classic_res">
-                                                            <span
-                                                                style={{
-                                                                    fontSize:
-                                                                        '14px',
-                                                                }}
-                                                            >
-                                                                Resource
-                                                                Affected:
-                                                            </span>{' '}
-                                                            <span
-                                                                style={{
-                                                                    fontSize:
-                                                                        '14px',
-                                                                }}
-                                                            >
-                                                                {handleResources(
-                                                                    monitorState,
-                                                                    announcement
-                                                                )}
-                                                            </span>{' '}
-                                                        </div>
-                                                        <div
-                                                            style={{
-                                                                display: 'flex',
-                                                                justifyContent:
-                                                                    'space-between',
-                                                                alignItems:
-                                                                    'center',
-                                                            }}
-                                                        >
-                                                            <span
-                                                                className="time"
-                                                                style={{
-                                                                    marginLeft: 0,
-                                                                    paddingBottom: 10,
-                                                                    color:
-                                                                        'rgba(76, 76, 76, 0.8)',
-                                                                    fontSize:
-                                                                        '14px',
-                                                                }}
-                                                            >
-                                                                {moment(
-                                                                    announcement.createdAt
-                                                                ).format('LL')}
-                                                            </span>
-                                                            <span className="sp__icon sp__icon--forward"></span>
-                                                        </div>
-                                                    </li>
-                                                </>
-                                            );
-                                        }
-                                    )}
-                                </ul>
-                                <ShouldRender if={this.limit < count}>
-                                    <div className="classic_more">
-                                        <button
-                                            className="more button-as-anchor anchor-centered"
-                                            onClick={() => this.addMore()}
-                                        >
-                                            more
-                                        </button>
-                                    </div>
-                                </ShouldRender>
+                            <div
+                                className="announcement_classic"
+                                onClick={e => {
+                                    e.preventDefault();
+                                    this.handleRouting(announcement.slug);
+                                }}
+                            >
+                                <AnnouncementBox
+                                    announcement={announcement}
+                                    monitorState={monitorState}
+                                />
                             </div>
                         )}
                     </>
@@ -237,10 +79,9 @@ Announcement.displayName = 'Announcement';
 
 Announcement.propTypes = {
     theme: PropTypes.string,
-    heading: PropTypes.object,
     getAnnouncements: PropTypes.func,
     statusPage: PropTypes.object,
-    announcements: PropTypes.object,
+    announcement: PropTypes.object,
     monitorState: PropTypes.array,
     history: PropTypes.object,
 };
@@ -248,7 +89,10 @@ Announcement.propTypes = {
 const mapStateToProps = state => {
     return {
         statusPage: state.status.statusPage,
-        announcements: state.status.announcements.list,
+        announcement:
+            state.status.announcements.list.allAnnouncements &&
+            state.status.announcements.list.allAnnouncements.length > 0 &&
+            state.status.announcements.list.allAnnouncements[0],
     };
 };
 
@@ -256,3 +100,49 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators({ getAnnouncements }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(Announcement);
+
+function AnnouncementBox({ announcement, monitorState }) {
+    return (
+        <>
+            <span className="ann_header">Announcement</span>
+            <div className="icon_ann">
+                <div className="announcement_icon">
+                    <svg
+                        id="Capa_1"
+                        fill="#fff"
+                        enableBackground="new 0 0 512 512"
+                        height="20"
+                        viewBox="0 0 512 512"
+                        width="20"
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <g>
+                            <path d="m423.576 187.702c-3.706-7.412-.703-16.421 6.709-20.127l60-30c7.412-3.691 16.421-.703 20.127 6.709s.703 16.421-6.709 20.127l-60 30c-7.487 3.719-16.439.646-20.127-6.709z" />
+                            <path d="m490.285 344.411-60-30c-7.412-3.706-10.415-12.715-6.709-20.127 3.735-7.397 12.715-10.371 20.127-6.709l60 30c7.412 3.706 10.415 12.715 6.709 20.127-3.691 7.362-12.647 10.424-20.127 6.709z" />
+                            <path d="m496.994 255.994h-60c-8.291 0-15-6.709-15-15s6.709-15 15-15h60c8.291 0 15 6.709 15 15s-6.709 15-15 15z" />
+                            <path d="m377 61c-8.291 0-15 6.709-15 15v21.418c-54.229 34.717-118.104 57.162-182 64.891v157.383c63.896 7.729 127.771 30.174 182 64.891v21.417c0 8.291 6.709 15 15 15s15-6.709 15-15v-330c0-8.291-6.709-15-15-15z" />
+                            <path d="m145.386 423.695c-13.812-24.862-25.743-54.064-16.553-79.761l-74.077-8.247c-5.57-.617-10.933-1.818-16.15-3.333-11.027 31.934-10.029 63.353-9.075 86.858.235 6.021.469 11.646.469 16.788 0 8.291 6.709 15 15 15h90c5.2 0 10.034-2.695 12.759-7.119 2.739-4.424 2.988-9.946.659-14.59z" />
+                            <path d="m0 241c0 33.311 24.961 61.201 58.066 64.878l91.934 10.223v-150.202l-91.934 10.223c-33.105 3.677-58.066 31.567-58.066 64.878z" />
+                        </g>
+                    </svg>
+                </div>
+                <div className="ann_title">{announcement.name}</div>
+            </div>
+            <div className="ann_desc">{announcement.description}</div>
+            <div className="resources_aff">
+                <span>Resources Affected: </span>
+                <span>
+                    {announcement &&
+                        handleResources(monitorState, announcement)}
+                </span>
+            </div>
+        </>
+    );
+}
+
+AnnouncementBox.propTypes = {
+    announcement: PropTypes.object,
+    monitorState: PropTypes.array,
+};
+
+AnnouncementBox.displayName = 'AnnouncementBox';
