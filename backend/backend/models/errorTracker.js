@@ -8,7 +8,7 @@ const errorTrackerSchema = new Schema({
         alias: 'component',
         index: true,
     }, //which component this error tracker belongs to.
-    name: String,
+    name: { type: String, index: true },
     slug: { type: String, index: true },
     key: String,
     showQuickStart: {

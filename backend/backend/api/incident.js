@@ -656,7 +656,7 @@ router.post(
                 if (!data.id) {
                     data.createdById = req.user.id;
                     incidentMessage = await IncidentMessageService.create(data);
-                    if (data.type === 'investigation') {
+                    if (data.post_statuspage) {
                         AlertService.sendInvestigationNoteToSubscribers(
                             incident,
                             data,

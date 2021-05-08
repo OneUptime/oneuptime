@@ -1,4 +1,4 @@
-const utils = require('./test-utils');
+const utils = require('../../../test-utils');
 const puppeteer = require('puppeteer');
 
 let page, browser;

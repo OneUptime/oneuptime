@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
+const utils = require('../../../test-utils');
+const init = require('../../../test-init');
 
 require('should');
 
@@ -14,9 +14,9 @@ const user = {
     password,
 };
 
-describe('Login API', () => {
+describe('Enterprise Admin Dashboard API', () => {
     beforeAll(async done => {
-        jest.setTimeout(150000);
+        jest.setTimeout(15000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -30,10 +30,8 @@ describe('Login API', () => {
         done();
     });
 
-    it('Should login valid User', async done => {
-        await init.registerUser(user, page); // This automatically routes to dashboard.
-        await init.saasLogout(page);
-        await init.loginUser(user, page); // Items required are only available when 'loginUser' is initiated.
+    it('Should login to admin dashboard and create a new user with correct details', async done => {
+        await init.registerEnterpriseUser(user, page);
 
         const localStorageData = await page.evaluate(() => {
             const json = {};
@@ -47,12 +45,9 @@ describe('Login API', () => {
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property(
             'email',
-            utils.BACKEND_URL.includes('localhost') ||
-                utils.BACKEND_URL.includes('staging')
-                ? email
-                : 'user@fyipe.com'
+            'masteradmin@hackerbay.io'
         );
-        page.url().should.containEql(utils.DASHBOARD_URL);
+        page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
         done();
-    }, 200000);
+    }, 160000);
 });

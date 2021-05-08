@@ -1033,7 +1033,6 @@ function mapStateToProps(state) {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
         requesting: state.incident.incidents.requesting,
-        searchValues: state.form.search && state.form.search.values,
     };
 }
 

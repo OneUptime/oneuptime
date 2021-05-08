@@ -10191,7 +10191,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     position: absolute;
     top: 0;
     width: 240px;
-    z-index: 1;
+    z-index: 5;
 }
 .db-World-topContent {
     height: 68px;
@@ -10329,9 +10329,6 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     .db-World-sideNavContainer {
         left: 20px;
     }
-    .db-World-topContent {
-        left: 274px;
-    }
     .db-World-mainPane {
         padding-left: 278px;
         padding-right: 20px;
@@ -10361,7 +10358,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
         position: absolute;
         top: 0;
         z-index: 1;
-        padding-left: calc((50vw - 1390px / 278px));
+        padding-left: calc((50vw - 1390px / 2 + 278px));
         padding-right: calc((50vw - 1390px / 2 ));
     }
 }
@@ -11195,6 +11192,9 @@ table {
     padding: 10px 20px 0;
 }
 
+.Badge-border-radius{
+    border-radius: 5px!important;
+}
 .projectNameClass{
  padding-top:20px;
 }
@@ -11234,7 +11234,6 @@ table {
     left: 5px;
     width: 15px;
     height: 22px;
-    opacity: 0.3;
     z-index: 99;
 }
 

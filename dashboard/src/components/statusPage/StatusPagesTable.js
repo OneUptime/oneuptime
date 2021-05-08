@@ -9,7 +9,6 @@ import {
     fetchSubProjectStatusPages,
     fetchProjectStatusPage,
     paginate,
-    searchStatusPages,
 } from '../../actions/statusPage';
 import { openModal, closeModal } from '../../actions/modal';
 import Badge from '../common/Badge';
@@ -256,7 +255,6 @@ const mapDispatchToProps = dispatch =>
             fetchSubProjectStatusPages,
             paginate,
             fetchProjectStatusPage,
-            searchStatusPages,
         },
         dispatch
     );
@@ -339,7 +337,6 @@ StatusPagesTable.propTypes = {
     modalList: PropTypes.array,
     switchToProjectViewerNav: PropTypes.bool,
     searchValues: PropTypes.object,
-    searchStatusPages: PropTypes.func,
 };
 
 StatusPagesTable.displayName = 'StatusPagesTable';

@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer');
-const util = require('./test-utils');
+const util = require('../../../test-utils');
 
 let page, browser;
 
