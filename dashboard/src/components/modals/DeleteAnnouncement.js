@@ -9,8 +9,8 @@ import PropTypes from 'prop-types';
 import {
     deleteAnnouncement,
     resetDeleteAnnouncement,
+    fetchAnnouncements,
 } from '../../actions/statusPage';
-import { history } from '../../store';
 
 class DeleteAnnouncement extends Component {
     componentDidMount() {
@@ -39,8 +39,8 @@ class DeleteAnnouncement extends Component {
             deleteAnnouncement,
             deleteError,
             modalId,
-            currentProject,
             statusPage,
+            fetchAnnouncements,
         } = this.props;
         this.props.resetDeleteAnnouncement();
         closeModal({ id: modalId });
@@ -48,9 +48,7 @@ class DeleteAnnouncement extends Component {
             if (!deleteError) {
                 this.props.closeThisDialog();
                 closeModal({ id: modalId });
-                return history.push(
-                    `/dashboard/project/${currentProject.slug}/sub-project/${projectId}/status-page/${statusPage.slug}`
-                );
+                fetchAnnouncements(projectId, statusPage._id, 0, 10);
             }
         });
     };
@@ -170,9 +168,9 @@ DeleteAnnouncement.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     modalId: PropTypes.string,
-    currentProject: PropTypes.object,
     statusPage: PropTypes.object,
     resetDeleteAnnouncement: PropTypes.func,
+    fetchAnnouncements: PropTypes.func,
 };
 
 const mapStateToProps = state => {
@@ -180,14 +178,18 @@ const mapStateToProps = state => {
         modalId: state.modal.modals[0].id,
         isRequesting: state.statusPage.updateAnnouncement.requesting,
         deleteError: state.statusPage.updateAnnouncement.error,
-        currentProject: state.project.currentProject,
         statusPage: state.statusPage.status,
     };
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { closeModal, deleteAnnouncement, resetDeleteAnnouncement },
+        {
+            closeModal,
+            deleteAnnouncement,
+            resetDeleteAnnouncement,
+            fetchAnnouncements,
+        },
         dispatch
     );
 
