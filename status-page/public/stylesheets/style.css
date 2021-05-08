@@ -1319,6 +1319,56 @@ margin-left:10px;
 
 .annoucement_frame2 {
   margin-top: 120px !important;
+  cursor: default !important;
+}
+
+.clean_ann {
+  width: 90%;
+  max-width: 850px;
+  margin: auto;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+  font-size: 16px;
+  margin-top: 30px;
+  cursor: pointer;
+  background-color: #49c3b1;
+  font-weight: 500;
+  border: 1px solid rgba(0,0,0,0.1);
+  text-shadow: 0 1px 0 rgb(0 0 0 / 10%);
+  color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 5px;
+}
+
+.announcement_icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+}
+
+.announcement_icon svg {
+  margin-right: 10px;
+}
+
+.icon_ann {
+  display: flex;
+  align-items: center;
+}
+
+.ann_header {
+  font-size: 12px;
+}
+
+.ann_title {
+  font-size: 16px;
+  margin: 7px 0px;
+}
+
+.ann_desc {
+  font-size: 12px;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 .announcement_block {
@@ -1343,6 +1393,14 @@ margin-left:10px;
   border-radius: 4px;
   box-shadow: 0 7px 14px 0 rgb(50 50 93 / 10%), 0 3px 6px 0 rgb(0 0 0 / 7%);
   padding: 35px;
+  background-color: rgb(28,83,38);
+  color: #fff;
+  margin-top: 20px;
+  cursor: pointer;
+}
+.resources_aff {
+  margin-top: 6px;
+  font-size: 14px;
 }
 .ann_header {
   font-size: 14px;
