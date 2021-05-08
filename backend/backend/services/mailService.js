@@ -3728,7 +3728,7 @@ const _this = {
                 emailTemplate,
                 'Investigation note is created'
             );
-            
+
             const data = {
                 incidentTime,
                 monitorName,
@@ -3737,7 +3737,7 @@ const _this = {
                 projectName,
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
-                incidentId: incident.idNumber                ,
+                incidentId: incident.idNumber,
                 componentName,
                 incidentNote,
                 noteType,
@@ -3884,7 +3884,7 @@ const _this = {
 
             const resourcesAffected = [];
             schedule.monitors.map(monitor => {
-                resourcesAffected.push(monitor.monitorId.name);
+                return resourcesAffected.push(monitor.monitorId.name);
             });
 
             const data = {
@@ -4100,7 +4100,7 @@ const _this = {
 
             const resourcesAffected = [];
             schedule.monitors.map(monitor => {
-                resourcesAffected.push(monitor.monitorId.name);
+                return resourcesAffected.push(monitor.monitorId.name);
             });
             //project name
             const data = {
@@ -4314,7 +4314,7 @@ const _this = {
 
             const resourcesAffected = [];
             schedule.monitors.map(monitor => {
-                resourcesAffected.push(monitor.monitorId.name);
+                return resourcesAffected.push(monitor.monitorId.name);
             });
             //project name
             const data = {
@@ -4523,7 +4523,7 @@ const _this = {
 
         const resourcesAffected = [];
         monitorsAffected.map(monitor => {
-            resourcesAffected.push(monitor.name);
+            return resourcesAffected.push(monitor.name);
         });
 
         const capitalizeStatus =

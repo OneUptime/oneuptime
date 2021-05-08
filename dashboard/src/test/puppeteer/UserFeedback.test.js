@@ -17,14 +17,14 @@ describe('User Feedback', () => {
         page = await browser.newPage();
         await page.setUserAgent(
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );  
-        // Register user        
-            const user = {
-                email,
-                password,
-            };            
-            await init.registerUser(user, page);
-        
+        );
+        // Register user
+        const user = {
+            email,
+            password,
+        };
+        await init.registerUser(user, page);
+
         done();
     });
 
@@ -36,22 +36,22 @@ describe('User Feedback', () => {
     test(
         'should send feedback in project',
         async done => {
-             expect.assertions(1); // registerUser is the only assertion present
-            const testFeedback = 'test feedback';            
-                           
-                await page.goto(utils.DASHBOARD_URL);                
-                await page.waitForSelector('#feedback-div');
-                await page.click('#feedback-div', { clickCount: 2 });
-                await page.type('#feedback-textarea', testFeedback);
-                await page.click('#feedback-button');
-                await page.waitForTimeout(3000);
+            expect.assertions(1); // registerUser is the only assertion present
+            const testFeedback = 'test feedback';
 
-                const feedbackMessage = await page.$eval(
-                    '#feedback-div',
-                    el => el.textContent
-                );
+            await page.goto(utils.DASHBOARD_URL);
+            await page.waitForSelector('#feedback-div');
+            await page.click('#feedback-div', { clickCount: 2 });
+            await page.type('#feedback-textarea', testFeedback);
+            await page.click('#feedback-button');
+            await page.waitForTimeout(3000);
 
-                expect(feedbackMessage).toEqual('Thank you for your feedback.');
+            const feedbackMessage = await page.$eval(
+                '#feedback-div',
+                el => el.textContent
+            );
+
+            expect(feedbackMessage).toEqual('Thank you for your feedback.');
 
             done();
         },

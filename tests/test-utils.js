@@ -1,4 +1,3 @@
-const { internet } = require('faker');
 const faker = require('faker');
 
 const user = faker.helpers.createCard();

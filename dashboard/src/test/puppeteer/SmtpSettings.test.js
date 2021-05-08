@@ -18,7 +18,6 @@ const smtpData = { ...utils.smtpCredential };
 describe('Custom SMTP Settings', () => {
     const operationTimeOut = 500000;
 
-    let cluster;
     beforeAll(async done => {
         jest.setTimeout(360000);
 

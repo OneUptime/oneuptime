@@ -1264,4 +1264,3 @@ export const fetchBreachedMonitorSla = projectId => async dispatch => {
         dispatch(fetchBreachedMonitorSlaFailure(errorMsg));
     }
 };
-

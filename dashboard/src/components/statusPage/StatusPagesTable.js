@@ -336,7 +336,6 @@ StatusPagesTable.propTypes = {
     subProjects: PropTypes.array.isRequired,
     modalList: PropTypes.array,
     switchToProjectViewerNav: PropTypes.bool,
-    searchValues: PropTypes.object,
 };
 
 StatusPagesTable.displayName = 'StatusPagesTable';

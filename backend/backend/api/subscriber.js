@@ -362,13 +362,15 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
         const filteredSubscriptions = [];
 
         subscriptions.map(subscription => {
-            subscriberMonitors.map(subscriberMonitor => {
+            return subscriberMonitors.map(subscriberMonitor => {
                 if (
                     String(subscription.monitorId) ===
                     String(subscriberMonitor._id)
                 ) {
-                    filteredSubscriptions.push(subscription);
+                    return filteredSubscriptions.push(subscription);
                 }
+
+                return null;
             });
         });
 

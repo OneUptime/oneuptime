@@ -57,11 +57,10 @@ class SubProjectApiKey extends Component {
     };
 
     handleCloseModal = () => {
-        
         if (this.props.modals.length === 1) {
             this.props.closeModal();
         }
-    };   
+    };
 
     renderAPIKey = hidden => {
         const { subproject, subProjectResetToken } = this.props;
@@ -88,7 +87,7 @@ class SubProjectApiKey extends Component {
             openModal,
             data,
             resetSubProjectKeyReset,
-            subproject,            
+            subproject,
         } = this.props;
         const { hidden } = this.state;
 
@@ -101,7 +100,9 @@ class SubProjectApiKey extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--large">
-                            <ClickOutside onClickOutside={this.handleCloseModal}>
+                            <ClickOutside
+                                onClickOutside={this.handleCloseModal}
+                            >
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -259,7 +260,7 @@ class SubProjectApiKey extends Component {
                                                                 }
                                                             ),
                                                         });
-                                                        // The 'return' statement is not needed as it stops the modal from opening                                                        
+                                                        // The 'return' statement is not needed as it stops the modal from opening
                                                     }}
                                                     disabled={
                                                         subProjectResetToken.requesting
@@ -280,7 +281,6 @@ class SubProjectApiKey extends Component {
                                                         <FormLoader />
                                                     )}
                                                 </button>
-                                                
                                             </>
                                         )}
                                     </div>
@@ -334,7 +334,7 @@ const mapDispatchToProps = dispatch => {
 };
 
 SubProjectApiKey.propTypes = {
-    closeModal: PropTypes.func,   
+    closeModal: PropTypes.func,
     data: PropTypes.object,
     resetSubProjectKeyReset: PropTypes.func,
     resetSubProjectToken: PropTypes.func,
@@ -342,6 +342,7 @@ SubProjectApiKey.propTypes = {
     subproject: PropTypes.object,
     openModal: PropTypes.func,
     modals: PropTypes.array,
+    closeThisDialog: PropTypes.func.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SubProjectApiKey);

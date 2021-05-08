@@ -17,8 +17,6 @@ const user1 = {
 describe('Profile -> Delete Account Component test', () => {
     const operationTimeOut = 500000;
 
-    let cluster;
-
     beforeAll(async () => {
         jest.setTimeout(500000);
 
@@ -189,7 +187,6 @@ describe('Profile -> Delete Account Component test', () => {
             );
 
             expect(projectDeletion).toBeDefined();
-            s;
             done();
         },
         operationTimeOut

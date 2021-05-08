@@ -36,8 +36,7 @@ export function ComponentList(props) {
 
 ComponentList.displayName = 'ComponentList';
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({}, dispatch);
+const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
 
 const mapStateToProps = state => ({
     currentProject: state.project.currentProject,

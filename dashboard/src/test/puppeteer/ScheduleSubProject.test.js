@@ -92,7 +92,7 @@ describe('Schedule API With SubProjects', () => {
         'should create a schedule in sub-project for sub-project `admin`',
         async done => {
             const scheduleName = utils.generateRandomString();
-            console.log('schedulename: ', scheduleName);
+
             await init.loginUser(user, page);
             await init.addScheduleToProject(scheduleName, subProjectName, page);
             await page.waitForSelector(`#schedule_count_${subProjectName}`, {

@@ -21,8 +21,6 @@ require('should');
 describe('Scheduled Event Note', () => {
     const operationTimeOut = 50000;
 
-    let cluster;
-
     beforeAll(async done => {
         jest.setTimeout(200000);
 
