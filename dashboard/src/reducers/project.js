@@ -793,6 +793,16 @@ export default function project(state = initialState, action) {
                 },
             };
 
+        case types.RESET_CREATE_PROJECT_DOMAIN:
+            return {
+                ...state,
+                createDomain: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                },
+            };
+
         case types.UPDATE_PROJECT_DOMAIN_REQUEST:
             return {
                 ...state,
