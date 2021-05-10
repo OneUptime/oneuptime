@@ -302,6 +302,20 @@ app.get('/kubernetes-monitoring', function(req, res) {
     res.redirect('/product/kubernetes-monitoring');
 });
 
+app.get('/product/performance-monitoring', function(req, res) {
+    res.render('performance-monitoring', {
+        support: false,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+    });
+});
+
+app.get('/performance-monitoring', function(req, res) {
+    res.redirect('/product/performance-monitoring');
+});
+
 app.get('/product/server-monitoring', function(req, res) {
     res.render('server-monitoring', {
         support: false,
