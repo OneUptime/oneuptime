@@ -1392,11 +1392,21 @@ margin-left:10px;
 .announcement_classic {
   border-radius: 4px;
   box-shadow: 0 7px 14px 0 rgb(50 50 93 / 10%), 0 3px 6px 0 rgb(0 0 0 / 7%);
-  padding: 35px;
+  padding: 30px;
   background-color: rgb(28,83,38);
   color: #fff;
   margin-top: 20px;
   cursor: pointer;
+  font-family: sans-serif !important;
+}
+.classic_font {
+  font-family: sans-serif !important;
+  font-weight: 700;
+}
+.classic_header {
+  font-weight: 900;
+  font-size: 11px !important;
+  margin-bottom: 10px !important;
 }
 .resources_aff {
   margin-top: 6px;
