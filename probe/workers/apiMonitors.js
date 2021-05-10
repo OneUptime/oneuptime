@@ -92,7 +92,11 @@ const pingfetch = async (url, method, body, headers) => {
             */
             response = await fetch(url, { ...payload });
             res = new Date().getTime() - now;
-            data = await response.json();
+            try {
+                data = await response.json();
+            } catch (e) {
+                //
+            }
             if (urlObject.protocol === 'https:') {
                 const certificate = await sslCert.get(urlObject.hostname);
                 if (certificate) {
@@ -121,7 +125,11 @@ const pingfetch = async (url, method, body, headers) => {
                     : { agent: httpAgent }),
             });
             res = new Date().getTime() - now;
-            data = await response.json();
+            try {
+                data = await response.json();
+            } catch (e) {
+                //
+            }
             if (urlObject.protocol === 'https:') {
                 const certificate = await sslCert.get(urlObject.hostname);
                 if (certificate) {
