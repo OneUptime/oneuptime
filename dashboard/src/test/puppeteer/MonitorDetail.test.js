@@ -1,10 +1,9 @@
 const puppeteer = require('puppeteer');
 const utils = require('./test-utils');
 const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
 
 require('should');
-
+let browser, page;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
@@ -21,26 +20,18 @@ const incidentTitle = utils.generateRandomString();
 const newIncidentTitle = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = 500000;
-
-    let cluster;
+    const operationTimeOut = 500000;    
 
     beforeAll(async () => {
         jest.setTimeout(500000);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
+        );        
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        // Register user
-        return await cluster.execute(null, async ({ page }) => {
+        // Register user        
             const user = {
                 email,
                 password,
@@ -50,20 +41,17 @@ describe('Monitor Detail API', () => {
             await init.registerUser(user, page);
             // add new monitor to component on parent project
             await init.addMonitorToComponent(componentName, monitorName, page);
-            await init.addIncidentPriority(priorityName, page);
-        });
+            await init.addIncidentPriority(priorityName, page);        
     });
 
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+    afterAll(async done => {        
+        await browser.close();
         done();
     });
 
     test(
         'Should navigate to details of monitor created with correct details',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -77,16 +65,14 @@ describe('Monitor Detail API', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(monitorName);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and create an incident',
-        async () => {
-            // expect.assertions(2);
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {                        
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -131,15 +117,14 @@ describe('Monitor Detail API', () => {
                     e => e.textContent
                 );
                 expect(rowContent).toMatch(priorityName);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         "Should navigate to monitor's incident details and edit details",
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -171,15 +156,14 @@ describe('Monitor Detail API', () => {
                     e => e.textContent
                 );
                 expect(currentTitle).toEqual(newIncidentTitle);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and open the incident creation pop up',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -201,16 +185,14 @@ describe('Monitor Detail API', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly('Create New Incident');
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and get list of incidents and paginate incidents',
-        async () => {
-            // expect.assertions(2);
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {                        
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -238,15 +220,14 @@ describe('Monitor Detail API', () => {
                     elem => elem.textContent
                 );
                 expect(countIncidents).toEqual('1');
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should delete an incident and redirect to the monitor page',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -261,7 +242,7 @@ describe('Monitor Detail API', () => {
                 await init.gotoTab(utils.incidentTabIndexes.ADVANCE, page);
 
                 await page.waitForSelector('#deleteIncidentButton', {
-                    visible: true,
+                    visible: true,  timeout: 100000
                 });
                 await page.$eval('#deleteIncidentButton', e => e.click());
                 await page.waitForSelector('#confirmDeleteIncident', {
@@ -270,8 +251,7 @@ describe('Monitor Detail API', () => {
                 await page.$eval('#confirmDeleteIncident', e => e.click());
                 await page.waitForSelector(`#cb${monitorName}`, {
                     visible: true,
-                });
-                // await page.waitForNavigation();
+                });                
 
                 // click on basic tab
                 await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
@@ -285,16 +265,14 @@ describe('Monitor Detail API', () => {
                 incidentCountSpanElement = await incidentCountSpanElement.jsonValue();
 
                 expect(incidentCountSpanElement).toMatch('0 Incident');
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and create a new subscriber',
-        async () => {
-            // expect.assertions(1);
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {                        
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -328,15 +306,14 @@ describe('Monitor Detail API', () => {
                 );
 
                 expect(createdSubscriberEmail).toEqual(subscriberEmail);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and get list of subscribers and paginate subscribers',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -400,7 +377,7 @@ describe('Monitor Detail API', () => {
                 countSubscribers = subscriberRows;
 
                 expect(countSubscribers).toEqual('6');
-            });
+            done();
         },
         operationTimeOut
     );
@@ -408,9 +385,8 @@ describe('Monitor Detail API', () => {
     //MS Teams
     test(
         'Should navigate to monitor details and create a msteams webhook',
-        async () => {
-            expect.assertions(1);
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {
+            expect.assertions(1);            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -452,16 +428,14 @@ describe('Monitor Detail API', () => {
                     el => el.textContent
                 );
                 expect(createdWebhookName).toEqual(webHookName);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and update a msteams webhook',
-        async () => {
-            // expect.assertions(2);
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {                        
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -498,16 +472,14 @@ describe('Monitor Detail API', () => {
                     el => el.textContent
                 );
                 expect(updatedWebhookName).toEqual(newWebHookName);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and delete a msteams webhook',
-        async () => {
-            // expect.assertions(2);
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {                        
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -536,15 +508,14 @@ describe('Monitor Detail API', () => {
                 countWebhooks = webhookRows.length;
 
                 expect(countWebhooks).toEqual(0);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and get list of msteams webhooks and paginate them',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -577,7 +548,8 @@ describe('Monitor Detail API', () => {
                     });
                 }
 
-                await page.reload({ waitUntil: 'networkidle0' });
+                await page.reload({ waitUntil: 'networkidle0' });  
+                     
 
                 // click on integrations tab
                 await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
@@ -612,17 +584,16 @@ describe('Monitor Detail API', () => {
                 countWebhooks = webhookRows.length;
 
                 expect(countWebhooks).toEqual(10);
-            });
+            done();
         },
         operationTimeOut
     );
 
-    //Slack
+    Slack
     test(
         'Should navigate to monitor details and create a slack webhook',
-        async () => {
-            expect.assertions(1);
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {
+            expect.assertions(1);            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -659,16 +630,15 @@ describe('Monitor Detail API', () => {
                     el => el.textContent
                 );
                 expect(createdWebhookName).toEqual(webHookName);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and update a Slack webhook',
-        async () => {
-            expect.assertions(2);
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {
+            expect.assertions(2);            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -705,16 +675,15 @@ describe('Monitor Detail API', () => {
                     el => el.textContent
                 );
                 expect(updatedWebhookName).toEqual(newWebHookName);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and delete a slack webhook',
-        async () => {
-            expect.assertions(2);
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {
+            expect.assertions(2);            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -742,15 +711,14 @@ describe('Monitor Detail API', () => {
                 countWebhooks = webhookRows.length;
 
                 expect(countWebhooks).toEqual(0);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and get list of slack webhooks and paginate them',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -781,8 +749,7 @@ describe('Monitor Detail API', () => {
                         hidden: true,
                     });
                 }
-
-                //await page.reload({ waitUntil: 'networkidle0' });
+                
                 await init.navigateToMonitorDetails(
                     componentName,
                     monitorName,
@@ -823,16 +790,14 @@ describe('Monitor Detail API', () => {
                 countWebhooks = webhookRows.length;
 
                 expect(countWebhooks).toEqual(10);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and create a webhook',
-        async () => {
-            // expect.assertions(1);
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {                        
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -867,16 +832,14 @@ describe('Monitor Detail API', () => {
                 );
 
                 expect(createdWebhookEndpoint).toEqual(webhookEndpoint);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and get list of webhooks and paginate webhooks',
-        async () => {
-            // expect.assertions(2);
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {                        
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -905,8 +868,12 @@ describe('Monitor Detail API', () => {
                         hidden: true,
                     });
                 }
-
-                await page.reload({ waitUntil: 'networkidle0' });
+                
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
 
                 // click on integrations tab
                 await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
@@ -942,15 +909,14 @@ describe('Monitor Detail API', () => {
                 countWebhooks = webhookRows.length;
 
                 expect(countWebhooks).toEqual(10);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and get list of website scans',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 await init.navigateToComponentDetails(componentName, page);
 
                 await page.waitForSelector('#form-new-monitor');
@@ -983,15 +949,14 @@ describe('Monitor Detail API', () => {
                 const countLighthouseLogs = lighthouseLogsRows.length;
 
                 expect(countLighthouseLogs).toEqual(1);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and add new site url',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -1021,15 +986,14 @@ describe('Monitor Detail API', () => {
                 const countLighthouseLogs = lighthouseLogsRows.length;
 
                 expect(countLighthouseLogs).toEqual(2);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and remove site url',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -1059,15 +1023,14 @@ describe('Monitor Detail API', () => {
                 const countLighthouseLogs = lighthouseLogsRows.length;
 
                 expect(countLighthouseLogs).toEqual(1);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and trigger website scan',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -1091,15 +1054,14 @@ describe('Monitor Detail API', () => {
                 );
                 lighthousePerformanceElement = await lighthousePerformanceElement.jsonValue();
                 lighthousePerformanceElement.should.endWith('%');
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should display multiple probes and monitor chart on refresh',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Component details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -1128,15 +1090,14 @@ describe('Monitor Detail API', () => {
 
                 expect(monitorStatus).toBeDefined();
                 expect(sslStatus).toBeDefined();
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and get lighthouse scores and website issues',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -1146,11 +1107,10 @@ describe('Monitor Detail API', () => {
 
                 const createdLighthouseLogsSelector = '.lighthouseLogsListItem';
                 await page.waitForSelector(createdLighthouseLogsSelector);
-                await page.$eval(createdLighthouseLogsSelector, e => e.click());
-                await page.waitForSelector('#lighthouse-performance');
+                await page.$eval(createdLighthouseLogsSelector, e => e.click());                
 
                 let lighthousePerformanceElement = await page.waitForSelector(
-                    `#lighthouse-performance`
+                    `#lighthouse-performance-${urlMonitor}`, {visible:true, timeout: 100000}
                 );
                 lighthousePerformanceElement = await lighthousePerformanceElement.getProperty(
                     'innerText'
@@ -1159,7 +1119,7 @@ describe('Monitor Detail API', () => {
                 lighthousePerformanceElement.should.endWith('%');
 
                 let lighthouseAccessibilityElement = await page.waitForSelector(
-                    `#lighthouse-accessibility`
+                    `#lighthouse-availability-${urlMonitor}`, {visible:true, timeout: 100000}
                 );
                 lighthouseAccessibilityElement = await lighthouseAccessibilityElement.getProperty(
                     'innerText'
@@ -1168,7 +1128,7 @@ describe('Monitor Detail API', () => {
                 lighthouseAccessibilityElement.should.endWith('%');
 
                 let lighthouseBestPracticesElement = await page.waitForSelector(
-                    `#lighthouse-bestPractices`
+                    `#lighthouse-bestPractices-${urlMonitor}`, {visible:true, timeout: 100000}
                 );
                 lighthouseBestPracticesElement = await lighthouseBestPracticesElement.getProperty(
                     'innerText'
@@ -1177,7 +1137,7 @@ describe('Monitor Detail API', () => {
                 lighthouseBestPracticesElement.should.endWith('%');
 
                 let lighthouseSeoElement = await page.waitForSelector(
-                    `#lighthouse-seo`
+                    `#lighthouse-seo-${urlMonitor}`, {visible:true, timeout: 100000}
                 );
                 lighthouseSeoElement = await lighthouseSeoElement.getProperty(
                     'innerText'
@@ -1186,7 +1146,7 @@ describe('Monitor Detail API', () => {
                 lighthouseSeoElement.should.endWith('%');
 
                 let lighthousePwaElement = await page.waitForSelector(
-                    `#lighthouse-pwa`
+                    `#lighthouse-pwa-${urlMonitor}`, {visible:true, timeout: 100000}
                 );
                 lighthousePwaElement = await lighthousePwaElement.getProperty(
                     'innerText'
@@ -1202,15 +1162,14 @@ describe('Monitor Detail API', () => {
                 const countWebsiteIssues = websiteIssuesRows.length;
 
                 expect(countWebsiteIssues).toBeGreaterThanOrEqual(1);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and edit monitor',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -1230,8 +1189,7 @@ describe('Monitor Detail API', () => {
                 await page.$eval('button[type=submit]', e => e.click());
                 await page.waitForSelector('#form-new-monitor', {
                     hidden: true,
-                });
-                // await page.waitForTimeout(3000);
+                });                
 
                 const selector = `#monitor-title-${newMonitorName}`;
 
@@ -1240,16 +1198,15 @@ describe('Monitor Detail API', () => {
                 spanElement = await spanElement.jsonValue();
 
                 spanElement.should.be.exactly(newMonitorName);
-            });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should navigate to monitor details and delete monitor',
-        async () => {
-            expect.assertions(1);
-            return await cluster.execute(null, async ({ page }) => {
+        async (done) => {
+            expect.assertions(1);            
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
                     componentName,
@@ -1267,14 +1224,13 @@ describe('Monitor Detail API', () => {
                 await page.$eval(confirmDeleteButtonSelector, e => e.click());
                 await page.waitForSelector(confirmDeleteButtonSelector, {
                     hidden: true,
-                });
-                // await page.waitForTimeout(5000);
+                });                
 
                 const selector = `span#monitor-title-${newMonitorName}`;
 
                 const spanElement = await page.$(selector);
                 expect(spanElement).toEqual(null);
-            });
+            done();
         },
         operationTimeOut
     );
