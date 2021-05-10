@@ -93,6 +93,10 @@ const pingfetch = async (url, method, body, headers) => {
             response = await fetch(url, { ...payload });
             res = new Date().getTime() - now;
             try {
+                /* Try getting response json body
+                    If this fails, body is either empty or not valid json
+                    and data should return null
+                 */
                 data = await response.json();
             } catch (e) {
                 //
@@ -126,6 +130,10 @@ const pingfetch = async (url, method, body, headers) => {
             });
             res = new Date().getTime() - now;
             try {
+                /* Try getting response json body
+                    If this fails, body is either empty or not valid json
+                    and data should return null
+                 */
                 data = await response.json();
             } catch (e) {
                 //
