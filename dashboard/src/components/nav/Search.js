@@ -119,7 +119,7 @@ class Search extends Component {
         const baseUrl = `/dashboard/project/${currentProject.slug}/component/${searchObj.componentSlug}/`;
         let route = '';
         switch (searchObj.type) {
-            case 'website':
+            case 'url':
             case 'device':
             case 'manual':
             case 'api':
