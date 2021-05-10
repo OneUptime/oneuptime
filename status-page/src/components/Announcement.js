@@ -49,6 +49,7 @@ class Announcement extends Component {
                                     this.handleRouting(announcement.slug);
                                 }}
                             >
+                                <span className="ann_header">ANNOUNCEMENT</span>
                                 <AnnouncementBox
                                     announcement={announcement}
                                     monitorState={monitorState}
@@ -62,9 +63,13 @@ class Announcement extends Component {
                                     this.handleRouting(announcement.slug);
                                 }}
                             >
+                                <div className="ann_header classic_header">
+                                    ANNOUNCEMENT
+                                </div>
                                 <AnnouncementBox
                                     announcement={announcement}
                                     monitorState={monitorState}
+                                    type={true}
                                 />
                             </div>
                         )}
@@ -101,10 +106,9 @@ const mapDispatchToProps = dispatch =>
 
 export default connect(mapStateToProps, mapDispatchToProps)(Announcement);
 
-function AnnouncementBox({ announcement, monitorState }) {
+function AnnouncementBox({ announcement, monitorState, type }) {
     return (
         <>
-            <span className="ann_header">Announcement</span>
             <div className="icon_ann">
                 <div className="announcement_icon">
                     <svg
@@ -126,11 +130,15 @@ function AnnouncementBox({ announcement, monitorState }) {
                         </g>
                     </svg>
                 </div>
-                <div className="ann_title">{announcement.name}</div>
+                <div className={type ? 'ann_title classic_font' : 'ann_title'}>
+                    {announcement.name}
+                </div>
             </div>
             <div className="ann_desc">{announcement.description}</div>
-            <div className="resources_aff">
-                <span>Resources Affected: </span>
+            <div className={'resources_aff'}>
+                <span className={type && 'classic_font'}>
+                    Resources Affected:{' '}
+                </span>
                 <span>
                     {announcement &&
                         handleResources(monitorState, announcement)}
@@ -143,6 +151,7 @@ function AnnouncementBox({ announcement, monitorState }) {
 AnnouncementBox.propTypes = {
     announcement: PropTypes.object,
     monitorState: PropTypes.array,
+    type: PropTypes.bool,
 };
 
 AnnouncementBox.displayName = 'AnnouncementBox';
