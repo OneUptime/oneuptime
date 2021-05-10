@@ -13,6 +13,7 @@ import { history } from '../../store';
 import Badge from '../common/Badge';
 import DeleteAnnouncement from '../modals/DeleteAnnouncement';
 import EditAnnouncement from '../modals/EditAnnouncement';
+import HideAnnouncement from '../modals/HideAnnouncement';
 
 class Announcements extends Component {
     constructor(props) {
@@ -158,9 +159,6 @@ class Announcements extends Component {
                                         Announcement
                                     </div>
                                     <div className="bs-ObjectList-cell">
-                                        Created by
-                                    </div>
-                                    <div className="bs-ObjectList-cell">
                                         Monitor(s)
                                     </div>
                                     <div
@@ -200,15 +198,6 @@ class Announcements extends Component {
                                                     <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
                                                         <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
                                                             {announcement.name}
-                                                        </div>
-                                                    </div>
-                                                    <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                        <div className="bs-ObjectList-cell-row">
-                                                            {
-                                                                announcement
-                                                                    .createdById
-                                                                    .name
-                                                            }
                                                         </div>
                                                     </div>
                                                     <div className="bs-ObjectList-cell bs-u-v-middle">
@@ -255,6 +244,44 @@ class Announcements extends Component {
                                                             paddingTop: '20px',
                                                         }}
                                                     >
+                                                        <button
+                                                            id={`hideAnnouncement`}
+                                                            title={
+                                                                announcement.hideAnnouncement
+                                                                    ? 'show announcement'
+                                                                    : 'hide announcement'
+                                                            }
+                                                            className="bs-Button bs-DeprecatedButton"
+                                                            type="button"
+                                                            style={{
+                                                                float: 'right',
+                                                                marginLeft: 10,
+                                                            }}
+                                                            onClick={() =>
+                                                                this.props.openModal(
+                                                                    {
+                                                                        id: deleteModalId,
+                                                                        onClose: () =>
+                                                                            '',
+                                                                        onConfirm: () =>
+                                                                            this.deleteAnnouncement(),
+                                                                        content: DataPathHoC(
+                                                                            HideAnnouncement,
+                                                                            {
+                                                                                projectId,
+                                                                                announcement,
+                                                                            }
+                                                                        ),
+                                                                    }
+                                                                )
+                                                            }
+                                                        >
+                                                            <span>
+                                                                {announcement.hideAnnouncement
+                                                                    ? 'Show'
+                                                                    : 'Hide'}
+                                                            </span>
+                                                        </button>
                                                         <button
                                                             id={`editAnnouncement`}
                                                             title="edit"
@@ -377,9 +404,33 @@ class Announcements extends Component {
                             className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween"
                             style={{
                                 backgroundColor: 'white',
-                                justifyContent: 'flex-end',
+                                justifyContent: 'space-between',
                             }}
                         >
+                            <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                                <div className="Box-root Flex-flex Flex-alignItems--center">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                        <span>
+                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                <ShouldRender
+                                                    if={
+                                                        announcements &&
+                                                        announcements.count
+                                                    }
+                                                >
+                                                    <span id="numberOfAnnouncements">
+                                                        {announcements.count}
+                                                    </span>{' '}
+                                                    {announcements &&
+                                                    announcements.count > 1
+                                                        ? 'Announcements'
+                                                        : 'Announcement'}
+                                                </ShouldRender>
+                                            </span>
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
                             <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
                                 <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                                     <div className="Box-root Margin-right--8">

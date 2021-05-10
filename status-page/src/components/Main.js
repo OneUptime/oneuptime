@@ -803,6 +803,10 @@ class Main extends Component {
                         )}
                         {view ? (
                             <div className="innernew">
+                                <Announcement
+                                    monitorState={this.props.monitorState}
+                                    {...this.props}
+                                />
                                 {this.props.events &&
                                     this.props.events.length > 0 &&
                                     this.props.statusData &&
@@ -823,12 +827,13 @@ class Main extends Component {
                                                         );
                                                     }}
                                                 >
-                                                    <div className="ongoing__schedulebox">
+                                                    <div
+                                                        className="ongoing__schedulebox"
+                                                        style={{ padding: 0 }}
+                                                    >
                                                         <div
                                                             className="content box"
                                                             style={{
-                                                                margin:
-                                                                    '40px 0px',
                                                                 cursor:
                                                                     'pointer',
                                                             }}
@@ -912,10 +917,6 @@ class Main extends Component {
                                                 </div>
                                             )
                                     )}
-                                <Announcement
-                                    monitorState={this.props.monitorState}
-                                    {...this.props}
-                                />
                                 <ShouldRender
                                     if={
                                         this.props.statusData &&
@@ -939,7 +940,7 @@ class Main extends Component {
                                     className="content"
                                     style={{
                                         position: 'relative',
-                                        marginTop: 75,
+                                        marginTop: 50,
                                     }}
                                 >
                                     <ShouldRender if={headerHTML}>

@@ -90,7 +90,7 @@ router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
     const { projectId } = req.params;
     const { theme, statusPageId } = req.body;
     try {
-        await StatusPageService.updateOneBy(
+        const statusPage = await StatusPageService.updateOneBy(
             { projectId, _id: statusPageId },
             { theme }
         );
@@ -99,7 +99,7 @@ router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
             req.user.id
         );
         await RealTimeService.statusPageEdit(updatedStatusPage);
-        return sendItemResponse(req, res, updatedStatusPage);
+        return sendItemResponse(req, res, statusPage);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -1311,38 +1311,42 @@ router.put(
             const { data } = req.body;
             data.createdById = req.user ? req.user.id : null;
 
-            if (!data) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: "Values can't be null",
-                });
+            if (!data.announcementToggle) {
+                if (!data) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: "Values can't be null",
+                    });
+                }
+
+                if (!data.name || !data.name.trim()) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Announcement name is required.',
+                    });
+                }
+
+                // data.monitors should be an array containing id of monitor(s)
+                if (data.monitors && !Array.isArray(data.monitors)) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Monitors is not of type array',
+                    });
+                }
+
+                if (!projectId) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Project ID is required.',
+                    });
+                }
+
+                data.monitors = data.monitors.map(monitor => ({
+                    monitorId: monitor,
+                }));
             }
 
-            if (!data.name || !data.name.trim()) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Announcement name is required.',
-                });
-            }
-
-            // data.monitors should be an array containing id of monitor(s)
-            if (data.monitors && !Array.isArray(data.monitors)) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Monitors is not of type array',
-                });
-            }
-
-            if (!projectId) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Project ID is required.',
-                });
-            }
             const query = { projectId, statusPageId, _id: announcementId };
-            data.monitors = data.monitors.map(monitor => ({
-                monitorId: monitor,
-            }));
 
             const response = await StatusPageService.updateAnnouncement(
                 query,
