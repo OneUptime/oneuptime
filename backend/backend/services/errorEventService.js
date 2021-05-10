@@ -5,10 +5,12 @@ module.exports = {
             const errorEvent = new ErrorEventModel();
 
             // used this to sort java-sdk having a different stack trace structure
-            data.exception.stacktrace = {
-                ...data.exception.stacktrace,
-                frames: data.exception.stackTraceFrame,
-            };
+            data.exception.stackTraceFrame
+                ? (data.exception.stacktrace = {
+                      ...data.exception.stacktrace,
+                      frames: data.exception.stackTraceFrame,
+                  })
+                : null;
             errorEvent.content = data.exception;
             errorEvent.device = data.deviceDetails;
             errorEvent.tags = data.tags;
