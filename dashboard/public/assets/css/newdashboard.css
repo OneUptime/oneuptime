@@ -4597,6 +4597,11 @@ div.db-Trend-groupChart {
 .db-BusinessSettings-input-300 {
     width: 300px;
 }
+
+.db-BusinessSettings-input-60 {
+    width: 60px;
+    height: 30px;
+}
 .db-BusinessSettings-input--withTooltip {
     align-items: center;
     display: flex;

@@ -55,6 +55,8 @@ export class PrivateStatusPage extends Component {
                 hideProbeBar: values.hideProbeBar,
                 hideUptime: values.hideUptime,
                 hideResolvedIncident: values.hideResolvedIncident,
+                scheduleHistoryDays:values.scheduleHistoryDays,
+                incidentHistoryDays:values.incidentHistoryDays,
             })
             .then(() => {
                 this.props.fetchProjectStatusPage(
@@ -932,6 +934,168 @@ export class PrivateStatusPage extends Component {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            paddingTop: '0',
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label"
+                                                            style={{
+                                                                flex: '25% 0 0',
+                                                            }}
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    height:
+                                                                        '5px',
+                                                                }}
+                                                            ></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            paddingLeft:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <span>
+                                                                            Show
+                                                                            incident
+                                                                            history
+                                                                            for{' '}
+                                                                            <Field
+                                                                                component="input"
+                                                                                type="number"
+                                                                                min="1"
+                                                                                placeholder="days"
+                                                                                className="db-BusinessSettings-input-60 TextInput bs-TextInput"
+                                                                                name={
+                                                                                    'incidentHistoryDays'
+                                                                                }
+                                                                                id="statuspage.incidentHistoryDays"
+                                                                            />{' '}
+                                                                            days
+                                                                        </span>
+                                                                        <label className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                The
+                                                                                amount
+                                                                                of
+                                                                                days
+                                                                                entered
+                                                                                in
+                                                                                the
+                                                                                text
+                                                                                box
+                                                                                will
+                                                                                be
+                                                                                the
+                                                                                amount
+                                                                                of
+                                                                                incident
+                                                                                history
+                                                                                days
+                                                                                on
+                                                                                the
+                                                                                status
+                                                                                page
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            paddingTop: '0',
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label"
+                                                            style={{
+                                                                flex: '25% 0 0',
+                                                            }}
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    height:
+                                                                        '5px',
+                                                                }}
+                                                            ></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            paddingLeft:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <span>
+                                                                            Show
+                                                                            scheduled
+                                                                            maintenance
+                                                                            event
+                                                                            history
+                                                                            for{' '}
+                                                                            <Field
+                                                                                component="input"
+                                                                                type="number"
+                                                                                min="1"
+                                                                                placeholder="days"
+                                                                                className="db-BusinessSettings-input-60 TextInput bs-TextInput"
+                                                                                name={
+                                                                                    'scheduleHistoryDays'
+                                                                                }
+                                                                                id="statuspage.scheduleHistoryDays"
+                                                                            />{' '}
+                                                                            days
+                                                                        </span>
+                                                                        <label className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                The
+                                                                                amount
+                                                                                of
+                                                                                days
+                                                                                entered
+                                                                                in
+                                                                                the
+                                                                                text
+                                                                                box
+                                                                                will
+                                                                                be
+                                                                                the
+                                                                                amount
+                                                                                of
+                                                                                scheduled
+                                                                                maintenance
+                                                                                event
+                                                                                history
+                                                                                days
+                                                                                on
+                                                                                the
+                                                                                status
+                                                                                page
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </>
                                             )}
                                         </div>
@@ -1042,6 +1206,8 @@ const mapStateToProps = state => {
         initialValues.hideProbeBar = status.hideProbeBar;
         initialValues.hideUptime = status.hideUptime;
         initialValues.hideResolvedIncident = status.hideResolvedIncident;
+        initialValues.incidentHistoryDays = status.incidentHistoryDays;
+        initialValues.scheduleHistoryDays = status.scheduleHistoryDays;
     }
     initialValues.showIpWhitelistInput = true;
 
