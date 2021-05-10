@@ -21,7 +21,7 @@ const puppeteerLaunchConfig = {
         '--disable-features=IsolateOrigins,site-per-process', // fix issue with cross origin policy
     ],
     defaultViewport: null,
-    headless: false, //change this to `false` debug locally.
+    headless: true, //change this to `false` debug locally.
 };
 
 const user = faker.helpers.createCard();
@@ -120,18 +120,18 @@ const gitCredential = {
 };
 
 const smtpCredential = {
-    user: 'noreply@fyipe.com',//process.env.TEST_EMAIL,
-    pass: 'qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD',//process.env.TEST_EMAIL_PASSWORD,
-    host: 'smtp.gmail.com',//process.env.TEST_EMAIL_SMTP_SERVER,
-    port: '465',//process.env.TEST_EMAIL_SMTP_PORT,
-    from: 'noreply@fyipe.com',//process.env.TEST_EMAIL,
+    user: process.env.TEST_EMAIL,
+    pass: process.env.TEST_EMAIL_PASSWORD,
+    host: process.env.TEST_EMAIL_SMTP_SERVER,
+    port: process.env.TEST_EMAIL_SMTP_PORT,
+    from: process.env.TEST_EMAIL,
     secure: true,
 };
 
 const twilioCredentials = {
-    accountSid: 'AC4b957669470069d68cd5a09d7f91d7c6',//process.env.TEST_TWILIO_ACCOUNT_SID,
-    authToken: '79a35156d9967f0f6d8cc0761ef7d48d',//process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN,
-    phoneNumber: '+15005550006',//process.env.TEST_TWILIO_PHONE,
+    accountSid: process.env.TEST_TWILIO_ACCOUNT_SID,
+    authToken: process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN,
+    phoneNumber: process.env.TEST_TWILIO_PHONE,
 };
 
 const monitorTabIndexes = {
