@@ -15,23 +15,23 @@ class FyipeTimelineManager:
         # current date and time
         now = datetime.now()
 
-        timestamp = datetime.utcnow()
-        item["timestamp"] = timestamp;
+        timestamp = str( datetime.now())
+        item["timestamp"] = timestamp
         
         # add a new item to the stack
         self.timeLineStack.append(item)
-        return True;
+        return True
     
     def addToTimeline(self, item):
-        self._addItemToTimeline(item);
+        self._addItemToTimeline(item)
     
     # return the timeline
     def getTimeline(self):
-        return self.timeLineStack;
+        return self.timeLineStack
     
     # clear the timeline
     def clearTimeline(self):
-        self.timeLineStack = [];
+        self.timeLineStack = []
     
 
     
