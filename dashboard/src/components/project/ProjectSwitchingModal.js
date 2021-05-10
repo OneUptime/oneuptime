@@ -1,7 +1,7 @@
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import uuid from 'js-uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 export class SwitchingModal extends React.Component {
     constructor(props) {
@@ -72,7 +72,7 @@ function mapDispatchToProps(dispatch) {
 
 export default (value, props) => {
     return props.openModal({
-        id: uuid.v4(),
+        id: uuidv4(),
         content: connect(
             mapValueToProps(value),
             mapDispatchToProps
