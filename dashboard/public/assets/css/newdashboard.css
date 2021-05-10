@@ -11574,8 +11574,51 @@ table {
     {
         display:none;
     }
+    .db-Search-wrapper{
+        display: none;
+    }
+    .db-Topnav-wrap{
+        display: block!important
+    }
 }
 .error-marker {
     background-color: rgb(109, 107, 107);
     position: absolute;
+}
+@media only screen and (min-width: 760px) and (max-width: 1062px) {
+    .db-Topnav-wrap{
+        width: auto!important;
+        padding-left: 0
+    }
+    .oneCardClass, .twoCardClass {
+        display:none;
+    }
+    .db-FeedbackInput-box > div:nth-child(2) > span {
+    display: none;
+}
+    .db-FeedbackInput-container {
+        width: auto;
+    }
+    .search-input{
+        width: 270px!important;
+    }
+}
+@media only screen and (min-width: 1063px) and (max-width: 1390px) {
+    .oneCardClass, .twoCardClass {
+            display:none;
+        }
+    .db-Topnav-wrap{
+        width: 90%!important;
+    }
+    .db-FeedbackInput-container {
+        width: auto;
+    }
+    .search-input{
+        width: 270px!important;
+    }
+}
+@media only screen and (min-width: 1390px) and (max-width: 1400px) {
+    .search-input{
+        width: 270px!important;
+    }
 }
