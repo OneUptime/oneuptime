@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { SubmissionError } from 'redux-form';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import ProjectForm from './ProjectForm';
 import { hideForm, createProject, switchProject } from '../../actions/project';
 import PropTypes from 'prop-types';
@@ -77,7 +76,6 @@ CreateProjectModal.displayName = 'CreateProjectModal';
 
 CreateProjectModal.propTypes = {
     dispatch: PropTypes.func.isRequired,
-    history: PropTypes.object.isRequired,
     hideForm: PropTypes.func.isRequired,
     switchProject: PropTypes.func.isRequired,
     createProject: PropTypes.func.isRequired,
@@ -85,10 +83,7 @@ CreateProjectModal.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
-    match: PropTypes.object.isRequired,
     visible: PropTypes.bool,
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(CreateProjectModal)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(CreateProjectModal);

@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import {
@@ -280,6 +279,4 @@ SubscriberAlert.propTypes = {
     page: PropTypes.number,
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(SubscriberAlert)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(SubscriberAlert);

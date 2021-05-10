@@ -4,10 +4,8 @@
     "private": true,
     "homepage": "/",
     "dependencies": {
-        "@beam-australia/react-env": "^2.1.2",
         "amplitude-js": "^5.8.0",
         "axios": "^0.21.1",
-        "browserslist": "^4.6.1",
         "card-validator": "^4.3.0",
         "cli-table": "^0.3.1",
         "compression": "^1.7.4",
@@ -52,7 +50,7 @@
         "light-house": "node lighthouse.js --web",
         "light-house-mobile": "node lighthouse.js --mobile",
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='browserslist,loadable-components,@beam-australia/react-env'"
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='loadable-components'"
     },
     "devDependencies": {
         "chrome-launcher": "^0.13.2",

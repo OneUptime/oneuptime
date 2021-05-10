@@ -2,7 +2,6 @@ import uuid from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -122,6 +121,4 @@ UserDeleteBox.contextTypes = {
     mixpanel: PropTypes.object.isRequired,
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(UserDeleteBox)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(UserDeleteBox);

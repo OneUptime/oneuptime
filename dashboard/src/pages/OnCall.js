@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
@@ -448,4 +447,4 @@ OnCall.propTypes = {
 
 OnCall.displayName = 'OnCall';
 
-export default withRouter(connect(mapStateToProps, mapDispatchToProps)(OnCall));
+export default connect(mapStateToProps, mapDispatchToProps)(OnCall);

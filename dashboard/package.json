@@ -3,7 +3,6 @@
     "version": "3.0.0",
     "private": true,
     "dependencies": {
-        "@beam-australia/react-env": "^2.1.2",
         "@date-io/date-fns": "^1.3.11",
         "@date-io/moment": "^1.3.13",
         "@material-ui/core": "^4.7.0",
@@ -11,7 +10,6 @@
         "@trendmicro/react-dropdown": "^1.3.0",
         "amplitude-js": "^5.8.0",
         "axios": "^0.21.1",
-        "browserslist": "^4.6.1",
         "card-validator": "^6.2.0",
         "clipboard": "^2.0.1",
         "clsx": "^1.0.4",
@@ -95,7 +93,7 @@
         "test": "jest --forceExit --testSequencer ./src/test/puppeteer/CustomSequencer.js --runInBand ./src/test/puppeteer/*.test.js",
         "enterprise-test": "jest --forceExit --runInBand ./src/test/puppeteer/*.test.enterprise.js",
         "start": "node index.js",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,browserslist,loadable-components,@beam-australia/react-env'",
+        "dep-check": "depcheck ./",
         "audit": "npm audit --audit-level=low",
         "fix-lint": "eslint . --fix",
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'"
@@ -103,9 +101,6 @@
     "devDependencies": {
         "@jest/test-sequencer": "^26.0.1",
         "axios-mock-adapter": "^1.15.0",
-        "babel-preset-es2015": "^6.24.1",
-        "babel-preset-react": "^6.24.1",
-        "babel-runtime": "^6.26.0",
         "depcheck": "^1.3.1",
         "fyipe": "^3.0.10051",
         "jest-localstorage-mock": "^2.2.0",

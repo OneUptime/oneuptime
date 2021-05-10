@@ -13,7 +13,7 @@ import { storiesOf } from '@storybook/react';
 import store from '../src/store'
 import Login from '../src/pages/Login'
 import { Provider } from 'react-redux';
-import { Router } from 'react-router';
+import { Router } from 'react-router-dom';
 import { history } from '../src/store';
 import ErrorBoundary from '../src/components/basic/ErrorBoundary';
 

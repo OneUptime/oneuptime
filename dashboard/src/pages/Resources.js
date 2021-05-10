@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import { PropTypes } from 'prop-types';
 import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
@@ -67,4 +66,4 @@ Resources.propTypes = {
 
 Resources.displayName = 'Resources';
 
-export default withRouter(connect(null, null)(Resources));
+export default connect(null, null)(Resources);

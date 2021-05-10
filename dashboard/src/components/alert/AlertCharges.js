@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import AlertChargesList from './AlertChargesList';
@@ -185,6 +184,4 @@ AlertCharge.propTypes = {
 
 AlertCharge.displayName = 'AlertCharge';
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(AlertCharge)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(AlertCharge);

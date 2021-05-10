@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import ReactHoverObserver from 'react-hover-observer';
 import {
@@ -234,6 +233,4 @@ ProjectSwitcher.propTypes = {
     getSubProjects: PropTypes.func,
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(ProjectSwitcher)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(ProjectSwitcher);

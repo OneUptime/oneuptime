@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import Invoice from '../components/invoice/Invoice';
@@ -56,4 +55,4 @@ ProfileBilling.propTypes = {
     }),
 };
 
-export default withRouter(connect(null, null)(ProfileBilling));
+export default connect(null, null)(ProfileBilling);

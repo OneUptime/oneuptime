@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import ClickOutside from 'react-click-outside';
 import DeleteCaution from './DeleteCaution';
 import { IS_SAAS_SERVICE } from '../../config';
@@ -150,6 +149,4 @@ DeleteProjectModal.propTypes = {
     deletedProjectSuccess: PropTypes.bool,
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(DeleteProjectModal)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(DeleteProjectModal);

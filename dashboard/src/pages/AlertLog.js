@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Dashboard from '../components/Dashboard';
-import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import Fade from 'react-reveal/Fade';
 import { fetchAlert, fetchProjectAlert } from '../actions/alert';
@@ -303,6 +302,4 @@ AlertLog.propTypes = {
 
 AlertLog.displayName = 'AlertLog';
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(AlertLog)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(AlertLog);

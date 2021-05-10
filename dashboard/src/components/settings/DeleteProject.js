@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -85,6 +84,4 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(DeleteProjectBox)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(DeleteProjectBox);
