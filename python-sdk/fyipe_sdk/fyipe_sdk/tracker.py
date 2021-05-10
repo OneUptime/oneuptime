@@ -1,6 +1,7 @@
 
 from fyipe_sdk.fyipe_sdk.util import Util
 from fyipe_sdk.fyipe_sdk.fyipeListener import FyipeListener
+from fyipe_sdk.fyipe_sdk.fyipeTransport import FyipeTransport
 import sys
 
 class FyipeTracker:
@@ -14,6 +15,7 @@ class FyipeTracker:
         self.errorTrackerId = errorTrackerId
         self.errorTrackerKey = errorTrackerKey
         self.apiUrl = apiUrl + "/error-tracker/" + errorTrackerId + "/track"
+        self.apiTransport = FyipeTransport(self.apiUrl)
         self.tags = []
         self.fingerprint = []
         self.setUpOptions(options)
@@ -132,7 +134,7 @@ class FyipeTracker:
     
     def prepareErrorObject(self, eventType, errorStackTrace):   
         # set a last timeline as the error message
-        self.listenerObj.logErrorEvent(errorStackTrace["message"], type)
+        self.listenerObj.logErrorEvent(errorStackTrace["message"], eventType)
         
         # get current timeline
         timeline = self.getTimeline()
@@ -158,7 +160,7 @@ class FyipeTracker:
     def sendErrorEventToServer(self):
         response = None
         # TODO send to API properly
-        # $response = $this->apiTransport->sendErrorEventToServer($this->event);
+        response = self.apiTransport.sendErrorEventToServer(self.event)
         # generate a new event Id
         self.setEventId()
         # clear the timeline after a successful call to the server
