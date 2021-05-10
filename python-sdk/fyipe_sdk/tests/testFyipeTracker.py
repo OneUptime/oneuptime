@@ -411,4 +411,54 @@ class TrackerTest(unittest.TestCase):
         self.assertIn('linesAfterError', incidentFrame)
         self.assertIn('errorLine', incidentFrame)
     
+    def test_should_not_add_code_capture_to_stack_trace_when_flag_is_passed_in_options(self):
+        options = {
+            "captureCodeSnippet": False
+        }
+        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"], options)
+        tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
 
+        event = None
+        errorType = 'ZeroDivisionError'
+        try: 
+            divByZero = 1/0
+        except Exception as ex:
+            event = tracker.captureException(ex)
+
+        # event = tracker.getCurrentEvent()
+        self.assertEqual(event["type"], 'exception')
+        self.assertEqual(event["content"]["type"], errorType)
+        self.assertIsInstance(event["content"]["stacktrace"],dict)
+        self.assertIsInstance(event["content"]["stacktrace"]["frames"],list)
+        
+        incidentFrame = event["content"]["stacktrace"]["frames"][0]
+        self.assertNotIn('linesBeforeError', incidentFrame)
+        self.assertNotIn('linesAfterError', incidentFrame)
+        self.assertNotIn('errorLine', incidentFrame)
+    
+    def test_should_add_code_capture_to_stack_trace_by_default_when_unwanted_flag_is_passed_in_options(self):
+        options = {
+            "captureCodeSnippet": "hello" # sdk expects a true or false but it defaults to true if wrong value is sent
+        }
+        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"], options)
+        tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
+        
+
+        event = None
+        errorType = 'ZeroDivisionError'
+        try: 
+            divByZero = 1/0
+        except Exception as ex:
+            event = tracker.captureException(ex)
+
+        # event = tracker.getCurrentEvent()
+        self.assertEqual(event["type"], 'exception')
+        self.assertEqual(event["content"]["type"], errorType)
+        self.assertIsInstance(event["content"]["stacktrace"],dict)
+        self.assertIsInstance(event["content"]["stacktrace"]["frames"],list)
+        
+        incidentFrame = event["content"]["stacktrace"]["frames"][0]
+        self.assertIn('linesBeforeError', incidentFrame)
+        self.assertIn('linesAfterError', incidentFrame)
+        self.assertIn('errorLine', incidentFrame)
+    
