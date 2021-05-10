@@ -64,6 +64,8 @@ class PerformanceTrackerView extends Component {
             JSON.stringify(performanceTracker)
         ) {
             if (performanceTracker) {
+                this.removeListeners();
+
                 socket.on(`timeMetrics-${performanceTracker._id}`, data =>
                     updateTimeMetrics(data)
                 );
@@ -90,6 +92,8 @@ class PerformanceTrackerView extends Component {
         } = this.props;
 
         if (performanceTracker) {
+            this.removeListeners();
+
             socket.on(`timeMetrics-${performanceTracker._id}`, data =>
                 updateTimeMetrics(data)
             );
@@ -112,14 +116,7 @@ class PerformanceTrackerView extends Component {
     }
 
     componentWillUnmount() {
-        const { performanceTracker } = this.props;
-        if (performanceTracker) {
-            socket.removeListener(`timeMetrics-${performanceTracker._id}`);
-            socket.removeListener(
-                `throughputMetrics-${performanceTracker._id}`
-            );
-            socket.removeListener(`errorMetrics-${performanceTracker._id}`);
-        }
+        this.removeListeners();
     }
 
     tabSelected = index => {
@@ -128,6 +125,17 @@ class PerformanceTrackerView extends Component {
         this.setState({
             tabIndex: index,
         });
+    };
+
+    removeListeners = () => {
+        const { performanceTracker } = this.props;
+        if (performanceTracker) {
+            socket.removeListener(`timeMetrics-${performanceTracker._id}`);
+            socket.removeListener(
+                `throughputMetrics-${performanceTracker._id}`
+            );
+            socket.removeListener(`errorMetrics-${performanceTracker._id}`);
+        }
     };
 
     render() {
