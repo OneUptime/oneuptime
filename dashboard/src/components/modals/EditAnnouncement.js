@@ -57,7 +57,7 @@ class EditAnnouncement extends Component {
         postObj.name = values.name;
         postObj.description = values.description;
         postObj.update = true;
-        postObj.hideAnnouncement = values.hideAnnouncement ? true : false;
+        postObj.hideAnnouncement = announcement.hideAnnouncement;
 
         const isDuplicate = postObj.monitors
             ? postObj.monitors.length === new Set(postObj.monitors).size
@@ -455,54 +455,6 @@ class EditAnnouncement extends Component {
                                                 </div>
                                             </div>
                                         </fieldset>
-                                        <fieldset>
-                                            <div
-                                                style={{ display: 'flex' }}
-                                                className="Flex-alignItems--center Flex-justifyContent--center"
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label"
-                                                    style={{
-                                                        width: '11rem',
-                                                        flex: 'none',
-                                                        textAlign: 'left',
-                                                    }}
-                                                ></label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <span className="value">
-                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                            <label
-                                                                className="Checkbox"
-                                                                htmlFor="hideAnnouncementBox"
-                                                            >
-                                                                <Field
-                                                                    component="input"
-                                                                    type="checkbox"
-                                                                    name="hideAnnouncement"
-                                                                    className="Checkbox-source"
-                                                                    id="hideAnnouncementBox"
-                                                                />
-                                                                <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                                    <div className="Checkbox-target Box-root">
-                                                                        <div className="Checkbox-color Box-root"></div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="Checkbox-label Box-root Margin-left--8">
-                                                                    <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                        <span>
-                                                                            Hide
-                                                                            on
-                                                                            status
-                                                                            page
-                                                                        </span>
-                                                                    </span>
-                                                                </div>
-                                                            </label>
-                                                        </div>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </fieldset>
                                     </div>
                                 </div>
                                 <div className="bs-Modal-footer">
@@ -618,7 +570,6 @@ const mapStateToProps = (state, ownProps) => {
     const initialValues = {};
     initialValues.name = announcement.name;
     initialValues.description = announcement.description;
-    initialValues.hideAnnouncement = announcement.hideAnnouncement;
     initialValues.selectAllMonitors =
         allMonitors.length === announcement.monitors.length ? true : false;
     initialValues.monitors = [...monitorIds];
