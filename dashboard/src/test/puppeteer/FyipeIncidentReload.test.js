@@ -72,7 +72,7 @@ describe('Fyipe Monitor Reload', () =>{
       done();
     }, operationTimeOut);
 
-    test('Should navigate to incident detail page and reload to check errors', async (done)=>{
+    test('Should navigate to incident page, click on the incident and reload to check errors', async (done)=>{
       await page.goto(utils.DASHBOARD_URL);
       await page.waitForSelector('#incidents');
       await page.click('#incidents');      
