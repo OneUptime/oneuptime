@@ -12,6 +12,10 @@ const user = {
     email,
     password,
 };
+const user2 = {
+    email: utils.generateRandomBusinessEmail(),
+    password,
+};
 const memberUser = {
     email: teamEmail,
     password: password,
@@ -124,8 +128,41 @@ describe('Project Settings', () => {
                 }
             );
             expect(createProjectBtn).toBeDefined();
+            await init.logout(page);
             done();
         },
         operationTimeOut
     );
+
+    test('should show all projects not just a limit of 10 projects', async done => {
+        //register user
+        await init.registerUser(user2, page);
+        //adding project
+        await init.addProject(page, 'project1');
+        await init.addProject(page, 'project2');
+        await init.addProject(page, 'project3');
+        await init.addProject(page, 'project4');
+        await init.addProject(page, 'project5');
+        await init.addProject(page, 'project6');
+        await init.addProject(page, 'project7');
+        await init.addProject(page, 'project8');
+        await init.addProject(page, 'project9');
+        await init.addProject(page, 'project10');
+        await init.addProject(page, 'project11');
+
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#AccountSwitcherId');
+        await page.click('#AccountSwitcherId');
+
+        const parentContainer = '#accountSwitcher';
+        await page.waitForSelector(parentContainer, {
+            visible: true,
+        });
+        const childCount = await page.$eval(
+            parentContainer,
+            el => el.childElementCount
+        );
+        expect(childCount).toEqual(13);
+        done();
+    }, 100000);
 });
