@@ -212,10 +212,10 @@ class PerformanceTrackerView extends Component {
                                     className={'custom-tab-list'}
                                 >
                                     <Tab className={'custom-tab custom-tab-2'}>
-                                        Charts
+                                        Overview
                                     </Tab>
                                     <Tab className={'custom-tab custom-tab-2'}>
-                                        Data
+                                        Details
                                     </Tab>
                                     <div
                                         id="tab-slider"
@@ -240,7 +240,7 @@ class PerformanceTrackerView extends Component {
                                                     <WebTransactionsChart
                                                         heading="Web Transactions Time"
                                                         title={[]}
-                                                        subHeading="shows graph of web transactions initiated through http requests"
+                                                        subHeading="Average Response time of your HTTP Requests."
                                                         type="transactionTime"
                                                     />
                                                 </div>
@@ -250,7 +250,7 @@ class PerformanceTrackerView extends Component {
                                                     <WebTransactionsChart
                                                         heading="Throughput"
                                                         title={[]}
-                                                        subHeading="shows graph of number of web transactions per minute"
+                                                        subHeading="Number of HTTP requests per minute your app serves."
                                                         type="throughput"
                                                     />
                                                 </div>
@@ -258,9 +258,9 @@ class PerformanceTrackerView extends Component {
                                             <div>
                                                 <div>
                                                     <WebTransactionsChart
-                                                        heading="Error rate"
+                                                        heading="Error Rate"
                                                         title={[]}
-                                                        subHeading="shows graph of errors occuring per minute"
+                                                        subHeading="Number of HTTP Error responses per minute served by your app."
                                                         type="errorRate"
                                                     />
                                                 </div>
@@ -284,8 +284,8 @@ class PerformanceTrackerView extends Component {
                                         <div>
                                             <div>
                                                 <TransactionMetricsTable
-                                                    heading="Incoming Transaction Metrics"
-                                                    subHeading="shows list of all incoming transactions initiated through http requests"
+                                                    heading="Incoming HTTP Requests"
+                                                    subHeading="Shows list of all incoming HTTP requests received by your app."
                                                     type="incoming"
                                                 />
                                             </div>
@@ -293,8 +293,8 @@ class PerformanceTrackerView extends Component {
                                         <div>
                                             <div>
                                                 <TransactionMetricsTable
-                                                    heading="Outgoing Transaction Metrics"
-                                                    subHeading="shows list of all outgoing transactions initiated through http requests"
+                                                    heading="Outgoing HTTP Requests"
+                                                    subHeading="Shows a list of all the HTTP requests your app made."
                                                     type="outgoing"
                                                 />
                                             </div>
