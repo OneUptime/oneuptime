@@ -89,17 +89,6 @@ class CreateAnnouncement extends Component {
             return;
         }
 
-        if (
-            postObj.monitors &&
-            postObj.monitors.length === 0 &&
-            !values.selectAllMonitors
-        ) {
-            this.setState({
-                monitorError: 'No monitor was selected',
-            });
-            return;
-        }
-
         createAnnouncement(projectId, statusPage._id, { data: postObj })
             .then(res => {
                 if (res) {

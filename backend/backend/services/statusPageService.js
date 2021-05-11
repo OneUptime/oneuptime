@@ -1200,7 +1200,6 @@ module.exports = {
 
     createAnnouncement: async function(data) {
         try {
-            const _this = this;
             // reassign data.monitors with a restructured monitor data
             data.monitors = data.monitors.map(monitor => ({
                 monitorId: monitor,
@@ -1212,10 +1211,6 @@ module.exports = {
                 name = `${name}-${generate('1234567890', 8)}`;
                 data.slug = name.toLowerCase();
             }
-
-            await _this.updateManyAnnouncement({
-                statusPageId: data.statusPageId,
-            });
 
             const announcement = new AnnouncementModel();
             announcement.name = data.name || null;
