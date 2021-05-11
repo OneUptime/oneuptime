@@ -44,6 +44,12 @@ class FyipeTracker:
                             allowedValue = self.MAX_ITEMS_ALLOWED_IN_STACK
                         
                         self.options[option] = allowedValue
+                    if option == 'captureCodeSnippet':
+                        defaultVal = True
+                        # set boolean value if boolean or set default `true` if annything other than boolean is passed
+                        if isinstance(value, bool):
+                            defaultVal = value
+                        self.options[option] = defaultVal
                     else:
                         self.options[option] = value
                             
