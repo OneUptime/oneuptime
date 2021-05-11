@@ -13,6 +13,7 @@ import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import { deleteSubscriber } from '../../actions/subscriber';
 import CreateSubscriber from '../modals/CreateSubscriber';
+import NoMonitorSubscriber from '../modals/NoMonitorSubscriber';
 class StatusPageSubscriber extends Component {
     constructor(props) {
         super(props);
@@ -131,6 +132,12 @@ class StatusPageSubscriber extends Component {
             canPrev = false;
         }
 
+        const modal =
+            monitors && monitors.length > 0
+                ? CreateSubscriber
+                : NoMonitorSubscriber;
+
+
         return (
             <>
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -145,37 +152,32 @@ class StatusPageSubscriber extends Component {
                                     on this Status Page.
                                 </span>
                             </div>
-                            <ShouldRender if={monitors && monitors.length > 0}>
-                                <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                    <button
-                                        className="bs-Button bs-ButtonLegacy ActionIconParent"
-                                        type="button"
-                                        id="addSubscriberButton"
-                                        onClick={() =>
-                                            this.props.openModal({
-                                                id: createSubscriberModalId,
-                                                onClose: () =>
-                                                    this.props.closeModal({
-                                                        id: createSubscriberModalId,
-                                                    }),
-                                                content: DataPathHoC(
-                                                    CreateSubscriber,
-                                                    {
-                                                        subProjectId: projectId,
-                                                        monitorList: monitors,
-                                                        statusPage,
-                                                        limit,
-                                                    }
-                                                ),
-                                            })
-                                        }
-                                    >
-                                        <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                            <span>Add New Subscriber</span>
-                                        </span>
-                                    </button>
-                                </div>
-                            </ShouldRender>
+                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                <button
+                                    className="bs-Button bs-ButtonLegacy ActionIconParent"
+                                    type="button"
+                                    id="addSubscriberButton"
+                                    onClick={() =>
+                                        this.props.openModal({
+                                            id: createSubscriberModalId,
+                                            onClose: () =>
+                                                this.props.closeModal({
+                                                    id: createSubscriberModalId,
+                                                }),
+                                            content: DataPathHoC(modal, {
+                                                subProjectId: projectId,
+                                                monitorList: monitors,
+                                                statusPage,
+                                                limit,
+                                            }),
+                                        })
+                                    }
+                                >
+                                    <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                        <span>Add New Subscriber</span>
+                                    </span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
