@@ -1,0 +1,4 @@
+alertVia,contactEmail,contactPhone,countryCode,contactWebhook
+sms,,123456780,us,
+email,sample3@sample.com,,,
+webhook,sample4@sample.com,,,samplehook.com

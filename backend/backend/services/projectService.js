@@ -135,6 +135,15 @@ module.exports = {
                     })
                 );
 
+                const domains = await DomainVerificationService.findBy({
+                    projectId: project._id,
+                });
+                for (const domain of domains) {
+                    await DomainVerificationService.deleteBy({
+                        _id: domain._id,
+                    });
+                }
+
                 const statusPages = await StatusPageService.findBy({
                     projectId: project._id,
                 });
@@ -774,3 +783,4 @@ const generate = require('nanoid/generate');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const componentService = require('./componentService');
 const SsoDefaultRolesService = require('./ssoDefaultRolesService');
+const DomainVerificationService = require('./domainVerificationService');

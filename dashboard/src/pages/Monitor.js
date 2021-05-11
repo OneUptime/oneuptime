@@ -558,10 +558,6 @@ DashboardView.propTypes = {
         PropTypes.array,
         PropTypes.oneOf([null, undefined]),
     ]),
-    incidents: PropTypes.oneOfType([
-        PropTypes.array,
-        PropTypes.oneOf([null, undefined]),
-    ]),
     loadPage: PropTypes.func,
     destroy: PropTypes.func.isRequired,
     fetchMonitorLogs: PropTypes.func,

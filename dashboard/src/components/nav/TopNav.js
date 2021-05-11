@@ -390,9 +390,9 @@ class TopContent extends Component {
                     display: 'flex',
                     justifyContent: 'space-between',
                 }}
-                className="db-World-topContent Box-root Box-background--transparent Padding-vertical--20"
+                className="db-World-topContent Box-root Box-background--transparent Padding-vertical--20 db-Topnav-wrap"
             >
-                <div>
+                <div className="db-Search-wrapper">
                     <Search />
                 </div>
                 <div>

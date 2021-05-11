@@ -58,8 +58,7 @@ class ScheduleEventDeleteBox extends Component {
                                     <div>
                                         {scheduledEvent.resolved ? (
                                             <button
-                                                className="bs-Button bs-Button--blue Box-background--blue"
-                                                id={`cancelScheduleEvent`}
+                                                className="bs-Button"
                                                 disabled
                                             >
                                                 <span>
@@ -68,8 +67,7 @@ class ScheduleEventDeleteBox extends Component {
                                             </button>
                                         ) : scheduledEvent.cancelled ? (
                                             <button
-                                                className="bs-Button bs-Button--blue Box-background--blue"
-                                                id={`cancelScheduleEvent`}
+                                                className="bs-Button"
                                                 disabled
                                             >
                                                 <span>

@@ -22,6 +22,7 @@ import LineChartsContainer from './LineChartsContainer';
 import AffectedResources from './basic/AffectedResources';
 import NewThemeEvent from './NewThemeEvent';
 import NewThemeSubscriber from './NewThemeSubscriber';
+import Announcement from './Announcement';
 
 const greenBackground = {
     display: 'inline-block',
@@ -533,6 +534,12 @@ class Main extends Component {
                                     </ShouldRender>
                                 </div>
                             </ShouldRender>
+                            <Announcement
+                                monitorState={this.props.monitorState}
+                                theme={theme}
+                                heading={heading}
+                                {...this.props}
+                            />
                             <div className="new-main-container">
                                 <div
                                     className="sy-op"
@@ -796,6 +803,10 @@ class Main extends Component {
                         )}
                         {view ? (
                             <div className="innernew">
+                                <Announcement
+                                    monitorState={this.props.monitorState}
+                                    {...this.props}
+                                />
                                 {this.props.events &&
                                     this.props.events.length > 0 &&
                                     this.props.statusData &&
@@ -804,7 +815,7 @@ class Main extends Component {
                                         event =>
                                             !event.cancelled && (
                                                 <div
-                                                    className="content box box__yellow--dark"
+                                                    className="content"
                                                     style={{
                                                         margin: '40px 0px',
                                                         cursor: 'pointer',
@@ -816,12 +827,13 @@ class Main extends Component {
                                                         );
                                                     }}
                                                 >
-                                                    <div className="box-inner ongoing__schedulebox">
+                                                    <div
+                                                        className="ongoing__schedulebox"
+                                                        style={{ padding: 0 }}
+                                                    >
                                                         <div
-                                                            className="content box box__yellow--dark"
+                                                            className="content box"
                                                             style={{
-                                                                margin:
-                                                                    '40px 0px',
                                                                 cursor:
                                                                     'pointer',
                                                             }}
@@ -832,7 +844,15 @@ class Main extends Component {
                                                                 );
                                                             }}
                                                         >
-                                                            <div className="box-inner ongoing__schedulebox">
+                                                            <div
+                                                                className="ongoing__schedulebox content box box__yellow--dark"
+                                                                style={{
+                                                                    padding:
+                                                                        '30px',
+                                                                    boxShadow:
+                                                                        '0 7px 14px 0 rgb(50 50 93 / 10%)',
+                                                                }}
+                                                            >
                                                                 <div
                                                                     style={{
                                                                         textTransform:
@@ -920,7 +940,7 @@ class Main extends Component {
                                     className="content"
                                     style={{
                                         position: 'relative',
-                                        marginTop: 75,
+                                        marginTop: 50,
                                     }}
                                 >
                                     <ShouldRender if={headerHTML}>

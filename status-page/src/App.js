@@ -13,6 +13,7 @@ import {
 import { User } from './config';
 import queryString from 'query-string';
 import { removeQuery } from './store/store';
+import SingleAnnouncement from './components/SingleAnnouncement';
 
 const userId = queryString.parse(window.location.search).userId;
 const accessToken = queryString.parse(window.location.search).accessToken;
@@ -44,6 +45,11 @@ const App = () => (
                     exact
                     path="/status-page/:statusPageSlug/incident/:incidentId"
                     component={Incident}
+                />
+                <Route
+                    exact
+                    path="/status-page/:statusPageSlug/announcement/:announcementSlug"
+                    component={SingleAnnouncement}
                 />
                 <Redirect to="/" />
             </Switch>

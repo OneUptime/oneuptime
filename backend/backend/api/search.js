@@ -145,6 +145,7 @@ const getMonitors = async (projectIds, val, parentProjectId) => {
                 componentSlug: monitor.componentId.slug,
                 type: monitor.type,
                 monitorId: monitor._id,
+                data: monitor.data ? monitor.data : null,
                 monitorSlug: monitor.slug,
                 url: monitor.componentId.slug + '/monitoring/' + monitor.slug,
                 componentId: monitor.componentId._id,
@@ -282,7 +283,7 @@ const getIncidents = async (projectIds, val, parentProjectId) => {
                 title: 'Incidents',
                 values: incidents.map(incident => {
                     return {
-                        name: `incident #${incident.idNumber}`,
+                        name: `Incident #${incident.idNumber}`,
                         idNumber: incident.idNumber,
                         parentProject:
                             parentProjectId === String(incident.projectId._id),

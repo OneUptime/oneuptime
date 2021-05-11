@@ -974,3 +974,98 @@ export function showEventCard(payload) {
         payload,
     };
 }
+
+export function getAnnouncementsRequest() {
+    return {
+        type: types.FETCH_ANNOUNCEMENTS_REQUEST,
+    };
+}
+
+export function getAnnouncementsSuccess(data) {
+    return {
+        type: types.FETCH_ANNOUNCEMENTS_SUCCESS,
+        payload: data,
+    };
+}
+
+export function getAnnouncementsFailure(data) {
+    return {
+        type: types.FETCH_ANNOUNCEMENTS_FAILURE,
+        payload: data,
+    };
+}
+
+export function getAnnouncements(projectId, statusPageId, skip = 0, limit) {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}&show=true`
+        );
+        dispatch(getAnnouncementsRequest());
+        promise.then(
+            function(response) {
+                dispatch(getAnnouncementsSuccess(response.data));
+            },
+            function(error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(getAnnouncementsFailure(errorMsg));
+            }
+        );
+        return promise;
+    };
+}
+
+export function getSingleAnnouncementSuccess(data) {
+    return {
+        type: types.FETCH_SINGLE_ANNOUNCEMENTS_SUCCESS,
+        payload: data,
+    };
+}
+
+export function getSingleAnnouncementRequest() {
+    return {
+        type: types.FETCH_SINGLE_ANNOUNCEMENTS_REQUEST,
+    };
+}
+
+export function getSingleAnnouncementFailure(error) {
+    return {
+        type: types.FETCH_SINGLE_ANNOUNCEMENTS_FAILURE,
+        payload: error,
+    };
+}
+
+export function getSingleAnnouncement(
+    projectId,
+    statusPageSlug,
+    announcementSlug
+) {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
+        );
+        dispatch(getSingleAnnouncementRequest());
+        promise.then(
+            function(response) {
+                dispatch(getSingleAnnouncementSuccess(response.data));
+            },
+            function(error) {
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+                dispatch(getSingleAnnouncementFailure(error));
+            }
+        );
+        return promise;
+    };
+}

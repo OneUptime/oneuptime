@@ -53,6 +53,19 @@ class PerformanceTracker {
         if (trackOutgoingRequest) {
             this._setUpOutgoingListener();
         }
+
+        // setup process handler here
+        // listen for when the server is killed, terminated, unhandledRejection, or uncaughtException
+        // send response back to our backend
+        process.on('SIGINT', this._sendDataOnExit.bind(this));
+        process.on('SIGTERM', this._sendDataOnExit.bind(this));
+        process.on('SIGHUP', this._sendDataOnExit.bind(this));
+        process.on('exit', this._sendDataOnExit.bind(this));
+        process.on('unhandledRejection', this._sendDataOnExit.bind(this));
+        process.on('uncaughtException', this._sendDataOnExit.bind(this));
+    }
+    async _sendDataOnExit() {
+        await this.#store.processDataOnExit();
     }
     _setUpOutgoingListener() {
         return new OutgoingListener(this.#start, this.#end, this.#store);

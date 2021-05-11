@@ -580,7 +580,7 @@ class TableComponent extends Component {
                                                                         incomingMetrics.count
                                                                     }{' '}
                                                                     Incoming
-                                                                    Metrics
+                                                                    Requests
                                                                 </span>
                                                             </span>
                                                         </span>
@@ -879,7 +879,7 @@ class TableComponent extends Component {
                                                                         outgoingMetrics.count
                                                                     }{' '}
                                                                     Outgoing
-                                                                    Metrics
+                                                                    Requests
                                                                 </span>
                                                             </span>
                                                         </span>

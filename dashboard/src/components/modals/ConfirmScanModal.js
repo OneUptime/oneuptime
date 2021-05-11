@@ -111,7 +111,7 @@ class ConfirmScanModal extends Component {
 }
 
 ConfirmScanModal.displayName = 'ConfirmScanModal';
-const mapStateToProps = state => ({});
+const mapStateToProps = () => ({});
 ConfirmScanModal.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,

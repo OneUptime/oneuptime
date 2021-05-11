@@ -61,6 +61,10 @@ import {
     SHOW_EVENT_CARD,
     SHOW_INCIDENT_CARD,
     NEW_THEME_NOTES_SUCCESS,
+    FETCH_ANNOUNCEMENTS_REQUEST,
+    FETCH_ANNOUNCEMENTS_SUCCESS,
+    FETCH_ANNOUNCEMENTS_FAILURE,
+    FETCH_SINGLE_ANNOUNCEMENTS_SUCCESS,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -163,10 +167,55 @@ const INITIAL_STATE = {
         error: null,
         success: false,
     },
+    announcements: {
+        list: [],
+        singleAnnouncement: null,
+        requesting: false,
+        error: null,
+        success: false,
+    },
 };
 
 export default (state = INITIAL_STATE, action) => {
     switch (action.type) {
+        case FETCH_SINGLE_ANNOUNCEMENTS_SUCCESS:
+            return Object.assign({}, state, {
+                announcements: {
+                    ...state.announcements,
+                    singleAnnouncement: action.payload,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+            });
+        case FETCH_ANNOUNCEMENTS_SUCCESS:
+            return Object.assign({}, state, {
+                announcements: {
+                    ...state.announcements,
+                    list: action.payload,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+            });
+        case FETCH_ANNOUNCEMENTS_REQUEST:
+            return Object.assign({}, state, {
+                announcements: {
+                    ...state.announcements,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case FETCH_ANNOUNCEMENTS_FAILURE:
+            return Object.assign({}, state, {
+                announcements: {
+                    ...state.announcements,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
         case STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
                 error: null,

@@ -136,7 +136,9 @@ class PerformanceTrackerList extends Component {
                                                     <span>
                                                         {' '}
                                                         <span className="chart-font">
-                                                            {metric.time}
+                                                            {metric.time === 0
+                                                                ? '-'
+                                                                : `${metric.time} ms`}
                                                         </span>
                                                     </span>
                                                 </div>
@@ -161,7 +163,10 @@ class PerformanceTrackerList extends Component {
                                                     <span>
                                                         {' '}
                                                         <span className="chart-font">
-                                                            {metric.throughput}
+                                                            {metric.throughput ===
+                                                            0
+                                                                ? '-'
+                                                                : metric.throughput}
                                                         </span>
                                                     </span>
                                                 </div>
@@ -186,7 +191,14 @@ class PerformanceTrackerList extends Component {
                                                     <span>
                                                         {' '}
                                                         <span className="chart-font">
-                                                            {metric.errorRate}
+                                                            {metric.time ===
+                                                                0 &&
+                                                            metric.throughput ===
+                                                                0 &&
+                                                            metric.errorRate ===
+                                                                0
+                                                                ? '-'
+                                                                : metric.errorRate}
                                                         </span>
                                                     </span>
                                                 </div>

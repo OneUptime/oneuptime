@@ -488,4 +488,3 @@ export function fetchComponent(slug) {
         return promise;
     };
 }
-

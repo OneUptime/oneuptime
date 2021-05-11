@@ -33,7 +33,6 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const uuid = require('uuid');
 const defaultStatusPageColors = require('../config/statusPageColors');
 const SubscriberService = require('../services/subscriberService');
-const statusPageService = require('../services/statusPageService');
 
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
@@ -91,7 +90,7 @@ router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
     const { projectId } = req.params;
     const { theme, statusPageId } = req.body;
     try {
-        await StatusPageService.updateOneBy(
+        const statusPage = await StatusPageService.updateOneBy(
             { projectId, _id: statusPageId },
             { theme }
         );
@@ -100,7 +99,7 @@ router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
             req.user.id
         );
         await RealTimeService.statusPageEdit(updatedStatusPage);
-        return sendItemResponse(req, res, updatedStatusPage);
+        return sendItemResponse(req, res, statusPage);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -1254,6 +1253,183 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
         return sendErrorResponse(req, res, error);
     }
 });
+
+router.post('/:projectId/announcement/:statusPageId', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { projectId, statusPageId } = req.params;
+        const { data } = req.body;
+        data.createdById = req.user ? req.user.id : null;
+
+        if (!data) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: "Values can't be null",
+            });
+        }
+
+        if (!data.name || !data.name.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Announcement name is required.',
+            });
+        }
+
+        // data.monitors should be an array containing id of monitor(s)
+        if (data.monitors && !Array.isArray(data.monitors)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitors is not of type array',
+            });
+        }
+
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project ID is required.',
+            });
+        }
+
+        data.projectId = projectId;
+        data.statusPageId = statusPageId;
+        const response = await StatusPageService.createAnnouncement(data);
+
+        return sendItemResponse(req, res, response);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put(
+    '/:projectId/announcement/:statusPageId/:announcementId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, statusPageId, announcementId } = req.params;
+            const { data } = req.body;
+            data.createdById = req.user ? req.user.id : null;
+
+            if (!data.announcementToggle) {
+                if (!data) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: "Values can't be null",
+                    });
+                }
+
+                if (!data.name || !data.name.trim()) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Announcement name is required.',
+                    });
+                }
+
+                // data.monitors should be an array containing id of monitor(s)
+                if (data.monitors && !Array.isArray(data.monitors)) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Monitors is not of type array',
+                    });
+                }
+
+                if (!projectId) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Project ID is required.',
+                    });
+                }
+
+                data.monitors = data.monitors.map(monitor => ({
+                    monitorId: monitor,
+                }));
+            }
+
+            const query = { projectId, statusPageId, _id: announcementId };
+
+            const response = await StatusPageService.updateAnnouncement(
+                query,
+                data
+            );
+
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.get('/:projectId/announcement/:statusPageId', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { projectId, statusPageId } = req.params;
+        const { skip, limit, show } = req.query;
+        const query = { projectId, statusPageId };
+        if (show) query.hideAnnouncement = false;
+
+        const allAnnouncements = await StatusPageService.getAnnouncements(
+            query,
+            skip,
+            limit
+        );
+
+        const count = await StatusPageService.countAnnouncements(query);
+
+        return sendItemResponse(req, res, {
+            allAnnouncements,
+            skip,
+            limit,
+            count,
+        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get(
+    '/:projectId/announcement/:statusPageSlug/single/:announcementSlug',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, statusPageSlug, announcementSlug } = req.params;
+            const { _id } = await StatusPageService.findOneBy({
+                slug: statusPageSlug,
+            });
+            const response = await StatusPageService.getSingleAnnouncement({
+                projectId,
+                statusPageId: _id,
+                slug: announcementSlug,
+            });
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.delete(
+    `/:projectId/announcement/:announcementId/delete`,
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, announcementId } = req.params;
+            const userId = req.user ? req.user.id : null;
+            const response = await StatusPageService.deleteAnnouncement(
+                {
+                    projectId,
+                    _id: announcementId,
+                },
+                userId
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 const formatNotes = (data = []) => {
     const result = [];
