@@ -59,14 +59,14 @@ describe('Fyipe Monitor Reload', () =>{
       await init.navigateToComponentDetails(componentName, page);
       await page.waitForSelector('#incidentLog', {visible : true});
       await page.click('#incidentLog');
-      await page.waitForSelector(`#incident_${monitorName}_0`);
+      await page.waitForSelector(`#incident_${monitorName}_0`, {visible:true});
       await page.click(`#incident_${monitorName}_0`);
-      await page.waitForSelector('#incident_0');
+      await page.waitForSelector('#incident_0', {visible:true});
       //To confirm no error on page reload
       await page.reload({waitUntil: 'networkidle0'});
       await page.waitForSelector(`#cb${componentName}`, {visible:true});
        await page.waitForSelector('#cbIncidentLog', {visible:true});
-      let spanElement = await page.waitForSelector('#incident_0');
+      let spanElement = await page.waitForSelector('#incident_0', {visible:true});
       expect(spanElement).toBeDefined();
 
       done();
@@ -74,16 +74,16 @@ describe('Fyipe Monitor Reload', () =>{
 
     test('Should navigate to incident page, click on the incident and reload to check errors', async (done)=>{
       await page.goto(utils.DASHBOARD_URL);
-      await page.waitForSelector('#incidents');
+      await page.waitForSelector('#incidents', {visible:true});
       await page.click('#incidents');      
-      await page.waitForSelector(`#incident_${monitorName}_0`);
+      await page.waitForSelector(`#incident_${monitorName}_0`, {visible:true});
       await page.click(`#incident_${monitorName}_0`);
-      await page.waitForSelector('#incident_0');
+      await page.waitForSelector('#incident_0', {visible:true});
       //To confirm no error on page reload
       await page.reload({waitUntil: 'networkidle0'});
       await page.waitForSelector(`#cb${componentName}`, {visible:true});
        await page.waitForSelector('#cbIncidentLog', {visible:true});
-      let spanElement = await page.waitForSelector('#incident_0');
+      let spanElement = await page.waitForSelector('#incident_0', {visible:true});
       expect(spanElement).toBeDefined();
 
       done();
