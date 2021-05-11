@@ -135,7 +135,7 @@ describe('Incident Settings API', () => {
                 await page.reload({
                     waitUntil: 'networkidle0',
                 });
-                 await page.waitForTimeout(3000);
+                                 
                 await page.waitForSelector('input[name=title]');
                 const priorityFieldValue = await page.$eval(
                     '#incidentPriority',
