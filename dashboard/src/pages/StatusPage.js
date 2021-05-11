@@ -128,7 +128,6 @@ class StatusPage extends Component {
             statusPage: { status },
         } = this.props;
         const pageName = status ? status.name : null;
-        const projectId = this.props.projectId;
         const data = {
             statusPageId: status._id,
             projectId:
@@ -233,7 +232,7 @@ class StatusPage extends Component {
                                                                 <div className="Box-root Margin-bottom--12 bs-ContentSection Card-root Card-shadow--medium>">
                                                                     <StatusPageSubscriber
                                                                         projectId={
-                                                                            projectId
+                                                                            data.projectId
                                                                         }
                                                                         statusPage={
                                                                             status

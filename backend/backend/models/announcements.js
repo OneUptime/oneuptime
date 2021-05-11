@@ -23,7 +23,7 @@ const announcementSchema = new Schema(
             index: true,
         },
         slug: String,
-        hideAnnouncement: { type: Boolean, default: false },
+        hideAnnouncement: { type: Boolean, default: true },
         deleted: {
             type: Boolean,
             default: false,
