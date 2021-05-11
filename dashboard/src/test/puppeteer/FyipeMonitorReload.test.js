@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
- const utils = require('./test-utils');
- const init = require('./test-init');
+const utils = require('./test-utils');
+const init = require('./test-init');
 
  let browser, page;
  const user={
@@ -15,7 +15,7 @@ const puppeteer = require('puppeteer');
  * It stays on the same page on reload
  */
 
- describe('Fyipe Monitor Reload', () =>{
+describe('Fyipe Monitor Reload', () =>{
      const operationTimeOut = 100000;
 
      beforeAll(async (done)=>{
@@ -29,18 +29,43 @@ const puppeteer = require('puppeteer');
 
         await init.registerUser(user, page); // This automatically routes to dashboard page
         await init.addComponent(componentName, page);
+        await init.addNewMonitorToComponent(page, componentName, monitorName);
         done();
      });
 
      afterAll(async (done)=>{
         await browser.close();
         done();
-     });
+     });    
 
-     test('Should add a new monitor, reload and confirm no error', async (done)=>{
-         // This automatically routes to monitor details page
-        await init.addNewMonitorToComponent(page, componentName, monitorName);
-        
+     test('Should reload the monitor in component-details page and confirm no error', async (done)=>{
+       await init.navigateToComponentDetails(componentName, page);
+       // To confirm no error on page reload
+       await page.reload({waitUntil: 'networkidle0'});
+       await page.waitForSelector(`#cb${componentName}`, {visible:true});
+       await page.waitForSelector('#cbMonitors', {visible:true});       
+
+       let spanElement = await page.waitForSelector(`#monitor-title-${monitorName}`, {visible : true});
+       spanElement = spanElement.getProperty('innerText');
+       spanElement = spanElement.jsonValue();
+       expect(spanElement).toMatch(monitorName);
+
+       done();
+    }, operationTimeOut);
+
+    test('Should add a new monitor, reload and confirm no error', async (done)=>{         
+        await init.navigateToMonitorDetails(componentName, monitorName, page);
+        // To confirm no error on page reload
+        await page.reload({waitUntil: 'networkidle0'});
+        await page.waitForSelector(`#cb${componentName}`, {visible:true});
+        await page.waitForSelector('#cbMonitors', {visible:true});
+        await page.waitForSelector(`#cb${monitorName}`, {visible:true});
+
+        let spanElement = await page.waitForSelector(`#monitor-title-${monitorName}`, {visible : true});
+        spanElement = spanElement.getProperty('innerText');
+        spanElement = spanElement.jsonValue();
+        expect(spanElement).toMatch(monitorName);
+
         done();
-     }, operationTimeOut)
- })
+     }, operationTimeOut);
+})
