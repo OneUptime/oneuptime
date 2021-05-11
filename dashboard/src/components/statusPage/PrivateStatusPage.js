@@ -55,8 +55,8 @@ export class PrivateStatusPage extends Component {
                 hideProbeBar: values.hideProbeBar,
                 hideUptime: values.hideUptime,
                 hideResolvedIncident: values.hideResolvedIncident,
-                scheduleHistoryDays:values.scheduleHistoryDays,
-                incidentHistoryDays:values.incidentHistoryDays,
+                scheduleHistoryDays: values.scheduleHistoryDays,
+                incidentHistoryDays: values.incidentHistoryDays,
             })
             .then(() => {
                 this.props.fetchProjectStatusPage(
@@ -148,6 +148,15 @@ export class PrivateStatusPage extends Component {
         const { handleSubmit, formValues } = this.props;
         const { subscriberAdvanceOptionModalId, showMoreOptions } = this.state;
         this.props.showDuplicateStatusPage(this.state.showMoreOptions);
+        const historyLimit = value => {
+            if (value < 1) {
+                return 1;
+            } else if (value > 30) {
+                return 30;
+            } else {
+                return value;
+            }
+        };
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -980,6 +989,9 @@ export class PrivateStatusPage extends Component {
                                                                                     'incidentHistoryDays'
                                                                                 }
                                                                                 id="statuspage.incidentHistoryDays"
+                                                                                normalize={
+                                                                                    historyLimit
+                                                                                }
                                                                             />{' '}
                                                                             days
                                                                         </span>
@@ -1061,6 +1073,9 @@ export class PrivateStatusPage extends Component {
                                                                                     'scheduleHistoryDays'
                                                                                 }
                                                                                 id="statuspage.scheduleHistoryDays"
+                                                                                normalize={
+                                                                                    historyLimit
+                                                                                }
                                                                             />{' '}
                                                                             days
                                                                         </span>

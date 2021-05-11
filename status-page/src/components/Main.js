@@ -96,7 +96,8 @@ class Main extends Component {
                 this.props.statusData.projectId._id,
                 this.props.statusData.slug,
                 0,
-                this.props.statusData.theme === 'Clean Theme' ? true : false
+                this.props.statusData.theme === 'Clean Theme' ? true : false,
+                this.props.scheduleHistoryDays || 14
             );
         }
     }
@@ -1306,6 +1307,8 @@ const mapStateToProps = state => ({
     requestingEvents: state.status.events.requesting,
     statusPage: state.status.statusPage,
     isSubscriberEnabled: state.status.statusPage.isSubscriberEnabled,
+
+    scheduleHistoryDays: state.status.statusPage.scheduleHistoryDays,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -1333,6 +1336,7 @@ Main.propTypes = {
     events: PropTypes.array,
     history: PropTypes.object,
     getScheduledEvent: PropTypes.func,
+    scheduleHistoryDays: PropTypes.number,
     requestingEvents: PropTypes.bool,
     statusPage: PropTypes.object,
     isSubscriberEnabled: PropTypes.bool.isRequired,
