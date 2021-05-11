@@ -4,6 +4,7 @@ import { getAnnouncements } from '../actions/status';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { handleResources } from '../config';
+import ShouldRender from './ShouldRender';
 class Announcement extends Component {
     constructor(props) {
         super(props);
@@ -115,15 +116,17 @@ function AnnouncementBox({ announcement, monitorState, type }) {
                 </div>
             </div>
             <div className="ann_desc">{announcement.description}</div>
-            <div className={'resources_aff'}>
-                <span className={type && 'classic_font'}>
-                    Resources Affected:{' '}
-                </span>
-                <span>
-                    {announcement &&
-                        handleResources(monitorState, announcement)}
-                </span>
-            </div>
+            <ShouldRender if={announcement.monitors.length > 0}>
+                <div className={'resources_aff'}>
+                    <span className={type && 'classic_font'}>
+                        Resources Affected:{' '}
+                    </span>
+                    <span>
+                        {announcement &&
+                            handleResources(monitorState, announcement)}
+                    </span>
+                </div>
+            </ShouldRender>
         </>
     );
 }
