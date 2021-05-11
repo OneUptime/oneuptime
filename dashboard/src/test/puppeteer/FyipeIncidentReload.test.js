@@ -41,16 +41,51 @@ describe('Fyipe Monitor Reload', () =>{
 
      test('Should reload the monitor in component-details page and confirm no error', async (done)=>{
        await init.navigateToComponentDetails(componentName, page);
-       // To confirm no error on page reload
-    //    await page.reload({waitUntil: 'networkidle0'});
-    //    await page.waitForSelector(`#cb${componentName}`, {visible:true});
-    //    await page.waitForSelector('#cbMonitors', {visible:true});       
-
-    //    let spanElement = await page.waitForSelector(`#monitor-title-${monitorName}`, {visible : true});
-    //    spanElement = spanElement.getProperty('innerText');
-    //    spanElement = spanElement.jsonValue();
-    //    expect(spanElement).toMatch(monitorName);
+       await page.waitForSelector('#incidentLog', {visible : true});
+       await page.click('#incidentLog');
+       await page.waitForSelector('#cbIncidents');
+       await page.waitForSelector('#incident_title');
+       //To confirm no error on page reload
+       await page.reload({waitUntil: 'networkidle0'});
+       await page.waitForSelector(`#cb${componentName}`, {visible:true});
+       await page.waitForSelector('#cbIncidents', {visible:true});       
+       let spanElement = await page.waitForSelector(`#incident_title`, {visible : true});      
+       expect(spanElement).toBeDefined();
 
        done();
-    }, operationTimeOut);    
+    }, operationTimeOut);
+    
+    test('Should navigate to incident detail page and reload to check errors', async (done)=>{
+      await init.navigateToComponentDetails(componentName, page);
+      await page.waitForSelector('#incidentLog', {visible : true});
+      await page.click('#incidentLog');
+      await page.waitForSelector(`#incident_${monitorName}_0`);
+      await page.click(`#incident_${monitorName}_0`);
+      await page.waitForSelector('#incident_0');
+      //To confirm no error on page reload
+      await page.reload({waitUntil: 'networkidle0'});
+      await page.waitForSelector(`#cb${componentName}`, {visible:true});
+       await page.waitForSelector('#cbIncidentLog', {visible:true});
+      let spanElement = await page.waitForSelector('#incident_0');
+      expect(spanElement).toBeDefined();
+
+      done();
+    }, operationTimeOut);
+
+    test('Should navigate to incident detail page and reload to check errors', async (done)=>{
+      await page.goto(utils.DASHBOARD_URL);
+      await page.waitForSelector('#incidents');
+      await page.click('#incidents');      
+      await page.waitForSelector(`#incident_${monitorName}_0`);
+      await page.click(`#incident_${monitorName}_0`);
+      await page.waitForSelector('#incident_0');
+      //To confirm no error on page reload
+      await page.reload({waitUntil: 'networkidle0'});
+      await page.waitForSelector(`#cb${componentName}`, {visible:true});
+       await page.waitForSelector('#cbIncidentLog', {visible:true});
+      let spanElement = await page.waitForSelector('#incident_0');
+      expect(spanElement).toBeDefined();
+
+      done();
+    }, operationTimeOut);
 })
