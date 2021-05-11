@@ -221,6 +221,8 @@ class Announcements extends Component {
                                                                     }
                                                                 >
                                                                     not visible
+                                                                    on status
+                                                                    page
                                                                 </Badge>
                                                             ) : (
                                                                 <Badge
@@ -228,7 +230,8 @@ class Announcements extends Component {
                                                                         'green'
                                                                     }
                                                                 >
-                                                                    visible
+                                                                    visible on
+                                                                    status page
                                                                 </Badge>
                                                             )}
                                                         </div>
