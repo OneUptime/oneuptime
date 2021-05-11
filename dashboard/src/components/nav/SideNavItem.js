@@ -48,7 +48,6 @@ export class SidebarNavItem extends Component {
         const { match, currentProject, route } = this.props;
         return route.path
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
-            .replace(':subProjectSlug', match.params.subProjectSlug)
             .replace(':componentSlug', match.params.componentSlug)
             .replace(':monitor', match.params.monitorSlug)
             .replace(':applicationLogSlug', match.params.applicationLogSlug)
@@ -112,7 +111,6 @@ export class SidebarNavItem extends Component {
         } = this.props;
         const path = route.path
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
-            .replace(':subProjectSlug', match.params.subProjectSlug)
             .replace(':componentSlug', match.params.componentSlug)
             .replace(':monitorSlug', match.params.monitorSlug)
             .replace(':applicationLogSlug', match.params.applicationLogSlug)
@@ -124,11 +122,11 @@ export class SidebarNavItem extends Component {
         const isLinkActive =
             location.pathname === path ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/subProject\/([A-Za-z0-9-]+)\/status-page\/([0-9]|[a-z]+)/
+                /project\/([A-Za-z0-9-]+)\/status-page\/([0-9]|[a-z]+)/
             ) &&
                 route.title === 'Status Pages') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/subProject\/([A-Za-z0-9-]+)\/schedule\/([0-9]|[a-z]+)/
+                /project\/([A-Za-z0-9-]+)\/schedule\/([0-9]|[a-z]+)/
             ) &&
                 route.title === 'On-Call Duty') ||
             (location.pathname.match(

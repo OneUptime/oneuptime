@@ -357,9 +357,7 @@ const mapStateToProps = (state, props) => {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
         scheduleId: schedule && schedule._id,
-        subProjectId:
-            state.subProject.currentSubProject.subProject &&
-            state.subProject.currentSubProject.subProject._id,
+        subProjectId: schedule && schedule.projectId._id,
     };
 };
 
