@@ -137,7 +137,6 @@ class StatusPageSubscriber extends Component {
                 ? CreateSubscriber
                 : NoMonitorSubscriber;
 
-
         return (
             <>
                 <div className="bs-ContentSection Card-root Card-shadow--medium">

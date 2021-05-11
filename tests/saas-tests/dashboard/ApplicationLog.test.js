@@ -45,7 +45,9 @@ describe('Log Containers', () => {
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component');
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', componentName);
             await page.click('#addComponentButton');
             await page.waitForSelector('#form-new-monitor', {
@@ -76,7 +78,9 @@ describe('Log Containers', () => {
 
             // Fill and submit New Application  log form
             await page.waitForSelector('#form-new-application-log');
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', applicationLogName);
             await page.click('button[type=submit]');
             //await page.goto(utils.DASHBOARD_URL);
@@ -113,7 +117,9 @@ describe('Log Containers', () => {
             // create a new log and select the category
             // Fill and submit New Application  log form
             await page.waitForSelector('#form-new-application-log');
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', appLogName);
             await init.selectByText('#resourceCategory', categoryName, page);
             await page.click('button[type=submit]');
@@ -140,7 +146,9 @@ describe('Log Containers', () => {
 
             // Fill and submit New Application  log form
             await page.waitForSelector('#form-new-application-log');
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', '');
             await page.click('button[type=submit]');
 
@@ -464,6 +472,7 @@ describe('Log Containers', () => {
             await page.click(`#edit_${applicationLogName}`);
             // Fill and submit edit Application  log form
             await page.waitForSelector('#form-new-application-log');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', '-new');
             await page.click('button[type=submit]');
             await page.waitForSelector('#addApplicationLogButton', {

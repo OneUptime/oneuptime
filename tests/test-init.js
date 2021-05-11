@@ -207,7 +207,9 @@ module.exports = {
         }
     },
     logout: async function(page) {
-        await page.goto(utils.ADMIN_DASHBOARD_URL);
+        await page.goto(utils.ADMIN_DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('button#profile-menu', { visible: true });
         await page.click('button#profile-menu');
         await page.waitForSelector('button#logout-button');
@@ -216,7 +218,7 @@ module.exports = {
         await page.waitForTimeout(3000);
     },
     saasLogout: async function(page) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
         await page.waitForSelector('button#profile-menu', { visible: true });
         await page.click('button#profile-menu');
         await page.waitForSelector('button#logout-button');
@@ -243,11 +245,12 @@ module.exports = {
         await this.clear('input[name=project_name]', page);
         await page.type('input[name=project_name]', newProjectName);
         await page.click('#btnCreateProject');
-    },    
+    },
     addMonitor: async function(monitorName, description, page) {
         await page.waitForSelector('#form-new-monitor', { visible: true });
         await page.waitForSelector('input[id=name]', { visible: true });
         await page.click('input[id=name]');
+        await page.focus('input[id=name]');
         await page.type('input[id=name]', monitorName);
         await page.click('[data-testId=type_manual]');
         await page.waitForSelector('#description', { visible: true });
@@ -258,7 +261,7 @@ module.exports = {
     },
     navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
-        await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle0' });
+        await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
         await page.waitForSelector('#components', { visible: true });
         await page.click('#components');
 
@@ -267,9 +270,7 @@ module.exports = {
         await page.$eval(`#more-details-${component}`, e => e.click());
     },
     addMonitorToStatusPage: async function(componentName, monitorName, page) {
-        await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: 'networkidle2',
-        });
+        await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
         const description = utils.generateRandomString();
         await page.waitForSelector('#statusPages');
         await page.click('#statusPages');
@@ -296,7 +297,7 @@ module.exports = {
         let link = await page.$('#publicStatusPageUrl > span > a');
         link = await link.getProperty('href');
         link = await link.jsonValue();
-        await page.goto(link);
+        await page.goto(link, { waitUntil: ['networkidle2'] });
     },
     navigateToStatusPage: async function(page) {
         await page.waitForSelector('#statusPages');
@@ -305,9 +306,9 @@ module.exports = {
         await page.waitForSelector('#viewStatusPage');
         await page.click('#viewStatusPage');
         await this.clickStatusPageUrl(page);
-    },    
+    },
     growthPlanUpgrade: async function(page) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
         await page.waitForSelector('#projectSettings', { visible: true });
         await page.click('#projectSettings');
         await page.waitForSelector('#billing');
@@ -335,7 +336,7 @@ module.exports = {
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/register'),
             {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             };
         // Registration
         await page.waitForSelector('#email');
@@ -356,7 +357,7 @@ module.exports = {
 
         // Login
         await page.goto(utils.ACCOUNTS_URL + '/login', {
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#login-form');
         await page.click('input[name=email]');
@@ -372,9 +373,11 @@ module.exports = {
             false
         );
     },
-        
+
     adminLogout: async function(page) {
-        await page.goto(utils.ADMIN_DASHBOARD_URL);
+        await page.goto(utils.ADMIN_DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('button#profile-menu', { visible: true });
         await page.click('button#profile-menu');
         await page.waitForSelector('button#logout-button');
@@ -382,13 +385,14 @@ module.exports = {
         await page.reload({ waitUntil: 'networkidle0' });
     },
     addComponent: async function(component, page, projectName = null) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
         await page.waitForSelector('#components', { visible: true });
         await page.click('#components');
 
         // Fill and submit New Component form
         await page.waitForSelector('#form-new-component');
         await page.click('input[id=name]');
+        await page.focus('input[id=name]');
         await page.type('input[id=name]', component);
 
         if (projectName) {
@@ -399,7 +403,7 @@ module.exports = {
             page.$eval('button[type=submit]', e => e.click()),
             page.waitForNavigation(),
         ]);
-    },    
+    },
     navigateToMonitorDetails: async function(component, monitor, page) {
         // Navigate to Components page
         await this.navigateToComponentDetails(component, page);
@@ -445,7 +449,7 @@ module.exports = {
         await page.click(`#more-details-${errorTracker}`);
         await page.waitForSelector(`#error-tracker-title-${errorTracker}`);
     },
-    
+
     createUserFromAdminDashboard: async function(user, page) {
         // create the user from admin dashboard
         const { email } = user;
@@ -513,17 +517,18 @@ module.exports = {
         await page.click(`#btn_modal_${subProjectName}`);
     },
     switchProject: async function(projectName, page) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
         await page.waitForSelector('#AccountSwitcherId', { visible: true });
         await page.click('#AccountSwitcherId');
         await page.waitForSelector(`#accountSwitcher div#${projectName}`);
         await page.click(`#accountSwitcher div#${projectName}`);
         await page.waitForSelector('#components', { visible: true });
-    },        
+    },
     addMonitorToComponent: async function(component, monitorName, page) {
         component && (await this.addComponent(component, page));
         await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
+        await page.focus('input[id=name]');
         await page.type('input[id=name]', monitorName);
         await page.waitForSelector('button[id=showMoreMonitors]');
         await page.click('button[id=showMoreMonitors]');
@@ -548,6 +553,7 @@ module.exports = {
         await page.waitForSelector('#form-new-monitor');
         await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
+        await page.focus('input[id=name]');
         await page.type('input[id=name]', monitorName);
         await page.click('[data-testId=type_url]');
         await page.waitForSelector('#url', { visible: true });
@@ -571,6 +577,7 @@ module.exports = {
     ) {
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
+        await page.focus('input[id=name]');
         await page.type('input[id=name]', monitorName);
         await page.click('input[data-testId=type_api]');
         await this.selectByText('#method', 'get', page);
@@ -681,6 +688,7 @@ module.exports = {
         // await this.navigateToComponentDetails(componentName, page);
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
+        await page.focus('input[id=name]');
         await page.type('input[id=name]', monitorName);
         //Please add a new monitor type here. IOT Device Monitor has been removed.
         await page.click('button[type=submit]');
@@ -886,7 +894,7 @@ module.exports = {
             page.click('#btnCreateProject'),
             page.waitForNavigation({ waitUntil: 'networkidle0' }),
         ]);
-    },    
+    },
     addResourceCategory: async function(resourceCategory, page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#projectSettings');
@@ -1104,7 +1112,7 @@ module.exports = {
         await page.waitForSelector('.ball-beat', { hidden: true });
         await page.reload();
         await page.waitForSelector('#user');
-    },    
+    },
     setAlertPhoneNumber: async (phoneNumber, code, page) => {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#profile-menu');
@@ -1176,5 +1184,5 @@ module.exports = {
 
         await page.click('#createCustomFieldButton');
         await page.waitForSelector('#customFieldForm', { visible: 'hidden' });
-    },    
+    },
 };

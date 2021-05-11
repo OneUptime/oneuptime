@@ -46,8 +46,11 @@ describe('Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
             const monitorName = utils.generateRandomString();
 
-            await page.waitForSelector('#form-new-monitor');
+            await page.waitForSelector('#form-new-monitor', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', monitorName);
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
@@ -74,7 +77,10 @@ describe('Monitor API', () => {
             const monitorName = utils.generateRandomString();
 
             await page.waitForSelector('#form-new-monitor');
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', monitorName);
             await page.click('input[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
@@ -128,7 +134,10 @@ describe('Monitor API', () => {
         const monitorName = utils.generateRandomString();
 
         await page.waitForSelector('#form-new-monitor');
+        await page.waitForSelector('input[id=name]', { visible: true });
+        await page.waitForSelector('input[id=name]', { visible: true });
         await page.click('input[id=name]');
+        await page.focus('input[id=name]');
         await page.type('input[id=name]', monitorName);
         await page.click('input[data-testId=type_url]');
         await page.waitForSelector('#url', { visible: true });
@@ -322,7 +331,10 @@ describe('Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
             const monitorName = utils.generateRandomString();
             await page.waitForSelector('#form-new-monitor');
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', monitorName);
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
@@ -408,7 +420,10 @@ describe('Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#form-new-monitor');
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', testServerMonitorName);
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
@@ -437,7 +452,10 @@ describe('Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#form-new-monitor');
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', selfSignedMonitorName);
             await init.selectByText('#type', 'url', page);
             await page.waitForSelector('#url', { visible: true });
@@ -662,7 +680,10 @@ describe('API Monitor API', () => {
             // Redirects automatically component to details page
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#form-new-monitor');
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', monitorName);
             await page.click('input[data-testId=type_api]');
             await page.waitForSelector('#url', { visible: true });
@@ -692,7 +713,10 @@ describe('API Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#form-new-monitor');
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', monitorName);
             await page.click('input[data-testId=type_api]');
             await page.waitForSelector('#url', { visible: true });
@@ -721,7 +745,10 @@ describe('API Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#form-new-monitor');
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', monitorName);
             await page.click('input[data-testId=type_api]');
             await init.selectByText('#method', 'post', page);
@@ -765,7 +792,10 @@ describe('API Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#form-new-monitor');
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', monitorName);
             await page.click('input[data-testId=type_api]');
             await init.selectByText('#method', 'get', page);

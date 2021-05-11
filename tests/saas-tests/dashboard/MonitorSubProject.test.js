@@ -95,7 +95,9 @@ describe('Monitor API With SubProjects', () => {
             // switch to invited project for new user
             await page.waitForSelector('#monitors');
             await page.waitForSelector('#form-new-monitor');
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', subProjectMonitorName);
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
@@ -125,7 +127,9 @@ describe('Monitor API With SubProjects', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#form-new-monitor', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', monitorName);
             await page.click('[data-testId=type_manual]');
             await page.click('button[type=submit]');
@@ -183,7 +187,9 @@ describe('Monitor API With SubProjects', () => {
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#form-new-monitor');
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', monitorName);
             await page.click('[data-testId=type_manual]');
             await page.click('#addMonitorButton');
@@ -195,7 +201,9 @@ describe('Monitor API With SubProjects', () => {
             await page.waitForSelector('#form-new-monitor', {
                 visible: true,
             });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', `${monitorName}1`);
             await page.click('[data-testId=type_manual]');
             await page.click('#addMonitorButton');

@@ -42,7 +42,9 @@ describe('Project API', () => {
             await page.waitForSelector('#selector', { visible: true });
             await page.$eval('#create-project', e => e.click());
             await page.waitForSelector('#name', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', utils.generateRandomString());
             await page.click('input[id=Startup_month]');
             await Promise.all([

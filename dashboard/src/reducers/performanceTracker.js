@@ -316,7 +316,7 @@ export default function(state = INITIAL_STATE, action) {
                 fetchPerformanceTracker: {
                     ...state.fetchPerformanceTracker,
                     performanceTracker: action.payload,
-                }
+                },
             };
 
         case types.RESET_PERFORMANCE_TRACKER_KEY_FAILURE:

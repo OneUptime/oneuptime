@@ -113,7 +113,9 @@ describe('Resource Category', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#form-new-monitor', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', utils.monitorName);
             await init.selectByText(
                 '#resourceCategory',

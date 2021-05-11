@@ -50,7 +50,9 @@ describe('Check scheduled maintenace', () => {
         });
         await page.click(`#btnCreateStatusPage_${projectName}`);
         await page.waitForSelector('#name', { visible: true });
+        await page.waitForSelector('input[id=name]', { visible: true });
         await page.click('input[id=name]');
+        await page.focus('input[id=name]');
         await page.type('input[id=name]', statusPageName);
         await page.click('#btnCreateStatusPage');
         await page.waitForSelector('#statusPagesListContainer', {
@@ -84,13 +86,16 @@ describe('Check scheduled maintenace', () => {
 
         // Fill and submit New Component form
         await page.waitForSelector('#form-new-component', { visible: true });
+        await page.waitForSelector('input[id=name]', { visible: true });
         await page.click('input[id=name]');
+        await page.focus('input[id=name]');
         await page.type('input[id=name]', componentName);
         await page.click('button[type=submit]');
 
         // Create a Manual Monitor
         await page.waitForSelector('#form-new-monitor', { visible: true });
         await page.click('input[id=name]', { visible: true });
+        await page.focus('input[id=name]');
         await page.type('input[id=name]', monitorName);
         await page.click('[data-testId=type_manual]');
         await page.waitForSelector('#description', { visible: true });
