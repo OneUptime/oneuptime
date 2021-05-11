@@ -893,12 +893,14 @@ module.exports = {
             visible: true,
         });
         await page.click('#projectSettings');
+        await page.waitForSelector('#more');
+        await page.click('#more');
         await page.waitForSelector('#smsCalls');
         await page.click('#smsCalls');
         await page.waitForSelector('label[for=enabled]', {
             visible: true,
         });
-        if (enableSms) await page.click('label[for=enabled]');
+        if (enableSms) await page.click('#enableTwilio');
         await page.type('#accountSid', accountSid);
         await page.type('#authToken', authToken);
         await page.type('#phoneNumber', phoneNumber);
@@ -939,8 +941,7 @@ module.exports = {
         await page.reload();
         await page.waitForSelector('#account-sid');
     },
-    addSmtpSettings: async function(
-        enable,
+    addSmtpSettings: async function(        
         user,
         pass,
         host,
@@ -954,10 +955,12 @@ module.exports = {
             visible: true,
         });
         await page.click('#projectSettings');
+        await page.waitForSelector('#more');
+        await page.click('#more');
         await page.waitForSelector('#email');
-        await page.click('#email');
-        await page.waitForSelector('#smtpswitch');
-        if (enable) await page.$eval('#smtpswitch', elem => elem.click());
+        await page.click('#email');        
+        await page.waitForSelector('#showsmtpForm', {visible: true});
+        await page.click('#showsmtpForm');// Removal of intermittency.        
         await page.waitForSelector('#user');
         await page.type('#user', user);
         await page.type('#pass', pass);
