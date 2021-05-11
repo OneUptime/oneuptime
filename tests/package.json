@@ -4,8 +4,9 @@
     "description": "Smoke tests for fyipe",
     "main": "index.test.js",
     "scripts": {
-        "test": "jest --forceExit --runInBand ./saas-tests/**/*.test.js --verbose",
-        "enterprise-test": "jest --forceExit --runInBand ./enterprise-tests/**/*.test.js --verbose",
+        "test": "jest --forceExit --detectOpenHandles ./saas-tests/**/*.test.js",
+        "saas-test": "npm run test",
+        "enterprise-test": "jest --forceExit --detectOpenHandles ./enterprise-tests/**/*.test.js",
         "staging-test": "export HOME_URL=https://staging.fyipe.com && export ACCOUNTS_URL=https://staging.fyipe.com/accounts && export ADMIN_DASHBOARD_URL=https://staging.fyipe.com/admin && export DASHBOARD_URL=https://staging.fyipe.com/dashboard && export BACKEND_URL=https://staging.fyipe.com/api && export STATUSPAGE_URL=https://staging.fyipe.com/status-page && export APIDOCS_URL=https://staging.fyipe.com/docs && jest --forceExit --detectOpenHandles ./saas-tests/**/*.test.js",
         "debug-staging-test": "export SLOMO=20 && export HEADLESS=false && npm run-script staging-test"
     },
@@ -17,7 +18,7 @@
         "chai-http": "^4.3.0",
         "faker": "^4.1.0",
         "jest": "^26.6.3",
-        "puppeteer": "^8.0.0",
+        "puppeteer": "^9.1.1",
         "should": "^13.2.3"
     },
     "jest": {
