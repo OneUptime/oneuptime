@@ -1,7 +1,3 @@
-/** This is a test to check:
- * No errors on page reload
- * It stays on the same page on reload
- */
  const puppeteer = require('puppeteer');
  const utils = require('./test-utils');
  const init = require('./test-init');
@@ -11,6 +7,11 @@
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
  }
+
+ /** This is a test to check:
+ * No errors on page reload
+ * It stays on the same page on reload
+ */
 
  describe('Fyipe Page Reload', ()=>{
      const operationTimeOut = 100000;            
