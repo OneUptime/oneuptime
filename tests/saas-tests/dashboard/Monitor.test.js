@@ -553,7 +553,7 @@ describe('Monitor API', () => {
     );
 
     test(
-        'should degrade (not timeout and return status code 408) monitor with response time longer than 60000ms and status code 200',
+        'should degrade (not timeout and return status code 408) monitor with response time longer than 600000ms and status code 200',
         async done => {
             const bodyText = utils.generateRandomString();
             // This navigates to hhtp-test server and create the settings for the test suite
@@ -572,7 +572,7 @@ describe('Monitor API', () => {
             );
             await page.waitForSelector('#responseTime');
             await page.click('input[name=responseTime]');
-            await page.type('input[name=responseTime]', '60000');
+            await page.type('input[name=responseTime]', '600000');
             await page.waitForSelector('#statusCode');
             await page.click('input[name=statusCode]');
             await page.type('input[name=statusCode]', '200');

@@ -68,7 +68,7 @@ describe('Status-Page Advanced Options', () => {
         expect(spanElement).toMatch(statusPageName);
 
         done();
-    }, 60000);
+    }, 600000);
 
     test('should create a manual monitor', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -106,7 +106,7 @@ describe('Status-Page Advanced Options', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 60000);
+    }, 600000);
 
     test('should add monitor to status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -143,7 +143,7 @@ describe('Status-Page Advanced Options', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 60000);
+    }, 600000);
 
     test('should add subscriber', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -171,7 +171,7 @@ describe('Status-Page Advanced Options', () => {
         expect(subscriberContact).toBeDefined();
 
         done();
-    }, 60000);
+    }, 600000);
 
     test('should view created subscriber on status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -195,7 +195,7 @@ describe('Status-Page Advanced Options', () => {
         expect(subscriberContact).toBeDefined();
 
         done();
-    }, 60000);
+    }, 600000);
 
     test('should create custom domain in status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -223,7 +223,7 @@ describe('Status-Page Advanced Options', () => {
         expect(customDomain).toBeDefined();
 
         done();
-    }, 60000);
+    }, 600000);
 
     test('should enable add subscriber from advanced options and view on status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -258,7 +258,7 @@ describe('Status-Page Advanced Options', () => {
         expect(subscriberButton).toBeDefined();
 
         done();
-    }, 60000);
+    }, 600000);
 
     test('should navigate to status-page and add subscriber', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -282,7 +282,7 @@ describe('Status-Page Advanced Options', () => {
         );
 
         done();
-    }, 60000);
+    }, 600000);
 
     test('should delete status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -312,5 +312,5 @@ describe('Status-Page Advanced Options', () => {
         expect(deletedStatusPage).toBeDefined();
 
         done();
-    }, 60000);
+    }, 600000);
 });

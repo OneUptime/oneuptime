@@ -74,7 +74,7 @@ describe('Check scheduled maintenace', () => {
         expect(spanElement).toMatch(statusPageName);
 
         done();
-    }, 60000);
+    }, 600000);
 
     test('should create a manual monitor', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -113,7 +113,7 @@ describe('Check scheduled maintenace', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 60000);
+    }, 600000);
 
     test('should add monitor to status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -155,7 +155,7 @@ describe('Check scheduled maintenace', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 60000);
+    }, 600000);
 
     test('should create a scheduled maintenance', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -218,7 +218,7 @@ describe('Check scheduled maintenace', () => {
         expect(scheduledMaintenance).toMatch(monitorName);
 
         done();
-    }, 60000);
+    }, 600000);
 
     test('should view scheduled maintenance details in status-page', async done => {
         await page.waitForSelector('#statusPages', { visible: true });
@@ -271,5 +271,5 @@ describe('Check scheduled maintenace', () => {
         expect(futureEvent).toMatch(futureEvent);
 
         done();
-    }, 60000);
+    }, 600000);
 });

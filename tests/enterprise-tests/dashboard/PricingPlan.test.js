@@ -17,7 +17,7 @@ describe('Status Page', () => {
     const operationTimeOut = 500000;
 
     beforeAll(async () => {
-        jest.setTimeout(360000);
+        jest.setTimeout(3600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();

@@ -11,7 +11,7 @@ describe('User Feedback', () => {
     const operationTimeOut = 50000;
 
     beforeAll(async done => {
-        jest.setTimeout(60000);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();

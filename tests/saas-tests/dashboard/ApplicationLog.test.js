@@ -17,7 +17,7 @@ describe('Log Containers', () => {
     const operationTimeOut = 900000;
 
     beforeAll(async () => {
-        jest.setTimeout(60000);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();

@@ -23,7 +23,7 @@ describe('Incoming HTTP Request', () => {
     const operationTimeOut = 500000;
 
     beforeAll(async done => {
-        jest.setTimeout(360000);
+        jest.setTimeout(3600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
