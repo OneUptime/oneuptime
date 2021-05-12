@@ -16,7 +16,7 @@ describe('Alert Warning', () => {
     const operationTimeOut = 1000000;
 
     beforeAll(async done => {
-        jest.setTimeout(2000000);
+        jest.setTimeout(300000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();

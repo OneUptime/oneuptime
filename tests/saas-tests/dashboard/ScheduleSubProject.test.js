@@ -23,7 +23,7 @@ describe('Schedule API With SubProjects', () => {
     const operationTimeOut = 500000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(30000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -156,7 +156,7 @@ describe('Schedule API With SubProjects', () => {
         expect(countSchedules).toEqual(10);
 
         done();
-    }, 200000);
+    }, 30000);
 
     test(
         'should add monitor to sub-project schedule',

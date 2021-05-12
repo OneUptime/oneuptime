@@ -16,7 +16,7 @@ describe('SMS Templates API', () => {
 
     let initialTemplate;
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(30000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(

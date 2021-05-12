@@ -20,7 +20,7 @@ describe('Team API With SubProjects', () => {
     const operationTimeOut = 100000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(30000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -79,7 +79,7 @@ describe('Team API With SubProjects', () => {
         expect(memberCount).toEqual('Page 1 of 1 (2 Team Members)');
 
         done();
-    }, 200000);
+    }, 30000);
 
     test('should not allow project owner to add other project owners', async done => {
         await page.goto(utils.DASHBOARD_URL);
@@ -93,7 +93,7 @@ describe('Team API With SubProjects', () => {
         const elementHandle = await page.$(`#${role}_${projectName}`);
         expect(elementHandle).toEqual(null);
         done();
-    }, 200000);
+    }, 30000);
 
     test('should not allow administrator to add project owners', async done => {
         await page.goto(utils.DASHBOARD_URL);
@@ -108,7 +108,7 @@ describe('Team API With SubProjects', () => {
         expect(elementHandle).toEqual(null);
 
         done();
-    }, 200000);
+    }, 30000);
 
     test('should add a new user to sub-project (role -> `Member`)', async done => {
         await page.goto(utils.DASHBOARD_URL);
@@ -136,7 +136,7 @@ describe('Team API With SubProjects', () => {
         expect(memberCount).toEqual('Page 1 of 1 (3 Team Members)');
 
         done();
-    }, 200000);
+    }, 30000);
 
     test(
         'should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)',
