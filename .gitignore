@@ -48,3 +48,5 @@ kubernetes/values-saas-production.yaml
 /keys
 
 temp_readme.md
+
+tests/coverage
