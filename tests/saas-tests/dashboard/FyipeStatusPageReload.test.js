@@ -69,6 +69,8 @@ describe('Fyipe Page Reload', () => {
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
+            await page.waitForSelector('#cbStatusPages');
+            await page.waitForSelector(`#cb${statusPageName}`);
             const elem = await page.waitForSelector('#monitor-0', {
                 visible: true,
             });
