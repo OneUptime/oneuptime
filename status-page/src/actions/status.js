@@ -1068,14 +1068,15 @@ export function getSingleAnnouncement(
                 dispatch(getSingleAnnouncementSuccess(response.data));
             },
             function(error) {
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-                dispatch(getSingleAnnouncementFailure(error));
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(getSingleAnnouncementFailure(errorMsg));
             }
         );
         return promise;
