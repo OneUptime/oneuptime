@@ -61,7 +61,7 @@ describe('Fyipe Page Reload', () => {
              await page.reload({ waitUntil: 'networkidle0' });
              await page.waitForSelector('#cbScheduledMaintenanceEvent', { visible: true });
              await page.waitForSelector(`#cb${scheduleMaintenanceName}`, { visible: true });
-             const spanElement = await await page.waitForSelector(`#editScheduledEvent-${scheduleMaintenanceName}`, {visible: true});
+             const spanElement = await page.waitForSelector(`#editScheduledEvent-${scheduleMaintenanceName}`, {visible: true});
              expect(spanElement).toBeDefined();
             done();
         },
