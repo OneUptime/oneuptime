@@ -1435,8 +1435,39 @@ public void logACustomClassInformation(CustomClass customClass) throws IOExcepti
                     install: '50px',
                     usage: '350px',
                 },
-                errorTracking:
-                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                errorTracking: {
+                    installation: {
+                        package: `
+    Pip Install`,
+                        command: `                        
+pip install fyipe-sdk
+        `,
+                    },
+                    usage: `                        
+from fyipe_sdk import FyipeTracker
+
+# set up tracking configurations    
+options = {
+    "maxTimeline": 50,
+    "captureCodeSnippet": True
+}               
+
+# constructor                        
+tracker = FyipeTracker(                        
+    "${apiUrl ? apiUrl : 'API_URL'}",
+    '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
+    '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
+    options # Optional Field               
+);
+                            
+# capturing error exception manually and sent to your fyipe dashboard
+try:
+    # your code logic
+    result = 5/0 # Should throw a division by zero error
+catch Exception as error:
+    tracker.captureException(error)
+`,
+                },
                 logs: {
                     installation: {
                         package: `
