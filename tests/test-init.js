@@ -54,7 +54,7 @@ module.exports = {
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cardnumber]');
             await frame.type('input[name=cardnumber]', '42424242424242424242', {
-                delay: 50,
+                delay: 200,
             });
 
             elementHandle = stripeIframeElements[1]; // cvc element
@@ -870,8 +870,8 @@ module.exports = {
             );
             const frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cardnumber]');
-            await frame.type('input[name=cardnumber]', '4242424242424242', {
-                delay: 150,
+            await frame.type('input[name=cardnumber]', '42424242424242424242', {
+                delay: 200,
             });
 
             await frame.waitForSelector('input[name=cvc]');

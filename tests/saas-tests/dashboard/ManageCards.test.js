@@ -50,8 +50,8 @@ describe('Stripe cards API', () => {
             );
             const frame = await stripeIframe.contentFrame();
             frame.waitForSelector('input[name=cardnumber]');
-            await frame.type('input[name=cardnumber]', '5555555555554444', {
-                delay: 150,
+            await frame.type('input[name=cardnumber]', '42424242424242424242', {
+                delay: 200,
             });
             frame.waitForSelector('input[name=exp-date]');
             await frame.type('input[name=exp-date]', '11/23');
@@ -146,8 +146,8 @@ describe('Stripe cards API', () => {
 
             const frame = await stripeIframe.contentFrame();
             frame.waitForSelector('input[name=cardnumber]');
-            await frame.type('input[name=cardnumber]', '4242424242424241', {
-                delay: 150,
+            await frame.type('input[name=cardnumber]', '42424242424242424242', {
+                delay: 200,
             });
             frame.waitForSelector('input[name=exp-date]');
             await frame.type('input[name=exp-date]', '11/23');
