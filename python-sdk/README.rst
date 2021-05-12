@@ -14,7 +14,7 @@ To install::
 Overview
 --------
 
-The usual way to use `fyipe_sdk` is something like below::
+The usual way to use `fyipe_sdk` application log is something like below::
 
    from fyipe_sdk import FyipeLogger
 
@@ -40,6 +40,32 @@ The usual way to use `fyipe_sdk` is something like below::
 
     response = logger.log(item)
     print(response)
+
+
+The usual way to use `fyipe_sdk` error tracker is something like below::
+
+   from fyipe_sdk import FyipeTracker
+
+    # set up tracking configurations    
+    options = {
+        "maxTimeline": 50,
+        "captureCodeSnippet": True
+    }   
+
+    # constructor
+    tracker = FyipeTracker(
+        'API_URL', # https://fyipe.com/api
+        'ERROR_TRACKER_ID',
+        'ERROR_TRACKER_KEY',
+        options
+    )
+
+   # capturing error exception manually and sent to your fyipe dashboard
+    try:
+        # your code logic
+        result = 5/0 # Should throw a division by zero error
+    catch Exception as error:
+        tracker.captureException(error)
 
    
 
