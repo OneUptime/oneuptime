@@ -41,7 +41,7 @@ describe('Fyipe Page Reload', () => {
         'Should reload the incidents page and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#logs');;
+            await page.waitForSelector('#logs');
             await page.click('#logs');
             await page.waitForSelector('#form-new-application-log');
             await page.waitForSelector('input[name=name]');
