@@ -56,28 +56,28 @@ describe('Fyipe Page Reload', () => {
             });
             await page.$eval(createScheduleBtn, elem => elem.click());
 
-            await page.waitForSelector('#name');
+            await page.waitForSelector('#name', {visible : true});
             await page.type('#name', onCallName);
             await page.click('#btnCreateSchedule');
             await page.waitForSelector('#name', { hidden: true });
 
-            await page.waitForSelector('#viewOnCallSchedule');
+            await page.waitForSelector('#viewOnCallSchedule', {visible : true});
             await page.click('#viewOnCallSchedule');
-            await page.waitForSelector('#scheduleMonitor_0');
+            await page.waitForSelector('#scheduleMonitor_0', {visible : true});
             await page.click('#scheduleMonitor_0');
-            await page.waitForSelector('#btnSaveMonitors');
+            await page.waitForSelector('#btnSaveMonitors', {visible : true});
             await page.click('#btnSaveMonitors');
 
             await init.selectByText('.css-1uccc91-singleValue','Test Name', page);
-            await page.waitForSelector('#saveSchedulePolicy');
+            await page.waitForSelector('#saveSchedulePolicy', {visible : true});
             await page.click('#saveSchedulePolicy');
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
-            await page.waitForSelector('#cbOn-CallDuty');
-            await page.waitForSelector(`#cb${onCallName}`);
+            await page.waitForSelector('#cbOn-CallDuty', {visible : true});
+            await page.waitForSelector(`#cb${onCallName}`, {visible : true});
             
-            let spanElement = await page.waitForSelector('#onCallDutyNote');
+            let spanElement = await page.waitForSelector('#onCallDutyNote', {visible : true});
             expect(spanElement).toBeDefined();
            
             done();
