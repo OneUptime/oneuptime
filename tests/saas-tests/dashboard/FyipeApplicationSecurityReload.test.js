@@ -8,11 +8,11 @@ const user = {
     password: '1234567890',
 };
 const componentName = utils.generateRandomString();
-const containerSecurityName = utils.generateRandomString();
+const applicationSecurityName = utils.generateRandomString();
 
-const gitUsername = utils.gitCredential.gitUsername;
-const gitPassword = utils.gitCredential.gitPassword;
-const gitRepositoryUrl = utils.gitCredential.gitRepositoryUrl;
+const gitUsername = 'adeoluwadavid'//utils.gitCredential.gitUsername;
+const gitPassword = 'Ohio123@.'//utils.gitCredential.gitPassword;
+const gitRepositoryUrl = 'https://github.com/adeoluwadavid/SocketIO'//utils.gitCredential.gitRepositoryUrl;
 
 /** This is a test to check:
  * No errors on page reload
@@ -48,7 +48,7 @@ describe('Fyipe Page Reload', () => {
             // create a new resource category
             await init.addResourceCategory(categoryName, page);
             //navigate to component details
-            await init.navigateToComponentDetails(component, page);
+            await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#security', { visible: true });
             await page.click('#security');
@@ -91,20 +91,15 @@ describe('Fyipe Page Reload', () => {
                 { visible: true }
             );
             expect(applicationSecurity).toBeDefined();
+                
+            // To confirm no errors and stays on the same page on reload
+            await page.reload({ waitUntil: 'networkidle0' });
+            await page.waitForSelector(`#cb${componentName}`, { visible: true });
+            await page.waitForSelector('#cbApplicationSecurity', { visible: true });
+            await page.waitForSelector(`#cb${applicationSecurityName}`, { visible: true });
 
-            // find the edit button which appears only on the details page
-            const editApplicationElement = await page.waitForSelector(
-                `#edit_${applicationSecurityName}`
-            );
-            expect(editApplicationElement).toBeDefined();
-
-            // confirm the category shows in the details page.
-            let spanElement = await page.$(
-                `#${applicationSecurityName}-badge`
-            );
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
-            spanElement.should.be.exactly(categoryName.toUpperCase());
+            let spanElement = await page.waitForSelector(`#applicationSecurityTitle_${applicationSecurityName}`);
+            expect(spanElement).toBeDefined();
 
             done();
         },
