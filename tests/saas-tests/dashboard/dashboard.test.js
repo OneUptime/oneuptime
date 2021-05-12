@@ -86,7 +86,7 @@ describe('Monitor API', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', componentName);
+            await init.pageType(page, 'input[id=name]', componentName);
             await page.click('#addComponentButton');
 
             await page.waitForSelector('#monitors', { visible: true });
@@ -130,11 +130,11 @@ describe('Monitor API', () => {
             // Fill and submit New Monitor form
             await page.click('input[id=name]', { visible: true });
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', monitorName);
+            await init.pageType(page, 'input[id=name]', monitorName);
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
-            await page.type('#url', 'https://google.com');
+            await init.pageType(page, '#url', 'https://google.com');
             await page.click('button[type=submit]');
 
             let spanElement;
@@ -170,11 +170,11 @@ describe('Monitor API', () => {
             // Submit New Monitor form with incorrect details
             await page.click('input[id=name]', { visible: true });
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', '');
+            await init.pageType(page, 'input[id=name]', '');
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
-            await page.type('#url', 'https://google.com');
+            await init.pageType(page, '#url', 'https://google.com');
             await page.click('button[type=submit]');
 
             let spanElement;

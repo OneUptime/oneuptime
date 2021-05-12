@@ -12,7 +12,6 @@ const monitorName = utils.generateRandomString();
 const statusPageName = utils.generateRandomString();
 const projectName = utils.generateRandomString();
 
-
 /** This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
@@ -47,7 +46,7 @@ describe('Fyipe Page Reload', () => {
         'Should reload the incidents page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#statusPages', {visible : true});
+            await page.waitForSelector('#statusPages', { visible: true });
             await page.$eval('#statusPages', e => e.click());
             const rowItem = await page.waitForSelector(
                 '#statusPagesListContainer > tr',
@@ -55,9 +54,9 @@ describe('Fyipe Page Reload', () => {
             );
             rowItem.click();
 
-            await page.waitForSelector('#addMoreMonitors', {visible : true});
+            await page.waitForSelector('#addMoreMonitors', { visible: true });
             await page.click('#addMoreMonitors');
-            await page.waitForSelector('#monitor-0', {visible : true});
+            await page.waitForSelector('#monitor-0', { visible: true });
             await init.selectByText(
                 '#monitor-0 .db-select-nw',
                 `${componentName} / ${monitorName}`,
@@ -69,16 +68,17 @@ describe('Fyipe Page Reload', () => {
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
-            await page.waitForSelector('#cbStatusPages', {visible : true});
-            await page.waitForSelector(`#cb${statusPageName}`, {visible : true});
+            await page.waitForSelector('#cbStatusPages', { visible: true });
+            await page.waitForSelector(`#cb${statusPageName}`, {
+                visible: true,
+            });
             const elem = await page.waitForSelector('#monitor-0', {
                 visible: true,
             });
-            expect(elem).toBeDefined();            
-           
+            expect(elem).toBeDefined();
+
             done();
         },
         operationTimeOut
     );
-
 });

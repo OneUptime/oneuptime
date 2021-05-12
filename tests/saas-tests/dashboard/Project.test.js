@@ -113,7 +113,11 @@ describe('Project Settings', () => {
             });
             // fill the feedback form
             await page.click(`textarea[id=feedback]`);
-            await page.type(`textarea[id=feedback]`, `This is a test deletion`);
+            await init.pageType(
+                page,
+                `textarea[id=feedback]`,
+                `This is a test deletion`
+            );
             // click submit button
             await page.waitForSelector('#btnDeleteProject', {
                 visible: true,

@@ -12,7 +12,6 @@ const monitorName = utils.generateRandomString();
 const onCallName = utils.generateRandomString();
 const projectName = utils.generateRandomString();
 
-
 /** This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
@@ -31,7 +30,7 @@ describe('Fyipe Page Reload', () => {
         );
 
         await init.registerUser(user, page); // This automatically routes to dashboard page
-        await init.renameProject(projectName, page);        
+        await init.renameProject(projectName, page);
         await init.addComponent(componentName, page);
         await init.addNewMonitorToComponent(page, componentName, monitorName);
         done();
@@ -56,33 +55,42 @@ describe('Fyipe Page Reload', () => {
             });
             await page.$eval(createScheduleBtn, elem => elem.click());
 
-            await page.waitForSelector('#name', {visible : true});
-            await page.type('#name', onCallName);
+            await page.waitForSelector('#name', { visible: true });
+            await init.pageType(page, '#name', onCallName);
             await page.click('#btnCreateSchedule');
             await page.waitForSelector('#name', { hidden: true });
 
-            await page.waitForSelector('#viewOnCallSchedule', {visible : true});
+            await page.waitForSelector('#viewOnCallSchedule', {
+                visible: true,
+            });
             await page.click('#viewOnCallSchedule');
-            await page.waitForSelector('#scheduleMonitor_0', {visible : true});
+            await page.waitForSelector('#scheduleMonitor_0', { visible: true });
             await page.click('#scheduleMonitor_0');
-            await page.waitForSelector('#btnSaveMonitors', {visible : true});
+            await page.waitForSelector('#btnSaveMonitors', { visible: true });
             await page.click('#btnSaveMonitors');
 
-            await init.selectByText('.css-1uccc91-singleValue','Test Name', page);
-            await page.waitForSelector('#saveSchedulePolicy', {visible : true});
+            await init.selectByText(
+                '.css-1uccc91-singleValue',
+                'Test Name',
+                page
+            );
+            await page.waitForSelector('#saveSchedulePolicy', {
+                visible: true,
+            });
             await page.click('#saveSchedulePolicy');
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
-            await page.waitForSelector('#cbOn-CallDuty', {visible : true});
-            await page.waitForSelector(`#cb${onCallName}`, {visible : true});
-            
-            let spanElement = await page.waitForSelector('#onCallDutyNote', {visible : true});
+            await page.waitForSelector('#cbOn-CallDuty', { visible: true });
+            await page.waitForSelector(`#cb${onCallName}`, { visible: true });
+
+            const spanElement = await page.waitForSelector('#onCallDutyNote', {
+                visible: true,
+            });
             expect(spanElement).toBeDefined();
-           
+
             done();
         },
         operationTimeOut
     );
-
 });

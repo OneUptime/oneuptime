@@ -48,7 +48,7 @@ describe('Error Trackers', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', componentName);
+            await init.pageType(page, 'input[id=name]', componentName);
             await page.click('#addComponentButton');
             await page.waitForSelector('#form-new-monitor', {
                 visible: true,
@@ -80,7 +80,7 @@ describe('Error Trackers', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', errorTrackerName);
+            await init.pageType(page, 'input[id=name]', errorTrackerName);
             await page.click('button[type=submit]');
 
             let spanElement = await page.waitForSelector(
@@ -112,7 +112,7 @@ describe('Error Trackers', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', newErrorTrackerName);
+            await init.pageType(page, 'input[id=name]', newErrorTrackerName);
             await init.selectByText('#resourceCategory', categoryName, page);
             await page.click('button[type=submit]');
             // As soon as an error tracker with a resource category is created, it automatically navigates to the details page
@@ -142,7 +142,7 @@ describe('Error Trackers', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', '');
+            await init.pageType(page, 'input[id=name]', '');
             await page.click('button[type=submit]');
 
             await page.waitForSelector(
@@ -356,7 +356,7 @@ describe('Error Trackers', () => {
             // Fill and submit edit Error tracker form
             await page.waitForSelector('#form-new-error-tracker');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', '-new');
+            await init.pageType(page, 'input[id=name]', '-new');
             await page.click('button[type=submit]');
             await page.waitForSelector('#addErrorTrackerButton', {
                 hidden: true,

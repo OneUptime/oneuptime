@@ -63,7 +63,7 @@ describe('Scheduled event', () => {
             });
             await page.waitForSelector('#name');
             await page.click('#name');
-            await page.type('#name', scheduleMaintenanceName);
+            await init.pageType(page, '#name', scheduleMaintenanceName);
             await page.click('label[for=selectAllMonitorsBox]');
             await page.click('#addMoreMonitor');
             await page.waitForSelector('#monitorfield_0');
@@ -72,7 +72,8 @@ describe('Scheduled event', () => {
             await page.waitForSelector('#monitorfield_1');
             await init.selectByText('#monitorfield_1', componentName, page);
             await page.click('#description');
-            await page.type(
+            await init.pageType(
+                page,
                 '#description',
                 'This is an example description for a test'
             );
@@ -121,13 +122,14 @@ describe('Scheduled event', () => {
             });
             await page.waitForSelector('#name');
             await page.click('#name');
-            await page.type('#name', scheduleMaintenanceName);
+            await init.pageType(page, '#name', scheduleMaintenanceName);
             await page.click('label[for=selectAllMonitorsBox]');
             await page.click('#addMoreMonitor');
             await page.waitForSelector('#monitorfield_0');
             await init.selectByText('#monitorfield_0', componentName, page);
             await page.click('#description');
-            await page.type(
+            await init.pageType(
+                page,
                 '#description',
                 'This is an example description for a test'
             );
@@ -191,7 +193,7 @@ describe('Scheduled event', () => {
             });
             await page.waitForSelector('#name');
             await page.click('#name', { clickCount: 3 });
-            await page.type('#name', newScheduledMaintenanceName);
+            await init.pageType(page, '#name', newScheduledMaintenanceName);
             await page.click('#updateScheduledEventButton');
             await page.waitForSelector('#editScheduledEventForm', {
                 hidden: true,

@@ -50,7 +50,7 @@ describe('Enterprise Component API', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', componentName);
+            await init.pageType(page, 'input[id=name]', componentName);
             await page.click('button[type=submit]');
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',

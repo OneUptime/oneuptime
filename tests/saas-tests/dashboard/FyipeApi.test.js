@@ -143,7 +143,7 @@ describe('API test', () => {
                 visible: true,
             });
             await page.click('input[name=project_name]', { clickCount: 3 });
-            await page.type('input[name=project_name]', projectName);
+            await init.pageType(page, 'input[name=project_name]', projectName);
             await page.waitForSelector('button[id=btnCreateProject]', {
                 visible: true,
             });
@@ -159,7 +159,7 @@ describe('API test', () => {
             await page.click(`#btn_${projectName}`);
             await page.waitForSelector('input[name=emails]', { visible: true });
             await page.click('input[name=emails]');
-            await page.type('input[name=emails]', member.email);
+            await init.pageType(page, 'input[name=emails]', member.email);
             await page.waitForSelector(`#${role}_${projectName}`, {
                 visible: true,
             });

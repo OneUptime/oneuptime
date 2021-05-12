@@ -63,7 +63,7 @@ describe('Check status-page up', () => {
         await page.waitForSelector('input[id=name]', { visible: true });
         await page.click('input[id=name]');
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', statusPageName);
+        await init.pageType(page, 'input[id=name]', statusPageName);
         await page.click('#btnCreateStatusPage');
         await page.waitForSelector('#statusPagesListContainer', {
             visible: true,
@@ -130,7 +130,11 @@ describe('Check status-page up', () => {
             page
         );
         await page.click('#monitor-description');
-        await page.type('#monitor-description', 'Status Page Description');
+        await init.pageType(
+            page,
+            '#monitor-description',
+            'Status Page Description'
+        );
         await page.click('#manual-monitor-checkbox');
         await page.click('#btnAddStatusPageMonitors');
         // CLick status Page Url
@@ -332,7 +336,7 @@ describe('Check status-page up', () => {
         await page.keyboard.down('Control');
         await page.keyboard.press('A');
         await page.keyboard.up('Control');
-        await page.type('#description', note);
+        await init.pageType(page, '#description', note);
         await page.click('#createIncident');
 
         await page.goto(utils.DASHBOARD_URL, {

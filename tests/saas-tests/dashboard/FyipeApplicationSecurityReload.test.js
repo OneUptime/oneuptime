@@ -63,25 +63,21 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
             });
             await page.click('#gitUsername');
-            await page.type('#gitUsername', gitUsername);
+            await init.pageType(page, '#gitUsername', gitUsername);
             await page.click('#gitPassword');
-            await page.type('#gitPassword', gitPassword);
+            await init.pageType(page, '#gitPassword', gitPassword);
             await page.click('#addCredentialModalBtn');
             await page.waitForSelector('#gitCredentialForm', {
                 hidden: true,
             });
 
             await page.click('#name');
-            await page.type('#name', applicationSecurityName);
-            await init.selectByText(
-                '#resourceCategory',
-                categoryName,
-                page
-            ); // add category
+            await init.pageType(page, '#name', applicationSecurityName);
+            await init.selectByText('#resourceCategory', categoryName, page); // add category
             await page.click('#gitRepositoryUrl');
-            await page.type('#gitRepositoryUrl', gitRepositoryUrl);
+            await init.pageType(page, '#gitRepositoryUrl', gitRepositoryUrl);
             await page.click('#gitCredential');
-            await page.type('#gitCredential', gitUsername); // select the created credential
+            await init.pageType(page, '#gitCredential', gitUsername); // select the created credential
             await page.keyboard.press('Enter'); // Enter Key
             await page.click('#addApplicationBtn');
 
@@ -91,19 +87,26 @@ describe('Fyipe Page Reload', () => {
                 { visible: true }
             );
             expect(applicationSecurity).toBeDefined();
-                
+
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
-            await page.waitForSelector(`#cb${componentName}`, { visible: true });
-            await page.waitForSelector('#cbApplicationSecurity', { visible: true });
-            await page.waitForSelector(`#cb${applicationSecurityName}`, { visible: true });
+            await page.waitForSelector(`#cb${componentName}`, {
+                visible: true,
+            });
+            await page.waitForSelector('#cbApplicationSecurity', {
+                visible: true,
+            });
+            await page.waitForSelector(`#cb${applicationSecurityName}`, {
+                visible: true,
+            });
 
-            let spanElement = await page.waitForSelector(`#applicationSecurityTitle_${applicationSecurityName}`);
+            const spanElement = await page.waitForSelector(
+                `#applicationSecurityTitle_${applicationSecurityName}`
+            );
             expect(spanElement).toBeDefined();
 
             done();
         },
         operationTimeOut
     );
-
 });

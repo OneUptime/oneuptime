@@ -45,7 +45,11 @@ describe('Project API', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', utils.generateRandomString());
+            await init.pageType(
+                page,
+                'input[id=name]',
+                utils.generateRandomString()
+            );
             await page.click('input[id=Startup_month]');
             await Promise.all([
                 page.click('button[type=submit]'),

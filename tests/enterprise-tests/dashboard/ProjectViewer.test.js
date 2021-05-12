@@ -64,7 +64,7 @@ describe('Sub-Project API', () => {
             });
             await page.click('#btn_Add_SubProjects');
             await page.waitForSelector('#title', { visible: true });
-            await page.type('#title', subProjectName);
+            await init.pageType(page, '#title', subProjectName);
             await page.click('#btnAddSubProjects');
             await page.waitForSelector('#title', { hidden: true });
             const subProjectSelector = await page.waitForSelector(
@@ -98,7 +98,7 @@ describe('Sub-Project API', () => {
         });
         await page.click(`button[id=btn_${subProjectName}]`);
         await page.waitForSelector(`#frm_${subProjectName}`, { visible: true });
-        await page.type('input[name=emails]', email);
+        await init.pageType(page, 'input[name=emails]', email);
         await page.click(`#${role}_${subProjectName}`);
         await page.waitForSelector(`#btn_modal_${subProjectName}`, {
             visible: true,
@@ -139,7 +139,7 @@ describe('Sub-Project API', () => {
         });
         await page.click(`button[id=btn_${newProjectName}]`);
         await page.waitForSelector(`#frm_${newProjectName}`, { visible: true });
-        await page.type('input[name=emails]', projectViewer.email);
+        await init.pageType(page, 'input[name=emails]', projectViewer.email);
         await page.click(`#${role}_${newProjectName}`);
         await page.waitForSelector(`#btn_modal_${newProjectName}`, {
             visible: true,

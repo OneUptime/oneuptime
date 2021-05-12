@@ -379,7 +379,7 @@ describe('Status Page', () => {
             await page.waitForSelector('#addMoreDomainModal', {
                 visible: true,
             });
-            await page.type('#customDomain', 'fyipeapp.com');
+            await init.pageType(page, '#customDomain', 'fyipeapp.com');
             await page.click('#createCustomDomainBtn');
             await page.waitForSelector('#addMoreDomainModal', {
                 hidden: true,
@@ -498,7 +498,7 @@ describe('Status Page', () => {
             await page.waitForSelector('#addMoreDomainModal', {
                 visible: true,
             });
-            await page.type('#customDomain', 'app.fyipeapp.com');
+            await init.pageType(page, '#customDomain', 'app.fyipeapp.com');
             await page.click('#createCustomDomainBtn');
             await page.waitForSelector('#addMoreDomainModal', {
                 hidden: true,
@@ -552,7 +552,7 @@ describe('Status Page', () => {
             await page.waitForSelector('#addMoreDomainModal', {
                 visible: true,
             });
-            await page.type('#customDomain', 'server.fyipeapp.com');
+            await init.pageType(page, '#customDomain', 'server.fyipeapp.com');
             await page.click('#createCustomDomainBtn');
             await page.waitForSelector('#addMoreDomainModal', {
                 hidden: true,
@@ -587,7 +587,7 @@ describe('Status Page', () => {
 
             await page.waitForSelector('#react-tabs-6');
             await page.click('#react-tabs-6');
-            await page.type('#headerHTML textarea', '<div>My header'); // Ace editor completes the div tag
+            await init.pageType(page, '#headerHTML textarea', '<div>My header'); // Ace editor completes the div tag
             await page.click('#btnAddCustomStyles');
             await page.waitForTimeout(2000);
             await page.waitForSelector('.ball-beat', { hidden: true });
@@ -621,7 +621,8 @@ describe('Status Page', () => {
             await page.waitForSelector('#react-tabs-6');
             await page.click('#react-tabs-6');
             await page.waitForSelector('#customJS textarea');
-            await page.type(
+            await init.pageType(
+                page,
                 '#customJS textarea',
                 `<script id='js'>${javascript}`
             );
@@ -714,7 +715,7 @@ describe('Status Page', () => {
                 visible: true,
             });
             await page.waitForSelector('#customDomain');
-            await page.type('#customDomain', 'fyipeapp');
+            await init.pageType(page, '#customDomain', 'fyipeapp');
 
             await page.waitForSelector('#createCustomDomainBtn');
             await page.click('#createCustomDomainBtn');
@@ -739,11 +740,11 @@ describe('Status Page', () => {
             await page.waitForSelector('#addMoreDomain');
             await page.click('#addMoreDomain');
             await page.waitForSelector('#domain_1', { visible: true });
-            await page.type('#domain_1', 'fyipe.fyipeapp.com');
+            await init.pageType(page, '#domain_1', 'fyipe.fyipeapp.com');
 
             await page.click('#addMoreDomain');
             await page.waitForSelector('#domain_2', { visible: true });
-            await page.type('#domain_2', 'api.fyipeapp.com');
+            await init.pageType(page, '#domain_2', 'api.fyipeapp.com');
             await page.waitForSelector('#btnAddDomain');
             await page.click('#btnAddDomain');
             await page.waitForTimeout(2000);
@@ -770,7 +771,7 @@ describe('Status Page', () => {
                 visible: true,
             });
             await page.waitForSelector('#customDomain');
-            await page.type('#customDomain', 'fyipe.fyipeapp.com');
+            await init.pageType(page, '#customDomain', 'fyipe.fyipeapp.com');
             await page.click('#createCustomDomainBtn');
             const addDomainError = await page.waitForSelector(
                 '#addDomainError',

@@ -53,7 +53,7 @@ describe('Check scheduled maintenace', () => {
         await page.waitForSelector('input[id=name]', { visible: true });
         await page.click('input[id=name]');
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', statusPageName);
+        await init.pageType(page, 'input[id=name]', statusPageName);
         await page.click('#btnCreateStatusPage');
         await page.waitForSelector('#statusPagesListContainer', {
             visible: true,
@@ -89,18 +89,18 @@ describe('Check scheduled maintenace', () => {
         await page.waitForSelector('input[id=name]', { visible: true });
         await page.click('input[id=name]');
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', componentName);
+        await init.pageType(page, 'input[id=name]', componentName);
         await page.click('button[type=submit]');
 
         // Create a Manual Monitor
         await page.waitForSelector('#form-new-monitor', { visible: true });
         await page.click('input[id=name]', { visible: true });
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', monitorName);
+        await init.pageType(page, 'input[id=name]', monitorName);
         await page.click('[data-testId=type_manual]');
         await page.waitForSelector('#description', { visible: true });
         await page.click('#description');
-        await page.type('#description', 'My Manual Monitor');
+        await init.pageType(page, '#description', 'My Manual Monitor');
         await page.click('button[type=submit]');
 
         // To confirm the manual monitor is created
@@ -135,7 +135,11 @@ describe('Check scheduled maintenace', () => {
             page
         );
         await page.click('#monitor-description');
-        await page.type('#monitor-description', 'Status Page Description');
+        await init.pageType(
+            page,
+            '#monitor-description',
+            'Status Page Description'
+        );
         await page.click('#manual-monitor-checkbox');
         await page.click('#btnAddStatusPageMonitors');
 
@@ -176,10 +180,14 @@ describe('Check scheduled maintenace', () => {
         });
         await page.waitForSelector('#name', { visible: true });
         await page.click('#name');
-        await page.type('#name', scheduledMaintenanceName);
+        await init.pageType(page, '#name', scheduledMaintenanceName);
 
         await page.click('#description');
-        await page.type('#description', scheduledMaintenanceDescription);
+        await init.pageType(
+            page,
+            '#description',
+            scheduledMaintenanceDescription
+        );
         await page.waitForSelector('input[name=startDate]', { visible: true });
         await page.click('input[name=startDate]');
         await page.click('div.MuiDialogActions-root button:nth-child(2)');

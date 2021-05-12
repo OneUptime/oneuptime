@@ -51,11 +51,11 @@ describe('Monitor API', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', monitorName);
+            await init.pageType(page, 'input[id=name]', monitorName);
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
-            await page.type('#url', 'https://google.com');
+            await init.pageType(page, '#url', 'https://google.com');
             await page.click('button[type=submit]');
 
             let spanElement = await page.waitForSelector(
@@ -81,11 +81,11 @@ describe('Monitor API', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', monitorName);
+            await init.pageType(page, 'input[id=name]', monitorName);
             await page.click('input[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
-            await page.type('#url', 'https://google.com');
+            await init.pageType(page, '#url', 'https://google.com');
 
             // change up criterion's name
             await page.click('#advanceOptions');
@@ -138,11 +138,11 @@ describe('Monitor API', () => {
         await page.waitForSelector('input[id=name]', { visible: true });
         await page.click('input[id=name]');
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', monitorName);
+        await init.pageType(page, 'input[id=name]', monitorName);
         await page.click('input[data-testId=type_url]');
         await page.waitForSelector('#url', { visible: true });
         await page.click('#url');
-        await page.type('#url', 'https://google.com');
+        await init.pageType(page, '#url', 'https://google.com');
 
         await page.click('#advanceOptions');
 
@@ -335,11 +335,11 @@ describe('Monitor API', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', monitorName);
+            await init.pageType(page, 'input[id=name]', monitorName);
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
-            await page.type('#url', 'https://google.com');
+            await init.pageType(page, '#url', 'https://google.com');
             // select multiple schedules
             await page.$$eval('[data-testId^=callSchedules_]', schedules =>
                 schedules.forEach(schedule => schedule.click())
@@ -380,7 +380,7 @@ describe('Monitor API', () => {
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
-            await page.type('#url', 'https://google.com');
+            await init.pageType(page, '#url', 'https://google.com');
 
             await page.click('button[type=submit]');
 
@@ -424,11 +424,11 @@ describe('Monitor API', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', testServerMonitorName);
+            await init.pageType(page, 'input[id=name]', testServerMonitorName);
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
-            await page.type('#url', utils.HTTP_TEST_SERVER_URL);
+            await init.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
             await page.click('button[type=submit]');
 
             let sslStatusElement = await page.waitForSelector(
@@ -456,11 +456,11 @@ describe('Monitor API', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', selfSignedMonitorName);
+            await init.pageType(page, 'input[id=name]', selfSignedMonitorName);
             await init.selectByText('#type', 'url', page);
             await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
-            await page.type('#url', 'https://self-signed.badssl.com');
+            await init.pageType(page, '#url', 'https://self-signed.badssl.com');
             await page.click('button[type=submit]');
 
             let sslStatusElement = await page.waitForSelector(
@@ -495,16 +495,18 @@ describe('Monitor API', () => {
             );
             await page.waitForSelector('#responseTime');
             await page.click('input[name=responseTime]');
-            await page.type('input[name=responseTime]', '0');
+            await init.pageType(page, 'input[name=responseTime]', '0');
             await page.waitForSelector('#statusCode');
             await page.click('input[name=statusCode]');
-            await page.type('input[name=statusCode]', '200');
+            await init.pageType(page, 'input[name=statusCode]', '200');
             await page.select('#responseType', 'html');
             await page.waitForSelector('#header');
             await page.click('textarea[name=header]');
-            //paste a large text. 
+            //paste a large text.
             await page.evaluate(() => {
-                return document.querySelector('textarea[name=header]').value = `{
+                return (document.querySelector(
+                    'textarea[name=header]'
+                ).value = `{
                     "Connection": "keep-alive",
                     "Content-Security-Policy": "script-src 'self' https://www.gstatic.cn *.acceleratoradmin.com *.adpclientappreciation.com *.lincolnelectricdigitalrewards.com *.boschappliancedigitalrewards.com *.prepaiddigitalsolutions.com *.purestoragedigitalrewards.com *.prepaiddigitalsolutions.com *.purestoragedigitalrewards.com *.thermadorappliancedigitalrewards.com *.tranedigitalrewards.com *.americanstandardairdigitalrewards.com *.myacuvuedigitalrewards.com *.attrecognition.com *.coopervisiondigitalrewards.com *.allglobalcircle-rewards.com *.habcard.com *.minimotoringredemption.com *.minimotoringrewardsredemption.com *.ultimaterewardsredemption.com *.mystarzrewards.com *.e-rewardsmedicalrewards.com *.recognizingyourewards.com *.kelloggsdigitalrewards.ca *.valvolinedigitalrewards.com *.goodyeardigitalrewards.com *.alconchoicepayments.com *.geappliancesdigitalrewards.com *.topcashbackdigitalsolutions.com *.topcashbackdigitalsolutions.co.uk *.prosper2card.co.uk *.ppdslab.com *.cooperdigitalrewards.com *.tranedigitalrewards.com https://cdn.datatables.net https://www.google-analytics.com https://www.recaptcha.net https://ajax.aspnetcdn.com https://stackpath.bootstrapcdn.com https://cdnjs.cloudflare.com https://maxcdn.bootstrapcdn.com *.google.com *.googletagmanager.com https://www.gstatic.com https://ajax.googleapis.com https://*.msecnd.net *.acceleratoradmin.com *.mxpnl.com *.greencompasspay.com *.360digitalpayments.com *.adpclientappreciation.com *.alconchoicepayments.com *.allglobalcircle-rewards.com *.americanstandardairdigitalrewards.com *.attrecognition.com *.bittyadvancecard.com *.bmwrebateredemption.com *.bmwultimaterewardsredemption.com *.boschappliancedigitalrewards.com *.cbdatsbypay.com *.ceomovementpay.com *.cooperdigitalrewards.com *.coopervisiondigitalrewards.com *.digitalwalletdemo.com *.emrispay.com *.e-rewardsmedicalrewards.com *.expectationsrewards.co.uk *.ferrerorecognition.com *.fundkitecard.com *.geappliancesdigitalrewards.com *.gettogether-pjlibraryrewards.org *.goodyeardigitalrewards.com *.greencompasspay.com *.guustodigitalrewards.com *.habcard.com *.healthyhempfarmspay.com *.honey20pay.com *.hoolalifepay.com *.kelloggsdigitalrewards.ca *.leafywellpay.com *.lincolnelectricdigitalrewards.com *.minimotoringredemption.com *.minimotoringrewardsredemption.com *.minirebateredemption.com *.myacuvuedigitalrewards.com *.mygocardspay.com *.myrevealpay.com *.my-rewardcard.com *.mystarzrewards.com *.natureancepay.com *.NNAPartsDigitalRewards.com *.noble8pay.com *.onelogicmoney.com *.perksatworkcard.com *.ppdslab.com *.ppdslabautomation.com *.prepaiddigitalsolutions.com *.prosper2card.co.uk *.purestoragedigitalrewards.com *.pyurlifepay.com *.recognizingyourewards.com *.redgagedirect.com *.sanctuarygirlpay.com *.swiftimplementations.com *.thermadorappliancedigitalrewards.com *.tirestorerewards.com *.topcashbackdigitalsolutions.co.uk *.topcashbackdigitalsolutions.com *.tranedigitalrewards.com *.ultimaterewardsredemption.com *.uulalacard.com *.valvolinedigitalrewards.com *.vsponeprepaidcard.com *.wealthbuilderpay.com *.worldpaymerchantrewards.com *.yourrewardpass.com topcashbackdigitalsolutions.co.uk https://cdn.highimpactpayments.com 'unsafe-inline';style-src 'self' cdn.highimpactpayments.com *.acceleratoradmin.com *.adpclientappreciation.com *.lincolnelectricdigitalrewards.com *.boschappliancedigitalrewards.com *.prepaiddigitalsolutions.com *.purestoragedigitalrewards.com *.prepaiddigitalsolutions.com *.purestoragedigitalrewards.com *.thermadorappliancedigitalrewards.com *.tranedigitalrewards.com *.americanstandardairdigitalrewards.com *.myacuvuedigitalrewards.com *.attrecognition.com *.coopervisiondigitalrewards.com *.allglobalcircle-rewards.com *.habcard.com *.minimotoringredemption.com *.minimotoringrewardsredemption.com *.ultimaterewardsredemption.com *.mystarzrewards.com *.e-rewardsmedicalrewards.com *.recognizingyourewards.com *.kelloggsdigitalrewards.ca *.valvolinedigitalrewards.com *.goodyeardigitalrewards.com *.alconchoicepayments.com *.geappliancesdigitalrewards.com *.topcashbackdigitalsolutions.com *.topcashbackdigitalsolutions.co.uk *.prosper2card.co.uk *.ppdslab.com *.cooperdigitalrewards.com *.tranedigitalrewards.com https://cdn.datatables.net https://ajax.aspnetcdn.com https://maxcdn.bootstrapcdn.com https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com *.greencompasspay.com *.360digitalpayments.com *.adpclientappreciation.com *.alconchoicepayments.com *.allglobalcircle-rewards.com *.americanstandardairdigitalrewards.com *.attrecognition.com *.bittyadvancecard.com *.bmwrebateredemption.com *.bmwultimaterewardsredemption.com *.boschappliancedigitalrewards.com *.cbdatsbypay.com *.ceomovementpay.com *.cooperdigitalrewards.com *.coopervisiondigitalrewards.com *.digitalwalletdemo.com *.emrispay.com *.e-rewardsmedicalrewards.com *.expectationsrewards.co.uk *.ferrerorecognition.com *.fundkitecard.com *.geappliancesdigitalrewards.com *.gettogether-pjlibraryrewards.org *.goodyeardigitalrewards.com *.greencompasspay.com *.guustodigitalrewards.com *.habcard.com *.healthyhempfarmspay.com *.honey20pay.com *.hoolalifepay.com *.kelloggsdigitalrewards.ca *.leafywellpay.com *.lincolnelectricdigitalrewards.com *.minimotoringredemption.com *.minimotoringrewardsredemption.com *.minirebateredemption.com *.myacuvuedigitalrewards.com *.mygocardspay.com *.myrevealpay.com *.my-rewardcard.com *.mystarzrewards.com *.natureancepay.com *.NNAPartsDigitalRewards.com *.noble8pay.com *.onelogicmoney.com *.perksatworkcard.com *.ppdslab.com *.ppdslabautomation.com *.prepaiddigitalsolutions.com *.prosper2card.co.uk *.purestoragedigitalrewards.com *.pyurlifepay.com *.recognizingyourewards.com *.redgagedirect.com *.sanctuarygirlpay.com *.swiftimplementations.com *.thermadorappliancedigitalrewards.com *.tirestorerewards.com *.topcashbackdigitalsolutions.co.uk *.topcashbackdigitalsolutions.com *.tranedigitalrewards.com *.ultimaterewardsredemption.com *.uulalacard.com *.valvolinedigitalrewards.com *.vsponeprepaidcard.com *.wealthbuilderpay.com *.worldpaymerchantrewards.com *.yourrewardpass.com topcashbackdigitalsolutions.co.uk https://cdn.highimpactpayments.com 'unsafe-inline';connect-src 'self' *.acceleratoradmin.com *.adpclientappreciation.com *.lincolnelectricdigitalrewards.com *.boschappliancedigitalrewards.com *.prepaiddigitalsolutions.com *.purestoragedigitalrewards.com *.prepaiddigitalsolutions.com *.purestoragedigitalrewards.com *.thermadorappliancedigitalrewards.com *.tranedigitalrewards.com *.americanstandardairdigitalrewards.com *.myacuvuedigitalrewards.com *.attrecognition.com *.coopervisiondigitalrewards.com *.allglobalcircle-rewards.com *.habcard.com *.minimotoringredemption.com *.minimotoringrewardsredemption.com *.ultimaterewardsredemption.com *.mystarzrewards.com *.e-rewardsmedicalrewards.com *.recognizingyourewards.com *.kelloggsdigitalrewards.ca *.valvolinedigitalrewards.com *.goodyeardigitalrewards.com *.alconchoicepayments.com *.geappliancesdigitalrewards.com *.topcashbackdigitalsolutions.com *.topcashbackdigitalsolutions.co.uk *.prosper2card.co.uk *.ppdslab.com *.cooperdigitalrewards.com https://www.google-analytics.com *.visualstudio.com *.acceleratoradmin.com api.mixpanel.com *.greencompasspay.com *.360digitalpayments.com *.adpclientappreciation.com *.alconchoicepayments.com *.allglobalcircle-rewards.com *.americanstandardairdigitalrewards.com *.attrecognition.com *.bittyadvancecard.com *.bmwrebateredemption.com *.bmwultimaterewardsredemption.com *.boschappliancedigitalrewards.com *.cbdatsbypay.com *.ceomovementpay.com *.cooperdigitalrewards.com *.coopervisiondigitalrewards.com *.digitalwalletdemo.com *.emrispay.com *.e-rewardsmedicalrewards.com *.expectationsrewards.co.uk *.ferrerorecognition.com *.fundkitecard.com *.geappliancesdigitalrewards.com *.gettogether-pjlibraryrewards.org *.goodyeardigitalrewards.com *.greencompasspay.com *.guustodigitalrewards.com *.habcard.com *.healthyhempfarmspay.com *.honey20pay.com *.hoolalifepay.com *.kelloggsdigitalrewards.ca *.leafywellpay.com *.lincolnelectricdigitalrewards.com *.minimotoringredemption.com *.minimotoringrewardsredemption.com *.minirebateredemption.com *.myacuvuedigitalrewards.com *.mygocardspay.com *.myrevealpay.com *.my-rewardcard.com *.mystarzrewards.com *.natureancepay.com *.NNAPartsDigitalRewards.com *.noble8pay.com *.onelogicmoney.com *.perksatworkcard.com *.ppdslab.com *.ppdslabautomation.com *.prepaiddigitalsolutions.com *.prosper2card.co.uk *.purestoragedigitalrewards.com *.pyurlifepay.com *.recognizingyourewards.com *.redgagedirect.com *.sanctuarygirlpay.com *.swiftimplementations.com *.thermadorappliancedigitalrewards.com *.tirestorerewards.com *.topcashbackdigitalsolutions.co.uk *.topcashbackdigitalsolutions.com *.tranedigitalrewards.com *.ultimaterewardsredemption.com *.uulalacard.com *.valvolinedigitalrewards.com *.vsponeprepaidcard.com *.wealthbuilderpay.com *.worldpaymerchantrewards.com *.yourrewardpass.com topcashbackdigitalsolutions.co.uk https://api-js.mixpanel.com api-js.mixpanel.com api-js.mixpanel.com https://cdn.highimpactpayments.com;font-src 'self' cdn.highimpactpayments.com https://ajax.aspnetcdn.com *.tranedigitalrewards.com maxcdn.bootstrapcdn.com cdnjs.cloudflare.com *.acceleratoradmin.com https://cdn.highimpactpayments.com;img-src 'self' cdn.highimpactpayments.com https://cdnjs.cloudflare.com https://www.google-analytics.com *.acceleratoradmin.com data: data: https://cdn.highimpactpayments.com;frame-src 'self' https://www.recaptcha.net/ https://www.google.com *.acceleratoradmin.com *.adpclientappreciation.com *.lincolnelectricdigitalrewards.com *.boschappliancedigitalrewards.com *.prepaiddigitalsolutions.com *.purestoragedigitalrewards.com *.prepaiddigitalsolutions.com *.purestoragedigitalrewards.com *.thermadorappliancedigitalrewards.com *.tranedigitalrewards.com *.americanstandardairdigitalrewards.com *.myacuvuedigitalrewards.com *.attrecognition.com *.coopervisiondigitalrewards.com *.allglobalcircle-rewards.com *.habcard.com *.minimotoringredemption.com *.minimotoringrewardsredemption.com *.ultimaterewardsredemption.com *.mystarzrewards.com *.e-rewardsmedicalrewards.com *.recognizingyourewards.com *.kelloggsdigitalrewards.ca *.valvolinedigitalrewards.com *.goodyeardigitalrewards.com *.alconchoicepayments.com *.geappliancesdigitalrewards.com *.topcashbackdigitalsolutions.com *.topcashbackdigitalsolutions.co.uk *.prosper2card.co.uk *.ppdslab.com *.cooperdigitalrewards.com *.youtube.com https://youtu.be https://testcommon.swiftprepaid.com https://common.swiftprepaid.com *.greencompasspay.com *.360digitalpayments.com *.adpclientappreciation.com *.alconchoicepayments.com *.allglobalcircle-rewards.com *.americanstandardairdigitalrewards.com *.attrecognition.com *.bittyadvancecard.com *.bmwrebateredemption.com *.bmwultimaterewardsredemption.com *.boschappliancedigitalrewards.com *.cbdatsbypay.com *.ceomovementpay.com *.cooperdigitalrewards.com *.coopervisiondigitalrewards.com *.digitalwalletdemo.com *.emrispay.com *.e-rewardsmedicalrewards.com *.expectationsrewards.co.uk *.ferrerorecognition.com *.fundkitecard.com *.geappliancesdigitalrewards.com *.gettogether-pjlibraryrewards.org *.goodyeardigitalrewards.com *.greencompasspay.com *.guustodigitalrewards.com *.habcard.com *.healthyhempfarmspay.com *.honey20pay.com *.hoolalifepay.com *.kelloggsdigitalrewards.ca *.leafywellpay.com *.lincolnelectricdigitalrewards.com *.minimotoringredemption.com *.minimotoringrewardsredemption.com *.minirebateredemption.com *.myacuvuedigitalrewards.com *.mygocardspay.com *.myrevealpay.com *.my-rewardcard.com *.mystarzrewards.com *.natureancepay.com *.NNAPartsDigitalRewards.com *.noble8pay.com *.onelogicmoney.com *.perksatworkcard.com *.ppdslab.com *.ppdslabautomation.com *.prepaiddigitalsolutions.com *.prosper2card.co.uk *.purestoragedigitalrewards.com *.pyurlifepay.com *.recognizingyourewards.com *.redgagedirect.com *.sanctuarygirlpay.com *.swiftimplementations.com *.thermadorappliancedigitalrewards.com *.tirestorerewards.com *.topcashbackdigitalsolutions.co.uk *.topcashbackdigitalsolutions.com *.tranedigitalrewards.com *.ultimaterewardsredemption.com *.uulalacard.com *.valvolinedigitalrewards.com *.vsponeprepaidcard.com *.wealthbuilderpay.com *.worldpaymerchantrewards.com *.yourrewardpass.com topcashbackdigitalsolutions.co.uk https://cdn.highimpactpayments.com",
                     "Pragma": "no-cache",
@@ -518,12 +520,13 @@ describe('Monitor API', () => {
                     "X-Frame-Options": "SAMEORIGIN",
                     "X-Permitted-Cross-Domain-Policies": "None",
                     "X-XSS-Protection": "1; mode=block"
-                }`
+                }`);
             });
-              
+
             await page.waitForSelector('#body');
             await page.click('textarea[name=body]');
-            await page.type(
+            await init.pageType(
+                page,
                 'textarea[name=body]',
                 `<h1 id="html"><span>${bodyText}</span></h1>`
             );
@@ -572,14 +575,15 @@ describe('Monitor API', () => {
             );
             await page.waitForSelector('#responseTime');
             await page.click('input[name=responseTime]');
-            await page.type('input[name=responseTime]', '600000');
+            await init.pageType(page, 'input[name=responseTime]', '600000');
             await page.waitForSelector('#statusCode');
             await page.click('input[name=statusCode]');
-            await page.type('input[name=statusCode]', '200');
+            await init.pageType(page, 'input[name=statusCode]', '200');
             await page.select('#responseType', 'html');
             await page.waitForSelector('#body');
             await page.click('textarea[name=body]');
-            await page.type(
+            await init.pageType(
+                page,
                 'textarea[name=body]',
                 `<h1 id="html"><span>${bodyText}</span></h1>`
             );
@@ -642,20 +646,21 @@ describe('API Monitor API', () => {
         await page.evaluate(() => (document.getElementById('body').value = ''));
         await page.waitForSelector('#responseTime');
         await page.click('input[name=responseTime]');
-        await page.type('input[name=responseTime]', '0');
+        await init.pageType(page, 'input[name=responseTime]', '0');
         await page.waitForSelector('#statusCode');
         await page.click('input[name=statusCode]');
-        await page.type('input[name=statusCode]', '200');
+        await init.pageType(page, 'input[name=statusCode]', '200');
         await page.select('#responseType', 'json');
         await page.waitForSelector('#header');
         await page.click('textarea[name=header]');
-        await page.type(
+        await init.pageType(
+            page,
             'textarea[name=header]',
             '{"Content-Type":"application/json"}'
         );
         await page.waitForSelector('#body');
         await page.click('textarea[name=body]');
-        await page.type('textarea[name=body]', '{"status":"ok"}');
+        await init.pageType(page, 'textarea[name=body]', '{"status":"ok"}');
         await page.click('button[type=submit]');
         await page.waitForSelector('#save-btn');
         await page.waitForSelector('#save-btn', { visible: true });
@@ -685,11 +690,11 @@ describe('API Monitor API', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', monitorName);
+            await init.pageType(page, 'input[id=name]', monitorName);
             await page.click('input[data-testId=type_api]');
             await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
-            await page.type('#url', 'https://google.com');
+            await init.pageType(page, '#url', 'https://google.com');
             await init.selectByText('#method', 'get', page);
 
             await page.click('button[type=submit]');
@@ -718,11 +723,12 @@ describe('API Monitor API', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', monitorName);
+            await init.pageType(page, 'input[id=name]', monitorName);
             await page.click('input[data-testId=type_api]');
             await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
-            await page.type(
+            await init.pageType(
+                page,
                 '#url',
                 'https://fyipe.com/api/monitor/valid-project-id'
             );
@@ -750,12 +756,13 @@ describe('API Monitor API', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', monitorName);
+            await init.pageType(page, 'input[id=name]', monitorName);
             await page.click('input[data-testId=type_api]');
             await init.selectByText('#method', 'post', page);
             await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
-            await page.type(
+            await init.pageType(
+                page,
                 '#url',
                 'https://fyipe.com/api/monitor/valid-project-id'
             );
@@ -766,15 +773,20 @@ describe('API Monitor API', () => {
             await page.click('#addApiHeaders');
             await page.waitForSelector('input[id=headers_1000_0_key]');
             await page.click('input[id=headers_1000_0_key]');
-            await page.type('input[id=headers_1000_0_key]', 'Authorization');
+            await init.pageType(
+                page,
+                'input[id=headers_1000_0_key]',
+                'Authorization'
+            );
             await page.click('input[id=headers_1000_0_value]');
-            await page.type(
+            await init.pageType(
+                page,
                 'input[id=headers_1000_0_value]',
                 'Basic valid-token'
             );
             await init.selectByText('#bodyType', 'text/plain', page);
             await page.click('#feedback-textarea');
-            await page.type('#feedback-textarea', 'BAD');
+            await init.pageType(page, '#feedback-textarea', 'BAD');
             await page.click('button[type=submit]');
 
             const spanElement = await page.waitForSelector(
@@ -797,12 +809,12 @@ describe('API Monitor API', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', monitorName);
+            await init.pageType(page, 'input[id=name]', monitorName);
             await page.click('input[data-testId=type_api]');
             await init.selectByText('#method', 'get', page);
             await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
-            await page.type('#url', 'http://localhost:3002');
+            await init.pageType(page, '#url', 'http://localhost:3002');
             await page.click('button[type=submit]');
 
             let spanElement = await page.waitForSelector(
@@ -911,10 +923,14 @@ describe('API Monitor API', () => {
             );
             await page.waitForSelector('#responseTime');
             await page.click('input[name=responseTime]');
-            await page.type('input[name=responseTime]', '5000');
+            await init.pageType(page, 'input[name=responseTime]', '5000');
             await page.waitForSelector('#body');
             await page.click('textarea[name=body]');
-            await page.type('textarea[name=body]', '{"message":"draining"}');
+            await init.pageType(
+                page,
+                'textarea[name=body]',
+                '{"message":"draining"}'
+            );
             await page.click('button[type=submit]');
             await page.waitForSelector('#save-btn');
             await page.waitForSelector('#save-btn', { visible: true });
@@ -960,10 +976,14 @@ describe('API Monitor API', () => {
             );
             await page.waitForSelector('#statusCode');
             await page.click('input[name=statusCode]');
-            await page.type('input[name=statusCode]', '400');
+            await init.pageType(page, 'input[name=statusCode]', '400');
             await page.waitForSelector('#body');
             await page.click('textarea[name=body]');
-            await page.type('textarea[name=body]', '{"message":"offline"}');
+            await init.pageType(
+                page,
+                'textarea[name=body]',
+                '{"message":"offline"}'
+            );
             await page.click('button[type=submit]');
             await page.waitForSelector('#save-btn');
             await page.waitForSelector('#save-btn', { visible: true });
@@ -1010,13 +1030,13 @@ describe('API Monitor API', () => {
         await page.evaluate(() => (document.getElementById('body').value = ''));
         await page.waitForSelector('#responseTime');
         await page.click('input[name=responseTime]');
-        await page.type('input[name=responseTime]', '0');
+        await init.pageType(page, 'input[name=responseTime]', '0');
         await page.waitForSelector('#statusCode');
         await page.click('input[name=statusCode]');
-        await page.type('input[name=statusCode]', '200');
+        await init.pageType(page, 'input[name=statusCode]', '200');
         await page.waitForSelector('#body');
         await page.click('textarea[name=body]');
-        await page.type('textarea[name=body]', '{"status":"not ok"}');
+        await init.pageType(page, 'textarea[name=body]', '{"status":"not ok"}');
         await page.click('button[type=submit]');
         await page.waitForSelector('#save-btn');
         await page.waitForSelector('#save-btn', { visible: true });

@@ -84,7 +84,7 @@ describe('SMS Templates API', () => {
             await page.waitForSelector('#frmSmsTemplate');
             const newTemplate = 'New Body';
             await page.click('textarea[name=body]', { clickCount: 3 });
-            await page.type('textarea[name=body]', newTemplate);
+            await init.pageType(page, 'textarea[name=body]', newTemplate);
             await page.click('#saveTemplate');
             await page.waitForSelector('.ball-beat', { hidden: true });
 

@@ -97,7 +97,7 @@ describe('Monitor SLA', () => {
                 visible: true,
             });
             await page.click('#name');
-            await page.type('#name', slaName);
+            await init.pageType(page, '#name', slaName);
             await page.$eval('#isDefault', elem => elem.click());
             await page.click('#createSlaBtn');
             await page.waitForSelector('.ball-beat', { visible: true });
@@ -133,11 +133,11 @@ describe('Monitor SLA', () => {
                 visible: true,
             });
             await page.click('#name');
-            await page.type('#name', slaName);
+            await init.pageType(page, '#name', slaName);
             await init.selectByText('#monitorUptimeOption', 'custom', page);
             await page.waitForSelector('#customMonitorUptime');
             await page.click('#customMonitorUptime');
-            await page.type('#customMonitorUptime', '12uptime');
+            await init.pageType(page, '#customMonitorUptime', '12uptime');
             await page.$eval('#isDefault', elem => elem.click());
             await page.click('#createSlaBtn');
 
@@ -171,11 +171,11 @@ describe('Monitor SLA', () => {
                 visible: true,
             });
             await page.click('#name');
-            await page.type('#name', slaName);
+            await init.pageType(page, '#name', slaName);
             await init.selectByText('#monitorUptimeOption', 'custom', page);
             await page.waitForSelector('#customMonitorUptime');
             await page.click('#customMonitorUptime');
-            await page.type('#customMonitorUptime', '120');
+            await init.pageType(page, '#customMonitorUptime', '120');
             await page.$eval('#isDefault', elem => elem.click());
             await page.click('#createSlaBtn');
 
@@ -209,11 +209,11 @@ describe('Monitor SLA', () => {
                 visible: true,
             });
             await page.click('#name');
-            await page.type('#name', slaName);
+            await init.pageType(page, '#name', slaName);
             await init.selectByText('#monitorUptimeOption', 'custom', page);
             await page.waitForSelector('#customMonitorUptime');
             await page.click('#customMonitorUptime');
-            await page.type('#customMonitorUptime', '0');
+            await init.pageType(page, '#customMonitorUptime', '0');
             await page.$eval('#isDefault', elem => elem.click());
             await page.click('#createSlaBtn');
 
@@ -247,11 +247,11 @@ describe('Monitor SLA', () => {
                 visible: true,
             });
             await page.click('#name');
-            await page.type('#name', slaName);
+            await init.pageType(page, '#name', slaName);
             await init.selectByText('#frequencyOption', 'custom', page);
             await page.waitForSelector('#customFrequency');
             await page.click('#customFrequency');
-            await page.type('#customFrequency', '12days');
+            await init.pageType(page, '#customFrequency', '12days');
             await page.$eval('#isDefault', elem => elem.click());
             await page.click('#createSlaBtn');
 
@@ -285,7 +285,7 @@ describe('Monitor SLA', () => {
                 visible: true,
             });
             await page.click('#name');
-            await page.type('#name', slaName);
+            await init.pageType(page, '#name', slaName);
             await init.selectByText(
                 '#monitorUptimeOption',
                 monitorUptime,

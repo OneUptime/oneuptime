@@ -42,7 +42,7 @@ describe('User Feedback', () => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#feedback-div');
             await page.click('#feedback-div', { clickCount: 2 });
-            await page.type('#feedback-textarea', testFeedback);
+            await init.pageType(page, '#feedback-textarea', testFeedback);
             await page.click('#feedback-button');
             await page.waitForTimeout(3000);
 

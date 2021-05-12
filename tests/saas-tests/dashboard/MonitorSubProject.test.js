@@ -98,11 +98,11 @@ describe('Monitor API With SubProjects', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', subProjectMonitorName);
+            await init.pageType(page, 'input[id=name]', subProjectMonitorName);
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
-            await page.type('#url', 'https://google.com');
+            await init.pageType(page, '#url', 'https://google.com');
             await page.click('button[type=submit]');
             let spanElement = await page.waitForSelector(
                 `#monitor-title-${subProjectMonitorName}`,
@@ -130,7 +130,7 @@ describe('Monitor API With SubProjects', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', monitorName);
+            await init.pageType(page, 'input[id=name]', monitorName);
             await page.click('[data-testId=type_manual]');
             await page.click('button[type=submit]');
             let spanElement = await page.waitForSelector(
@@ -190,7 +190,7 @@ describe('Monitor API With SubProjects', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', monitorName);
+            await init.pageType(page, 'input[id=name]', monitorName);
             await page.click('[data-testId=type_manual]');
             await page.click('#addMonitorButton');
             await page.waitForSelector('.ball-beat', { hidden: true });
@@ -204,7 +204,7 @@ describe('Monitor API With SubProjects', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', `${monitorName}1`);
+            await init.pageType(page, 'input[id=name]', `${monitorName}1`);
             await page.click('[data-testId=type_manual]');
             await page.click('#addMonitorButton');
             await page.waitForSelector('.ball-beat', { hidden: true });

@@ -84,7 +84,11 @@ describe('Incident Custom Field', () => {
                 visible: true,
             });
             await page.click('#fieldName', { clickCount: 3 });
-            await page.type('#fieldName', incidentFieldNumber.fieldName);
+            await init.pageType(
+                page,
+                '#fieldName',
+                incidentFieldNumber.fieldName
+            );
             await init.selectByText(
                 '#fieldType',
                 incidentFieldNumber.fieldType,

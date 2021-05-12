@@ -41,28 +41,49 @@ describe('Fyipe Page Reload', () => {
         'Should reload the incidents page and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#performanceTracker', { visible : true });
+            await page.waitForSelector('#performanceTracker', {
+                visible: true,
+            });
             await page.click('#performanceTracker');
-            await page.waitForSelector('#form-new-performance-tracker', { visible : true });
-            await page.waitForSelector('input[name=name]', { visible : true });
-            await page.type('input[name=name]', performanceTrackerName);
-            await page.waitForSelector('#addPerformanceTrackerButton', { visible : true });
+            await page.waitForSelector('#form-new-performance-tracker', {
+                visible: true,
+            });
+            await page.waitForSelector('input[name=name]', { visible: true });
+            await init.pageType(
+                page,
+                'input[name=name]',
+                performanceTrackerName
+            );
+            await page.waitForSelector('#addPerformanceTrackerButton', {
+                visible: true,
+            });
             await page.click('#addPerformanceTrackerButton');
             let spanElement;
-            spanElement = await page.waitForSelector(`#performance-tracker-title-${performanceTrackerName}`, { visible : true });
+            spanElement = await page.waitForSelector(
+                `#performance-tracker-title-${performanceTrackerName}`,
+                { visible: true }
+            );
             expect(spanElement).toBeDefined();
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
-            await page.waitForSelector(`#cb${componentName}`, { visible: true });
-            await page.waitForSelector('#cbPerformanceTracker', { visible: true });
-            await page.waitForSelector(`#cb${performanceTrackerName}`, { visible: true });
+            await page.waitForSelector(`#cb${componentName}`, {
+                visible: true,
+            });
+            await page.waitForSelector('#cbPerformanceTracker', {
+                visible: true,
+            });
+            await page.waitForSelector(`#cb${performanceTrackerName}`, {
+                visible: true,
+            });
 
-            spanElement = await page.waitForSelector(`#performance-tracker-title-${performanceTrackerName}`, { visible : true });
+            spanElement = await page.waitForSelector(
+                `#performance-tracker-title-${performanceTrackerName}`,
+                { visible: true }
+            );
             expect(spanElement).toBeDefined();
             done();
         },
         operationTimeOut
     );
-
 });

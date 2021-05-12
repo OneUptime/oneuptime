@@ -82,7 +82,11 @@ describe('Monitor Custom Field', () => {
                 visible: true,
             });
             await page.click('#fieldName', { clickCount: 3 });
-            await page.type('#fieldName', monitorFieldNumber.fieldName);
+            await init.pageType(
+                page,
+                '#fieldName',
+                monitorFieldNumber.fieldName
+            );
             await init.selectByText(
                 '#fieldType',
                 monitorFieldNumber.fieldType,

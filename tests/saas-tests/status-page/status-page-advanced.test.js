@@ -52,7 +52,7 @@ describe('Status-Page Advanced Options', () => {
         await page.waitForSelector('input[id=name]', { visible: true });
         await page.click('input[id=name]');
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', statusPageName);
+        await init.pageType(page, 'input[id=name]', statusPageName);
         await page.click('#btnCreateStatusPage');
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
@@ -83,18 +83,18 @@ describe('Status-Page Advanced Options', () => {
         await page.waitForSelector('input[id=name]', { visible: true });
         await page.click('input[id=name]');
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', componentName);
+        await init.pageType(page, 'input[id=name]', componentName);
         await page.click('button[type=submit]');
 
         // Create a Manual Monitor
         await page.waitForSelector('#form-new-monitor', { visible: true });
         await page.click('input[id=name]', { visible: true });
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', monitorName);
+        await init.pageType(page, 'input[id=name]', monitorName);
         await page.click('[data-testId=type_manual]');
         await page.waitForSelector('#description');
         await page.click('#description');
-        await page.type('#description', 'My Manual Monitor');
+        await init.pageType(page, '#description', 'My Manual Monitor');
         await page.click('button[type=submit]');
 
         // To confirm the manual monitor is created.
@@ -126,7 +126,11 @@ describe('Status-Page Advanced Options', () => {
             page
         );
         await page.click('#monitor-description');
-        await page.type('#monitor-description', 'Status Page Description');
+        await init.pageType(
+            page,
+            '#monitor-description',
+            'Status Page Description'
+        );
         await page.click('#manual-monitor-checkbox');
         await page.click('#btnAddStatusPageMonitors');
 
@@ -161,7 +165,7 @@ describe('Status-Page Advanced Options', () => {
         await init.selectByText('#alertViaId', 'Email', page);
         await page.waitForSelector('#emailId');
         await page.click('#emailId');
-        await page.type('#emailId', subscriberEmail);
+        await init.pageType(page, '#emailId', subscriberEmail);
         await page.waitForSelector('#createSubscriber');
         await page.click('#createSubscriber');
         // To confirm that the subscriber is created.
@@ -216,7 +220,7 @@ describe('Status-Page Advanced Options', () => {
         await page.click('#addMoreDomain');
         await page.waitForSelector('#customDomain');
         await page.click('#customDomain');
-        await page.type('#customDomain', customDomainWebsite);
+        await init.pageType(page, '#customDomain', customDomainWebsite);
         await page.click('#createCustomDomainBtn');
         // To confirm that custom domain is created.
         const customDomain = await page.waitForSelector('#publicStatusPageUrl');
@@ -269,7 +273,7 @@ describe('Status-Page Advanced Options', () => {
         await page.click('#subscriber-button');
         await page.waitForSelector('input[name=email]');
         await page.click('input[name=email]');
-        await page.type('input[name=email]', subscriberEmail);
+        await init.pageType(page, 'input[name=email]', subscriberEmail);
         await page.click('#subscribe-btn-email');
         // To confirm successful subscription
         let subscribeSuccess = await page.waitForSelector(

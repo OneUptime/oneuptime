@@ -56,7 +56,7 @@ describe('Schedule', () => {
             await page.$eval(createScheduleBtn, elem => elem.click());
 
             await page.waitForSelector('#name');
-            await page.type('#name', newScheduleName);
+            await init.pageType(page, '#name', newScheduleName);
             await page.click('#btnCreateSchedule');
             await page.waitForSelector('#name', { hidden: true });
 
@@ -157,7 +157,7 @@ describe('Schedule', () => {
             await page.$eval(createScheduleBtn, elem => elem.click());
 
             await page.waitForSelector('#name');
-            await page.type('#name', newScheduleName);
+            await init.pageType(page, '#name', newScheduleName);
             await page.click('#btnCreateSchedule');
             await page.waitForSelector('#viewOnCallSchedule', {
                 visible: true,

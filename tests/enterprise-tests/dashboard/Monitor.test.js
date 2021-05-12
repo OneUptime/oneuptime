@@ -50,11 +50,11 @@ describe('Enterprise Monitor API', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', monitorName);
+            await init.pageType(page, 'input[id=name]', monitorName);
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
-            await page.type('#url', 'https://google.com');
+            await init.pageType(page, '#url', 'https://google.com');
             await page.click('button[type=submit]');
 
             let spanElement = await page.waitForSelector(

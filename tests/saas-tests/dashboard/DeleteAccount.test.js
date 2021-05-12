@@ -45,7 +45,7 @@ describe('Profile -> Delete Account Component test', () => {
             await page.click('#projectSettings');
             await page.waitForSelector('input[name=project_name]');
             await page.click('input[name=project_name]', { clickCount: 3 });
-            await page.type('input[name=project_name]', projectName);
+            await init.pageType(page, 'input[name=project_name]', projectName);
             await page.waitForSelector('button[id=btnCreateProject]');
             await page.click('button[id=btnCreateProject]');
             await page.waitForSelector(`#cb${projectName}`, {
@@ -59,7 +59,7 @@ describe('Profile -> Delete Account Component test', () => {
             await page.click(`#btn_${projectName}`);
             await page.waitForSelector('input[name=emails]');
             await page.click('input[name=emails]');
-            await page.type('input[name=emails]', user1.email);
+            await init.pageType(page, 'input[name=emails]', user1.email);
             await page.waitForSelector(`#${role}_${projectName}`);
             await page.click(`#${role}_${projectName}`);
             await page.waitForSelector('button[type=submit]');
@@ -105,7 +105,7 @@ describe('Profile -> Delete Account Component test', () => {
             await page.click(`#btn_${projectName}`);
             await page.waitForSelector('input[name=emails]');
             await page.click('input[name=emails]');
-            await page.type('input[name=emails]', user1.email);
+            await init.pageType(page, 'input[name=emails]', user1.email);
             await page.waitForSelector(`#${role}_${projectName}`);
             await page.click(`#${role}_${projectName}`);
             await page.waitForSelector('button[type=submit]');
@@ -209,7 +209,7 @@ describe('Profile -> Delete Account Component test', () => {
             await page.waitForSelector('#btn_confirm_delete');
             await page.click('#btn_confirm_delete');
             await page.waitForSelector('#deleteMyAccount');
-            await page.type('#deleteMyAccount', 'delete my account');
+            await init.pageType(page, '#deleteMyAccount', 'delete my account');
             await page.click('#btn_confirm_delete');
             await page.waitForNavigation();
             const url = await page.url();

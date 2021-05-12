@@ -45,7 +45,7 @@ describe('Project API', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', projectName);
+            await init.pageType(page, 'input[id=name]', projectName);
             await page.click('input[id=Startup_month]');
             await page.click('button[type=submit]');
             await page.waitForSelector(`#cb${projectName}`, { visible: true });

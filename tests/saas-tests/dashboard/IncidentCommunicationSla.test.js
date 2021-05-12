@@ -72,10 +72,10 @@ describe('Incident Communication SLA', () => {
                 visible: true,
             });
             await page.click('#name');
-            await page.type('#name', '  ');
+            await init.pageType(page, '#name', '  ');
             await init.selectByText('#durationOption', duration, page);
             await page.click('#alertTime');
-            await page.type('#alertTime', alertTime);
+            await init.pageType(page, '#alertTime', alertTime);
             await page.click('#createSlaBtn');
 
             const slaError = await page.waitForSelector('#field-error', {
@@ -121,10 +121,10 @@ describe('Incident Communication SLA', () => {
                 visible: true,
             });
             await page.click('#name');
-            await page.type('#name', slaName);
+            await init.pageType(page, '#name', slaName);
             await init.selectByText('#durationOption', duration, page);
             await page.click('#alertTime');
-            await page.type('#alertTime', duration);
+            await init.pageType(page, '#alertTime', duration);
             await page.click('#createSlaBtn');
 
             const slaError = await page.waitForSelector('#field-error', {
@@ -170,10 +170,10 @@ describe('Incident Communication SLA', () => {
                 visible: true,
             });
             await page.click('#name');
-            await page.type('#name', slaName);
+            await init.pageType(page, '#name', slaName);
             await init.selectByText('#durationOption', duration, page);
             await page.click('#alertTime');
-            await page.type('#alertTime', '12m');
+            await init.pageType(page, '#alertTime', '12m');
             await page.click('#createSlaBtn');
 
             const slaError = await page.waitForSelector('#field-error', {
@@ -219,10 +219,10 @@ describe('Incident Communication SLA', () => {
                 visible: true,
             });
             await page.click('#name');
-            await page.type('#name', slaName);
+            await init.pageType(page, '#name', slaName);
             await init.selectByText('#durationOption', duration, page);
             await page.click('#alertTime');
-            await page.type('#alertTime', alertTime);
+            await init.pageType(page, '#alertTime', alertTime);
             await page.$eval('#isDefault', elem => elem.click());
             await page.click('#createSlaBtn');
             await page.waitForSelector('.ball-beat', { visible: true });
@@ -271,7 +271,7 @@ describe('Incident Communication SLA', () => {
                 visible: true,
             });
             await page.click('#name', { clickCount: 3 });
-            await page.type('#name', '    ');
+            await init.pageType(page, '#name', '    ');
             await page.click('#editSlaBtn');
 
             const slaError = await page.waitForSelector(`#field-error`, {
@@ -318,7 +318,7 @@ describe('Incident Communication SLA', () => {
             });
             slaName = 'newFxPro';
             await page.click('#name', { clickCount: 3 });
-            await page.type('#name', slaName);
+            await init.pageType(page, '#name', slaName);
             await page.click('#editSlaBtn');
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });

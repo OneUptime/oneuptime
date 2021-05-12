@@ -82,7 +82,11 @@ describe('Scheduled Event Note', () => {
             });
             await init.selectByText('#event_state', 'investigating', page);
             await page.click('#new-internal');
-            await page.type('#new-internal', 'Some random description');
+            await init.pageType(
+                page,
+                '#new-internal',
+                'Some random description'
+            );
             await page.click('#internal-addButton');
             await page.waitForSelector(
                 '#form-new-schedule-investigation-message',
@@ -122,7 +126,11 @@ describe('Scheduled Event Note', () => {
                 visible: true,
             });
             await page.click('#update-internal', { clickCount: 3 });
-            await page.type('#update-internal', 'An updated description');
+            await init.pageType(
+                page,
+                '#update-internal',
+                'An updated description'
+            );
             await page.click('#internal-updateButton');
             await page.waitForSelector(
                 '#form-update-schedule-internal-message',

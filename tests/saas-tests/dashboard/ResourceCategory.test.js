@@ -54,7 +54,8 @@ describe('Resource Category', () => {
                 visible: true,
             });
             await page.click('#createResourceCategoryButton');
-            await page.type(
+            await init.pageType(
+                page,
                 '#resourceCategoryName',
                 utils.resourceCategoryName
             );
@@ -116,7 +117,7 @@ describe('Resource Category', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', utils.monitorName);
+            await init.pageType(page, 'input[id=name]', utils.monitorName);
             await init.selectByText(
                 '#resourceCategory',
                 utils.resourceCategoryName,
@@ -125,7 +126,7 @@ describe('Resource Category', () => {
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
             await page.click('#url');
-            await page.type('#url', 'https://google.com');
+            await init.pageType(page, '#url', 'https://google.com');
             await Promise.all([
                 page.click('button[type=submit]'),
                 page.waitForNavigation(),

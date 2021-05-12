@@ -46,7 +46,11 @@ describe('Enterprise Project API', () => {
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', utils.generateRandomString());
+            await init.pageType(
+                page,
+                'input[id=name]',
+                utils.generateRandomString()
+            );
 
             const projectPlan = await page.$('input[id=Startup_month]');
             expect(projectPlan).toBeDefined(); // Startup_month is part of the modal that gets popped out.

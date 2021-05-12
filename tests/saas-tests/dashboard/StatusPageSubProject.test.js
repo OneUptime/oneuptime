@@ -205,8 +205,9 @@ describe('StatusPage API With SubProjects', () => {
             const pageTitle = 'MyCompany';
             const pageDescription = 'MyCompany description';
             await page.waitForSelector('#title');
-            await page.type('#title', pageTitle);
-            await page.type(
+            await init.pageType(page, '#title', pageTitle);
+            await init.pageType(
+                page,
                 '#account_app_product_description',
                 pageDescription
             );

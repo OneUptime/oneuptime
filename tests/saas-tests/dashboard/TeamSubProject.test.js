@@ -61,7 +61,7 @@ describe('Team API With SubProjects', () => {
         await page.waitForSelector(`#frm_${projectName}`);
         await page.waitForSelector(`#emails_${projectName}`);
         await page.click(`#emails_${projectName}`);
-        await page.type(`#emails_${projectName}`, anotherEmail);
+        await init.pageType(page, `#emails_${projectName}`, anotherEmail);
         await page.click(`#${role}_${projectName}`);
         await page.waitForSelector(`#btn_modal_${projectName}`);
         await page.click(`#btn_modal_${projectName}`);
@@ -120,7 +120,7 @@ describe('Team API With SubProjects', () => {
         await page.click(`#btn_${subProjectName}`);
         await page.waitForSelector(`#frm_${subProjectName}`);
         await page.click(`#emails_${subProjectName}`);
-        await page.type(`#emails_${subProjectName}`, newEmail);
+        await init.pageType(page, `#emails_${subProjectName}`, newEmail);
         await page.click(`#${role}_${subProjectName}`);
         await page.waitForSelector(`#btn_modal_${subProjectName}`);
         await page.click(`#btn_modal_${subProjectName}`);
@@ -209,7 +209,7 @@ describe('Team API With SubProjects', () => {
             await page.click(`button[id=btn_${projectName}]`);
             await page.waitForSelector('input[name=emails]');
             await page.click('input[name=emails]');
-            await page.type('input[name=emails]', nonBusinessEmail);
+            await init.pageType(page, 'input[name=emails]', nonBusinessEmail);
             await page.waitForSelector(`#${role}_${projectName}`);
             await page.click(`#${role}_${projectName}`);
             await page.waitForSelector(`#btn_modal_${projectName}`);
@@ -245,7 +245,7 @@ describe('Team API With SubProjects', () => {
             await page.waitForSelector(`#frm_${projectName}`);
             await page.waitForSelector(`#emails_${projectName}`);
             await page.click(`#emails_${projectName}`);
-            await page.type(`#emails_${projectName}`, anotherEmail);
+            await init.pageType(page, `#emails_${projectName}`, anotherEmail);
             await page.click(`#Member_${projectName}`);
             await page.waitForSelector(`#btn_modal_${projectName}`);
             await page.click(`#btn_modal_${projectName}`);

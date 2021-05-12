@@ -58,16 +58,21 @@ describe('Incoming HTTP Request', () => {
             await page.click('#addIncomingRequestBtn');
             await page.waitForSelector('#name', { visible: true });
             await page.click('#name');
-            await page.type('#name', incidentRequest.name);
+            await init.pageType(page, '#name', incidentRequest.name);
             await page.$eval('#createIncident', elem => elem.click());
             await page.waitForSelector('#isDefault', { visible: true });
             await page.$eval('#isDefault', elem => elem.click());
             await page.click('#advancedOptionsBtn');
             await page.waitForSelector('#incidentTitle', { visible: true });
             await page.click('#incidentTitle');
-            await page.type('#incidentTitle', incidentRequest.incidentTitle);
+            await init.pageType(
+                page,
+                '#incidentTitle',
+                incidentRequest.incidentTitle
+            );
             await page.click('#incidentDescription');
-            await page.type(
+            await init.pageType(
+                page,
                 '#incidentDescription',
                 incidentRequest.incidentDescription
             );
@@ -109,7 +114,7 @@ describe('Incoming HTTP Request', () => {
             await page.waitForSelector('#name', { visible: true });
             await page.click('#name', { clickCount: 3 });
             // change the name of the incoming http request
-            await page.type('#name', 'newName');
+            await init.pageType(page, '#name', 'newName');
             await page.click('#editIncomingRequest');
             await page.waitForSelector('#editIncomingRequest', {
                 hidden: true,

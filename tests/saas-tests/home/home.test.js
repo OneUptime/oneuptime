@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const util = require('../../test-utils');
+const init = require('../../test-init');
 
 let page, browser;
 
@@ -22,17 +23,17 @@ describe('Request demo', () => {
     test('user can submit request through a demo form', async done => {
         await page.goto(`${util.HOME_URL}/enterprise/demo`);
         await page.waitForSelector('#form-section');
-        await page.type('#fullname', util.user.name);
-        await page.type('#email', util.user.email);
-        await page.type('#Phone', util.user.phone);
-        await page.type('#website', util.user.website);
+        await init.pageType(page, '#fullname', util.user.name);
+        await init.pageType(page, '#email', util.user.email);
+        await init.pageType(page, '#Phone', util.user.phone);
+        await init.pageType(page, '#website', util.user.website);
         await page.click('#country');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
         await page.click('#volume');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
-        await page.type('#message', util.user.message);
+        await init.pageType(page, '#message', util.user.message);
         await page.click('#request-demo-btn');
         await page.waitForSelector('#success');
         // Check if user's email is submitted successfully
@@ -51,10 +52,10 @@ describe('Request demo', () => {
             page.click('#website-monitoring'),
         ]);
         await page.waitForSelector('#form-section', { visible: true });
-        await page.type('#fullname', util.user.name);
-        await page.type('#email', util.user.email);
-        await page.type('#phone', util.user.phone);
-        await page.type('#website', util.user.website);
+        await init.pageType(page, '#fullname', util.user.name);
+        await init.pageType(page, '#email', util.user.email);
+        await init.pageType(page, '#phone', util.user.phone);
+        await init.pageType(page, '#website', util.user.website);
         await page.click('#country');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
@@ -78,10 +79,10 @@ describe('Request demo', () => {
             page.click('#speed-revenue'),
         ]);
         await page.waitForSelector('#form-section', { visible: true });
-        await page.type('#fullname', util.user.name);
-        await page.type('#email', util.user.email);
-        await page.type('#phone', util.user.phone);
-        await page.type('#website', util.user.website);
+        await init.pageType(page, '#fullname', util.user.name);
+        await init.pageType(page, '#email', util.user.email);
+        await init.pageType(page, '#phone', util.user.phone);
+        await init.pageType(page, '#website', util.user.website);
         await page.click('#country');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
@@ -105,10 +106,10 @@ describe('Request demo', () => {
             page.click('#best-practices'),
         ]);
         await page.waitForSelector('#form-section', { visible: true });
-        await page.type('#fullname', util.user.name);
-        await page.type('#email', util.user.email);
-        await page.type('#phone', util.user.phone);
-        await page.type('#website', util.user.website);
+        await init.pageType(page, '#fullname', util.user.name);
+        await init.pageType(page, '#email', util.user.email);
+        await init.pageType(page, '#phone', util.user.phone);
+        await init.pageType(page, '#website', util.user.website);
         await page.click('#country');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
@@ -132,10 +133,10 @@ describe('Request demo', () => {
             page.click('#peak-performance'),
         ]);
         await page.waitForSelector('#form-section', { visible: true });
-        await page.type('#fullname', util.user.name);
-        await page.type('#email', util.user.email);
-        await page.type('#phone', util.user.phone);
-        await page.type('#website', util.user.website);
+        await init.pageType(page, '#fullname', util.user.name);
+        await init.pageType(page, '#email', util.user.email);
+        await init.pageType(page, '#phone', util.user.phone);
+        await init.pageType(page, '#website', util.user.website);
         await page.click('#country');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');

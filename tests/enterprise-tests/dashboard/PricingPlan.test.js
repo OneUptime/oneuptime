@@ -54,7 +54,7 @@ describe('Status Page', () => {
             await page.click('button[type="button"] .bs-FileUploadButton');
             await page.waitForSelector('#name', { visible: true });
             await page.click('#name');
-            await page.type('#name', pageName);
+            await init.pageType(page, '#name', pageName);
             await page.click('#btnCreateStatusPage');
             // select the first item from the table row
             const rowItem = await page.waitForSelector(

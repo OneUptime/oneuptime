@@ -40,7 +40,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             await page.click('#btnCreateStatusPage_test');
             await page.waitForSelector('#name');
             await page.click('#name');
-            await page.type('#name', 'test');
+            await init.pageType(page, '#name', 'test');
             await page.click('#btnCreateStatusPage');
             // select the first item from the table row
             const rowItem = await page.waitForSelector(

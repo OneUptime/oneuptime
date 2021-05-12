@@ -82,7 +82,7 @@ describe('Sub-Project API', () => {
             await page.waitForSelector('#btn_Add_SubProjects');
             await page.click('#btn_Add_SubProjects');
             await page.waitForSelector('#title');
-            await page.type('#title', subProjectName);
+            await init.pageType(page, '#title', subProjectName);
             await page.click('#btnAddSubProjects');
             await page.waitForSelector('#title', { hidden: true });
             const subProjectSelector = await page.waitForSelector(
@@ -195,7 +195,7 @@ describe('Sub-Project API', () => {
             await page.waitForSelector('#btn_Add_SubProjects');
             await page.click('#btn_Add_SubProjects');
             await page.waitForSelector('#title');
-            await page.type('#title', newSubProjectName);
+            await init.pageType(page, '#title', newSubProjectName);
             await page.click('#btnAddSubProjects');
             await page.waitForSelector('button[title=apiKey]');
             await page.click('button[title=apiKey]');

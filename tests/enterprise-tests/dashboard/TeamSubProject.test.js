@@ -60,7 +60,11 @@ describe('Enterprise Team SubProject API', () => {
                 visible: true,
             });
             await page.click(`#emails_${subProjectName}`);
-            await page.type(`#emails_${subProjectName}`, newUser.email);
+            await init.pageType(
+                page,
+                `#emails_${subProjectName}`,
+                newUser.email
+            );
             await page.click(`#${role}_${subProjectName}`);
             await page.click(`#btn_modal_${subProjectName}`);
             await page.waitForSelector(`#btn_modal_${subProjectName}`, {

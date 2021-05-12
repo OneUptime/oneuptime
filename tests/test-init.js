@@ -3,7 +3,7 @@ const chai = require('chai');
 chai.use(require('chai-http'));
 const request = chai.request(utils.BACKEND_URL);
 
-module.exports = {
+const _this = {
     /**
      *
      * @param { ObjectConstructor } user
@@ -23,17 +23,25 @@ module.exports = {
             });
             await page.waitForSelector('#email');
             await page.click('input[name=email]');
-            await page.type('input[name=email]', email);
+            await _this.pageType(page, 'input[name=email]', email);
             await page.click('input[name=name]');
-            await page.type('input[name=name]', 'Test Name');
+            await _this.pageType(page, 'input[name=name]', 'Test Name');
             await page.click('input[name=companyName]');
-            await page.type('input[name=companyName]', 'Test Name');
+            await _this.pageType(page, 'input[name=companyName]', 'Test Name');
             await page.click('input[name=companyPhoneNumber]');
-            await page.type('input[name=companyPhoneNumber]', '99105688');
+            await _this.pageType(
+                page,
+                'input[name=companyPhoneNumber]',
+                '99105688'
+            );
             await page.click('input[name=password]');
-            await page.type('input[name=password]', '1234567890');
+            await _this.pageType(page, 'input[name=password]', '1234567890');
             await page.click('input[name=confirmPassword]');
-            await page.type('input[name=confirmPassword]', '1234567890');
+            await _this.pageType(
+                page,
+                'input[name=confirmPassword]',
+                '1234567890'
+            );
 
             await page.click('button[type=submit]');
             await page.waitForSelector(`form#card-form`, {
@@ -48,7 +56,7 @@ module.exports = {
             );
 
             await page.click('input[name=cardName]');
-            await page.type('input[name=cardName]', 'Test name');
+            await _this.pageType(page, 'input[name=cardName]', 'Test name');
 
             elementHandle = stripeIframeElements[0]; // card element
             frame = await elementHandle.contentFrame();
@@ -71,15 +79,35 @@ module.exports = {
                 delay: 50,
             });
             await page.click('input[name=address1]');
-            await page.type('input[name=address1]', utils.user.address.streetA);
+            await _this.pageType(
+                page,
+                'input[name=address1]',
+                utils.user.address.streetA
+            );
             await page.click('input[name=address2]');
-            await page.type('input[name=address2]', utils.user.address.streetB);
+            await _this.pageType(
+                page,
+                'input[name=address2]',
+                utils.user.address.streetB
+            );
             await page.click('input[name=city]');
-            await page.type('input[name=city]', utils.user.address.city);
+            await _this.pageType(
+                page,
+                'input[name=city]',
+                utils.user.address.city
+            );
             await page.click('input[name=state]');
-            await page.type('input[name=state]', utils.user.address.state);
+            await _this.pageType(
+                page,
+                'input[name=state]',
+                utils.user.address.state
+            );
             await page.click('input[name=zipCode]');
-            await page.type('input[name=zipCode]', utils.user.address.zipcode);
+            await _this.pageType(
+                page,
+                'input[name=zipCode]',
+                utils.user.address.zipcode
+            );
             await page.select('#country', 'India');
             await page.click('button[type=submit]');
 
@@ -107,9 +135,9 @@ module.exports = {
         });
         await page.waitForSelector('#login-button');
         await page.click('input[name=email]');
-        await page.type('input[name=email]', email);
+        await _this.pageType(page, 'input[name=email]', email);
         await page.click('input[name=password]');
-        await page.type('input[name=password]', password);
+        await _this.pageType(page, 'input[name=password]', password);
         await page.click('button[type=submit]');
 
         await page.waitForSelector('#home', { visible: true, timeout: 100000 });
@@ -121,9 +149,9 @@ module.exports = {
         });
         await page.waitForSelector('#login-button');
         await page.click('input[name=email]');
-        await page.type('input[name=email]', email);
+        await _this.pageType(page, 'input[name=email]', email);
         await page.click('input[name=password]');
-        await page.type('input[name=password]', password);
+        await _this.pageType(page, 'input[name=password]', password);
         await page.click('button[type=submit]');
 
         await page.waitForSelector('#users', {
@@ -146,17 +174,25 @@ module.exports = {
             });
             await page.waitForSelector('#email');
             await page.click('input[name=email]');
-            await page.type('input[name=email]', masterAdmin.email);
+            await _this.pageType(page, 'input[name=email]', masterAdmin.email);
             await page.click('input[name=name]');
-            await page.type('input[name=name]', 'Master Admin');
+            await _this.pageType(page, 'input[name=name]', 'Master Admin');
             await page.click('input[name=companyName]');
-            await page.type('input[name=companyName]', 'Master');
+            await _this.pageType(page, 'input[name=companyName]', 'Master');
             await page.click('input[name=companyPhoneNumber]');
-            await page.type('input[name=companyPhoneNumber]', '99105688');
+            await _this.pageType(
+                page,
+                'input[name=companyPhoneNumber]',
+                '99105688'
+            );
             await page.click('input[name=password]');
-            await page.type('input[name=password]', '1234567890');
+            await _this.pageType(page, 'input[name=password]', '1234567890');
             await page.click('input[name=confirmPassword]');
-            await page.type('input[name=confirmPassword]', '1234567890');
+            await _this.pageType(
+                page,
+                'input[name=confirmPassword]',
+                '1234567890'
+            );
             await Promise.all([
                 page.click('button[type=submit]'),
                 page.waitForSelector('#users', {
@@ -173,17 +209,21 @@ module.exports = {
         await page.click('#add_user');
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
-        await page.type('input[name=email]', email);
+        await _this.pageType(page, 'input[name=email]', email);
         await page.click('input[name=name]');
-        await page.type('input[name=name]', 'Test Name');
+        await _this.pageType(page, 'input[name=name]', 'Test Name');
         await page.click('input[name=companyName]');
-        await page.type('input[name=companyName]', 'Test Name');
+        await _this.pageType(page, 'input[name=companyName]', 'Test Name');
         await page.click('input[name=companyPhoneNumber]');
-        await page.type('input[name=companyPhoneNumber]', '99105688');
+        await _this.pageType(
+            page,
+            'input[name=companyPhoneNumber]',
+            '99105688'
+        );
         await page.click('input[name=password]');
-        await page.type('input[name=password]', '1234567890');
+        await _this.pageType(page, 'input[name=password]', '1234567890');
         await page.click('input[name=confirmPassword]');
-        await page.type('input[name=confirmPassword]', '1234567890');
+        await _this.pageType(page, 'input[name=confirmPassword]', '1234567890');
         await page.click('button[type=submit]');
         try {
             const signupResponse = await page.waitForResponse(
@@ -243,7 +283,7 @@ module.exports = {
         await page.click('#projectSettings');
         await page.waitForSelector('input[name=project_name]');
         await this.clear('input[name=project_name]', page);
-        await page.type('input[name=project_name]', newProjectName);
+        await _this.pageType(page, 'input[name=project_name]', newProjectName);
         await page.click('#btnCreateProject');
     },
     addMonitor: async function(monitorName, description, page) {
@@ -251,11 +291,11 @@ module.exports = {
         await page.waitForSelector('input[id=name]', { visible: true });
         await page.click('input[id=name]');
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', monitorName);
+        await _this.pageType(page, 'input[id=name]', monitorName);
         await page.click('[data-testId=type_manual]');
         await page.waitForSelector('#description', { visible: true });
         await page.click('#description');
-        await page.type('#description', description);
+        await _this.pageType(page, '#description', description);
         await page.click('button[type=submit]');
         await page.waitForSelector(`#cb${monitorName}`, { visible: true });
     },
@@ -285,7 +325,8 @@ module.exports = {
             page
         );
         await page.click('ul > li:last-of-type #monitor-description');
-        await page.type(
+        await _this.pageType(
+            page,
             'ul > li:last-of-type #monitor-description',
             description
         );
@@ -341,17 +382,21 @@ module.exports = {
         // Registration
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
-        await page.type('input[name=email]', email);
+        await _this.pageType(page, 'input[name=email]', email);
         await page.click('input[name=name]');
-        await page.type('input[name=name]', 'Test Name');
+        await _this.pageType(page, 'input[name=name]', 'Test Name');
         await page.click('input[name=companyName]');
-        await page.type('input[name=companyName]', 'Test Name');
+        await _this.pageType(page, 'input[name=companyName]', 'Test Name');
         await page.click('input[name=companyPhoneNumber]');
-        await page.type('input[name=companyPhoneNumber]', '99105688');
+        await _this.pageType(
+            page,
+            'input[name=companyPhoneNumber]',
+            '99105688'
+        );
         await page.click('input[name=password]');
-        await page.type('input[name=password]', password);
+        await _this.pageType(page, 'input[name=password]', password);
         await page.click('input[name=confirmPassword]');
-        await page.type('input[name=confirmPassword]', password);
+        await _this.pageType(page, 'input[name=confirmPassword]', password);
         await page.click('button[type=submit]'),
             await page.waitForSelector('#success-step');
 
@@ -361,9 +406,9 @@ module.exports = {
         });
         await page.waitForSelector('#login-form');
         await page.click('input[name=email]');
-        await page.type('input[name=email]', email);
+        await _this.pageType(page, 'input[name=email]', email);
         await page.click('input[name=password]');
-        await page.type('input[name=password]', password);
+        await _this.pageType(page, 'input[name=password]', password);
         await page.waitForSelector('button[type=submit]', { visible: true });
         await Promise.all([
             page.waitForNavigation({ waitUntil: 'networkidle2' }),
@@ -393,7 +438,7 @@ module.exports = {
         await page.waitForSelector('#form-new-component');
         await page.click('input[id=name]');
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', component);
+        await _this.pageType(page, 'input[id=name]', component);
 
         if (projectName) {
             await this.selectByText('#subProjectId', projectName, page);
@@ -457,17 +502,21 @@ module.exports = {
         await page.click('#add_user');
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
-        await page.type('input[name=email]', email);
+        await _this.pageType(page, 'input[name=email]', email);
         await page.click('input[name=name]');
-        await page.type('input[name=name]', 'Test Name');
+        await _this.pageType(page, 'input[name=name]', 'Test Name');
         await page.click('input[name=companyName]');
-        await page.type('input[name=companyName]', 'Test Name');
+        await _this.pageType(page, 'input[name=companyName]', 'Test Name');
         await page.click('input[name=companyPhoneNumber]');
-        await page.type('input[name=companyPhoneNumber]', '99105688');
+        await _this.pageType(
+            page,
+            'input[name=companyPhoneNumber]',
+            '99105688'
+        );
         await page.click('input[name=password]');
-        await page.type('input[name=password]', '1234567890');
+        await _this.pageType(page, 'input[name=password]', '1234567890');
         await page.click('input[name=confirmPassword]');
-        await page.type('input[name=confirmPassword]', '1234567890');
+        await _this.pageType(page, 'input[name=confirmPassword]', '1234567890');
         await page.click('button[type=submit]');
         await page.waitForSelector('#frmUser', { hidden: true });
     },
@@ -481,7 +530,7 @@ module.exports = {
             document.querySelector('.ActionIconParent').click();
         });
         page.waitForSelector('#name', { timeout: 2000 });
-        await page.type('#name', callSchedule);
+        await _this.pageType(page, '#name', callSchedule);
         await page.click('#btnCreateSchedule');
         await page.waitForSelector(`#duty_${callSchedule}`, { visible: true });
     },
@@ -491,7 +540,7 @@ module.exports = {
             await page.waitForSelector('#btn_Add_SubProjects');
             await page.click('#btn_Add_SubProjects');
             await page.waitForSelector('#title');
-            await page.type('#title', subProjectName);
+            await _this.pageType(page, '#title', subProjectName);
             await page.click('#btnAddSubProjects');
         } else {
             await page.waitForSelector('#projectSettings');
@@ -499,7 +548,7 @@ module.exports = {
             await page.waitForSelector('#btn_Add_SubProjects');
             await page.click('#btn_Add_SubProjects');
             await page.waitForSelector('#title');
-            await page.type('#title', subProjectName);
+            await _this.pageType(page, '#title', subProjectName);
             await page.click('#btnAddSubProjects');
         }
         await page.waitForSelector('#btnAddSubProjects', { hidden: true });
@@ -512,7 +561,7 @@ module.exports = {
         await page.click(`#btn_${subProjectName}`);
         await page.waitForSelector(`#frm_${subProjectName}`);
         await page.click(`#emails_${subProjectName}`);
-        await page.type(`#emails_${subProjectName}`, email);
+        await _this.pageType(page, `#emails_${subProjectName}`, email);
         await page.click(`#${role}_${subProjectName}`);
         await page.click(`#btn_modal_${subProjectName}`);
     },
@@ -529,13 +578,13 @@ module.exports = {
         await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', monitorName);
+        await _this.pageType(page, 'input[id=name]', monitorName);
         await page.waitForSelector('button[id=showMoreMonitors]');
         await page.click('button[id=showMoreMonitors]');
         await page.click('[data-testId=type_url]');
         await page.waitForSelector('#url', { visible: true });
         await page.click('#url');
-        await page.type('#url', 'https://google.com');
+        await _this.pageType(page, '#url', 'https://google.com');
         await page.click('button[type=submit]');
         await page.waitForSelector(`#monitor-title-${monitorName}`, {
             visible: true,
@@ -554,11 +603,11 @@ module.exports = {
         await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', monitorName);
+        await _this.pageType(page, 'input[id=name]', monitorName);
         await page.click('[data-testId=type_url]');
         await page.waitForSelector('#url', { visible: true });
         await page.click('#url');
-        await page.type('#url', 'https://google.com');
+        await _this.pageType(page, '#url', 'https://google.com');
         await page.click('button[type=submit]');
         await page.waitForSelector(`#monitor-title-${monitorName}`, {
             visible: true,
@@ -578,12 +627,12 @@ module.exports = {
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', monitorName);
+        await _this.pageType(page, 'input[id=name]', monitorName);
         await page.click('input[data-testId=type_api]');
         await this.selectByText('#method', 'get', page);
         await page.waitForSelector('#url', { visible: true });
         await page.click('#url');
-        await page.type('#url', utils.HTTP_TEST_SERVER_URL);
+        await _this.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
         await page.waitForSelector('#advanceOptions');
         await page.click('#advanceOptions');
 
@@ -619,7 +668,8 @@ module.exports = {
         await page.click(
             'ul[data-testId=up_criteria_list]> div:last-of-type #value'
         );
-        await page.type(
+        await _this.pageType(
+            page,
             'ul[data-testId=up_criteria_list]> div:last-of-type #value',
             "response.body.status === 'ok';"
         );
@@ -666,7 +716,8 @@ module.exports = {
         await page.click(
             'ul[data-testId=degraded_criteria_list] > div:last-of-type #value'
         );
-        await page.type(
+        await _this.pageType(
+            page,
             'ul[data-testId=degraded_criteria_list] > div:last-of-type #value',
             "response.body.message === 'draining';"
         );
@@ -689,7 +740,7 @@ module.exports = {
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', monitorName);
+        await _this.pageType(page, 'input[id=name]', monitorName);
         //Please add a new monitor type here. IOT Device Monitor has been removed.
         await page.click('button[type=submit]');
         await page.waitForSelector(`#monitor-title-${monitorName}`, {
@@ -741,7 +792,7 @@ module.exports = {
         await page.waitForSelector('#addNewPriority');
         await page.click('#addNewPriority');
         await page.waitForSelector('#CreateIncidentPriority');
-        await page.type('input[name=name]', incidentPriority);
+        await _this.pageType(page, 'input[name=name]', incidentPriority);
         await page.click('#CreateIncidentPriority');
         await page.waitForSelector('#CreateIncidentPriority', { hidden: true });
     },
@@ -752,7 +803,7 @@ module.exports = {
         if (createStatusPageSelector) {
             await page.click(`#btnCreateStatusPage_${projectName}`);
             await page.waitForSelector('#btnCreateStatusPage');
-            await page.type('#name', statusPageName);
+            await _this.pageType(page, '#name', statusPageName);
             await page.click('#btnCreateStatusPage');
         } else {
             await page.waitForSelector('#statusPages');
@@ -760,7 +811,7 @@ module.exports = {
             await page.waitForSelector(`#btnCreateStatusPage_${projectName}`);
             await page.click(`#btnCreateStatusPage_${projectName}`);
             await page.waitForSelector('#btnCreateStatusPage');
-            await page.type('#name', statusPageName);
+            await _this.pageType(page, '#name', statusPageName);
             await page.click('#btnCreateStatusPage');
         }
         await page.waitForSelector('#btnCreateStatusPage', { hidden: true });
@@ -773,7 +824,7 @@ module.exports = {
             await page.waitForSelector(`#btnCreateSchedule_${projectName}`);
             await page.click(`#btnCreateSchedule_${projectName}`);
             await page.waitForSelector('#btnCreateSchedule');
-            await page.type('#name', scheduleName);
+            await _this.pageType(page, '#name', scheduleName);
             await page.click('#btnCreateSchedule');
         } else {
             await page.waitForSelector('#onCallDuty');
@@ -781,7 +832,7 @@ module.exports = {
             await page.waitForSelector(`#btnCreateSchedule_${projectName}`);
             await page.click(`#btnCreateSchedule_${projectName}`);
             await page.waitForSelector('#btnCreateSchedule');
-            await page.type('#name', scheduleName);
+            await _this.pageType(page, '#name', scheduleName);
             await page.click('#btnCreateSchedule');
         }
     },
@@ -806,7 +857,7 @@ module.exports = {
         });
         await page.waitForSelector('#name');
         await page.click('#name');
-        await page.type('#name', scheduledEventName);
+        await _this.pageType(page, '#name', scheduledEventName);
         if (monitorName) {
             await page.click('label[for=selectAllMonitorsBox]');
             await page.click('#addMoreMonitor');
@@ -814,7 +865,8 @@ module.exports = {
             await this.selectByText('#monitorfield_0', componentName, page); // 'Component_Name/Monitor_Name' appears in the dropdown. Using 'componentName' selects the monitor.
         }
         await page.click('#description');
-        await page.type(
+        await _this.pageType(
+            page,
             '#description',
             'This is an example description for a test'
         );
@@ -854,7 +906,7 @@ module.exports = {
         await page.waitForSelector('#create-project');
         await page.click('#create-project');
         await page.waitForSelector('#name');
-        await page.type('#name', projectName ? projectName : 'test');
+        await _this.pageType(page, '#name', projectName ? projectName : 'test');
         await page.click('label[for=Startup_month]');
         const startupOption = await page.waitForSelector(
             'label[for=Startup_month]',
@@ -907,7 +959,7 @@ module.exports = {
         await page.waitForSelector('#createResourceCategoryButton');
         await page.click('#createResourceCategoryButton');
         await page.waitForSelector('#resourceCategoryName');
-        await page.type('#resourceCategoryName', resourceCategory);
+        await _this.pageType(page, '#resourceCategoryName', resourceCategory);
         await page.click('#addResourceCategoryButton');
         await page.waitForSelector('#addResourceCategoryButton', {
             hidden: true,
@@ -926,7 +978,7 @@ module.exports = {
         await page.waitForSelector('#create-project');
         await page.click('#create-project');
         await page.waitForSelector('#name');
-        await page.type('#name', projectName);
+        await _this.pageType(page, '#name', projectName);
         await page.click('label[for=Growth_month]');
         const growthOption = await page.waitForSelector(
             'label[for=Growth_month]',
@@ -945,7 +997,7 @@ module.exports = {
         await page.waitForSelector('#create-project');
         await page.click('#create-project');
         await page.waitForSelector('#name');
-        await page.type('#name', projectName);
+        await _this.pageType(page, '#name', projectName);
         await page.click('label[for=Scale_month]');
         const scaleOption = await page.waitForSelector(
             'label[for=Scale_month]',
@@ -985,7 +1037,7 @@ module.exports = {
         });
         await this.selectByText('#event_state', eventState, page);
         await page.click('#new-internal');
-        await page.type('#new-internal', noteDescription);
+        await _this.pageType(page, '#new-internal', noteDescription);
         await page.click('#internal-addButton');
         await page.waitForSelector('#form-new-schedule-internal-message', {
             hidden: true,
@@ -1038,9 +1090,9 @@ module.exports = {
             visible: true,
         });
         if (enableSms) await page.click('label[for=enabled]');
-        await page.type('#accountSid', accountSid);
-        await page.type('#authToken', authToken);
-        await page.type('#phoneNumber', phoneNumber);
+        await _this.pageType(page, '#accountSid', accountSid);
+        await _this.pageType(page, '#authToken', authToken);
+        await _this.pageType(page, '#phoneNumber', phoneNumber);
         await page.click('#submitTwilioSettings');
         await page.waitForSelector('.ball-beat', { hidden: true });
         await page.reload();
@@ -1069,10 +1121,10 @@ module.exports = {
         if (enableSms) {
             await page.$eval('#sms-enabled', element => element.click());
         }
-        await page.type('#account-sid', accountSid);
-        await page.type('#authentication-token', authToken);
-        await page.type('#phone', phoneNumber);
-        await page.type('#alert-limit', alertLimit);
+        await _this.pageType(page, '#account-sid', accountSid);
+        await _this.pageType(page, '#authentication-token', authToken);
+        await _this.pageType(page, '#phone', phoneNumber);
+        await _this.pageType(page, '#alert-limit', alertLimit);
         await page.click('button[type=submit]');
         await page.waitFor(5000);
         await page.reload();
@@ -1098,12 +1150,12 @@ module.exports = {
         await page.waitForSelector('#smtpswitch');
         if (enable) await page.$eval('#smtpswitch', elem => elem.click());
         await page.waitForSelector('#user');
-        await page.type('#user', user);
-        await page.type('#pass', pass);
-        await page.type('#host', host);
-        await page.type('#port', port);
-        await page.type('#from', from);
-        await page.type('#name', 'Admin');
+        await _this.pageType(page, '#user', user);
+        await _this.pageType(page, '#pass', pass);
+        await _this.pageType(page, '#host', host);
+        await _this.pageType(page, '#port', port);
+        await _this.pageType(page, '#from', from);
+        await _this.pageType(page, '#name', 'Admin');
         await page.$eval('#secure', e => {
             e.checked = secure;
         });
@@ -1120,11 +1172,11 @@ module.exports = {
         await page.waitForSelector('#userProfile');
         await page.click('#userProfile');
         await page.waitForSelector('input[type=tel]');
-        await page.type('input[type=tel]', phoneNumber);
+        await _this.pageType(page, 'input[type=tel]', phoneNumber);
         await page.waitForSelector('#sendVerificationSMS');
         await page.click('#sendVerificationSMS');
         await page.waitForSelector('#otp');
-        await page.type('#otp', code);
+        await _this.pageType(page, '#otp', code);
         await page.click('#verify');
         await page.waitForSelector('#successMessage');
     },
@@ -1147,7 +1199,7 @@ module.exports = {
             const { countryCode, phoneNumber } = data;
             await page.waitForSelector('#countryCodeId');
             await this.selectByText('#countryCodeId', countryCode, page);
-            await page.type('#contactPhoneId', phoneNumber);
+            await _this.pageType(page, '#contactPhoneId', phoneNumber);
         }
         await page.click('#createSubscriber');
     },
@@ -1179,10 +1231,17 @@ module.exports = {
         await page.click('#addCustomField');
         await page.waitForSelector('#customFieldForm', { visible: true });
         await page.click('#fieldName');
-        await page.type('#fieldName', data.fieldName);
+        await _this.pageType(page, '#fieldName', data.fieldName);
         await this.selectByText('#fieldType', data.fieldType, page);
 
         await page.click('#createCustomFieldButton');
         await page.waitForSelector('#customFieldForm', { visible: 'hidden' });
     },
+    pageType: async function(page, selector, text, opts) {
+        await page.waitForSelector(selector, { visible: true });
+        await page.focus(selector);
+        await page.type(selector, text, opts);
+    },
 };
+
+module.exports = _this;
