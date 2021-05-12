@@ -41,15 +41,15 @@ describe('Fyipe Page Reload', () => {
         'Should reload the incidents page and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#logs');
+            await page.waitForSelector('#logs', { visible : true });
             await page.click('#logs');
-            await page.waitForSelector('#form-new-application-log');
-            await page.waitForSelector('input[name=name]');
+            await page.waitForSelector('#form-new-application-log', { visible : true });
+            await page.waitForSelector('input[name=name]', { visible : true });
             await page.type('input[name=name]', logName);
-            await page.waitForSelector('#addApplicationLogButton');
+            await page.waitForSelector('#addApplicationLogButton', { visible : true });
             await page.click('#addApplicationLogButton');
             let spanElement;
-            spanElement = await page.waitForSelector('#application-content-header');
+            spanElement = await page.waitForSelector('#application-content-header', { visible : true });
             expect(spanElement).toBeDefined();
 
             // To confirm no errors and stays on the same page on reload
@@ -58,7 +58,7 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector('#cbLogs', { visible: true });
             await page.waitForSelector(`#cb${logName}`, { visible: true });
 
-            spanElement = await page.waitForSelector('#application-content-header');
+            spanElement = await page.waitForSelector('#application-content-header', { visible : true });
             expect(spanElement).toBeDefined();
             done();
         },

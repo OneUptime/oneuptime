@@ -41,15 +41,15 @@ describe('Fyipe Page Reload', () => {
         'Should reload the incidents page and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#errorTracking');
+            await page.waitForSelector('#errorTracking', { visible : true });
             await page.click('#errorTracking');
-            await page.waitForSelector('#form-new-error-tracker');
-            await page.waitForSelector('input[name=name]');
+            await page.waitForSelector('#form-new-error-tracker', { visible : true });
+            await page.waitForSelector('input[name=name]', { visible : true });
             await page.type('input[name=name]', errorTrackerName);
-            await page.waitForSelector('#addErrorTrackerButton');
+            await page.waitForSelector('#addErrorTrackerButton', { visible : true });
             await page.click('#addErrorTrackerButton');
             let spanElement;
-            spanElement = await page.waitForSelector(`#error-tracker-title-${errorTrackerName}`);
+            spanElement = await page.waitForSelector(`#error-tracker-title-${errorTrackerName}`, { visible : true });
             expect(spanElement).toBeDefined();
 
             // To confirm no errors and stays on the same page on reload
