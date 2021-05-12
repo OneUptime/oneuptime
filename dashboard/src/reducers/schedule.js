@@ -252,7 +252,7 @@ export default function schedule(state = initialState, action) {
 
         case CREATE_SCHEDULE_SUCCESS:
             isExistingSchedule = state.subProjectSchedules.find(
-                schedule => schedule._id === action.payload.projectId
+                schedule => schedule._id === action.payload.projectId._id
             );
             return Object.assign({}, state, {
                 newSchedule: {
@@ -263,9 +263,9 @@ export default function schedule(state = initialState, action) {
                 subProjectSchedules: isExistingSchedule
                     ? state.subProjectSchedules.length > 0
                         ? state.subProjectSchedules.map(schedule => {
-                              return schedule._id === action.payload.projectId
+                              return schedule._id === action.payload.projectId._id
                                   ? {
-                                        _id: action.payload.projectId,
+                                        _id: action.payload.projectId._id,
                                         schedules: [
                                             action.payload,
                                             ...schedule.schedules.filter(
@@ -280,7 +280,7 @@ export default function schedule(state = initialState, action) {
                           })
                         : [
                               {
-                                  _id: action.payload.projectId,
+                                  _id: action.payload.projectId._id,
                                   schedules: [action.payload],
                                   count: 1,
                                   skip: 0,
@@ -289,7 +289,7 @@ export default function schedule(state = initialState, action) {
                           ]
                     : state.subProjectSchedules.concat([
                           {
-                              _id: action.payload.projectId,
+                              _id: action.payload.projectId._id,
                               schedules: [action.payload],
                               count: 1,
                               skip: 0,

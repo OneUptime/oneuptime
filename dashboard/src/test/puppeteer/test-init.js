@@ -941,7 +941,7 @@ module.exports = {
         await page.reload();
         await page.waitForSelector('#account-sid');
     },
-    addSmtpSettings: async function(        
+    addSmtpSettings: async function(
         user,
         pass,
         host,
@@ -958,9 +958,9 @@ module.exports = {
         await page.waitForSelector('#more');
         await page.click('#more');
         await page.waitForSelector('#email');
-        await page.click('#email');        
-        await page.waitForSelector('#showsmtpForm', {visible: true});
-        await page.click('#showsmtpForm');// Removal of intermittency.        
+        await page.click('#email');
+        await page.waitForSelector('#showsmtpForm', { visible: true });
+        await page.click('#showsmtpForm'); // Removal of intermittency.
         await page.waitForSelector('#user');
         await page.type('#user', user);
         await page.type('#pass', pass);

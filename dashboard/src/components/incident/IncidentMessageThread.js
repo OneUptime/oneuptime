@@ -1064,10 +1064,7 @@ export class IncidentMessageThread extends Component {
                                                                                     className="bs-duty-span"
                                                                                     onClick={() => {
                                                                                         history.push(
-                                                                                            `/dashboard/project/${slug}/sub-project/${incidentMessage.project &&
-                                                                                                incidentMessage
-                                                                                                    .project
-                                                                                                    .slug}/schedule/${incidentMessage.schedule &&
+                                                                                            `/dashboard/project/${slug}/schedule/${incidentMessage.schedule &&
                                                                                                 incidentMessage
                                                                                                     .schedule
                                                                                                     .slug}`

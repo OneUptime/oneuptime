@@ -63,12 +63,7 @@ const OnCallSchedule = ({ status, schedules, slug }) => {
                                                     <b
                                                         onClick={() =>
                                                             history.push(
-                                                                `/dashboard/project/${slug}/sub-project/${schedule.projectId &&
-                                                                    schedule
-                                                                        .projectId
-                                                                        .slug}/schedule/${
-                                                                    schedule.slug
-                                                                }`
+                                                                `/dashboard/project/${slug}/schedule/${schedule.slug}`
                                                             )
                                                         }
                                                         style={{
