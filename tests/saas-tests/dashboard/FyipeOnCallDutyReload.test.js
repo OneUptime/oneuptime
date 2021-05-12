@@ -57,17 +57,17 @@ describe('Fyipe Page Reload', () => {
 
             await page.waitForSelector('#name', { visible: true });
             await init.pageType(page, '#name', onCallName);
-            await page.click('#btnCreateSchedule');
+            await init.pageClick(page, '#btnCreateSchedule');
             await page.waitForSelector('#name', { hidden: true });
 
             await page.waitForSelector('#viewOnCallSchedule', {
                 visible: true,
             });
-            await page.click('#viewOnCallSchedule');
+            await init.pageClick(page, '#viewOnCallSchedule');
             await page.waitForSelector('#scheduleMonitor_0', { visible: true });
-            await page.click('#scheduleMonitor_0');
+            await init.pageClick(page, '#scheduleMonitor_0');
             await page.waitForSelector('#btnSaveMonitors', { visible: true });
-            await page.click('#btnSaveMonitors');
+            await init.pageClick(page, '#btnSaveMonitors');
 
             await init.selectByText(
                 '.css-1uccc91-singleValue',
@@ -77,7 +77,7 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector('#saveSchedulePolicy', {
                 visible: true,
             });
-            await page.click('#saveSchedulePolicy');
+            await init.pageClick(page, '#saveSchedulePolicy');
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });

@@ -52,7 +52,7 @@ describe('Fyipe Component Reload', () => {
         async done => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#incidentLog', { visible: true });
-            await page.click('#incidentLog');
+            await init.pageClick(page, '#incidentLog');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
             await page.waitForSelector(`#cb${componentName}`, {
@@ -69,7 +69,7 @@ describe('Fyipe Component Reload', () => {
         async done => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#logs', { visible: true });
-            await page.click('#logs');
+            await init.pageClick(page, '#logs');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
             await page.waitForSelector(`#cb${componentName}`, {
@@ -86,7 +86,7 @@ describe('Fyipe Component Reload', () => {
         async done => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#errorTracking', { visible: true });
-            await page.click('#errorTracking');
+            await init.pageClick(page, '#errorTracking');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
             await page.waitForSelector(`#cb${componentName}`, {
@@ -105,7 +105,7 @@ describe('Fyipe Component Reload', () => {
             await page.waitForSelector('#performanceTracker', {
                 visible: true,
             });
-            await page.click('#performanceTracker');
+            await init.pageClick(page, '#performanceTracker');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
             await page.waitForSelector(`#cb${componentName}`, {
@@ -124,7 +124,7 @@ describe('Fyipe Component Reload', () => {
         async done => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#security', { visible: true });
-            await page.click('#security');
+            await init.pageClick(page, '#security');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
             await page.waitForSelector(`#cb${componentName}`, {
@@ -143,9 +143,9 @@ describe('Fyipe Component Reload', () => {
         async done => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#security', { visible: true });
-            await page.click('#security');
+            await init.pageClick(page, '#security');
             await page.waitForSelector('#application', { visible: true });
-            await page.click('#application');
+            await init.pageClick(page, '#application');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
             await page.waitForSelector(`#cb${componentName}`, {
@@ -164,9 +164,9 @@ describe('Fyipe Component Reload', () => {
         async done => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#componentSettings', { visible: true });
-            await page.click('#componentSettings');
+            await init.pageClick(page, '#componentSettings');
             await page.waitForSelector('#basic', { visible: true });
-            await page.click('#basic');
+            await init.pageClick(page, '#basic');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
             await page.waitForSelector(`#cb${componentName}`, {
@@ -185,9 +185,9 @@ describe('Fyipe Component Reload', () => {
         async done => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#componentSettings', { visible: true });
-            await page.click('#componentSettings');
+            await init.pageClick(page, '#componentSettings');
             await page.waitForSelector('#advanced', { visible: true });
-            await page.click('#advanced');
+            await init.pageClick(page, '#advanced');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
             await page.waitForSelector('#cbAdvanced', { visible: true });

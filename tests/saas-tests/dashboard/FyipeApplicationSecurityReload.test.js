@@ -51,35 +51,35 @@ describe('Fyipe Page Reload', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#security', { visible: true });
-            await page.click('#security');
+            await init.pageClick(page, '#security');
             await page.waitForSelector('#application', { visible: true });
-            await page.click('#application');
+            await init.pageClick(page, '#application');
 
             await page.waitForSelector('#applicationSecurityForm', {
                 visible: true,
             });
-            await page.click('#addCredentialBtn');
+            await init.pageClick(page, '#addCredentialBtn');
             await page.waitForSelector('#gitCredentialForm', {
                 visible: true,
             });
-            await page.click('#gitUsername');
+            await init.pageClick(page, '#gitUsername');
             await init.pageType(page, '#gitUsername', gitUsername);
-            await page.click('#gitPassword');
+            await init.pageClick(page, '#gitPassword');
             await init.pageType(page, '#gitPassword', gitPassword);
-            await page.click('#addCredentialModalBtn');
+            await init.pageClick(page, '#addCredentialModalBtn');
             await page.waitForSelector('#gitCredentialForm', {
                 hidden: true,
             });
 
-            await page.click('#name');
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', applicationSecurityName);
             await init.selectByText('#resourceCategory', categoryName, page); // add category
-            await page.click('#gitRepositoryUrl');
+            await init.pageClick(page, '#gitRepositoryUrl');
             await init.pageType(page, '#gitRepositoryUrl', gitRepositoryUrl);
-            await page.click('#gitCredential');
+            await init.pageClick(page, '#gitCredential');
             await init.pageType(page, '#gitCredential', gitUsername); // select the created credential
             await page.keyboard.press('Enter'); // Enter Key
-            await page.click('#addApplicationBtn');
+            await init.pageClick(page, '#addApplicationBtn');
 
             await page.waitForSelector('.ball-beat', { hidden: true });
             const applicationSecurity = await page.waitForSelector(

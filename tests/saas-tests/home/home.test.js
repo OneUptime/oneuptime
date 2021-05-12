@@ -27,14 +27,14 @@ describe('Request demo', () => {
         await init.pageType(page, '#email', util.user.email);
         await init.pageType(page, '#Phone', util.user.phone);
         await init.pageType(page, '#website', util.user.website);
-        await page.click('#country');
+        await init.pageClick(page, '#country');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
-        await page.click('#volume');
+        await init.pageClick(page, '#volume');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
         await init.pageType(page, '#message', util.user.message);
-        await page.click('#request-demo-btn');
+        await init.pageClick(page, '#request-demo-btn');
         await page.waitForSelector('#success');
         // Check if user's email is submitted successfully
         await page.waitForSelector('.submitted-email', { visible: true });
@@ -49,20 +49,20 @@ describe('Request demo', () => {
         await page.waitForSelector('#website-monitoring', { visible: true });
         await Promise.all([
             page.waitForNavigation(),
-            page.click('#website-monitoring'),
+            init.pageClick(page, '#website-monitoring'),
         ]);
         await page.waitForSelector('#form-section', { visible: true });
         await init.pageType(page, '#fullname', util.user.name);
         await init.pageType(page, '#email', util.user.email);
         await init.pageType(page, '#phone', util.user.phone);
         await init.pageType(page, '#website', util.user.website);
-        await page.click('#country');
+        await init.pageClick(page, '#country');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
-        await page.click('#volume');
+        await init.pageClick(page, '#volume');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
-        await page.click('#request-resource-btn');
+        await init.pageClick(page, '#request-resource-btn');
         // Check if user's email is submitted successfully
         await page.waitForSelector('.submitted-email', { visible: true });
         const emailSubmitted = await page.evaluate(
@@ -76,20 +76,20 @@ describe('Request demo', () => {
         await page.waitForSelector('#speed-revenue', { visible: true });
         await Promise.all([
             page.waitForNavigation(),
-            page.click('#speed-revenue'),
+            init.pageClick(page, '#speed-revenue'),
         ]);
         await page.waitForSelector('#form-section', { visible: true });
         await init.pageType(page, '#fullname', util.user.name);
         await init.pageType(page, '#email', util.user.email);
         await init.pageType(page, '#phone', util.user.phone);
         await init.pageType(page, '#website', util.user.website);
-        await page.click('#country');
+        await init.pageClick(page, '#country');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
-        await page.click('#volume');
+        await init.pageClick(page, '#volume');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
-        await page.click('#request-resource-btn');
+        await init.pageClick(page, '#request-resource-btn');
         // Check if user's email is submitted successfully
         await page.waitForSelector('.submitted-email', { visible: true });
         const emailSubmitted = await page.evaluate(
@@ -103,20 +103,20 @@ describe('Request demo', () => {
         await page.waitForSelector('#best-practices', { visible: true });
         await Promise.all([
             page.waitForNavigation(),
-            page.click('#best-practices'),
+            init.pageClick(page, '#best-practices'),
         ]);
         await page.waitForSelector('#form-section', { visible: true });
         await init.pageType(page, '#fullname', util.user.name);
         await init.pageType(page, '#email', util.user.email);
         await init.pageType(page, '#phone', util.user.phone);
         await init.pageType(page, '#website', util.user.website);
-        await page.click('#country');
+        await init.pageClick(page, '#country');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
-        await page.click('#volume');
+        await init.pageClick(page, '#volume');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
-        await page.click('#request-resource-btn');
+        await init.pageClick(page, '#request-resource-btn');
         // Check if user's email is submitted successfully
         await page.waitForSelector('.submitted-email', { visible: true });
         const emailSubmitted = await page.evaluate(
@@ -130,20 +130,20 @@ describe('Request demo', () => {
         await page.waitForSelector('#peak-performance', { visible: true });
         await Promise.all([
             page.waitForNavigation(),
-            page.click('#peak-performance'),
+            init.pageClick(page, '#peak-performance'),
         ]);
         await page.waitForSelector('#form-section', { visible: true });
         await init.pageType(page, '#fullname', util.user.name);
         await init.pageType(page, '#email', util.user.email);
         await init.pageType(page, '#phone', util.user.phone);
         await init.pageType(page, '#website', util.user.website);
-        await page.click('#country');
+        await init.pageClick(page, '#country');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
-        await page.click('#volume');
+        await init.pageClick(page, '#volume');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
-        await page.click('#request-resource-btn');
+        await init.pageClick(page, '#request-resource-btn');
         // Check if user's email is submitted successfully
         await page.waitForSelector('.submitted-email', { visible: true });
         const emailSubmitted = await page.evaluate(

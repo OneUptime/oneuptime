@@ -39,11 +39,11 @@ describe('SMS Templates API', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#smsCalls');
-            await page.click('#smsCalls');
+            await init.pageClick(page, '#smsCalls');
             await page.waitForSelector('#type');
             await init.selectByText(
                 '#type',
@@ -70,11 +70,11 @@ describe('SMS Templates API', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#smsCalls');
-            await page.click('#smsCalls');
+            await init.pageClick(page, '#smsCalls');
             await page.waitForSelector('#type');
             await init.selectByText(
                 '#type',
@@ -83,9 +83,11 @@ describe('SMS Templates API', () => {
             );
             await page.waitForSelector('#frmSmsTemplate');
             const newTemplate = 'New Body';
-            await page.click('textarea[name=body]', { clickCount: 3 });
+            await init.pageClick(page, 'textarea[name=body]', {
+                clickCount: 3,
+            });
             await init.pageType(page, 'textarea[name=body]', newTemplate);
-            await page.click('#saveTemplate');
+            await init.pageClick(page, '#saveTemplate');
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({
@@ -114,11 +116,11 @@ describe('SMS Templates API', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#smsCalls');
-            await page.click('#smsCalls');
+            await init.pageClick(page, '#smsCalls');
             await page.waitForSelector('#type');
             await init.selectByText(
                 '#type',
@@ -140,11 +142,11 @@ describe('SMS Templates API', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#smsCalls');
-            await page.click('#smsCalls');
+            await init.pageClick(page, '#smsCalls');
             await page.waitForSelector('#type');
             await init.selectByText(
                 '#type',
@@ -153,9 +155,9 @@ describe('SMS Templates API', () => {
             );
 
             await page.waitForSelector('#templateReset');
-            await page.click('#templateReset');
+            await init.pageClick(page, '#templateReset');
             await page.waitForSelector('#ResetSmsTemplate');
-            await page.click('#ResetSmsTemplate');
+            await init.pageClick(page, '#ResetSmsTemplate');
 
             await page.waitForSelector('#ResetSmsTemplate', {
                 hidden: true,

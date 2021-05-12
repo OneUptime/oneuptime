@@ -43,20 +43,20 @@ describe('Enterprise Component API', () => {
                 waitUntil: 'networkidle0',
             });
             await page.waitForSelector('#components', { timeout: 120000 });
-            await page.click('#components');
+            await init.pageClick(page, '#components');
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component');
             await page.waitForSelector('input[id=name]', { visible: true });
-            await page.click('input[id=name]');
+            await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', componentName);
-            await page.click('button[type=submit]');
+            await init.pageClick(page, 'button[type=submit]');
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
             await page.waitForSelector('#components', { visible: true });
-            await page.click('#components');
+            await init.pageClick(page, '#components');
 
             let spanElement;
             spanElement = await page.waitForSelector(

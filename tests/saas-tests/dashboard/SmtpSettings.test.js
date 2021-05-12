@@ -44,28 +44,28 @@ describe('Custom SMTP Settings', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more', { visible: true });
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#email', { visible: true });
-            await page.click('#email');
+            await init.pageClick(page, '#email');
             await page.waitForSelector('#showsmtpForm', { visible: true });
-            await page.click('#showsmtpForm');
+            await init.pageClick(page, '#showsmtpForm');
             await page.waitForSelector('#user', { visible: true });
-            await page.click('#user');
+            await init.pageClick(page, '#user');
             await init.pageType(page, '#user', smtpData.user);
-            await page.click('#pass');
+            await init.pageClick(page, '#pass');
             await init.pageType(page, '#pass', smtpData.pass);
-            await page.click('#host');
+            await init.pageClick(page, '#host');
             await init.pageType(page, '#host', smtpData.host);
-            await page.click('#port');
+            await init.pageClick(page, '#port');
             await init.pageType(page, '#port', smtpData.port);
-            await page.click('#from');
+            await init.pageClick(page, '#from');
             await init.pageType(page, '#from', smtpData.from);
-            await page.click('#name');
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', name);
             await page.$eval('#secure', elem => (elem.checked = true));
-            await page.click('#saveSmtp');
+            await init.pageClick(page, '#saveSmtp');
             await page.waitForTimeout(2000);
             await page.waitForSelector('.ball-beat', { hidden: true });
             await page.reload();
@@ -85,16 +85,16 @@ describe('Custom SMTP Settings', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more', { visible: true });
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#email', { visible: true });
-            await page.click('#email');
+            await init.pageClick(page, '#email');
             const from = 'test@fyipe.com';
             await page.waitForSelector('#from', { visible: true });
-            await page.click('#from', { clickCount: 3 });
+            await init.pageClick(page, '#from', { clickCount: 3 });
             await init.pageType(page, '#from', from);
-            await page.click('#saveSmtp');
+            await init.pageClick(page, '#saveSmtp');
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });
             await page.reload();
@@ -114,16 +114,16 @@ describe('Custom SMTP Settings', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more', { visible: true });
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#email', { visible: true });
-            await page.click('#email');
+            await init.pageClick(page, '#email');
             await page.waitForSelector('#port', { visible: true });
             const port = await page.$('#port');
             await port.click({ clickCount: 3 });
             await port.press('Backspace'); // clear out the input field
-            await page.click('#saveSmtp');
+            await init.pageClick(page, '#saveSmtp');
             await page.waitForSelector('#field-error', {
                 visible: true,
             });
@@ -147,11 +147,11 @@ describe('Custom SMTP Settings', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more', { visible: true });
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#email', { visible: true });
-            await page.click('#email');
+            await init.pageClick(page, '#email');
             await page.waitForSelector('label[id=showsmtpForm]', {
                 visible: true,
             });
@@ -159,9 +159,9 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
             });
             await page.waitForSelector('#saveSmtp', { visible: true });
-            await page.click('label[id=enableSecureTransport]');
-            await page.click('label[id=showsmtpForm]');
-            await page.click('#saveSmtp');
+            await init.pageClick(page, 'label[id=enableSecureTransport]');
+            await init.pageClick(page, 'label[id=showsmtpForm]');
+            await init.pageClick(page, '#saveSmtp');
             await page.reload();
             const username = await page.$('#user');
             expect(username).toBe(null);
@@ -178,13 +178,13 @@ describe('Custom SMTP Settings', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more', { visible: true });
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#email', { visible: true });
-            await page.click('#email');
+            await init.pageClick(page, '#email');
             await page.waitForSelector('#saveSmtp', { visible: true });
-            await page.click('#saveSmtp');
+            await init.pageClick(page, '#saveSmtp');
             const error = await page.waitForSelector('#errorInfo', {
                 hidden: true,
             });

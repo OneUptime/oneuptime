@@ -42,7 +42,7 @@ describe('Fyipe Page Reload', () => {
         async done => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#errorTracking', { visible: true });
-            await page.click('#errorTracking');
+            await init.pageClick(page, '#errorTracking');
             await page.waitForSelector('#form-new-error-tracker', {
                 visible: true,
             });
@@ -51,7 +51,7 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector('#addErrorTrackerButton', {
                 visible: true,
             });
-            await page.click('#addErrorTrackerButton');
+            await init.pageClick(page, '#addErrorTrackerButton');
             let spanElement;
             spanElement = await page.waitForSelector(
                 `#error-tracker-title-${errorTrackerName}`,

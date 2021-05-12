@@ -47,13 +47,13 @@ describe('Sub-Project API', () => {
             });
             await page.waitForSelector('#projectSettings');
 
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
 
             await page.waitForSelector('#btn_Add_SubProjects');
 
-            await page.click('#btn_Add_SubProjects');
+            await init.pageClick(page, '#btn_Add_SubProjects');
 
-            await page.click('#btnAddSubProjects');
+            await init.pageClick(page, '#btnAddSubProjects');
 
             const spanSelector = await page.waitForSelector(
                 '#subProjectCreateErrorMessage',
@@ -78,12 +78,12 @@ describe('Sub-Project API', () => {
             });
 
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#btn_Add_SubProjects');
-            await page.click('#btn_Add_SubProjects');
+            await init.pageClick(page, '#btn_Add_SubProjects');
             await page.waitForSelector('#title');
             await init.pageType(page, '#title', subProjectName);
-            await page.click('#btnAddSubProjects');
+            await init.pageClick(page, '#btnAddSubProjects');
             await page.waitForSelector('#title', { hidden: true });
             const subProjectSelector = await page.waitForSelector(
                 `#sub_project_name_${subProjectName}`,
@@ -108,13 +108,13 @@ describe('Sub-Project API', () => {
             });
 
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             const editSubProjectName = utils.generateRandomString();
-            await page.click(`#sub_project_edit_${subProjectName}`);
+            await init.pageClick(page, `#sub_project_edit_${subProjectName}`);
             const input = await page.$('#title');
             await input.click({ clickCount: 3 });
             await input.type(editSubProjectName);
-            await page.click('#btnAddSubProjects');
+            await init.pageClick(page, '#btnAddSubProjects');
             await page.waitForSelector('#title', { hidden: true });
             const subProjectSelector = await page.waitForSelector(
                 `#sub_project_name_${editSubProjectName}`,
@@ -139,12 +139,12 @@ describe('Sub-Project API', () => {
                 waitUntil: 'networkidle0',
             });
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
-            await page.click('#btn_Add_SubProjects');
+            await init.pageClick(page, '#projectSettings');
+            await init.pageClick(page, '#btn_Add_SubProjects');
             const input = await page.$('#title');
             await input.click({ clickCount: 3 });
             await input.type(subProjectName);
-            await page.click('#btnAddSubProjects');
+            await init.pageClick(page, '#btnAddSubProjects');
             const spanSelector = await page.waitForSelector(
                 '#subProjectCreateErrorMessage',
                 { visible: true }
@@ -167,11 +167,11 @@ describe('Sub-Project API', () => {
                 waitUntil: 'networkidle0',
             });
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector(`#sub_project_delete_${subProjectName}`);
-            await page.click(`#sub_project_delete_${subProjectName}`);
+            await init.pageClick(page, `#sub_project_delete_${subProjectName}`);
             await page.waitForSelector('#removeSubProject');
-            await page.click('#removeSubProject');
+            await init.pageClick(page, '#removeSubProject');
             const subProjectSelector = await page.waitForSelector(
                 `#sub_project_name_${subProjectName}`,
                 { hidden: true }
@@ -191,16 +191,16 @@ describe('Sub-Project API', () => {
             });
 
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#btn_Add_SubProjects');
-            await page.click('#btn_Add_SubProjects');
+            await init.pageClick(page, '#btn_Add_SubProjects');
             await page.waitForSelector('#title');
             await init.pageType(page, '#title', newSubProjectName);
-            await page.click('#btnAddSubProjects');
+            await init.pageClick(page, '#btnAddSubProjects');
             await page.waitForSelector('button[title=apiKey]');
-            await page.click('button[title=apiKey]');
+            await init.pageClick(page, 'button[title=apiKey]');
             await page.waitForSelector('button[id=removeSubProject]');
-            await page.click('button[id=removeSubProject]');
+            await init.pageClick(page, 'button[id=removeSubProject]');
             let modalTitle = await page.$('span#modalTitle');
             modalTitle = await modalTitle.getProperty('innerText');
             modalTitle = await modalTitle.jsonValue();
@@ -218,25 +218,25 @@ describe('Sub-Project API', () => {
             });
 
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('button[title=apiKey]');
-            await page.click('button[title=apiKey]');
+            await init.pageClick(page, 'button[title=apiKey]');
             await page.waitForSelector('span#apiKey');
-            await page.click('span#apiKey');
+            await init.pageClick(page, 'span#apiKey');
             let oldApiKey = await page.$('span#apiKey');
             oldApiKey = await oldApiKey.getProperty('innerText');
             oldApiKey = await oldApiKey.jsonValue();
 
             await page.waitForSelector('button[id=removeSubProject]');
-            await page.click('button[id=removeSubProject]');
+            await init.pageClick(page, 'button[id=removeSubProject]');
             await page.waitForSelector('button[id=confirmResetKey]');
-            await page.click('button[id=confirmResetKey]');
+            await init.pageClick(page, 'button[id=confirmResetKey]');
             await page.waitForSelector('button[title=apiKey]');
-            await page.click('button[title=apiKey]');
+            await init.pageClick(page, 'button[title=apiKey]');
             await page.waitForSelector('button[id=sub_project_api_key_0]');
-            await page.click('button[id=sub_project_api_key_0]');
+            await init.pageClick(page, 'button[id=sub_project_api_key_0]');
             await page.waitForSelector('span#apiKey');
-            await page.click('span#apiKey');
+            await init.pageClick(page, 'span#apiKey');
             let newApiKey = await page.$('span#apiKey');
             newApiKey = await newApiKey.getProperty('innerText');
             newApiKey = await newApiKey.jsonValue();

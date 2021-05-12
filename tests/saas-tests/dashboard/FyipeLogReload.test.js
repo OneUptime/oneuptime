@@ -42,7 +42,7 @@ describe('Fyipe Page Reload', () => {
         async done => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#logs', { visible: true });
-            await page.click('#logs');
+            await init.pageClick(page, '#logs');
             await page.waitForSelector('#form-new-application-log', {
                 visible: true,
             });
@@ -51,7 +51,7 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector('#addApplicationLogButton', {
                 visible: true,
             });
-            await page.click('#addApplicationLogButton');
+            await init.pageClick(page, '#addApplicationLogButton');
             let spanElement;
             spanElement = await page.waitForSelector(
                 '#application-content-header',

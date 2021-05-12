@@ -45,18 +45,18 @@ describe('Status-Page Advanced Options', () => {
         });
 
         await page.waitForSelector('#statusPages');
-        await page.click('#statusPages');
+        await init.pageClick(page, '#statusPages');
         await page.waitForSelector(`#btnCreateStatusPage_${projectName}`);
-        await page.click(`#btnCreateStatusPage_${projectName}`);
+        await init.pageClick(page, `#btnCreateStatusPage_${projectName}`);
         await page.waitForSelector('#name');
         await page.waitForSelector('input[id=name]', { visible: true });
-        await page.click('input[id=name]');
+        await init.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
         await init.pageType(page, 'input[id=name]', statusPageName);
-        await page.click('#btnCreateStatusPage');
+        await init.pageClick(page, '#btnCreateStatusPage');
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage');
+        await init.pageClick(page, '#viewStatusPage');
         await page.waitForSelector(`#header-${statusPageName}`);
 
         // To confirm the status-page name.
@@ -81,21 +81,21 @@ describe('Status-Page Advanced Options', () => {
         // Fill and submit New Component form
         await page.waitForSelector('#form-new-component');
         await page.waitForSelector('input[id=name]', { visible: true });
-        await page.click('input[id=name]');
+        await init.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
         await init.pageType(page, 'input[id=name]', componentName);
-        await page.click('button[type=submit]');
+        await init.pageClick(page, 'button[type=submit]');
 
         // Create a Manual Monitor
         await page.waitForSelector('#form-new-monitor', { visible: true });
-        await page.click('input[id=name]', { visible: true });
+        await init.pageClick(page, 'input[id=name]', { visible: true });
         await page.focus('input[id=name]');
         await init.pageType(page, 'input[id=name]', monitorName);
-        await page.click('[data-testId=type_manual]');
+        await init.pageClick(page, '[data-testId=type_manual]');
         await page.waitForSelector('#description');
-        await page.click('#description');
+        await init.pageClick(page, '#description');
         await init.pageType(page, '#description', 'My Manual Monitor');
-        await page.click('button[type=submit]');
+        await init.pageClick(page, 'button[type=submit]');
 
         // To confirm the manual monitor is created.
         let spanElement = await page.waitForSelector(
@@ -114,25 +114,25 @@ describe('Status-Page Advanced Options', () => {
         });
 
         await page.waitForSelector('#statusPages');
-        await page.click('#statusPages');
+        await init.pageClick(page, '#statusPages');
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage');
+        await init.pageClick(page, '#viewStatusPage');
         await page.waitForSelector('#addMoreMonitors');
-        await page.click('#addMoreMonitors');
+        await init.pageClick(page, '#addMoreMonitors');
         await init.selectByText(
             '#monitor-name',
             `${componentName} / ${monitorName}`,
             page
         );
-        await page.click('#monitor-description');
+        await init.pageClick(page, '#monitor-description');
         await init.pageType(
             page,
             '#monitor-description',
             'Status Page Description'
         );
-        await page.click('#manual-monitor-checkbox');
-        await page.click('#btnAddStatusPageMonitors');
+        await init.pageClick(page, '#manual-monitor-checkbox');
+        await init.pageClick(page, '#btnAddStatusPageMonitors');
 
         await page.waitForSelector('#publicStatusPageUrl');
         let link = await page.$('#publicStatusPageUrl > span > a');
@@ -160,14 +160,14 @@ describe('Status-Page Advanced Options', () => {
         });
         await page.$$eval('ul#customTabList > li', elems => elems[1].click());
         await page.waitForSelector('#addSubscriberButton');
-        await page.click('#addSubscriberButton');
+        await init.pageClick(page, '#addSubscriberButton');
         await page.waitForSelector('#alertViaId');
         await init.selectByText('#alertViaId', 'Email', page);
         await page.waitForSelector('#emailId');
-        await page.click('#emailId');
+        await init.pageClick(page, '#emailId');
         await init.pageType(page, '#emailId', subscriberEmail);
         await page.waitForSelector('#createSubscriber');
-        await page.click('#createSubscriber');
+        await init.pageClick(page, '#createSubscriber');
         // To confirm that the subscriber is created.
         const subscriberContact = await page.waitForSelector(
             '#subscriber_contact'
@@ -183,10 +183,10 @@ describe('Status-Page Advanced Options', () => {
         });
 
         await page.waitForSelector('#statusPages');
-        await page.click('#statusPages');
+        await init.pageClick(page, '#statusPages');
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage');
+        await init.pageClick(page, '#viewStatusPage');
         // Navigate to subscriber tab in status-page.
         await page.waitForSelector('ul#customTabList > li', {
             visible: true,
@@ -207,21 +207,21 @@ describe('Status-Page Advanced Options', () => {
         });
 
         await page.waitForSelector('#statusPages');
-        await page.click('#statusPages');
+        await init.pageClick(page, '#statusPages');
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage');
+        await init.pageClick(page, '#viewStatusPage');
         // Navigate to custom domain tab in status-page.
         await page.waitForSelector('ul#customTabList > li', {
             visible: true,
         });
         await page.$$eval('ul#customTabList > li', elems => elems[2].click());
         await page.waitForSelector('#addMoreDomain');
-        await page.click('#addMoreDomain');
+        await init.pageClick(page, '#addMoreDomain');
         await page.waitForSelector('#customDomain');
-        await page.click('#customDomain');
+        await init.pageClick(page, '#customDomain');
         await init.pageType(page, '#customDomain', customDomainWebsite);
-        await page.click('#createCustomDomainBtn');
+        await init.pageClick(page, '#createCustomDomainBtn');
         // To confirm that custom domain is created.
         const customDomain = await page.waitForSelector('#publicStatusPageUrl');
         expect(customDomain).toBeDefined();
@@ -235,10 +235,10 @@ describe('Status-Page Advanced Options', () => {
         });
 
         await page.waitForSelector('#statusPages');
-        await page.click('#statusPages');
+        await init.pageClick(page, '#statusPages');
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage');
+        await init.pageClick(page, '#viewStatusPage');
         // Navigate to advanced tab in status-page
         await page.waitForSelector('ul#customTabList > li', {
             visible: true,
@@ -246,9 +246,9 @@ describe('Status-Page Advanced Options', () => {
         await page.$$eval('ul#customTabList > li', elems => elems[5].click());
         // Add Enable Subscribers
         await page.waitForSelector('#enable-subscribers');
-        await page.click('#enable-subscribers');
+        await init.pageClick(page, '#enable-subscribers');
         await page.waitForSelector('#saveAdvancedOptions');
-        await page.click('#saveAdvancedOptions');
+        await init.pageClick(page, '#saveAdvancedOptions');
 
         await page.waitForSelector('#publicStatusPageUrl');
         let link = await page.$('#publicStatusPageUrl > span > a');
@@ -270,11 +270,11 @@ describe('Status-Page Advanced Options', () => {
         });
         await init.navigateToStatusPage(page);
         await page.waitForSelector('#subscriber-button');
-        await page.click('#subscriber-button');
+        await init.pageClick(page, '#subscriber-button');
         await page.waitForSelector('input[name=email]');
-        await page.click('input[name=email]');
+        await init.pageClick(page, 'input[name=email]');
         await init.pageType(page, 'input[name=email]', subscriberEmail);
-        await page.click('#subscribe-btn-email');
+        await init.pageClick(page, '#subscribe-btn-email');
         // To confirm successful subscription
         let subscribeSuccess = await page.waitForSelector(
             '#monitor-subscribe-success-message'
@@ -294,10 +294,10 @@ describe('Status-Page Advanced Options', () => {
         });
 
         await page.waitForSelector('#statusPages');
-        await page.click('#statusPages');
+        await init.pageClick(page, '#statusPages');
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage');
+        await init.pageClick(page, '#viewStatusPage');
         // Navigate to advanced tab in status-page
         await page.waitForSelector('ul#customTabList > li', {
             visible: true,
@@ -305,9 +305,9 @@ describe('Status-Page Advanced Options', () => {
         await page.$$eval('ul#customTabList > li', elems => elems[5].click());
 
         await page.waitForSelector('#delete');
-        await page.click('#delete');
+        await init.pageClick(page, '#delete');
         await page.waitForSelector('#confirmDelete');
-        await page.click('#confirmDelete');
+        await init.pageClick(page, '#confirmDelete');
 
         // To confirm status-page has been deleted.
         const deletedStatusPage = await page.waitForSelector(

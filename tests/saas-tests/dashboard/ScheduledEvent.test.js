@@ -52,26 +52,26 @@ describe('Scheduled event', () => {
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
-            await page.click('#scheduledMaintenance');
+            await init.pageClick(page, '#scheduledMaintenance');
             await page.waitForSelector('#addScheduledEventButton', {
                 visible: true,
             });
-            await page.click('#addScheduledEventButton');
+            await init.pageClick(page, '#addScheduledEventButton');
 
             await page.waitForSelector('#scheduledEventForm', {
                 visible: true,
             });
             await page.waitForSelector('#name');
-            await page.click('#name');
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', scheduleMaintenanceName);
-            await page.click('label[for=selectAllMonitorsBox]');
-            await page.click('#addMoreMonitor');
+            await init.pageClick(page, 'label[for=selectAllMonitorsBox]');
+            await init.pageClick(page, '#addMoreMonitor');
             await page.waitForSelector('#monitorfield_0');
             await init.selectByText('#monitorfield_0', componentName, page); // "ComponentName / MonitorName" is in the dropdown. Using only ComponentName selects both
-            await page.click('#addMoreMonitor');
+            await init.pageClick(page, '#addMoreMonitor');
             await page.waitForSelector('#monitorfield_1');
             await init.selectByText('#monitorfield_1', componentName, page);
-            await page.click('#description');
+            await init.pageClick(page, '#description');
             await init.pageType(
                 page,
                 '#description',
@@ -84,17 +84,17 @@ describe('Scheduled event', () => {
              */
 
             // await page.waitForSelector('input[name=startDate]');
-            // await page.click('input[name=startDate]');
-            // await page.click(
+            // await init.pageClick(page,'input[name=startDate]');
+            // await init.pageClick(page,
             //     'div.MuiDialogActions-root button:nth-child(2)'
             // );
             // await page.waitForTimeout(1000); // needed because of the date picker
-            // await page.click('input[name=endDate]');
-            // await page.click(
+            // await init.pageClick(page,'input[name=endDate]');
+            // await init.pageClick(page,
             //     'div.MuiDialogActions-root button:nth-child(2)'
             // );
             // await page.waitForTimeout(1000); // needed because of the date picker
-            await page.click('#createScheduledEventButton');
+            await init.pageClick(page, '#createScheduledEventButton');
             const monitorError = await page.waitForSelector('#monitorError', {
                 visible: true,
             });
@@ -111,23 +111,23 @@ describe('Scheduled event', () => {
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
-            await page.click('#scheduledMaintenance');
+            await init.pageClick(page, '#scheduledMaintenance');
             await page.waitForSelector('#addScheduledEventButton', {
                 visible: true,
             });
-            await page.click('#addScheduledEventButton');
+            await init.pageClick(page, '#addScheduledEventButton');
 
             await page.waitForSelector('#scheduledEventForm', {
                 visible: true,
             });
             await page.waitForSelector('#name');
-            await page.click('#name');
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', scheduleMaintenanceName);
-            await page.click('label[for=selectAllMonitorsBox]');
-            await page.click('#addMoreMonitor');
+            await init.pageClick(page, 'label[for=selectAllMonitorsBox]');
+            await init.pageClick(page, '#addMoreMonitor');
             await page.waitForSelector('#monitorfield_0');
             await init.selectByText('#monitorfield_0', componentName, page);
-            await page.click('#description');
+            await init.pageClick(page, '#description');
             await init.pageType(
                 page,
                 '#description',
@@ -140,17 +140,17 @@ describe('Scheduled event', () => {
              */
 
             // await page.waitForSelector('input[name=startDate]');
-            // await page.click('input[name=startDate]');
-            // await page.click(
+            // await init.pageClick(page,'input[name=startDate]');
+            // await init.pageClick(page,
             //     'div.MuiDialogActions-root button:nth-child(2)'
             // );
             // await page.waitForTimeout(1000); // needed because of the date picker
-            // await page.click('input[name=endDate]');
-            // await page.click(
+            // await init.pageClick(page,'input[name=endDate]');
+            // await init.pageClick(page,
             //     'div.MuiDialogActions-root button:nth-child(2)'
             // );
             // await page.waitForTimeout(1000); // needed because of the date picker
-            await page.click('#createScheduledEventButton');
+            await init.pageClick(page, '#createScheduledEventButton');
             await page.waitForSelector('#scheduledEventForm', {
                 hidden: true,
             });
@@ -174,27 +174,30 @@ describe('Scheduled event', () => {
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
-            await page.click('#scheduledMaintenance');
+            await init.pageClick(page, '#scheduledMaintenance');
             //Refactored UI
             await page.waitForSelector('#viewScheduledEvent_0', {
                 visible: true,
             });
-            await page.click('#viewScheduledEvent_0');
+            await init.pageClick(page, '#viewScheduledEvent_0');
             await page.waitForSelector(
                 `#editScheduledEvent-${scheduleMaintenanceName}`,
                 {
                     visible: true,
                 }
             );
-            await page.click(`#editScheduledEvent-${scheduleMaintenanceName}`);
+            await init.pageClick(
+                page,
+                `#editScheduledEvent-${scheduleMaintenanceName}`
+            );
 
             await page.waitForSelector('#editScheduledEventForm', {
                 visible: true,
             });
             await page.waitForSelector('#name');
-            await page.click('#name', { clickCount: 3 });
+            await init.pageClick(page, '#name', { clickCount: 3 });
             await init.pageType(page, '#name', newScheduledMaintenanceName);
-            await page.click('#updateScheduledEventButton');
+            await init.pageClick(page, '#updateScheduledEventButton');
             await page.waitForSelector('#editScheduledEventForm', {
                 hidden: true,
             });
@@ -203,7 +206,7 @@ describe('Scheduled event', () => {
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
-            await page.click('#scheduledMaintenance');
+            await init.pageClick(page, '#scheduledMaintenance');
 
             await page.waitForSelector('.scheduled-event-name', {
                 visible: true,
@@ -227,12 +230,12 @@ describe('Scheduled event', () => {
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
-            await page.click('#scheduledMaintenance');
+            await init.pageClick(page, '#scheduledMaintenance');
             //Refactored UI
             await page.waitForSelector('#viewScheduledEvent_0', {
                 visible: true,
             });
-            await page.click('#viewScheduledEvent_0');
+            await init.pageClick(page, '#viewScheduledEvent_0');
             await page.waitForSelector('ul#customTabList > li', {
                 visible: true,
             });
@@ -244,11 +247,11 @@ describe('Scheduled event', () => {
             await page.waitForSelector('#deleteScheduleEvent', {
                 visible: true,
             });
-            await page.click('#deleteScheduleEvent');
+            await init.pageClick(page, '#deleteScheduleEvent');
             await page.waitForSelector('#deleteScheduleModalBtn', {
                 visible: true,
             });
-            await page.click('#deleteScheduleModalBtn');
+            await init.pageClick(page, '#deleteScheduleModalBtn');
             await page.waitForSelector('#deleteScheduleModalBtn', {
                 hidden: true,
             });

@@ -44,7 +44,7 @@ describe('Enterprise Project API', () => {
             await page.$eval('#create-project', e => e.click());
             await page.waitForSelector('#name', { visble: true });
             await page.waitForSelector('input[id=name]', { visible: true });
-            await page.click('input[id=name]');
+            await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(
                 page,
@@ -55,7 +55,7 @@ describe('Enterprise Project API', () => {
             const projectPlan = await page.$('input[id=Startup_month]');
             expect(projectPlan).toBeDefined(); // Startup_month is part of the modal that gets popped out.
 
-            await page.click('button[type=submit]');
+            await init.pageClick(page, 'button[type=submit]');
             // eslint-disable-next-line no-undef
             localStorageData = await page.evaluate(() => {
                 const json = {};

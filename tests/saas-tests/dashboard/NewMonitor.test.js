@@ -54,21 +54,21 @@ describe('New Monitor API', () => {
             const monitorName = utils.generateRandomString();
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#components', { visible: true });
-            await page.click('#components');
+            await init.pageClick(page, '#components');
             await page.waitForSelector('#component0', { visible: true });
-            await page.click(`#more-details-${componentName}`);
+            await init.pageClick(page, `#more-details-${componentName}`);
             await page.waitForSelector('#form-new-monitor', { visible: true });
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.waitForSelector('input[id=name]', { visible: true });
-            await page.click('input[id=name]');
+            await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             // Added new URL-Montior
-            await page.click('[data-testId=type_url]');
+            await init.pageClick(page, '[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
-            await page.click('#url');
+            await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
-            await page.click('button[type=submit]');
+            await init.pageClick(page, 'button[type=submit]');
 
             const pricingPlanModal = await page.waitForSelector(
                 '#pricingPlanModal',
@@ -104,21 +104,21 @@ describe('New Monitor API', () => {
             const monitorName = utils.generateRandomString();
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#components', { visible: true });
-            await page.click('#components');
+            await init.pageClick(page, '#components');
             await page.waitForSelector('#component0', { visible: true });
-            await page.click(`#more-details-${componentName}`);
+            await init.pageClick(page, `#more-details-${componentName}`);
             await page.waitForSelector('#form-new-monitor', { visible: true });
             await page.waitForSelector('input[id=name]', { visible: true });
             await page.waitForSelector('input[id=name]', { visible: true });
-            await page.click('input[id=name]');
+            await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             // Added new URL-Montior
-            await page.click('[data-testId=type_url]');
+            await init.pageClick(page, '[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
-            await page.click('#url');
+            await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
-            await page.click('button[type=submit]');
+            await init.pageClick(page, 'button[type=submit]');
 
             const pricingPlanModal = await page.waitForSelector(
                 '#pricingPlanModal',
@@ -155,21 +155,21 @@ describe('New Monitor API', () => {
             const monitorName = utils.generateRandomString();
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#components', { visible: true });
-            await page.click('#components');
+            await init.pageClick(page, '#components');
             await page.waitForSelector('#component0', { visible: true });
-            await page.click(`#more-details-${componentName}`);
+            await init.pageClick(page, `#more-details-${componentName}`);
             await page.waitForSelector('#form-new-monitor');
             await page.waitForSelector('input[id=name]');
             await page.waitForSelector('input[id=name]', { visible: true });
-            await page.click('input[id=name]');
+            await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             // Added new URL-Montior
-            await page.click('[data-testId=type_url]');
+            await init.pageClick(page, '[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
-            await page.click('#url');
+            await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
-            await page.click('button[type=submit]');
+            await init.pageClick(page, 'button[type=submit]');
 
             const pricingPlanModal = await page.waitForSelector(
                 '#pricingPlanModal',

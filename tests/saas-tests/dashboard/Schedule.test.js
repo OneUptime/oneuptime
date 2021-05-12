@@ -57,7 +57,7 @@ describe('Schedule', () => {
 
             await page.waitForSelector('#name');
             await init.pageType(page, '#name', newScheduleName);
-            await page.click('#btnCreateSchedule');
+            await init.pageClick(page, '#btnCreateSchedule');
             await page.waitForSelector('#name', { hidden: true });
 
             await page.evaluate(() => {
@@ -66,7 +66,7 @@ describe('Schedule', () => {
                 elem[0].click();
             });
             await page.waitForSelector('#enableTeamRotation');
-            await page.click('#enableTeamRotation');
+            await init.pageClick(page, '#enableTeamRotation');
 
             const modal = await page.waitForSelector('#pricingPlanModal', {
                 visible: true,
@@ -93,7 +93,7 @@ describe('Schedule', () => {
                 elem[0].click();
             });
             await page.waitForSelector('#addOnCallDutyTimes');
-            await page.click('#addOnCallDutyTimes');
+            await init.pageClick(page, '#addOnCallDutyTimes');
 
             const modal = await page.waitForSelector('#pricingPlanModal', {
                 visible: true,
@@ -158,11 +158,11 @@ describe('Schedule', () => {
 
             await page.waitForSelector('#name');
             await init.pageType(page, '#name', newScheduleName);
-            await page.click('#btnCreateSchedule');
+            await init.pageClick(page, '#btnCreateSchedule');
             await page.waitForSelector('#viewOnCallSchedule', {
                 visible: true,
             });
-            await page.click('#viewOnCallSchedule');
+            await init.pageClick(page, '#viewOnCallSchedule');
             await page.waitForSelector(`#cb${newScheduleName}`, {
                 visible: true,
             });

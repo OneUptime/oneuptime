@@ -517,9 +517,9 @@ describe('Keyboard Shortcut: Dashboard', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#profile-menu', { visible: true });
-            await page.click('#profile-menu');
+            await init.pageClick(page, '#profile-menu');
             await page.waitForSelector('#profileBilling');
-            await page.click('#profileBilling');
+            await init.pageClick(page, '#profileBilling');
             await page.waitForSelector('#profileSettings', {
                 visible: true,
             });
@@ -542,9 +542,9 @@ describe('Keyboard Shortcut: Dashboard', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#profile-menu', { visible: true });
-            await page.click('#profile-menu');
+            await init.pageClick(page, '#profile-menu');
             await page.waitForSelector('#userProfile');
-            await page.click('#userProfile');
+            await init.pageClick(page, '#userProfile');
             await page.waitForSelector('#changePassword', {
                 visible: true,
             });
@@ -567,9 +567,9 @@ describe('Keyboard Shortcut: Dashboard', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#profile-menu', { visible: true });
-            await page.click('#profile-menu');
+            await init.pageClick(page, '#profile-menu');
             await page.waitForSelector('#userProfile');
-            await page.click('#userProfile');
+            await init.pageClick(page, '#userProfile');
             await page.waitForSelector('#billing', { visible: true });
 
             await page.keyboard.press('f');
@@ -590,9 +590,9 @@ describe('Keyboard Shortcut: Dashboard', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#profile-menu', { visible: true });
-            await page.click('#profile-menu');
+            await init.pageClick(page, '#profile-menu');
             await page.waitForSelector('#userProfile');
-            await page.click('#userProfile');
+            await init.pageClick(page, '#userProfile');
             await page.waitForSelector('#advanced', { visible: true });
 
             await page.keyboard.press('f');
@@ -613,9 +613,9 @@ describe('Keyboard Shortcut: Dashboard', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#profile-menu', { visible: true });
-            await page.click('#profile-menu');
+            await init.pageClick(page, '#profile-menu');
             await page.waitForSelector('#userProfile');
-            await page.click('#userProfile');
+            await init.pageClick(page, '#userProfile');
             await page.waitForSelector('#backToDashboard', {
                 visible: true,
             });

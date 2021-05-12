@@ -44,7 +44,7 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector('#performanceTracker', {
                 visible: true,
             });
-            await page.click('#performanceTracker');
+            await init.pageClick(page, '#performanceTracker');
             await page.waitForSelector('#form-new-performance-tracker', {
                 visible: true,
             });
@@ -57,7 +57,7 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector('#addPerformanceTrackerButton', {
                 visible: true,
             });
-            await page.click('#addPerformanceTrackerButton');
+            await init.pageClick(page, '#addPerformanceTrackerButton');
             let spanElement;
             spanElement = await page.waitForSelector(
                 `#performance-tracker-title-${performanceTrackerName}`,

@@ -55,14 +55,14 @@ describe('Fyipe Page Reload', () => {
             rowItem.click();
 
             await page.waitForSelector('#addMoreMonitors', { visible: true });
-            await page.click('#addMoreMonitors');
+            await init.pageClick(page, '#addMoreMonitors');
             await page.waitForSelector('#monitor-0', { visible: true });
             await init.selectByText(
                 '#monitor-0 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
             );
-            await page.click('#btnAddStatusPageMonitors');
+            await init.pageClick(page, '#btnAddStatusPageMonitors');
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });
 

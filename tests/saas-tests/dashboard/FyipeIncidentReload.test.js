@@ -44,7 +44,7 @@ describe('Fyipe Monitor Reload', () => {
         async done => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#incidentLog', { visible: true });
-            await page.click('#incidentLog');
+            await init.pageClick(page, '#incidentLog');
             await page.waitForSelector('#cbIncidents');
             await page.waitForSelector('#incident_title');
             //To confirm no error on page reload
@@ -68,11 +68,11 @@ describe('Fyipe Monitor Reload', () => {
         async done => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#incidentLog', { visible: true });
-            await page.click('#incidentLog');
+            await init.pageClick(page, '#incidentLog');
             await page.waitForSelector(`#incident_${monitorName}_0`, {
                 visible: true,
             });
-            await page.click(`#incident_${monitorName}_0`);
+            await init.pageClick(page, `#incident_${monitorName}_0`);
             await page.waitForSelector('#incident_0', { visible: true });
             //To confirm no error on page reload
             await page.reload({ waitUntil: 'networkidle0' });
@@ -95,11 +95,11 @@ describe('Fyipe Monitor Reload', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#incidents', { visible: true });
-            await page.click('#incidents');
+            await init.pageClick(page, '#incidents');
             await page.waitForSelector(`#incident_${monitorName}_0`, {
                 visible: true,
             });
-            await page.click(`#incident_${monitorName}_0`);
+            await init.pageClick(page, `#incident_${monitorName}_0`);
             await page.waitForSelector('#incident_0', { visible: true });
             //To confirm no error on page reload
             await page.reload({ waitUntil: 'networkidle0' });

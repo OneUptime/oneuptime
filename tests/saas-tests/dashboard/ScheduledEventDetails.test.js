@@ -65,29 +65,29 @@ describe('Scheduled Event Note', () => {
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
-            await page.click('#scheduledMaintenance');
+            await init.pageClick(page, '#scheduledMaintenance');
 
             await page.waitForSelector('#viewScheduledEvent_0', {
                 visible: true,
             });
-            await page.click('#viewScheduledEvent_0');
+            await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
             await page.waitForSelector('#add-internal-message', {
                 visible: true,
             });
-            await page.click('#add-internal-message');
+            await init.pageClick(page, '#add-internal-message');
             await page.waitForSelector('#event_state', {
                 visible: true,
             });
             await init.selectByText('#event_state', 'investigating', page);
-            await page.click('#new-internal');
+            await init.pageClick(page, '#new-internal');
             await init.pageType(
                 page,
                 '#new-internal',
                 'Some random description'
             );
-            await page.click('#internal-addButton');
+            await init.pageClick(page, '#internal-addButton');
             await page.waitForSelector(
                 '#form-new-schedule-investigation-message',
                 { hidden: true }
@@ -109,29 +109,29 @@ describe('Scheduled Event Note', () => {
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
-            await page.click('#scheduledMaintenance');
+            await init.pageClick(page, '#scheduledMaintenance');
 
             await page.waitForSelector('#viewScheduledEvent_0', {
                 visible: true,
             });
-            await page.click('#viewScheduledEvent_0');
+            await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
 
             await page.waitForSelector('#edit_Internal_incident_message_0', {
                 visible: true,
             });
-            await page.click('#edit_Internal_incident_message_0');
+            await init.pageClick(page, '#edit_Internal_incident_message_0');
             await page.waitForSelector('#update-internal', {
                 visible: true,
             });
-            await page.click('#update-internal', { clickCount: 3 });
+            await init.pageClick(page, '#update-internal', { clickCount: 3 });
             await init.pageType(
                 page,
                 '#update-internal',
                 'An updated description'
             );
-            await page.click('#internal-updateButton');
+            await init.pageClick(page, '#internal-updateButton');
             await page.waitForSelector(
                 '#form-update-schedule-internal-message',
                 { hidden: true }
@@ -153,20 +153,20 @@ describe('Scheduled Event Note', () => {
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
-            await page.click('#scheduledMaintenance');
+            await init.pageClick(page, '#scheduledMaintenance');
 
             await page.waitForSelector('#viewScheduledEvent_0', {
                 visible: true,
             });
-            await page.click('#viewScheduledEvent_0');
+            await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
             await page.waitForSelector('#delete_Internal_incident_message_0', {
                 visible: true,
             });
-            await page.click('#delete_Internal_incident_message_0');
+            await init.pageClick(page, '#delete_Internal_incident_message_0');
             await page.waitForSelector('#deleteNote', { visible: true });
-            await page.click('#deleteNote');
+            await init.pageClick(page, '#deleteNote');
             await page.waitForSelector('#deleteNote', { hidden: true });
 
             const note = await page.waitForSelector(
@@ -236,12 +236,12 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
-            await page.click('#scheduledMaintenance');
+            await init.pageClick(page, '#scheduledMaintenance');
 
             await page.waitForSelector('#viewScheduledEvent_0', {
                 visible: true,
             });
-            await page.click('#viewScheduledEvent_0');
+            await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
             const tenthItem = await page.waitForSelector(
@@ -261,16 +261,16 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
-            await page.click('#scheduledMaintenance');
+            await init.pageClick(page, '#scheduledMaintenance');
 
             await page.waitForSelector('#viewScheduledEvent_0', {
                 visible: true,
             });
-            await page.click('#viewScheduledEvent_0');
+            await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
             await page.waitForSelector('#nextBtn', { visible: true });
-            await page.click('#nextBtn');
+            await init.pageClick(page, '#nextBtn');
 
             const fifthItem = await page.waitForSelector(
                 '#Internal_incident_message_4',
@@ -294,12 +294,12 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
-            await page.click('#scheduledMaintenance');
+            await init.pageClick(page, '#scheduledMaintenance');
 
             await page.waitForSelector('#viewScheduledEvent_0', {
                 visible: true,
             });
-            await page.click('#viewScheduledEvent_0');
+            await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the advance tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.ADVANCE, page);
 
@@ -307,13 +307,13 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             await page.waitForSelector('#deleteScheduleEvent', {
                 visible: true,
             });
-            await page.click('#deleteScheduleEvent');
+            await init.pageClick(page, '#deleteScheduleEvent');
 
             // find the confirm delete button in the pop up and click on it
             await page.waitForSelector('#deleteScheduleModalBtn', {
                 visible: true,
             });
-            await page.click('#deleteScheduleModalBtn');
+            await init.pageClick(page, '#deleteScheduleModalBtn');
             // confirm that the element is deleted and redirected to the list of all schedule event page
             await page.waitForSelector('#deleteScheduleModalBtn', {
                 hidden: true,

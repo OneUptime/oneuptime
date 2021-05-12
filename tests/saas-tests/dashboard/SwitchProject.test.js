@@ -43,16 +43,16 @@ describe('Project API', () => {
             await page.$eval('#create-project', e => e.click());
             await page.waitForSelector('#name', { visible: true });
             await page.waitForSelector('input[id=name]', { visible: true });
-            await page.click('input[id=name]');
+            await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(
                 page,
                 'input[id=name]',
                 utils.generateRandomString()
             );
-            await page.click('input[id=Startup_month]');
+            await init.pageClick(page, 'input[id=Startup_month]');
             await Promise.all([
-                page.click('button[type=submit]'),
+                init.pageClick(page, 'button[type=submit]'),
                 page.waitForNavigation(),
             ]);
             // eslint-disable-next-line no-undef
@@ -77,7 +77,7 @@ describe('Project API', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#AccountSwitcherId', { visible: true });
-            await page.click('#AccountSwitcherId');
+            await init.pageClick(page, '#AccountSwitcherId');
             await page.waitForSelector('#accountSwitcher', { visible: true });
 
             const element = await page.$(

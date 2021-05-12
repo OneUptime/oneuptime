@@ -41,9 +41,9 @@ describe('User Feedback', () => {
 
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#feedback-div');
-            await page.click('#feedback-div', { clickCount: 2 });
+            await init.pageClick(page, '#feedback-div', { clickCount: 2 });
             await init.pageType(page, '#feedback-textarea', testFeedback);
-            await page.click('#feedback-button');
+            await init.pageClick(page, '#feedback-button');
             await page.waitForTimeout(3000);
 
             const feedbackMessage = await page.$eval(

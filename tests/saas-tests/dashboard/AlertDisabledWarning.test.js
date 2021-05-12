@@ -38,9 +38,9 @@ describe('Alert Warning', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings', { visible: true });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#billing', { visible: true });
-            await page.click('#billing');
+            await init.pageClick(page, '#billing');
 
             const element = await page.waitForSelector('#alertWarning', {
                 visible: true,
@@ -56,9 +56,9 @@ describe('Alert Warning', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings', { visible: true });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#billing', { visible: true });
-            await page.click('#billing a');
+            await init.pageClick(page, '#billing a');
             await page.waitForSelector('#alertEnable', { visible: true });
 
             const rowLength = await page.$$eval(

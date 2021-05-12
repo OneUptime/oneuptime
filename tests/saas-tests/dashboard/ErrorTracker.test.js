@@ -41,21 +41,21 @@ describe('Error Trackers', () => {
                 waitUntil: 'networkidle0',
             });
             await page.waitForSelector('#components', { timeout: 120000 });
-            await page.click('#components');
+            await init.pageClick(page, '#components');
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component');
             await page.waitForSelector('input[id=name]', { visible: true });
-            await page.click('input[id=name]');
+            await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', componentName);
-            await page.click('#addComponentButton');
+            await init.pageClick(page, '#addComponentButton');
             await page.waitForSelector('#form-new-monitor', {
                 visible: true,
             });
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#components', { visible: true });
-            await page.click('#components');
+            await init.pageClick(page, '#components');
 
             let spanElement = await page.waitForSelector(
                 `span#component-title-${componentName}`
@@ -73,15 +73,15 @@ describe('Error Trackers', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#errorTracking');
-            await page.click('#errorTracking');
+            await init.pageClick(page, '#errorTracking');
 
             // Fill and submit New Error tracking form
             await page.waitForSelector('#form-new-error-tracker');
             await page.waitForSelector('input[id=name]', { visible: true });
-            await page.click('input[id=name]');
+            await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', errorTrackerName);
-            await page.click('button[type=submit]');
+            await init.pageClick(page, 'button[type=submit]');
 
             let spanElement = await page.waitForSelector(
                 `span#error-tracker-title-${errorTrackerName}`
@@ -105,16 +105,16 @@ describe('Error Trackers', () => {
             await init.navigateToComponentDetails(componentName, page);
             // go to logs
             await page.waitForSelector('#errorTracking');
-            await page.click('#errorTracking');
+            await init.pageClick(page, '#errorTracking');
             // create a new error tracker and select the category
             // Fill and submit New Error Tracker form
             await page.waitForSelector('#form-new-error-tracker');
             await page.waitForSelector('input[id=name]', { visible: true });
-            await page.click('input[id=name]');
+            await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', newErrorTrackerName);
             await init.selectByText('#resourceCategory', categoryName, page);
-            await page.click('button[type=submit]');
+            await init.pageClick(page, 'button[type=submit]');
             // As soon as an error tracker with a resource category is created, it automatically navigates to the details page
 
             // confirm the category shows in the details page.
@@ -135,15 +135,15 @@ describe('Error Trackers', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#errorTracking');
-            await page.click('#errorTracking');
+            await init.pageClick(page, '#errorTracking');
 
             // Fill and submit New Error Tracker form
             await page.waitForSelector('#form-new-error-tracker');
             await page.waitForSelector('input[id=name]', { visible: true });
-            await page.click('input[id=name]');
+            await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', '');
-            await page.click('button[type=submit]');
+            await init.pageClick(page, 'button[type=submit]');
 
             await page.waitForSelector(
                 '#form-new-error-tracker span#field-error',
@@ -188,7 +188,7 @@ describe('Error Trackers', () => {
                 page
             );
             await page.waitForSelector(`#edit_${errorTrackerName}`);
-            await page.click(`#edit_${errorTrackerName}`);
+            await init.pageClick(page, `#edit_${errorTrackerName}`);
 
             await page.waitForSelector(
                 `#error-tracker-edit-title-${errorTrackerName}`,
@@ -214,13 +214,16 @@ describe('Error Trackers', () => {
             );
             // open modal
             await page.waitForSelector(`#key_${errorTrackerName}`);
-            await page.click(`#key_${errorTrackerName}`);
+            await init.pageClick(page, `#key_${errorTrackerName}`);
 
             // click show applicaion log key
             await page.waitForSelector(
                 `#show_error_tracker_key_${errorTrackerName}`
             );
-            await page.click(`#show_error_tracker_key_${errorTrackerName}`);
+            await init.pageClick(
+                page,
+                `#show_error_tracker_key_${errorTrackerName}`
+            );
 
             // get error tracker key
             let spanElement = await page.waitForSelector(
@@ -234,7 +237,10 @@ describe('Error Trackers', () => {
             await page.waitForSelector(
                 `#cancel_error_tracker_key_${errorTrackerName}`
             );
-            await page.click(`#cancel_error_tracker_key_${errorTrackerName}`);
+            await init.pageClick(
+                page,
+                `#cancel_error_tracker_key_${errorTrackerName}`
+            );
             done();
         },
         operationTimeOut
@@ -248,13 +254,16 @@ describe('Error Trackers', () => {
                 page
             );
             await page.waitForSelector(`#key_${errorTrackerName}`);
-            await page.click(`#key_${errorTrackerName}`);
+            await init.pageClick(page, `#key_${errorTrackerName}`);
 
             // click show error tracker  key
             await page.waitForSelector(
                 `#show_error_tracker_key_${errorTrackerName}`
             );
-            await page.click(`#show_error_tracker_key_${errorTrackerName}`);
+            await init.pageClick(
+                page,
+                `#show_error_tracker_key_${errorTrackerName}`
+            );
             let spanElement = await page.waitForSelector(
                 `#error_tracker_key_${errorTrackerName}`
             );
@@ -264,7 +273,10 @@ describe('Error Trackers', () => {
             await page.waitForSelector(
                 `#hide_error_tracker_key_${errorTrackerName}`
             );
-            await page.click(`#hide_error_tracker_key_${errorTrackerName}`);
+            await init.pageClick(
+                page,
+                `#hide_error_tracker_key_${errorTrackerName}`
+            );
 
             spanElement = await page.waitForSelector(
                 `#show_error_tracker_key_${errorTrackerName}`
@@ -287,13 +299,16 @@ describe('Error Trackers', () => {
             );
             // open modal
             await page.waitForSelector(`#key_${errorTrackerName}`);
-            await page.click(`#key_${errorTrackerName}`);
+            await init.pageClick(page, `#key_${errorTrackerName}`);
 
             // click show error tracker key
             await page.waitForSelector(
                 `#show_error_tracker_key_${errorTrackerName}`
             );
-            await page.click(`#show_error_tracker_key_${errorTrackerName}`);
+            await init.pageClick(
+                page,
+                `#show_error_tracker_key_${errorTrackerName}`
+            );
 
             // get error tracker key
             let spanElement = await page.waitForSelector(
@@ -306,13 +321,17 @@ describe('Error Trackers', () => {
             await page.waitForSelector(
                 `#reset_error_tracker_key_${errorTrackerName}`
             );
-            await page.click(`#reset_error_tracker_key_${errorTrackerName}`);
+            await init.pageClick(
+                page,
+                `#reset_error_tracker_key_${errorTrackerName}`
+            );
 
             // click confirm reset key
             await page.waitForSelector(
                 `#confirm_reset_error_tracker_key_${errorTrackerName}`
             );
-            await page.click(
+            await init.pageClick(
+                page,
                 `#confirm_reset_error_tracker_key_${errorTrackerName}`
             );
             await page.waitForSelector(
@@ -322,13 +341,16 @@ describe('Error Trackers', () => {
 
             // open modal
             await page.waitForSelector(`#key_${errorTrackerName}`);
-            await page.click(`#key_${errorTrackerName}`);
+            await init.pageClick(page, `#key_${errorTrackerName}`);
 
             // click show error tracker key
             await page.waitForSelector(
                 `#show_error_tracker_key_${errorTrackerName}`
             );
-            await page.click(`#show_error_tracker_key_${errorTrackerName}`);
+            await init.pageClick(
+                page,
+                `#show_error_tracker_key_${errorTrackerName}`
+            );
 
             // get tracker container key
             spanElement = await page.waitForSelector(
@@ -352,18 +374,18 @@ describe('Error Trackers', () => {
                 page
             );
             await page.waitForSelector(`#edit_${errorTrackerName}`);
-            await page.click(`#edit_${errorTrackerName}`);
+            await init.pageClick(page, `#edit_${errorTrackerName}`);
             // Fill and submit edit Error tracker form
             await page.waitForSelector('#form-new-error-tracker');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', '-new');
-            await page.click('button[type=submit]');
+            await init.pageClick(page, 'button[type=submit]');
             await page.waitForSelector('#addErrorTrackerButton', {
                 hidden: true,
             });
 
             await page.waitForSelector('#errorTracking');
-            await page.click('#errorTracking');
+            await init.pageClick(page, '#errorTracking');
             let spanElement = await page.waitForSelector(
                 `#error-tracker-title-${errorTrackerName}-new`
             );
@@ -388,12 +410,12 @@ describe('Error Trackers', () => {
                 page
             );
             await page.waitForSelector(`#edit_${errorTrackerName}-new`);
-            await page.click(`#edit_${errorTrackerName}-new`);
+            await init.pageClick(page, `#edit_${errorTrackerName}-new`);
             // Fill and submit edit Error tracker form
             await page.waitForSelector('#form-new-error-tracker');
             // change category here
             await init.selectByText('#resourceCategory', categoryName, page);
-            await page.click('button[type=submit]');
+            await init.pageClick(page, 'button[type=submit]');
             await page.waitForSelector('#addErrorTrackerButton', {
                 hidden: true,
             });
@@ -430,17 +452,17 @@ describe('Error Trackers', () => {
             // delete the category
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
 
             await page.waitForSelector('li#resources a');
-            await page.click('li#resources a');
+            await init.pageClick(page, 'li#resources a');
 
             await page.waitForSelector(`#delete_${categoryName}`);
-            await page.click(`#delete_${categoryName}`);
+            await init.pageClick(page, `#delete_${categoryName}`);
             await page.waitForSelector('#deleteResourceCategory');
-            await page.click('#deleteResourceCategory');
+            await init.pageClick(page, '#deleteResourceCategory');
 
             await page.waitForSelector('#deleteResourceCategory', {
                 hidden: true,

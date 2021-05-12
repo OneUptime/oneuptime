@@ -46,13 +46,13 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#incidentSettings', {
                 visible: true,
             });
-            await page.click('#incidentSettings');
+            await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
 
@@ -66,17 +66,17 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('#addIncidentSlaBtn', {
                 visible: true,
             });
-            await page.click('#addIncidentSlaBtn');
+            await init.pageClick(page, '#addIncidentSlaBtn');
 
             await page.waitForSelector('#communicationSlaForm', {
                 visible: true,
             });
-            await page.click('#name');
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', '  ');
             await init.selectByText('#durationOption', duration, page);
-            await page.click('#alertTime');
+            await init.pageClick(page, '#alertTime');
             await init.pageType(page, '#alertTime', alertTime);
-            await page.click('#createSlaBtn');
+            await init.pageClick(page, '#createSlaBtn');
 
             const slaError = await page.waitForSelector('#field-error', {
                 visible: true,
@@ -95,13 +95,13 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#incidentSettings', {
                 visible: true,
             });
-            await page.click('#incidentSettings');
+            await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
 
@@ -115,17 +115,17 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('#addIncidentSlaBtn', {
                 visible: true,
             });
-            await page.click('#addIncidentSlaBtn');
+            await init.pageClick(page, '#addIncidentSlaBtn');
 
             await page.waitForSelector('#communicationSlaForm', {
                 visible: true,
             });
-            await page.click('#name');
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
             await init.selectByText('#durationOption', duration, page);
-            await page.click('#alertTime');
+            await init.pageClick(page, '#alertTime');
             await init.pageType(page, '#alertTime', duration);
-            await page.click('#createSlaBtn');
+            await init.pageClick(page, '#createSlaBtn');
 
             const slaError = await page.waitForSelector('#field-error', {
                 visible: true,
@@ -144,13 +144,13 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#incidentSettings', {
                 visible: true,
             });
-            await page.click('#incidentSettings');
+            await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
 
@@ -164,17 +164,17 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('#addIncidentSlaBtn', {
                 visible: true,
             });
-            await page.click('#addIncidentSlaBtn');
+            await init.pageClick(page, '#addIncidentSlaBtn');
 
             await page.waitForSelector('#communicationSlaForm', {
                 visible: true,
             });
-            await page.click('#name');
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
             await init.selectByText('#durationOption', duration, page);
-            await page.click('#alertTime');
+            await init.pageClick(page, '#alertTime');
             await init.pageType(page, '#alertTime', '12m');
-            await page.click('#createSlaBtn');
+            await init.pageClick(page, '#createSlaBtn');
 
             const slaError = await page.waitForSelector('#field-error', {
                 visible: true,
@@ -193,13 +193,13 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#incidentSettings', {
                 visible: true,
             });
-            await page.click('#incidentSettings');
+            await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
 
@@ -213,18 +213,18 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('#addIncidentSlaBtn', {
                 visible: true,
             });
-            await page.click('#addIncidentSlaBtn');
+            await init.pageClick(page, '#addIncidentSlaBtn');
 
             await page.waitForSelector('#communicationSlaForm', {
                 visible: true,
             });
-            await page.click('#name');
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
             await init.selectByText('#durationOption', duration, page);
-            await page.click('#alertTime');
+            await init.pageClick(page, '#alertTime');
             await init.pageType(page, '#alertTime', alertTime);
             await page.$eval('#isDefault', elem => elem.click());
-            await page.click('#createSlaBtn');
+            await init.pageClick(page, '#createSlaBtn');
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
@@ -245,13 +245,13 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#incidentSettings', {
                 visible: true,
             });
-            await page.click('#incidentSettings');
+            await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
 
@@ -265,14 +265,14 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector(`#editIncidentSlaBtn_${slaName}`, {
                 visible: true,
             });
-            await page.click(`#editIncidentSlaBtn_${slaName}`);
+            await init.pageClick(page, `#editIncidentSlaBtn_${slaName}`);
 
             await page.waitForSelector('#communicationSlaForm', {
                 visible: true,
             });
-            await page.click('#name', { clickCount: 3 });
+            await init.pageClick(page, '#name', { clickCount: 3 });
             await init.pageType(page, '#name', '    ');
-            await page.click('#editSlaBtn');
+            await init.pageClick(page, '#editSlaBtn');
 
             const slaError = await page.waitForSelector(`#field-error`, {
                 visible: true,
@@ -291,13 +291,13 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#incidentSettings', {
                 visible: true,
             });
-            await page.click('#incidentSettings');
+            await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
 
@@ -311,15 +311,15 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector(`#editIncidentSlaBtn_${slaName}`, {
                 visible: true,
             });
-            await page.click(`#editIncidentSlaBtn_${slaName}`);
+            await init.pageClick(page, `#editIncidentSlaBtn_${slaName}`);
 
             await page.waitForSelector('#communicationSlaForm', {
                 visible: true,
             });
             slaName = 'newFxPro';
-            await page.click('#name', { clickCount: 3 });
+            await init.pageClick(page, '#name', { clickCount: 3 });
             await init.pageType(page, '#name', slaName);
-            await page.click('#editSlaBtn');
+            await init.pageClick(page, '#editSlaBtn');
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
@@ -340,18 +340,18 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector(`#createIncident_${monitor}`, {
                 visible: true,
             });
-            await page.click(`#createIncident_${monitor}`);
+            await init.pageClick(page, `#createIncident_${monitor}`);
 
             await page.waitForSelector('#createIncident');
             await init.selectByText('#incidentType', 'offline', page);
-            await page.click('#createIncident');
+            await init.pageClick(page, '#createIncident');
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.waitForSelector(`#incident_${monitor}_0`, {
                 visible: true,
             });
-            await page.click(`#incident_${monitor}_0`);
+            await init.pageClick(page, `#incident_${monitor}_0`);
             const slaIndicator = await page.waitForSelector(
                 '#slaIndicatorAlert',
                 { visible: true }
@@ -360,9 +360,9 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('#btnAcknowledge_0', {
                 visible: true,
             });
-            await page.click('#btnAcknowledge_0');
+            await init.pageClick(page, '#btnAcknowledge_0');
             await page.waitForSelector('#btnResolve_0', { visible: true });
-            await page.click('#btnResolve_0');
+            await init.pageClick(page, '#btnResolve_0');
 
             expect(slaIndicator).toBeDefined();
 
@@ -378,14 +378,14 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector(`#incident_${monitor}_0`, {
                 visible: true,
             });
-            await page.click(`#incident_${monitor}_0`);
+            await init.pageClick(page, `#incident_${monitor}_0`);
 
             await page.waitForSelector('#btnAcknowledge_0', {
                 visible: true,
             });
-            await page.click('#btnAcknowledge_0');
+            await init.pageClick(page, '#btnAcknowledge_0');
             await page.waitForSelector('#btnResolve_0', { visible: true });
-            await page.click('#btnResolve_0');
+            await init.pageClick(page, '#btnResolve_0');
 
             const slaIndicator = await page.waitForSelector(
                 '#slaIndicatorAlert',
@@ -405,13 +405,13 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#incidentSettings', {
                 visible: true,
             });
-            await page.click('#incidentSettings');
+            await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
 
@@ -425,12 +425,12 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector(`#deleteIncidentSlaBtn_${slaName}`, {
                 visible: true,
             });
-            await page.click(`#deleteIncidentSlaBtn_${slaName}`);
+            await init.pageClick(page, `#deleteIncidentSlaBtn_${slaName}`);
 
             await page.waitForSelector('#deleteIncidentSlaBtn', {
                 visible: true,
             });
-            await page.click('#deleteIncidentSlaBtn');
+            await init.pageClick(page, '#deleteIncidentSlaBtn');
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });
 

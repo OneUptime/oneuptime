@@ -38,11 +38,11 @@ describe('API test', () => {
                 waitUntil: 'networkidle0',
             });
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#probe');
-            await page.click('#probe a');
+            await init.pageClick(page, '#probe a');
             await page.waitForSelector('#probe_0', { visible: true });
             const elementHandle = await page.$('#offline_0 > span > span');
             if (elementHandle) {
