@@ -212,7 +212,7 @@ const EscalationSummarySingle = ({
                 isActiveTeam) && (
                 <div className="bs-Fieldset-row">
                     <label className="bs-Fieldset-label">
-                        <b>Note:</b>{' '}
+                        <b id="onCallDutyNote">Note:</b>{' '}
                     </label>
                     <div className="bs-Fieldset-fields labelfield">
                         {hasNextEscalationPolicy && isActiveTeam && (
