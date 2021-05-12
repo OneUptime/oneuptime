@@ -10,9 +10,9 @@ const user = {
 const componentName = utils.generateRandomString();
 const applicationSecurityName = utils.generateRandomString();
 
-const gitUsername = 'adeoluwadavid'//utils.gitCredential.gitUsername;
-const gitPassword = 'Ohio123@.'//utils.gitCredential.gitPassword;
-const gitRepositoryUrl = 'https://github.com/adeoluwadavid/SocketIO'//utils.gitCredential.gitRepositoryUrl;
+const gitUsername = utils.gitCredential.gitUsername;
+const gitPassword = utils.gitCredential.gitPassword;
+const gitRepositoryUrl = utils.gitCredential.gitRepositoryUrl;
 
 /** This is a test to check:
  * No errors on page reload
