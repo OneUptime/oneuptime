@@ -16,6 +16,10 @@ import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import ShouldRender from '../components/basic/ShouldRender';
 import { getSmtpConfig } from '../actions/smsTemplates';
 import { bindActionCreators } from 'redux';
+import DeleteProject from '../components/settings/DeleteProject';
+import RenderIfOwner from '../components/basic/RenderIfOwner';
+
+
 
 class Billing extends Component {
     constructor(props) {
@@ -57,6 +61,9 @@ class Billing extends Component {
                         <ShouldRender if={currentProject}>
                             <ChangePlan />
                         </ShouldRender>
+                        <RenderIfOwner>
+                            <DeleteProject />
+                        </RenderIfOwner>
                     </div>
                 </Fade>
             </Dashboard>
