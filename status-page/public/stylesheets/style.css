@@ -75,7 +75,7 @@ a:hover { color: #4c4c4c; }
 
 /******* Simple Bar Chart *******/
 div.block-chart {
-  height: 28px;
+  height: 41px;
   padding: 9px 0 4px;
   overflow: hidden;
   width: 101%; /* IE overflow fix */

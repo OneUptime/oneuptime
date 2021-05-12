@@ -114,10 +114,16 @@ export const individualNoteDisable = () => {
 };
 
 // Calls the API to get notes
-export const getStatusPageNote = (projectId, statusPageSlug, skip, limit) => {
+export const getStatusPageNote = (
+    projectId,
+    statusPageSlug,
+    skip,
+    limit,
+    days
+) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}&limit=${limit}`
+            `statusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}&limit=${limit}&days=${days}`
         );
 
         dispatch(statusPageNoteRequest());
@@ -220,10 +226,16 @@ export const scheduledEventReset = () => {
 };
 
 // Calls the API to get events
-export const getScheduledEvent = (projectId, statusPageSlug, skip, theme) => {
+export const getScheduledEvent = (
+    projectId,
+    statusPageSlug,
+    skip,
+    theme,
+    days
+) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}`
+            `statusPage/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&days=${days}`
         );
 
         dispatch(scheduledEventRequest());

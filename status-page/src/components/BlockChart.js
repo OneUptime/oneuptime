@@ -181,7 +181,7 @@ class BlockChart extends Component {
                         ? '#e39f48'
                         : backgroundColor,
                 opacity: 1,
-                width: '6px',
+                width: '7px',
             };
             classes = bar + extra;
             content = (

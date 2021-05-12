@@ -118,6 +118,8 @@ const statusSchema = new Schema({
     enableIpWhitelist: { type: Boolean, default: false },
     ipWhitelist: { type: Array, default: [] },
     deleted: { type: Boolean, default: false },
+    incidentHistoryDays: { type: Number, default: 14 },
+    scheduleHistoryDays: { type: Number, default: 14 },
 
     deletedAt: {
         type: Date,
