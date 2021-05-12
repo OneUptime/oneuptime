@@ -18,7 +18,7 @@ describe('Enterprise Accounts API', () => {
     const operationTimeOut = 100000;
 
     beforeAll(async done => {
-        jest.setTimeout(30000);
+        jest.setTimeout(60000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(

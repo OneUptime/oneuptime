@@ -27,7 +27,7 @@ describe('Project Settings', () => {
     const operationTimeOut = 50000;
 
     beforeAll(async done => {
-        jest.setTimeout(30000);
+        jest.setTimeout(60000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();

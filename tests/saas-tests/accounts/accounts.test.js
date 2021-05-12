@@ -54,5 +54,5 @@ describe('Login API', () => {
         );
         page.url().should.containEql(utils.DASHBOARD_URL);
         done();
-    }, 30000);
+    }, 60000);
 });

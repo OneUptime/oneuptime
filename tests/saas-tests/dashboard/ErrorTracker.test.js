@@ -17,7 +17,7 @@ describe('Error Trackers', () => {
     const operationTimeOut = 900000;
 
     beforeAll(async () => {
-        jest.setTimeout(30000);
+        jest.setTimeout(60000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
