@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 
@@ -83,7 +83,9 @@ describe('Monitor API', () => {
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component');
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', componentName);
             await page.click('#addComponentButton');
 
@@ -127,6 +129,7 @@ describe('Monitor API', () => {
 
             // Fill and submit New Monitor form
             await page.click('input[id=name]', { visible: true });
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', monitorName);
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
@@ -166,6 +169,7 @@ describe('Monitor API', () => {
             });
             // Submit New Monitor form with incorrect details
             await page.click('input[id=name]', { visible: true });
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', '');
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });

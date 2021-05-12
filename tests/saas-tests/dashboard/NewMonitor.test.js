@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 let browser, page;
@@ -59,7 +59,9 @@ describe('New Monitor API', () => {
             await page.click(`#more-details-${componentName}`);
             await page.waitForSelector('#form-new-monitor', { visible: true });
             await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', monitorName);
             // Added new URL-Montior
             await page.click('[data-testId=type_url]');
@@ -107,7 +109,9 @@ describe('New Monitor API', () => {
             await page.click(`#more-details-${componentName}`);
             await page.waitForSelector('#form-new-monitor', { visible: true });
             await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', monitorName);
             // Added new URL-Montior
             await page.click('[data-testId=type_url]');
@@ -156,7 +160,9 @@ describe('New Monitor API', () => {
             await page.click(`#more-details-${componentName}`);
             await page.waitForSelector('#form-new-monitor');
             await page.waitForSelector('input[id=name]');
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', monitorName);
             // Added new URL-Montior
             await page.click('[data-testId=type_url]');

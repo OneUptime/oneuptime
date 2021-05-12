@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 
@@ -43,7 +43,9 @@ describe('Enterprise Project API', () => {
             await page.waitForSelector('#selector', { visble: true });
             await page.$eval('#create-project', e => e.click());
             await page.waitForSelector('#name', { visble: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', utils.generateRandomString());
 
             const projectPlan = await page.$('input[id=Startup_month]');

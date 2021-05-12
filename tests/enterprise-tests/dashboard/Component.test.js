@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 
@@ -47,7 +47,9 @@ describe('Enterprise Component API', () => {
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component');
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', componentName);
             await page.click('button[type=submit]');
             await page.goto(utils.DASHBOARD_URL, {

@@ -10,7 +10,6 @@ import PropTypes from 'prop-types';
 import EscalationSummary from '../components/schedule/EscalationSummary';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { fetchSubProject } from '../actions/subProject';
 import { withRouter } from 'react-router';
 import { subProjectTeamLoading } from '../actions/team';
 import { getEscalation } from '../actions/schedule';
@@ -21,9 +20,6 @@ class Schedule extends Component {
     constructor(props) {
         super(props);
         this.state = { editSchedule: false };
-    }
-    componentDidMount() {
-        this.props.fetchSubProject(this.props.subProjectSlug);
     }
     async componentDidUpdate(prevProps) {
         if (
@@ -146,20 +142,20 @@ class Schedule extends Component {
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { getEscalation, subProjectTeamLoading, teamLoading, fetchSubProject },
+        { getEscalation, subProjectTeamLoading, teamLoading },
         dispatch
     );
 
 const mapStateToProps = (state, props) => {
-    const { scheduleSlug, subProjectSlug } = props.match.params;
+    const { scheduleSlug } = props.match.params;
 
-    let schedule = state.schedule.subProjectSchedules.map(
-        subProjectSchedule => {
+    let schedule =
+        state.schedule.subProjectSchedules &&
+        state.schedule.subProjectSchedules.map(subProjectSchedule => {
             return subProjectSchedule.schedules.find(
                 schedule => schedule.slug === scheduleSlug
             );
-        }
-    );
+        });
 
     schedule = schedule.find(
         schedule => schedule && schedule.slug === scheduleSlug
@@ -170,11 +166,8 @@ const mapStateToProps = (state, props) => {
         escalations,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
-        subProjectId:
-            state.subProject.currentSubProject.subProject &&
-            state.subProject.currentSubProject.subProject._id,
+        subProjectId: schedule && schedule.projectId._id,
         scheduleId: schedule && schedule._id,
-        subProjectSlug,
         teamMembers: state.team.teamMembers,
     };
 };
@@ -185,8 +178,6 @@ Schedule.propTypes = {
     getEscalation: PropTypes.func.isRequired,
     subProjectTeamLoading: PropTypes.func.isRequired,
     subProjectId: PropTypes.string.isRequired,
-    subProjectSlug: PropTypes.string.isRequired,
-    fetchSubProject: PropTypes.func.isRequired,
     scheduleId: PropTypes.string.isRequired,
     teamLoading: PropTypes.func.isRequired,
     escalations: PropTypes.array.isRequired,

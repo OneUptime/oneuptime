@@ -90,7 +90,10 @@ module.exports = {
                 scheduleModel.slug = name.toLowerCase();
             }
             const schedule = await scheduleModel.save();
-            return schedule;
+            const newSchedule = await this.findOneBy({
+                _id: schedule._id,
+            });
+            return newSchedule;
         } catch (error) {
             ErrorService.log('scheduleService.create', error);
             throw error;

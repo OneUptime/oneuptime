@@ -60,7 +60,9 @@ describe('Check status-page up', () => {
         });
         await page.click(`#btnCreateStatusPage_${projectName}`);
         await page.waitForSelector('#name', { visible: true });
+        await page.waitForSelector('input[id=name]', { visible: true });
         await page.click('input[id=name]');
+        await page.focus('input[id=name]');
         await page.type('input[id=name]', statusPageName);
         await page.click('#btnCreateStatusPage');
         await page.waitForSelector('#statusPagesListContainer', {

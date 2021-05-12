@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 let browser, page;
@@ -47,7 +47,9 @@ describe('Enterprise Monitor API', () => {
             await init.addComponent(componentName, page);
 
             await page.waitForSelector('#form-new-monitor', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', monitorName);
             await page.click('[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });

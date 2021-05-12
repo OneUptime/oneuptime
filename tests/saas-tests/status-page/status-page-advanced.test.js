@@ -1,6 +1,6 @@
-const utils = require('../../../test-utils');
+const utils = require('../../test-utils');
 const puppeteer = require('puppeteer');
-const init = require('../../../test-init');
+const init = require('../../test-init');
 
 let page, browser;
 
@@ -49,7 +49,9 @@ describe('Status-Page Advanced Options', () => {
         await page.waitForSelector(`#btnCreateStatusPage_${projectName}`);
         await page.click(`#btnCreateStatusPage_${projectName}`);
         await page.waitForSelector('#name');
+        await page.waitForSelector('input[id=name]', { visible: true });
         await page.click('input[id=name]');
+        await page.focus('input[id=name]');
         await page.type('input[id=name]', statusPageName);
         await page.click('#btnCreateStatusPage');
         await page.waitForSelector('#statusPagesListContainer');
@@ -78,13 +80,16 @@ describe('Status-Page Advanced Options', () => {
 
         // Fill and submit New Component form
         await page.waitForSelector('#form-new-component');
+        await page.waitForSelector('input[id=name]', { visible: true });
         await page.click('input[id=name]');
+        await page.focus('input[id=name]');
         await page.type('input[id=name]', componentName);
         await page.click('button[type=submit]');
 
         // Create a Manual Monitor
         await page.waitForSelector('#form-new-monitor', { visible: true });
         await page.click('input[id=name]', { visible: true });
+        await page.focus('input[id=name]');
         await page.type('input[id=name]', monitorName);
         await page.click('[data-testId=type_manual]');
         await page.waitForSelector('#description');

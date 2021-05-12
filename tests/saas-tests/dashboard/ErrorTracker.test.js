@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 let browser, page;
@@ -45,7 +45,9 @@ describe('Error Trackers', () => {
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component');
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', componentName);
             await page.click('#addComponentButton');
             await page.waitForSelector('#form-new-monitor', {
@@ -75,7 +77,9 @@ describe('Error Trackers', () => {
 
             // Fill and submit New Error tracking form
             await page.waitForSelector('#form-new-error-tracker');
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', errorTrackerName);
             await page.click('button[type=submit]');
 
@@ -105,7 +109,9 @@ describe('Error Trackers', () => {
             // create a new error tracker and select the category
             // Fill and submit New Error Tracker form
             await page.waitForSelector('#form-new-error-tracker');
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', newErrorTrackerName);
             await init.selectByText('#resourceCategory', categoryName, page);
             await page.click('button[type=submit]');
@@ -133,7 +139,9 @@ describe('Error Trackers', () => {
 
             // Fill and submit New Error Tracker form
             await page.waitForSelector('#form-new-error-tracker');
+            await page.waitForSelector('input[id=name]', { visible: true });
             await page.click('input[id=name]');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', '');
             await page.click('button[type=submit]');
 
@@ -347,6 +355,7 @@ describe('Error Trackers', () => {
             await page.click(`#edit_${errorTrackerName}`);
             // Fill and submit edit Error tracker form
             await page.waitForSelector('#form-new-error-tracker');
+            await page.focus('input[id=name]');
             await page.type('input[id=name]', '-new');
             await page.click('button[type=submit]');
             await page.waitForSelector('#addErrorTrackerButton', {

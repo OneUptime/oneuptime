@@ -11,6 +11,7 @@ class DataStore {
     #apiUrl;
     #appId;
     #appKey;
+    #sendingData;
     constructor(url, appId, appKey) {
         this.#apiUrl = url;
         this.#appId = appId;
@@ -19,6 +20,7 @@ class DataStore {
         this.#incoming = new Map();
         this.#outgoing = new Map();
         this.#mongoose = new Map();
+        this.#sendingData = false;
         this.runCron();
     }
     runCron() {
@@ -108,6 +110,21 @@ class DataStore {
         };
         await this._makeApiRequest(data);
         this.clearData();
+    }
+    async processDataOnExit() {
+        if (!this.#sendingData) {
+            this.#sendingData = true;
+
+            const data = {
+                incoming: Object.fromEntries(this.#incoming),
+                outgoing: Object.fromEntries(this.#outgoing),
+                mongoose: Object.fromEntries(this.#mongoose),
+                sentAt: Date.now(),
+            };
+            await this._makeApiRequest(data);
+            this.clearData();
+            process.exit(1);
+        }
     }
     _makeApiRequest(data) {
         return new Promise((resolve, reject) => {
