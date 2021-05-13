@@ -152,7 +152,7 @@ router.post(
         try {
             const { startDate, endDate } = req.body;
             let query = {
-                monitorId: req.params.monitorId,
+                'monitors.monitorId': { $in: [req.params.monitorId] },
                 projectId: req.params.projectId,
             };
 
@@ -160,7 +160,7 @@ router.post(
                 const start = moment(startDate).toDate();
                 const end = moment(endDate).toDate();
                 query = {
-                    monitorId: req.params.monitorId,
+                    'monitors.monitorId': { $in: [req.params.monitorId] },
                     projectId: req.params.projectId,
                     createdAt: { $gte: start, $lte: end },
                 };
