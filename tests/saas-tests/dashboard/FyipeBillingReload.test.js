@@ -29,8 +29,7 @@ describe('Fyipe Page Reload', () => {
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
         );
 
-        await init.registerUser(user, page); // This automatically routes to dashboard page
-        await init.renameProject(projectName, page);
+        await init.registerUser(user, page); // This automatically routes to dashboard page        
         done();
     });
 
@@ -40,25 +39,22 @@ describe('Fyipe Page Reload', () => {
     });
 
     test(
-        'Should reload the team member page and confirm there are no errors',
+        'Should reload the incidents page and confirm there are no errors',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);            
-            await init.pageClick(page,'#teamMembers');            
-            await init.pageClick(page,`#btn_${projectName}`);            
-            await init.pageType(page,`#emails_${projectName}`, teamMember);
-            await init.pageClick(page,'#member');
-            await init.pageClick(page,`#btn_modal_${projectName}`);            
-            await page.waitForSelector(`#frm_${projectName}`, {
-                hidden: true,
-            });      
-            await init.pageClick(page, `#${teamMember.split('@')[0]}-profile`);
-            await page.waitForSelector('#cbTeamMembers', {visible : true});  
-            await page.waitForSelector(`#${teamMember.split('@')[0]}`, {visible : true});
+            await page.goto(utils.DASHBOARD_URL);     
+            await init.pageClick(page, '#projectSettings');
+            await init.pageClick(page, '#billing');
+            await page.waitForSelector('#Startup_month', {visible: true});
+            await init.pageClick(page, '#alert');            
+            await init.pageClick(page, '#alertOptionSave');
+            await page.waitForSelector('#message-modal-message', {visible: true});            
+            await init.pageClick(page, '#modal-ok');
+            await page.waitForSelector('#message-modal-message', {hidden: true});
 
              //To confirm no errors and stays on the same page on reload
              await page.reload({ waitUntil: 'networkidle0' });      
-             await page.waitForSelector('#cbTeamMembers', {visible : true});       
-             const spanElement = await page.waitForSelector(`#${teamMember.split('@')[0]}`, {visible : true});             
+             await page.waitForSelector('#cbBilling', {visible : true});       
+             const spanElement = await page.waitForSelector('#Startup_month', {visible : true});             
              expect(spanElement).toBeDefined();
             done();
         },
