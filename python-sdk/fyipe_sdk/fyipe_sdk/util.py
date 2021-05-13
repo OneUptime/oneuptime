@@ -1,5 +1,5 @@
 
-from fyipe_sdk.fyipe_sdk.logtype import LogType
+from .logtype import LogType
 import uuid
 import sys
 

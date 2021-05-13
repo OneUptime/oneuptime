@@ -1,7 +1,7 @@
 
-from fyipe_sdk.fyipe_sdk.util import Util
-from fyipe_sdk.fyipe_sdk.fyipeListener import FyipeListener
-from fyipe_sdk.fyipe_sdk.fyipeTransport import FyipeTransport
+from .util import Util
+from .fyipeListener import FyipeListener
+from .fyipeTransport import FyipeTransport
 import sys
 
 class FyipeTracker:
