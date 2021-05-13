@@ -269,7 +269,7 @@ module.exports = {
         }
     },
 
-    sendToken: async function (user, email, verified) {
+    sendToken: async function (user, email) {
         try {
             const _this = this;
             const verificationTokenModel = new VerificationTokenModel({
@@ -280,7 +280,7 @@ module.exports = {
             if (verificationToken) {
                 const verificationTokenURL = `${global.apiHost}/user/confirmation/${verificationToken.token}`;
                 // Checking for already verified user so that he/she will not recieve another email verification
-                if (!verified) {
+                if (!user.isVerified) {
                     MailService.sendVerifyEmail(
                         verificationTokenURL,
                         user.name,
@@ -357,11 +357,9 @@ module.exports = {
                     }
                     let verificationToken;
                     if (user.role !== 'master-admin' || !customerId) {
-                        console.log('point 44444444444', user)
                         verificationToken = await _this.sendToken(
                             user,
                             user.email,
-                            true
                         );
                     }
 
