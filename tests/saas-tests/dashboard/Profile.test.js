@@ -52,7 +52,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageType(page, 'input[name=name]', name);
             await page.waitForSelector('button[type=submit]');
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForTimeout(2000);
+            
             await page.waitForSelector('.ball-beat', { hidden: true });
             let spanElement = await page.waitForSelector(
                 'span#userProfileName'

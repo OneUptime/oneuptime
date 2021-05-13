@@ -583,7 +583,7 @@ describe('Log Containers', () => {
             await init.pageClick(page, `#delete_${categoryName}`);
             await page.waitForSelector('#deleteResourceCategory');
             await init.pageClick(page, '#deleteResourceCategory');
-            await page.waitForTimeout(5000);
+            
 
             // go back to log details and confirm it is not there anymore
             const spanElementBadge = await page.$(

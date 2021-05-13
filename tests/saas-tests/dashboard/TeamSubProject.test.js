@@ -288,7 +288,7 @@ describe('Team API With SubProjects', () => {
             await init.pageClick(page, `div[title="${newRole}"]`);
             await page.waitForSelector('#confirmRoleChange');
             await init.pageClick(page, '#confirmRoleChange');
-            await page.waitForTimeout(5000);
+            
             const newMemberRole = await page.$eval(
                 `#Owner_${memberEmailSelector}`,
                 elem => elem.innerHTML

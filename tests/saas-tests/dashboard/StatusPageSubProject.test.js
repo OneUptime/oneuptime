@@ -178,7 +178,7 @@ describe('StatusPage API With SubProjects', () => {
         await page.waitForSelector(`#btnNext-${subProjectName}`);
         await init.pageClick(page, `#btnNext-${subProjectName}`);
 
-        await page.waitForTimeout(5000);
+        
         statusPageRows = await page.$$('tr.statusPageListItem');
         countStatusPages = statusPageRows.length;
         expect(countStatusPages).toEqual(2);
@@ -186,7 +186,7 @@ describe('StatusPage API With SubProjects', () => {
         await page.waitForSelector(`#btnPrev-${subProjectName}`);
         await init.pageClick(page, `#btnPrev-${subProjectName}`);
 
-        await page.waitForTimeout(5000);
+        
         statusPageRows = await page.$$('tr.statusPageListItem');
         countStatusPages = statusPageRows.length;
 

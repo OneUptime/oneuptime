@@ -143,7 +143,7 @@ describe('Schedule API With SubProjects', () => {
 
         // await nextSelector.click();
         await init.pageClick(page, `#btnNext-${subProjectName}`);
-        await page.waitForTimeout(5000);
+        
         scheduleRows = await page.$$('tr.scheduleListItem');
         countSchedules = scheduleRows.length;
         expect(countSchedules).toEqual(1);
@@ -154,7 +154,7 @@ describe('Schedule API With SubProjects', () => {
         });
         await init.pageClick(page, `#btnPrev-${subProjectName}`);
         //await prevSelector.click();
-        await page.waitForTimeout(5000);
+        
         scheduleRows = await page.$$('tr.scheduleListItem');
         countSchedules = scheduleRows.length;
         expect(countSchedules).toEqual(10);
@@ -181,7 +181,7 @@ describe('Schedule API With SubProjects', () => {
             );
             await page.waitForSelector('#btnSaveMonitors');
             await init.pageClick(page, '#btnSaveMonitors');
-            await page.waitForTimeout(5000);
+            
 
             const monitorSelectValue = await page.$eval(
                 'input[type=checkbox]',
