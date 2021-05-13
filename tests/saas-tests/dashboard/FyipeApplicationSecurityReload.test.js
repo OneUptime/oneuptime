@@ -42,7 +42,7 @@ describe('Fyipe Page Reload', () => {
     });
 
     test(
-        'Should reload the incidents page and confirm there are no errors',
+        'Should reload the application security page and confirm there are no errors',
         async done => {
             const categoryName = 'Random-Category';
             // create a new resource category

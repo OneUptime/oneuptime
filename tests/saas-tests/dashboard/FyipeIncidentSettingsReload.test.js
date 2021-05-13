@@ -32,7 +32,7 @@ describe('Fyipe Page Reload', () => {
     });
 
     test(
-        'Should reload the incidents page and confirm there are no errors',
+        'Should reload the incident settings page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
