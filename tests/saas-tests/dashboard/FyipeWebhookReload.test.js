@@ -32,20 +32,20 @@ describe('Fyipe Page Reload', () => {
     });
 
     test(
-        'Should reload the call route page and confirm there are no errors',
+        'Should reload the webhook page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#more');
-            await init.pageClick(page, '#callRouting');
-            await init.pageClick(page, '#addRoutingNumberButton');
-            await page.waitForSelector('#addNumber', { visible: true });
+            await init.pageClick(page, '#webhooks');
+            await page.waitForSelector('#enableInvestigationNoteNotificationWebhook', { visible: true });
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbProjectSettings', { visible: true });
-            const spanElement = await page.waitForSelector('#cbCallRouting', { visible: true });
+            await page.waitForSelector('#cbWebhooksSettings', { visible: true });
+            const spanElement = await page.waitForSelector('#enableInvestigationNoteNotificationWebhook', { visible: true });
             expect(spanElement).toBeDefined();
             done();
         },

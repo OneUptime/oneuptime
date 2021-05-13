@@ -43,7 +43,7 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector('#enableTwilio', { visible: true });
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbProjectSettings', { visible: true });            
+            await page.waitForSelector('#cbProjectSettings', { visible: true });
             const spanElement = await page.waitForSelector('#enableTwilio', { visible: true });
             expect(spanElement).toBeDefined();
             done();
