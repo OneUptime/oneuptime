@@ -140,7 +140,7 @@ module.exports = {
     //Returns: promise
     inviteTeamMembers: async function(addedByUserId, projectId, emails, role) {
         const addedBy = await UserService.findOneBy({ _id: addedByUserId });
-        emails = emails.split(',');
+        emails = emails.toLowerCase().split(',');
         const _this = this;
         let subProject = null;
 

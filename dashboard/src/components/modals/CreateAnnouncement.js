@@ -58,10 +58,11 @@ class CreateAnnouncement extends Component {
 
     submitForm = values => {
         const {
-            mergeMonitors,
             createAnnouncement,
             data: { projectId, statusPage },
             fetchAnnouncements,
+            formValues,
+            mergeMonitors,
         } = this.props;
         const postObj = {};
         if (values.monitors && values.monitors.length > 0) {
@@ -70,7 +71,7 @@ class CreateAnnouncement extends Component {
             );
             postObj.monitors = monitors;
         } else {
-            postObj.monitors = mergeMonitors.map(monitor => monitor._id);
+            postObj.monitors = [];
         }
         postObj.name = values.name;
         postObj.description = values.description;
@@ -87,6 +88,10 @@ class CreateAnnouncement extends Component {
                 monitorError: 'Duplicate monitor selection found',
             });
             return;
+        }
+
+        if (formValues && formValues.selectAllMonitors) {
+            postObj.monitors = mergeMonitors.map(monitor => monitor._id);
         }
 
         createAnnouncement(projectId, statusPage._id, { data: postObj })

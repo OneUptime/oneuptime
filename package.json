@@ -31,8 +31,10 @@
         "fix-lint": "eslint '**/*.js' -c .eslintrc.json --ignore-path .eslintignore --fix",
         "staging-test": "cd tests && npm run-script staging-test",
         "debug-staging-test": "cd tests && npm run-script debug-staging-test",
-        "ci-enterprise-test": "docker-compose --env-file=./docker-compose-enterprise-ci.env up && cd tests && npm run-script enterprise-test",
-        "ci-saas-test": "docker-compose --env-file=./docker-compose-saas-ci.env up && cd tests && npm run-script saas-test"
+        "docker-enterprise-test": "docker-compose build && docker-compose --env-file=./docker-compose-enterprise-ci.env up && cd tests && npm run-script enterprise-test",
+        "docker-saas-test": "docker-compose build && docker-compose --env-file=./docker-compose-saas-ci.env up && cd tests && npm run-script saas-test",
+        "docker-enterprise": "docker-compose build && docker-compose --env-file=./docker-compose-enterprise-ci.env up",
+        "docker-saas": "docker-compose build && docker compose --env-file=./docker-compose-saas-ci.env up"
     },
     "repository": {
         "type": "git",

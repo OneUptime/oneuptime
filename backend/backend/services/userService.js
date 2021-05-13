@@ -279,11 +279,14 @@ module.exports = {
             const verificationToken = await verificationTokenModel.save();
             if (verificationToken) {
                 const verificationTokenURL = `${global.apiHost}/user/confirmation/${verificationToken.token}`;
-                MailService.sendVerifyEmail(
-                    verificationTokenURL,
-                    user.name,
-                    email
-                );
+                // Checking for already verified user so that he/she will not recieve another email verification
+                if (!user.isVerified) {
+                    MailService.sendVerifyEmail(
+                        verificationTokenURL,
+                        user.name,
+                        email
+                    );
+                }
                 if (email !== user.email) {
                     _this.updateOneBy({ _id: user._id }, { tempEmail: email });
                 }

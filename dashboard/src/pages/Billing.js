@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import CustomerBalance from '../components/paymentCard/CustomerBalance';
@@ -102,6 +101,4 @@ Billing.propTypes = {
     getSmtpConfig: PropTypes.func.isRequired,
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(Billing)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(Billing);

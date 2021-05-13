@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { reduxForm, FieldArray, arrayPush } from 'redux-form';
-import { withRouter } from 'react-router';
+import { withRouter } from 'react-router-dom';
 import { getEscalation, addEscalation } from '../../actions/schedule';
 import { getProjectGroups } from '../../actions/group';
 import { subProjectTeamLoading } from '../../actions/team';

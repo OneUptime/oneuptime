@@ -240,14 +240,12 @@ describe('Status-Page Advanced Options', () => {
         await page.waitForSelector('#viewStatusPage');
         await init.pageClick(page, '#viewStatusPage');
         // Navigate to advanced tab in status-page
-        await page.waitForSelector('ul#customTabList > li', {
+        await page.waitForSelector('.advanced-options-tab', {
             visible: true,
         });
-        await page.$$eval('ul#customTabList > li', elems => elems[5].click());
+        await page.$$eval('.advanced-options-tab', elems => elems[0].click());
         // Add Enable Subscribers
-        await page.waitForSelector('#enable-subscribers');
         await init.pageClick(page, '#enable-subscribers');
-        await page.waitForSelector('#saveAdvancedOptions');
         await init.pageClick(page, '#saveAdvancedOptions');
 
         await page.waitForSelector('#publicStatusPageUrl');
@@ -299,10 +297,10 @@ describe('Status-Page Advanced Options', () => {
         await page.waitForSelector('#viewStatusPage');
         await init.pageClick(page, '#viewStatusPage');
         // Navigate to advanced tab in status-page
-        await page.waitForSelector('ul#customTabList > li', {
+        await page.waitForSelector('.advanced-options-tab', {
             visible: true,
         });
-        await page.$$eval('ul#customTabList > li', elems => elems[5].click());
+        await page.$$eval('.advanced-options-tab', elems => elems[0].click());
 
         await page.waitForSelector('#delete');
         await init.pageClick(page, '#delete');

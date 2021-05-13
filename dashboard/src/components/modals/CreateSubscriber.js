@@ -512,7 +512,7 @@ function mapStateToProps(state, ownProps) {
         .filter(monitor => String(monitor._id) === String(projectId))
         .map(monitor => monitor.monitors)
         .flat();
-    const statusPageMonitors = ownProps.data.monitorList;
+    const statusPageMonitors = ownProps.data.monitorList || [];
     const mergeMonitors = [];
     allMonitors.forEach(allMon => {
         statusPageMonitors.forEach(mon => {

@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import InvoiceList from './InvoiceList';
 import {
@@ -141,6 +140,4 @@ Invoice.propTypes = {
 
 Invoice.displayName = 'Invoice';
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(Invoice)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(Invoice);
