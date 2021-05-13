@@ -161,7 +161,7 @@ export class FormModal extends Component {
                 style={{ marginTop: '40px' }}
             >
                 <div className="bs-BIM db-InviteSetting">
-                    <div className="bs-Modal bs-Modal--large">
+                    <div className="bs-Modal bs-Modal--team">
                         <ClickOutside
                             onClickOutside={e => {
                                 if (
@@ -262,6 +262,7 @@ export class FormModal extends Component {
                                                 <label
                                                     className="bs-Radio"
                                                     htmlFor={`Viewer_${data.subProjectName}`}
+                                                    id="viewer"
                                                 >
                                                     <Field
                                                         id={`Viewer_${data.subProjectName}`}
@@ -309,6 +310,7 @@ export class FormModal extends Component {
                                                 <label
                                                     className="bs-Radio"
                                                     htmlFor={`Member_${data.subProjectName}`}
+                                                    id="member"
                                                 >
                                                     <Field
                                                         id={`Member_${data.subProjectName}`}
@@ -352,6 +354,7 @@ export class FormModal extends Component {
                                                 <label
                                                     className="bs-Radio"
                                                     htmlFor={`Administrator_${data.subProjectName}`}
+                                                    id="administrator"
                                                 >
                                                     <Field
                                                         id={`Administrator_${data.subProjectName}`}
