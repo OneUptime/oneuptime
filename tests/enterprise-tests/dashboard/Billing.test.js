@@ -53,8 +53,8 @@ describe('Enterprise Disabled Billing API', () => {
         'Should not display profile billing on profile menu',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#profile-menu', { visible: true });
             await init.pageClick(page, '#profile-menu');
 

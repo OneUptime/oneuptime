@@ -50,101 +50,117 @@ describe('Team API With SubProjects', () => {
         done();
     });
     // No need for switchProject as the tests were carried out in the created project from 'email' and 'password'
-    test('should add a new user to parent project and all sub-projects (role -> `Administrator`)', async done => {
-        await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
-        const role = 'Administrator';
+    test(
+        'should add a new user to parent project and all sub-projects (role -> `Administrator`)',
+        async done => {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            const role = 'Administrator';
 
-        await page.waitForSelector('#teamMembers');
-        await init.pageClick(page, '#teamMembers');
-        await page.waitForSelector(`#btn_${projectName}`);
-        await init.pageClick(page, `#btn_${projectName}`);
-        await page.waitForSelector(`#frm_${projectName}`);
-        await page.waitForSelector(`#emails_${projectName}`);
-        await init.pageClick(page, `#emails_${projectName}`);
-        await init.pageType(page, `#emails_${projectName}`, anotherEmail);
-        await init.pageClick(page, `#${role}_${projectName}`);
-        await page.waitForSelector(`#btn_modal_${projectName}`);
-        await init.pageClick(page, `#btn_modal_${projectName}`);
-        await page.waitForSelector('#btnConfirmInvite');
-        await init.pageClick(page, '#btnConfirmInvite');
-        await page.waitForSelector(`#btn_modal_${projectName}`, {
-            hidden: true,
-        });
+            await page.waitForSelector('#teamMembers');
+            await init.pageClick(page, '#teamMembers');
+            await page.waitForSelector(`#btn_${projectName}`);
+            await init.pageClick(page, `#btn_${projectName}`);
+            await page.waitForSelector(`#frm_${projectName}`);
+            await page.waitForSelector(`#emails_${projectName}`);
+            await init.pageClick(page, `#emails_${projectName}`);
+            await init.pageType(page, `#emails_${projectName}`, anotherEmail);
+            await init.pageClick(page, `#${role}_${projectName}`);
+            await page.waitForSelector(`#btn_modal_${projectName}`);
+            await init.pageClick(page, `#btn_modal_${projectName}`);
+            await page.waitForSelector('#btnConfirmInvite');
+            await init.pageClick(page, '#btnConfirmInvite');
+            await page.waitForSelector(`#btn_modal_${projectName}`, {
+                hidden: true,
+            });
 
-        await page.waitForSelector(`#count_${projectName}`);
-        const memberCount = await page.$eval(
-            `#count_${projectName}`,
-            elem => elem.textContent
-        );
-        expect(memberCount).toEqual('Page 1 of 1 (2 Team Members)');
+            await page.waitForSelector(`#count_${projectName}`);
+            const memberCount = await page.$eval(
+                `#count_${projectName}`,
+                elem => elem.textContent
+            );
+            expect(memberCount).toEqual('Page 1 of 1 (2 Team Members)');
 
-        done();
-    }, init.timeout);
+            done();
+        },
+        init.timeout
+    );
 
-    test('should not allow project owner to add other project owners', async done => {
-        await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
-        const role = 'Owner';
+    test(
+        'should not allow project owner to add other project owners',
+        async done => {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            const role = 'Owner';
 
-        await page.waitForSelector('#teamMembers');
-        await init.pageClick(page, '#teamMembers');
-        await page.waitForSelector(`#btn_${projectName}`);
-        await init.pageClick(page, `#btn_${projectName}`);
-        await page.waitForSelector(`#frm_${projectName}`);
-        const elementHandle = await page.$(`#${role}_${projectName}`);
-        expect(elementHandle).toEqual(null);
-        done();
-    }, init.timeout);
+            await page.waitForSelector('#teamMembers');
+            await init.pageClick(page, '#teamMembers');
+            await page.waitForSelector(`#btn_${projectName}`);
+            await init.pageClick(page, `#btn_${projectName}`);
+            await page.waitForSelector(`#frm_${projectName}`);
+            const elementHandle = await page.$(`#${role}_${projectName}`);
+            expect(elementHandle).toEqual(null);
+            done();
+        },
+        init.timeout
+    );
 
-    test('should not allow administrator to add project owners', async done => {
-        await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
-        const role = 'Owner';
+    test(
+        'should not allow administrator to add project owners',
+        async done => {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            const role = 'Owner';
 
-        await page.waitForSelector('#teamMembers');
-        await init.pageClick(page, '#teamMembers');
-        await page.waitForSelector(`#btn_${projectName}`);
-        await init.pageClick(page, `#btn_${projectName}`);
-        await page.waitForSelector(`#frm_${projectName}`);
-        const elementHandle = await page.$(`#${role}_${projectName}`);
-        expect(elementHandle).toEqual(null);
+            await page.waitForSelector('#teamMembers');
+            await init.pageClick(page, '#teamMembers');
+            await page.waitForSelector(`#btn_${projectName}`);
+            await init.pageClick(page, `#btn_${projectName}`);
+            await page.waitForSelector(`#frm_${projectName}`);
+            const elementHandle = await page.$(`#${role}_${projectName}`);
+            expect(elementHandle).toEqual(null);
 
-        done();
-    }, init.timeout);
+            done();
+        },
+        init.timeout
+    );
 
-    test('should add a new user to sub-project (role -> `Member`)', async done => {
-        await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
-        const role = 'Member';
+    test(
+        'should add a new user to sub-project (role -> `Member`)',
+        async done => {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            const role = 'Member';
 
-        await page.waitForSelector('#teamMembers', { visible: true });
-        await init.pageClick(page, '#teamMembers');
-        await page.waitForSelector(`#btn_${subProjectName}`);
-        await init.pageClick(page, `#btn_${subProjectName}`);
-        await page.waitForSelector(`#frm_${subProjectName}`);
-        await init.pageClick(page, `#emails_${subProjectName}`);
-        await init.pageType(page, `#emails_${subProjectName}`, newEmail);
-        await init.pageClick(page, `#${role}_${subProjectName}`);
-        await page.waitForSelector(`#btn_modal_${subProjectName}`);
-        await init.pageClick(page, `#btn_modal_${subProjectName}`);
-        await page.waitForSelector(`#btn_modal_${subProjectName}`, {
-            hidden: true,
-        });
+            await page.waitForSelector('#teamMembers', { visible: true });
+            await init.pageClick(page, '#teamMembers');
+            await page.waitForSelector(`#btn_${subProjectName}`);
+            await init.pageClick(page, `#btn_${subProjectName}`);
+            await page.waitForSelector(`#frm_${subProjectName}`);
+            await init.pageClick(page, `#emails_${subProjectName}`);
+            await init.pageType(page, `#emails_${subProjectName}`, newEmail);
+            await init.pageClick(page, `#${role}_${subProjectName}`);
+            await page.waitForSelector(`#btn_modal_${subProjectName}`);
+            await init.pageClick(page, `#btn_modal_${subProjectName}`);
+            await page.waitForSelector(`#btn_modal_${subProjectName}`, {
+                hidden: true,
+            });
 
-        await page.waitForSelector(`#count_${subProjectName}`);
-        const memberCount = await page.$eval(
-            `#count_${subProjectName}`,
-            elem => elem.textContent
-        );
-        expect(memberCount).toEqual('Page 1 of 1 (3 Team Members)');
+            await page.waitForSelector(`#count_${subProjectName}`);
+            const memberCount = await page.$eval(
+                `#count_${subProjectName}`,
+                elem => elem.textContent
+            );
+            expect(memberCount).toEqual('Page 1 of 1 (3 Team Members)');
 
-        done();
-    }, init.timeout);
+            done();
+        },
+        init.timeout
+    );
 
     test(
         'should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)',
@@ -152,8 +168,8 @@ describe('Team API With SubProjects', () => {
             const newRole = 'Member';
             const emailSelector = anotherEmail.split('@')[0];
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#teamMembers');
             await init.pageClick(page, '#teamMembers');
@@ -180,8 +196,8 @@ describe('Team API With SubProjects', () => {
         async done => {
             const emailSelector = anotherEmail.split('@')[0];
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#teamMembers');
             await init.pageClick(page, '#teamMembers');
@@ -214,8 +230,8 @@ describe('Team API With SubProjects', () => {
             const nonBusinessEmail =
                 utils.generateRandomString() + '@gmail.com';
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#teamMembers');
             await init.pageClick(page, '#teamMembers');
@@ -250,8 +266,8 @@ describe('Team API With SubProjects', () => {
             const ownerEmailSelector = email.split('@')[0];
 
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#teamMembers');
             await init.pageClick(page, '#teamMembers');
 
@@ -288,7 +304,7 @@ describe('Team API With SubProjects', () => {
             await init.pageClick(page, `div[title="${newRole}"]`);
             await page.waitForSelector('#confirmRoleChange');
             await init.pageClick(page, '#confirmRoleChange');
-            
+
             const newMemberRole = await page.$eval(
                 `#Owner_${memberEmailSelector}`,
                 elem => elem.innerHTML

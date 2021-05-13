@@ -54,8 +54,8 @@ describe('Error Trackers', () => {
                 visible: true,
             });
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#components', { visible: true });
             await init.pageClick(page, '#components');
 
@@ -453,8 +453,8 @@ describe('Error Trackers', () => {
 
             // delete the category
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');

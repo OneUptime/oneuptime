@@ -41,8 +41,8 @@ describe('Email Templates API', () => {
         'should not show reset button when no template is saved',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
@@ -70,8 +70,8 @@ describe('Email Templates API', () => {
         'Should update default email template',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
@@ -110,8 +110,8 @@ describe('Email Templates API', () => {
         'should show reset button when a template is already saved',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
@@ -137,8 +137,8 @@ describe('Email Templates API', () => {
         'should reset template to default state',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');

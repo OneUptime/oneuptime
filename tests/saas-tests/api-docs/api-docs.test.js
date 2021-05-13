@@ -19,14 +19,18 @@ describe('Check api-docs up', () => {
         done();
     });
 
-    test('should get title of api docs page', async done => {
-        await page.goto(utils.APIDOCS_URL, {
-            waitUntil: 'domcontentloaded',
-        });
-        const response = await page.$eval('head > title', e => {
-            return e.innerHTML;
-        });
-        expect(response).toBe('Fyipe API Documentation');
-        done();
-    }, init.timeout);
+    test(
+        'should get title of api docs page',
+        async done => {
+            await page.goto(utils.APIDOCS_URL, {
+                waitUntil: 'domcontentloaded',
+            });
+            const response = await page.$eval('head > title', e => {
+                return e.innerHTML;
+            });
+            expect(response).toBe('Fyipe API Documentation');
+            done();
+        },
+        init.timeout
+    );
 });

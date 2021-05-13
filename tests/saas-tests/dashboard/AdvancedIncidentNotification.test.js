@@ -36,8 +36,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         'should enable sending email notification when incident is created, acknowledged, resolved or investigated',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
@@ -96,8 +96,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         'should disable sending email notification when incident is created',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
@@ -118,7 +118,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            
+
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -144,8 +144,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         'should disable sending email notification when incident is acknowledged',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
@@ -167,7 +167,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem => elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            
+
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -193,8 +193,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         'should disable sending email notification when incident is resolved',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
@@ -215,7 +215,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            
+
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -241,8 +241,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         'should disable sending email notification for investigation note',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
@@ -264,7 +264,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem => elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            
+
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -290,8 +290,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         'should enable sending sms notification when incident is created, acknowledged, resolved or investigated',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
@@ -347,8 +347,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         'should disable sending sms notification when incident is created',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
@@ -366,7 +366,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            
+
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -389,8 +389,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         'should disable sending sms notification when incident is acknowledged',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
@@ -410,7 +410,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            
+
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -436,8 +436,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         'should disable sending sms notification when incident is resolved',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
@@ -456,7 +456,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            
+
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -478,8 +478,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         'should disable sending sms notification for investigation note',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
@@ -500,7 +500,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            
+
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });

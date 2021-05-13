@@ -142,7 +142,10 @@ const _this = {
         await _this.pageType(page, 'input[name=password]', password);
         await _this.pageClick(page, 'button[type=submit]');
 
-        await page.waitForSelector('#home', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#home', {
+            visible: true,
+            timeout: _this.timeout,
+        });
     },
     loginEnterpriseUser: async function(user, page) {
         const { email, password } = user;

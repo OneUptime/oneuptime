@@ -43,8 +43,8 @@ describe('Resource Category', () => {
         'should create a new resource category',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', { visible: true });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more', { visible: true });
@@ -154,8 +154,8 @@ describe('Resource Category', () => {
         'should delete the created resource category',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', { visible: true });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more', { visible: true });
@@ -261,8 +261,8 @@ describe('Member Restriction', () => {
         'should show unauthorised modal when trying to edit a resource category for a member who is not the admin or owner of the project',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -290,8 +290,8 @@ describe('Member Restriction', () => {
         'should show unauthorised modal when trying to delete a resource category for a member who is not the admin or owner of the project',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });

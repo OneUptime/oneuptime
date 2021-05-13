@@ -155,8 +155,8 @@ describe('API test', () => {
 
             // Invite member on the project
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#teamMembers', { visible: true });
             await init.pageClick(page, '#teamMembers');
             await page.waitForSelector(`#btn_${projectName}`, {

@@ -36,7 +36,6 @@ describe('User Feedback', () => {
     test(
         'should send feedback in project',
         async done => {
-
             const testFeedback = 'test feedback';
 
             await page.goto(utils.DASHBOARD_URL, {

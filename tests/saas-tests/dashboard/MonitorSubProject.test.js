@@ -125,8 +125,8 @@ describe('Monitor API With SubProjects', () => {
         async done => {
             const monitorName = utils.generateRandomString();
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
 
@@ -156,8 +156,8 @@ describe('Monitor API With SubProjects', () => {
         "should get only sub-project's monitors for valid sub-project user",
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#components', {
                 visible: true,
             });
@@ -190,8 +190,8 @@ describe('Monitor API With SubProjects', () => {
         async done => {
             const monitorName = utils.generateRandomString();
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#form-new-monitor');

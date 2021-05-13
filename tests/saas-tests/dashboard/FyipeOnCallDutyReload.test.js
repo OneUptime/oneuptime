@@ -45,8 +45,8 @@ describe('Fyipe Page Reload', () => {
         'Should reload the incidents page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#onCallDuty', {
                 visible: true,
             });

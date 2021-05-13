@@ -42,8 +42,8 @@ describe('BreadCrumb Component test', () => {
             const monitorName = utils.generateRandomString();
 
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await init.addMonitorToComponent(componentName, monitorName, page);
 
             const monitorBreadcrumb = await page.waitForSelector(
@@ -73,8 +73,8 @@ describe('BreadCrumb Component test', () => {
         'Should not go to the landing page when the project breadcrumb item is clicked',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#cbUnnamedProject', { visible: true });
             await init.pageClick(page, '#cbUnnamedProject');
             let currentPage = await page.waitForSelector('#cbUnnamedProject', {

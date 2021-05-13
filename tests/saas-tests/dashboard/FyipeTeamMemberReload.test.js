@@ -42,8 +42,8 @@ describe('Fyipe Page Reload', () => {
         'Should reload the team member page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await init.pageClick(page, '#teamMembers');
             await init.pageClick(page, `#btn_${projectName}`);
             await init.pageType(page, `#emails_${projectName}`, teamMember);

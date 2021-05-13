@@ -36,8 +36,8 @@ describe('Profile -> Delete Account Component test', () => {
         async done => {
             const name = utils.generateRandomString(10);
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#profile-menu');
             await init.pageClick(page, '#profile-menu');
@@ -52,7 +52,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageType(page, 'input[name=name]', name);
             await page.waitForSelector('button[type=submit]');
             await init.pageClick(page, 'button[type=submit]');
-            
+
             await page.waitForSelector('.ball-beat', { hidden: true });
             let spanElement = await page.waitForSelector(
                 'span#userProfileName'
@@ -70,8 +70,8 @@ describe('Profile -> Delete Account Component test', () => {
         'Should change the user password',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#profile-menu');
             await init.pageClick(page, '#profile-menu');
@@ -113,8 +113,8 @@ describe('Profile -> Delete Account Component test', () => {
         'Should not change password if new password and password are the same',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#profile-menu');
             await init.pageClick(page, '#profile-menu');
@@ -153,8 +153,8 @@ describe('Profile -> Delete Account Component test', () => {
         async done => {
             // visit the dashboard
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             // click on the profile page
             await page.waitForSelector('#profile-menu');
             await init.pageClick(page, '#profile-menu');

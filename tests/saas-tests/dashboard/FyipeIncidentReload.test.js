@@ -94,8 +94,8 @@ describe('Fyipe Monitor Reload', () => {
         'Should navigate to incident page, click on the incident and reload to check errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#incidents', { visible: true });
             await init.pageClick(page, '#incidents');
             await page.waitForSelector(`#incident_${monitorName}_0`, {

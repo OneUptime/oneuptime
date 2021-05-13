@@ -81,8 +81,8 @@ describe('Schedule', () => {
         'should show pricing plan modal when add on-call duty times is clicked',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#onCallDuty', {
                 visible: true,
             });
@@ -118,8 +118,8 @@ describe('Schedule', () => {
                 componentName
             );
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#onCallDuty', {
                 visible: true,
             });

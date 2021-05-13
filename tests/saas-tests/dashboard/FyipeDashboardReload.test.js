@@ -48,8 +48,8 @@ describe('Fyipe Page Reload', () => {
         'Should reload the components page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#components', { visible: true });
             await init.pageClick(page, '#components');
             await page.waitForSelector('#cbComponents', { visible: true });
@@ -65,8 +65,8 @@ describe('Fyipe Page Reload', () => {
         'Should reload the incidents page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#incidents', { visible: true });
             await init.pageClick(page, '#incidents');
             await page.waitForSelector('#cbIncidents', { visible: true });
@@ -82,8 +82,8 @@ describe('Fyipe Page Reload', () => {
         'Should reload the status-pages and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#statusPages', { visible: true });
             await init.pageClick(page, '#statusPages');
             await page.waitForSelector('#cbStatusPages', { visible: true });
@@ -99,8 +99,8 @@ describe('Fyipe Page Reload', () => {
         'Should reload the onCall Duty and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#onCallDuty', { visible: true });
             await init.pageClick(page, '#onCallDuty');
             await page.waitForSelector('#cbOn-CallDuty', { visible: true });
@@ -116,8 +116,8 @@ describe('Fyipe Page Reload', () => {
         'Should reload the Scheduled Maintenance and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -139,8 +139,8 @@ describe('Fyipe Page Reload', () => {
         'Should reload the Reports page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#reports', { visible: true });
             await init.pageClick(page, '#reports');
             await page.waitForSelector('#cbReports', { visible: true });
@@ -156,8 +156,8 @@ describe('Fyipe Page Reload', () => {
         'Should reload the Team members and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#teamMembers', { visible: true });
             await init.pageClick(page, '#teamMembers');
             await page.waitForSelector('#cbTeamMembers', { visible: true });
@@ -173,8 +173,8 @@ describe('Fyipe Page Reload', () => {
         'Should reload the Project settings and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', { visible: true });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#cbProjectSettings', { visible: true });
@@ -190,8 +190,8 @@ describe('Fyipe Page Reload', () => {
         'Should reload the Consulting and Services and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#consultingServices', {
                 visible: true,
             });

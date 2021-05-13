@@ -38,8 +38,8 @@ describe('SMS Templates API', () => {
         'should not show reset button if sms template is not saved yet',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
@@ -71,8 +71,8 @@ describe('SMS Templates API', () => {
         'Should update default sms template',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
@@ -119,8 +119,8 @@ describe('SMS Templates API', () => {
         'should show reset button when a template is already saved',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
@@ -147,8 +147,8 @@ describe('SMS Templates API', () => {
         'should reset template to default state',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');

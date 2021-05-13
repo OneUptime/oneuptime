@@ -232,7 +232,7 @@ describe('Monitor API', () => {
                 monitorName,
                 page
             );
-            
+
             await page.waitForSelector(`#lighthouseLogs_${monitorName}_0`, {
                 visible: true,
                 timeout: operationTimeOut,
@@ -575,7 +575,11 @@ describe('Monitor API', () => {
             );
             await page.waitForSelector('#responseTime');
             await init.pageClick(page, 'input[name=responseTime]');
-            await init.pageType(page, 'input[name=responseTime]', 'init.timeout');
+            await init.pageType(
+                page,
+                'input[name=responseTime]',
+                'init.timeout'
+            );
             await page.waitForSelector('#statusCode');
             await init.pageClick(page, 'input[name=statusCode]');
             await init.pageType(page, 'input[name=statusCode]', '200');
@@ -936,8 +940,8 @@ describe('API Monitor API', () => {
             await page.waitForSelector('#save-btn', { visible: true });
 
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
@@ -992,8 +996,8 @@ describe('API Monitor API', () => {
 
             // Dashboard Page
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
 
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
