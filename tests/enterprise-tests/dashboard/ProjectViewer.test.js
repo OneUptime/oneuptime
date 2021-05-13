@@ -23,7 +23,7 @@ describe('Sub-Project API', () => {
     const operationTimeOut = 50000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -57,15 +57,15 @@ describe('Sub-Project API', () => {
                 waitUntil: 'networkidle0',
             });
             await page.waitForSelector('#projectSettings', { visible: true });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
 
             await page.waitForSelector('#btn_Add_SubProjects', {
                 visible: true,
             });
-            await page.click('#btn_Add_SubProjects');
+            await init.pageClick(page, '#btn_Add_SubProjects');
             await page.waitForSelector('#title', { visible: true });
-            await page.type('#title', subProjectName);
-            await page.click('#btnAddSubProjects');
+            await init.pageType(page, '#title', subProjectName);
+            await init.pageClick(page, '#btnAddSubProjects');
             await page.waitForSelector('#title', { hidden: true });
             const subProjectSelector = await page.waitForSelector(
                 `#sub_project_name_${subProjectName}`,
@@ -87,7 +87,7 @@ describe('Sub-Project API', () => {
             waitUntil: 'networkidle0',
         });
         await page.waitForSelector('#teamMembers', { visible: true });
-        await page.click('#teamMembers');
+        await init.pageClick(page, '#teamMembers');
         let prevMemberCount = await page.$eval(
             `#count_${subProjectName}`,
             elem => elem.textContent
@@ -96,14 +96,14 @@ describe('Sub-Project API', () => {
         await page.waitForSelector(`button[id=btn_${subProjectName}]`, {
             visible: true,
         });
-        await page.click(`button[id=btn_${subProjectName}]`);
+        await init.pageClick(page, `button[id=btn_${subProjectName}]`);
         await page.waitForSelector(`#frm_${subProjectName}`, { visible: true });
-        await page.type('input[name=emails]', email);
-        await page.click(`#${role}_${subProjectName}`);
+        await init.pageType(page, 'input[name=emails]', email);
+        await init.pageClick(page, `#${role}_${subProjectName}`);
         await page.waitForSelector(`#btn_modal_${subProjectName}`, {
             visible: true,
         });
-        await page.click(`#btn_modal_${subProjectName}`);
+        await init.pageClick(page, `#btn_modal_${subProjectName}`);
         await page.waitForSelector(`#btn_modal_${subProjectName}`, {
             hidden: true,
         });
@@ -124,7 +124,7 @@ describe('Sub-Project API', () => {
             waitUntil: 'networkidle0',
         });
         await page.waitForSelector('#teamMembers', { visible: true });
-        await page.click('#teamMembers');
+        await init.pageClick(page, '#teamMembers');
         await page.waitForSelector(`#count_${newProjectName}`, {
             visible: true,
         });
@@ -137,14 +137,14 @@ describe('Sub-Project API', () => {
         await page.waitForSelector(`button[id=btn_${newProjectName}]`, {
             visible: true,
         });
-        await page.click(`button[id=btn_${newProjectName}]`);
+        await init.pageClick(page, `button[id=btn_${newProjectName}]`);
         await page.waitForSelector(`#frm_${newProjectName}`, { visible: true });
-        await page.type('input[name=emails]', projectViewer.email);
-        await page.click(`#${role}_${newProjectName}`);
+        await init.pageType(page, 'input[name=emails]', projectViewer.email);
+        await init.pageClick(page, `#${role}_${newProjectName}`);
         await page.waitForSelector(`#btn_modal_${newProjectName}`, {
             visible: true,
         });
-        await page.click(`#btn_modal_${newProjectName}`);
+        await init.pageClick(page, `#btn_modal_${newProjectName}`);
         const elem = await page.$('button[id=btnConfirmInvite]');
         elem.click();
         await page.waitForSelector(`#btn_modal_${newProjectName}`, {
@@ -167,7 +167,7 @@ describe('Sub-Project API', () => {
             waitUntil: 'networkidle0',
         });
         await page.waitForSelector('#statusPages', { visible: true });
-        await page.click('#statusPages');
+        await init.pageClick(page, '#statusPages');
         await page.waitForSelector(`#status_page_count_${newProjectName}`, {
             visible: true,
         });
@@ -196,7 +196,7 @@ describe('Sub-Project API', () => {
             await init.logout(page);
             await init.loginUser({ email, password }, page);
             await page.waitForSelector('#AccountSwitcherId', { visible: true });
-            await page.click('#AccountSwitcherId');
+            await init.pageClick(page, '#AccountSwitcherId');
             await page.waitForSelector('#accountSwitcher', { visible: true });
             const element = await page.$(
                 `#accountSwitcher > div[title=${newProjectName}]`
@@ -219,7 +219,7 @@ describe('Sub-Project API', () => {
             await init.logout(page);
             await init.loginUser(projectViewer, page);
             await page.waitForSelector('#AccountSwitcherId', { visible: true });
-            await page.click('#AccountSwitcherId');
+            await init.pageClick(page, '#AccountSwitcherId');
             await page.waitForSelector('#accountSwitcher', { visible: true });
             const element = await page.$(
                 `#accountSwitcher > div[title=${newProjectName}]`
@@ -240,7 +240,7 @@ describe('Sub-Project API', () => {
         await init.logout(page);
         await init.loginUser(projectViewer, page);
         await page.waitForSelector('#AccountSwitcherId', { visible: true });
-        await page.click('#AccountSwitcherId');
+        await init.pageClick(page, '#AccountSwitcherId');
         await page.waitForSelector('#accountSwitcher', { visible: true });
         const element = await page.$(
             `#accountSwitcher > div[title=${newProjectName}]`

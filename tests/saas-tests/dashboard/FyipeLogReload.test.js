@@ -41,28 +41,39 @@ describe('Fyipe Page Reload', () => {
         'Should reload the incidents page and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#logs', { visible : true });
-            await page.click('#logs');
-            await page.waitForSelector('#form-new-application-log', { visible : true });
-            await page.waitForSelector('input[name=name]', { visible : true });
-            await page.type('input[name=name]', logName);
-            await page.waitForSelector('#addApplicationLogButton', { visible : true });
-            await page.click('#addApplicationLogButton');
+            await page.waitForSelector('#logs', { visible: true });
+            await init.pageClick(page, '#logs');
+            await page.waitForSelector('#form-new-application-log', {
+                visible: true,
+            });
+            await page.waitForSelector('input[name=name]', { visible: true });
+            await init.pageType(page, 'input[name=name]', logName);
+            await page.waitForSelector('#addApplicationLogButton', {
+                visible: true,
+            });
+            await init.pageClick(page, '#addApplicationLogButton');
             let spanElement;
-            spanElement = await page.waitForSelector('#application-content-header', { visible : true });
+            spanElement = await page.waitForSelector(
+                '#application-content-header',
+                { visible: true }
+            );
             expect(spanElement).toBeDefined();
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
-            await page.waitForSelector(`#cb${componentName}`, { visible: true });
+            await page.waitForSelector(`#cb${componentName}`, {
+                visible: true,
+            });
             await page.waitForSelector('#cbLogs', { visible: true });
             await page.waitForSelector(`#cb${logName}`, { visible: true });
 
-            spanElement = await page.waitForSelector('#application-content-header', { visible : true });
+            spanElement = await page.waitForSelector(
+                '#application-content-header',
+                { visible: true }
+            );
             expect(spanElement).toBeDefined();
             done();
         },
         operationTimeOut
     );
-
 });

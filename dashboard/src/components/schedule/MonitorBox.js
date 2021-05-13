@@ -50,8 +50,7 @@ export function MonitorBox(props) {
     const currentProjectId = currentProject ? currentProject._id : null;
     const slug = currentProject ? currentProject.slug : null;
     let subProject = currentProjectId === subProjectId ? currentProject : false;
-    if (!subProject && subProjectId)
-    {
+    if (!subProject && subProjectId) {
         subProject = subProjects.find(
             subProject =>
                 subProject._id === subProjectId ||

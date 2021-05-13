@@ -19,8 +19,6 @@ import { bindActionCreators } from 'redux';
 import DeleteProject from '../components/settings/DeleteProject';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
 
-
-
 class Billing extends Component {
     constructor(props) {
         super(props);

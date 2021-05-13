@@ -349,7 +349,7 @@ class NotesMain extends Component {
                     </ShouldRender>
                     {typeof this.props.notesmessage === 'string'
                         ? this.props.notesmessage
-                        : 'No incident yet.'}
+                        : 'No incidents so far.'}
                 </div>
             );
         } else {

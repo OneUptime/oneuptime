@@ -44,6 +44,7 @@ class EditAnnouncement extends Component {
             updateAnnouncement,
             data: { projectId, statusPage, announcement },
             fetchAnnouncements,
+            formValues,
         } = this.props;
         const postObj = {};
         if (values.monitors && values.monitors.length > 0) {
@@ -52,7 +53,7 @@ class EditAnnouncement extends Component {
             );
             postObj.monitors = monitors;
         } else {
-            postObj.monitors = mergeMonitors.map(monitor => monitor._id);
+            postObj.monitors = [];
         }
         postObj.name = values.name;
         postObj.description = values.description;
@@ -72,15 +73,8 @@ class EditAnnouncement extends Component {
             return;
         }
 
-        if (
-            postObj.monitors &&
-            postObj.monitors.length === 0 &&
-            !values.selectAllMonitors
-        ) {
-            this.setState({
-                monitorError: 'No monitor was selected',
-            });
-            return;
+        if (formValues && formValues.selectAllMonitors) {
+            postObj.monitors = mergeMonitors.map(monitor => monitor._id);
         }
 
         updateAnnouncement(projectId, statusPage._id, announcement._id, {
@@ -561,17 +555,15 @@ const mapStateToProps = (state, ownProps) => {
         .flat();
 
     const monitorIds =
-        allMonitors.length !== announcement.monitors.length
-            ? announcement
-                ? announcement.monitors.map(monitor => monitor.monitorId._id)
-                : []
+        announcement.monitors.length > 0
+            ? announcement.monitors.map(monitor => monitor.monitorId._id)
             : [];
 
     const initialValues = {};
     initialValues.name = announcement.name;
     initialValues.description = announcement.description;
     initialValues.selectAllMonitors =
-        allMonitors.length === announcement.monitors.length ? true : false;
+        announcement.monitors.length === 0 && false;
     initialValues.monitors = [...monitorIds];
 
     const monitors = state.statusPage.status.monitors;

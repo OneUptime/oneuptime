@@ -23,7 +23,7 @@ describe('Incoming HTTP Request', () => {
     const operationTimeOut = 500000;
 
     beforeAll(async done => {
-        jest.setTimeout(360000);
+        jest.setTimeout(3600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -48,36 +48,41 @@ describe('Incoming HTTP Request', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#integrations', { visible: true });
-            await page.click('#integrations');
+            await init.pageClick(page, '#integrations');
 
             await page.waitForSelector('#addIncomingRequestBtn', {
                 visible: true,
             });
-            await page.click('#addIncomingRequestBtn');
+            await init.pageClick(page, '#addIncomingRequestBtn');
             await page.waitForSelector('#name', { visible: true });
-            await page.click('#name');
-            await page.type('#name', incidentRequest.name);
+            await init.pageClick(page, '#name');
+            await init.pageType(page, '#name', incidentRequest.name);
             await page.$eval('#createIncident', elem => elem.click());
             await page.waitForSelector('#isDefault', { visible: true });
             await page.$eval('#isDefault', elem => elem.click());
-            await page.click('#advancedOptionsBtn');
+            await init.pageClick(page, '#advancedOptionsBtn');
             await page.waitForSelector('#incidentTitle', { visible: true });
-            await page.click('#incidentTitle');
-            await page.type('#incidentTitle', incidentRequest.incidentTitle);
-            await page.click('#incidentDescription');
-            await page.type(
+            await init.pageClick(page, '#incidentTitle');
+            await init.pageType(
+                page,
+                '#incidentTitle',
+                incidentRequest.incidentTitle
+            );
+            await init.pageClick(page, '#incidentDescription');
+            await init.pageType(
+                page,
                 '#incidentDescription',
                 incidentRequest.incidentDescription
             );
 
-            await page.click('#createIncomingRequest');
+            await init.pageClick(page, '#createIncomingRequest');
             await page.waitForSelector('#createIncomingRequest', {
                 hidden: true,
             });
             await page.waitForSelector('#requestOkBtn', { visible: true });
-            await page.click('#requestOkBtn');
+            await init.pageClick(page, '#requestOkBtn');
             await page.waitForSelector('#requestOkBtn', { hidden: true });
 
             const firstIncomingHttpRequest = await page.waitForSelector(
@@ -98,19 +103,19 @@ describe('Incoming HTTP Request', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#integrations', { visible: true });
-            await page.click('#integrations');
+            await init.pageClick(page, '#integrations');
 
             await page.waitForSelector('#editIncomingRequestBtn_0', {
                 visible: true,
             });
-            await page.click('#editIncomingRequestBtn_0');
+            await init.pageClick(page, '#editIncomingRequestBtn_0');
             await page.waitForSelector('#name', { visible: true });
-            await page.click('#name', { clickCount: 3 });
+            await init.pageClick(page, '#name', { clickCount: 3 });
             // change the name of the incoming http request
-            await page.type('#name', 'newName');
-            await page.click('#editIncomingRequest');
+            await init.pageType(page, '#name', 'newName');
+            await init.pageClick(page, '#editIncomingRequest');
             await page.waitForSelector('#editIncomingRequest', {
                 hidden: true,
             });
@@ -132,18 +137,18 @@ describe('Incoming HTTP Request', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#integrations', { visible: true });
-            await page.click('#integrations');
+            await init.pageClick(page, '#integrations');
 
             await page.waitForSelector('#deleteIncomingRequestBtn_0', {
                 visible: true,
             });
-            await page.click('#deleteIncomingRequestBtn_0');
+            await init.pageClick(page, '#deleteIncomingRequestBtn_0');
             await page.waitForSelector('#deleteIncomingRequestBtn', {
                 visible: true,
             });
-            await page.click('#deleteIncomingRequestBtn');
+            await init.pageClick(page, '#deleteIncomingRequestBtn');
             await page.waitForSelector('#deleteIncomingRequestBtn', {
                 hidden: true,
             });

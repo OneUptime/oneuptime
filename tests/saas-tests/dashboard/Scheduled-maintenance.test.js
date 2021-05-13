@@ -44,22 +44,22 @@ describe('Check scheduled maintenace', () => {
         });
 
         await page.waitForSelector('#statusPages', { visible: true });
-        await page.click('#statusPages');
+        await init.pageClick(page, '#statusPages');
         await page.waitForSelector(`#btnCreateStatusPage_${projectName}`, {
             visible: true,
         });
-        await page.click(`#btnCreateStatusPage_${projectName}`);
+        await init.pageClick(page, `#btnCreateStatusPage_${projectName}`);
         await page.waitForSelector('#name', { visible: true });
         await page.waitForSelector('input[id=name]', { visible: true });
-        await page.click('input[id=name]');
+        await init.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', statusPageName);
-        await page.click('#btnCreateStatusPage');
+        await init.pageType(page, 'input[id=name]', statusPageName);
+        await init.pageClick(page, '#btnCreateStatusPage');
         await page.waitForSelector('#statusPagesListContainer', {
             visible: true,
         });
         await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage');
+        await init.pageClick(page, '#viewStatusPage');
         await page.waitForSelector(`#header-${statusPageName}`, {
             visible: true,
         });
@@ -74,7 +74,7 @@ describe('Check scheduled maintenace', () => {
         expect(spanElement).toMatch(statusPageName);
 
         done();
-    }, 200000);
+    }, 600000);
 
     test('should create a manual monitor', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -87,21 +87,21 @@ describe('Check scheduled maintenace', () => {
         // Fill and submit New Component form
         await page.waitForSelector('#form-new-component', { visible: true });
         await page.waitForSelector('input[id=name]', { visible: true });
-        await page.click('input[id=name]');
+        await init.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', componentName);
-        await page.click('button[type=submit]');
+        await init.pageType(page, 'input[id=name]', componentName);
+        await init.pageClick(page, 'button[type=submit]');
 
         // Create a Manual Monitor
         await page.waitForSelector('#form-new-monitor', { visible: true });
-        await page.click('input[id=name]', { visible: true });
+        await init.pageClick(page, 'input[id=name]', { visible: true });
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', monitorName);
-        await page.click('[data-testId=type_manual]');
+        await init.pageType(page, 'input[id=name]', monitorName);
+        await init.pageClick(page, '[data-testId=type_manual]');
         await page.waitForSelector('#description', { visible: true });
-        await page.click('#description');
-        await page.type('#description', 'My Manual Monitor');
-        await page.click('button[type=submit]');
+        await init.pageClick(page, '#description');
+        await init.pageType(page, '#description', 'My Manual Monitor');
+        await init.pageClick(page, 'button[type=submit]');
 
         // To confirm the manual monitor is created
         let spanElement = await page.waitForSelector(
@@ -113,7 +113,7 @@ describe('Check scheduled maintenace', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 200000);
+    }, 600000);
 
     test('should add monitor to status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -121,23 +121,27 @@ describe('Check scheduled maintenace', () => {
         });
 
         await page.waitForSelector('#statusPages', { visible: true });
-        await page.click('#statusPages');
+        await init.pageClick(page, '#statusPages');
         await page.waitForSelector('#statusPagesListContainer', {
             visible: true,
         });
         await page.waitForSelector('#viewStatusPage', { visible: true });
-        await page.click('#viewStatusPage');
+        await init.pageClick(page, '#viewStatusPage');
         await page.waitForSelector('#addMoreMonitors', { visible: true });
-        await page.click('#addMoreMonitors');
+        await init.pageClick(page, '#addMoreMonitors');
         await init.selectByText(
             '#monitor-name',
             `${componentName} / ${monitorName}`,
             page
         );
-        await page.click('#monitor-description');
-        await page.type('#monitor-description', 'Status Page Description');
-        await page.click('#manual-monitor-checkbox');
-        await page.click('#btnAddStatusPageMonitors');
+        await init.pageClick(page, '#monitor-description');
+        await init.pageType(
+            page,
+            '#monitor-description',
+            'Status Page Description'
+        );
+        await init.pageClick(page, '#manual-monitor-checkbox');
+        await init.pageClick(page, '#btnAddStatusPageMonitors');
 
         await page.waitForSelector('#publicStatusPageUrl', { visible: true });
         let link = await page.$('#publicStatusPageUrl > span > a');
@@ -155,7 +159,7 @@ describe('Check scheduled maintenace', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 200000);
+    }, 600000);
 
     test('should create a scheduled maintenance', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -165,42 +169,54 @@ describe('Check scheduled maintenace', () => {
         await page.waitForSelector('#scheduledMaintenance', {
             visible: true,
         });
-        await page.click('#scheduledMaintenance');
+        await init.pageClick(page, '#scheduledMaintenance');
         await page.waitForSelector('#addScheduledEventButton', {
             visible: true,
         });
-        await page.click('#addScheduledEventButton');
+        await init.pageClick(page, '#addScheduledEventButton');
 
         await page.waitForSelector('#scheduledEventForm', {
             visible: true,
         });
         await page.waitForSelector('#name', { visible: true });
-        await page.click('#name');
-        await page.type('#name', scheduledMaintenanceName);
+        await init.pageClick(page, '#name');
+        await init.pageType(page, '#name', scheduledMaintenanceName);
 
-        await page.click('#description');
-        await page.type('#description', scheduledMaintenanceDescription);
+        await init.pageClick(page, '#description');
+        await init.pageType(
+            page,
+            '#description',
+            scheduledMaintenanceDescription
+        );
         await page.waitForSelector('input[name=startDate]', { visible: true });
-        await page.click('input[name=startDate]');
-        await page.click('div.MuiDialogActions-root button:nth-child(2)');
+        await init.pageClick(page, 'input[name=startDate]');
+        await init.pageClick(
+            page,
+            'div.MuiDialogActions-root button:nth-child(2)'
+        );
         await page.waitForSelector(
             'div.MuiDialogActions-root button:nth-child(2)',
             { hidden: true }
         );
-        await page.click('input[name=endDate]');
-        await page.click(
+        await init.pageClick(page, 'input[name=endDate]');
+        await init.pageClick(
+            page,
             'div.MuiPickersCalendar-week:nth-child(5) > div:nth-child(6)'
         ); // To select the last week and last day of the month.
-        await page.click('span.MuiTypography-body1:nth-child(14)'); // This selects '11'
-        await page.click(
+        await init.pageClick(page, 'span.MuiTypography-body1:nth-child(14)'); // This selects '11'
+        await init.pageClick(
+            page,
             'span.MuiPickersClockNumber-clockNumber:nth-child(15)'
         ); // This selects '55'. 11:55 is the highest possible value from the clock library html elements
-        await page.click('div.MuiDialogActions-root button:nth-child(2)');
+        await init.pageClick(
+            page,
+            'div.MuiDialogActions-root button:nth-child(2)'
+        );
         await page.waitForSelector(
             'div.MuiDialogActions-root button:nth-child(2)',
             { hidden: true }
         );
-        await page.click('#createScheduledEventButton');
+        await init.pageClick(page, '#createScheduledEventButton');
         await page.waitForSelector('#scheduledEventForm', {
             hidden: true,
         });
@@ -218,16 +234,16 @@ describe('Check scheduled maintenace', () => {
         expect(scheduledMaintenance).toMatch(monitorName);
 
         done();
-    }, 200000);
+    }, 600000);
 
     test('should view scheduled maintenance details in status-page', async done => {
         await page.waitForSelector('#statusPages', { visible: true });
-        await page.click('#statusPages');
+        await init.pageClick(page, '#statusPages');
         await page.waitForSelector('#statusPagesListContainer', {
             visible: true,
         });
         await page.waitForSelector('#viewStatusPage', { visible: true });
-        await page.click('#viewStatusPage');
+        await init.pageClick(page, '#viewStatusPage');
 
         await page.waitForSelector('#publicStatusPageUrl', { visible: true });
         let link = await page.$('#publicStatusPageUrl > span > a');
@@ -271,5 +287,5 @@ describe('Check scheduled maintenace', () => {
         expect(futureEvent).toMatch(futureEvent);
 
         done();
-    }, 200000);
+    }, 600000);
 });

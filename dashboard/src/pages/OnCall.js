@@ -396,7 +396,7 @@ const mapStateToProps = state => {
             tutorialStat[key].show = projectCustomTutorial[key].show;
         }
     }
-    console.log('schedule ',state.schedule);
+
     return {
         currentProjectId,
         subProjectSchedules,

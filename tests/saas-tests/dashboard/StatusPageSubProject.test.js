@@ -17,7 +17,7 @@ describe('StatusPage API With SubProjects', () => {
     const operationTimeOut = 500000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -78,7 +78,7 @@ describe('StatusPage API With SubProjects', () => {
             await init.registerAndLoggingTeamMember(user, page);
 
             await page.waitForSelector('#statusPages');
-            await page.click('#statusPages');
+            await init.pageClick(page, '#statusPages');
 
             const createButton = await page.$(
                 `#btnCreateStatusPage_${subProjectName}`
@@ -132,7 +132,7 @@ describe('StatusPage API With SubProjects', () => {
         await page.waitForSelector('tr.statusPageListItem');
         await page.$$('tr.statusPageListItem');
         await page.waitForSelector('#viewStatusPage');
-        await page.click('#viewStatusPage');
+        await init.pageClick(page, '#viewStatusPage');
         await page.reload({ waitUntil: 'networkidle0' });
 
         let statusPageNameOnStatusPage = await page.waitForSelector(
@@ -168,7 +168,7 @@ describe('StatusPage API With SubProjects', () => {
         expect(countStatusPages).toEqual(10);
 
         await page.waitForSelector(`#btnNext-${subProjectName}`);
-        await page.click(`#btnNext-${subProjectName}`);
+        await init.pageClick(page, `#btnNext-${subProjectName}`);
 
         await page.waitForTimeout(5000);
         statusPageRows = await page.$$('tr.statusPageListItem');
@@ -176,7 +176,7 @@ describe('StatusPage API With SubProjects', () => {
         expect(countStatusPages).toEqual(2);
 
         await page.waitForSelector(`#btnPrev-${subProjectName}`);
-        await page.click(`#btnPrev-${subProjectName}`);
+        await init.pageClick(page, `#btnPrev-${subProjectName}`);
 
         await page.waitForTimeout(5000);
         statusPageRows = await page.$$('tr.statusPageListItem');
@@ -192,9 +192,9 @@ describe('StatusPage API With SubProjects', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#statusPages');
-            await page.click('#statusPages');
+            await init.pageClick(page, '#statusPages');
             await page.waitForSelector('tr.statusPageListItem');
-            await page.click('tr.statusPageListItem');
+            await init.pageClick(page, 'tr.statusPageListItem');
 
             await page.waitForSelector('#customTabList > li');
             // navigate to branding tab
@@ -205,12 +205,13 @@ describe('StatusPage API With SubProjects', () => {
             const pageTitle = 'MyCompany';
             const pageDescription = 'MyCompany description';
             await page.waitForSelector('#title');
-            await page.type('#title', pageTitle);
-            await page.type(
+            await init.pageType(page, '#title', pageTitle);
+            await init.pageType(
+                page,
                 '#account_app_product_description',
                 pageDescription
             );
-            await page.click('#saveBranding');
+            await init.pageClick(page, '#saveBranding');
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle0' });
@@ -232,9 +233,9 @@ describe('StatusPage API With SubProjects', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#statusPages');
-            await page.click('#statusPages');
+            await init.pageClick(page, '#statusPages');
             await page.waitForSelector('tr.statusPageListItem');
-            await page.click('tr.statusPageListItem');
+            await init.pageClick(page, 'tr.statusPageListItem');
             await page.waitForSelector('#customTabList > li');
             // navigate to advanced options
             await page.$$eval(
@@ -242,14 +243,14 @@ describe('StatusPage API With SubProjects', () => {
                 elem => elem[5].click() // Advanced is in sixth tab
             );
             await page.waitForSelector('#delete');
-            await page.click('#delete');
+            await init.pageClick(page, '#delete');
             await page.waitForSelector('#confirmDelete');
-            await page.click('#confirmDelete');
+            await init.pageClick(page, '#confirmDelete');
             await page.waitForSelector('#confirmDelete', {
                 hidden: true,
             });
             await page.waitForSelector('#statusPages');
-            await page.click('#statusPages');
+            await init.pageClick(page, '#statusPages');
 
             await page.waitForSelector('tr.statusPageListItem');
             const statusPageRows = await page.$$('tr.statusPageListItem');
