@@ -68,50 +68,58 @@ describe('Login API', () => {
         html.should.containEql('User does not exist.');
     }, 160000);
 
-    it('Should login valid User', async () => {
-        await init.registerUser(user, page);
-        await init.logoutUser(page);
-        await init.loginUser(user, page);
+    it(
+        'Should login valid User',
+        async () => {
+            await init.registerUser(user, page);
+            await init.logoutUser(page);
+            await init.loginUser(user, page);
 
-        await page.waitForSelector('#components', { visible: true });
+            await page.waitForSelector('#components', { visible: true });
 
-        const localStorageData = await page.evaluate(() => {
-            const json = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                json[key] = localStorage.getItem(key);
-            }
-            return json;
-        });
+            const localStorageData = await page.evaluate(() => {
+                const json = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    json[key] = localStorage.getItem(key);
+                }
+                return json;
+            });
 
-        localStorageData.should.have.property('access_token');
-        localStorageData.should.have.property('email', email);
-        page.url().should.containEql(utils.DASHBOARD_URL);
-    }, init.timeout);
+            localStorageData.should.have.property('access_token');
+            localStorageData.should.have.property('email', email);
+            page.url().should.containEql(utils.DASHBOARD_URL);
+        },
+        init.timeout
+    );
 
-    it('Should login valid User (even if the user uses 127.0.0.1 instead of localhost) ', async () => {
-        const context = await browser.createIncognitoBrowserContext();
-        page = await context.newPage();
+    it(
+        'Should login valid User (even if the user uses 127.0.0.1 instead of localhost) ',
+        async () => {
+            const context = await browser.createIncognitoBrowserContext();
+            page = await context.newPage();
 
-        await init.loginUser(
-            user,
-            page,
-            utils.ACCOUNTS_URL1 + '/accounts/login'
-        );
+            await init.loginUser(
+                user,
+                page,
+                utils.ACCOUNTS_URL1 + '/accounts/login'
+            );
 
-        await page.waitForSelector('#components', { visible: true });
+            await page.waitForSelector('#components', { visible: true });
 
-        const localStorageData = await page.evaluate(() => {
-            const json = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                json[key] = localStorage.getItem(key);
-            }
-            return json;
-        });
+            const localStorageData = await page.evaluate(() => {
+                const json = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    json[key] = localStorage.getItem(key);
+                }
+                return json;
+            });
 
-        localStorageData.should.have.property('access_token');
-        localStorageData.should.have.property('email', email);
-        page.url().should.containEql(utils.DASHBOARD_URL1);
-    }, init.timeout);
+            localStorageData.should.have.property('access_token');
+            localStorageData.should.have.property('email', email);
+            page.url().should.containEql(utils.DASHBOARD_URL1);
+        },
+        init.timeout
+    );
 });
