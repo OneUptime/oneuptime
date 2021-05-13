@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../config';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import { switchProject, getProjects, exitProject } from '../../actions/project';
@@ -132,6 +131,4 @@ ExitProjectBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(ExitProjectBox)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(ExitProjectBox);

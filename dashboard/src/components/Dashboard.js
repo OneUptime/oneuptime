@@ -8,7 +8,7 @@ import { getProjects } from '../actions/project';
 import CreateProjectModal from './project/CreateProjectModal';
 import UpgradePlanModal from './project/UpgradePlanModal';
 import DeleteProjectModal from './project/DeleteProjectModal';
-import { withRouter } from 'react-router';
+import { withRouter } from 'react-router-dom';
 import ShouldRender from './basic/ShouldRender';
 import ProfileMenu from './profile/ProfileMenu';
 import { showForm } from '../actions/project';

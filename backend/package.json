@@ -17,12 +17,9 @@
         "ejs": "^2.6.2",
         "express": "^4.17.1",
         "express-rate-limit": "^5.0.0",
-        "ffyipe-acme-http-01": "^1.0.1",
-        "ffyipe-le-store": "^1.0.4",
         "fyipe-acme-http-01": "^3.0.10432",
         "fyipe-gl-manager": "^3.0.10506",
         "fyipe-le-store": "^3.0.10432",
-        "geoip-lite": "^1.4.2",
         "greenlock": "^4.0.4",
         "gridfs-stream": "^1.1.1",
         "ipaddr.js": "^2.0.0",
@@ -71,7 +68,7 @@
         "enterprise-test": "cross-env NODE_ENV=development mocha --exit test/enterprise.js",
         "audit": "npm audit --audit-level=low",
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs'"
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs,fyipe-acme-http-01,fyipe-gl-manager,fyipe-le-store'"
     },
     "devDependencies": {
         "chai": "^4.2.0",
