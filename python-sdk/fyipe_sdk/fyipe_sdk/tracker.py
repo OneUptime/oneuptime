@@ -26,7 +26,7 @@ class FyipeTracker:
         self.listenerObj = FyipeListener(self.eventId, self.options)
 
         # initialize exception handler listener
-        sys.excepthook = custom_excepthook
+        sys.excepthook = self.custom_excepthook
 
     # set up options     
     def setUpOptions(self, options):
