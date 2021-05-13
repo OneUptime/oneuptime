@@ -42,30 +42,39 @@ describe('Fyipe Page Reload', () => {
     test(
         'Should reload the incidents page and confirm there are no errors',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);            
-            await init.pageClick(page,'#scheduledMaintenance');            
-            await init.pageClick(page,'#addScheduledEventButton');
+            await page.goto(utils.DASHBOARD_URL);
+            await init.pageClick(page, '#scheduledMaintenance');
+            await init.pageClick(page, '#addScheduledEventButton');
             await page.waitForSelector('#scheduledEventForm', {
                 visible: true,
-            });            
-            await init.pageClick(page,'#name');
-            await init.pageType(page,'#name', scheduleMaintenanceName);                        
-            await init.pageClick(page,'#createScheduledEventButton');
+            });
+            await init.pageClick(page, '#name');
+            await init.pageType(page, '#name', scheduleMaintenanceName);
+            await init.pageClick(page, '#createScheduledEventButton');
             await page.waitForSelector('#scheduledEventForm', {
                 hidden: true,
-            });            
-            await init.pageClick(page,'#viewScheduledEvent_0');
-            await page.waitForSelector(`#editScheduledEvent-${scheduleMaintenanceName}`, {visible: true});
+            });
+            await init.pageClick(page, '#viewScheduledEvent_0');
+            await page.waitForSelector(
+                `#editScheduledEvent-${scheduleMaintenanceName}`,
+                { visible: true }
+            );
 
-             // To confirm no errors and stays on the same page on reload
-             await page.reload({ waitUntil: 'networkidle0' });
-             await page.waitForSelector('#cbScheduledMaintenanceEvent', { visible: true });
-             await page.waitForSelector(`#cb${scheduleMaintenanceName}`, { visible: true });
-             const spanElement = await page.waitForSelector(`#editScheduledEvent-${scheduleMaintenanceName}`, {visible: true});
-             expect(spanElement).toBeDefined();
+            // To confirm no errors and stays on the same page on reload
+            await page.reload({ waitUntil: 'networkidle0' });
+            await page.waitForSelector('#cbScheduledMaintenanceEvent', {
+                visible: true,
+            });
+            await page.waitForSelector(`#cb${scheduleMaintenanceName}`, {
+                visible: true,
+            });
+            const spanElement = await page.waitForSelector(
+                `#editScheduledEvent-${scheduleMaintenanceName}`,
+                { visible: true }
+            );
+            expect(spanElement).toBeDefined();
             done();
         },
         operationTimeOut
     );
-
 });

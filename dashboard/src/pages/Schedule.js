@@ -19,7 +19,7 @@ import getParentRoute from '../utils/getParentRoute';
 class Schedule extends Component {
     constructor(props) {
         super(props);
-        this.state = { editSchedule: false };
+        this.state = { editSchedule: false, error: false };
     }
     async componentDidUpdate(prevProps) {
         if (
@@ -41,11 +41,15 @@ class Schedule extends Component {
                         teamLoading(subProjectId),
                     ]);
                 } catch (e) {
-                    this.setState({ error: e });
+                    this.handleError(e);
                 }
             }
         }
     }
+
+    handleError = e => {
+        this.setState({ error: e });
+    };
 
     render() {
         const { editSchedule, error } = this.state;
