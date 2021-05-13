@@ -31,7 +31,15 @@ const monitorSchema = new Schema({
             },
         },
     ],
-    notificationId: { type: String, ref: 'Notification', index: true },
+    notifications: [
+        {
+            notificationId: {
+                type: String,
+                ref: 'Notification',
+                index: true,
+            },
+        },
+    ],
     incidentPriority: {
         type: String,
         ref: 'IncidentPriority',
