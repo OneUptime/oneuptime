@@ -201,7 +201,7 @@ const _this = {
                 }),
             ]);
         } else {
-            await this.loginEnterpriseUser(masterAdmin, page);
+            await _this.loginEnterpriseUser(masterAdmin, page);
         }
         // create the user from admin dashboard
         const { email } = user;
@@ -282,7 +282,7 @@ const _this = {
         await page.waitForSelector('#projectSettings');
         await _this.pageClick(page, '#projectSettings');
         await page.waitForSelector('input[name=project_name]');
-        await this.clear('input[name=project_name]', page);
+        await _this.clear('input[name=project_name]', page);
         await _this.pageType(page, 'input[name=project_name]', newProjectName);
         await _this.pageClick(page, '#btnCreateProject');
     },
@@ -319,7 +319,7 @@ const _this = {
         await _this.pageClick(page, '#viewStatusPage');
         await page.waitForSelector('#addMoreMonitors');
         await _this.pageClick(page, '#addMoreMonitors');
-        await this.selectByText(
+        await _this.selectByText(
             'ul > li:last-of-type #monitor-name',
             `${componentName} / ${monitorName}`,
             page
@@ -352,7 +352,7 @@ const _this = {
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
         await _this.pageClick(page, '#viewStatusPage');
-        await this.clickStatusPageUrl(page);
+        await _this.clickStatusPageUrl(page);
     },
     growthPlanUpgrade: async function(page) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
@@ -372,12 +372,12 @@ const _this = {
         await page.$eval(`#react-tabs-${tabId}`, e => e.click());
     },
     themeNavigationAndConfirmation: async function(page, theme) {
-        await this.gotoTab(6, page);
+        await _this.gotoTab(6, page);
         await page.waitForSelector(`#${theme}`, { visible: true });
         await _this.pageClick(page, `#${theme}`);
         await page.waitForSelector('#changePlanBtn', { visible: true });
         await _this.pageClick(page, '#changePlanBtn');
-        await this.gotoTab(0, page);
+        await _this.gotoTab(0, page);
     },
     registerAndLoggingTeamMember: async function(user, page) {
         const { email, password } = user;
@@ -447,7 +447,7 @@ const _this = {
         await _this.pageType(page, 'input[id=name]', component);
 
         if (projectName) {
-            await this.selectByText('#subProjectId', projectName, page);
+            await _this.selectByText('#subProjectId', projectName, page);
         }
 
         await Promise.all([
@@ -457,7 +457,7 @@ const _this = {
     },
     navigateToMonitorDetails: async function(component, monitor, page) {
         // Navigate to Components page
-        await this.navigateToComponentDetails(component, page);
+        await _this.navigateToComponentDetails(component, page);
 
         // Navigate to details page of monitor assumed created
         await page.waitForSelector(`#more-details-${monitor}`);
@@ -472,7 +472,7 @@ const _this = {
         page
     ) {
         // Navigate to Components page
-        await this.navigateToComponentDetails(component, page);
+        await _this.navigateToComponentDetails(component, page);
 
         // then goto list of log containers
         await page.waitForSelector('#logs');
@@ -489,7 +489,7 @@ const _this = {
         page
     ) {
         // Navigate to Components page
-        await this.navigateToComponentDetails(component, page);
+        await _this.navigateToComponentDetails(component, page);
 
         // then goto list of error trackers
         await page.waitForSelector('#errorTracking');
@@ -580,7 +580,7 @@ const _this = {
         await page.waitForSelector('#components', { visible: true });
     },
     addMonitorToComponent: async function(component, monitorName, page) {
-        component && (await this.addComponent(component, page));
+        component && (await _this.addComponent(component, page));
         await page.waitForSelector('input[id=name]');
         await _this.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
@@ -635,7 +635,7 @@ const _this = {
         await page.focus('input[id=name]');
         await _this.pageType(page, 'input[id=name]', monitorName);
         await _this.pageClick(page, 'input[data-testId=type_api]');
-        await this.selectByText('#method', 'get', page);
+        await _this.selectByText('#method', 'get', page);
         await page.waitForSelector('#url', { visible: true });
         await _this.pageClick(page, '#url');
         await _this.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
@@ -655,7 +655,7 @@ const _this = {
         await page.waitForSelector(
             'ul[data-testId=up_criteria_list]> div:last-of-type #responseType'
         );
-        await this.selectByText(
+        await _this.selectByText(
             'ul[data-testId=up_criteria_list]> div:last-of-type #responseType',
             'responseBody',
             page
@@ -663,7 +663,7 @@ const _this = {
         await page.waitForSelector(
             'ul[data-testId=up_criteria_list]> div:last-of-type #filter'
         );
-        await this.selectByText(
+        await _this.selectByText(
             'ul[data-testId=up_criteria_list]> div:last-of-type #filter',
             'evaluateResponse',
             page
@@ -707,7 +707,7 @@ const _this = {
         await page.waitForSelector(
             'ul[data-testId=degraded_criteria_list] > div:last-of-type #responseType'
         );
-        await this.selectByText(
+        await _this.selectByText(
             'ul[data-testId=degraded_criteria_list] > div:last-of-type #responseType',
             'responseBody',
             page
@@ -715,7 +715,7 @@ const _this = {
         await page.waitForSelector(
             'ul[data-testId=degraded_criteria_list] > div:last-of-type #filter'
         );
-        await this.selectByText(
+        await _this.selectByText(
             'ul[data-testId=degraded_criteria_list] > div:last-of-type #filter',
             'evaluateResponse',
             page
@@ -747,7 +747,7 @@ const _this = {
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForSelector('#monitors');
         await _this.pageClick(page, '#monitors'); // Fix this
-        // await this.navigateToComponentDetails(componentName, page);
+        // await _this.navigateToComponentDetails(componentName, page);
         await page.waitForSelector('#form-new-monitor');
         await _this.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
@@ -769,7 +769,7 @@ const _this = {
                 e.click()
             );
             await page.waitForSelector('#frmIncident');
-            await this.selectByText('#monitorList', monitorName, page);
+            await _this.selectByText('#monitorList', monitorName, page);
             await page.$eval('#createIncident', e => e.click());
         } else {
             await page.waitForSelector('#incidentLog');
@@ -779,7 +779,7 @@ const _this = {
                 e.click()
             );
             await page.waitForSelector('#frmIncident');
-            await this.selectByText('#monitorList', monitorName, page);
+            await _this.selectByText('#monitorList', monitorName, page);
             await page.$eval('#createIncident', e => e.click());
         }
         await page.waitForSelector('#createIncident', { hidden: true });
@@ -873,7 +873,7 @@ const _this = {
             await _this.pageClick(page, 'label[for=selectAllMonitorsBox]');
             await _this.pageClick(page, '#addMoreMonitor');
             await page.waitForSelector('#monitorfield_0');
-            await this.selectByText('#monitorfield_0', componentName, page); // 'Component_Name/Monitor_Name' appears in the dropdown. Using 'componentName' selects the monitor.
+            await _this.selectByText('#monitorfield_0', componentName, page); // 'Component_Name/Monitor_Name' appears in the dropdown. Using 'componentName' selects the monitor.
         }
         await _this.pageClick(page, '#description');
         await _this.pageType(
@@ -1044,7 +1044,7 @@ const _this = {
         });
         await _this.pageClick(page, `#${eventBtn}`);
         // navigate to the note tab section
-        await this.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
+        await _this.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
         await page.waitForSelector(`#add-${type}-message`, {
             visible: true,
         });
@@ -1052,7 +1052,7 @@ const _this = {
         await page.waitForSelector('#event_state', {
             visible: true,
         });
-        await this.selectByText('#event_state', eventState, page);
+        await _this.selectByText('#event_state', eventState, page);
         await _this.pageClick(page, '#new-internal');
         await _this.pageType(page, '#new-internal', noteDescription);
         await _this.pageClick(page, '#internal-addButton');
@@ -1077,9 +1077,9 @@ const _this = {
         await page.waitForSelector(`#monitorCreateIncident_${monitorName}`);
         await _this.pageClick(page, `#monitorCreateIncident_${monitorName}`);
         await page.waitForSelector('#createIncident');
-        await this.selectByText('#incidentType', incidentType, page);
+        await _this.selectByText('#incidentType', incidentType, page);
         if (incidentPriority) {
-            await this.selectByText(
+            await _this.selectByText(
                 '#incidentPriority',
                 incidentPriority,
                 page
@@ -1205,17 +1205,17 @@ const _this = {
         data
     ) {
         await page.goto(utils.DASHBOARD_URL);
-        await this.navigateToMonitorDetails(componentName, monitorName, page);
+        await _this.navigateToMonitorDetails(componentName, monitorName, page);
         await page.waitForSelector('#react-tabs-2');
         await _this.pageClick(page, '#react-tabs-2');
         await page.waitForSelector('#addSubscriberButton');
         await _this.pageClick(page, '#addSubscriberButton');
         await page.waitForSelector('#alertViaId');
-        await this.selectByText('#alertViaId', alertType, page);
+        await _this.selectByText('#alertViaId', alertType, page);
         if (alertType === 'SMS') {
             const { countryCode, phoneNumber } = data;
             await page.waitForSelector('#countryCodeId');
-            await this.selectByText('#countryCodeId', countryCode, page);
+            await _this.selectByText('#countryCodeId', countryCode, page);
             await _this.pageType(page, '#contactPhoneId', phoneNumber);
         }
         await _this.pageClick(page, '#createSubscriber');
@@ -1232,7 +1232,7 @@ const _this = {
             await page.reload({
                 waitUntil: 'networkidle0',
             });
-            await this.gotoTab(2, page);
+            await _this.gotoTab(2, page);
         } else {
             await page.waitForSelector('#more');
             await _this.pageClick(page, '#more');
@@ -1241,7 +1241,7 @@ const _this = {
             await page.reload({
                 waitUntil: 'networkidle0',
             });
-            await this.gotoTab(6, page);
+            await _this.gotoTab(6, page);
         }
 
         await page.waitForSelector('#addCustomField', { visible: true });
@@ -1249,7 +1249,7 @@ const _this = {
         await page.waitForSelector('#customFieldForm', { visible: true });
         await _this.pageClick(page, '#fieldName');
         await _this.pageType(page, '#fieldName', data.fieldName);
-        await this.selectByText('#fieldType', data.fieldType, page);
+        await _this.selectByText('#fieldType', data.fieldType, page);
 
         await _this.pageClick(page, '#createCustomFieldButton');
         await page.waitForSelector('#customFieldForm', { visible: 'hidden' });
