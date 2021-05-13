@@ -19,9 +19,7 @@ describe('Registration API', () => {
         jest.setTimeout(15000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
     });
 
     afterAll(async () => {
@@ -39,9 +37,17 @@ describe('Registration API', () => {
         await init.pageClick(page, 'input[name=name]');
         await init.pageType(page, 'input[name=name]', utils.user.name);
         await init.pageClick(page, 'input[name=companyName]');
-        await init.pageType(page, 'input[name=companyName]', utils.user.company.name);
+        await init.pageType(
+            page,
+            'input[name=companyName]',
+            utils.user.company.name
+        );
         await init.pageClick(page, 'input[name=companyPhoneNumber]');
-        await init.pageType(page, 'input[name=companyPhoneNumber]', utils.user.phone);
+        await init.pageType(
+            page,
+            'input[name=companyPhoneNumber]',
+            utils.user.phone
+        );
         await init.pageClick(page, 'input[name=password]');
         await init.pageType(page, 'input[name=password]', user.password);
         await init.pageClick(page, 'input[name=confirmPassword]');
@@ -67,9 +73,17 @@ describe('Registration API', () => {
         await init.pageClick(page, 'input[name=name]');
         await init.pageType(page, 'input[name=name]', utils.user.name);
         await init.pageClick(page, 'input[name=companyName]');
-        await init.pageType(page, 'input[name=companyName]', utils.user.company.name);
+        await init.pageType(
+            page,
+            'input[name=companyName]',
+            utils.user.company.name
+        );
         await init.pageClick(page, 'input[name=companyPhoneNumber]');
-        await init.pageType(page, 'input[name=companyPhoneNumber]', utils.user.phone);
+        await init.pageType(
+            page,
+            'input[name=companyPhoneNumber]',
+            utils.user.phone
+        );
         await init.pageClick(page, 'input[name=password]');
         await init.pageType(page, 'input[name=password]', user.password);
         await init.pageClick(page, 'input[name=confirmPassword]');
@@ -94,9 +108,17 @@ describe('Registration API', () => {
         await init.pageClick(page, 'input[name=name]');
         await init.pageType(page, 'input[name=name]', utils.user.name);
         await init.pageClick(page, 'input[name=companyName]');
-        await init.pageType(page, 'input[name=companyName]', utils.user.company.name);
+        await init.pageType(
+            page,
+            'input[name=companyName]',
+            utils.user.company.name
+        );
         await init.pageClick(page, 'input[name=companyPhoneNumber]');
-        await init.pageType(page, 'input[name=companyPhoneNumber]', '1234567890');
+        await init.pageType(
+            page,
+            'input[name=companyPhoneNumber]',
+            '1234567890'
+        );
         await init.pageClick(page, 'input[name=password]');
         await init.pageType(page, 'input[name=password]', '1234567890');
         await init.pageClick(page, 'input[name=confirmPassword]');
@@ -124,9 +146,17 @@ describe('Registration API', () => {
         await init.pageClick(page, 'input[name=name]');
         await init.pageType(page, 'input[name=name]', utils.user.name);
         await init.pageClick(page, 'input[name=companyName]');
-        await init.pageType(page, 'input[name=companyName]', utils.user.company.name);
+        await init.pageType(
+            page,
+            'input[name=companyName]',
+            utils.user.company.name
+        );
         await init.pageClick(page, 'input[name=companyPhoneNumber]');
-        await init.pageType(page, 'input[name=companyPhoneNumber]', '1234567890');
+        await init.pageType(
+            page,
+            'input[name=companyPhoneNumber]',
+            '1234567890'
+        );
         await init.pageClick(page, 'input[name=password]');
         await init.pageType(page, 'input[name=password]', '1234567890');
         await init.pageClick(page, 'input[name=confirmPassword]');
@@ -151,7 +181,7 @@ describe('Registration API', () => {
 
     it('Should register User with valid details', async () => {
         await init.registerUser(user, page);
-        
+
         await page.waitForSelector('#titleText');
         const innerText = await page.$eval(
             '#titleText',

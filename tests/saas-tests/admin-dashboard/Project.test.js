@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 const utils = require('../../../admin-dashboard/src/test/test-utils');
 const init = require('../../../admin-dashboard/src/test/test-init');
 
-
+let browser, page;
 require('should');
 
 // user credentials
@@ -12,89 +12,69 @@ const password = '1234567890';
 describe('Project', () => {
     const operationTimeOut = init.timeout;
 
-    
-
     beforeAll(async () => {
-        jest.setTimeout(2000000);
+        jest.setTimeout(init.timeout);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 1200000,
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(utils.agent);
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
+        const email = utils.generateRandomBusinessEmail();
+        const password = '1234567890';
 
-        await cluster.execute({ email, password }, async ({ page, data }) => {
-            const email = utils.generateRandomBusinessEmail();
-            const password = '1234567890';
+        const user = {
+            email: email,
+            password: password,
+        };
+        await init.registerEnterpriseUser(user, page);
 
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
-            await init.registerEnterpriseUser(user, page);
-
-            // creating a user automatically
-            // adds an unamed project to the user
-            await init.registerUser({ email, password }, page);
-        });
+        // creating a user automatically
+        // adds an unamed project to the user
+        await init.registerUser({ email, password }, page);
     });
 
     afterAll(async () => {
-        await cluster.idle();
-        await cluster.close();
+        await browser.close();
     });
 
     test(
         'should upgrade a project to enterprise plan',
         async () => {
-            await cluster.execute(
-                { email, password },
-                async ({ page, data }) => {
-                    const user = {
-                        email: data.email,
-                        password: data.password,
-                    };
-                    await init.loginUser(user, page);
+            const user = {
+                email: email,
+                password: password,
+            };
+            await init.loginUser(user, page);
 
-                    await page.$eval('#projects > a', elem => elem.click());
-                    await page.evaluate(() => {
-                        let elem = document.querySelectorAll(
-                            '.Table > tbody tr'
-                        );
-                        elem = Array.from(elem);
-                        elem[0].click();
-                    });
+            await page.$eval('#projects > a', elem => elem.click());
+            await page.evaluate(() => {
+                let elem = document.querySelectorAll('.Table > tbody tr');
+                elem = Array.from(elem);
+                elem[0].click();
+            });
 
-                    await page.waitForSelector(
-                        'input[name="planId"]#Enterprise',
-                        { visible: true }
-                    );
+            await page.waitForSelector('input[name="planId"]#Enterprise', {
+                visible: true,
+            });
 
-                    await page.$eval('input[name="planId"]#Enterprise', elem =>
-                        elem.click()
-                    );
-                    await page.$eval('#submitChangePlan', elem => elem.click());
-
-                    const loader = await page.waitForSelector('.ball-beat', {
-                        hidden: true,
-                    });
-
-                    await page.reload({ waitUntil: 'networkidle0' });
-
-                    const checked = await page.$eval(
-                        'input[name="planId"]#Enterprise',
-                        elem => elem.checked
-                    );
-
-                    expect(loader).toBeNull();
-                    expect(checked).toEqual(true);
-                }
+            await page.$eval('input[name="planId"]#Enterprise', elem =>
+                elem.click()
             );
+            await page.$eval('#submitChangePlan', elem => elem.click());
+
+            const loader = await page.waitForSelector('.ball-beat', {
+                hidden: true,
+            });
+
+            await page.reload({ waitUntil: 'networkidle0' });
+
+            const checked = await page.$eval(
+                'input[name="planId"]#Enterprise',
+                elem => elem.checked
+            );
+
+            expect(loader).toBeNull();
+            expect(checked).toEqual(true);
         },
         operationTimeOut
     );
@@ -102,39 +82,36 @@ describe('Project', () => {
     test(
         'should change to any other plan',
         async () => {
-            await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.ADMIN_DASHBOARD_URL);
-                await page.$eval('#projects > a', elem => elem.click());
-                await page.evaluate(() => {
-                    let elem = document.querySelectorAll('.Table > tbody tr');
-                    elem = Array.from(elem);
-                    elem[0].click();
-                });
-
-                await page.waitForSelector(
-                    'input[name="planId"]#Growth_annual',
-                    { visible: true }
-                );
-
-                await page.$eval('input[name="planId"]#Growth_annual', elem =>
-                    elem.click()
-                );
-                await page.$eval('#submitChangePlan', elem => elem.click());
-
-                const loader = await page.waitForSelector('.ball-beat', {
-                    hidden: true,
-                });
-
-                await page.reload({ waitUntil: 'networkidle0' });
-
-                const checked = await page.$eval(
-                    'input[name="planId"]#Growth_annual',
-                    elem => elem.checked
-                );
-
-                expect(loader).toBeNull();
-                expect(checked).toEqual(true);
+            await page.goto(utils.ADMIN_DASHBOARD_URL);
+            await page.$eval('#projects > a', elem => elem.click());
+            await page.evaluate(() => {
+                let elem = document.querySelectorAll('.Table > tbody tr');
+                elem = Array.from(elem);
+                elem[0].click();
             });
+
+            await page.waitForSelector('input[name="planId"]#Growth_annual', {
+                visible: true,
+            });
+
+            await page.$eval('input[name="planId"]#Growth_annual', elem =>
+                elem.click()
+            );
+            await page.$eval('#submitChangePlan', elem => elem.click());
+
+            const loader = await page.waitForSelector('.ball-beat', {
+                hidden: true,
+            });
+
+            await page.reload({ waitUntil: 'networkidle0' });
+
+            const checked = await page.$eval(
+                'input[name="planId"]#Growth_annual',
+                elem => elem.checked
+            );
+
+            expect(loader).toBeNull();
+            expect(checked).toEqual(true);
         },
         operationTimeOut
     );

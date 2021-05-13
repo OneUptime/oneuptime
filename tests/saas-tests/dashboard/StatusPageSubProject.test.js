@@ -21,9 +21,7 @@ describe('StatusPage API With SubProjects', () => {
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         // Register user
         const user = {
@@ -154,44 +152,48 @@ describe('StatusPage API With SubProjects', () => {
         done();
     }, 50000);
 
-    test('should get list of status pages in sub-projects and paginate status pages in sub-project', async done => {
-        await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
-        for (let i = 0; i < 10; i++) {
-            const statuspageName = utils.generateRandomString();
-            await init.addStatusPageToProject(
-                statuspageName,
-                subProjectName,
-                page
-            );
-        }
+    test(
+        'should get list of status pages in sub-projects and paginate status pages in sub-project',
+        async done => {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            for (let i = 0; i < 10; i++) {
+                const statuspageName = utils.generateRandomString();
+                await init.addStatusPageToProject(
+                    statuspageName,
+                    subProjectName,
+                    page
+                );
+            }
 
-        await page.reload({ waitUntil: 'networkidle2' });
-        await page.waitForSelector('tr.statusPageListItem');
+            await page.reload({ waitUntil: 'networkidle2' });
+            await page.waitForSelector('tr.statusPageListItem');
 
-        let statusPageRows = await page.$$('tr.statusPageListItem');
-        let countStatusPages = statusPageRows.length;
+            let statusPageRows = await page.$$('tr.statusPageListItem');
+            let countStatusPages = statusPageRows.length;
 
-        expect(countStatusPages).toEqual(10);
+            expect(countStatusPages).toEqual(10);
 
-        await page.waitForSelector(`#btnNext-${subProjectName}`);
-        await init.pageClick(page, `#btnNext-${subProjectName}`);
+            await page.waitForSelector(`#btnNext-${subProjectName}`);
+            await init.pageClick(page, `#btnNext-${subProjectName}`);
 
-        statusPageRows = await page.$$('tr.statusPageListItem');
-        countStatusPages = statusPageRows.length;
-        expect(countStatusPages).toEqual(2);
+            statusPageRows = await page.$$('tr.statusPageListItem');
+            countStatusPages = statusPageRows.length;
+            expect(countStatusPages).toEqual(2);
 
-        await page.waitForSelector(`#btnPrev-${subProjectName}`);
-        await init.pageClick(page, `#btnPrev-${subProjectName}`);
+            await page.waitForSelector(`#btnPrev-${subProjectName}`);
+            await init.pageClick(page, `#btnPrev-${subProjectName}`);
 
-        statusPageRows = await page.$$('tr.statusPageListItem');
-        countStatusPages = statusPageRows.length;
+            statusPageRows = await page.$$('tr.statusPageListItem');
+            countStatusPages = statusPageRows.length;
 
-        expect(countStatusPages).toEqual(10);
+            expect(countStatusPages).toEqual(10);
 
-        done();
-    }, init.timeout);
+            done();
+        },
+        init.timeout
+    );
 
     test(
         'should update sub-project status page settings',

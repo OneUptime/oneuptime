@@ -19,9 +19,7 @@ describe('Login API', () => {
         jest.setTimeout(20000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
     });
 
     afterAll(async () => {
@@ -63,7 +61,7 @@ describe('Login API', () => {
         await init.pageClick(page, 'input[name=password]');
         await init.pageType(page, 'input[name=password]', user.password);
         await init.pageClick(page, 'button[type=submit]');
-        
+
         const html = await page.$eval('#main-body', e => {
             return e.innerHTML;
         });
@@ -89,7 +87,7 @@ describe('Login API', () => {
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property('email', email);
         page.url().should.containEql(utils.DASHBOARD_URL);
-    }, 300000);
+    }, init.timeout);
 
     it('Should login valid User (even if the user uses 127.0.0.1 instead of localhost) ', async () => {
         const context = await browser.createIncognitoBrowserContext();
@@ -115,5 +113,5 @@ describe('Login API', () => {
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property('email', email);
         page.url().should.containEql(utils.DASHBOARD_URL1);
-    }, 300000);
+    }, init.timeout);
 });

@@ -12,16 +12,14 @@ const newProjectName = 'Test';
 const subProjectName = 'Trial';
 
 describe('Sub-Project API', () => {
-    const operationTimeOut = init.timeout; 
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         const user = {
             email,
             password,
@@ -62,15 +60,13 @@ describe('Sub-Project API', () => {
 });
 
 describe('Member Restriction', () => {
-    const operationTimeOut = init.timeout; 
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // user
         await init.registerUser({ email: projectOwnerMail, password }, page);
         await init.renameProject(newProjectName, page);

@@ -27,9 +27,7 @@ describe('Monitor Detail API', () => {
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         // Register user
         const user = {
@@ -318,7 +316,8 @@ describe('Monitor Detail API', () => {
                 await page.$eval(addButtonSelector, e => e.click());
                 await page.waitForSelector('#alertViaId');
                 await init.selectByText('#alertViaId', 'email', page);
-                await init.pageType(page, 
+                await init.pageType(
+                    page,
                     'input[name=email]',
                     utils.generateRandomBusinessEmail()
                 );
@@ -374,7 +373,6 @@ describe('Monitor Detail API', () => {
     test(
         'Should navigate to monitor details and create a msteams webhook',
         async done => {
-            expect.assertions(1);
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,
@@ -518,8 +516,16 @@ describe('Monitor Detail API', () => {
             for (let i = 0; i < 11; i++) {
                 await page.$eval(addButtonSelector, e => e.click());
                 await page.waitForSelector('#endpoint');
-                await init.pageType(page, '#webHookName', utils.generateRandomString());
-                await init.pageType(page, '#endpoint', utils.generateRandomWebsite());
+                await init.pageType(
+                    page,
+                    '#webHookName',
+                    utils.generateRandomString()
+                );
+                await init.pageType(
+                    page,
+                    '#endpoint',
+                    utils.generateRandomWebsite()
+                );
                 await page.evaluate(() => {
                     document
                         .querySelector('input[name=incidentCreated]')
@@ -574,7 +580,6 @@ describe('Monitor Detail API', () => {
     test(
         'Should navigate to monitor details and create a slack webhook',
         async done => {
-            expect.assertions(1);
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,
@@ -617,7 +622,6 @@ describe('Monitor Detail API', () => {
     test(
         'Should navigate to monitor details and update a Slack webhook',
         async done => {
-            expect.assertions(2);
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,
@@ -662,7 +666,6 @@ describe('Monitor Detail API', () => {
     test(
         'Should navigate to monitor details and delete a slack webhook',
         async done => {
-            expect.assertions(2);
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,
@@ -713,8 +716,16 @@ describe('Monitor Detail API', () => {
                 await page.$eval(addButtonSelector, e => e.click());
                 await page.waitForSelector('#endpoint');
 
-                await init.pageType(page, '#webHookName', utils.generateRandomString());
-                await init.pageType(page, '#endpoint', utils.generateRandomWebsite());
+                await init.pageType(
+                    page,
+                    '#webHookName',
+                    utils.generateRandomString()
+                );
+                await init.pageType(
+                    page,
+                    '#endpoint',
+                    utils.generateRandomWebsite()
+                );
                 await page.evaluate(() => {
                     document
                         .querySelector('input[name=incidentCreated]')
@@ -830,7 +841,11 @@ describe('Monitor Detail API', () => {
                 await page.$eval(addButtonSelector, e => e.click());
                 await page.waitForSelector('#endpoint');
 
-                await init.pageType(page, '#endpoint', utils.generateRandomWebsite());
+                await init.pageType(
+                    page,
+                    '#endpoint',
+                    utils.generateRandomWebsite()
+                );
                 await init.selectByText('#endpointType', 'GET', page);
                 await page.evaluate(() => {
                     document
@@ -944,7 +959,7 @@ describe('Monitor Detail API', () => {
             await page.waitForSelector('input[id=siteUrl]');
             await init.pageType(page, 'input[id=siteUrl]', 'https://fyipe.com');
             await page.$eval('#addSiteUrlButton', e => e.click());
-            // 
+            //
             await page.waitForSelector('#addSiteUrlButton', {
                 hidden: true,
             });
@@ -1177,7 +1192,6 @@ describe('Monitor Detail API', () => {
     test(
         'Should navigate to monitor details and delete monitor',
         async done => {
-            expect.assertions(1);
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,

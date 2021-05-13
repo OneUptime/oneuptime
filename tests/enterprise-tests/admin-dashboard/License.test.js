@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 const utils = require('../../test-utils');
 const init = require('../../test-init');
-
+let browser, page;
 
 require('should');
 
@@ -16,86 +16,58 @@ describe('Enterprise License API', () => {
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
 
-        const cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 120000,
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(utils.agent);
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        // Register user
-        await cluster.task(async ({ page, data }) => {
-            const user = {
-                email: data.userEmail,
-                password: data.password,
-            };
-            // user
-            await init.registerEnterpriseUser(user, page, false);
-        });
-
-        await cluster.queue({ email, password, userEmail });
-
-        await cluster.idle();
-        await cluster.close();
+        const user = {
+            email: userEmail,
+            password: password,
+        };
+        // user
+        await init.registerEnterpriseUser(user, page, false);
         done();
     });
 
     afterAll(async done => {
+        await browser.close();
         done();
     });
 
     test(
         'Should not confirm expired license',
         async done => {
-            expect.assertions(1);
+            browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+            page = await browser.newPage();
+            await page.setUserAgent(utils.agent);
 
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
+            const user = {
+                email: email,
+                password: password,
+            };
+
+            await init.loginUser(user, page);
+
+            await page.waitForSelector('#settings');
+            await init.pageClick(page, '#settings');
+
+            await page.waitForSelector('#license');
+            await init.pageClick(page, 'input[name=license]');
+            await init.pageType(page, 'input[name=license]', 'expired-license');
+            await init.pageClick(page, 'input[name=email]');
+            await init.pageType(
+                page,
+                'input[name=email]',
+                utils.generateRandomBusinessEmail()
+            );
+            await init.pageClick(page, 'button[type=submit]');
+
+            const expiredError = await page.$eval('#licenseError', e => {
+                return e.innerHTML;
             });
 
-            cluster.on('taskerror', err => {
-                throw err;
-            });
+            expect(expiredError).toEqual('License Expired');
 
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
-
-                await page.waitForSelector('#settings');
-                await init.pageClick(page, '#settings');
-
-                await page.waitForSelector('#license');
-                await init.pageClick(page, 'input[name=license]');
-                await init.pageType(page, 'input[name=license]', 'expired-license');
-                await init.pageClick(page, 'input[name=email]');
-                await init.pageType(page, 
-                    'input[name=email]',
-                    utils.generateRandomBusinessEmail()
-                );
-                await init.pageClick(page, 'button[type=submit]');
-                
-
-                const expiredError = await page.$eval('#licenseError', e => {
-                    return e.innerHTML;
-                });
-
-                expect(expiredError).toEqual('License Expired');
-            });
-
-            cluster.queue({ email, password });
-            await cluster.idle();
-            await cluster.close();
             done();
         },
         operationTimeOut

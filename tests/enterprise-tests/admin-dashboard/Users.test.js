@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 
 const utils = require('../../test-utils');
 const init = require('../../test-init');
-
+let browser, page;
 require('should');
 
 const email = utils.generateRandomBusinessEmail();
@@ -11,55 +11,42 @@ const password = '1234567890';
 describe('Users Component (IS_SAAS_SERVICE=false)', () => {
     const operationTimeOut = init.timeout;
 
-    
-
     beforeAll(async done => {
-        jest.setTimeout(2000000);
+        jest.setTimeout(init.timeout);
 
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 1200000,
-        });
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        page = await browser.newPage();
+        await page.setUserAgent(utils.agent);
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        await cluster.execute({ email, password }, async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
-            await init.registerEnterpriseUser(user, page, false);
-        });
+        const user = {
+            email: email,
+            password: password,
+        };
+        await init.registerEnterpriseUser(user, page, false);
 
         done();
     });
 
     afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
+        await browser.close();
         done();
     });
 
     test(
         'should show a button to add more users to fyipe from admin dashboard',
         async done => {
-            await cluster.execute(null, async ({ page }) => {
-                // navigating to dashboard url
-                // automatically redirects to users route
-                await page.goto(utils.ADMIN_DASHBOARD_URL, {
-                    waitUntil: 'networkidle0',
-                });
-
-                // if element does not exist it will timeout and throw
-                const elem = await page.waitForSelector('#add_user', {
-                    visible: true,
-                });
-                expect(elem).toBeTruthy();
+            // navigating to dashboard url
+            // automatically redirects to users route
+            await page.goto(utils.ADMIN_DASHBOARD_URL, {
+                waitUntil: 'networkidle0',
             });
+
+            // if element does not exist it will timeout and throw
+            const elem = await page.waitForSelector('#add_user', {
+                visible: true,
+            });
+            expect(elem).toBeTruthy();
+
             done();
         },
         operationTimeOut
@@ -68,29 +55,28 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
     test(
         'should logout and get redirected to the login page if the user deletes his account',
         async done => {
-            await cluster.execute(null, async ({ page }) => {
-                // navigating to dashboard url
-                // automatically redirects to users route
-                await page.goto(utils.ADMIN_DASHBOARD_URL, {
-                    waitUntil: 'networkidle0',
-                });
-
-                const userSelector = '#masteradmin';
-                await page.waitForSelector(userSelector);
-                await init.pageClick(page, userSelector);
-                
-                await page.waitForSelector('#delete');
-                await init.pageClick(page, '#delete');
-                await page.waitForSelector('#confirmDelete');
-                await init.pageClick(page, '#confirmDelete');
-                await page.waitForSelector('#confirmDelete', { hidden: true });
-                await page.waitForSelector('#users');
-                await init.pageClick(page, '#users');
-                const loginBtn = await page.waitForSelector('#login-button', {
-                    visible: true,
-                });
-                expect(loginBtn).toBeDefined();
+            // navigating to dashboard url
+            // automatically redirects to users route
+            await page.goto(utils.ADMIN_DASHBOARD_URL, {
+                waitUntil: 'networkidle0',
             });
+
+            const userSelector = '#masteradmin';
+            await page.waitForSelector(userSelector);
+            await init.pageClick(page, userSelector);
+
+            await page.waitForSelector('#delete');
+            await init.pageClick(page, '#delete');
+            await page.waitForSelector('#confirmDelete');
+            await init.pageClick(page, '#confirmDelete');
+            await page.waitForSelector('#confirmDelete', { hidden: true });
+            await page.waitForSelector('#users');
+            await init.pageClick(page, '#users');
+            const loginBtn = await page.waitForSelector('#login-button', {
+                visible: true,
+            });
+            expect(loginBtn).toBeDefined();
+
             done();
         },
         operationTimeOut

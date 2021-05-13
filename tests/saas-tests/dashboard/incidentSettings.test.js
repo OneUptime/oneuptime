@@ -26,9 +26,7 @@ describe('Incident Settings API', () => {
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         const user = {
             email,
@@ -124,13 +122,21 @@ describe('Incident Settings API', () => {
             await init.selectByText('#incidentPriority', 'low', page);
             await init.pageClick(page, 'input[name=title]', { clickCount: 3 });
             await page.keyboard.press('Backspace');
-            await init.pageType(page, 'input[name=title]', newDefaultIncidentTitle);
+            await init.pageType(
+                page,
+                'input[name=title]',
+                newDefaultIncidentTitle
+            );
 
             await init.pageClick(page, '#description');
             await page.keyboard.down('Control');
             await page.keyboard.press('A');
             await page.keyboard.up('Control');
-            await init.pageType(page, '#description', newDefaultIncidentDescription);
+            await init.pageType(
+                page,
+                '#description',
+                newDefaultIncidentDescription
+            );
             await init.pageClick(page, '#saveButton');
             await page.reload({
                 waitUntil: 'networkidle0',
@@ -291,7 +297,10 @@ describe('Incident Settings API', () => {
                 visible: true,
             });
             // Set the new Priority as Default
-            await init.pageClick(page, `button#priorityDefault_${customPriority}_1`);
+            await init.pageClick(
+                page,
+                `button#priorityDefault_${customPriority}_1`
+            );
             await page.waitForSelector('#priorityDefaultModal');
             await init.pageClick(page, '#SetDefaultIncidentPriority');
 

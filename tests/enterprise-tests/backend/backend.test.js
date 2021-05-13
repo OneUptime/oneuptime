@@ -17,6 +17,17 @@ describe('Enterprise Backend API', () => {
         done();
     });
 
+    test('should get saas status false from server', async done => {
+        await page.goto(`${utils.BACKEND_URL}/server/is-saas-service`, {
+            waitUntil: 'networkidle2',
+        });
+        const response = await page.$eval('body > pre', e => {
+            return e.innerHTML;
+        });
+        expect(response).toBe('{"result":false}');
+        done();
+    });
+
     test('should get status ok from backend', async done => {
         await page.goto(utils.BACKEND_URL, {
             waitUntil: 'networkidle2',

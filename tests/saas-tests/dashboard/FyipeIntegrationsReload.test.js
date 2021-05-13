@@ -26,9 +26,7 @@ describe('Fyipe Page Reload', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setViewport({ width: 1024, height: 1600 });
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         await page.addStyleTag({
             content: '{scroll-behavior: auto !important;}',
         });

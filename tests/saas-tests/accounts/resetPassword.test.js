@@ -20,9 +20,7 @@ describe('Reset Password API', () => {
         jest.setTimeout(15000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
     });
 
     afterAll(async () => {
@@ -55,7 +53,11 @@ describe('Reset Password API', () => {
         });
         await page.waitForSelector('#email');
         await init.pageClick(page, 'input[name=email]');
-        await init.pageType(page, 'input[name=email]', utils.generateWrongEmail());
+        await init.pageType(
+            page,
+            'input[name=email]',
+            utils.generateWrongEmail()
+        );
         await init.pageClick(page, 'button[type=submit]');
         await page.waitForSelector('#error-msg');
         const html = await page.$eval('#error-msg', e => {

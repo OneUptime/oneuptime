@@ -8,6 +8,9 @@ user.cvv = '100';
 user.expiryDate = '12/23';
 user.message = 'Test message';
 
+const agent =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36';
+
 const puppeteerLaunchConfig = {
     headless: process.env.HEADLESS === 'false' ? false : true,
     defaultViewport: null,
@@ -195,4 +198,5 @@ module.exports = {
     monitorTabIndexes,
     incidentTabIndexes,
     scheduleEventTabIndexes,
+    agent,
 };

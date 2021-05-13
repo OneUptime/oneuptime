@@ -1,6 +1,7 @@
 const puppeteer = require('puppeteer');
 const should = require('should');
 const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 let browser;
 let page;
@@ -17,9 +18,7 @@ describe('Change Password API', () => {
         jest.setTimeout(15000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
     });
 
     afterAll(async () => {
@@ -36,7 +35,11 @@ describe('Change Password API', () => {
         await init.pageType(page, 'input[name=password]', user.password);
         await page.waitForSelector('#confirmPassword');
         await init.pageClick(page, 'input[name=confirmPassword]');
-        await init.pageType(page, 'input[name=confirmPassword]', 'unmatchingPassword');
+        await init.pageType(
+            page,
+            'input[name=confirmPassword]',
+            'unmatchingPassword'
+        );
         await init.pageClick(page, 'button[type=submit]');
         await page.waitForSelector(
             '#confirmPasswordField > span > span:nth-child(2)'

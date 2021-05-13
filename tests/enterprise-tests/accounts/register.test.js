@@ -20,12 +20,8 @@ describe('Enterprise Registration API', () => {
         page = await browser.newPage();
         otherBrowser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         otherPage = await otherBrowser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
-        await otherPage.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
+        await otherPage.setUserAgent(utils.agent);
     });
 
     afterAll(async () => {
@@ -35,7 +31,6 @@ describe('Enterprise Registration API', () => {
 
     it('Should register Initial User with valid details', async () => {
         await init.registerEnterpriseUser(user, page);
-       
 
         const localStorageData = await page.evaluate(() => {
             const json = {};
@@ -46,7 +41,6 @@ describe('Enterprise Registration API', () => {
             return json;
         });
 
-        
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property('email', email);
         page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
