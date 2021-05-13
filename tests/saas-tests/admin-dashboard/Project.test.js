@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
+const utils = require('../../../admin-dashboard/src/test/test-utils');
+const init = require('../../../admin-dashboard/src/test/test-init');
 const { Cluster } = require('puppeteer-cluster');
 
 require('should');
