@@ -372,7 +372,8 @@ const _this = {
         await page.$eval(`#react-tabs-${tabId}`, e => e.click());
     },
     themeNavigationAndConfirmation: async function(page, theme) {
-        await _this.gotoTab(6, page);
+        await page.waitForSelector('ul#customTabList > li', { visible: true });
+        await page.$$eval('ul#customTabList > li', elems => elems.find((i)=> i.innerText === "Branding").click());
         await page.waitForSelector(`#${theme}`, { visible: true });
         await _this.pageClick(page, `#${theme}`);
         await page.waitForSelector('#changePlanBtn', { visible: true });
