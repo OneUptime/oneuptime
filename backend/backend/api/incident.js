@@ -36,107 +36,106 @@ const Services = require('../utils/services');
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {monitorId, projectId}
 // Returns: 200: Incident, 400: Error; 500: Server Error.
 
-router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const monitorId = req.params.monitorId;
-        const projectId = req.params.projectId;
-        const incidentType = req.body.incidentType;
-        const incidentPriority = req.body.incidentPriority;
-        const title = req.body.title;
-        const description = req.body.description;
-        const customFields = req.body.customFields;
-        const userId = req.user ? req.user.id : null;
-        let oldIncidentsCount = null;
+router.post(
+    '/:projectId/create-incident',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const projectId = req.params.projectId;
+            const incidentType = req.body.incidentType;
+            const incidentPriority = req.body.incidentPriority;
+            const title = req.body.title;
+            const description = req.body.description;
+            const customFields = req.body.customFields;
+            const monitors = req.body.monitors;
+            const userId = req.user ? req.user.id : null;
+            let oldIncidentsCount = null;
 
-        if (!monitorId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor ID must be present.',
-            });
-        }
-
-        if (typeof monitorId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor ID  is not in string type.',
-            });
-        }
-
-        if (!projectId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID must be present.',
-            });
-        }
-
-        if (typeof projectId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID  is not in string type.',
-            });
-        }
-
-        if (!title) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Title must be present.',
-            });
-        }
-
-        if (incidentType) {
-            if (!['offline', 'online', 'degraded'].includes(incidentType)) {
+            // monitors should be an array containing id of monitor(s)
+            if (monitors && !Array.isArray(monitors)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Invalid incident type.',
+                    message: 'Monitors is not of type array',
                 });
             }
-            oldIncidentsCount = await IncidentService.countBy({
-                projectId,
-                monitorId,
-                incidentType,
-                resolved: false,
-                deleted: false,
-                manuallyCreated: true,
-            });
-        } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'IncidentType must be present.',
-            });
-        }
 
-        if (oldIncidentsCount && oldIncidentsCount > 0) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: `An unresolved incident of type ${incidentType} already exists.`,
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID must be present.',
+                });
+            }
+
+            if (typeof projectId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID  is not in string type.',
+                });
+            }
+
+            if (!title) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Title must be present.',
+                });
+            }
+
+            if (incidentType) {
+                if (!['offline', 'online', 'degraded'].includes(incidentType)) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Invalid incident type.',
+                    });
+                }
+                oldIncidentsCount = await IncidentService.countBy({
+                    projectId,
+                    incidentType,
+                    resolved: false,
+                    deleted: false,
+                    manuallyCreated: true,
+                    'monitors.monitorId': { $in: monitors },
+                });
+            } else {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'IncidentType must be present.',
+                });
+            }
+
+            if (oldIncidentsCount && oldIncidentsCount > 0) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: `An unresolved incident of type ${incidentType} already exists.`,
+                });
+            }
+            // Call the IncidentService
+            const incident = await IncidentService.create({
+                projectId,
+                createdById: userId,
+                manuallyCreated: true,
+                incidentType,
+                title,
+                description,
+                incidentPriority,
+                customFields,
+                monitors,
             });
+
+            for (const monitor of monitors) {
+                await MonitorStatusService.create({
+                    monitorId: monitor,
+                    incidentId: incident._id,
+                    manuallyCreated: true,
+                    status: incidentType,
+                });
+            }
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        // Call the IncidentService
-        const incident = await IncidentService.create({
-            projectId,
-            monitorId,
-            createdById: userId,
-            manuallyCreated: true,
-            incidentType,
-            title,
-            description,
-            incidentPriority,
-            customFields,
-        });
-        await MonitorStatusService.create({
-            monitorId,
-            incidentId: incident._id,
-            manuallyCreated: true,
-            status: incidentType,
-        });
-        return sendItemResponse(req, res, incident);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 // Route
 // Description: Getting all the incidents by monitor Id.
