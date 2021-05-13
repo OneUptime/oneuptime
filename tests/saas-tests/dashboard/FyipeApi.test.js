@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 let browser, page;
@@ -49,9 +49,9 @@ describe('API test', () => {
             });
 
             await page.waitForSelector('#projectSettings', { visible: true });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#api', { visible: true });
-            await page.click('#api a');
+            await init.pageClick(page, '#api a');
             let elementHandle = await page.$('#boxTitle', {
                 visible: true,
             });
@@ -72,14 +72,14 @@ describe('API test', () => {
             });
 
             await page.waitForSelector('#projectSettings', { visible: true });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#api', { visible: true });
-            await page.click('#api a');
+            await init.pageClick(page, '#api a');
             let label = await page.$('#apiKey', { visible: true });
             label = await label.getProperty('innerText');
             label = await label.jsonValue();
 
-            await page.click('#apiKey');
+            await init.pageClick(page, '#apiKey');
             let newLabel = await page.$('#apiKey', { visible: true });
             newLabel = await newLabel.getProperty('innerText');
             newLabel = await newLabel.jsonValue();
@@ -98,20 +98,22 @@ describe('API test', () => {
             });
 
             await page.waitForSelector('#projectSettings', { visible: true });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#api', { visible: true });
-            await page.click('#api a');
+            await init.pageClick(page, '#api a');
 
-            await page.click('#apiKey');
+            await init.pageClick(page, '#apiKey');
             let oldApiKey = await page.$('#apiKey', { visible: true });
             oldApiKey = await oldApiKey.getProperty('innerText');
             oldApiKey = await oldApiKey.jsonValue();
 
-            await page.click('button[id=resetApiKey]', { delay: 100 });
+            await init.pageClick(page, 'button[id=resetApiKey]', {
+                delay: 100,
+            });
             await page.waitForSelector('button[id=resetApiKeySave]', {
                 visible: true,
             });
-            await page.click('button[id=resetApiKeySave]');
+            await init.pageClick(page, 'button[id=resetApiKeySave]');
             await page.waitForSelector('button[id=resetApiKeySave]', {
                 hidden: true,
             });
@@ -138,36 +140,38 @@ describe('API test', () => {
             });
             // Rename project
             await page.waitForSelector('#projectSettings', { visible: true });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('input[name=project_name]', {
                 visible: true,
             });
-            await page.click('input[name=project_name]', { clickCount: 3 });
-            await page.type('input[name=project_name]', projectName);
+            await init.pageClick(page, 'input[name=project_name]', {
+                clickCount: 3,
+            });
+            await init.pageType(page, 'input[name=project_name]', projectName);
             await page.waitForSelector('button[id=btnCreateProject]', {
                 visible: true,
             });
-            await page.click('button[id=btnCreateProject]');
+            await init.pageClick(page, 'button[id=btnCreateProject]');
 
             // Invite member on the project
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#teamMembers', { visible: true });
-            await page.click('#teamMembers');
+            await init.pageClick(page, '#teamMembers');
             await page.waitForSelector(`#btn_${projectName}`, {
                 visible: true,
             });
-            await page.click(`#btn_${projectName}`);
+            await init.pageClick(page, `#btn_${projectName}`);
             await page.waitForSelector('input[name=emails]', { visible: true });
-            await page.click('input[name=emails]');
-            await page.type('input[name=emails]', member.email);
+            await init.pageClick(page, 'input[name=emails]');
+            await init.pageType(page, 'input[name=emails]', member.email);
             await page.waitForSelector(`#${role}_${projectName}`, {
                 visible: true,
             });
-            await page.click(`#${role}_${projectName}`);
+            await init.pageClick(page, `#${role}_${projectName}`);
             await page.waitForSelector('button[type=submit]', {
                 visible: true,
             });
-            await page.click('button[type=submit]');
+            await init.pageClick(page, 'button[type=submit]');
             await page.waitForSelector('button[type=submit]', { hidden: true });
             await init.logout(page);
 
@@ -175,9 +179,9 @@ describe('API test', () => {
             await init.loginUser(member, page);
             await init.switchProject(projectName, page);
             await page.waitForSelector('#projectSettings', { visible: true });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#api', { visible: true });
-            await page.click('#api a');
+            await init.pageClick(page, '#api a');
             let elementHandle = await page.$('#boxTitle', {
                 visible: true,
             });

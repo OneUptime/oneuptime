@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 
@@ -18,7 +18,7 @@ describe('Enterprise Accounts API', () => {
     const operationTimeOut = 100000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(

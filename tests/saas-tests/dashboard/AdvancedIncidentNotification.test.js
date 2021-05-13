@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 let browser, page;
@@ -40,11 +40,11 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#email', { visible: true });
-            await page.click('#email');
+            await init.pageClick(page, '#email');
 
             await page.waitForSelector(
                 '#sendCreatedIncidentNotificationEmail',
@@ -98,11 +98,11 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#email', { visible: true });
-            await page.click('#email');
+            await init.pageClick(page, '#email');
 
             await page.waitForSelector(
                 '#sendCreatedIncidentNotificationEmail',
@@ -113,7 +113,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.$eval('#sendCreatedIncidentNotificationEmail', elem =>
                 elem.click()
             );
-            await page.click('#saveIncidentNotification');
+            await init.pageClick(page, '#saveIncidentNotification');
             await page.waitForTimeout(2000);
             await page.waitForSelector('.ball-beat', { hidden: true });
 
@@ -144,11 +144,11 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#email', { visible: true });
-            await page.click('#email');
+            await init.pageClick(page, '#email');
 
             await page.waitForSelector(
                 '#sendAcknowledgedIncidentNotificationEmail',
@@ -160,7 +160,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#sendAcknowledgedIncidentNotificationEmail',
                 elem => elem.click()
             );
-            await page.click('#saveIncidentNotification');
+            await init.pageClick(page, '#saveIncidentNotification');
             await page.waitForTimeout(2000);
             await page.waitForSelector('.ball-beat', { hidden: true });
 
@@ -191,11 +191,11 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#email', { visible: true });
-            await page.click('#email');
+            await init.pageClick(page, '#email');
 
             await page.waitForSelector(
                 '#sendResolvedIncidentNotificationEmail',
@@ -206,7 +206,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.$eval('#sendResolvedIncidentNotificationEmail', elem =>
                 elem.click()
             );
-            await page.click('#saveIncidentNotification');
+            await init.pageClick(page, '#saveIncidentNotification');
             await page.waitForTimeout(2000);
             await page.waitForSelector('.ball-beat', { hidden: true });
 
@@ -237,11 +237,11 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#email', { visible: true });
-            await page.click('#email');
+            await init.pageClick(page, '#email');
 
             await page.waitForSelector(
                 '#enableInvestigationNoteNotificationEmail',
@@ -253,7 +253,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#enableInvestigationNoteNotificationEmail',
                 elem => elem.click()
             );
-            await page.click('#saveIncidentNotification');
+            await init.pageClick(page, '#saveIncidentNotification');
             await page.waitForTimeout(2000);
             await page.waitForSelector('.ball-beat', { hidden: true });
 
@@ -284,11 +284,11 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#smsCalls', { visible: true });
-            await page.click('#smsCalls');
+            await init.pageClick(page, '#smsCalls');
 
             await page.waitForSelector('#sendCreatedIncidentNotificationSms', {
                 visible: true,
@@ -339,11 +339,11 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#smsCalls', { visible: true });
-            await page.click('#smsCalls');
+            await init.pageClick(page, '#smsCalls');
 
             await page.waitForSelector('#sendCreatedIncidentNotificationSms', {
                 visible: true,
@@ -351,7 +351,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.$eval('#sendCreatedIncidentNotificationSms', elem =>
                 elem.click()
             );
-            await page.click('#saveIncidentNotification');
+            await init.pageClick(page, '#saveIncidentNotification');
             await page.waitForTimeout(2000);
             await page.waitForSelector('.ball-beat', { hidden: true });
 
@@ -379,11 +379,11 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#smsCalls', { visible: true });
-            await page.click('#smsCalls');
+            await init.pageClick(page, '#smsCalls');
             await page.waitForSelector(
                 '#sendAcknowledgedIncidentNotificationSms',
                 {
@@ -393,7 +393,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.$eval('#sendAcknowledgedIncidentNotificationSms', elem =>
                 elem.click()
             );
-            await page.click('#saveIncidentNotification');
+            await init.pageClick(page, '#saveIncidentNotification');
             await page.waitForTimeout(2000);
             await page.waitForSelector('.ball-beat', { hidden: true });
 
@@ -424,20 +424,20 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#smsCalls', { visible: true });
-            await page.click('#smsCalls');
+            await init.pageClick(page, '#smsCalls');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#sendResolvedIncidentNotificationSms', {
                 visible: true,
             });
             await page.$eval('#sendResolvedIncidentNotificationSms', elem =>
                 elem.click()
             );
-            await page.click('#saveIncidentNotification');
+            await init.pageClick(page, '#saveIncidentNotification');
             await page.waitForTimeout(2000);
             await page.waitForSelector('.ball-beat', { hidden: true });
 
@@ -464,11 +464,11 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#smsCalls', { visible: true });
-            await page.click('#smsCalls');
+            await init.pageClick(page, '#smsCalls');
 
             await page.waitForSelector(
                 '#enableInvestigationNoteNotificationSMS',
@@ -479,7 +479,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.$eval('#enableInvestigationNoteNotificationSMS', elem =>
                 elem.click()
             );
-            await page.click('#saveIncidentNotification');
+            await init.pageClick(page, '#saveIncidentNotification');
             await page.waitForTimeout(2000);
             await page.waitForSelector('.ball-beat', { hidden: true });
 

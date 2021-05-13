@@ -1230,9 +1230,7 @@ export const metricsQuickStart = {
         apiUrl: '${apiUrl ? apiUrl : 'API_URL'}',
         appId: '${appId ? appId : 'APP_ID'}',
         appKey: '${key ? key : 'APP_KEY'}',
-        app, // express app instance (optional field)
-        trackIncomingRequest, // defaults to true (optional field)
-        trackOutgoingRequest, // defaults to true (optional field)              
+        app, // express app instance if you're running express (optional field, but highly recommended)        
     };
                                                         
     // constructor                    

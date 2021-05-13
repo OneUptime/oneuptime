@@ -416,7 +416,10 @@ export class IncidentList extends Component {
                                                     height: '1px',
                                                 }}
                                             >
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <div
+                                                    className="db-ListViewItem-cellContent Box-root Padding-all--8"
+                                                    id="incident_title"
+                                                >
                                                     <ReactMarkdown
                                                         source={incident.title}
                                                     />

@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 
@@ -19,7 +19,7 @@ describe('Enterprise Project API', () => {
     const operationTimeOut = 100000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -43,13 +43,19 @@ describe('Enterprise Project API', () => {
             await page.waitForSelector('#selector', { visble: true });
             await page.$eval('#create-project', e => e.click());
             await page.waitForSelector('#name', { visble: true });
-            await page.click('input[id=name]');
-            await page.type('input[id=name]', utils.generateRandomString());
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageClick(page, 'input[id=name]');
+            await page.focus('input[id=name]');
+            await init.pageType(
+                page,
+                'input[id=name]',
+                utils.generateRandomString()
+            );
 
             const projectPlan = await page.$('input[id=Startup_month]');
             expect(projectPlan).toBeDefined(); // Startup_month is part of the modal that gets popped out.
 
-            await page.click('button[type=submit]');
+            await init.pageClick(page, 'button[type=submit]');
             // eslint-disable-next-line no-undef
             localStorageData = await page.evaluate(() => {
                 const json = {};

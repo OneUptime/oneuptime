@@ -35,12 +35,7 @@ export class RenameScheduleBox extends Component {
     }
 
     submitForm = values => {
-        const {
-            scheduleId,
-            renameSchedule,
-            subProjectId,
-            subProjectSlug,
-        } = this.props;
+        const { scheduleId, renameSchedule, subProjectId } = this.props;
 
         const scheduleName = values.schedule_name;
 
@@ -48,7 +43,7 @@ export class RenameScheduleBox extends Component {
             renameSchedule(subProjectId, scheduleId, scheduleName).then(
                 data => {
                     history.replace(
-                        `/dashboard/project/${this.props.currentProjectSlug}/sub-project/${subProjectSlug}/schedule/${data.data[0].slug}`
+                        `/dashboard/project/${this.props.currentProjectSlug}/schedule/${data.data[0].slug}`
                     );
                 }
             );
@@ -183,7 +178,7 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators({ renameSchedule }, dispatch);
 
 const mapStateToProps = (state, props) => {
-    const { scheduleSlug, subProjectSlug } = props.match.params;
+    const { scheduleSlug } = props.match.params;
 
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {
@@ -203,10 +198,7 @@ const mapStateToProps = (state, props) => {
     return {
         initialValues: { schedule_name },
         schedule,
-        subProjectSlug,
-        subProjectId:
-            state.subProject.currentSubProject.subProject &&
-            state.subProject.currentSubProject.subProject._id,
+        subProjectId: schedule && schedule.projectId._id,
         scheduleId: schedule && schedule._id,
         currentProjectSlug,
         isRequesting: state.schedule.renameSchedule.requesting,
@@ -216,7 +208,6 @@ const mapStateToProps = (state, props) => {
 RenameScheduleBox.propTypes = {
     scheduleId: PropTypes.string,
     subProjectId: PropTypes.string,
-    subProjectSlug: PropTypes.string,
     currentProjectSlug: PropTypes.string,
     handleSubmit: PropTypes.func.isRequired,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),

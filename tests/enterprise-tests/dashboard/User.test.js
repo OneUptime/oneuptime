@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 let browser, browser2, page, browserPage;
@@ -46,21 +46,21 @@ describe('Users', () => {
             await browserPage.waitForSelector(`#${user.email.split('@')[0]}`, {
                 visible: true,
             });
-            await browserPage.click(`#${user.email.split('@')[0]}`);
+            await init.pageClick(browserPage, `#${user.email.split('@')[0]}`);
             await browserPage.waitForSelector('#delete', { visible: true });
             await browserPage.waitForTimeout(1000);
-            await browserPage.click('#delete');
+            await init.pageClick(browserPage, '#delete');
             await browserPage.waitForSelector('#confirmDelete', {
                 visible: true,
             });
-            await browserPage.click('#confirmDelete');
+            await init.pageClick(browserPage, '#confirmDelete');
             await browserPage.waitForSelector('#confirmDelete', {
                 hidden: true,
             });
 
             await page.bringToFront();
             await page.waitForSelector('#statusPages');
-            await page.click('#statusPages');
+            await init.pageClick(page, '#statusPages');
             await page.waitForSelector('#login-button', { visible: true });
             done();
         },
@@ -75,10 +75,10 @@ describe('Users', () => {
                 `#deleted__${user.email.split('@')[0]}`,
                 { visible: true }
             );
-            await page.click(`#deleted__${user.email.split('@')[0]}`);
+            await init.pageClick(page, `#deleted__${user.email.split('@')[0]}`);
             await page.waitForTimeout(1000);
             await page.waitForSelector('#restore', { visible: true });
-            await page.click('#restore');
+            await init.pageClick(page, '#restore');
             const delBtn = await page.waitForSelector('#delete', {
                 visible: true,
             });

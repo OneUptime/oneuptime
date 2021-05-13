@@ -34,7 +34,8 @@ class NotesMain extends Component {
             this.props.projectId,
             this.props.statusPageSlug,
             0,
-            this.props.theme && countNum
+            this.props.theme && countNum,
+            this.props.incidentHistoryDays || 14
         );
     }
 
@@ -348,7 +349,7 @@ class NotesMain extends Component {
                     </ShouldRender>
                     {typeof this.props.notesmessage === 'string'
                         ? this.props.notesmessage
-                        : 'No incident yet.'}
+                        : 'No incidents so far.'}
                 </div>
             );
         } else {
@@ -683,6 +684,7 @@ const mapStateToProps = state => {
         subscribed: state.subscribe.subscribeMenu,
         skip,
         count,
+        incidentHistoryDays: state.status.statusPage.incidentHistoryDays,
         isSubscriberEnabled: state.status.statusPage.isSubscriberEnabled,
         statusPage: state.status.statusPage,
         lastIncidentTimelines: state.status.lastIncidentTimelines.timelines,
@@ -719,6 +721,7 @@ NotesMain.propTypes = {
     subscribed: PropTypes.bool,
     skip: PropTypes.number,
     count: PropTypes.number,
+    incidentHistoryDays: PropTypes.number,
     statusPageId: PropTypes.string,
     isSubscriberEnabled: PropTypes.bool.isRequired,
     statusPage: PropTypes.object,

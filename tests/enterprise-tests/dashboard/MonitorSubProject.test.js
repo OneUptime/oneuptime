@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 let browser, page;
@@ -15,7 +15,7 @@ describe('Enterprise Monitor SubProject API', () => {
     const operationTimeOut = 500000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -61,13 +61,15 @@ describe('Enterprise Monitor SubProject API', () => {
             // switch to invited project for new user
             await page.waitForSelector('#monitors', { visible: true });
             await page.waitForSelector('#form-new-monitor', { visible: true });
-            await page.click('input[id=name]');
-            await page.type('input[id=name]', subProjectMonitorName);
-            await page.click('[data-testId=type_url]');
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageClick(page, 'input[id=name]');
+            await page.focus('input[id=name]');
+            await init.pageType(page, 'input[id=name]', subProjectMonitorName);
+            await init.pageClick(page, '[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
-            await page.click('#url');
-            await page.type('#url', 'https://google.com');
-            await page.click('button[type=submit]');
+            await init.pageClick(page, '#url');
+            await init.pageType(page, '#url', 'https://google.com');
+            await init.pageClick(page, 'button[type=submit]');
 
             let spanElement = await page.waitForSelector(
                 `#monitor-title-${subProjectMonitorName}`,

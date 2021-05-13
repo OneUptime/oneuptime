@@ -9,7 +9,6 @@ import {
     createSchedule,
     paginate,
 } from '../actions/schedule';
-import { fetchSubProject } from '../actions/subProject';
 import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
@@ -50,7 +49,6 @@ export class OnCall extends Component {
                     this.ready();
                 });
         }
-        this.props.fetchSubProject(this.props.subProjectSlug);
     }
 
     componentWillUnmount() {
@@ -92,7 +90,7 @@ export class OnCall extends Component {
 
         createSchedule(subProjectId, { name: 'Unnamed' }).then(({ data }) => {
             history.push(
-                `/dashboard/project/${this.props.currentProject.slug}/sub-project/${subProjectId}/schedule/${data[0].slug}`
+                `/dashboard/project/${this.props.currentProject.slug}/schedule/${data[0].slug}`
             );
         });
 
@@ -171,9 +169,6 @@ export class OnCall extends Component {
                                     </ShouldRender>
                                     <ScheduleProjectBox
                                         projectId={subProject._id}
-                                        subProjectSlug={
-                                            subProject && subProject.slug
-                                        }
                                         currentProject={currentProject}
                                         schedules={schedules}
                                         isRequesting={isRequesting}
@@ -249,9 +244,6 @@ export class OnCall extends Component {
                                 <ScheduleProjectBox
                                     projectId={
                                         currentProject && currentProject._id
-                                    }
-                                    subProjectSlug={
-                                        currentProject && currentProject.slug
                                     }
                                     currentProject={currentProject}
                                     schedules={schedules}
@@ -336,14 +328,12 @@ const mapDispatchToProps = dispatch =>
             createSchedule,
             paginate,
             fetchSubProjectSchedules,
-            fetchSubProject,
         },
         dispatch
     );
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = state => {
     let subProjects = state.subProject.subProjects.subProjects;
-    const { subProjectSlug } = props.match.params;
     // sort subprojects names for display in alphabetical order
     const subProjectNames =
         subProjects && subProjects.map(subProject => subProject.name);
@@ -416,7 +406,6 @@ const mapStateToProps = (state, props) => {
         currentProject: state.project.currentProject,
         tutorialStat,
         modalList: state.modal.modals,
-        subProjectSlug,
     };
 };
 
@@ -434,9 +423,7 @@ OnCall.propTypes = {
     paginate: PropTypes.func.isRequired,
     createSchedule: PropTypes.func.isRequired,
     pages: PropTypes.object.isRequired,
-    subProjectSlug: PropTypes.string,
     openModal: PropTypes.func.isRequired,
-    fetchSubProject: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
     tutorialStat: PropTypes.object,
     location: PropTypes.shape({

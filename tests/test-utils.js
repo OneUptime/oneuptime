@@ -36,7 +36,8 @@ const DASHBOARD_URL = process.env.DASHBOARD_URL || 'http://localhost:3000';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 const STATUSPAGE_URL = process.env.STATUSPAGE_URL || 'http://localhost:3006';
 const APIDOCS_URL = process.env.APIDOCS_URL || 'http://localhost:1445';
-const HTTP_TEST_SERVER_URL = process.env.HTTP_TEST_SERVER_URL || 'http://localhost:3010';
+const HTTP_TEST_SERVER_URL =
+    process.env.HTTP_TEST_SERVER_URL || 'http://localhost:3010';
 
 function generateRandomBusinessEmail() {
     return (
@@ -171,11 +172,11 @@ module.exports = {
     BACKEND_URL,
     STATUSPAGE_URL,
     APIDOCS_URL,
-    HTTP_TEST_SERVER_URL, 
+    HTTP_TEST_SERVER_URL,
     user,
     puppeteerLaunchConfig,
     generateRandomString,
-    generateRandomBusinessEmail,           
+    generateRandomBusinessEmail,
     generateWrongEmail,
     resourceCategoryName,
     monitorName,
@@ -183,7 +184,7 @@ module.exports = {
     scheduledEventName,
     scheduledEventDescription,
     updatedScheduledEventName,
-    updatedScheduledEventDescription,    
+    updatedScheduledEventDescription,
     generateRandomWebsite,
     timeout: 500000,
     parseBoolean,

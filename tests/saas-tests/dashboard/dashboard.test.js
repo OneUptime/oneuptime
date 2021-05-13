@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 
@@ -34,15 +34,15 @@ describe('Monitor API', () => {
             waitUntil: 'domcontentloaded',
         });
         await page.waitForSelector('#components');
-        await page.click('#components');
+        await init.pageClick(page, '#components');
         await page.waitForSelector(`#more-details-${componentName}`);
-        await page.click(`#more-details-${componentName}`);
+        await init.pageClick(page, `#more-details-${componentName}`);
         await page.waitForSelector(`#more-details-${monitorName}`);
-        await page.click(`#more-details-${monitorName}`);
+        await init.pageClick(page, `#more-details-${monitorName}`);
         await page.waitForSelector(`#delete_${monitorName}`);
-        await page.click(`#delete_${monitorName}`);
+        await init.pageClick(page, `#delete_${monitorName}`);
         await page.waitForSelector('#deleteMonitor');
-        await page.click('#deleteMonitor');
+        await init.pageClick(page, '#deleteMonitor');
 
         await page.waitForSelector('.ball-beat', { visible: true });
         await page.waitForSelector('.ball-beat', { hidden: true });
@@ -52,19 +52,19 @@ describe('Monitor API', () => {
             waitUntil: 'domcontentloaded',
         });
         await page.waitForSelector('#components');
-        await page.click('#components');
+        await init.pageClick(page, '#components');
 
         await page.waitForSelector(`#more-details-${componentName}`);
-        await page.click(`#more-details-${componentName}`);
+        await init.pageClick(page, `#more-details-${componentName}`);
         await page.waitForSelector(`#componentSettings`);
-        await page.click(`#componentSettings`);
+        await init.pageClick(page, `#componentSettings`);
         await page.waitForSelector(`#advanced`);
-        await page.click(`#advanced`);
+        await init.pageClick(page, `#advanced`);
 
         await page.waitForSelector(`#delete-component-${componentName}`);
-        await page.click(`#delete-component-${componentName}`);
+        await init.pageClick(page, `#delete-component-${componentName}`);
         await page.waitForSelector('#deleteComponent');
-        await page.click('#deleteComponent');
+        await init.pageClick(page, '#deleteComponent');
         await page.waitForSelector('#deleteComponent', { hidden: true });
 
         await browser.close();
@@ -79,13 +79,15 @@ describe('Monitor API', () => {
                 waitUntil: 'domcontentloaded',
             });
             await page.waitForSelector('#components');
-            await page.click('#components');
+            await init.pageClick(page, '#components');
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component');
-            await page.click('input[id=name]');
-            await page.type('input[id=name]', componentName);
-            await page.click('#addComponentButton');
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageClick(page, 'input[id=name]');
+            await page.focus('input[id=name]');
+            await init.pageType(page, 'input[id=name]', componentName);
+            await init.pageClick(page, '#addComponentButton');
 
             await page.waitForSelector('#monitors', { visible: true });
             await page.goto(utils.DASHBOARD_URL, {
@@ -93,7 +95,7 @@ describe('Monitor API', () => {
             });
 
             await page.waitForSelector('#components', { visible: true });
-            await page.click('#components');
+            await init.pageClick(page, '#components');
 
             let spanElement;
             spanElement = await page.waitForSelector(
@@ -116,23 +118,24 @@ describe('Monitor API', () => {
                 waitUntil: 'domcontentloaded',
             });
             await page.waitForSelector('#components');
-            await page.click('#components');
+            await init.pageClick(page, '#components');
 
             // Navigate to details page of component created in previous test
             await page.waitForSelector(`#more-details-${componentName}`);
-            await page.click(`#more-details-${componentName}`);
+            await init.pageClick(page, `#more-details-${componentName}`);
             await page.waitForSelector('#form-new-monitor', {
                 visible: true,
             });
 
             // Fill and submit New Monitor form
-            await page.click('input[id=name]', { visible: true });
-            await page.type('input[id=name]', monitorName);
-            await page.click('[data-testId=type_url]');
+            await init.pageClick(page, 'input[id=name]', { visible: true });
+            await page.focus('input[id=name]');
+            await init.pageType(page, 'input[id=name]', monitorName);
+            await init.pageClick(page, '[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
-            await page.click('#url');
-            await page.type('#url', 'https://google.com');
-            await page.click('button[type=submit]');
+            await init.pageClick(page, '#url');
+            await init.pageType(page, '#url', 'https://google.com');
+            await init.pageClick(page, 'button[type=submit]');
 
             let spanElement;
             spanElement = await page.waitForSelector(
@@ -156,22 +159,23 @@ describe('Monitor API', () => {
                 waitUntil: 'domcontentloaded',
             });
             await page.waitForSelector('#components');
-            await page.click('#components');
+            await init.pageClick(page, '#components');
 
             // Navigate to details page of component created in previous test
             await page.waitForSelector(`#more-details-${componentName}`);
-            await page.click(`#more-details-${componentName}`);
+            await init.pageClick(page, `#more-details-${componentName}`);
             await page.waitForSelector('#form-new-monitor', {
                 visible: true,
             });
             // Submit New Monitor form with incorrect details
-            await page.click('input[id=name]', { visible: true });
-            await page.type('input[id=name]', '');
-            await page.click('[data-testId=type_url]');
+            await init.pageClick(page, 'input[id=name]', { visible: true });
+            await page.focus('input[id=name]');
+            await init.pageType(page, 'input[id=name]', '');
+            await init.pageClick(page, '[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
-            await page.click('#url');
-            await page.type('#url', 'https://google.com');
-            await page.click('button[type=submit]');
+            await init.pageClick(page, '#url');
+            await init.pageType(page, '#url', 'https://google.com');
+            await init.pageClick(page, 'button[type=submit]');
 
             let spanElement;
             spanElement = await page.waitForSelector(

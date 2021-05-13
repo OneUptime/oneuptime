@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 
@@ -54,5 +54,5 @@ describe('Login API', () => {
         );
         page.url().should.containEql(utils.DASHBOARD_URL);
         done();
-    }, 200000);
+    }, 600000);
 });

@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 let browser, page;
 // user credentials
@@ -20,7 +20,7 @@ describe('Resource Category', () => {
     const operationTimeOut = 50000;
 
     beforeAll(async () => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -44,21 +44,22 @@ describe('Resource Category', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings', { visible: true });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more', { visible: true });
-            await page.click('#more');
+            await init.pageClick(page, '#more');
 
             await page.waitForSelector('li#resources a', { visible: true });
-            await page.click('li#resources a');
+            await init.pageClick(page, 'li#resources a');
             await page.waitForSelector('#createResourceCategoryButton', {
                 visible: true,
             });
-            await page.click('#createResourceCategoryButton');
-            await page.type(
+            await init.pageClick(page, '#createResourceCategoryButton');
+            await init.pageType(
+                page,
                 '#resourceCategoryName',
                 utils.resourceCategoryName
             );
-            await page.click('#addResourceCategoryButton');
+            await init.pageClick(page, '#addResourceCategoryButton');
 
             const createdResourceCategorySelector =
                 '#resourceCategoryList #resource-category-name:nth-child(2)';
@@ -113,19 +114,21 @@ describe('Resource Category', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#form-new-monitor', { visible: true });
-            await page.click('input[id=name]');
-            await page.type('input[id=name]', utils.monitorName);
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageClick(page, 'input[id=name]');
+            await page.focus('input[id=name]');
+            await init.pageType(page, 'input[id=name]', utils.monitorName);
             await init.selectByText(
                 '#resourceCategory',
                 utils.resourceCategoryName,
                 page
             );
-            await page.click('[data-testId=type_url]');
+            await init.pageClick(page, '[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
-            await page.click('#url');
-            await page.type('#url', 'https://google.com');
+            await init.pageClick(page, '#url');
+            await init.pageType(page, '#url', 'https://google.com');
             await Promise.all([
-                page.click('button[type=submit]'),
+                init.pageClick(page, 'button[type=submit]'),
                 page.waitForNavigation(),
             ]);
 
@@ -150,21 +153,21 @@ describe('Resource Category', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings', { visible: true });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more', { visible: true });
-            await page.click('#more');
+            await init.pageClick(page, '#more');
 
             await page.waitForSelector('li#resources a', { visible: true });
-            await page.click('li#resources a');
+            await init.pageClick(page, 'li#resources a');
 
             const deleteButtonSelector = `button#delete_${utils.resourceCategoryName}`;
 
             await page.waitForSelector(deleteButtonSelector, { visible: true });
-            await page.click(deleteButtonSelector);
+            await init.pageClick(page, deleteButtonSelector);
             await page.waitForSelector('#deleteResourceCategory', {
                 visible: true,
             });
-            await page.click('#deleteResourceCategory');
+            await init.pageClick(page, '#deleteResourceCategory');
             await page.waitForSelector('#resourceCategoryCount', {
                 visible: true,
             });
@@ -186,7 +189,7 @@ describe('Member Restriction', () => {
     const operationTimeOut = 50000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -229,16 +232,16 @@ describe('Member Restriction', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more', { visible: true });
-            await page.click('#more');
+            await init.pageClick(page, '#more');
 
             await page.waitForSelector('#resources', { visible: true });
-            await page.click('#resources');
+            await init.pageClick(page, '#resources');
             await page.waitForSelector('#createResourceCategoryButton', {
                 visible: true,
             });
-            await page.click('#createResourceCategoryButton');
+            await init.pageClick(page, '#createResourceCategoryButton');
             const modal = await page.waitForSelector('#unauthorisedModal', {
                 visible: true,
             });
@@ -255,17 +258,17 @@ describe('Member Restriction', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more', { visible: true });
-            await page.click('#more');
+            await init.pageClick(page, '#more');
 
             await page.waitForSelector('#resources', { visible: true });
-            await page.click('#resources');
+            await init.pageClick(page, '#resources');
             const editBtn = `#edit_${resourceCategory}`;
             await page.waitForSelector(editBtn, {
                 visible: true,
             });
-            await page.click(editBtn);
+            await init.pageClick(page, editBtn);
             const modal = await page.waitForSelector('#unauthorisedModal', {
                 visible: true,
             });
@@ -282,17 +285,17 @@ describe('Member Restriction', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more', { visible: true });
-            await page.click('#more');
+            await init.pageClick(page, '#more');
 
             await page.waitForSelector('#resources', { visible: true });
-            await page.click('#resources');
+            await init.pageClick(page, '#resources');
             const deleteBtn = `#delete_${resourceCategory}`;
             await page.waitForSelector(deleteBtn, {
                 visible: true,
             });
-            await page.click(deleteBtn);
+            await init.pageClick(page, deleteBtn);
             const modal = await page.waitForSelector('#unauthorisedModal', {
                 visible: true,
             });

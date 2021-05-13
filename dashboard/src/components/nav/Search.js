@@ -119,7 +119,7 @@ class Search extends Component {
         const baseUrl = `/dashboard/project/${currentProject.slug}/component/${searchObj.componentSlug}/`;
         let route = '';
         switch (searchObj.type) {
-            case 'website':
+            case 'url':
             case 'device':
             case 'manual':
             case 'api':
@@ -279,7 +279,7 @@ class Search extends Component {
                 this.props.addCurrentComponent(component);
                 break;
             case 'Status Pages':
-                path = `/dashboard/project/${currentProject.slug}/sub-project/${searchObj.projectId._id}/status-page/${searchObj.statusPageSlug}`;
+                path = `/dashboard/project/${currentProject.slug}/status-page/${searchObj.statusPageSlug}`;
                 userId = User.getUserId();
                 if (IS_LOCALHOST) {
                     publicStatusPageUrl = `http://${searchObj.statusPageSlug}.localhost:3006`;
@@ -299,7 +299,7 @@ class Search extends Component {
                 break;
             case 'On-Call Duty':
                 history.push(
-                    `/dashboard/project/${currentProject.slug}/sub-project/${searchObj.projectId}/schedule/${searchObj.scheduleSlug}`
+                    `/dashboard/project/${currentProject.slug}/schedule/${searchObj.scheduleSlug}`
                 );
                 break;
             case 'Schedule Events':

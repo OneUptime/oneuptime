@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 let browser, page;
 // user credentials
@@ -15,7 +15,7 @@ describe('Sub-Project API', () => {
     const operationTimeOut = 50000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -45,9 +45,9 @@ describe('Sub-Project API', () => {
                 waitUntil: 'networkidle0',
             });
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#btn_Add_SubProjects');
-            await page.click('#btn_Add_SubProjects');
+            await init.pageClick(page, '#btn_Add_SubProjects');
 
             const pricingPlanModal = await page.waitForSelector(
                 '#pricingPlanModal',
@@ -65,7 +65,7 @@ describe('Member Restriction', () => {
     const operationTimeOut = 50000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -110,11 +110,11 @@ describe('Member Restriction', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#btn_Add_SubProjects', {
                 visible: true,
             });
-            await page.click('#btn_Add_SubProjects');
+            await init.pageClick(page, '#btn_Add_SubProjects');
             const unauthorisedModal = await page.waitForSelector(
                 '#unauthorisedModal',
                 { visible: true }
@@ -144,12 +144,12 @@ describe('Member Restriction', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             const deleteSubProjectBtn = `#sub_project_delete_${subProjectName}`;
             await page.waitForSelector(deleteSubProjectBtn, {
                 visible: true,
             });
-            await page.click(deleteSubProjectBtn);
+            await init.pageClick(page, deleteSubProjectBtn);
             const unauthorisedModal = await page.waitForSelector(
                 '#unauthorisedModal',
                 { visible: true }

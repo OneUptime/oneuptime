@@ -68,9 +68,6 @@ export class DuplicateStatusPageBox extends Component {
                                                             .statusPageSlug,
                                                         subProjectId: this.props
                                                             .subProjectId,
-                                                        subProjectSlug: this
-                                                            .props
-                                                            .subProjectSlug,
                                                         projectId: this.props
                                                             .projectId,
                                                     }
@@ -121,7 +118,6 @@ DuplicateStatusPageBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     statusPageSlug: PropTypes.object,
     subProjectId: PropTypes.object,
-    subProjectSlug: PropTypes.string,
     match: PropTypes.object.isRequired,
     projectId: PropTypes.object,
 };

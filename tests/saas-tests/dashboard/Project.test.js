@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
@@ -10,6 +10,10 @@ const newProjectName = 'Test';
 
 const user = {
     email,
+    password,
+};
+const user2 = {
+    email: utils.generateRandomBusinessEmail(),
     password,
 };
 const memberUser = {
@@ -23,7 +27,7 @@ describe('Project Settings', () => {
     const operationTimeOut = 50000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -62,12 +66,12 @@ describe('Project Settings', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('input[name=project_name]');
             await page.waitForSelector('#btnCreateProject', {
                 visible: true,
             });
-            await page.click('#btnCreateProject');
+            await init.pageClick(page, '#btnCreateProject');
             const unauthorisedModal = await page.waitForSelector(
                 '#unauthorisedModal',
                 { visible: true }
@@ -88,33 +92,37 @@ describe('Project Settings', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             // click on advanced
             await page.waitForSelector('#advanced', {
                 visible: true,
             });
-            await page.click('#advanced');
+            await init.pageClick(page, '#advanced');
             // click on delete button
             await page.waitForSelector(`#delete-${newProjectName}`, {
                 visible: true,
             });
-            await page.click(`#delete-${newProjectName}`);
+            await init.pageClick(page, `#delete-${newProjectName}`);
             // confirm the delete modal comes up and the form is available
             await page.waitForSelector('#btnDeleteProject', {
                 visible: true,
             });
-            await page.click('#btnDeleteProject');
+            await init.pageClick(page, '#btnDeleteProject');
             await page.waitForSelector(`#delete-project-form`, {
                 visible: true,
             });
             // fill the feedback form
-            await page.click(`textarea[id=feedback]`);
-            await page.type(`textarea[id=feedback]`, `This is a test deletion`);
+            await init.pageClick(page, `textarea[id=feedback]`);
+            await init.pageType(
+                page,
+                `textarea[id=feedback]`,
+                `This is a test deletion`
+            );
             // click submit button
             await page.waitForSelector('#btnDeleteProject', {
                 visible: true,
             });
-            await page.click('#btnDeleteProject');
+            await init.pageClick(page, '#btnDeleteProject');
 
             // find the button for creating a project and expect it to be defined
             const createProjectBtn = await page.waitForSelector(
@@ -124,8 +132,41 @@ describe('Project Settings', () => {
                 }
             );
             expect(createProjectBtn).toBeDefined();
+            await init.logout(page);
             done();
         },
         operationTimeOut
     );
+
+    test('should show all projects not just a limit of 10 projects', async done => {
+        //register user
+        await init.registerUser(user2, page);
+        //adding project
+        await init.addProject(page, 'project1');
+        await init.addProject(page, 'project2');
+        await init.addProject(page, 'project3');
+        await init.addProject(page, 'project4');
+        await init.addProject(page, 'project5');
+        await init.addProject(page, 'project6');
+        await init.addProject(page, 'project7');
+        await init.addProject(page, 'project8');
+        await init.addProject(page, 'project9');
+        await init.addProject(page, 'project10');
+        await init.addProject(page, 'project11');
+
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#AccountSwitcherId');
+        await init.pageClick(page, '#AccountSwitcherId');
+
+        const parentContainer = '#accountSwitcher';
+        await page.waitForSelector(parentContainer, {
+            visible: true,
+        });
+        const childCount = await page.$eval(
+            parentContainer,
+            el => el.childElementCount
+        );
+        expect(childCount).toEqual(13);
+        done();
+    }, 100000);
 });

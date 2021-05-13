@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 let browser, page;
@@ -18,7 +18,7 @@ describe('Email Templates API', () => {
     const operationTimeOut = 100000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -42,11 +42,11 @@ describe('Email Templates API', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#email');
-            await page.click('#email');
+            await init.pageClick(page, '#email');
             await init.selectByText(
                 '#type',
                 'External Subscriber Incident Created',
@@ -69,11 +69,11 @@ describe('Email Templates API', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#email');
-            await page.click('#email');
+            await init.pageClick(page, '#email');
             await init.selectByText(
                 '#type',
                 'External Subscriber Incident Created',
@@ -81,9 +81,9 @@ describe('Email Templates API', () => {
             );
             const subject = 'Updated Subject';
             await page.waitForSelector('#name');
-            await page.click('#name', { clickCount: 3 });
-            await page.type('#name', subject);
-            await page.click('#saveTemplate');
+            await init.pageClick(page, '#name', { clickCount: 3 });
+            await init.pageType(page, '#name', subject);
+            await init.pageClick(page, '#saveTemplate');
             await page.waitForSelector('#ball-beat', { hidden: true });
 
             await page.reload();
@@ -107,11 +107,11 @@ describe('Email Templates API', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#email');
-            await page.click('#email');
+            await init.pageClick(page, '#email');
             await init.selectByText(
                 '#type',
                 'External Subscriber Incident Created',
@@ -132,11 +132,11 @@ describe('Email Templates API', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#email');
-            await page.click('#email');
+            await init.pageClick(page, '#email');
             await init.selectByText(
                 '#type',
                 'External Subscriber Incident Created',
@@ -145,7 +145,7 @@ describe('Email Templates API', () => {
             await page.waitForSelector('#templateReset', {
                 visible: true,
             });
-            await page.click('#templateReset');
+            await init.pageClick(page, '#templateReset');
             await page.waitForSelector('#ball-beat', { hidden: true });
 
             await page.reload();

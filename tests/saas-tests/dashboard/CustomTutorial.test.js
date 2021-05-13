@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 let browser, page;
 // user credentials
@@ -45,7 +45,7 @@ describe('Custom Tutorial With SubProjects', () => {
 
             // click on component section
             await page.waitForSelector('#components');
-            await page.click('#components');
+            await init.pageClick(page, '#components');
 
             // find that same tutorial box on component page
             const newComponentBoxElement = await page.waitForSelector(
@@ -73,7 +73,7 @@ describe('Custom Tutorial With SubProjects', () => {
 
             // click on component section
             await page.waitForSelector('#components');
-            await page.click('#components');
+            await init.pageClick(page, '#components');
 
             // find that same tutorial box on component page
             const newComponentBoxElement = await page.waitForSelector(
@@ -82,7 +82,7 @@ describe('Custom Tutorial With SubProjects', () => {
             expect(newComponentBoxElement).toBeDefined();
             // click on the call to action button
             await page.waitForSelector(`#close-${customTutorialType}`);
-            await page.click(`#close-${customTutorialType}`);
+            await init.pageClick(page, `#close-${customTutorialType}`);
             // find component quick tip and confirm it shows
             const componentQuickTip = await page.waitForSelector(
                 `#quick-tip-${customTutorialType}`
@@ -108,7 +108,7 @@ describe('Custom Tutorial With SubProjects', () => {
 
             // click on the call to action button
             await page.waitForSelector(`#close-${customTutorialType}`);
-            await page.click(`#close-${customTutorialType}`);
+            await init.pageClick(page, `#close-${customTutorialType}`);
 
             done();
         },
@@ -130,7 +130,7 @@ describe('Custom Tutorial With SubProjects', () => {
 
             // click on the call to action button
             await page.waitForSelector(`#close-${customTutorialType}`);
-            await page.click(`#close-${customTutorialType}`);
+            await init.pageClick(page, `#close-${customTutorialType}`);
 
             done();
         },

@@ -75,7 +75,7 @@ a:hover { color: #4c4c4c; }
 
 /******* Simple Bar Chart *******/
 div.block-chart {
-  height: 28px;
+  height: 41px;
   padding: 9px 0 4px;
   overflow: hidden;
   width: 101%; /* IE overflow fix */
@@ -89,7 +89,7 @@ div.block-chart::-webkit-scrollbar {
   div.block-chart div.bar {
     display: inline-block;
     height: 100%;
-    width: 4px;
+    width: 6px;
 
     cursor: pointer;
 
@@ -113,7 +113,7 @@ div.block-chart::-webkit-scrollbar {
 
     div.block-chart div.bar.empty {
       height: 100%;
-      width: 4px;
+      width: 6px;
 
       cursor: pointer;
 
@@ -1393,7 +1393,7 @@ margin-left:10px;
   border-radius: 4px;
   box-shadow: 0 7px 14px 0 rgb(50 50 93 / 10%), 0 3px 6px 0 rgb(0 0 0 / 7%);
   padding: 30px;
-  background-color: rgb(28,83,38);
+  background-color: #599b4c;
   color: #fff;
   margin-top: 20px;
   cursor: pointer;

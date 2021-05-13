@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 
@@ -55,7 +55,7 @@ describe('BreadCrumb Component test', () => {
             );
             expect(monitorBreadcrumb).toBeDefined();
             expect(componentBreadcrumb).toBeDefined();
-            await page.click('#cbMonitors');
+            await init.pageClick(page, '#cbMonitors');
 
             const monitorTitle = await page.waitForSelector(
                 `#monitor-title-${monitorName}`,
@@ -72,7 +72,7 @@ describe('BreadCrumb Component test', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#cbUnnamedProject', { visible: true });
-            await page.click('#cbUnnamedProject');
+            await init.pageClick(page, '#cbUnnamedProject');
             let currentPage = await page.waitForSelector('#cbUnnamedProject', {
                 visible: true,
             });

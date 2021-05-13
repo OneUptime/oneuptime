@@ -1,4 +1,4 @@
-const utils = require('../../../test-utils');
+const utils = require('../../test-utils');
 const puppeteer = require('puppeteer');
 
 let page, browser;
@@ -28,5 +28,5 @@ describe('Check api-docs up', () => {
         });
         expect(response).toBe('Fyipe API Documentation');
         done();
-    }, 60000);
+    }, 600000);
 });

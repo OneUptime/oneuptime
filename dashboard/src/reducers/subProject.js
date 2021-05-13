@@ -10,12 +10,6 @@ const initialState = {
         skip: null,
         limit: null,
     },
-    currentSubProject: {
-        requesting: false,
-        error: null,
-        success: false,
-        subproject: null,
-    },
     newSubProject: {
         requesting: false,
         error: null,
@@ -116,10 +110,6 @@ export default function subProject(state = initialState, action) {
                     error: null,
                     success: true,
                     subProject: action.payload,
-                },
-                currentSubProject: {
-                    ...state.currentSubProject,
-                    subproject: action.payload,
                 },
                 subProjects: {
                     requesting: false,
@@ -224,10 +214,6 @@ export default function subProject(state = initialState, action) {
                     success: true,
                     error: null,
                 },
-                currentSubProject: {
-                    ...state.currentSubProject,
-                    subProject: action.payload,
-                },
             });
 
         case types.RENAME_SUBPROJECT_RESET:
@@ -277,7 +263,6 @@ export default function subProject(state = initialState, action) {
                     skip: state.subProjects.skip,
                     limit: state.subProjects.limit,
                 },
-                currentSubProject: initialState.currentSubProject,
             });
 
         case types.DELETE_SUBPROJECT_REQUEST:
@@ -352,38 +337,6 @@ export default function subProject(state = initialState, action) {
             return Object.assign({}, state, {
                 currentSubProject: null,
             });
-        case types.FETCH_SUBPROJECT_REQUEST:
-            return {
-                ...state,
-                currentSubProject: {
-                    ...state.currentSubProject,
-                    requesting: true,
-                    error: null,
-                    success: false,
-                },
-            };
-
-        case types.FETCH_SUBPROJECT_SUCCESS:
-            return {
-                ...state,
-                currentSubProject: {
-                    requesting: false,
-                    success: true,
-                    error: null,
-                    subProject: action.payload,
-                },
-            };
-
-        case types.FETCH_SUBPROJECT_FAILURE:
-            return {
-                ...state,
-                currentSubProject: {
-                    ...state.currentSubProject,
-                    requesting: false,
-                    success: false,
-                    error: action.payload,
-                },
-            };
 
         default:
             return state;

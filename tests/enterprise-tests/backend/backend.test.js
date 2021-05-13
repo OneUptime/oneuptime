@@ -1,11 +1,11 @@
-const utils = require('../../../test-utils');
+const utils = require('../../test-utils');
 const puppeteer = require('puppeteer');
 
 let page, browser;
 
 describe('Enterprise Backend API', () => {
     beforeAll(async done => {
-        jest.setTimeout(60000);
+        jest.setTimeout(600000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         done();

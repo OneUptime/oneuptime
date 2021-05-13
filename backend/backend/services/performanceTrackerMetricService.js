@@ -273,11 +273,16 @@ module.exports = {
             // fetch the stored data in that time frame
             // get the total avg time, and probably the total avg max time
             // send realtime update to frontend and store
-            await Promise.all([
+            const [time, count, error] = await Promise.all([
                 _this.structureMetricsTime(appId, receivedAt, receivedAt),
                 _this.structureMetricsCount(appId, receivedAt, receivedAt),
                 _this.structureMetricsError(appId, receivedAt, receivedAt),
             ]);
+            // send realtime update to frontend
+            // handle this in the backend, so we don't delay api calls
+            RealTimeService.sendTimeMetrics(appId, time);
+            RealTimeService.sendThroughputMetrics(appId, count);
+            RealTimeService.sendErrorMetrics(appId, error);
         } catch (error) {
             ErrorService.log(
                 'performanceTrackerMetricService.createMetricsData',
@@ -327,9 +332,6 @@ module.exports = {
                 finalOutput.push(result);
             }
 
-            // send realtime update to frontend
-            // handle this in the backend, so we don't delay api calls
-            RealTimeService.sendTimeMetrics(appId, finalOutput);
             // send result back to api
             return finalOutput;
         } catch (error) {
@@ -382,10 +384,6 @@ module.exports = {
                 finalOutput.push(result);
             }
 
-            // send realtime update to frontend
-            // handle this in the backend, so we don't delay api calls
-            RealTimeService.sendThroughputMetrics(appId, finalOutput);
-
             // send result back to api
             return finalOutput;
         } catch (error) {
@@ -436,10 +434,6 @@ module.exports = {
                 result.value = avgErrorCount;
                 finalOutput.push(result);
             }
-
-            // send realtime update to frontend
-            // handle this in the backend, so we don't delay api calls
-            RealTimeService.sendErrorMetrics(appId, finalOutput);
 
             // send result back to api
             return finalOutput;

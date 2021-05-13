@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 let browser, page;
 // parent user credentials
@@ -12,10 +12,10 @@ const user = {
 };
 
 describe('Stripe cards API', () => {
-    const operationTimeOut = 60000;
+    const operationTimeOut = 600000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -37,7 +37,7 @@ describe('Stripe cards API', () => {
         async done => {
             await page.goto(`${utils.DASHBOARD_URL}/dashboard/profile/billing`);
             await page.waitForSelector('#addCardButton');
-            await page.click('#addCardButton');
+            await init.pageClick(page, '#addCardButton');
             await page.waitForSelector(
                 '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]',
                 {
@@ -50,8 +50,8 @@ describe('Stripe cards API', () => {
             );
             const frame = await stripeIframe.contentFrame();
             frame.waitForSelector('input[name=cardnumber]');
-            await frame.type('input[name=cardnumber]', '5555555555554444', {
-                delay: 150,
+            await frame.type('input[name=cardnumber]', '42424242424242424242', {
+                delay: 200,
             });
             frame.waitForSelector('input[name=exp-date]');
             await frame.type('input[name=exp-date]', '11/23');
@@ -59,7 +59,7 @@ describe('Stripe cards API', () => {
             await frame.type('input[name=cvc]', '100');
             frame.waitForSelector('input[name=postal]');
             await frame.type('input[name=postal]', '11234');
-            await page.click('#addCardButtonSubmit');
+            await init.pageClick(page, '#addCardButtonSubmit');
             await page.waitForSelector('#addCardButtonSubmit', {
                 hidden: true,
                 timeout: operationTimeOut,
@@ -82,9 +82,9 @@ describe('Stripe cards API', () => {
         async done => {
             await page.goto(`${utils.DASHBOARD_URL}/dashboard/profile/billing`);
             await page.waitForSelector('#deleteCard1');
-            await page.click('#deleteCard1');
+            await init.pageClick(page, '#deleteCard1');
             await page.waitForSelector('#deleteCardButton');
-            await page.click('#deleteCardButton');
+            await init.pageClick(page, '#deleteCardButton');
             await page.waitForSelector('#deleteCardButton', {
                 hidden: true,
             });
@@ -106,15 +106,15 @@ describe('Stripe cards API', () => {
         async done => {
             await page.goto(`${utils.DASHBOARD_URL}/dashboard/profile/billing`);
             await page.waitForSelector('#deleteCard0');
-            await page.click('#deleteCard0');
+            await init.pageClick(page, '#deleteCard0');
             await page.waitForSelector('#deleteCardButton');
-            await page.click('#deleteCardButton');
+            await init.pageClick(page, '#deleteCardButton');
             const deleteError = await page.waitForSelector('#deleteCardError', {
                 visible: true,
                 timeout: operationTimeOut,
             });
             expect(deleteError).toBeDefined();
-            await page.click('#deleteCardCancel');
+            await init.pageClick(page, '#deleteCardCancel');
 
             const cardsCount = await page.$eval(
                 '#cardsCount',
@@ -132,7 +132,7 @@ describe('Stripe cards API', () => {
         async done => {
             await page.goto(`${utils.DASHBOARD_URL}/dashboard/profile/billing`);
             await page.waitForSelector('#addCardButton');
-            await page.click('#addCardButton');
+            await init.pageClick(page, '#addCardButton');
             await page.waitForSelector(
                 '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]',
                 {
@@ -146,8 +146,8 @@ describe('Stripe cards API', () => {
 
             const frame = await stripeIframe.contentFrame();
             frame.waitForSelector('input[name=cardnumber]');
-            await frame.type('input[name=cardnumber]', '4242424242424241', {
-                delay: 150,
+            await frame.type('input[name=cardnumber]', '42424242424242424242', {
+                delay: 200,
             });
             frame.waitForSelector('input[name=exp-date]');
             await frame.type('input[name=exp-date]', '11/23');
@@ -155,7 +155,7 @@ describe('Stripe cards API', () => {
             await frame.type('input[name=cvc]', '100');
             frame.waitForSelector('input[name=postal]');
             await frame.type('input[name=postal]', '11234');
-            await page.click('#addCardButtonSubmit');
+            await init.pageClick(page, '#addCardButtonSubmit');
             const error = await page.waitForSelector('#cardError', {
                 visible: true,
             });

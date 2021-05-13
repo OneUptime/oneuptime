@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 let browser, page;
@@ -36,10 +36,10 @@ describe('User logout', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForTimeout('#profile-menu');
-            await page.click('#profile-menu');
+            await init.pageClick(page, '#profile-menu');
             await page.waitForTimeout('#logout-button');
             await Promise.all([
-                page.click('#logout-button'),
+                init.pageClick(page, '#logout-button'),
                 page.waitForNavigation({ waitUntil: 'networkidle2' }),
             ]);
 

@@ -70,7 +70,7 @@ function getParentRoute(childRoute, projectId = null, type) {
         );
         return urlParts.join('/');
     }
-    if (childRoute.includes('sub-project') && childRoute.includes('schedule')) {
+    if (childRoute.includes('schedule')) {
         const urlParts = childRoute.split('/').slice(0, 4);
         return urlParts.join('/').concat('/on-call');
     }
@@ -80,10 +80,7 @@ function getParentRoute(childRoute, projectId = null, type) {
         urlParts.pop();
         return urlParts.join('/');
     }
-    if (
-        childRoute.includes('sub-project') &&
-        childRoute.includes('status-page')
-    ) {
+    if (childRoute.includes('status-page')) {
         const urlParts = childRoute.split('/').slice(0, 4);
         return urlParts.join('/').concat('/status-pages');
     }

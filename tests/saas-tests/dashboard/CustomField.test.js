@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 let browser, page;
@@ -24,7 +24,7 @@ describe('Incident Custom Field', () => {
     const operationTimeOut = 500000;
 
     beforeAll(async done => {
-        jest.setTimeout(360000);
+        jest.setTimeout(3600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -64,13 +64,13 @@ describe('Incident Custom Field', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#incidentSettings', {
                 visible: true,
             });
-            await page.click('#incidentSettings');
+            await init.pageClick(page, '#incidentSettings');
             await page.reload({
                 waitUntil: 'networkidle0',
             });
@@ -79,12 +79,16 @@ describe('Incident Custom Field', () => {
             await page.waitForSelector('#editCustomField_0', {
                 visible: true,
             });
-            await page.click('#editCustomField_0');
+            await init.pageClick(page, '#editCustomField_0');
             await page.waitForSelector('#customFieldForm', {
                 visible: true,
             });
-            await page.click('#fieldName', { clickCount: 3 });
-            await page.type('#fieldName', incidentFieldNumber.fieldName);
+            await init.pageClick(page, '#fieldName', { clickCount: 3 });
+            await init.pageType(
+                page,
+                '#fieldName',
+                incidentFieldNumber.fieldName
+            );
             await init.selectByText(
                 '#fieldType',
                 incidentFieldNumber.fieldType,
@@ -93,7 +97,7 @@ describe('Incident Custom Field', () => {
             await page.waitForSelector('#updateCustomField', {
                 visible: true,
             });
-            await page.click('#updateCustomField');
+            await init.pageClick(page, '#updateCustomField');
             await page.waitForSelector('#updateCustomField', {
                 hidden: true,
             });
@@ -115,13 +119,13 @@ describe('Incident Custom Field', () => {
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
-            await page.click('#more');
+            await init.pageClick(page, '#more');
             await page.waitForSelector('#incidentSettings', {
                 visible: true,
             });
-            await page.click('#incidentSettings');
+            await init.pageClick(page, '#incidentSettings');
             await page.reload({
                 waitUntil: 'networkidle0',
             });
@@ -130,11 +134,11 @@ describe('Incident Custom Field', () => {
             await page.waitForSelector('#deleteCustomField_0', {
                 visible: true,
             });
-            await page.click('#deleteCustomField_0');
+            await init.pageClick(page, '#deleteCustomField_0');
             await page.waitForSelector('#deleteCustomFieldModalBtn', {
                 visible: true,
             });
-            await page.click('#deleteCustomFieldModalBtn');
+            await init.pageClick(page, '#deleteCustomFieldModalBtn');
             await page.waitForSelector('#deleteCustomFieldModalBtn', {
                 hidden: true,
             });

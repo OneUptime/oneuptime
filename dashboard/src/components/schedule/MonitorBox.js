@@ -49,16 +49,14 @@ export function MonitorBox(props) {
     const { currentProject, subProjects, subProjectId, schedule } = props;
     const currentProjectId = currentProject ? currentProject._id : null;
     const slug = currentProject ? currentProject.slug : null;
-    let subProject =
-        currentProjectId === subProjectId || currentProjectId === subProjectId
-            ? currentProject
-            : false;
-    if (!subProject)
+    let subProject = currentProjectId === subProjectId ? currentProject : false;
+    if (!subProject && subProjectId) {
         subProject = subProjects.find(
             subProject =>
                 subProject._id === subProjectId ||
                 subProject._id === subProjectId._id
         );
+    }
     return (
         <div className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -354,9 +352,7 @@ const mapStateToProps = (state, props) => {
     schedule = schedule.find(
         schedule => schedule && schedule.slug === scheduleSlug
     );
-    const subProjectId =
-        state.subProject.currentSubProject.subProject &&
-        state.subProject.currentSubProject.subProject._id;
+    const subProjectId = schedule && schedule.projectId._id;
     const monitors = state.monitor.monitorsList.monitors
         .map(monitor => monitor.monitors)
         .flat();

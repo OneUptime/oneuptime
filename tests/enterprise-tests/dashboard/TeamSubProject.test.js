@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 let browser, page;
@@ -51,18 +51,22 @@ describe('Enterprise Team SubProject API', () => {
             const role = 'Member';
 
             await page.waitForSelector('#teamMembers', { visible: true });
-            await page.click('#teamMembers');
+            await init.pageClick(page, '#teamMembers');
             await page.waitForSelector(`#btn_${subProjectName}`, {
                 visible: true,
             });
-            await page.click(`#btn_${subProjectName}`);
+            await init.pageClick(page, `#btn_${subProjectName}`);
             await page.waitForSelector(`#frm_${subProjectName}`, {
                 visible: true,
             });
-            await page.click(`#emails_${subProjectName}`);
-            await page.type(`#emails_${subProjectName}`, newUser.email);
-            await page.click(`#${role}_${subProjectName}`);
-            await page.click(`#btn_modal_${subProjectName}`);
+            await init.pageClick(page, `#emails_${subProjectName}`);
+            await init.pageType(
+                page,
+                `#emails_${subProjectName}`,
+                newUser.email
+            );
+            await init.pageClick(page, `#${role}_${subProjectName}`);
+            await init.pageClick(page, `#btn_modal_${subProjectName}`);
             await page.waitForSelector(`#btn_modal_${subProjectName}`, {
                 hidden: true,
             });

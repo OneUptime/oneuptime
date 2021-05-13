@@ -24,7 +24,6 @@ import {
     switchStatusPage,
     fetchProjectStatusPage,
 } from '../actions/statusPage';
-import { fetchSubProject } from '../actions/subProject';
 import CustomStyles from '../components/statusPage/CustomStyles';
 import EmbeddedBubble from '../components/statusPage/EmbeddedBubble';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -80,7 +79,6 @@ class StatusPage extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > STATUS PAGE LIST > STATUS PAGE'
             );
         }
-        this.props.fetchSubProject(this.props.subProjectSlug);
     }
     componentWillMount() {
         resetIdCounter();
@@ -128,7 +126,6 @@ class StatusPage extends Component {
             statusPage: { status },
         } = this.props;
         const pageName = status ? status.name : null;
-        const projectId = this.props.projectId;
         const data = {
             statusPageId: status._id,
             projectId:
@@ -162,25 +159,53 @@ class StatusPage extends Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 basic-tab'
+                                    }
+                                >
                                     Basic
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 subscribers-tab'
+                                    }
+                                >
                                     Subscribers
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 announcements-tab'
+                                    }
+                                >
                                     Announcements
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 custom-domains-tab'
+                                    }
+                                >
                                     Custom Domains
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 branding-tab'
+                                    }
+                                >
                                     Branding
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 embedded-tab'
+                                    }
+                                >
                                     Embedded
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 advanced-options-tab'
+                                    }
+                                >
                                     Advanced Options
                                 </Tab>
                                 <div
@@ -233,7 +258,7 @@ class StatusPage extends Component {
                                                                 <div className="Box-root Margin-bottom--12 bs-ContentSection Card-root Card-shadow--medium>">
                                                                     <StatusPageSubscriber
                                                                         projectId={
-                                                                            projectId
+                                                                            data.projectId
                                                                         }
                                                                         statusPage={
                                                                             status
@@ -339,11 +364,6 @@ class StatusPage extends Component {
                                                                                             .props
                                                                                             .subProjectId
                                                                                     }
-                                                                                    subProjectSlug={
-                                                                                        this
-                                                                                            .props
-                                                                                            .subProjectSlug
-                                                                                    }
                                                                                     projectId={
                                                                                         history.location.pathname
                                                                                             .split(
@@ -410,23 +430,35 @@ const mapDispatchToProps = dispatch => {
             fetchSubProjectStatusPages,
             switchStatusPage,
             fetchProjectStatusPage,
-            fetchSubProject,
         },
         dispatch
     );
 };
 
 function mapStateToProps(state, props) {
-    const { subProjectSlug } = props.match.params;
+    const { statusPageSlug } = props.match.params;
+    const statusPageObject = state.statusPage;
+    let statusPage;
+    if (
+        statusPageObject.subProjectStatusPages &&
+        statusPageObject.subProjectStatusPages.length > 0
+    ) {
+        const { subProjectStatusPages } = statusPageObject;
+        subProjectStatusPages.forEach(subProject => {
+            const statusPages = subProject.statusPages;
+            if (!statusPage) {
+                statusPage = statusPages.find(
+                    page => page.slug === statusPageSlug
+                );
+            }
+        });
+    }
     return {
-        statusPage: state.statusPage,
-        subProjectSlug,
+        statusPage: statusPageObject,
         showDuplicateStatusPage: state.statusPage.showDuplicateStatusPage,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
-        subProjectId:
-            state.subProject.currentSubProject.subProject &&
-            state.subProject.currentSubProject.subProject._id,
+        subProjectId: statusPage && statusPage.projectId._id,
         subProjects: state.subProject.subProjects.subProjects,
         currentProject: state.project.currentProject,
     };
@@ -437,14 +469,12 @@ StatusPage.propTypes = {
     switchStatusPage: PropTypes.func,
     fetchProjectStatusPage: PropTypes.func,
     fetchSubProjectStatusPages: PropTypes.func,
-    fetchSubProject: PropTypes.func,
     showDuplicateStatusPage: PropTypes.bool,
     match: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
     projectId: PropTypes.string,
-    subProjectSlug: PropTypes.string,
     subProjectId: PropTypes.string,
     currentProject: PropTypes.object,
     subProjects: PropTypes.array,

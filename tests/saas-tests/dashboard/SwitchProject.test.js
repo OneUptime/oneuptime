@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../test-utils');
-const init = require('../../../test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 let browser, page;
@@ -16,7 +16,7 @@ describe('Project API', () => {
     const operationTimeOut = 50000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -42,11 +42,17 @@ describe('Project API', () => {
             await page.waitForSelector('#selector', { visible: true });
             await page.$eval('#create-project', e => e.click());
             await page.waitForSelector('#name', { visible: true });
-            await page.click('input[id=name]');
-            await page.type('input[id=name]', utils.generateRandomString());
-            await page.click('input[id=Startup_month]');
+            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageClick(page, 'input[id=name]');
+            await page.focus('input[id=name]');
+            await init.pageType(
+                page,
+                'input[id=name]',
+                utils.generateRandomString()
+            );
+            await init.pageClick(page, 'input[id=Startup_month]');
             await Promise.all([
-                page.click('button[type=submit]'),
+                init.pageClick(page, 'button[type=submit]'),
                 page.waitForNavigation(),
             ]);
             // eslint-disable-next-line no-undef
@@ -71,7 +77,7 @@ describe('Project API', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#AccountSwitcherId', { visible: true });
-            await page.click('#AccountSwitcherId');
+            await init.pageClick(page, '#AccountSwitcherId');
             await page.waitForSelector('#accountSwitcher', { visible: true });
 
             const element = await page.$(
