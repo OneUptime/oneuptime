@@ -106,6 +106,8 @@ export class StatusPageLayout extends Component {
     };
 
     render() {
+        const { statusPage } = this.props;
+        const pageLayout = statusPage && statusPage.updateLayout;
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -165,8 +167,8 @@ export class StatusPageLayout extends Component {
                                             >
                                                 VISIBLE{' '}
                                                 <span className="ContentHeader-description Text-color--inherit Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    (Items in this column ill be
-                                                    visible on status page)
+                                                    (Items in this column will
+                                                    be visible on status page)
                                                 </span>
                                             </div>
 
@@ -321,7 +323,32 @@ export class StatusPageLayout extends Component {
                                         </div>
                                     </div>
                                 </DragDropContext>
-                                <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Padding-horizontal--20 Padding-vertical--12">
+                                <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                    <span className="db-SettingsForm-footerMessage">
+                                        <ShouldRender if={pageLayout.error}>
+                                            <div className="bs-Tail-copy">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {pageLayout.error}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </ShouldRender>
+                                    </span>
                                     <div>
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue"
@@ -332,10 +359,14 @@ export class StatusPageLayout extends Component {
                                             onClick={this.handleSubmit}
                                             id="btnAddCustomStyles"
                                         >
-                                            <ShouldRender if={true}>
+                                            <ShouldRender
+                                                if={!pageLayout.requesting}
+                                            >
                                                 <span>Save</span>
                                             </ShouldRender>
-                                            <ShouldRender if={false}>
+                                            <ShouldRender
+                                                if={pageLayout.requesting}
+                                            >
                                                 <FormLoader />
                                             </ShouldRender>
                                         </button>
@@ -366,14 +397,7 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = ({ statusPage }) => {
-    const { headerHTML, footerHTML, customCSS, customJS } = statusPage.status;
     return {
-        initialValues: {
-            headerHTML,
-            footerHTML,
-            customCSS,
-            customJS,
-        },
         statusPage,
     };
 };

@@ -103,6 +103,9 @@ import {
     DELETE_ANNOUNCEMENT_REQUEST,
     DELETE_ANNOUNCEMENT_SUCCESS,
     RESET_DELETE_ANNOUNCEMENT,
+    UPDATE_STATUS_PAGE_LAYOUT_FAILURE,
+    UPDATE_STATUS_PAGE_LAYOUT_SUCCESS,
+    UPDATE_STATUS_PAGE_LAYOUT_REQUEST,
 } from '../constants/statusPage';
 
 import {
@@ -197,6 +200,11 @@ const INITIAL_STATE = {
         error: null,
     },
     verifyDomain: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    updateLayout: {
         requesting: false,
         success: false,
         error: null,
@@ -1537,6 +1545,30 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 resetBrandingColors: {
                     requesting: false,
                     error: action.payload,
+                    success: false,
+                },
+            });
+        case UPDATE_STATUS_PAGE_LAYOUT_FAILURE:
+            return Object.assign({}, state, {
+                updateLayout: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+        case UPDATE_STATUS_PAGE_LAYOUT_SUCCESS:
+            return Object.assign({}, state, {
+                updateLayout: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+            });
+        case UPDATE_STATUS_PAGE_LAYOUT_REQUEST:
+            return Object.assign({}, state, {
+                updateLayout: {
+                    requesting: true,
+                    error: null,
                     success: false,
                 },
             });
