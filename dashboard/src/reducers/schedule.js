@@ -263,7 +263,8 @@ export default function schedule(state = initialState, action) {
                 subProjectSchedules: isExistingSchedule
                     ? state.subProjectSchedules.length > 0
                         ? state.subProjectSchedules.map(schedule => {
-                              return schedule._id === action.payload.projectId._id
+                              return schedule._id ===
+                                  action.payload.projectId._id
                                   ? {
                                         _id: action.payload.projectId._id,
                                         schedules: [

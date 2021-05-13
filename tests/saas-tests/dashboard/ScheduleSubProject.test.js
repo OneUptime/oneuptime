@@ -23,7 +23,7 @@ describe('Schedule API With SubProjects', () => {
     const operationTimeOut = 500000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -75,7 +75,7 @@ describe('Schedule API With SubProjects', () => {
             // await init.switchProject(data.projectName, page);
 
             await page.waitForSelector('#onCallDuty');
-            await page.click('#onCallDuty');
+            await init.pageClick(page, '#onCallDuty');
 
             const createButton = await page.$(
                 `#btnCreateSchedule_${subProjectName}`
@@ -124,7 +124,7 @@ describe('Schedule API With SubProjects', () => {
         }
 
         await page.waitForSelector('#onCallDuty');
-        await page.click('#onCallDuty');
+        await init.pageClick(page, '#onCallDuty');
         await page.waitForSelector('tr.scheduleListItem');
 
         let scheduleRows = await page.$$('tr.scheduleListItem');
@@ -138,7 +138,7 @@ describe('Schedule API With SubProjects', () => {
         });
 
         // await nextSelector.click();
-        await page.click(`#btnNext-${subProjectName}`);
+        await init.pageClick(page, `#btnNext-${subProjectName}`);
         await page.waitForTimeout(5000);
         scheduleRows = await page.$$('tr.scheduleListItem');
         countSchedules = scheduleRows.length;
@@ -148,7 +148,7 @@ describe('Schedule API With SubProjects', () => {
         await page.waitForSelector(`#btnPrev-${subProjectName}`, {
             visible: true,
         });
-        await page.click(`#btnPrev-${subProjectName}`);
+        await init.pageClick(page, `#btnPrev-${subProjectName}`);
         //await prevSelector.click();
         await page.waitForTimeout(5000);
         scheduleRows = await page.$$('tr.scheduleListItem');
@@ -156,22 +156,25 @@ describe('Schedule API With SubProjects', () => {
         expect(countSchedules).toEqual(10);
 
         done();
-    }, 200000);
+    }, 600000);
 
     test(
         'should add monitor to sub-project schedule',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#onCallDuty');
-            await page.click('#onCallDuty');
+            await init.pageClick(page, '#onCallDuty');
             await page.waitForSelector('tr.scheduleListItem');
-            await page.click('tr.scheduleListItem');
+            await init.pageClick(page, 'tr.scheduleListItem');
             await page.waitForSelector(
                 `span[title="${subProjectMonitorName}"]`
             );
-            await page.click(`span[title="${subProjectMonitorName}"]`);
+            await init.pageClick(
+                page,
+                `span[title="${subProjectMonitorName}"]`
+            );
             await page.waitForSelector('#btnSaveMonitors');
-            await page.click('#btnSaveMonitors');
+            await init.pageClick(page, '#btnSaveMonitors');
             await page.waitForTimeout(5000);
 
             const monitorSelectValue = await page.$eval(
@@ -190,17 +193,17 @@ describe('Schedule API With SubProjects', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#onCallDuty');
-            await page.click('#onCallDuty');
+            await init.pageClick(page, '#onCallDuty');
             await page.waitForSelector('tr.scheduleListItem');
-            await page.click('tr.scheduleListItem');
+            await init.pageClick(page, 'tr.scheduleListItem');
             await page.waitForSelector('#delete');
-            await page.click('#delete');
+            await init.pageClick(page, '#delete');
             await page.waitForSelector('#confirmDelete');
-            await page.click('#confirmDelete');
+            await init.pageClick(page, '#confirmDelete');
             await page.waitForSelector('#confirmDelete', { hidden: true });
 
             await page.waitForSelector('#onCallDuty');
-            await page.click('#onCallDuty');
+            await init.pageClick(page, '#onCallDuty');
             await page.waitForSelector('tr.scheduleListItem');
 
             const scheduleRows = await page.$$('tr.scheduleListItem');

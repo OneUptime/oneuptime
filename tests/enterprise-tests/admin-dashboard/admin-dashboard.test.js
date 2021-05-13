@@ -49,5 +49,5 @@ describe('Enterprise Admin Dashboard API', () => {
         );
         page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
         done();
-    }, 160000);
+    }, 1600000);
 });

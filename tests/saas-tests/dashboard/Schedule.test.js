@@ -20,7 +20,7 @@ describe('Schedule', () => {
     const operationTimeOut = 1000000;
 
     beforeAll(async done => {
-        jest.setTimeout(2000000);
+        jest.setTimeout(6000000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -56,8 +56,8 @@ describe('Schedule', () => {
             await page.$eval(createScheduleBtn, elem => elem.click());
 
             await page.waitForSelector('#name');
-            await page.type('#name', newScheduleName);
-            await page.click('#btnCreateSchedule');
+            await init.pageType(page, '#name', newScheduleName);
+            await init.pageClick(page, '#btnCreateSchedule');
             await page.waitForSelector('#name', { hidden: true });
 
             await page.evaluate(() => {
@@ -66,7 +66,7 @@ describe('Schedule', () => {
                 elem[0].click();
             });
             await page.waitForSelector('#enableTeamRotation');
-            await page.click('#enableTeamRotation');
+            await init.pageClick(page, '#enableTeamRotation');
 
             const modal = await page.waitForSelector('#pricingPlanModal', {
                 visible: true,
@@ -93,7 +93,7 @@ describe('Schedule', () => {
                 elem[0].click();
             });
             await page.waitForSelector('#addOnCallDutyTimes');
-            await page.click('#addOnCallDutyTimes');
+            await init.pageClick(page, '#addOnCallDutyTimes');
 
             const modal = await page.waitForSelector('#pricingPlanModal', {
                 visible: true,
@@ -157,12 +157,12 @@ describe('Schedule', () => {
             await page.$eval(createScheduleBtn, elem => elem.click());
 
             await page.waitForSelector('#name');
-            await page.type('#name', newScheduleName);
-            await page.click('#btnCreateSchedule');
+            await init.pageType(page, '#name', newScheduleName);
+            await init.pageClick(page, '#btnCreateSchedule');
             await page.waitForSelector('#viewOnCallSchedule', {
                 visible: true,
             });
-            await page.click('#viewOnCallSchedule');
+            await init.pageClick(page, '#viewOnCallSchedule');
             await page.waitForSelector(`#cb${newScheduleName}`, {
                 visible: true,
             });

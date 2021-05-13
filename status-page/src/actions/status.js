@@ -114,10 +114,16 @@ export const individualNoteDisable = () => {
 };
 
 // Calls the API to get notes
-export const getStatusPageNote = (projectId, statusPageSlug, skip, limit) => {
+export const getStatusPageNote = (
+    projectId,
+    statusPageSlug,
+    skip,
+    limit,
+    days
+) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}&limit=${limit}`
+            `statusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}&limit=${limit}&days=${days}`
         );
 
         dispatch(statusPageNoteRequest());
@@ -220,10 +226,16 @@ export const scheduledEventReset = () => {
 };
 
 // Calls the API to get events
-export const getScheduledEvent = (projectId, statusPageSlug, skip, theme) => {
+export const getScheduledEvent = (
+    projectId,
+    statusPageSlug,
+    skip,
+    theme,
+    days
+) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}`
+            `statusPage/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&days=${days}`
         );
 
         dispatch(scheduledEventRequest());
@@ -1056,14 +1068,15 @@ export function getSingleAnnouncement(
                 dispatch(getSingleAnnouncementSuccess(response.data));
             },
             function(error) {
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-                dispatch(getSingleAnnouncementFailure(error));
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(getSingleAnnouncementFailure(errorMsg));
             }
         );
         return promise;

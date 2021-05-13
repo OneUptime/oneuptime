@@ -18,7 +18,7 @@ describe('Monitor API With SubProjects', () => {
     const operationTimeOut = 500000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -71,7 +71,7 @@ describe('Monitor API With SubProjects', () => {
             await init.registerAndLoggingTeamMember(user, page); // SubProject User registration and login
 
             await page.waitForSelector('#components', { visible: true });
-            await page.click('#components');
+            await init.pageClick(page, '#components');
             const newComponentForm = await page.$('#form-new-component');
             expect(newComponentForm).toEqual(null);
 
@@ -96,14 +96,14 @@ describe('Monitor API With SubProjects', () => {
             await page.waitForSelector('#monitors');
             await page.waitForSelector('#form-new-monitor');
             await page.waitForSelector('input[id=name]', { visible: true });
-            await page.click('input[id=name]');
+            await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', subProjectMonitorName);
-            await page.click('[data-testId=type_url]');
+            await init.pageType(page, 'input[id=name]', subProjectMonitorName);
+            await init.pageClick(page, '[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
-            await page.click('#url');
-            await page.type('#url', 'https://google.com');
-            await page.click('button[type=submit]');
+            await init.pageClick(page, '#url');
+            await init.pageType(page, '#url', 'https://google.com');
+            await init.pageClick(page, 'button[type=submit]');
             let spanElement = await page.waitForSelector(
                 `#monitor-title-${subProjectMonitorName}`,
                 { visible: true }
@@ -128,11 +128,11 @@ describe('Monitor API With SubProjects', () => {
 
             await page.waitForSelector('#form-new-monitor', { visible: true });
             await page.waitForSelector('input[id=name]', { visible: true });
-            await page.click('input[id=name]');
+            await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', monitorName);
-            await page.click('[data-testId=type_manual]');
-            await page.click('button[type=submit]');
+            await init.pageType(page, 'input[id=name]', monitorName);
+            await init.pageClick(page, '[data-testId=type_manual]');
+            await init.pageClick(page, 'button[type=submit]');
             let spanElement = await page.waitForSelector(
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: operationTimeOut }
@@ -155,7 +155,7 @@ describe('Monitor API With SubProjects', () => {
             await page.waitForSelector('#components', {
                 visible: true,
             });
-            await page.click('#components');
+            await init.pageClick(page, '#components');
 
             const projectBadgeSelector = await page.$(`#badge_${projectName}`);
 
@@ -188,30 +188,30 @@ describe('Monitor API With SubProjects', () => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#form-new-monitor');
             await page.waitForSelector('input[id=name]', { visible: true });
-            await page.click('input[id=name]');
+            await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', monitorName);
-            await page.click('[data-testId=type_manual]');
-            await page.click('#addMonitorButton');
+            await init.pageType(page, 'input[id=name]', monitorName);
+            await init.pageClick(page, '[data-testId=type_manual]');
+            await init.pageClick(page, '#addMonitorButton');
             await page.waitForSelector('.ball-beat', { hidden: true });
             await page.waitForSelector('#cbMonitors', {
                 visible: true,
             });
-            await page.click('#cbMonitors');
+            await init.pageClick(page, '#cbMonitors');
             await page.waitForSelector('#form-new-monitor', {
                 visible: true,
             });
             await page.waitForSelector('input[id=name]', { visible: true });
-            await page.click('input[id=name]');
+            await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', `${monitorName}1`);
-            await page.click('[data-testId=type_manual]');
-            await page.click('#addMonitorButton');
+            await init.pageType(page, 'input[id=name]', `${monitorName}1`);
+            await init.pageClick(page, '[data-testId=type_manual]');
+            await init.pageClick(page, '#addMonitorButton');
             await page.waitForSelector('.ball-beat', { hidden: true });
             await page.waitForSelector('#cbMonitors', {
                 visible: true,
             });
-            await page.click('#cbMonitors');
+            await init.pageClick(page, '#cbMonitors');
             await page.waitForSelector(`#badge_${subProjectName}`);
             const subProjectBadgeSelector = await page.$(
                 `#badge_${subProjectName}`

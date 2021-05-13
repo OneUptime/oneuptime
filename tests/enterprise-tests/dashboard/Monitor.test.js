@@ -15,7 +15,7 @@ describe('Enterprise Monitor API', () => {
     const operationTimeOut = 100000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -48,14 +48,14 @@ describe('Enterprise Monitor API', () => {
 
             await page.waitForSelector('#form-new-monitor', { visible: true });
             await page.waitForSelector('input[id=name]', { visible: true });
-            await page.click('input[id=name]');
+            await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            await page.type('input[id=name]', monitorName);
-            await page.click('[data-testId=type_url]');
+            await init.pageType(page, 'input[id=name]', monitorName);
+            await init.pageClick(page, '[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
-            await page.click('#url');
-            await page.type('#url', 'https://google.com');
-            await page.click('button[type=submit]');
+            await init.pageClick(page, '#url');
+            await init.pageType(page, '#url', 'https://google.com');
+            await init.pageClick(page, 'button[type=submit]');
 
             let spanElement = await page.waitForSelector(
                 `#monitor-title-${monitorName}`,

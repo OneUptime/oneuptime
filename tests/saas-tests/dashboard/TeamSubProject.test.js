@@ -20,7 +20,7 @@ describe('Team API With SubProjects', () => {
     const operationTimeOut = 100000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -55,18 +55,18 @@ describe('Team API With SubProjects', () => {
         const role = 'Administrator';
 
         await page.waitForSelector('#teamMembers');
-        await page.click('#teamMembers');
+        await init.pageClick(page, '#teamMembers');
         await page.waitForSelector(`#btn_${projectName}`);
-        await page.click(`#btn_${projectName}`);
+        await init.pageClick(page, `#btn_${projectName}`);
         await page.waitForSelector(`#frm_${projectName}`);
         await page.waitForSelector(`#emails_${projectName}`);
-        await page.click(`#emails_${projectName}`);
-        await page.type(`#emails_${projectName}`, anotherEmail);
-        await page.click(`#${role}_${projectName}`);
+        await init.pageClick(page, `#emails_${projectName}`);
+        await init.pageType(page, `#emails_${projectName}`, anotherEmail);
+        await init.pageClick(page, `#${role}_${projectName}`);
         await page.waitForSelector(`#btn_modal_${projectName}`);
-        await page.click(`#btn_modal_${projectName}`);
+        await init.pageClick(page, `#btn_modal_${projectName}`);
         await page.waitForSelector('#btnConfirmInvite');
-        await page.click('#btnConfirmInvite');
+        await init.pageClick(page, '#btnConfirmInvite');
         await page.waitForSelector(`#btn_modal_${projectName}`, {
             hidden: true,
         });
@@ -79,51 +79,51 @@ describe('Team API With SubProjects', () => {
         expect(memberCount).toEqual('Page 1 of 1 (2 Team Members)');
 
         done();
-    }, 200000);
+    }, 600000);
 
     test('should not allow project owner to add other project owners', async done => {
         await page.goto(utils.DASHBOARD_URL);
         const role = 'Owner';
 
         await page.waitForSelector('#teamMembers');
-        await page.click('#teamMembers');
+        await init.pageClick(page, '#teamMembers');
         await page.waitForSelector(`#btn_${projectName}`);
-        await page.click(`#btn_${projectName}`);
+        await init.pageClick(page, `#btn_${projectName}`);
         await page.waitForSelector(`#frm_${projectName}`);
         const elementHandle = await page.$(`#${role}_${projectName}`);
         expect(elementHandle).toEqual(null);
         done();
-    }, 200000);
+    }, 600000);
 
     test('should not allow administrator to add project owners', async done => {
         await page.goto(utils.DASHBOARD_URL);
         const role = 'Owner';
 
         await page.waitForSelector('#teamMembers');
-        await page.click('#teamMembers');
+        await init.pageClick(page, '#teamMembers');
         await page.waitForSelector(`#btn_${projectName}`);
-        await page.click(`#btn_${projectName}`);
+        await init.pageClick(page, `#btn_${projectName}`);
         await page.waitForSelector(`#frm_${projectName}`);
         const elementHandle = await page.$(`#${role}_${projectName}`);
         expect(elementHandle).toEqual(null);
 
         done();
-    }, 200000);
+    }, 600000);
 
     test('should add a new user to sub-project (role -> `Member`)', async done => {
         await page.goto(utils.DASHBOARD_URL);
         const role = 'Member';
 
         await page.waitForSelector('#teamMembers', { visible: true });
-        await page.click('#teamMembers');
+        await init.pageClick(page, '#teamMembers');
         await page.waitForSelector(`#btn_${subProjectName}`);
-        await page.click(`#btn_${subProjectName}`);
+        await init.pageClick(page, `#btn_${subProjectName}`);
         await page.waitForSelector(`#frm_${subProjectName}`);
-        await page.click(`#emails_${subProjectName}`);
-        await page.type(`#emails_${subProjectName}`, newEmail);
-        await page.click(`#${role}_${subProjectName}`);
+        await init.pageClick(page, `#emails_${subProjectName}`);
+        await init.pageType(page, `#emails_${subProjectName}`, newEmail);
+        await init.pageClick(page, `#${role}_${subProjectName}`);
         await page.waitForSelector(`#btn_modal_${subProjectName}`);
-        await page.click(`#btn_modal_${subProjectName}`);
+        await init.pageClick(page, `#btn_modal_${subProjectName}`);
         await page.waitForSelector(`#btn_modal_${subProjectName}`, {
             hidden: true,
         });
@@ -136,7 +136,7 @@ describe('Team API With SubProjects', () => {
         expect(memberCount).toEqual('Page 1 of 1 (3 Team Members)');
 
         done();
-    }, 200000);
+    }, 600000);
 
     test(
         'should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)',
@@ -146,11 +146,11 @@ describe('Team API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL);
 
             await page.waitForSelector('#teamMembers');
-            await page.click('#teamMembers');
+            await init.pageClick(page, '#teamMembers');
             await page.waitForSelector(`#changeRole_${emailSelector}`);
-            await page.click(`#changeRole_${emailSelector}`);
+            await init.pageClick(page, `#changeRole_${emailSelector}`);
             await page.waitForSelector(`div[title="${newRole}"]`);
-            await page.click(`div[title="${newRole}"]`);
+            await init.pageClick(page, `div[title="${newRole}"]`);
 
             const member = await page.waitForSelector(
                 `#${newRole}_${emailSelector}`,
@@ -172,13 +172,13 @@ describe('Team API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL);
 
             await page.waitForSelector('#teamMembers');
-            await page.click('#teamMembers');
+            await init.pageClick(page, '#teamMembers');
             await page.waitForSelector(`#removeMember__${emailSelector}`, {
                 visible: true,
             });
-            await page.click(`#removeMember__${emailSelector}`);
+            await init.pageClick(page, `#removeMember__${emailSelector}`);
             await page.waitForSelector('#removeTeamUser');
-            await page.click('#removeTeamUser');
+            await init.pageClick(page, '#removeTeamUser');
             await page.waitForSelector('#removeTeamUser', {
                 hidden: true,
             });
@@ -204,16 +204,16 @@ describe('Team API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL);
 
             await page.waitForSelector('#teamMembers');
-            await page.click('#teamMembers');
+            await init.pageClick(page, '#teamMembers');
             await page.waitForSelector(`button[id=btn_${projectName}]`);
-            await page.click(`button[id=btn_${projectName}]`);
+            await init.pageClick(page, `button[id=btn_${projectName}]`);
             await page.waitForSelector('input[name=emails]');
-            await page.click('input[name=emails]');
-            await page.type('input[name=emails]', nonBusinessEmail);
+            await init.pageClick(page, 'input[name=emails]');
+            await init.pageType(page, 'input[name=emails]', nonBusinessEmail);
             await page.waitForSelector(`#${role}_${projectName}`);
-            await page.click(`#${role}_${projectName}`);
+            await init.pageClick(page, `#${role}_${projectName}`);
             await page.waitForSelector(`#btn_modal_${projectName}`);
-            await page.click(`#btn_modal_${projectName}`);
+            await init.pageClick(page, `#btn_modal_${projectName}`);
             let spanElement = await page.waitForSelector(
                 `#frm_${projectName} span#field-error`
             );
@@ -237,20 +237,20 @@ describe('Team API With SubProjects', () => {
 
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#teamMembers');
-            await page.click('#teamMembers');
+            await init.pageClick(page, '#teamMembers');
 
             // Invite a team member
             await page.waitForSelector(`#btn_${projectName}`);
-            await page.click(`#btn_${projectName}`);
+            await init.pageClick(page, `#btn_${projectName}`);
             await page.waitForSelector(`#frm_${projectName}`);
             await page.waitForSelector(`#emails_${projectName}`);
-            await page.click(`#emails_${projectName}`);
-            await page.type(`#emails_${projectName}`, anotherEmail);
-            await page.click(`#Member_${projectName}`);
+            await init.pageClick(page, `#emails_${projectName}`);
+            await init.pageType(page, `#emails_${projectName}`, anotherEmail);
+            await init.pageClick(page, `#Member_${projectName}`);
             await page.waitForSelector(`#btn_modal_${projectName}`);
-            await page.click(`#btn_modal_${projectName}`);
+            await init.pageClick(page, `#btn_modal_${projectName}`);
             await page.waitForSelector('#btnConfirmInvite');
-            await page.click('#btnConfirmInvite');
+            await init.pageClick(page, '#btnConfirmInvite');
             await page.waitForSelector(`#btn_modal_${projectName}`, {
                 hidden: true,
             });
@@ -267,11 +267,11 @@ describe('Team API With SubProjects', () => {
             );
             expect(oldOwnerRole).toEqual('Owner');
 
-            await page.click(`#changeRole_${memberEmailSelector}`);
+            await init.pageClick(page, `#changeRole_${memberEmailSelector}`);
             await page.waitForSelector(`div[title="${newRole}"]`);
-            await page.click(`div[title="${newRole}"]`);
+            await init.pageClick(page, `div[title="${newRole}"]`);
             await page.waitForSelector('#confirmRoleChange');
-            await page.click('#confirmRoleChange');
+            await init.pageClick(page, '#confirmRoleChange');
             await page.waitForTimeout(5000);
             const newMemberRole = await page.$eval(
                 `#Owner_${memberEmailSelector}`,

@@ -768,6 +768,7 @@ router.get(
         const statusPageSlug = req.params.statusPageSlug;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 5;
+        const days = req.query.days || 14;
         try {
             // Call the StatusPageService.
             const response = await StatusPageService.getNotes(
@@ -795,7 +796,7 @@ router.get(
                         });
                     }
                 }
-                result = formatNotes(updatedNotes);
+                result = formatNotes(updatedNotes, days);
                 result = checkDuplicateDates(result);
             } else {
                 result = notes;
@@ -930,6 +931,7 @@ router.get(
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 5;
         const theme = req.query.theme;
+        const days = req.query.days || 14;
         try {
             // Call the StatusPageService.
             const response = await StatusPageService.getEvents(
@@ -955,6 +957,7 @@ router.get(
                             notes: statusPageEvent.notes,
                         });
                     }
+                    events = formatNotes(updatedEvents, days);
                     events = checkDuplicateDates(events);
                 }
             }
@@ -1431,9 +1434,9 @@ router.delete(
     }
 );
 
-const formatNotes = (data = []) => {
+const formatNotes = (data = [], days) => {
     const result = [];
-    const limit = 15;
+    const limit = days - 1;
 
     for (let i = 0; i <= limit; i++) {
         const date = new Date();
@@ -1454,17 +1457,8 @@ const formatNotes = (data = []) => {
                         incidentDate.toDateString() && !lastIncident._id
                         ? (result[result.length - 1] = incident)
                         : result.push(incident);
-                } else {
-                    const lastIncident = result[result.length - 1];
-                    const lastIncidentDate = new Date(lastIncident?.createdAt);
-                    if (lastIncidentDate.toDateString() !== date.toDateString())
-                        result.push({
-                            createdAt: new Date(date).toISOString(),
-                        });
                 }
             }
-        } else {
-            result.push({ createdAt: new Date(date).toISOString() });
         }
     }
 
