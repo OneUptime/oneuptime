@@ -262,6 +262,63 @@ export const getScheduledEvent = (
     };
 };
 
+export const ongoingEventSuccess = data => {
+    return {
+        type: types.ONGOING_SCHEDULED_EVENTS_SUCCESS,
+        payload: data,
+    };
+};
+
+export const ongoingEventRequest = () => {
+    return {
+        type: types.ONGOING_SCHEDULED_EVENTS_REQUEST,
+    };
+};
+
+export const ongoingEventFailure = error => {
+    return {
+        type: types.ONGOING_SCHEDULED_EVENTS_FAILURE,
+        payload: error,
+    };
+};
+
+export const ongoingEventReset = () => {
+    return {
+        type: types.ONGOING_SCHEDULED_EVENTS_RESET,
+    };
+};
+
+// Calls the API to get events
+export const getOngoingScheduledEvent = (projectId, statusPageSlug, theme) => {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/${statusPageSlug}/ongoingEvent?&theme=${theme}`
+        );
+
+        dispatch(ongoingEventRequest());
+
+        promise.then(
+            Data => {
+                dispatch(ongoingEventSuccess(Data.data));
+            },
+            error => {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                }
+                if (error.length > 100) {
+                    error = 'Network Error';
+                }
+                dispatch(ongoingEventFailure(errors(error)));
+            }
+        );
+    };
+};
+
 export const individualEventsRequest = () => ({
     type: types.INDIVIDUAL_EVENTS_REQUEST,
 });

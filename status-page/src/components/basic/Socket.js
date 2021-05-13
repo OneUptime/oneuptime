@@ -25,6 +25,7 @@ import {
     deleteeventnotebysocket,
     updateeventnotebysocket,
     resolvescheduledeventbysocket,
+    fetchongoingscheduledeventbysocket,
 } from '../../actions/socket';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.

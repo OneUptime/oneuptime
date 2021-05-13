@@ -14,10 +14,14 @@ import {
     SCHEDULED_EVENTS_REQUEST,
     SCHEDULED_EVENTS_SUCCESS,
     SCHEDULED_EVENTS_FAILURE,
+    ONGOING_SCHEDULED_EVENTS_REQUEST,
+    ONGOING_SCHEDULED_EVENTS_SUCCESS,
+    ONGOING_SCHEDULED_EVENTS_FAILURE,
     MORE_EVENTS_REQUEST,
     MORE_EVENTS_SUCCESS,
     MORE_EVENTS_FAILURE,
     SCHEDULED_EVENTS_RESET,
+    ONGOING_SCHEDULED_EVENTS_RESET,
     SELECT_PROBE,
     FETCH_MONITOR_STATUSES_REQUEST,
     FETCH_MONITOR_STATUSES_SUCCESS,
@@ -84,6 +88,12 @@ const INITIAL_STATE = {
         requesting: false,
         skip: 0,
         count: 0,
+    },
+    ongoing: {
+        error: null,
+        ongoing: false,
+        requesting: false,
+        success: false,
     },
     futureEvents: {
         requesting: false,
@@ -615,6 +625,40 @@ export default (state = INITIAL_STATE, action) => {
                     requesting: false,
                     skip: 0,
                     count: 0,
+                },
+            });
+
+        case ONGOING_SCHEDULED_EVENTS_SUCCESS:
+            return Object.assign({}, state, {
+                error: null,
+                ongoing: action.payload.data,
+                requesting: false,
+            });
+
+        case ONGOING_SCHEDULED_EVENTS_FAILURE:
+            return Object.assign({}, state, {
+                events: {
+                    error: action.payload,
+                    ongoing: state.ongoing.ongoing,
+                    requesting: false,
+                },
+            });
+
+        case ONGOING_SCHEDULED_EVENTS_REQUEST:
+            return Object.assign({}, state, {
+                ongoing: {
+                    error: null,
+                    ongoing: false,
+                    requesting: true,
+                },
+            });
+
+        case ONGOING_SCHEDULED_EVENTS_RESET:
+            return Object.assign({}, state, {
+                ongoing: {
+                    error: null,
+                    ongoing: false,
+                    requesting: false,
                 },
             });
 

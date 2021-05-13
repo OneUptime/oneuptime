@@ -16,6 +16,7 @@ import {
     getStatusPage,
     selectedProbe,
     getScheduledEvent,
+    getOngoingScheduledEvent,
 } from '../actions/status';
 import { getProbes } from '../actions/probe';
 import LineChartsContainer from './LineChartsContainer';
@@ -98,6 +99,12 @@ class Main extends Component {
                 0,
                 this.props.statusData.theme === 'Clean Theme' ? true : false,
                 this.props.scheduleHistoryDays || 14
+            );
+
+            this.props.getOngoingScheduledEvent(
+                this.props.statusData.projectId._id,
+                this.props.statusData.slug,
+                this.props.statusData.theme === 'Clean Theme' ? true : false
             );
         }
     }
@@ -547,7 +554,9 @@ class Main extends Component {
                                     style={{ backgroundColor: newbg }}
                                     id="status-note"
                                 >
-                                    {newStatusMessage}
+                                    {this.props.ongoing
+                                        ? 'Ongoing Scheduled Maintenance Event'
+                                        : newStatusMessage}
                                 </div>
                                 <ShouldRender
                                     if={
@@ -1307,8 +1316,8 @@ const mapStateToProps = state => ({
     requestingEvents: state.status.events.requesting,
     statusPage: state.status.statusPage,
     isSubscriberEnabled: state.status.statusPage.isSubscriberEnabled,
-
     scheduleHistoryDays: state.status.statusPage.scheduleHistoryDays,
+    ongoing: state.status.ongoing.ongoing,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -1318,6 +1327,7 @@ const mapDispatchToProps = dispatch =>
             selectedProbe,
             getScheduledEvent,
             getProbes,
+            getOngoingScheduledEvent,
         },
         dispatch
     );
@@ -1327,6 +1337,7 @@ Main.propTypes = {
     status: PropTypes.object,
     getStatusPage: PropTypes.func,
     getProbes: PropTypes.func,
+    getOngoingScheduledEvent: PropTypes.func,
     login: PropTypes.object.isRequired,
     monitorState: PropTypes.array,
     monitors: PropTypes.array,
@@ -1340,6 +1351,7 @@ Main.propTypes = {
     requestingEvents: PropTypes.bool,
     statusPage: PropTypes.object,
     isSubscriberEnabled: PropTypes.bool.isRequired,
+    ongoing: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

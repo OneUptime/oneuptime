@@ -507,7 +507,9 @@ class MonitorInfo extends Component {
                                     textTransform: 'capitalize',
                                 }}
                             >
-                                {monitorStatus === 'online'
+                                {this.props.ongoing
+                                    ? 'Ongoing Scheduled Event'
+                                    : monitorStatus === 'online'
                                     ? 'operational'
                                     : monitorStatus}
                             </div>
@@ -710,6 +712,7 @@ function mapStateToProps(state) {
         activeProbe: state.status.activeProbe,
         probes: state.probe.probes,
         colors: state.status.statusPage.colors,
+        ongoing: state.status.ongoing.ongoing,
     };
 }
 
@@ -737,6 +740,7 @@ MonitorInfo.propTypes = {
     isGroupedByMonitorCategory: PropTypes.bool,
     theme: PropTypes.string,
     checkUptime: PropTypes.bool,
+    ongoing: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInfo);

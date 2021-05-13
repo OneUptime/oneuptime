@@ -940,6 +940,7 @@ router.get(
                 limit,
                 theme
             );
+
             let events = response.events;
             const count = response.count;
             if ((theme && typeof theme === 'boolean') || theme === 'true') {
@@ -957,11 +958,60 @@ router.get(
                             notes: statusPageEvent.notes,
                         });
                     }
+
                     events = formatNotes(updatedEvents, days);
                     events = checkDuplicateDates(events);
                 }
             }
             return sendListResponse(req, res, events, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.get(
+    '/:projectId/:statusPageSlug/ongoingEvent',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        const statusPageSlug = req.params.statusPageSlug;
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 5;
+        const theme = req.query.theme;
+        try {
+            // Call the StatusPageService.
+            const response = await StatusPageService.getEvents(
+                { slug: statusPageSlug },
+                skip,
+                limit,
+                theme
+            );
+
+            let events = response.events;
+            const count = response.count;
+            onGoingEventCount = 0;
+            if ((theme && typeof theme === 'boolean') || theme === 'true') {
+                const updatedEvents = [];
+                if (events.length > 0) {
+                    for (const event of events) {
+                        if (
+                            !event.cancelled &&
+                            !event.deleted &&
+                            !event.resolved &&
+                            event.showEventOnStatusPage &&
+                            moment() < moment(event.endDate)
+                        ) {
+                            onGoingEventCount++;
+                        }
+                    }
+                }
+            }
+
+            const ongoing = onGoingEventCount > 0 ? true : false;
+            return sendListResponse(req, res, {
+                ongoing,
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

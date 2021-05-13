@@ -168,3 +168,12 @@ export function resolvescheduledeventbysocket(event) {
         });
     };
 }
+
+export function fetchongoingscheduledeventbysocket(event) {
+    return function(dispatch) {
+        dispatch({
+            type: 'ONGOING_SCHEDULED_EVENT',
+            payload: event,
+        });
+    };
+}
