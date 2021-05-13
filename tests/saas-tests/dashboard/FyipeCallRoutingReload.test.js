@@ -41,7 +41,7 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#more');
             await init.pageClick(page, '#callRouting');
             await init.pageClick(page, '#addRoutingNumberButton');            
-            await page.waitForSelector('#addNumber', { hidden : true });
+            await page.waitForSelector('#addNumber', { visible : true });
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbProjectSettings', { visible: true });            
