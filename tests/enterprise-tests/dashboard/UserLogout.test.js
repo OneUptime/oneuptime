@@ -37,18 +37,14 @@ describe('User logout', () => {
             await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
-            await page.waitForTimeout('#profile-menu');
+            await page.waitForSelector('#profile-menu');
             await init.pageClick(page, '#profile-menu');
-            await page.waitForTimeout('#logout-button');
-            await Promise.all([
-                init.pageClick(page, '#logout-button'),
-                page.waitForNavigation({ waitUntil: 'networkidle2' }),
-            ]);
+            await page.waitForSelector('#logout-button');
+            await init.pageClick(page, '#logout-button');
+            await page.waitForNavigation({ waitUntil: 'networkidle2' });
+            await page.goto(utils.ADMIN_DASHBOARD_URL);
+            await page.waitForNavigation({ waitUntil: 'networkidle2' });
 
-            await Promise.all([
-                page.goto(utils.ADMIN_DASHBOARD_URL),
-                page.waitForNavigation({ waitUntil: 'networkidle2' }),
-            ]);
             expect(page.url()).toEqual(`${utils.ACCOUNTS_URL}/accounts/login`);
             done();
         },

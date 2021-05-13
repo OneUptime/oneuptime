@@ -11,7 +11,7 @@ describe('User Feedback', () => {
     const operationTimeOut = 50000;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -46,7 +46,7 @@ describe('User Feedback', () => {
             await init.pageClick(page, '#feedback-div', { clickCount: 2 });
             await init.pageType(page, '#feedback-textarea', testFeedback);
             await init.pageClick(page, '#feedback-button');
-            await page.waitForTimeout(3000);
+            await page.waitForSelector('#feedback-div');
 
             const feedbackMessage = await page.$eval(
                 '#feedback-div',

@@ -6,7 +6,7 @@ let page, browser;
 
 describe('Request demo', () => {
     beforeAll(async done => {
-        jest.setTimeout(15000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(util.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -43,7 +43,7 @@ describe('Request demo', () => {
         );
         expect(emailSubmitted).toBe(util.user.email);
         done();
-    }, 600000);
+    }, init.timeout);
     test('user can request for website monitoring resource', async done => {
         await page.goto(`${util.HOME_URL}/enterprise/resources`);
         await page.waitForSelector('#website-monitoring', { visible: true });
@@ -70,7 +70,7 @@ describe('Request demo', () => {
         );
         expect(emailSubmitted).toBe(util.user.email);
         done();
-    }, 600000);
+    }, init.timeout);
     test('user can request for speed equals revenue resource', async done => {
         await page.goto(`${util.HOME_URL}/enterprise/resources`);
         await page.waitForSelector('#speed-revenue', { visible: true });
@@ -97,7 +97,7 @@ describe('Request demo', () => {
         );
         expect(emailSubmitted).toBe(util.user.email);
         done();
-    }, 600000);
+    }, init.timeout);
     test('user can request for best practices resource', async done => {
         await page.goto(`${util.HOME_URL}/enterprise/resources`);
         await page.waitForSelector('#best-practices', { visible: true });
@@ -124,7 +124,7 @@ describe('Request demo', () => {
         );
         expect(emailSubmitted).toBe(util.user.email);
         done();
-    }, 600000);
+    }, init.timeout);
     test('user can request for peak performance resource', async done => {
         await page.goto(`${util.HOME_URL}/enterprise/resources`);
         await page.waitForSelector('#peak-performance', { visible: true });
@@ -151,5 +151,5 @@ describe('Request demo', () => {
         );
         expect(emailSubmitted).toBe(util.user.email);
         done();
-    }, 600000);
+    }, init.timeout);
 });

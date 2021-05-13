@@ -20,7 +20,7 @@ describe('Scheduled event', () => {
     const operationTimeOut = 50000;
 
     beforeAll(async () => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -80,22 +80,17 @@ describe('Scheduled event', () => {
                 'This is an example description for a test'
             );
 
-            /**
-             * commented the code below because the current date is the default selection
-             * and to reduce the amount of time for a test
-             */
+            await page.waitForSelector('input[name=startDate]');
+            await init.pageClick(page,'input[name=startDate]');
+            await init.pageClick(page,
+                'div.MuiDialogActions-root button:nth-child(2)'
+            );
 
-            // await page.waitForSelector('input[name=startDate]');
-            // await init.pageClick(page,'input[name=startDate]');
-            // await init.pageClick(page,
-            //     'div.MuiDialogActions-root button:nth-child(2)'
-            // );
-            // await page.waitForTimeout(1000); // needed because of the date picker
-            // await init.pageClick(page,'input[name=endDate]');
-            // await init.pageClick(page,
-            //     'div.MuiDialogActions-root button:nth-child(2)'
-            // );
-            // await page.waitForTimeout(1000); // needed because of the date picker
+            await init.pageClick(page,'input[name=endDate]');
+            await init.pageClick(page,
+                'div.MuiDialogActions-root button:nth-child(2)'
+            );
+
             await init.pageClick(page, '#createScheduledEventButton');
             const monitorError = await page.waitForSelector('#monitorError', {
                 visible: true,
@@ -138,22 +133,19 @@ describe('Scheduled event', () => {
                 'This is an example description for a test'
             );
 
-            /**
-             * commented the code below because the current date is the default selection
-             * and to reduce the amount of time for a test
-             */
+            
+            await page.waitForSelector('input[name=startDate]');
+            await init.pageClick(page,'input[name=startDate]');
+            await init.pageClick(page,
+                'div.MuiDialogActions-root button:nth-child(2)'
+            );
+            
+            await init.pageClick(page,'input[name=endDate]');
+            await init.pageClick(page,
+                'div.MuiDialogActions-root button:nth-child(2)'
+            );
+           
 
-            // await page.waitForSelector('input[name=startDate]');
-            // await init.pageClick(page,'input[name=startDate]');
-            // await init.pageClick(page,
-            //     'div.MuiDialogActions-root button:nth-child(2)'
-            // );
-            // await page.waitForTimeout(1000); // needed because of the date picker
-            // await init.pageClick(page,'input[name=endDate]');
-            // await init.pageClick(page,
-            //     'div.MuiDialogActions-root button:nth-child(2)'
-            // );
-            // await page.waitForTimeout(1000); // needed because of the date picker
             await init.pageClick(page, '#createScheduledEventButton');
             await page.waitForSelector('#scheduledEventForm', {
                 hidden: true,

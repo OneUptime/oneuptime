@@ -12,10 +12,10 @@ const user = {
 };
 
 describe('Stripe cards API', () => {
-    const operationTimeOut = 600000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();

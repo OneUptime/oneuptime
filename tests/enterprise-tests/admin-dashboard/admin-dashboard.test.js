@@ -16,7 +16,7 @@ const user = {
 
 describe('Enterprise Admin Dashboard API', () => {
     beforeAll(async done => {
-        jest.setTimeout(15000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -49,5 +49,5 @@ describe('Enterprise Admin Dashboard API', () => {
         );
         page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
         done();
-    }, 1600000);
+    }, 1init.timeout);
 });

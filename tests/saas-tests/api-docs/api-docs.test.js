@@ -5,7 +5,7 @@ let page, browser;
 
 describe('Check api-docs up', () => {
     beforeAll(async done => {
-        jest.setTimeout(15000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -28,5 +28,5 @@ describe('Check api-docs up', () => {
         });
         expect(response).toBe('Fyipe API Documentation');
         done();
-    }, 600000);
+    }, init.timeout);
 });

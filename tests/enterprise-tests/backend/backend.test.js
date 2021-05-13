@@ -5,7 +5,7 @@ let page, browser;
 
 describe('Enterprise Backend API', () => {
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         done();

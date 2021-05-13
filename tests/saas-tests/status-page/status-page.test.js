@@ -18,7 +18,7 @@ const statusPageName = utils.generateRandomString();
 
 describe('Check status-page up', () => {
     beforeAll(async done => {
-        jest.setTimeout(15000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -42,7 +42,7 @@ describe('Check status-page up', () => {
         });
         expect(response).toBe('Page Not Found');
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should create a status-page', async done => {
         await init.registerUser(user, page);
@@ -84,7 +84,7 @@ describe('Check status-page up', () => {
         expect(spanElement).toMatch(statusPageName);
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should create a manual monitor', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -108,7 +108,7 @@ describe('Check status-page up', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should add monitor to status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -150,7 +150,7 @@ describe('Check status-page up', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('Should confirm status-page monitor values does not change on theme change', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -181,7 +181,7 @@ describe('Check status-page up', () => {
         spanElement = await spanElement.jsonValue();
         expect(spanElement).toMatch(`${componentName} / ${monitorName}`); // Another Confirmation
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should add more monitors and see if they are present on the status-page', async done => {
         // This creates 2 additonal monitors
@@ -205,7 +205,7 @@ describe('Check status-page up', () => {
         expect(monitorLength).toEqual(3);
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should create an offline incident and view it on status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -239,7 +239,7 @@ describe('Check status-page up', () => {
         expect(spanElement).toMatch('Some resources are offline');
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should resolve offline incident and view status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -261,7 +261,7 @@ describe('Check status-page up', () => {
         spanElement = await spanElement.jsonValue();
         expect(spanElement).toMatch('All resources are operational');
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should create an degraded incident and view it on status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -297,7 +297,7 @@ describe('Check status-page up', () => {
         expect(spanElement).toMatch('Some resources are degraded');
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should resolve degraded incident and view status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -319,7 +319,7 @@ describe('Check status-page up', () => {
         spanElement = await spanElement.jsonValue();
         expect(spanElement).toMatch('All resources are operational');
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should create an offline incident and confirm the description note on status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -358,5 +358,5 @@ describe('Check status-page up', () => {
         spanElement = await spanElement.jsonValue();
         expect(spanElement).toMatch(note);
         done();
-    }, 600000);
+    }, init.timeout);
 });

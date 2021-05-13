@@ -19,7 +19,7 @@ describe('Custom SMTP Settings', () => {
     const operationTimeOut = 500000;
 
     beforeAll(async done => {
-        jest.setTimeout(3600000);
+        jest.setTimeout(3init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();

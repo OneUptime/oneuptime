@@ -48,7 +48,7 @@ describe('Users', () => {
             });
             await init.pageClick(browserPage, `#${user.email.split('@')[0]}`);
             await browserPage.waitForSelector('#delete', { visible: true });
-            await browserPage.waitForTimeout(1000);
+           
             await init.pageClick(browserPage, '#delete');
             await browserPage.waitForSelector('#confirmDelete', {
                 visible: true,
@@ -76,7 +76,7 @@ describe('Users', () => {
                 { visible: true }
             );
             await init.pageClick(page, `#deleted__${user.email.split('@')[0]}`);
-            await page.waitForTimeout(1000);
+            
             await page.waitForSelector('#restore', { visible: true });
             await init.pageClick(page, '#restore');
             const delBtn = await page.waitForSelector('#delete', {

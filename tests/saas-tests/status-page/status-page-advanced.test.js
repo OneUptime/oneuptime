@@ -20,7 +20,7 @@ const customDomainWebsite = `www.${utils.generateRandomString()}.com`;
 
 describe('Status-Page Advanced Options', () => {
     beforeAll(async done => {
-        jest.setTimeout(15000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -68,7 +68,7 @@ describe('Status-Page Advanced Options', () => {
         expect(spanElement).toMatch(statusPageName);
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should create a manual monitor', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -106,7 +106,7 @@ describe('Status-Page Advanced Options', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should add monitor to status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -147,7 +147,7 @@ describe('Status-Page Advanced Options', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should add subscriber', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -175,7 +175,7 @@ describe('Status-Page Advanced Options', () => {
         expect(subscriberContact).toBeDefined();
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should view created subscriber on status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -198,7 +198,7 @@ describe('Status-Page Advanced Options', () => {
         expect(subscriberContact).toBeDefined();
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should create custom domain in status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -226,7 +226,7 @@ describe('Status-Page Advanced Options', () => {
         expect(customDomain).toBeDefined();
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should enable add subscriber from advanced options and view on status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -259,7 +259,7 @@ describe('Status-Page Advanced Options', () => {
         expect(subscriberButton).toBeDefined();
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should navigate to status-page and add subscriber', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -283,7 +283,7 @@ describe('Status-Page Advanced Options', () => {
         );
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should delete status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -313,5 +313,5 @@ describe('Status-Page Advanced Options', () => {
         expect(deletedStatusPage).toBeDefined();
 
         done();
-    }, 600000);
+    }, init.timeout);
 });

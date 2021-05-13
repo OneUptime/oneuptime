@@ -17,10 +17,10 @@ const monitorName = utils.generateRandomString();
 const callScheduleName = utils.generateRandomString();
 
 describe('Schedule', () => {
-    const operationTimeOut = 1000000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(6000000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(

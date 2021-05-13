@@ -11,6 +11,8 @@ const _this = {
      * @description Registers a new user.
      * @returns { void }
      */
+
+    timeout: 180000, // 3 mins
     registerUser: async function(user, page) {
         if (
             utils.BACKEND_URL.includes('localhost') ||
@@ -255,7 +257,6 @@ const _this = {
         await page.waitForSelector('button#logout-button');
         await _this.pageClick(page, 'button#logout-button');
         await page.reload();
-        await page.waitForTimeout(3000);
     },
     saasLogout: async function(page) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });

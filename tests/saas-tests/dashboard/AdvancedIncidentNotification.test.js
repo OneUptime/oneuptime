@@ -118,7 +118,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            await page.waitForTimeout(2000);
+            
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -167,7 +167,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem => elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            await page.waitForTimeout(2000);
+            
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -215,7 +215,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            await page.waitForTimeout(2000);
+            
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -264,7 +264,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem => elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            await page.waitForTimeout(2000);
+            
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -366,7 +366,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            await page.waitForTimeout(2000);
+            
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -410,7 +410,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            await page.waitForTimeout(2000);
+            
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -456,7 +456,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            await page.waitForTimeout(2000);
+            
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -500,7 +500,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
-            await page.waitForTimeout(2000);
+            
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });

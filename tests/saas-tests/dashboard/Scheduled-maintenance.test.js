@@ -20,7 +20,7 @@ const scheduledMaintenanceDescription = utils.generateRandomString();
 
 describe('Check scheduled maintenace', () => {
     beforeAll(async done => {
-        jest.setTimeout(15000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -74,7 +74,7 @@ describe('Check scheduled maintenace', () => {
         expect(spanElement).toMatch(statusPageName);
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should create a manual monitor', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -113,7 +113,7 @@ describe('Check scheduled maintenace', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should add monitor to status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -159,7 +159,7 @@ describe('Check scheduled maintenace', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should create a scheduled maintenance', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -234,7 +234,7 @@ describe('Check scheduled maintenace', () => {
         expect(scheduledMaintenance).toMatch(monitorName);
 
         done();
-    }, 600000);
+    }, init.timeout);
 
     test('should view scheduled maintenance details in status-page', async done => {
         await page.waitForSelector('#statusPages', { visible: true });
@@ -287,5 +287,5 @@ describe('Check scheduled maintenace', () => {
         expect(futureEvent).toMatch(futureEvent);
 
         done();
-    }, 600000);
+    }, init.timeout);
 });

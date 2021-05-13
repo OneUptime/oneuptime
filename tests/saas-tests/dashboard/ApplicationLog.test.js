@@ -17,7 +17,7 @@ describe('Log Containers', () => {
     const operationTimeOut = 900000;
 
     beforeAll(async () => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -238,7 +238,7 @@ describe('Log Containers', () => {
             await page.waitForSelector(`#${applicationLogName}-warning`);
             await init.pageClick(page, `#${applicationLogName}-warning`);
 
-            await page.waitForTimeout(1000);
+            
             // confim that thee drop down current value is warning
             logTypeElement = await page.waitForSelector(
                 'input[name=log_type_selector]'
@@ -252,7 +252,7 @@ describe('Log Containers', () => {
             await page.waitForSelector(`#${applicationLogName}-info`);
             await init.pageClick(page, `#${applicationLogName}-info`);
 
-            await page.waitForTimeout(1000);
+            
             // confim that thee drop down current value is info
             logTypeElement = await page.waitForSelector(
                 'input[name=log_type_selector]'
@@ -266,7 +266,7 @@ describe('Log Containers', () => {
             await page.waitForSelector(`#${applicationLogName}-error`);
             await init.pageClick(page, `#${applicationLogName}-error`);
 
-            await page.waitForTimeout(1000);
+            
             // confim that thee drop down current value is error
             logTypeElement = await page.waitForSelector(
                 'input[name=log_type_selector]'
@@ -280,7 +280,7 @@ describe('Log Containers', () => {
             await page.waitForSelector(`#${applicationLogName}-all`);
             await init.pageClick(page, `#${applicationLogName}-all`);
 
-            await page.waitForTimeout(1000);
+            
             // confim that thee drop down current value is all
             logTypeElement = await page.waitForSelector(
                 'input[name=log_type_selector]'

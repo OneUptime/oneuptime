@@ -13,10 +13,10 @@ const user = {
     password,
 };
 describe('Alert Warning', () => {
-    const operationTimeOut = 1000000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(6000000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();

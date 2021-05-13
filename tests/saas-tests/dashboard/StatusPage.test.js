@@ -29,7 +29,7 @@ describe('Status Page', () => {
     const operationTimeOut = 500000;
 
     beforeAll(async () => {
-        jest.setTimeout(3600000);
+        jest.setTimeout(3init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -593,7 +593,7 @@ describe('Status Page', () => {
             await init.pageClick(page, '#react-tabs-6');
             await init.pageType(page, '#headerHTML textarea', '<div>My header'); // Ace editor completes the div tag
             await init.pageClick(page, '#btnAddCustomStyles');
-            await page.waitForTimeout(2000);
+            
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.waitForSelector('#react-tabs-2');
@@ -631,7 +631,7 @@ describe('Status Page', () => {
                 `<script id='js'>${javascript}`
             );
             await init.pageClick(page, '#btnAddCustomStyles');
-            await page.waitForTimeout(2000);
+            
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.waitForSelector('#react-tabs-2');
@@ -671,7 +671,7 @@ describe('Status Page', () => {
                 elem.click()
             );
             await init.pageClick(page, '#saveAdvancedOptions');
-            await page.waitForTimeout(2000);
+            
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.waitForSelector('#statuspage_moveIncidentToTheTop', {
@@ -751,7 +751,7 @@ describe('Status Page', () => {
             await init.pageType(page, '#domain_2', 'api.fyipeapp.com');
             await page.waitForSelector('#btnAddDomain');
             await init.pageClick(page, '#btnAddDomain');
-            await page.waitForTimeout(2000);
+            
             await page.waitForSelector('.ball-beat', { hidden: true });
             const domains = await page.$$eval(
                 'fieldset[name="added-domain"]',

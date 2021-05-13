@@ -232,7 +232,7 @@ describe('Monitor API', () => {
                 monitorName,
                 page
             );
-            await page.waitForTimeout(25000); // This is needed for '-' to turn to '%' as '%' is a coming of the probe server else shouldRender could have been used to pass id.
+            
             await page.waitForSelector(`#lighthouseLogs_${monitorName}_0`, {
                 visible: true,
                 timeout: operationTimeOut,
@@ -556,7 +556,7 @@ describe('Monitor API', () => {
     );
 
     test(
-        'should degrade (not timeout and return status code 408) monitor with response time longer than 600000ms and status code 200',
+        'should degrade (not timeout and return status code 408) monitor with response time longer than init.timeoutms and status code 200',
         async done => {
             const bodyText = utils.generateRandomString();
             // This navigates to hhtp-test server and create the settings for the test suite
@@ -575,7 +575,7 @@ describe('Monitor API', () => {
             );
             await page.waitForSelector('#responseTime');
             await init.pageClick(page, 'input[name=responseTime]');
-            await init.pageType(page, 'input[name=responseTime]', '600000');
+            await init.pageType(page, 'input[name=responseTime]', 'init.timeout');
             await page.waitForSelector('#statusCode');
             await init.pageClick(page, 'input[name=statusCode]');
             await init.pageType(page, 'input[name=statusCode]', '200');
