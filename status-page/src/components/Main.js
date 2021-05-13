@@ -23,6 +23,7 @@ import AffectedResources from './basic/AffectedResources';
 import NewThemeEvent from './NewThemeEvent';
 import NewThemeSubscriber from './NewThemeSubscriber';
 import Announcement from './Announcement';
+import { Fragment } from 'react';
 
 const greenBackground = {
     display: 'inline-block',
@@ -432,6 +433,187 @@ class Main extends Component {
 
         const availableMonitors = this.props.statusData.monitors;
 
+        const layoutObj = {
+            resources: (
+                <div
+                    className="sy-op"
+                    style={{ backgroundColor: newbg }}
+                    id="status-note"
+                >
+                    {newStatusMessage}
+                </div>
+            ),
+            services: (
+                <>
+                    <ShouldRender if={!this.props.statusData.hideProbeBar}>
+                        <div className="bs-probes">
+                            <Probes
+                                probes={probes}
+                                backgroundMain={backgroundMain}
+                                contentBackground={contentBackground}
+                                activeProbe={this.props.activeProbe}
+                                monitorState={this.props.monitorState}
+                                greenBackground={greenBackground}
+                                uptimeColor={uptimeColor}
+                                greyBackground={greyBackground}
+                                serviceStatus={serviceStatus}
+                                redBackground={redBackground}
+                                downtimeColor={downtimeColor}
+                                yellowBackground={yellowBackground}
+                                degradedColor={degradedColor}
+                                heading={heading}
+                                now={this.state.now}
+                                selectbutton={index => this.selectbutton(index)}
+                                theme={theme}
+                            />
+                        </div>
+                    </ShouldRender>
+                    <ShouldRender
+                        if={availableMonitors && availableMonitors.length > 0}
+                    >
+                        <div className="line-chart">
+                            <div
+                                className="uptime-graphs"
+                                style={
+                                    isGroupedByMonitorCategory
+                                        ? { paddingBottom: 0 }
+                                        : { paddingBottom: 35 }
+                                }
+                            >
+                                {isGroupedByMonitorCategory ? (
+                                    <div
+                                        className="op-div"
+                                        style={{
+                                            borderTopWidth: '1px',
+                                            ...contentBackground,
+                                        }}
+                                    >
+                                        {this.groupedMonitors()}
+                                    </div>
+                                ) : this.props.statusData &&
+                                  this.props.statusData.monitorsData !==
+                                      undefined &&
+                                  this.props.statusData.monitorsData.length >
+                                      0 ? (
+                                    this.props.monitors
+                                        .filter(monitor =>
+                                            this.props.statusData.monitorsData.some(
+                                                m =>
+                                                    m._id ===
+                                                    monitor.monitor._id
+                                            )
+                                        )
+                                        .map((monitor, i) => (
+                                            <div
+                                                className="op-div"
+                                                style={{
+                                                    borderTopWidth:
+                                                        i === 0 && '1px',
+                                                    ...contentBackground,
+                                                }}
+                                                key={i}
+                                            >
+                                                <MonitorInfo
+                                                    monitor={
+                                                        this.props.statusData.monitorsData.filter(
+                                                            m =>
+                                                                m._id ===
+                                                                monitor.monitor
+                                                                    ._id
+                                                        )[0]
+                                                    }
+                                                    selectedCharts={monitor}
+                                                    key={`uptime-${i}`}
+                                                    id={`monitor${i}`}
+                                                    isGroupedByMonitorCategory={
+                                                        isGroupedByMonitorCategory
+                                                    }
+                                                    theme={'clean'}
+                                                />
+                                                <LineChartsContainer
+                                                    monitor={
+                                                        this.props.statusData.monitorsData.filter(
+                                                            m =>
+                                                                m._id ===
+                                                                monitor.monitor
+                                                                    ._id
+                                                        )[0]
+                                                    }
+                                                    selectedCharts={monitor}
+                                                    key={`line-charts-${i}`}
+                                                />
+                                            </div>
+                                        ))
+                                ) : (
+                                    <NoMonitor />
+                                )}
+                            </div>
+                        </div>
+                    </ShouldRender>
+                    <ShouldRender
+                        if={availableMonitors && availableMonitors.length < 1}
+                    >
+                        <div
+                            className="bs-no-monitor"
+                            style={noteBackgroundColor}
+                        >
+                            No monitors added yet. Please, add a monitor.
+                        </div>
+                    </ShouldRender>
+                </>
+            ),
+            pastIncidents: (
+                <div
+                    className="new-theme-incident matop-40"
+                    style={{
+                        width: '100%',
+                        ...contentBackground,
+                    }}
+                >
+                    <div className="font-largest" style={heading}>
+                        Past Incidents
+                    </div>
+                    <NotesMain
+                        projectId={
+                            this.props.statusData &&
+                            this.props.statusData.projectId &&
+                            this.props.statusData.projectId._id
+                        }
+                        statusPageId={this.props.statusData._id}
+                        theme={theme}
+                        statusPageSlug={this.props.statusData.slug}
+                    />
+                </div>
+            ),
+            maintenance: (
+                <ShouldRender
+                    if={this.props.events && this.props.events.length > 0}
+                >
+                    <div
+                        className="new-theme-incident"
+                        style={contentBackground}
+                    >
+                        <div className="font-largest" style={heading}>
+                            Scheduled Events
+                        </div>
+                        <NewThemeEvent
+                            projectId={
+                                this.props.statusData &&
+                                this.props.statusData.projectId &&
+                                this.props.statusData.projectId._id
+                            }
+                            statusPageId={this.props.statusData._id}
+                            noteBackgroundColor={noteBackgroundColor}
+                        />
+                    </div>
+                </ShouldRender>
+            ),
+        };
+
+        const visibleLayout =
+            this.props.statusData &&
+            this.props.statusData.layout &&
+            this.props.statusData.layout.visible;
         return (
             <>
                 {theme === 'Clean Theme' ? (
@@ -535,6 +717,8 @@ class Main extends Component {
                                     </ShouldRender>
                                 </div>
                             </ShouldRender>
+
+                            {/* from here na i wan begin do my work now */}
                             <Announcement
                                 monitorState={this.props.monitorState}
                                 theme={theme}
@@ -542,241 +726,12 @@ class Main extends Component {
                                 {...this.props}
                             />
                             <div className="new-main-container">
-                                <div
-                                    className="sy-op"
-                                    style={{ backgroundColor: newbg }}
-                                    id="status-note"
-                                >
-                                    {newStatusMessage}
-                                </div>
-                                <ShouldRender
-                                    if={
-                                        this.props.statusData &&
-                                        this.props.statusData.projectId &&
-                                        this.props.statusData._id &&
-                                        this.props.statusData
-                                            .moveIncidentToTheTop
-                                    }
-                                >
-                                    <div
-                                        className="new-theme-incident matop-40"
-                                        style={{
-                                            width: '100%',
-                                            ...contentBackground,
-                                        }}
-                                    >
-                                        <div
-                                            className="font-largest"
-                                            style={heading}
-                                        >
-                                            Past Incidents
-                                        </div>
-                                        <NotesMain
-                                            projectId={
-                                                this.props.statusData.projectId
-                                                    ._id
-                                            }
-                                            statusPageId={
-                                                this.props.statusData._id
-                                            }
-                                            theme={theme}
-                                            statusPageSlug={
-                                                this.props.statusData.slug
-                                            }
-                                        />
-                                    </div>
-                                </ShouldRender>
-                                <ShouldRender
-                                    if={!this.props.statusData.hideProbeBar}
-                                >
-                                    <div className="bs-probes">
-                                        <Probes
-                                            probes={probes}
-                                            backgroundMain={backgroundMain}
-                                            contentBackground={
-                                                contentBackground
-                                            }
-                                            activeProbe={this.props.activeProbe}
-                                            monitorState={
-                                                this.props.monitorState
-                                            }
-                                            greenBackground={greenBackground}
-                                            uptimeColor={uptimeColor}
-                                            greyBackground={greyBackground}
-                                            serviceStatus={serviceStatus}
-                                            redBackground={redBackground}
-                                            downtimeColor={downtimeColor}
-                                            yellowBackground={yellowBackground}
-                                            degradedColor={degradedColor}
-                                            heading={heading}
-                                            now={this.state.now}
-                                            selectbutton={index =>
-                                                this.selectbutton(index)
-                                            }
-                                            theme={theme}
-                                        />
-                                    </div>
-                                </ShouldRender>
-                                <ShouldRender
-                                    if={
-                                        availableMonitors &&
-                                        availableMonitors.length > 0
-                                    }
-                                >
-                                    <div className="line-chart">
-                                        <div
-                                            className="uptime-graphs"
-                                            style={
-                                                isGroupedByMonitorCategory
-                                                    ? { paddingBottom: 0 }
-                                                    : { paddingBottom: 35 }
-                                            }
-                                        >
-                                            {isGroupedByMonitorCategory ? (
-                                                <div
-                                                    className="op-div"
-                                                    style={{
-                                                        borderTopWidth: '1px',
-                                                        ...contentBackground,
-                                                    }}
-                                                >
-                                                    {this.groupedMonitors()}
-                                                </div>
-                                            ) : this.props.statusData &&
-                                              this.props.statusData
-                                                  .monitorsData !== undefined &&
-                                              this.props.statusData.monitorsData
-                                                  .length > 0 ? (
-                                                this.props.monitors
-                                                    .filter(monitor =>
-                                                        this.props.statusData.monitorsData.some(
-                                                            m =>
-                                                                m._id ===
-                                                                monitor.monitor
-                                                                    ._id
-                                                        )
-                                                    )
-                                                    .map((monitor, i) => (
-                                                        <div
-                                                            className="op-div"
-                                                            style={{
-                                                                borderTopWidth:
-                                                                    i === 0 &&
-                                                                    '1px',
-                                                                ...contentBackground,
-                                                            }}
-                                                            key={i}
-                                                        >
-                                                            <MonitorInfo
-                                                                monitor={
-                                                                    this.props.statusData.monitorsData.filter(
-                                                                        m =>
-                                                                            m._id ===
-                                                                            monitor
-                                                                                .monitor
-                                                                                ._id
-                                                                    )[0]
-                                                                }
-                                                                selectedCharts={
-                                                                    monitor
-                                                                }
-                                                                key={`uptime-${i}`}
-                                                                id={`monitor${i}`}
-                                                                isGroupedByMonitorCategory={
-                                                                    isGroupedByMonitorCategory
-                                                                }
-                                                                theme={'clean'}
-                                                            />
-                                                            <LineChartsContainer
-                                                                monitor={
-                                                                    this.props.statusData.monitorsData.filter(
-                                                                        m =>
-                                                                            m._id ===
-                                                                            monitor
-                                                                                .monitor
-                                                                                ._id
-                                                                    )[0]
-                                                                }
-                                                                selectedCharts={
-                                                                    monitor
-                                                                }
-                                                                key={`line-charts-${i}`}
-                                                            />
-                                                        </div>
-                                                    ))
-                                            ) : (
-                                                <NoMonitor />
-                                            )}
-                                        </div>
-                                    </div>
-                                </ShouldRender>
-                                <ShouldRender if={availableMonitors.length < 1}>
-                                    <div
-                                        className="bs-no-monitor"
-                                        style={noteBackgroundColor}
-                                    >
-                                        No monitors added yet. Please, add a
-                                        monitor.
-                                    </div>
-                                </ShouldRender>
+                                {visibleLayout.map(layout => (
+                                    <Fragment key={layout.key}>
+                                        {layoutObj[layout.key]}
+                                    </Fragment>
+                                ))}
                             </div>
-                            <ShouldRender
-                                if={
-                                    this.props.statusData &&
-                                    this.props.statusData.projectId &&
-                                    this.props.statusData._id &&
-                                    !this.props.statusData.moveIncidentToTheTop
-                                }
-                            >
-                                <div
-                                    className="new-theme-incident"
-                                    style={contentBackground}
-                                >
-                                    <div
-                                        className="font-largest"
-                                        style={heading}
-                                    >
-                                        Past Incidents
-                                    </div>
-                                    <NotesMain
-                                        projectId={
-                                            this.props.statusData.projectId._id
-                                        }
-                                        statusPageId={this.props.statusData._id}
-                                        theme={theme}
-                                        statusPageSlug={
-                                            this.props.statusData.slug
-                                        }
-                                    />
-                                </div>
-                            </ShouldRender>
-                            <ShouldRender
-                                if={
-                                    this.props.events &&
-                                    this.props.events.length > 0
-                                }
-                            >
-                                <div
-                                    className="new-theme-incident"
-                                    style={contentBackground}
-                                >
-                                    <div
-                                        className="font-largest"
-                                        style={heading}
-                                    >
-                                        Scheduled Events
-                                    </div>
-                                    <NewThemeEvent
-                                        projectId={
-                                            this.props.statusData.projectId._id
-                                        }
-                                        statusPageId={this.props.statusData._id}
-                                        noteBackgroundColor={
-                                            noteBackgroundColor
-                                        }
-                                    />
-                                </div>
-                            </ShouldRender>
 
                             <div className="powered">
                                 <FooterCard

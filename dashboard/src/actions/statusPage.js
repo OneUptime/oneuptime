@@ -1222,7 +1222,55 @@ export function resetStatusPageEmbeddedCss(projectId, data) {
         return promise;
     };
 }
+//status page layout
+export function updateStatusPageLayoutRequest() {
+    return {
+        type: types.UPDATE_STATUS_PAGE_LAYOUT_REQUEST,
+    };
+}
 
+export function updateStatusPageLayoutSuccess(statusPage) {
+    return {
+        type: types.UPDATE_STATUS_PAGE_LAYOUT_SUCCESS,
+        payload: statusPage,
+    };
+}
+
+export function updateStatusPageLayoutError(error) {
+    return {
+        type: types.UPDATE_STATUS_PAGE_LAYOUT_FAILURE,
+        payload: error,
+    };
+}
+
+export function updateStatusPageLayout(projectId, data) {
+    return function(dispatch) {
+        const promise = putApi(`statusPage/${projectId}`, data);
+        dispatch(updateStatusPageLayoutRequest());
+        promise.then(
+            function(response) {
+                const statusPage = response.data;
+                dispatch(updateStatusPageLayoutSuccess(statusPage));
+                dispatch(fetchProjectStatusPage(projectId, true));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateStatusPageLayoutError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
 // fetch subscribers by monitors in statuspage
 export function fetchSubscriberRequest() {
     return {
