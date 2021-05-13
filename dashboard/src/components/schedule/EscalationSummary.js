@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { withRouter } from 'react-router';
 import { ListLoader } from '../basic/Loader';
 import EscalationSummarySingle from './EscalationSummarySingle';
 
@@ -206,6 +205,4 @@ const mapStateToProps = (state_ignored, props_ignored) => {
     return {};
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(EscalationSummary)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(EscalationSummary);

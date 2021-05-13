@@ -2,7 +2,6 @@ import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -132,6 +131,4 @@ IncidentDeleteBox.propTypes = {
     componentSlug: PropTypes.string,
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(IncidentDeleteBox)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(IncidentDeleteBox);

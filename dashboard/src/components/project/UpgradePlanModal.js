@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import UpgradeForm from '../project/UpgradeForm';
 import {
     hideUpgradeForm,
@@ -120,7 +119,6 @@ UpgradePlanModal.displayName = 'UpgradePlanModal';
 
 UpgradePlanModal.propTypes = {
     dispatch: PropTypes.func.isRequired,
-    history: PropTypes.object.isRequired,
     hideUpgradeForm: PropTypes.func.isRequired,
     changePlan: PropTypes.func.isRequired,
     resetCreateMonitor: PropTypes.func.isRequired,
@@ -136,10 +134,7 @@ UpgradePlanModal.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
-    match: PropTypes.object.isRequired,
     visible: PropTypes.bool,
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(UpgradePlanModal)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(UpgradePlanModal);

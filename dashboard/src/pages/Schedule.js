@@ -10,7 +10,6 @@ import PropTypes from 'prop-types';
 import EscalationSummary from '../components/schedule/EscalationSummary';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { withRouter } from 'react-router';
 import { subProjectTeamLoading } from '../actions/team';
 import { getEscalation } from '../actions/schedule';
 import { teamLoading } from '../actions/team';
@@ -194,6 +193,4 @@ Schedule.propTypes = {
     }),
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(Schedule)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(Schedule);
