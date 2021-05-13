@@ -20,37 +20,91 @@ class SingleAnnouncement extends Component {
         );
     }
     render() {
-        const {
-            statusPage: { theme },
-            announcement,
-            monitorState,
-        } = this.props;
+        const { announcement, monitorState } = this.props;
 
         return (
             <div>
-                {theme === 'Clean Theme' ? (
-                    <>
-                        {announcement && (
-                            <div>
-                                <div className="annoucement_frame2 annoucement_frame">
+                {announcement && (
+                    <div
+                        className="page-main-wrapper"
+                        style={{ background: 'rgb(247, 247, 247)' }}
+                    >
+                        <div className="innernew">
+                            <div
+                                id="incident"
+                                className="twitter-feed white box"
+                                style={{ overflow: 'visible' }}
+                            >
+                                <div
+                                    className="messages"
+                                    style={{
+                                        position: 'relative',
+                                    }}
+                                >
                                     <div
-                                        className="font-largest"
+                                        className="box-inner"
                                         style={{
-                                            fontSize: '20px',
+                                            paddingTop: 20,
+                                            paddingBottom: 20,
                                         }}
                                     >
-                                        Announcement Info
-                                    </div>
-                                    <div className="announcement_block announcement_block2">
-                                        <div className="announce_title">
-                                            {announcement?.name}
+                                        <span
+                                            style={{
+                                                color: 'rgba(76, 76, 76, 0.52)',
+                                                textTransform: 'uppercase',
+                                                fontWeight: '700',
+                                                display: 'inline-block',
+                                                marginBottom: 20,
+                                                fontSize: 14,
+                                            }}
+                                        >
+                                            Announcement Info
+                                        </span>
+                                        <div
+                                            className="individual-header"
+                                            style={{
+                                                marginBottom: 25,
+                                            }}
+                                        >
+                                            <span
+                                                className="feed-title"
+                                                style={{
+                                                    color:
+                                                        'rgba(76, 76, 76, 0.8)',
+                                                    fontWeight: 'bold',
+                                                    marginBottom: 25,
+                                                    textTransform: 'unset',
+                                                }}
+                                            >
+                                                {announcement?.name}
+                                            </span>
+                                            <span
+                                                style={{
+                                                    color: 'rgba(0, 0, 0, 0.5)',
+                                                }}
+                                            >
+                                                {announcement?.description}
+                                            </span>
                                         </div>
-                                        <div className="incident_desc">
-                                            {announcement?.description}
-                                        </div>
-                                        <div className="new_res">
-                                            <span>Resource Affected:</span>{' '}
-                                            <span>
+                                        <div
+                                            className="ongoing__affectedmonitor"
+                                            style={{ marginTop: 0 }}
+                                        >
+                                            <span
+                                                className="ongoing__affectedmonitor--title"
+                                                style={{
+                                                    color:
+                                                        'rgba(76, 76, 76, 0.8)',
+                                                }}
+                                            >
+                                                Resource Affected:
+                                            </span>{' '}
+                                            <span
+                                                className="ongoing__affectedmonitor--content"
+                                                style={{
+                                                    color: 'rgba(0, 0, 0, 0.5)',
+                                                }}
+                                            >
                                                 {handleResources(
                                                     monitorState,
                                                     announcement
@@ -60,112 +114,9 @@ class SingleAnnouncement extends Component {
                                     </div>
                                 </div>
                             </div>
-                        )}
-                    </>
-                ) : theme === 'Classic Theme' ? (
-                    <div>
-                        {announcement && (
-                            <div
-                                className="page-main-wrapper"
-                                style={{ background: 'rgb(247, 247, 247)' }}
-                            >
-                                <div className="innernew">
-                                    <div
-                                        id="incident"
-                                        className="twitter-feed white box"
-                                        style={{ overflow: 'visible' }}
-                                    >
-                                        <div
-                                            className="messages"
-                                            style={{
-                                                position: 'relative',
-                                            }}
-                                        >
-                                            <div
-                                                className="box-inner"
-                                                style={{
-                                                    paddingTop: 20,
-                                                    paddingBottom: 20,
-                                                }}
-                                            >
-                                                <span
-                                                    style={{
-                                                        color:
-                                                            'rgba(76, 76, 76, 0.52)',
-                                                        textTransform:
-                                                            'uppercase',
-                                                        fontWeight: '700',
-                                                        display: 'inline-block',
-                                                        marginBottom: 20,
-                                                        fontSize: 14,
-                                                    }}
-                                                >
-                                                    Announcement Info
-                                                </span>
-                                                <div
-                                                    className="individual-header"
-                                                    style={{
-                                                        marginBottom: 25,
-                                                    }}
-                                                >
-                                                    <span
-                                                        className="feed-title"
-                                                        style={{
-                                                            color:
-                                                                'rgba(76, 76, 76, 0.8)',
-                                                            fontWeight: 'bold',
-                                                            marginBottom: 25,
-                                                            textTransform:
-                                                                'unset',
-                                                        }}
-                                                    >
-                                                        {announcement?.name}
-                                                    </span>
-                                                    <span
-                                                        style={{
-                                                            color:
-                                                                'rgba(0, 0, 0, 0.5)',
-                                                        }}
-                                                    >
-                                                        {
-                                                            announcement?.description
-                                                        }
-                                                    </span>
-                                                </div>
-                                                <div
-                                                    className="ongoing__affectedmonitor"
-                                                    style={{ marginTop: 0 }}
-                                                >
-                                                    <span
-                                                        className="ongoing__affectedmonitor--title"
-                                                        style={{
-                                                            color:
-                                                                'rgba(76, 76, 76, 0.8)',
-                                                        }}
-                                                    >
-                                                        Resource Affected:
-                                                    </span>{' '}
-                                                    <span
-                                                        className="ongoing__affectedmonitor--content"
-                                                        style={{
-                                                            color:
-                                                                'rgba(0, 0, 0, 0.5)',
-                                                        }}
-                                                    >
-                                                        {handleResources(
-                                                            monitorState,
-                                                            announcement
-                                                        )}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        </div>
                     </div>
-                ) : null}
+                )}
             </div>
         );
     }
