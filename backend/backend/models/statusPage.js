@@ -85,6 +85,7 @@ const statusSchema = new Schema({
     logoPath: String,
     bannerPath: String,
     colors: Object,
+    layout: Object,
     headerHTML: String,
     footerHTML: String,
     customCSS: String,
