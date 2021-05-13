@@ -3,7 +3,7 @@ const usersCollection = 'users';
 
 async function run() {
     const items = await find(usersCollection, {
-        slug: { $exists: false },
+        email: { $regex: '[A-Z]' },
     });
     for (let i = 0; i < items.length; i++) {
         const { email } = items[i];
