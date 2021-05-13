@@ -12,39 +12,43 @@ module.exports = {
      */
     getSchedulesForAlerts: async function(incident) {
         try {
-            const monitorId = incident.monitorId._id || incident.monitorId;
+            // const monitorId = incident.monitorId._id || incident.monitorId;
             const projectId = incident.projectId._id || incident.projectId;
 
-            const {
-                lastMatchedCriterion: matchedCriterion,
-            } = await MonitorService.findOneBy({
-                _id: monitorId,
+            const monitors = await MonitorService.findBy({
+                _id: { $in: incident.monitors },
             });
-            let schedules = [];
 
-            // first, try to find schedules associated with the matched criterion of the monitor
-            if (
-                !incident.manuallyCreated &&
-                matchedCriterion.scheduleIds &&
-                matchedCriterion.scheduleIds.length
-            ) {
-                schedules = await ScheduleService.findBy({
-                    _id: { $in: matchedCriterion.scheduleIds },
-                });
-            } else {
-                // then, try to find schedules in the monitor
-                schedules = await ScheduleService.findBy({
-                    monitorIds: monitorId,
-                });
-                // lastly, find default schedules for the project
-                if (schedules.length === 0) {
+            const scheduleList = {};
+            for (const monitor of monitors) {
+                let schedules = [];
+                const { lastMatchedCriterion: matchedCriterion } = monitor;
+
+                if (
+                    !incident.manuallyCreated &&
+                    matchedCriterion.scheduleIds &&
+                    matchedCriterion.scheduleIds.length
+                ) {
                     schedules = await ScheduleService.findBy({
-                        isDefault: true,
-                        projectId,
+                        _id: { $in: matchedCriterion.scheduleIds },
                     });
+                } else {
+                    // then, try to find schedules in the monitor
+                    schedules = await ScheduleService.findBy({
+                        monitorIds: monitor._id,
+                    });
+                    // lastly, find default schedules for the project
+                    if (schedules.length === 0) {
+                        schedules = await ScheduleService.findBy({
+                            isDefault: true,
+                            projectId,
+                        });
+                    }
                 }
+
+                scheduleList[monitor._id] = schedules;
             }
-            return schedules;
+            return scheduleList;
         } catch (error) {
             ErrorService.log('AlertService.getSchedulesForAlerts', error);
             return [];
@@ -297,25 +301,32 @@ module.exports = {
             if (incident) {
                 const _this = this;
 
-                const schedules = await this.getSchedulesForAlerts(incident);
+                const scheduleList = await this.getSchedulesForAlerts(incident);
 
-                if (schedules.length > 0) {
-                    for (const schedule of schedules) {
-                        _this.sendAlertsToTeamMembersInSchedule({
-                            schedule,
-                            incident,
+                // key is the monitor id
+                // value is the schedules
+                for (const [monitorId, schedules] of Object.entries(
+                    scheduleList
+                )) {
+                    if (schedules.length > 0) {
+                        for (const schedule of schedules) {
+                            _this.sendAlertsToTeamMembersInSchedule({
+                                schedule,
+                                incident,
+                                monitorId,
+                            });
+                        }
+                    } else {
+                        OnCallScheduleStatusService.create({
+                            project: incident.projectId,
+                            incident: incident._id,
+                            activeEscalation: null,
+                            schedule: null,
+                            incidentAcknowledged: false,
+                            escalations: [],
+                            isOnDuty: false,
                         });
                     }
-                } else {
-                    OnCallScheduleStatusService.create({
-                        project: incident.projectId,
-                        incident: incident._id,
-                        activeEscalation: null,
-                        schedule: null,
-                        incidentAcknowledged: false,
-                        escalations: [],
-                        isOnDuty: false,
-                    });
                 }
             }
         } catch (error) {
@@ -324,14 +335,16 @@ module.exports = {
         }
     },
 
-    sendAlertsToTeamMembersInSchedule: async function({ schedule, incident }) {
+    sendAlertsToTeamMembersInSchedule: async function({
+        schedule,
+        incident,
+        monitorId,
+    }) {
         const _this = this;
-        const monitorId = incident.monitorId._id
-            ? incident.monitorId._id
-            : incident.monitorId;
         const projectId = incident.projectId._id
             ? incident.projectId._id
             : incident.projectId;
+
         const monitor = await MonitorService.findOneBy({ _id: monitorId });
 
         if (!schedule || !incident) {
@@ -454,7 +467,7 @@ module.exports = {
             !shouldSendCallReminder &&
             !shouldSendPushReminder
         ) {
-            _this.escalate({ schedule, incident, alertProgress });
+            _this.escalate({ schedule, incident, alertProgress, monitor });
         } else {
             _this.sendAlertsToTeamMembersInEscalationPolicy({
                 escalation,
@@ -467,15 +480,11 @@ module.exports = {
         }
     },
 
-    escalate: async function({ schedule, incident, alertProgress }) {
+    escalate: async function({ schedule, incident, alertProgress, monitor }) {
         const _this = this;
         const callScheduleStatuses = await OnCallScheduleStatusService.findBy({
             query: { incident: incident._id, schedule: schedule._id },
         });
-        const monitorId = incident.monitorId._id
-            ? incident.monitorId._id
-            : incident.monitorId;
-        const monitor = await MonitorService.findOneBy({ _id: monitorId });
 
         if (callScheduleStatuses.length === 0) {
             return;
@@ -1636,14 +1645,16 @@ module.exports = {
         }
     },
 
-    sendCreatedIncidentToSubscribers: async function(incident, component) {
+    sendCreatedIncidentToSubscribers: async function(
+        incident,
+        component,
+        monitor
+    ) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
             if (incident) {
-                const monitorId = incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId;
+                const monitorId = monitor && monitor._id;
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
@@ -1667,7 +1678,8 @@ module.exports = {
                                 enabledStatusPage,
                                 null,
                                 subscribers.length,
-                                uuid
+                                uuid,
+                                monitor
                             );
                         }
                     } else {
@@ -1678,7 +1690,8 @@ module.exports = {
                             null,
                             component,
                             subscribers.length,
-                            uuid
+                            uuid,
+                            monitor
                         );
                     }
                 }
@@ -2424,7 +2437,8 @@ module.exports = {
         statusPage,
         { note, incidentState, noteType, statusNoteStatus } = {},
         totalSubscribers,
-        id
+        id,
+        monitor
     ) {
         try {
             const _this = this;
@@ -2437,10 +2451,8 @@ module.exports = {
                 _id: incident.projectId,
             });
             // get thee monitor
-            const monitor = await MonitorService.findOneBy({
-                _id: incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId,
+            monitor = await MonitorService.findOneBy({
+                _id: monitor._id,
             });
             // get the component
             const component = await ComponentService.findOneBy({
@@ -2530,7 +2542,7 @@ module.exports = {
                         subscriber,
                         incident.projectId,
                         incident,
-                        incident.monitorId,
+                        monitor._id,
                         component,
                         downTimeString,
                         { note, incidentState, statusNoteStatus }
@@ -2670,7 +2682,7 @@ module.exports = {
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
-                const unsubscribeUrl = `${global.homeHost}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
+                const unsubscribeUrl = `${global.homeHost}/unsubscribe/${monitor._id}/${subscriber._id}`;
                 let alertStatus = null;
                 try {
                     if (templateType === 'Subscriber Incident Acknowldeged') {
@@ -3224,9 +3236,7 @@ module.exports = {
                                         balanceStatus.chargeAmount,
                                         balanceStatus.closingBalance,
                                         null,
-                                        incident.monitorId._id
-                                            ? incident.monitorId._id
-                                            : incident.monitorId,
+                                        monitor._id,
                                         incident._id,
                                         contactPhone,
                                         alertId

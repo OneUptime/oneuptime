@@ -411,23 +411,22 @@ module.exports = {
             await ZapierService.pushToZapier('incident_created', incident);
             // await RealTimeService.sendCreatedIncident(incident);
 
-            // const monitor = await MonitorService.findOneBy({
-            //     _id: incident.monitorId,
-            // });
-            const selectComponentId =
+            // assuming that all the monitors must be in the same component
+            // having multiple components will make it more complicated
+            const selectedComponentId =
                 incident.monitors[0] &&
                 incident.monitors[0].monitorId.componentId._id;
-            const component = selectComponentId
+            const component = selectedComponentId
                 ? await ComponentService.findOneBy({
-                      _id: selectComponentId,
+                      _id: selectedComponentId,
                   })
                 : {};
 
             // handle this asynchronous operation in the background
-            AlertService.sendCreatedIncidentToSubscribers(incident, component);
+            // AlertService.sendCreatedIncidentToSubscribers(incident, component);
             const meta = {
                 type: 'Incident',
-                componentId: selectComponentId,
+                componentId: selectedComponentId,
                 incidentId: incident._id,
             };
             const notifications = [];
@@ -436,6 +435,13 @@ module.exports = {
                 monitor => monitor.monitorId
             );
             for (const monitor of monitors) {
+                // handle this asynchronous operation in the background
+                AlertService.sendCreatedIncidentToSubscribers(
+                    incident,
+                    component,
+                    monitor
+                );
+
                 let notification = {};
                 // send slack notification
                 SlackService.sendNotification(

@@ -597,10 +597,14 @@ module.exports = {
                     _id: project.parentProjectId._id,
                 });
             }
+            const monitorIds = incident.monitors.map(
+                monitor => monitor.monitorId._id
+            );
             const zap = await _this.findBy({
                 projectId: project._id,
                 type: type,
-                $or: [{ monitors: incident.monitorId._id }, { monitors: [] }],
+                // $or: [{ monitors: incident.monitorId._id }, { monitors: [] }],
+                $or: [{ monitors: { $all: monitorIds } }, { monitors: [] }],
             });
 
             if (zap && zap.length) {
