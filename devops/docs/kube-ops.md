@@ -18,3 +18,13 @@ sudo kubectl get pods
 ```
 sudo kubectl get pv
 ```
+
+# Pods are evicted
+
+This usually happens when one of the nodes is out ot memory or disk.
+
+Run this to delete evicted pods:
+
+```
+kubectl -n default delete pods --field-selector=status.phase=Failed
+```

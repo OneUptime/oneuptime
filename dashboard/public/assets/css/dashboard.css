@@ -3226,6 +3226,10 @@ figure.bs-Number>figcaption {
   width: 600px;
 }
 
+.bs-Modal--team {
+  width: 650px;
+}
+
 .bs-Modal--xlarge {
   width: 900px;
 }

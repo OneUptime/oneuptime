@@ -42,7 +42,7 @@ describe('Check status-page up', () => {
         });
         expect(response).toBe('Page Not Found');
         done();
-    }, 60000);
+    }, 600000);
 
     test('should create a status-page', async done => {
         await init.registerUser(user, page);
@@ -54,22 +54,22 @@ describe('Check status-page up', () => {
         });
 
         await page.waitForSelector('#statusPages', { visible: true });
-        await page.click('#statusPages');
+        await init.pageClick(page, '#statusPages');
         await page.waitForSelector(`#btnCreateStatusPage_${projectName}`, {
             visible: true,
         });
-        await page.click(`#btnCreateStatusPage_${projectName}`);
+        await init.pageClick(page, `#btnCreateStatusPage_${projectName}`);
         await page.waitForSelector('#name', { visible: true });
         await page.waitForSelector('input[id=name]', { visible: true });
-        await page.click('input[id=name]');
+        await init.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
-        await page.type('input[id=name]', statusPageName);
-        await page.click('#btnCreateStatusPage');
+        await init.pageType(page, 'input[id=name]', statusPageName);
+        await init.pageClick(page, '#btnCreateStatusPage');
         await page.waitForSelector('#statusPagesListContainer', {
             visible: true,
         });
         await page.waitForSelector('#viewStatusPage', { visible: true });
-        await page.click('#viewStatusPage');
+        await init.pageClick(page, '#viewStatusPage');
         await page.waitForSelector(`#header-${statusPageName}`, {
             visible: true,
         });
@@ -84,7 +84,7 @@ describe('Check status-page up', () => {
         expect(spanElement).toMatch(statusPageName);
 
         done();
-    }, 200000);
+    }, 600000);
 
     test('should create a manual monitor', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -108,7 +108,7 @@ describe('Check status-page up', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 200000);
+    }, 600000);
 
     test('should add monitor to status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -116,23 +116,27 @@ describe('Check status-page up', () => {
         });
 
         await page.waitForSelector('#statusPages', { visible: true });
-        await page.click('#statusPages');
+        await init.pageClick(page, '#statusPages');
         await page.waitForSelector('#statusPagesListContainer', {
             visible: true,
         });
         await page.waitForSelector('#viewStatusPage', { visible: true });
-        await page.click('#viewStatusPage');
+        await init.pageClick(page, '#viewStatusPage');
         await page.waitForSelector('#addMoreMonitors', { visible: true });
-        await page.click('#addMoreMonitors');
+        await init.pageClick(page, '#addMoreMonitors');
         await init.selectByText(
             '#monitor-name',
             `${componentName} / ${monitorName}`,
             page
         );
-        await page.click('#monitor-description');
-        await page.type('#monitor-description', 'Status Page Description');
-        await page.click('#manual-monitor-checkbox');
-        await page.click('#btnAddStatusPageMonitors');
+        await init.pageClick(page, '#monitor-description');
+        await init.pageType(
+            page,
+            '#monitor-description',
+            'Status Page Description'
+        );
+        await init.pageClick(page, '#manual-monitor-checkbox');
+        await init.pageClick(page, '#btnAddStatusPageMonitors');
         // CLick status Page Url
         await init.clickStatusPageUrl(page);
 
@@ -146,19 +150,19 @@ describe('Check status-page up', () => {
         expect(spanElement).toMatch(monitorName);
 
         done();
-    }, 200000);
+    }, 600000);
 
     test('Should confirm status-page monitor values does not change on theme change', async done => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#statusPages', { visible: true });
-        await page.click('#statusPages');
+        await init.pageClick(page, '#statusPages');
         await page.waitForSelector('#statusPagesListContainer', {
             visible: true,
         });
         await page.waitForSelector('#viewStatusPage', { visible: true });
-        await page.click('#viewStatusPage');
+        await init.pageClick(page, '#viewStatusPage');
         await init.themeNavigationAndConfirmation(page, 'Classic');
         let spanElement;
         spanElement = await page.waitForSelector('#monitor-name', {
@@ -177,7 +181,7 @@ describe('Check status-page up', () => {
         spanElement = await spanElement.jsonValue();
         expect(spanElement).toMatch(`${componentName} / ${monitorName}`); // Another Confirmation
         done();
-    }, 200000);
+    }, 600000);
 
     test('should add more monitors and see if they are present on the status-page', async done => {
         // This creates 2 additonal monitors
@@ -201,7 +205,7 @@ describe('Check status-page up', () => {
         expect(monitorLength).toEqual(3);
 
         done();
-    }, 200000);
+    }, 600000);
 
     test('should create an offline incident and view it on status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -211,16 +215,16 @@ describe('Check status-page up', () => {
         await page.waitForSelector(`#monitorCreateIncident_${monitorName}`, {
             visible: true,
         });
-        await page.click(`#monitorCreateIncident_${monitorName}`);
+        await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
         await page.waitForSelector('#incidentTitleLabel', { visible: true });
-        await page.click('#createIncident');
+        await init.pageClick(page, '#createIncident');
 
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
 
         await page.waitForSelector('#viewIncident-0', { visible: true });
-        await page.click('#closeIncident_0');
+        await init.pageClick(page, '#closeIncident_0');
         await page.waitForSelector('#closeIncident_0', { hidden: true });
 
         await init.navigateToStatusPage(page);
@@ -235,16 +239,16 @@ describe('Check status-page up', () => {
         expect(spanElement).toMatch('Some resources are offline');
 
         done();
-    }, 200000);
+    }, 600000);
 
     test('should resolve offline incident and view status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#btnAcknowledge_0', { visible: true });
-        await page.click('#btnAcknowledge_0');
+        await init.pageClick(page, '#btnAcknowledge_0');
         await page.waitForSelector('#btnResolve_0', { visible: true });
-        await page.click('#btnResolve_0');
+        await init.pageClick(page, '#btnResolve_0');
 
         await page.reload({
             waitUntil: 'networkidle2',
@@ -257,7 +261,7 @@ describe('Check status-page up', () => {
         spanElement = await spanElement.jsonValue();
         expect(spanElement).toMatch('All resources are operational');
         done();
-    }, 200000);
+    }, 600000);
 
     test('should create an degraded incident and view it on status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -268,17 +272,17 @@ describe('Check status-page up', () => {
         await page.waitForSelector(`#monitorCreateIncident_${monitorName}`, {
             visible: true,
         });
-        await page.click(`#monitorCreateIncident_${monitorName}`);
+        await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
         await page.waitForSelector('#incidentTitleLabel', { visible: true });
         await init.selectByText('#incidentType', 'Degraded', page);
-        await page.click('#createIncident');
+        await init.pageClick(page, '#createIncident');
 
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
 
         await page.waitForSelector('#viewIncident-0', { visible: true });
-        await page.click('#closeIncident_0');
+        await init.pageClick(page, '#closeIncident_0');
         await page.waitForSelector('#closeIncident_0', { hidden: true });
 
         await init.navigateToStatusPage(page);
@@ -293,16 +297,16 @@ describe('Check status-page up', () => {
         expect(spanElement).toMatch('Some resources are degraded');
 
         done();
-    }, 200000);
+    }, 600000);
 
     test('should resolve degraded incident and view status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#btnAcknowledge_0', { visible: true });
-        await page.click('#btnAcknowledge_0');
+        await init.pageClick(page, '#btnAcknowledge_0');
         await page.waitForSelector('#btnResolve_0', { visible: true });
-        await page.click('#btnResolve_0');
+        await init.pageClick(page, '#btnResolve_0');
 
         await page.reload({
             waitUntil: 'networkidle2',
@@ -315,7 +319,7 @@ describe('Check status-page up', () => {
         spanElement = await spanElement.jsonValue();
         expect(spanElement).toMatch('All resources are operational');
         done();
-    }, 200000);
+    }, 600000);
 
     test('should create an offline incident and confirm the description note on status-page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -326,21 +330,21 @@ describe('Check status-page up', () => {
         await page.waitForSelector(`#monitorCreateIncident_${monitorName}`, {
             visible: true,
         });
-        await page.click(`#monitorCreateIncident_${monitorName}`);
+        await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
         await page.waitForSelector('#incidentTitleLabel', { visible: true });
-        await page.click('#description', { clickCount: 3 });
+        await init.pageClick(page, '#description', { clickCount: 3 });
         await page.keyboard.down('Control');
         await page.keyboard.press('A');
         await page.keyboard.up('Control');
-        await page.type('#description', note);
-        await page.click('#createIncident');
+        await init.pageType(page, '#description', note);
+        await init.pageClick(page, '#createIncident');
 
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
 
         await page.waitForSelector('#viewIncident-0', { visible: true });
-        await page.click('#closeIncident_0');
+        await init.pageClick(page, '#closeIncident_0');
         await page.waitForSelector('#closeIncident_0', { hidden: true });
 
         await init.navigateToStatusPage(page);
@@ -354,5 +358,5 @@ describe('Check status-page up', () => {
         spanElement = await spanElement.jsonValue();
         expect(spanElement).toMatch(note);
         done();
-    }, 200000);
+    }, 600000);
 });

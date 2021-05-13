@@ -16,7 +16,7 @@ describe('Status Page -> Pricing Plan Component', () => {
     const operationTimeOut = 500000;
 
     beforeAll(async () => {
-        jest.setTimeout(360000);
+        jest.setTimeout(3600000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -37,11 +37,11 @@ describe('Status Page -> Pricing Plan Component', () => {
             await init.addProject(page, 'test');
             await page.$eval('#statusPages', elem => elem.click());
             await page.waitForSelector('#btnCreateStatusPage_test');
-            await page.click('#btnCreateStatusPage_test');
+            await init.pageClick(page, '#btnCreateStatusPage_test');
             await page.waitForSelector('#name');
-            await page.click('#name');
-            await page.type('#name', 'test');
-            await page.click('#btnCreateStatusPage');
+            await init.pageClick(page, '#name');
+            await init.pageType(page, '#name', 'test');
+            await init.pageClick(page, '#btnCreateStatusPage');
             // select the first item from the table row
             const rowItem = await page.waitForSelector(
                 '#statusPagesListContainer > tr',
@@ -110,9 +110,9 @@ describe('Status Page -> Pricing Plan Component', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings');
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#billing');
-            await page.click('#billing a');
+            await init.pageClick(page, '#billing a');
             await page.waitForSelector('#alertEnable');
 
             const rowLength = await page.$$eval(
@@ -167,7 +167,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             );
             growthOption.click();
             await page.waitForSelector('#cancelPlanUpgrade', { visible: true });
-            await page.click('#cancelPlanUpgrade');
+            await init.pageClick(page, '#cancelPlanUpgrade');
             const elem = await page.waitForSelector('#pricingPlanModal', {
                 hidden: true,
             });
@@ -208,7 +208,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             await page.waitForSelector('#confirmPlanUpgrade', {
                 visible: true,
             });
-            await page.click('#confirmPlanUpgrade');
+            await init.pageClick(page, '#confirmPlanUpgrade');
 
             await page.waitForSelector('#pricingPlanModal', {
                 hidden: true,

@@ -86,7 +86,8 @@ class UserForm extends Component {
                                         placeholder="jeff@example.com"
                                         required="required"
                                         value={
-                                            this.props.register.user.email || ''
+                                            this.props.register.user.email ||
+                                            ''
                                         }
                                         disabled={
                                             this.props.initialValues &&

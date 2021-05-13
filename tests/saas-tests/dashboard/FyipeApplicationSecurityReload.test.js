@@ -51,39 +51,35 @@ describe('Fyipe Page Reload', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#security', { visible: true });
-            await page.click('#security');
+            await init.pageClick(page, '#security');
             await page.waitForSelector('#application', { visible: true });
-            await page.click('#application');
+            await init.pageClick(page, '#application');
 
             await page.waitForSelector('#applicationSecurityForm', {
                 visible: true,
             });
-            await page.click('#addCredentialBtn');
+            await init.pageClick(page, '#addCredentialBtn');
             await page.waitForSelector('#gitCredentialForm', {
                 visible: true,
             });
-            await page.click('#gitUsername');
-            await page.type('#gitUsername', gitUsername);
-            await page.click('#gitPassword');
-            await page.type('#gitPassword', gitPassword);
-            await page.click('#addCredentialModalBtn');
+            await init.pageClick(page, '#gitUsername');
+            await init.pageType(page, '#gitUsername', gitUsername);
+            await init.pageClick(page, '#gitPassword');
+            await init.pageType(page, '#gitPassword', gitPassword);
+            await init.pageClick(page, '#addCredentialModalBtn');
             await page.waitForSelector('#gitCredentialForm', {
                 hidden: true,
             });
 
-            await page.click('#name');
-            await page.type('#name', applicationSecurityName);
-            await init.selectByText(
-                '#resourceCategory',
-                categoryName,
-                page
-            ); // add category
-            await page.click('#gitRepositoryUrl');
-            await page.type('#gitRepositoryUrl', gitRepositoryUrl);
-            await page.click('#gitCredential');
-            await page.type('#gitCredential', gitUsername); // select the created credential
+            await init.pageClick(page, '#name');
+            await init.pageType(page, '#name', applicationSecurityName);
+            await init.selectByText('#resourceCategory', categoryName, page); // add category
+            await init.pageClick(page, '#gitRepositoryUrl');
+            await init.pageType(page, '#gitRepositoryUrl', gitRepositoryUrl);
+            await init.pageClick(page, '#gitCredential');
+            await init.pageType(page, '#gitCredential', gitUsername); // select the created credential
             await page.keyboard.press('Enter'); // Enter Key
-            await page.click('#addApplicationBtn');
+            await init.pageClick(page, '#addApplicationBtn');
 
             await page.waitForSelector('.ball-beat', { hidden: true });
             const applicationSecurity = await page.waitForSelector(
@@ -91,19 +87,26 @@ describe('Fyipe Page Reload', () => {
                 { visible: true }
             );
             expect(applicationSecurity).toBeDefined();
-                
+
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle0' });
-            await page.waitForSelector(`#cb${componentName}`, { visible: true });
-            await page.waitForSelector('#cbApplicationSecurity', { visible: true });
-            await page.waitForSelector(`#cb${applicationSecurityName}`, { visible: true });
+            await page.waitForSelector(`#cb${componentName}`, {
+                visible: true,
+            });
+            await page.waitForSelector('#cbApplicationSecurity', {
+                visible: true,
+            });
+            await page.waitForSelector(`#cb${applicationSecurityName}`, {
+                visible: true,
+            });
 
-            let spanElement = await page.waitForSelector(`#applicationSecurityTitle_${applicationSecurityName}`);
+            const spanElement = await page.waitForSelector(
+                `#applicationSecurityTitle_${applicationSecurityName}`
+            );
             expect(spanElement).toBeDefined();
 
             done();
         },
         operationTimeOut
     );
-
 });

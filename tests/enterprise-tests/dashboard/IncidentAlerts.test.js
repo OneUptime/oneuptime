@@ -20,7 +20,7 @@ describe('Schedule', () => {
     const operationTimeOut = 1000000;
 
     beforeAll(async done => {
-        jest.setTimeout(2000000);
+        jest.setTimeout(6000000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
@@ -57,10 +57,10 @@ describe('Schedule', () => {
         );
         await init.addSchedule(callScheduleName, page);
         await page.waitForSelector('table tbody tr:first-child');
-        await page.click('table tbody tr:first-child');
+        await init.pageClick(page, 'table tbody tr:first-child');
         await page.waitForSelector('#btnSaveMonitors');
-        await page.click('#scheduleMonitor_0');
-        await page.click('#btnSaveMonitors');
+        await init.pageClick(page, '#scheduleMonitor_0');
+        await init.pageClick(page, '#btnSaveMonitors');
         await page.$eval('input[name="OnCallAlertBox[0].email"]', element =>
             element.click()
         );
@@ -75,7 +75,7 @@ describe('Schedule', () => {
             'Test Name',
             page
         );
-        await page.click('#saveSchedulePolicy');
+        await init.pageClick(page, '#saveSchedulePolicy');
 
         done();
     });
@@ -90,9 +90,9 @@ describe('Schedule', () => {
         async done => {
             await init.addIncident(monitorName, 'offline', page);
             await page.waitForSelector('#viewIncident-0');
-            await page.click('#viewIncident-0');
+            await init.pageClick(page, '#viewIncident-0');
             await page.waitForSelector('#react-tabs-4');
-            await page.click('#react-tabs-4');
+            await init.pageClick(page, '#react-tabs-4');
             await page.waitForSelector('#TeamAlertLogBox');
 
             const firstOncallAlertStatusSelector =

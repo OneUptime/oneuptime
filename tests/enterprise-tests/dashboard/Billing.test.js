@@ -17,7 +17,7 @@ describe('Enterprise Disabled Billing API', () => {
     const operationTimeOut = 100000;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -40,7 +40,7 @@ describe('Enterprise Disabled Billing API', () => {
             await init.adminLogout(page);
             await init.loginUser(user, page);
             await page.waitForSelector('#projectSettings', { visible: true });
-            await page.click('#projectSettings');
+            await init.pageClick(page, '#projectSettings');
 
             const projectBilling = await page.$('#billingSetting');
             expect(projectBilling).toBeNull();
@@ -54,7 +54,7 @@ describe('Enterprise Disabled Billing API', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#profile-menu', { visible: true });
-            await page.click('#profile-menu');
+            await init.pageClick(page, '#profile-menu');
 
             const profileBilling = await page.$('#cbBilling');
             expect(profileBilling).toBeNull();
