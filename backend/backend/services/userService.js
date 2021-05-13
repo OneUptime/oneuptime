@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function(query, skip, limit) {
+    findBy: async function (query, skip, limit) {
         try {
             if (!skip) skip = 0;
 
@@ -24,7 +24,7 @@ module.exports = {
         }
     },
 
-    create: async function(data) {
+    create: async function (data) {
         try {
             if (!data.email) {
                 const error = new Error('Email address can not be empty');
@@ -75,7 +75,7 @@ module.exports = {
         }
     },
 
-    countBy: async function(query) {
+    countBy: async function (query) {
         try {
             if (!query) {
                 query = {};
@@ -90,7 +90,7 @@ module.exports = {
         }
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function (query, userId) {
         try {
             if (!query) {
                 query = {};
@@ -117,7 +117,7 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function (query) {
         try {
             if (!query) {
                 query = {};
@@ -166,7 +166,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function (query, data) {
         if (!query) {
             query = {};
         }
@@ -199,7 +199,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -217,7 +217,7 @@ module.exports = {
         }
     },
 
-    updatePush: async function({ userId, data }) {
+    updatePush: async function ({ userId, data }) {
         try {
             const user = await UserModel.findOne({ _id: userId });
             const checkExist = await user.identification.find(
@@ -243,12 +243,12 @@ module.exports = {
         }
     },
 
-    closeTutorialBy: async function(query, type, data, projectId) {
+    closeTutorialBy: async function (query, type, data, projectId) {
         try {
             if (!query) query = {};
             if (!data) data = {};
 
-            type = type.replace(/-([a-z])/g, function(g) {
+            type = type.replace(/-([a-z])/g, function (g) {
                 return g[1].toUpperCase();
             });
 
@@ -269,7 +269,7 @@ module.exports = {
         }
     },
 
-    sendToken: async function(user, email) {
+    sendToken: async function (user, email, verified) {
         try {
             const _this = this;
             const verificationTokenModel = new VerificationTokenModel({
@@ -279,11 +279,14 @@ module.exports = {
             const verificationToken = await verificationTokenModel.save();
             if (verificationToken) {
                 const verificationTokenURL = `${global.apiHost}/user/confirmation/${verificationToken.token}`;
-                MailService.sendVerifyEmail(
-                    verificationTokenURL,
-                    user.name,
-                    email
-                );
+                // Checking for already verified user so that he/she will not recieve another email verification
+                if (!verified) {
+                    MailService.sendVerifyEmail(
+                        verificationTokenURL,
+                        user.name,
+                        email
+                    );
+                }
                 if (email !== user.email) {
                     _this.updateOneBy({ _id: user._id }, { tempEmail: email });
                 }
@@ -298,7 +301,7 @@ module.exports = {
     //Params:
     //Param 1: data: User details.
     //Returns: promise.
-    signup: async function(data) {
+    signup: async function (data) {
         try {
             const _this = this;
             const email = data.email;
@@ -354,9 +357,11 @@ module.exports = {
                     }
                     let verificationToken;
                     if (user.role !== 'master-admin' || !customerId) {
+                        console.log('point 44444444444', user)
                         verificationToken = await _this.sendToken(
                             user,
-                            user.email
+                            user.email,
+                            true
                         );
                     }
 
@@ -411,7 +416,7 @@ module.exports = {
             throw error;
         }
     },
-    getUserIpLocation: async function(clientIP) {
+    getUserIpLocation: async function (clientIP) {
         try {
             const ipLocation = await iplocation(clientIP);
             return ipLocation;
@@ -420,7 +425,7 @@ module.exports = {
         }
     },
 
-    generateUserBackupCodes: async function(
+    generateUserBackupCodes: async function (
         secretKey,
         numberOfCodes,
         firstCounter = 0
@@ -436,7 +441,7 @@ module.exports = {
         return backupCodes;
     },
 
-    verifyUserBackupCode: async function(code, secretKey, counter) {
+    verifyUserBackupCode: async function (code, secretKey, counter) {
         try {
             const _this = this;
             hotp.options = { digits: 8 };
@@ -462,7 +467,7 @@ module.exports = {
         }
     },
 
-    generateTwoFactorSecret: async function(userId) {
+    generateTwoFactorSecret: async function (userId) {
         try {
             const _this = this;
             const user = await _this.findOneBy({ _id: userId });
@@ -487,7 +492,7 @@ module.exports = {
         }
     },
 
-    verifyAuthToken: async function(token, userId) {
+    verifyAuthToken: async function (token, userId) {
         try {
             const _this = this;
             const user = await _this.findOneBy({ _id: userId });
@@ -515,7 +520,7 @@ module.exports = {
     //Param 1: email: User email.
     //Param 2: password: User password.
     //Returns: promise.
-    login: async function(email, password, clientIP, userAgent) {
+    login: async function (email, password, clientIP, userAgent) {
         try {
             const _this = this;
             let user = null;
@@ -562,7 +567,7 @@ module.exports = {
                         const oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
                         const daysAfterPaymentFailed = Math.round(
                             (new Date() - user.paymentFailedDate) /
-                                oneDayInMilliSeconds
+                            oneDayInMilliSeconds
                         );
 
                         if (daysAfterPaymentFailed >= 15) {
@@ -653,7 +658,7 @@ module.exports = {
     //Params:
     //Param 1: email: User email.
     //Returns: promise.
-    forgotPassword: async function(email) {
+    forgotPassword: async function (email) {
         try {
             const _this = this;
             if (util.isEmailValid(email)) {
@@ -698,7 +703,7 @@ module.exports = {
     //Param 1:  password: User password.
     //Param 2:  token: token generated in forgot password function.
     //Returns: promise.
-    resetPassword: async function(password, token) {
+    resetPassword: async function (password, token) {
         try {
             const _this = this;
             let user = await _this.findOneBy({
@@ -737,7 +742,7 @@ module.exports = {
     //Params:
     //Param 1:  refreshToken: Refresh token.
     //Returns: promise.
-    getNewToken: async function(refreshToken) {
+    getNewToken: async function (refreshToken) {
         try {
             const _this = this;
             let user = await _this.findOneBy({ jwtRefreshToken: refreshToken });
@@ -772,7 +777,7 @@ module.exports = {
         }
     },
 
-    changePassword: async function(data) {
+    changePassword: async function (data) {
         try {
             const _this = this;
             const currentPassword = data.currentPassword;
@@ -806,7 +811,7 @@ module.exports = {
         }
     },
 
-    getAllUsers: async function(skip, limit) {
+    getAllUsers: async function (skip, limit) {
         const _this = this;
         let users = await _this.findBy(
             { _id: { $ne: null }, deleted: { $ne: null } },
@@ -851,7 +856,7 @@ module.exports = {
         return users;
     },
 
-    restoreBy: async function(query) {
+    restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;
 
@@ -883,7 +888,7 @@ module.exports = {
         }
     },
 
-    addNotes: async function(userId, notes) {
+    addNotes: async function (userId, notes) {
         const _this = this;
         const user = await _this.updateOneBy(
             {
@@ -896,7 +901,7 @@ module.exports = {
         return user;
     },
 
-    searchUsers: async function(query, skip, limit) {
+    searchUsers: async function (query, skip, limit) {
         const _this = this;
         let users = await _this.findBy(query, skip, limit);
         users = await Promise.all(
@@ -937,7 +942,7 @@ module.exports = {
         return users;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function (query) {
         try {
             await UserModel.deleteMany(query);
             return 'User(s) Removed Successfully!';
@@ -947,7 +952,7 @@ module.exports = {
         }
     },
 
-    getAccessToken: function({ userId, expiresIn }) {
+    getAccessToken: function ({ userId, expiresIn }) {
         return jwt.sign(
             {
                 id: userId,
