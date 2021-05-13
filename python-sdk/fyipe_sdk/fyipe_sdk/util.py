@@ -44,6 +44,36 @@ class Util:
 
         return obj;
     
+    def getUncaughtExceptionStackTrace(self, type, value, traceback):
+        frames = [];
+        lineNumber = 'N/A'
+        if(traceback is not None):
+            lineNumber = traceback.tb_lineno
+        obj = {
+            'type': type,
+            'message': value,
+            "lineNumber": lineNumber
+        }
+        tb = traceback
+        while tb is not None:
+            frames.append({
+                "fileName": tb.tb_frame.f_code.co_filename,
+                "methodName": tb.tb_frame.f_code.co_name,
+                "lineNumber": tb.tb_lineno
+            })
+            tb = tb.tb_next
+
+        stacktrace = {
+            "frames": frames
+        }
+        obj["stacktrace"] = stacktrace
+
+        # run only if user agreed to use this feature
+        if self.options['captureCodeSnippet'] is True:
+            obj = self.getErrorCodeSnippet(obj)
+
+        return obj;
+    
     def getErrorCodeSnippet(self, errorObj):
         frames = [] 
         if errorObj["stacktrace"]:

@@ -3,6 +3,8 @@ from .util import Util
 from .fyipeListener import FyipeListener
 from .fyipeTransport import FyipeTransport
 import sys
+import logging
+import traceback
 
 class FyipeTracker:
     def __init__(self, apiUrl, errorTrackerId, errorTrackerKey, options = {}):
@@ -22,6 +24,9 @@ class FyipeTracker:
         self.util = Util(self.options)
         self.setEventId()
         self.listenerObj = FyipeListener(self.eventId, self.options)
+
+        # initialize exception handler listener
+        sys.excepthook = custom_excepthook
 
     # set up options     
     def setUpOptions(self, options):
@@ -126,6 +131,23 @@ class FyipeTracker:
             self.setFingerPrint(errorMessage)
         
         return self.fingerprint
+    
+    def custom_excepthook(self, exc_type, exc_value, exc_traceback):
+        # Do not print exception when user cancels the program
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+
+        self.captureUncaughtException(exc_type, exc_value, exc_traceback)
+        logging.error("An uncaught exception occurred:")
+        logging.error("Type: %s", exc_type)
+        logging.error("Value: %s", exc_value)
+
+        if exc_traceback:
+            format_exception = traceback.format_tb(exc_traceback)
+            for line in format_exception:
+                logging.error(repr(line))
+
     def captureMessage(self, message):
         # set the a handled tag
         self.setTag('handled', 'true')
@@ -184,6 +206,19 @@ class FyipeTracker:
 
         # set the a handled tag
         self.setTag('handled', 'true')
+
+        self.prepareErrorObject('exception', exceptionObj)
+
+        # send to the server
+        return self.sendErrorEventToServer()
+    
+    def captureUncaughtException(self, exc_type, exc_value, exc_traceback):
+        
+        # construct the error object
+        exceptionObj = self.util.getUncaughtExceptionStackTrace(exc_type, exc_value, exc_traceback)
+
+        # set the a handled tag
+        self.setTag('handled', 'false')
 
         self.prepareErrorObject('exception', exceptionObj)
 
