@@ -263,7 +263,7 @@ const _this = {
         await _this.pageClick(page, 'button#profile-menu');
         await page.waitForSelector('button#logout-button');
         await _this.pageClick(page, 'button#logout-button');
-        await page.reload({ waitUntil: 'networkidle0' });
+        await page.reload({ waitUntil: 'networkidle2' });
     },
     selectByText: async function(selector, text, page) {
         await _this.pageClick(page, selector, { delay: 100 });
@@ -372,10 +372,10 @@ const _this = {
         await page.$eval(`#react-tabs-${tabId}`, e => e.click());
     },
     themeNavigationAndConfirmation: async function(page, theme) {
-        await page.waitForSelector('ul#customTabList > li', { visible: true });
-        await page.$$eval('ul#customTabList > li', elems =>
-            elems.find(i => i.innerText === 'Branding').click()
-        );
+        await page.waitForSelector('.branding-tab', {
+            visible: true,
+        });
+        await page.$$eval('.branding-tab', elems => elems[0].click());
         await page.waitForSelector(`#${theme}`, { visible: true });
         await _this.pageClick(page, `#${theme}`);
         await page.waitForSelector('#changePlanBtn', { visible: true });
@@ -436,7 +436,7 @@ const _this = {
         await _this.pageClick(page, 'button#profile-menu');
         await page.waitForSelector('button#logout-button');
         await _this.pageClick(page, 'button#logout-button');
-        await page.reload({ waitUntil: 'networkidle0' });
+        await page.reload({ waitUntil: 'networkidle2' });
     },
     addComponent: async function(component, page, projectName = null) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
@@ -530,7 +530,9 @@ const _this = {
         await page.waitForSelector('#frmUser', { hidden: true });
     },
     addSchedule: async function(callSchedule, page) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('#onCallDuty', {
             visible: true,
         });
@@ -601,7 +603,7 @@ const _this = {
     },
     addNewMonitorToComponent: async function(page, componentName, monitorName) {
         await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#components');
         await _this.pageClick(page, '#components');
@@ -789,7 +791,7 @@ const _this = {
     },
     addIncidentPriority: async function(incidentPriority, page) {
         await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#projectSettings');
         await _this.pageClick(page, '#projectSettings');
@@ -798,10 +800,10 @@ const _this = {
         await page.waitForSelector('#incidentSettings');
         await _this.pageClick(page, '#incidentSettings');
         // To navigate to incident Priority tab
-        await page.waitForSelector('ul#customTabList > li', {
+        await page.waitForSelector('.incident-priority-tab', {
             visible: true,
         });
-        await page.$$eval('ul#customTabList > li', elems => elems[1].click());
+        await page.$$eval('.incident-priority-tab', elems => elems[0].click());
 
         await page.waitForSelector('#addNewPriority');
         await _this.pageClick(page, '#addNewPriority');
@@ -856,7 +858,9 @@ const _this = {
         componentName,
         page
     ) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('#scheduledMaintenance', {
             visible: true,
         });
@@ -920,7 +924,9 @@ const _this = {
         }
     },
     addProject: async function(page, projectName = null, checkCard = false) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('#AccountSwitcherId');
         await _this.pageClick(page, '#AccountSwitcherId');
         await page.waitForSelector('#create-project');
@@ -964,11 +970,13 @@ const _this = {
         await page.waitForSelector('#btnCreateProject', { visible: true });
         await Promise.all([
             _this.pageClick(page, '#btnCreateProject'),
-            page.waitForNavigation({ waitUntil: 'networkidle0' }),
+            page.waitForNavigation({ waitUntil: 'networkidle2' }),
         ]);
     },
     addResourceCategory: async function(resourceCategory, page) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('#projectSettings');
         await _this.pageClick(page, '#projectSettings');
         await page.waitForSelector('#more');
@@ -992,7 +1000,9 @@ const _this = {
         });
     },
     addGrowthProject: async function(projectName = 'GrowthProject', page) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('#AccountSwitcherId');
         await _this.pageClick(page, '#AccountSwitcherId');
         await page.waitForSelector('#create-project');
@@ -1007,11 +1017,13 @@ const _this = {
         growthOption.click();
         await Promise.all([
             await _this.pageClick(page, '#btnCreateProject'),
-            await page.waitForNavigation({ waitUntil: 'networkidle0' }),
+            await page.waitForNavigation({ waitUntil: 'networkidle2' }),
         ]);
     },
     addScaleProject: async function(projectName = 'ScaleProject', page) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('#AccountSwitcherId');
         await _this.pageClick(page, '#AccountSwitcherId');
         await page.waitForSelector('#create-project');
@@ -1026,7 +1038,7 @@ const _this = {
         scaleOption.click();
         await Promise.all([
             await _this.pageClick(page, '#btnCreateProject'),
-            await page.waitForNavigation({ waitUntil: 'networkidle0' }),
+            await page.waitForNavigation({ waitUntil: 'networkidle2' }),
         ]);
     },
     addScheduledMaintenanceNote: async function(
@@ -1036,7 +1048,9 @@ const _this = {
         noteDescription,
         eventState = 'update'
     ) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('#scheduledMaintenance', {
             visible: true,
         });
@@ -1069,7 +1083,9 @@ const _this = {
         page,
         incidentPriority
     ) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('#components', { visible: true });
         await _this.pageClick(page, '#components');
         await page.waitForSelector(`#view-resource-${monitorName}`, {
@@ -1099,7 +1115,9 @@ const _this = {
         phoneNumber,
         page
     ) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('#projectSettings', {
             visible: true,
         });
@@ -1127,7 +1145,9 @@ const _this = {
         alertLimit,
         page
     ) {
-        await page.goto(utils.ADMIN_DASHBOARD_URL);
+        await page.goto(utils.ADMIN_DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('#settings', {
             visible: true,
         });
@@ -1160,7 +1180,9 @@ const _this = {
         secure,
         page
     ) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('#projectSettings', {
             visible: true,
         });
@@ -1186,7 +1208,9 @@ const _this = {
         await page.waitForSelector('#user');
     },
     setAlertPhoneNumber: async (phoneNumber, code, page) => {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('#profile-menu');
         await _this.pageClick(page, '#profile-menu');
         await page.waitForSelector('#userProfile');
@@ -1207,7 +1231,9 @@ const _this = {
         page,
         data
     ) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await _this.navigateToMonitorDetails(componentName, monitorName, page);
         await page.waitForSelector('#react-tabs-2');
         await _this.pageClick(page, '#react-tabs-2');
@@ -1224,7 +1250,9 @@ const _this = {
         await _this.pageClick(page, '#createSubscriber');
     },
     addCustomField: async function(page, data, owner) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('#projectSettings', { visible: true });
         await _this.pageClick(page, '#projectSettings');
         if (owner === 'monitor') {
@@ -1233,7 +1261,7 @@ const _this = {
             await page.waitForSelector('#monitor', { visible: true });
             await _this.pageClick(page, '#monitor');
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await _this.gotoTab(2, page);
         } else {
@@ -1242,7 +1270,7 @@ const _this = {
             await page.waitForSelector('#incidentSettings', { visible: true });
             await _this.pageClick(page, '#incidentSettings');
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await _this.gotoTab(6, page);
         }

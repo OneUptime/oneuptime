@@ -41,10 +41,10 @@ describe('Status Page', () => {
             //Pricing Plan is selectable for a user under growth plane.
             await init.growthPlanUpgrade(page);
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.$eval('#statusPages', elem => elem.click());
             await page.waitForSelector(
@@ -65,13 +65,10 @@ describe('Status Page', () => {
                 { visible: true }
             );
             rowItem.click();
-            await page.waitForSelector('ul#customTabList > li', {
+            await page.waitForSelector('.advanced-options-tab', {
                 visible: true,
             });
-            await page.$$eval(
-                'ul#customTabList > li',
-                elems => elems[5].click() // 'isPrivate' is under 'Advanced options' which is the last tab
-            );
+            await page.$$eval('.advanced-options-tab', elems => elems[0].click());
             await page.$eval('input[name="isPrivate"]', elem => elem.click());
 
             const modal = await page.$('#pricingPlanModal');

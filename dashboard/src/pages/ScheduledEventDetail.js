@@ -148,13 +148,13 @@ class ScheduledEvent extends Component {
                                     id="customTabList"
                                     className={'custom-tab-list'}
                                 >
-                                    <Tab className={'custom-tab custom-tab-3'}>
+                                    <Tab className={'custom-tab custom-tab-3 basic-tab'}>
                                         Basic
                                     </Tab>
-                                    <Tab className={'custom-tab custom-tab-3'}>
+                                    <Tab className={'custom-tab custom-tab-3 timeline-tab'}>
                                         Timeline
                                     </Tab>
-                                    <Tab className={'custom-tab custom-tab-3'}>
+                                    <Tab className={'custom-tab custom-tab-3 advanced-options-tab'}>
                                         Advanced Options
                                     </Tab>
                                     <div

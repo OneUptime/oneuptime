@@ -61,7 +61,9 @@ describe('Scheduled Event Note', () => {
     test(
         'should create an internal note',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -105,7 +107,9 @@ describe('Scheduled Event Note', () => {
     test(
         'should edit an internal note',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -149,7 +153,9 @@ describe('Scheduled Event Note', () => {
     test(
         'should delete an internal note',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -232,7 +238,9 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
     test(
         'should load first 10 scheduled maintenance note => internal note',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -257,7 +265,9 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
     test(
         'should load the remaining 5 scheduled maintenance note => internal note',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -290,7 +300,9 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
     test(
         'should visit the advance section and delete the schedule maintenance',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });

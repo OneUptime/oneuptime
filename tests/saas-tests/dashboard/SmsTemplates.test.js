@@ -37,7 +37,9 @@ describe('SMS Templates API', () => {
     test(
         'should not show reset button if sms template is not saved yet',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
@@ -68,7 +70,9 @@ describe('SMS Templates API', () => {
     test(
         'Should update default sms template',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
@@ -91,7 +95,7 @@ describe('SMS Templates API', () => {
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({
-                waitUntil: ['networkidle0', 'domcontentloaded'],
+                waitUntil: ['networkidle2', 'domcontentloaded'],
             });
             await init.selectByText(
                 '#type',
@@ -114,7 +118,9 @@ describe('SMS Templates API', () => {
     test(
         'should show reset button when a template is already saved',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
@@ -140,7 +146,9 @@ describe('SMS Templates API', () => {
     test(
         'should reset template to default state',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');

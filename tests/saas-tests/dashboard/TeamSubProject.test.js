@@ -51,7 +51,9 @@ describe('Team API With SubProjects', () => {
     });
     // No need for switchProject as the tests were carried out in the created project from 'email' and 'password'
     test('should add a new user to parent project and all sub-projects (role -> `Administrator`)', async done => {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         const role = 'Administrator';
 
         await page.waitForSelector('#teamMembers');
@@ -82,7 +84,9 @@ describe('Team API With SubProjects', () => {
     }, 600000);
 
     test('should not allow project owner to add other project owners', async done => {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         const role = 'Owner';
 
         await page.waitForSelector('#teamMembers');
@@ -96,7 +100,9 @@ describe('Team API With SubProjects', () => {
     }, 600000);
 
     test('should not allow administrator to add project owners', async done => {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         const role = 'Owner';
 
         await page.waitForSelector('#teamMembers');
@@ -111,7 +117,9 @@ describe('Team API With SubProjects', () => {
     }, 600000);
 
     test('should add a new user to sub-project (role -> `Member`)', async done => {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         const role = 'Member';
 
         await page.waitForSelector('#teamMembers', { visible: true });
@@ -143,7 +151,9 @@ describe('Team API With SubProjects', () => {
         async done => {
             const newRole = 'Member';
             const emailSelector = anotherEmail.split('@')[0];
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
 
             await page.waitForSelector('#teamMembers');
             await init.pageClick(page, '#teamMembers');
@@ -169,7 +179,9 @@ describe('Team API With SubProjects', () => {
         'should remove user from project Team Members and all sub-projects.',
         async done => {
             const emailSelector = anotherEmail.split('@')[0];
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
 
             await page.waitForSelector('#teamMembers');
             await init.pageClick(page, '#teamMembers');
@@ -201,7 +213,9 @@ describe('Team API With SubProjects', () => {
             const role = 'Member';
             const nonBusinessEmail =
                 utils.generateRandomString() + '@gmail.com';
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
 
             await page.waitForSelector('#teamMembers');
             await init.pageClick(page, '#teamMembers');
@@ -235,7 +249,9 @@ describe('Team API With SubProjects', () => {
             const memberEmailSelector = anotherEmail.split('@')[0];
             const ownerEmailSelector = email.split('@')[0];
 
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#teamMembers');
             await init.pageClick(page, '#teamMembers');
 

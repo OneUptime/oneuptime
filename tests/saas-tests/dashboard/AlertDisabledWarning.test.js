@@ -36,7 +36,9 @@ describe('Alert Warning', () => {
     test(
         'Should show a warning alert if call and sms alerts are disabled',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#projectSettings', { visible: true });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#billing', { visible: true });
@@ -54,7 +56,9 @@ describe('Alert Warning', () => {
     test(
         'Should not show any warning alert if call and sms alerts are enabled',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#projectSettings', { visible: true });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#billing', { visible: true });

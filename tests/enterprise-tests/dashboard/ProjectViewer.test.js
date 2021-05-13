@@ -44,17 +44,17 @@ describe('Sub-Project API', () => {
         'should create a new sub-project',
         async done => {
             // await page.goto(utils.DASHBOARD_URL, {
-            //     waitUntil: 'networkidle0',
+            //     waitUntil: 'networkidle2',
             // });
             //Growth Plan is needed for a subproject
             await init.growthPlanUpgrade(page);
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await init.renameProject(newProjectName, page);
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#projectSettings', { visible: true });
             await init.pageClick(page, '#projectSettings');
@@ -84,7 +84,7 @@ describe('Sub-Project API', () => {
 
     test('should invite viewer to a subproject', async done => {
         await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#teamMembers', { visible: true });
         await init.pageClick(page, '#teamMembers');
@@ -121,7 +121,7 @@ describe('Sub-Project API', () => {
 
     test('should invite viewer to a project', async done => {
         await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#teamMembers', { visible: true });
         await init.pageClick(page, '#teamMembers');
@@ -164,7 +164,7 @@ describe('Sub-Project API', () => {
 
     test('should create a status page', async done => {
         await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#statusPages', { visible: true });
         await init.pageClick(page, '#statusPages');

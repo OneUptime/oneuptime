@@ -45,7 +45,7 @@ describe('API test', () => {
         'Should render the API page',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await page.waitForSelector('#projectSettings', { visible: true });
@@ -68,7 +68,7 @@ describe('API test', () => {
         'Should display the API key when clicked',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await page.waitForSelector('#projectSettings', { visible: true });
@@ -94,7 +94,7 @@ describe('API test', () => {
         'Should reset the API Key',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await page.waitForSelector('#projectSettings', { visible: true });
@@ -136,7 +136,7 @@ describe('API test', () => {
             const role = 'Member';
 
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             // Rename project
             await page.waitForSelector('#projectSettings', { visible: true });
@@ -154,7 +154,9 @@ describe('API test', () => {
             await init.pageClick(page, 'button[id=btnCreateProject]');
 
             // Invite member on the project
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#teamMembers', { visible: true });
             await init.pageClick(page, '#teamMembers');
             await page.waitForSelector(`#btn_${projectName}`, {

@@ -35,7 +35,7 @@ describe('API test', () => {
         'Should open the probes details modal if probe is offline',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');

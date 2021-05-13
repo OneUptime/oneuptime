@@ -45,7 +45,7 @@ describe('Enterprise Team SubProject API', () => {
             //SubProject is only available for 'Growth Plan and above'
             await init.growthPlanUpgrade(page);
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await init.addSubProject(subProjectName, page);
             const role = 'Member';

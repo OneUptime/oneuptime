@@ -211,7 +211,7 @@ describe('Check status-page up', () => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
-        await init.navigateToMonitorDetails(monitorName, page);
+        await init.navigateToMonitorDetails(componentName, monitorName, page);
         await page.waitForSelector(`#monitorCreateIncident_${monitorName}`, {
             visible: true,
         });
@@ -229,7 +229,7 @@ describe('Check status-page up', () => {
 
         await init.navigateToStatusPage(page);
         await page.reload({
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         let spanElement = await page.waitForSelector('#status-note', {
             visible: true,
@@ -268,7 +268,7 @@ describe('Check status-page up', () => {
             waitUntil: 'networkidle2',
         });
 
-        await init.navigateToMonitorDetails(monitorName, page);
+        await init.navigateToMonitorDetails(componentName, monitorName, page);
         await page.waitForSelector(`#monitorCreateIncident_${monitorName}`, {
             visible: true,
         });
@@ -287,7 +287,7 @@ describe('Check status-page up', () => {
 
         await init.navigateToStatusPage(page);
         await page.reload({
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         let spanElement = await page.waitForSelector('#status-note', {
             visible: true,
@@ -326,7 +326,7 @@ describe('Check status-page up', () => {
             waitUntil: 'networkidle2',
         });
         const note = utils.generateRandomString();
-        await init.navigateToMonitorDetails(monitorName, page);
+        await init.navigateToMonitorDetails(componentName, monitorName, page);
         await page.waitForSelector(`#monitorCreateIncident_${monitorName}`, {
             visible: true,
         });
@@ -349,7 +349,7 @@ describe('Check status-page up', () => {
 
         await init.navigateToStatusPage(page);
         await page.reload({
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         let spanElement = await page.waitForSelector('#note', {
             visible: true,

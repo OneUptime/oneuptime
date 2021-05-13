@@ -153,12 +153,12 @@ describe('Status-Page Advanced Options', () => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
-        await init.navigateToMonitorDetails(monitorName, page);
+        await init.navigateToMonitorDetails(componentName, monitorName, page);
         // Navigate to subscriber tab in monitor.
-        await page.waitForSelector('ul#customTabList > li', {
+        await page.waitForSelector('.subscribers-tab', {
             visible: true,
         });
-        await page.$$eval('ul#customTabList > li', elems => elems[1].click());
+        await page.$$eval('.subscribers-tab', elems => elems[0].click());
         await page.waitForSelector('#addSubscriberButton');
         await init.pageClick(page, '#addSubscriberButton');
         await page.waitForSelector('#alertViaId');
@@ -187,11 +187,10 @@ describe('Status-Page Advanced Options', () => {
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
         await init.pageClick(page, '#viewStatusPage');
-        // Navigate to subscriber tab in status-page.
-        await page.waitForSelector('ul#customTabList > li', {
+        await page.waitForSelector('.subscribers-tab', {
             visible: true,
         });
-        await page.$$eval('ul#customTabList > li', elems => elems[1].click());
+        await page.$$eval('.subscribers-tab', elems => elems[0].click());
         // To confirm that the subscriber created is present.
         const subscriberContact = await page.waitForSelector(
             '#subscriber_contact'
@@ -212,10 +211,10 @@ describe('Status-Page Advanced Options', () => {
         await page.waitForSelector('#viewStatusPage');
         await init.pageClick(page, '#viewStatusPage');
         // Navigate to custom domain tab in status-page.
-        await page.waitForSelector('ul#customTabList > li', {
+        await page.waitForSelector('.domains-tab', {
             visible: true,
         });
-        await page.$$eval('ul#customTabList > li', elems => elems[2].click());
+        await page.$$eval('.domains-tab', elems => elems[0].click());
         await page.waitForSelector('#addMoreDomain');
         await init.pageClick(page, '#addMoreDomain');
         await page.waitForSelector('#customDomain');

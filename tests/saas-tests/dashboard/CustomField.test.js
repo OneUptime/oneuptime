@@ -60,7 +60,9 @@ describe('Incident Custom Field', () => {
     test(
         'should update a incident custom field in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -72,7 +74,7 @@ describe('Incident Custom Field', () => {
             });
             await init.pageClick(page, '#incidentSettings');
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await init.gotoTab(6, page);
 
@@ -115,7 +117,9 @@ describe('Incident Custom Field', () => {
     test(
         'should delete a incident custom field in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -127,7 +131,7 @@ describe('Incident Custom Field', () => {
             });
             await init.pageClick(page, '#incidentSettings');
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await init.gotoTab(6, page);
 

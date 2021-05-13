@@ -40,7 +40,7 @@ describe('Fyipe Component Reload', () => {
         async done => {
             await init.addComponent(componentName, page);
             // To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbMonitors', { visible: true });
             done();
         },
@@ -54,7 +54,7 @@ describe('Fyipe Component Reload', () => {
             await page.waitForSelector('#incidentLog', { visible: true });
             await init.pageClick(page, '#incidentLog');
             // To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
@@ -71,7 +71,7 @@ describe('Fyipe Component Reload', () => {
             await page.waitForSelector('#logs', { visible: true });
             await init.pageClick(page, '#logs');
             // To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
@@ -88,7 +88,7 @@ describe('Fyipe Component Reload', () => {
             await page.waitForSelector('#errorTracking', { visible: true });
             await init.pageClick(page, '#errorTracking');
             // To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
@@ -107,7 +107,7 @@ describe('Fyipe Component Reload', () => {
             });
             await init.pageClick(page, '#performanceTracker');
             // To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
@@ -126,7 +126,7 @@ describe('Fyipe Component Reload', () => {
             await page.waitForSelector('#security', { visible: true });
             await init.pageClick(page, '#security');
             // To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
@@ -147,7 +147,7 @@ describe('Fyipe Component Reload', () => {
             await page.waitForSelector('#application', { visible: true });
             await init.pageClick(page, '#application');
             // To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
@@ -168,7 +168,7 @@ describe('Fyipe Component Reload', () => {
             await page.waitForSelector('#basic', { visible: true });
             await init.pageClick(page, '#basic');
             // To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
@@ -189,7 +189,7 @@ describe('Fyipe Component Reload', () => {
             await page.waitForSelector('#advanced', { visible: true });
             await init.pageClick(page, '#advanced');
             // To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbAdvanced', { visible: true });
             done();
         },

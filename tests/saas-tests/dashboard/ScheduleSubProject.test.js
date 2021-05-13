@@ -39,7 +39,9 @@ describe('Schedule API With SubProjects', () => {
         await init.addSubProject(subProjectName, page);
         // Create Component
         await init.addComponent(componentName, page, subProjectName);
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         // add new user to sub-project
         await init.addUserToProject(
             {
@@ -98,7 +100,7 @@ describe('Schedule API With SubProjects', () => {
             await page.waitForSelector(`#schedule_count_${subProjectName}`, {
                 visible: true,
             });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
 
             const scheduleCountSelector = await page.waitForSelector(
                 `#schedule_count_${subProjectName}`,
@@ -116,7 +118,9 @@ describe('Schedule API With SubProjects', () => {
     );
 
     test('should get list schedules in sub-projects and paginate schedules in sub-project', async done => {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         // add 10 more schedules to sub-project to test for pagination
         for (let i = 0; i < 10; i++) {
             const scheduleName = utils.generateRandomString();
@@ -161,7 +165,9 @@ describe('Schedule API With SubProjects', () => {
     test(
         'should add monitor to sub-project schedule',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#onCallDuty');
             await init.pageClick(page, '#onCallDuty');
             await page.waitForSelector('tr.scheduleListItem');
@@ -191,7 +197,9 @@ describe('Schedule API With SubProjects', () => {
     test(
         'should delete sub-project schedule',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#onCallDuty');
             await init.pageClick(page, '#onCallDuty');
             await page.waitForSelector('tr.scheduleListItem');

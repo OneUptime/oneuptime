@@ -37,7 +37,9 @@ describe('Fyipe Page Reload', () => {
     test(
         'Should reload the incidents page and confirm there are no errors',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#billing');
             await page.waitForSelector('#Startup_month', { visible: true });
@@ -52,7 +54,7 @@ describe('Fyipe Page Reload', () => {
             });
 
             //To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbBilling', { visible: true });
             const spanElement = await page.waitForSelector('#Startup_month', {
                 visible: true,

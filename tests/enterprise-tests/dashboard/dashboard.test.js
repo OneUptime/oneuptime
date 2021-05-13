@@ -74,7 +74,7 @@ describe('Enterprise Dashboard API', () => {
         async done => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await page.$eval('#components', el => el.click());
@@ -87,7 +87,7 @@ describe('Enterprise Dashboard API', () => {
             await init.pageType(page, 'input[id=name]', componentName);
             await init.pageClick(page, 'button[type=submit]');
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.$eval('#components', el => el.click());
 
@@ -126,7 +126,7 @@ describe('Enterprise Dashboard API', () => {
         async done => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await page.$eval('#components', el => el.click());

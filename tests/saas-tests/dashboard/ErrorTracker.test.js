@@ -38,7 +38,7 @@ describe('Error Trackers', () => {
         async done => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#components', { timeout: 120000 });
             await init.pageClick(page, '#components');
@@ -53,7 +53,9 @@ describe('Error Trackers', () => {
             await page.waitForSelector('#form-new-monitor', {
                 visible: true,
             });
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#components', { visible: true });
             await init.pageClick(page, '#components');
 
@@ -450,7 +452,9 @@ describe('Error Trackers', () => {
             spanElement.should.be.exactly(categoryName.toUpperCase());
 
             // delete the category
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');

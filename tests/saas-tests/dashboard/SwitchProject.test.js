@@ -38,7 +38,9 @@ describe('Project API', () => {
     test(
         'Should create new project from dropdown after login',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#selector', { visible: true });
             await page.$eval('#create-project', e => e.click());
             await page.waitForSelector('#name', { visible: true });
@@ -75,7 +77,9 @@ describe('Project API', () => {
     test(
         'Should switch project using project switcher',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#AccountSwitcherId', { visible: true });
             await init.pageClick(page, '#AccountSwitcherId');
             await page.waitForSelector('#accountSwitcher', { visible: true });

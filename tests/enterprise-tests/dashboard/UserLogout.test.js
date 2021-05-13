@@ -34,7 +34,9 @@ describe('User logout', () => {
     test(
         'Admin should be able to logout from dashboard (not admin-dashboard)',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForTimeout('#profile-menu');
             await init.pageClick(page, '#profile-menu');
             await page.waitForTimeout('#logout-button');

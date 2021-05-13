@@ -43,7 +43,7 @@ describe('Fyipe Monitor Reload', () => {
         async done => {
             await init.navigateToComponentDetails(componentName, page);
             // To confirm no error on page reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
@@ -71,7 +71,7 @@ describe('Fyipe Monitor Reload', () => {
                 page
             );
             // To confirm no error on page reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });

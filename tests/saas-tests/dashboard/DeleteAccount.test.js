@@ -39,7 +39,9 @@ describe('Profile -> Delete Account Component test', () => {
         async done => {
             const projectName = 'Project1';
             const role = 'Member';
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             // Rename project
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
@@ -97,7 +99,9 @@ describe('Profile -> Delete Account Component test', () => {
         async done => {
             const projectName = 'Project2';
             const role = 'Member';
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await init.addProject(page, projectName);
 
             // Invite member on the project
@@ -144,7 +148,9 @@ describe('Profile -> Delete Account Component test', () => {
         async done => {
             const role = 'Owner';
             const projectName = 'Project1';
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
 
             // Change member role -> Owner
             await page.waitForSelector('#teamMembers');
@@ -197,7 +203,9 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should delete account with multiple projects -> multiple users -> multiple owners',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
 
             // Navigate to profile page and delete account
             await page.waitForSelector('#profile-menu');

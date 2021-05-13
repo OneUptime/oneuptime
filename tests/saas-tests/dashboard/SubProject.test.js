@@ -42,7 +42,7 @@ describe('Sub-Project API', () => {
         'should show pricing plan modal for project not on Growth plan and above',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
@@ -75,7 +75,7 @@ describe('Member Restriction', () => {
         await init.registerUser({ email: projectOwnerMail, password }, page);
         await init.renameProject(newProjectName, page);
         await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         await init.addUserToProject(
             {
@@ -105,7 +105,7 @@ describe('Member Restriction', () => {
             ); // The team member has to register first before logging in.
 
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
@@ -134,7 +134,7 @@ describe('Member Restriction', () => {
 
             await init.growthPlanUpgrade(page);
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             // adding a subProject is only allowed on growth plan and above
             await init.addSubProject(subProjectName, page);

@@ -152,16 +152,16 @@ class IncidentSettings extends React.Component {
                                     id="customTabList"
                                     className={'custom-tab-list'}
                                 >
-                                    <Tab className={'custom-tab custom-tab-3'}>
+                                    <Tab className={'custom-tab custom-tab-3 incident-templates-tab'}>
                                         Incident Templates
                                     </Tab>
-                                    <Tab className={'custom-tab custom-tab-3'}>
+                                    <Tab className={'custom-tab custom-tab-3 incident-priority-tab'}>
                                         Incident Priority
                                     </Tab>
-                                    <Tab className={'custom-tab custom-tab-3'}>
+                                    <Tab className={'custom-tab custom-tab-3 communication-sla-tab'}>
                                         Communication SLA
                                     </Tab>
-                                    <Tab className={'custom-tab custom-tab-3'}>
+                                    <Tab className={'custom-tab custom-tab-3 advanced-tab'}>
                                         Advanced
                                     </Tab>
                                     <div

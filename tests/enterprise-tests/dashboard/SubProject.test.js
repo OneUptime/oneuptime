@@ -43,7 +43,7 @@ describe('Sub-Project API', () => {
         'should not create a sub-project with no name',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#projectSettings');
 
@@ -74,7 +74,7 @@ describe('Sub-Project API', () => {
         'should create a new sub-project',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await page.waitForSelector('#projectSettings');
@@ -104,7 +104,7 @@ describe('Sub-Project API', () => {
         'should rename a sub-project',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await page.waitForSelector('#projectSettings');
@@ -136,7 +136,7 @@ describe('Sub-Project API', () => {
         'should not create a sub-project with an existing sub-project name',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
@@ -164,7 +164,7 @@ describe('Sub-Project API', () => {
         'should delete a sub-project',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
@@ -187,7 +187,7 @@ describe('Sub-Project API', () => {
         'should display confirmation message before resetting the sub project API Key',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await page.waitForSelector('#projectSettings');
@@ -214,7 +214,7 @@ describe('Sub-Project API', () => {
         'should reset the sub project API Key',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await page.waitForSelector('#projectSettings');

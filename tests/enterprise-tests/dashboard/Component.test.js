@@ -40,7 +40,7 @@ describe('Enterprise Component API', () => {
             const componentName = utils.generateRandomString();
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#components', { timeout: 120000 });
             await init.pageClick(page, '#components');
@@ -53,7 +53,7 @@ describe('Enterprise Component API', () => {
             await init.pageType(page, 'input[id=name]', componentName);
             await init.pageClick(page, 'button[type=submit]');
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#components', { visible: true });
             await init.pageClick(page, '#components');

@@ -47,7 +47,9 @@ describe('Fyipe Page Reload', () => {
     test(
         'Should reload the incidents page and confirm there are no errors',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#integrations');
             await page.waitForSelector('#addSlackButton', { visible: true });
@@ -63,7 +65,7 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector('#createWebhook', { hidden: true });
             //To confirm no errors and stays on the same page on reload
             await page.waitForSelector('#webhook_name');
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbIntegrations', { visible: true });
             const spanElement = await page.waitForSelector('#addSlackButton', {
                 visible: true,

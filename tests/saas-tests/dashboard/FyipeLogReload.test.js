@@ -60,7 +60,7 @@ describe('Fyipe Page Reload', () => {
             expect(spanElement).toBeDefined();
 
             // To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });

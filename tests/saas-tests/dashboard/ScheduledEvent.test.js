@@ -48,7 +48,9 @@ describe('Scheduled event', () => {
     test(
         'should not create a new scheduled event for duplicate monitor selection',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -107,7 +109,9 @@ describe('Scheduled event', () => {
     test(
         'should create a new scheduled event for a monitor',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -170,7 +174,9 @@ describe('Scheduled event', () => {
     test(
         'should update the created scheduled event for a monitor',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -202,7 +208,9 @@ describe('Scheduled event', () => {
                 hidden: true,
             });
 
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -226,7 +234,9 @@ describe('Scheduled event', () => {
     test(
         'should delete the created scheduled event for a monitor',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -236,13 +246,10 @@ describe('Scheduled event', () => {
                 visible: true,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
-            await page.waitForSelector('ul#customTabList > li', {
+            await page.waitForSelector('.advanced-options-tab', {
                 visible: true,
             });
-            await page.$$eval(
-                'ul#customTabList > li',
-                elems => elems[2].click() // To navigate to advanced section of the scheduled maintenance
-            );
+            await page.$$eval('.advanced-options-tab', elems => elems[0].click());
 
             await page.waitForSelector('#deleteScheduleEvent', {
                 visible: true,

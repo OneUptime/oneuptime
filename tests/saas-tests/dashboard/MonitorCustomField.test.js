@@ -60,7 +60,9 @@ describe('Monitor Custom Field', () => {
     test(
         'should update a monitor custom field in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -70,7 +72,7 @@ describe('Monitor Custom Field', () => {
             await page.waitForSelector('#monitor', { visible: true });
             await init.pageClick(page, '#monitor');
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await init.gotoTab(2, page);
 
@@ -110,7 +112,9 @@ describe('Monitor Custom Field', () => {
     test(
         'should delete a monitor custom field in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -120,7 +124,7 @@ describe('Monitor Custom Field', () => {
             await page.waitForSelector('#monitor', { visible: true });
             await init.pageClick(page, '#monitor');
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await init.gotoTab(2, page);
 

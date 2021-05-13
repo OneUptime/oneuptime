@@ -36,7 +36,7 @@ describe('Custom Tutorial With SubProjects', () => {
             const customTutorialType = 'component';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             const componentBoxElement = await page.waitForSelector(
                 `#info-${customTutorialType}`
@@ -63,7 +63,7 @@ describe('Custom Tutorial With SubProjects', () => {
             const customTutorialType = 'component';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             const componentBoxElement = await page.waitForSelector(
@@ -98,7 +98,7 @@ describe('Custom Tutorial With SubProjects', () => {
             const customTutorialType = 'monitor';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             const componentBoxElement = await page.waitForSelector(
@@ -120,7 +120,7 @@ describe('Custom Tutorial With SubProjects', () => {
             const customTutorialType = 'teamMember';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             const componentBoxElement = await page.waitForSelector(

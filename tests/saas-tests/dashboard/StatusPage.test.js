@@ -13,7 +13,9 @@ const monitorName1 = 'testFyipe';
 
 let browser, page;
 const gotoTheFirstStatusPage = async page => {
-    await page.goto(utils.DASHBOARD_URL);
+    await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
     await page.waitForSelector('#statusPages');
     await page.$eval('#statusPages', e => e.click());
     const rowItem = await page.waitForSelector(
@@ -94,7 +96,7 @@ describe('Status Page', () => {
             expect(textContent.includes('A monitor must be selected.')).toEqual(
                 true
             );
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             const monitor = await page.waitForSelector('#monitor-0', {
                 hidden: true,
             });
@@ -127,7 +129,7 @@ describe('Status Page', () => {
                 'You must select at least one chart type'
             );
             await init.pageClick(page, '#btnAddStatusPageMonitors');
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             const monitor = await page.waitForSelector('#monitor-0', {
                 hidden: true,
             });
@@ -165,7 +167,7 @@ describe('Status Page', () => {
             expect(
                 textContent.includes('This monitor is already selected.')
             ).toEqual(true);
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
 
             const monitor = await page.waitForSelector('#monitor-0', {
                 hidden: true,
@@ -196,7 +198,7 @@ describe('Status Page', () => {
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             const elem = await page.waitForSelector('#monitor-0', {
                 visible: true,
             });
@@ -215,7 +217,7 @@ describe('Status Page', () => {
             await init.pageClick(page, '#btnAddStatusPageMonitors');
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             const elem = await page.waitForSelector('#app-loading', {
                 visible: true,
             });
@@ -253,7 +255,7 @@ describe('Status Page', () => {
             await init.pageClick(page, '#btnAddStatusPageMonitors');
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             const firstMonitorContainer = await page.waitForSelector(
                 '#monitor-0',
                 {
@@ -320,7 +322,7 @@ describe('Status Page', () => {
             await init.pageClick(page, '#btnAddStatusPageMonitors');
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             // We check if the monitors are added
             const firstMonitorContainer = await page.waitForSelector(
                 '#monitor-0',
@@ -405,7 +407,9 @@ describe('Status Page', () => {
     test.skip(
         'should indicate if domain(s) is set on a status page',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.$eval('#statusPages', elem => elem.click());
 
             const elem = await page.waitForSelector('#domainSet', {
@@ -441,7 +445,7 @@ describe('Status Page', () => {
             await page.waitForSelector('#editMoreDomainModal', {
                 hidden: true,
             });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
 
             await init.gotoTab(4, page);
             let finalInputValue;
@@ -503,7 +507,7 @@ describe('Status Page', () => {
             await page.waitForSelector('#addMoreDomainModal', {
                 hidden: true,
             });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
 
             await init.gotoTab(4, page);
             await page.waitForSelector('#btnDeleteDomain_0');
@@ -516,7 +520,7 @@ describe('Status Page', () => {
                 hidden: true,
             });
 
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             // get the final length of domains after deleting
             await init.gotoTab(4, page);
             await page.waitForSelector('fieldset[name="added-domain"]');
@@ -557,7 +561,7 @@ describe('Status Page', () => {
             await page.waitForSelector('#addMoreDomainModal', {
                 hidden: true,
             });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
 
             await init.gotoTab(4, page);
 
@@ -565,7 +569,7 @@ describe('Status Page', () => {
             await page.$eval('#btnDeleteDomain_0', elem => elem.click());
             await page.$eval('#cancelDomainDelete', elem => elem.click());
 
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await init.gotoTab(4, page);
             await page.waitForSelector('fieldset[name="added-domain"]');
             // get the final length of domains after cancelling
@@ -734,7 +738,7 @@ describe('Status Page', () => {
         'should add multiple domains',
         async done => {
             await gotoTheFirstStatusPage(page);
-            await page.waitForNavigation({ waitUntil: 'networkidle0' });
+            await page.waitForNavigation({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#react-tabs-2');
             await init.pageClick(page, '#react-tabs-2');
             await page.waitForSelector('#addMoreDomain');

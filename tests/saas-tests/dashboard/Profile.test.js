@@ -35,7 +35,9 @@ describe('Profile -> Delete Account Component test', () => {
         'Should edit the user profile',
         async done => {
             const name = utils.generateRandomString(10);
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
 
             await page.waitForSelector('#profile-menu');
             await init.pageClick(page, '#profile-menu');
@@ -67,7 +69,9 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should change the user password',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
 
             await page.waitForSelector('#profile-menu');
             await init.pageClick(page, '#profile-menu');
@@ -108,7 +112,9 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should not change password if new password and password are the same',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
 
             await page.waitForSelector('#profile-menu');
             await init.pageClick(page, '#profile-menu');
@@ -146,7 +152,9 @@ describe('Profile -> Delete Account Component test', () => {
         'Should not activate google authenticator if the verification code is wrong',
         async done => {
             // visit the dashboard
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             // click on the profile page
             await page.waitForSelector('#profile-menu');
             await init.pageClick(page, '#profile-menu');
@@ -162,7 +170,7 @@ describe('Profile -> Delete Account Component test', () => {
             await page.waitForSelector('input[name=twoFactorAuthEnabled]', {
                 visible: true,
             });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.$eval('input[name=twoFactorAuthEnabled]', e =>
                 e.click()
             );

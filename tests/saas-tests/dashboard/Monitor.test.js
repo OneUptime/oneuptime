@@ -935,7 +935,9 @@ describe('API Monitor API', () => {
             await page.waitForSelector('#save-btn');
             await page.waitForSelector('#save-btn', { visible: true });
 
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
 
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
@@ -989,7 +991,9 @@ describe('API Monitor API', () => {
             await page.waitForSelector('#save-btn', { visible: true });
 
             // Dashboard Page
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
 
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
@@ -1041,7 +1045,9 @@ describe('API Monitor API', () => {
         await page.waitForSelector('#save-btn');
         await page.waitForSelector('#save-btn', { visible: true });
 
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
 
         // Navigate to Monitor details
         await init.navigateToMonitorDetails(

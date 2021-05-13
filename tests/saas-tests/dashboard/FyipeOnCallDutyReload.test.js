@@ -44,7 +44,9 @@ describe('Fyipe Page Reload', () => {
     test(
         'Should reload the incidents page and confirm there are no errors',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#onCallDuty', {
                 visible: true,
             });
@@ -80,7 +82,7 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#saveSchedulePolicy');
 
             // To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbOn-CallDuty', { visible: true });
             await page.waitForSelector(`#cb${onCallName}`, { visible: true });
 

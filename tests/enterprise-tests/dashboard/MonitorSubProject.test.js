@@ -45,10 +45,10 @@ describe('Enterprise Monitor SubProject API', () => {
             //SubProject is only available for 'Growth Plan and above'
             await init.growthPlanUpgrade(page);
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             // add sub-project

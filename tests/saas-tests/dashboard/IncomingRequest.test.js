@@ -44,7 +44,9 @@ describe('Incoming HTTP Request', () => {
     test(
         'should configure incoming http request to create incident in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -99,7 +101,9 @@ describe('Incoming HTTP Request', () => {
     test(
         'should update an incoming http request in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -133,7 +137,9 @@ describe('Incoming HTTP Request', () => {
     test(
         'should delete an incoming http request in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });

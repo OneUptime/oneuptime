@@ -38,7 +38,7 @@ describe('Log Containers', () => {
         async done => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#components', { timeout: 120000 });
             await init.pageClick(page, '#components');
@@ -53,7 +53,9 @@ describe('Log Containers', () => {
             await page.waitForSelector('#form-new-monitor', {
                 visible: true,
             });
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#components', { visible: true });
             await init.pageClick(page, '#components');
 
@@ -83,7 +85,9 @@ describe('Log Containers', () => {
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', applicationLogName);
             await init.pageClick(page, 'button[type=submit]');
-            //await page.goto(utils.DASHBOARD_URL);
+            //await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
 
             let spanElement = await page.waitForSelector(
                 `span#application-log-title-${applicationLogName}`
@@ -564,7 +568,9 @@ describe('Log Containers', () => {
             spanElement.should.be.exactly(categoryName.toUpperCase());
 
             // delete the category
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');

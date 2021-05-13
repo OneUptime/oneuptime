@@ -80,13 +80,15 @@ describe('Schedule', () => {
     test(
         'should show pricing plan modal when add on-call duty times is clicked',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#onCallDuty', {
                 visible: true,
             });
             await page.$eval('#onCallDuty', elem => elem.click());
 
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
                 elem = Array.from(elem);
@@ -115,13 +117,15 @@ describe('Schedule', () => {
                 page,
                 componentName
             );
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#onCallDuty', {
                 visible: true,
             });
             await page.$eval('#onCallDuty', elem => elem.click());
 
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
                 elem = Array.from(elem);

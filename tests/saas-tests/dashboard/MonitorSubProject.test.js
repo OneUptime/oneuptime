@@ -43,7 +43,9 @@ describe('Monitor API With SubProjects', () => {
         // Create component
         await init.addComponent(componentName, page, subProjectName);
 
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         // add new user to sub-project
         await init.addUserToProject(
             {
@@ -122,7 +124,9 @@ describe('Monitor API With SubProjects', () => {
         'should create a monitor in parent project for valid `admin`',
         async done => {
             const monitorName = utils.generateRandomString();
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
 
@@ -151,7 +155,9 @@ describe('Monitor API With SubProjects', () => {
         // eslint-disable-next-line quotes
         "should get only sub-project's monitors for valid sub-project user",
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#components', {
                 visible: true,
             });
@@ -183,7 +189,9 @@ describe('Monitor API With SubProjects', () => {
         'should get both project and sub-project monitors for valid parent project user.',
         async done => {
             const monitorName = utils.generateRandomString();
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#form-new-monitor');

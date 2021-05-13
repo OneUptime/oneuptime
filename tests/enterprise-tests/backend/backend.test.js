@@ -18,7 +18,7 @@ describe('Enterprise Backend API', () => {
 
     test('should get status ok from backend', async done => {
         await page.goto(utils.BACKEND_URL, {
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         const response = await page.$eval('body > pre', e => {
             return e.innerHTML;

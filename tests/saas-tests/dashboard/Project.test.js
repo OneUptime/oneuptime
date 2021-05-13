@@ -39,7 +39,9 @@ describe('Project Settings', () => {
 
         await init.renameProject(newProjectName, page);
         await init.growthPlanUpgrade(page); // Growth Plan is needed for subproject.
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await init.addUserToProject(
             {
                 email: teamEmail,
@@ -154,7 +156,9 @@ describe('Project Settings', () => {
         await init.addProject(page, 'project10');
         await init.addProject(page, 'project11');
 
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await page.waitForSelector('#AccountSwitcherId');
         await init.pageClick(page, '#AccountSwitcherId');
 

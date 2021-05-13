@@ -41,7 +41,9 @@ describe('StatusPage API With SubProjects', () => {
         await init.addSubProject(subProjectName, page);
         // Create Component
         await init.addComponent(componentName, page, subProjectName);
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         // add new user to sub-project
         await init.addUserToProject(
             {
@@ -102,7 +104,9 @@ describe('StatusPage API With SubProjects', () => {
             };
             await init.logout(page);
             await init.loginUser(user, page);
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await init.addStatusPageToProject(
                 statuspageName,
                 subProjectName,
@@ -126,14 +130,16 @@ describe('StatusPage API With SubProjects', () => {
     );
 
     test('should navigate to status page when view button is clicked on the status page table view', async done => {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         const statuspageName = utils.generateRandomString();
         await init.addStatusPageToProject(statuspageName, subProjectName, page);
         await page.waitForSelector('tr.statusPageListItem');
         await page.$$('tr.statusPageListItem');
         await page.waitForSelector('#viewStatusPage');
         await init.pageClick(page, '#viewStatusPage');
-        await page.reload({ waitUntil: 'networkidle0' });
+        await page.reload({ waitUntil: 'networkidle2' });
 
         let statusPageNameOnStatusPage = await page.waitForSelector(
             `#cb${statuspageName}`,
@@ -149,7 +155,9 @@ describe('StatusPage API With SubProjects', () => {
     }, 50000);
 
     test('should get list of status pages in sub-projects and paginate status pages in sub-project', async done => {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         for (let i = 0; i < 10; i++) {
             const statuspageName = utils.generateRandomString();
             await init.addStatusPageToProject(
@@ -159,7 +167,7 @@ describe('StatusPage API With SubProjects', () => {
             );
         }
 
-        await page.reload({ waitUntil: 'networkidle0' });
+        await page.reload({ waitUntil: 'networkidle2' });
         await page.waitForSelector('tr.statusPageListItem');
 
         let statusPageRows = await page.$$('tr.statusPageListItem');
@@ -190,7 +198,9 @@ describe('StatusPage API With SubProjects', () => {
     test(
         'should update sub-project status page settings',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#statusPages');
             await init.pageClick(page, '#statusPages');
             await page.waitForSelector('tr.statusPageListItem');
@@ -214,7 +224,7 @@ describe('StatusPage API With SubProjects', () => {
             await init.pageClick(page, '#saveBranding');
             await page.waitForSelector('.ball-beat', { hidden: true });
 
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#customTabList > li');
             // navigate to branding tab
             await page.$$eval('#customTabList > li', elem => elem[3].click());
@@ -231,7 +241,9 @@ describe('StatusPage API With SubProjects', () => {
     test(
         'should delete sub-project status page',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
             await page.waitForSelector('#statusPages');
             await init.pageClick(page, '#statusPages');
             await page.waitForSelector('tr.statusPageListItem');
