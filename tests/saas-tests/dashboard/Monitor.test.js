@@ -1128,7 +1128,6 @@ describe('API Monitor API', () => {
     test(
         'should delete API monitors',
         async done => {
-            expect.assertions(1);
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,

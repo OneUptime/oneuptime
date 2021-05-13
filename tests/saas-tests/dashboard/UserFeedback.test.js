@@ -36,12 +36,12 @@ describe('User Feedback', () => {
     test(
         'should send feedback in project',
         async done => {
-            expect.assertions(1); // registerUser is the only assertion present
+
             const testFeedback = 'test feedback';
 
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#feedback-div');
             await init.pageClick(page, '#feedback-div', { clickCount: 2 });
             await init.pageType(page, '#feedback-textarea', testFeedback);
