@@ -2,7 +2,7 @@
 
 const puppeteer = require('puppeteer');
 const should = require('should');
-const utils = require('./test-utils');
+const utils = require('../../test-utils');
 
 let browser;
 let page;
@@ -26,9 +26,9 @@ describe('Resend Verification API', () => {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#email');
-        await page.click('input[name=email]');
-        await page.type('input[name=email]', 'invalid@email.com');
-        await page.click('button[type=submit]');
+        await init.pageClick(page, 'input[name=email]');
+        await init.pageType(page, 'input[name=email]', 'invalid@email.com');
+        await init.pageClick(page, 'button[type=submit]');
         await page.waitForSelector('#error-msg');
         const html = await page.$eval('#error-msg', e => {
             return e.innerHTML;

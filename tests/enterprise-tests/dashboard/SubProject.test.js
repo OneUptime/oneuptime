@@ -10,7 +10,7 @@ let subProjectName = utils.generateRandomString();
 const newSubProjectName = utils.generateRandomString();
 
 describe('Sub-Project API', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout; 
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

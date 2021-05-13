@@ -1,51 +1,51 @@
 const puppeteer = require('puppeteer');
-const { Cluster } = require('puppeteer-cluster');
-const utils = require('./test-utils');
-const init = require('./test-init');
+
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 
-const operationTimeOut = 100000;
+const operationTimeOut = init.timeout;
 const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
 const moveToSsoPage = async page => {
     await page.waitForSelector('#settings', { visible: true });
-    await page.click('#settings');
+    await init.pageClick(page, '#settings');
     await page.waitForSelector('#sso');
-    await page.click('#sso');
+    await init.pageClick(page, '#sso');
 };
 
 const createSso = async (page, data) => {
     await page.waitForSelector('#add-sso', { visible: true });
-    await page.click('#add-sso');
+    await init.pageClick(page, '#add-sso');
     await page.waitForSelector('#save-button');
 
-    if (data['saml-enabled']) await page.click('#saml-enabled-slider');
+    if (data['saml-enabled']) await init.pageClick(page, '#saml-enabled-slider');
 
-    await page.click('#domain');
-    await page.type('#domain', data.domain);
+    await init.pageClick(page, '#domain');
+    await init.pageType(page, '#domain', data.domain);
 
-    await page.click('#samlSsoUrl');
-    await page.type('#samlSsoUrl', data.samlSsoUrl);
+    await init.pageClick(page, '#samlSsoUrl');
+    await init.pageType(page, '#samlSsoUrl', data.samlSsoUrl);
 
-    await page.click('#certificateFingerprint');
-    await page.type('#certificateFingerprint', data.certificateFingerprint);
+    await init.pageClick(page, '#certificateFingerprint');
+    await init.pageType(page, '#certificateFingerprint', data.certificateFingerprint);
 
-    await page.click('#remoteLogoutUrl');
-    await page.type('#remoteLogoutUrl', data.remoteLogoutUrl);
+    await init.pageClick(page, '#remoteLogoutUrl');
+    await init.pageType(page, '#remoteLogoutUrl', data.remoteLogoutUrl);
 
-    await page.click('#ipRanges');
-    await page.type('#ipRanges', data.ipRanges);
+    await init.pageClick(page, '#ipRanges');
+    await init.pageType(page, '#ipRanges', data.ipRanges);
 
-    await page.click('#save-button');
+    await init.pageClick(page, '#save-button');
     await page.waitForSelector('#save-button', { hidden: true });
 };
 
 describe('SSO login', () => {
-    let cluster;
+    
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(init.timeout);
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
@@ -99,13 +99,13 @@ describe('SSO login', () => {
                     waitUntil: 'networkidle2',
                 });
                 await page.waitForSelector('#login-button');
-                await page.click('#sso-login');
-                await page.click('input[name=email]');
-                await page.type(
+                await init.pageClick(page, '#sso-login');
+                await init.pageClick(page, 'input[name=email]');
+                await init.pageType(page, 
                     'input[name=email]',
                     'email@inexistent-domain.hackerbay.io'
                 );
-                await page.click('button[type=submit]');
+                await init.pageClick(page, 'button[type=submit]');
                 await page.waitForResponse(response =>
                     response.url().includes('/login')
                 );
@@ -125,14 +125,14 @@ describe('SSO login', () => {
                     waitUntil: 'networkidle2',
                 });
                 await page.waitForSelector('#login-button');
-                await page.click('#sso-login');
-                await page.click('input[name=email]');
-                await page.type(
+                await init.pageClick(page, '#sso-login');
+                await init.pageClick(page, 'input[name=email]');
+                await init.pageType(page, 
                     'input[name=email]',
                     'email@disabled-domain.hackerbay.io'
                 );
                 await Promise.all([
-                    page.click('button[type=submit]'),
+                    init.pageClick(page, 'button[type=submit]'),
                     page.waitForResponse(response =>
                         response.url().includes('/login')
                     ),
@@ -156,28 +156,28 @@ describe('SSO login', () => {
                         waitUntil: 'networkidle2',
                     });
                     await page.waitForSelector('#login-button');
-                    await page.click('#sso-login');
-                    await page.click('input[name=email]');
-                    await page.type(
+                    await init.pageClick(page, '#sso-login');
+                    await init.pageClick(page, 'input[name=email]');
+                    await init.pageType(page, 
                         'input[name=email]',
                         'email@tests.hackerbay.io'
                     );
                     const [response] = await Promise.all([
                         page.waitForNavigation('networkidle2'),
-                        page.click('button[type=submit]'),
+                        init.pageClick(page, 'button[type=submit]'),
                     ]);
                     const chain = response.request().redirectChain();
                     expect(chain.length).not.toBe(0);
 
-                    await page.click('#username');
-                    await page.type('#username', username);
+                    await init.pageClick(page, '#username');
+                    await init.pageType(page, '#username', username);
 
-                    await page.click('#password');
-                    await page.type('#password', password);
+                    await init.pageClick(page, '#password');
+                    await init.pageType(page, '#password', password);
 
                     await Promise.all([
                         page.waitForNavigation('networkidle2'),
-                        page.click('button'),
+                        init.pageClick(page, 'button'),
                     ]);
 
                     await page.waitForSelector('#createButton');

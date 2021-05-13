@@ -12,7 +12,7 @@ const user = {
     password,
 };
 describe('Enterprise Monitor SubProject API', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

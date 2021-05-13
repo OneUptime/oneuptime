@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 require('should');
 
@@ -11,39 +11,39 @@ const password = '1234567890';
 
 const moveToSsoPage = async page => {
     await page.waitForSelector('#settings');
-    await page.click('#settings');
+    await init.pageClick(page, '#settings');
     await page.waitForSelector('#sso');
-    await page.click('#sso');
+    await init.pageClick(page, '#sso');
 };
 
 const createSso = async (page, data) => {
-    await page.click('#add-sso');
+    await init.pageClick(page, '#add-sso');
     await page.waitForSelector('#save-button');
 
-    await page.click('#domain');
-    await page.type('#domain', data.domain);
+    await init.pageClick(page, '#domain');
+    await init.pageType(page, '#domain', data.domain);
 
-    await page.click('#samlSsoUrl');
-    await page.type('#samlSsoUrl', data.samlSsoUrl);
+    await init.pageClick(page, '#samlSsoUrl');
+    await init.pageType(page, '#samlSsoUrl', data.samlSsoUrl);
 
-    await page.click('#certificateFingerprint');
-    await page.type('#certificateFingerprint', data.certificateFingerprint);
+    await init.pageClick(page, '#certificateFingerprint');
+    await init.pageType(page, '#certificateFingerprint', data.certificateFingerprint);
 
-    await page.click('#remoteLogoutUrl');
-    await page.type('#remoteLogoutUrl', data.remoteLogoutUrl);
+    await init.pageClick(page, '#remoteLogoutUrl');
+    await init.pageType(page, '#remoteLogoutUrl', data.remoteLogoutUrl);
 
-    await page.click('#ipRanges');
-    await page.type('#ipRanges', data.ipRanges);
+    await init.pageClick(page, '#ipRanges');
+    await init.pageType(page, '#ipRanges', data.ipRanges);
 
-    await page.click('#save-button');
-    await page.waitForTimeout(2000);
+    await init.pageClick(page, '#save-button');
+   
 };
 
 describe('SSO API', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(init.timeout);
 
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
@@ -168,18 +168,18 @@ describe('SSO API', () => {
                 expect(ssoCount).toContain('1');
 
                 await page.waitForSelector('.edit-button');
-                await page.click('.edit-button');
+                await init.pageClick(page, '.edit-button');
 
                 await page.waitForSelector('#save-button');
-                await page.click('#domain');
+                await init.pageClick(page, '#domain');
                 await page.keyboard.down('Control');
                 await page.keyboard.press('A');
                 await page.keyboard.up('Control');
                 await page.keyboard.press('Backspace');
-                await page.type('#domain', 'updated.test.hackerbay.io');
-                await page.click('#save-button');
+                await init.pageType(page, '#domain', 'updated.test.hackerbay.io');
+                await init.pageClick(page, '#save-button');
 
-                await page.waitForTimeout(2000);
+               
 
                 const tbody = await page.$eval('tbody', e => {
                     return e.innerHTML;
@@ -227,12 +227,12 @@ describe('SSO API', () => {
                 expect(ssoCount).toContain('1');
 
                 await page.waitForSelector('.delete-button');
-                await page.click('.delete-button');
+                await init.pageClick(page, '.delete-button');
 
                 await page.waitForSelector('#confirmDelete');
-                await page.click('#confirmDelete');
+                await init.pageClick(page, '#confirmDelete');
 
-                await page.waitForTimeout(2000);
+               
 
                 const ssoCountAfterDeletion = await page.$eval(
                     '#sso-count',
@@ -305,8 +305,8 @@ describe('SSO API', () => {
                     'subdomain.2.test.hackerbay.io'
                 );
 
-                await page.click('#next-button');
-                await page.waitForTimeout(2000);
+                await init.pageClick(page, '#next-button');
+               
 
                 const secondPageTbody = await page.$eval('tbody', e => {
                     return e.innerHTML;
@@ -318,8 +318,8 @@ describe('SSO API', () => {
                     'subdomain.0.test.hackerbay.io'
                 );
 
-                await page.click('#previous-button');
-                await page.waitForTimeout(2000);
+                await init.pageClick(page, '#previous-button');
+               
 
                 const initalPageTbody = await page.$eval('tbody', e => {
                     return e.innerHTML;

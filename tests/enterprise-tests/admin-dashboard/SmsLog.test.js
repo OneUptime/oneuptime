@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 require('should');
 
@@ -10,9 +10,9 @@ const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
 describe('SMS Logs', () => {
-    const operationTimeOut = 1000000;
+    const operationTimeOut = init.timeout;
 
-    let cluster;
+    
 
     beforeAll(async () => {
         jest.setTimeout(2000000);
@@ -48,13 +48,13 @@ describe('SMS Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
                 await page.waitForSelector('#smsLogs');
-                await page.click('#smsLogs');
+                await init.pageClick(page, '#smsLogs');
                 await page.waitForSelector('#deleteLog');
-                await page.click('#deleteLog');
+                await init.pageClick(page, '#deleteLog');
                 await page.waitForSelector('#confirmDelete');
-                await page.click('#confirmDelete');
+                await init.pageClick(page, '#confirmDelete');
                 await page.waitForSelector('#confirmDelete', { hidden: true });
 
                 const rowNum = await page.$$eval(
@@ -74,13 +74,13 @@ describe('SMS Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
                 await page.waitForSelector('#smsLogs');
-                await page.click('#smsLogs');
+                await init.pageClick(page, '#smsLogs');
                 await page.waitForSelector('#deleteLog');
-                await page.click('#deleteLog');
+                await init.pageClick(page, '#deleteLog');
                 await page.waitForSelector('#cancelSmsDelete');
-                await page.click('#cancelSmsDelete');
+                await init.pageClick(page, '#cancelSmsDelete');
 
                 const rowNum = await page.$$eval(
                     'tbody tr.Table-row',
@@ -99,17 +99,17 @@ describe('SMS Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
                 await page.waitForSelector('#smsLogs');
-                await page.click('#smsLogs');
+                await init.pageClick(page, '#smsLogs');
                 await page.waitForSelector('#deleteLog');
-                await page.click('#deleteLog');
+                await init.pageClick(page, '#deleteLog');
                 await page.waitForSelector('#confirmDelete');
-                await page.click('#confirmDelete');
+                await init.pageClick(page, '#confirmDelete');
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
                 await page.waitForSelector('#smsLogs');
-                await page.click('#smsLogs');
+                await init.pageClick(page, '#smsLogs');
 
                 const rowNum = await page.$$eval(
                     'tbody tr.Table-row',
@@ -128,12 +128,12 @@ describe('SMS Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
                 await page.waitForSelector('#smsLogs');
-                await page.click('#smsLogs');
+                await init.pageClick(page, '#smsLogs');
                 await page.waitForSelector('#searchSmsLog');
-                await page.click('#searchSmsLog');
-                await page.type('#searchSmsLog', 'probe');
+                await init.pageClick(page, '#searchSmsLog');
+                await init.pageType(page, '#searchSmsLog', 'probe');
 
                 const rowNum = await page.$$eval(
                     'tbody tr.Table-row',
@@ -152,12 +152,12 @@ describe('SMS Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
                 await page.waitForSelector('#smsLogs');
-                await page.click('#smsLogs');
+                await init.pageClick(page, '#smsLogs');
                 await page.waitForSelector('#searchSmsLog');
-                await page.click('#searchSmsLog');
-                await page.type('#searchSmsLog', 'somerandom');
+                await init.pageClick(page, '#searchSmsLog');
+                await init.pageType(page, '#searchSmsLog', 'somerandom');
 
                 const rowNum = await page.$$eval(
                     'tbody tr.Table-row',
@@ -176,7 +176,7 @@ describe('SMS Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#smsLogs');
-                await page.click('#smsLogs');
+                await init.pageClick(page, '#smsLogs');
 
                 // count currently available logs
                 let logCount = await page.waitForSelector(`#log-count`);
@@ -186,13 +186,13 @@ describe('SMS Logs', () => {
 
                 // goto other pages
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
 
                 // come back to logs page
                 await page.waitForSelector('#smsLogs');
-                await page.click('#smsLogs');
+                await init.pageClick(page, '#smsLogs');
 
-                await page.waitForTimeout(5000);
+                
 
                 // get the new log count
                 let newLogCount = await page.waitForSelector(`#log-count`);
@@ -211,15 +211,15 @@ describe('SMS Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#smsLogs');
-                await page.click('#smsLogs');
+                await init.pageClick(page, '#smsLogs');
 
                 // visit the SMS log settings page by clicking on settings first to show drop down
                 await page.waitForSelector('#settings');
-                await page.click('#settings');
+                await init.pageClick(page, '#settings');
 
                 // click on th SMS log
                 await page.waitForSelector('#smsLog');
-                await page.click('#smsLog');
+                await init.pageClick(page, '#smsLog');
 
                 // turn SMS log off
                 await page.$eval('input[name=smsStatusToggler]', e =>
@@ -228,15 +228,15 @@ describe('SMS Logs', () => {
 
                 // click the submit button
                 await page.waitForSelector('#smsLogSubmit');
-                await page.click('#smsLogSubmit');
+                await init.pageClick(page, '#smsLogSubmit');
 
-                await page.waitForTimeout(5000);
+                
 
                 // go back to SMS logs page
                 await page.waitForSelector('#smsLogs');
-                await page.click('#smsLogs');
+                await init.pageClick(page, '#smsLogs');
 
-                await page.waitForTimeout(5000);
+                
                 // look for the alert panel
                 const alertPanelElement = await page.waitForSelector(
                     `#smsLogDisabled`
@@ -253,7 +253,7 @@ describe('SMS Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#smsLogs');
-                await page.click('#smsLogs');
+                await init.pageClick(page, '#smsLogs');
 
                 // look for the alert panel
                 const alertPanelElement = await page.waitForSelector(
@@ -269,13 +269,13 @@ describe('SMS Logs', () => {
 
                 // goto other pages
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
 
                 // come back to logs page
                 await page.waitForSelector('#smsLogs');
-                await page.click('#smsLogs');
+                await init.pageClick(page, '#smsLogs');
 
-                await page.waitForTimeout(5000);
+                
 
                 // validate that the number doesnt change
                 let newLogCount = await page.waitForSelector(`#log-count`);
@@ -294,7 +294,7 @@ describe('SMS Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#smsLogs');
-                await page.click('#smsLogs');
+                await init.pageClick(page, '#smsLogs');
 
                 // count number of logs
                 let logCount = await page.waitForSelector(`#log-count`);
@@ -310,7 +310,7 @@ describe('SMS Logs', () => {
 
                 // find the a tag to enable logs and click on it
                 await page.waitForSelector('#smsLogSetting');
-                await page.click('#smsLogSetting');
+                await init.pageClick(page, '#smsLogSetting');
 
                 // enable logs
                 await page.$eval('input[name=smsStatusToggler]', e =>
@@ -319,15 +319,15 @@ describe('SMS Logs', () => {
 
                 // click the submit button
                 await page.waitForSelector('#smsLogSubmit');
-                await page.click('#smsLogSubmit');
+                await init.pageClick(page, '#smsLogSubmit');
 
-                await page.waitForTimeout(5000);
+                
 
                 // go back to SMS logs
                 await page.waitForSelector('#smsLogs');
-                await page.click('#smsLogs');
+                await init.pageClick(page, '#smsLogs');
 
-                await page.waitForTimeout(5000);
+                
 
                 // count new number of logs
                 let newLogCount = await page.waitForSelector(`#log-count`);

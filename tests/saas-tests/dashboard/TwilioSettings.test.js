@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 require('should');
 
 // user credentials
@@ -18,16 +18,16 @@ const alertPhone = '+19173976123';
 const incidentTitle = utils.generateRandomString();
 
 describe('Custom Twilio Settings', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
-    let cluster;
+    
     beforeAll(async done => {
         jest.setTimeout(360000);
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 500000,
+            timeout: init.timeout,
         });
 
         cluster.on('error', err => {
@@ -61,20 +61,20 @@ describe('Custom Twilio Settings', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#more');
-                await page.click('#more');
+                await init.pageClick(page, '#more');
                 await page.waitForSelector('#smsCalls');
-                await page.click('#smsCalls');
+                await init.pageClick(page, '#smsCalls');
                 await page.waitForSelector('#enableTwilio', {
                     visible: true,
                 });
-                await page.click('#enableTwilio');
+                await init.pageClick(page, '#enableTwilio');
                 await page.waitForSelector('#accountSid', { visible: true });
-                await page.type('#accountSid', twilioCredentials.accountSid);
-                await page.type('#authToken', twilioCredentials.authToken);
-                await page.type('#phoneNumber', twilioCredentials.phoneNumber);
-                await page.click('#submitTwilioSettings');
+                await init.pageType(page, '#accountSid', twilioCredentials.accountSid);
+                await init.pageType(page, '#authToken', twilioCredentials.authToken);
+                await init.pageType(page, '#phoneNumber', twilioCredentials.phoneNumber);
+                await init.pageClick(page, '#submitTwilioSettings');
                 await page.waitForSelector('.ball-beat', { visible: true });
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
@@ -105,12 +105,12 @@ describe('Custom Twilio Settings', () => {
                 );
                 await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
                 await page.waitForSelector('#addSubscriberButton');
-                await page.click('#addSubscriberButton');
+                await init.pageClick(page, '#addSubscriberButton');
                 await init.selectByText('#alertViaId', 'SMS', page);
                 await page.waitForSelector('#countryCodeId');
                 await init.selectByText('#countryCodeId', countryCode, page);
-                await page.type('#contactPhoneId', phoneNumber);
-                await page.click('#createSubscriber');
+                await init.pageType(page, '#contactPhoneId', phoneNumber);
+                await init.pageClick(page, '#createSubscriber');
                 await page.waitForSelector('#createSubscriber', {
                     hidden: true,
                 });
@@ -119,11 +119,11 @@ describe('Custom Twilio Settings', () => {
                 await page.waitForSelector(
                     `#monitorCreateIncident_${monitorName}`
                 );
-                await page.click(`#monitorCreateIncident_${monitorName}`);
+                await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
-                await page.type('input[name=title]', incidentTitle);
-                await page.click('#createIncident');
+                await init.pageType(page, 'input[name=title]', incidentTitle);
+                await init.pageClick(page, '#createIncident');
                 await page.waitForSelector('#createIncident', { hidden: true });
 
                 await page.waitForSelector('#closeIncident_0');
@@ -246,15 +246,15 @@ describe('Custom Twilio Settings', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#profile-menu');
-                await page.click('#profile-menu');
+                await init.pageClick(page, '#profile-menu');
                 await page.waitForSelector('#userProfile');
-                await page.click('#userProfile');
+                await init.pageClick(page, '#userProfile');
                 await page.waitForSelector('input[type=tel]');
-                await page.type('input[type=tel]', phoneNumber);
-                await page.click('#sendVerificationSMS');
+                await init.pageType(page, 'input[type=tel]', phoneNumber);
+                await init.pageClick(page, '#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                await page.type('#otp', '654321');
-                await page.click('#verify');
+                await init.pageType(page, '#otp', '654321');
+                await init.pageClick(page, '#verify');
                 await page.waitForSelector('#smsVerificationErrors');
                 const message = await page.$eval(
                     '#smsVerificationErrors',
@@ -274,19 +274,19 @@ describe('Custom Twilio Settings', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#profile-menu');
-                await page.click('#profile-menu');
+                await init.pageClick(page, '#profile-menu');
                 await page.waitForSelector('#userProfile');
-                await page.click('#userProfile');
+                await init.pageClick(page, '#userProfile');
                 await page.waitForSelector('input[type=tel]');
-                await page.click('input[type=tel]', { clickCount: 3 });
-                await page.type('input[type=tel]', alertPhone);
+                await init.pageClick(page, 'input[type=tel]', { clickCount: 3 });
+                await init.pageType(page, 'input[type=tel]', alertPhone);
                 await page.waitForSelector('#sendVerificationSMS', {
                     visible: true,
                 });
-                await page.click('#sendVerificationSMS');
+                await init.pageClick(page, '#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                await page.type('#otp', '123456');
-                await page.click('#verify');
+                await init.pageType(page, '#otp', '123456');
+                await init.pageClick(page, '#verify');
                 await page.waitForSelector('#successMessage', {
                     visible: true,
                 });
@@ -310,24 +310,24 @@ describe('Custom Twilio Settings', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#profile-menu');
-                await page.click('#profile-menu');
+                await init.pageClick(page, '#profile-menu');
                 await page.waitForSelector('#userProfile');
-                await page.click('#userProfile');
+                await init.pageClick(page, '#userProfile');
 
                 await page.reload({ waitUntil: 'networkidle0' });
                 await page.waitForSelector('input[type=tel]');
-                await page.click('input[type=tel]');
+                await init.pageClick(page, 'input[type=tel]');
                 await page.keyboard.press('Backspace');
-                await page.type('input[type=tel]', '1', {
+                await init.pageType(page, 'input[type=tel]', '1', {
                     delay: 150,
                 });
                 await page.waitForSelector('#sendVerificationSMS', {
                     visible: true,
                 });
-                await page.click('#sendVerificationSMS');
+                await init.pageClick(page, '#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                await page.type('#otp', '123456');
-                await page.click('#verify');
+                await init.pageType(page, '#otp', '123456');
+                await init.pageClick(page, '#verify');
                 await page.waitForSelector('#successMessage', {
                     visible: true,
                 });

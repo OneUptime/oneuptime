@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 require('should');
 
@@ -10,14 +10,14 @@ const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
 describe('Credential Page', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
     const dockerRegistryUrl = utils.dockerCredential.dockerRegistryUrl;
     const dockerUsername = utils.dockerCredential.dockerUsername;
     const dockerPassword = utils.dockerCredential.dockerPassword;
     const gitUsername = utils.gitCredential.gitUsername;
     const gitPassword = utils.gitCredential.gitPassword;
 
-    let cluster;
+    
     beforeAll(async done => {
         jest.setTimeout(operationTimeOut);
 
@@ -58,19 +58,19 @@ describe('Credential Page', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#more');
-                await page.click('#more');
+                await init.pageClick(page, '#more');
                 await page.waitForSelector('#gitCredentials', {
                     visible: true,
                 });
-                await page.click('#gitCredentials');
+                await init.pageClick(page, '#gitCredentials');
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 const initialTableRow = await page.$$('tbody tr');
                 await page.waitForSelector('#addCredentialBtn', {
                     visible: true,
                 });
-                await page.click('#addCredentialBtn');
+                await init.pageClick(page, '#addCredentialBtn');
 
                 await page.waitForSelector('#gitCredentialForm', {
                     visible: true,
@@ -98,26 +98,26 @@ describe('Credential Page', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#more');
-                await page.click('#more');
+                await init.pageClick(page, '#more');
                 await page.waitForSelector('#gitCredentials', {
                     visible: true,
                 });
-                await page.click('#gitCredentials');
+                await init.pageClick(page, '#gitCredentials');
                 await page.waitForSelector('#addCredentialBtn', {
                     visible: true,
                 });
-                await page.click('#addCredentialBtn');
+                await init.pageClick(page, '#addCredentialBtn');
 
                 await page.waitForSelector('#gitCredentialForm', {
                     visible: true,
                 });
-                await page.click('#gitUsername');
-                await page.type('#gitUsername', gitUsername);
-                await page.click('#gitPassword');
-                await page.type('#gitPassword', gitPassword);
-                await page.click('#addCredentialModalBtn');
+                await init.pageClick(page, '#gitUsername');
+                await init.pageType(page, '#gitUsername', gitUsername);
+                await init.pageClick(page, '#gitPassword');
+                await init.pageType(page, '#gitPassword', gitPassword);
+                await init.pageClick(page, '#addCredentialModalBtn');
 
                 const credentialModal = await page.waitForSelector(
                     '#gitCredentialForm',
@@ -138,23 +138,23 @@ describe('Credential Page', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#more');
-                await page.click('#more');
+                await init.pageClick(page, '#more');
                 await page.waitForSelector('#gitCredentials', {
                     visible: true,
                 });
-                await page.click('#gitCredentials');
+                await init.pageClick(page, '#gitCredentials');
 
                 await page.waitForSelector('#editCredentialBtn_0', {
                     visible: true,
                 });
-                await page.click('#editCredentialBtn_0');
+                await init.pageClick(page, '#editCredentialBtn_0');
                 await page.waitForSelector('#gitCredentialForm');
                 const gitUsername = 'newusername';
-                await page.click('#gitUsername', { clickCount: 3 });
-                await page.type('#gitUsername', gitUsername);
-                await page.click('#updateCredentialModalBtn');
+                await init.pageClick(page, '#gitUsername', { clickCount: 3 });
+                await init.pageType(page, '#gitUsername', gitUsername);
+                await init.pageClick(page, '#updateCredentialModalBtn');
                 await page.waitForSelector('#gitCredentialForm', {
                     hidden: true,
                 });
@@ -178,22 +178,22 @@ describe('Credential Page', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#more');
-                await page.click('#more');
+                await init.pageClick(page, '#more');
                 await page.waitForSelector('#gitCredentials', {
                     visible: true,
                 });
-                await page.click('#gitCredentials');
+                await init.pageClick(page, '#gitCredentials');
 
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 const initialTableRow = await page.$$('tbody tr');
-                await page.click('#deleteCredentialBtn_0');
+                await init.pageClick(page, '#deleteCredentialBtn_0');
 
                 await page.waitForSelector('#cancelCredentialDeleteBtn', {
                     visible: true,
                 });
-                await page.click('#cancelCredentialDeleteBtn');
+                await init.pageClick(page, '#cancelCredentialDeleteBtn');
                 await page.waitForSelector('#deleteCredentialModal', {
                     hidden: true,
                 });
@@ -215,22 +215,22 @@ describe('Credential Page', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#more');
-                await page.click('#more');
+                await init.pageClick(page, '#more');
                 await page.waitForSelector('#gitCredentials', {
                     visible: true,
                 });
-                await page.click('#gitCredentials');
+                await init.pageClick(page, '#gitCredentials');
 
                 await page.waitForSelector('tbody tr', { visible: true });
                 const initialTableRow = await page.$$('tbody tr');
-                await page.click('#deleteCredentialBtn_0');
+                await init.pageClick(page, '#deleteCredentialBtn_0');
 
                 await page.waitForSelector('#deleteCredentialBtn', {
                     visible: true,
                 });
-                await page.click('#deleteCredentialBtn');
+                await init.pageClick(page, '#deleteCredentialBtn');
                 await page.waitForSelector('#deleteCredentialModal', {
                     hidden: true,
                 });
@@ -254,16 +254,16 @@ describe('Credential Page', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#more');
-                await page.click('#more');
+                await init.pageClick(page, '#more');
                 await page.waitForSelector('#dockerCredentials', {
                     visible: true,
                 });
-                await page.click('#dockerCredentials');
+                await init.pageClick(page, '#dockerCredentials');
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 const initialTableRow = await page.$$('tbody tr');
-                await page.click('#addCredentialBtn');
+                await init.pageClick(page, '#addCredentialBtn');
 
                 await page.waitForSelector('#dockerCredentialForm', {
                     visible: true,
@@ -290,28 +290,28 @@ describe('Credential Page', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#more');
-                await page.click('#more');
+                await init.pageClick(page, '#more');
                 await page.waitForSelector('#dockerCredentials', {
                     visible: true,
                 });
-                await page.click('#dockerCredentials');
+                await init.pageClick(page, '#dockerCredentials');
                 await page.waitForSelector('#addCredentialBtn', {
                     visible: true,
                 });
-                await page.click('#addCredentialBtn');
+                await init.pageClick(page, '#addCredentialBtn');
 
                 await page.waitForSelector('#dockerCredentialForm', {
                     visible: true,
                 });
-                await page.click('#dockerRegistryUrl');
-                await page.type('#dockerRegistryUrl', dockerRegistryUrl);
-                await page.click('#dockerUsername');
-                await page.type('#dockerUsername', dockerUsername);
-                await page.click('#dockerPassword');
-                await page.type('#dockerPassword', dockerPassword);
-                await page.click('#addCredentialModalBtn');
+                await init.pageClick(page, '#dockerRegistryUrl');
+                await init.pageType(page, '#dockerRegistryUrl', dockerRegistryUrl);
+                await init.pageClick(page, '#dockerUsername');
+                await init.pageType(page, '#dockerUsername', dockerUsername);
+                await init.pageClick(page, '#dockerPassword');
+                await init.pageType(page, '#dockerPassword', dockerPassword);
+                await init.pageClick(page, '#addCredentialModalBtn');
 
                 const credentialModalForm = await page.waitForSelector(
                     '#dockerCredentialForm',
@@ -332,24 +332,24 @@ describe('Credential Page', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#more');
-                await page.click('#more');
+                await init.pageClick(page, '#more');
                 await page.waitForSelector('#dockerCredentials', {
                     visible: true,
                 });
-                await page.click('#dockerCredentials');
+                await init.pageClick(page, '#dockerCredentials');
 
                 await page.waitForSelector('#editCredentialBtn_0');
-                await page.click('#editCredentialBtn_0');
+                await init.pageClick(page, '#editCredentialBtn_0');
                 await page.waitForSelector('#dockerCredentialForm');
                 const dockerUsername = 'username';
                 const dockerPassword = 'hello1234567890';
-                await page.click('#dockerUsername', { clickCount: 3 });
-                await page.type('#dockerUsername', dockerUsername);
-                await page.click('#dockerPassword', { clickCount: 3 });
-                await page.type('#dockerPassword', dockerPassword);
-                await page.click('#updateCredentialModalBtn');
+                await init.pageClick(page, '#dockerUsername', { clickCount: 3 });
+                await init.pageType(page, '#dockerUsername', dockerUsername);
+                await init.pageClick(page, '#dockerPassword', { clickCount: 3 });
+                await init.pageType(page, '#dockerPassword', dockerPassword);
+                await init.pageClick(page, '#updateCredentialModalBtn');
                 await page.waitForSelector('#dockerCredentialForm', {
                     hidden: true,
                 });
@@ -373,24 +373,24 @@ describe('Credential Page', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#more');
-                await page.click('#more');
+                await init.pageClick(page, '#more');
                 await page.waitForSelector('#dockerCredentials', {
                     visible: true,
                 });
-                await page.click('#dockerCredentials');
+                await init.pageClick(page, '#dockerCredentials');
 
                 await page.waitForSelector('#editCredentialBtn_0');
-                await page.click('#editCredentialBtn_0');
+                await init.pageClick(page, '#editCredentialBtn_0');
                 await page.waitForSelector('#dockerCredentialForm');
                 const dockerUsername = 'invalidusername';
                 const dockerPassword = 'hello1234567890';
-                await page.click('#dockerUsername', { clickCount: 3 });
-                await page.type('#dockerUsername', dockerUsername);
-                await page.click('#dockerPassword', { clickCount: 3 });
-                await page.type('#dockerPassword', dockerPassword);
-                await page.click('#updateCredentialModalBtn');
+                await init.pageClick(page, '#dockerUsername', { clickCount: 3 });
+                await init.pageType(page, '#dockerUsername', dockerUsername);
+                await init.pageClick(page, '#dockerPassword', { clickCount: 3 });
+                await init.pageType(page, '#dockerPassword', dockerPassword);
+                await init.pageClick(page, '#updateCredentialModalBtn');
 
                 const updateCredentialError = await page.waitForSelector(
                     '#updateCredentialError',
@@ -412,28 +412,28 @@ describe('Credential Page', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#more');
-                await page.click('#more');
+                await init.pageClick(page, '#more');
                 await page.waitForSelector('#dockerCredentials', {
                     visible: true,
                 });
-                await page.click('#dockerCredentials');
+                await init.pageClick(page, '#dockerCredentials');
                 await page.waitForSelector('#addCredentialBtn', {
                     visible: true,
                 });
-                await page.click('#addCredentialBtn');
+                await init.pageClick(page, '#addCredentialBtn');
 
                 await page.waitForSelector('#dockerCredentialForm', {
                     visible: true,
                 });
-                await page.click('#dockerRegistryUrl');
-                await page.type('#dockerRegistryUrl', dockerRegistryUrl);
-                await page.click('#dockerUsername');
-                await page.type('#dockerUsername', 'randomusername');
-                await page.click('#dockerPassword');
-                await page.type('#dockerPassword', 'invalidpassword');
-                await page.click('#addCredentialModalBtn');
+                await init.pageClick(page, '#dockerRegistryUrl');
+                await init.pageType(page, '#dockerRegistryUrl', dockerRegistryUrl);
+                await init.pageClick(page, '#dockerUsername');
+                await init.pageType(page, '#dockerUsername', 'randomusername');
+                await init.pageClick(page, '#dockerPassword');
+                await init.pageType(page, '#dockerPassword', 'invalidpassword');
+                await init.pageClick(page, '#addCredentialModalBtn');
 
                 const addCredentialError = await page.waitForSelector(
                     '#addCredentialError',
@@ -455,22 +455,22 @@ describe('Credential Page', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#more');
-                await page.click('#more');
+                await init.pageClick(page, '#more');
                 await page.waitForSelector('#dockerCredentials', {
                     visible: true,
                 });
-                await page.click('#dockerCredentials');
+                await init.pageClick(page, '#dockerCredentials');
 
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 const initialTableRow = await page.$$('tbody tr');
-                await page.click('#deleteCredentialBtn_0');
+                await init.pageClick(page, '#deleteCredentialBtn_0');
 
                 await page.waitForSelector('#cancelCredentialDeleteBtn', {
                     visible: true,
                 });
-                await page.click('#cancelCredentialDeleteBtn');
+                await init.pageClick(page, '#cancelCredentialDeleteBtn');
                 await page.waitForSelector('#deleteCredentialModal', {
                     hidden: true,
                 });
@@ -492,22 +492,22 @@ describe('Credential Page', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#more');
-                await page.click('#more');
+                await init.pageClick(page, '#more');
                 await page.waitForSelector('#dockerCredentials', {
                     visible: true,
                 });
-                await page.click('#dockerCredentials');
+                await init.pageClick(page, '#dockerCredentials');
 
                 await page.waitForSelector('tbody tr', { visible: true });
                 const initialTableRow = await page.$$('tbody tr');
-                await page.click('#deleteCredentialBtn_0');
+                await init.pageClick(page, '#deleteCredentialBtn_0');
 
                 await page.waitForSelector('#deleteCredentialBtn', {
                     visible: true,
                 });
-                await page.click('#deleteCredentialBtn');
+                await init.pageClick(page, '#deleteCredentialBtn');
                 await page.waitForSelector('#deleteCredentialModal', {
                     hidden: true,
                 });

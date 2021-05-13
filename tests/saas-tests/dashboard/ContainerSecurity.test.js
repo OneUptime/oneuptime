@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 require('should');
 
@@ -13,9 +13,9 @@ const containerSecurityName = 'Test';
 const newContainerSecurityName = 'Byter';
 
 describe('Container Security Page', () => {
-    const operationTimeOut = 900000;
+    const operationTimeOut = init.timeout; 
 
-    let cluster;
+    
     beforeAll(async done => {
         jest.setTimeout(operationTimeOut);
 
@@ -65,45 +65,45 @@ describe('Container Security Page', () => {
                 await init.navigateToComponentDetails(component, page);
 
                 await page.waitForSelector('#security', { visible: true });
-                await page.click('#security');
+                await init.pageClick(page, '#security');
                 await page.waitForSelector('#container', {
                     visible: true,
                 });
-                await page.click('#container');
+                await init.pageClick(page, '#container');
 
                 await page.waitForSelector('#containerSecurityForm', {
                     visible: true,
                 });
-                await page.click('#addCredentialBtn');
+                await init.pageClick(page, '#addCredentialBtn');
                 await page.waitForSelector('#dockerCredentialForm', {
                     visible: true,
                 });
-                await page.click('#dockerRegistryUrl');
-                await page.type('#dockerRegistryUrl', dockerRegistryUrl);
-                await page.click('#dockerUsername');
-                await page.type('#dockerUsername', dockerUsername);
-                await page.click('#dockerPassword');
-                await page.type('#dockerPassword', dockerPassword);
-                await page.click('#addCredentialModalBtn');
+                await init.pageClick(page, '#dockerRegistryUrl');
+                await init.pageType(page, '#dockerRegistryUrl', dockerRegistryUrl);
+                await init.pageClick(page, '#dockerUsername');
+                await init.pageType(page, '#dockerUsername', dockerUsername);
+                await init.pageClick(page, '#dockerPassword');
+                await init.pageType(page, '#dockerPassword', dockerPassword);
+                await init.pageClick(page, '#addCredentialModalBtn');
                 await page.waitForSelector('#dockerCredentialForm', {
                     hidden: true,
                 });
 
-                await page.click('#name');
-                await page.type('#name', containerSecurityName);
+                await init.pageClick(page, '#name');
+                await init.pageType(page, '#name', containerSecurityName);
                 await init.selectByText(
                     '#resourceCategory',
                     categoryName,
                     page
                 ); // add category
-                await page.click('#dockerCredential');
-                await page.type('#dockerCredential', dockerUsername);
+                await init.pageClick(page, '#dockerCredential');
+                await init.pageType(page, '#dockerCredential', dockerUsername);
                 await page.keyboard.press('Enter');
-                await page.click('#imagePath');
-                await page.type('#imagePath', imagePath);
-                await page.click('#imageTags');
-                await page.type('#imageTags', imageTags);
-                await page.click('#addContainerBtn');
+                await init.pageClick(page, '#imagePath');
+                await init.pageType(page, '#imagePath', imagePath);
+                await init.pageClick(page, '#imageTags');
+                await init.pageType(page, '#imageTags', imageTags);
+                await init.pageClick(page, '#addContainerBtn');
 
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 const containerSecurity = await page.waitForSelector(
@@ -137,20 +137,20 @@ describe('Container Security Page', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
+                await init.pageClick(page, '#components');
 
                 await page.waitForSelector('#component0', { visible: true });
-                await page.click(`#more-details-${component}`);
+                await init.pageClick(page, `#more-details-${component}`);
                 await page.waitForSelector('#security', { visible: true });
-                await page.click('#security');
+                await init.pageClick(page, '#security');
                 await page.waitForSelector('#container', { visible: true });
-                await page.click('#container');
+                await init.pageClick(page, '#container');
                 await page.waitForSelector('#largeSpinner', { hidden: true });
                 await page.waitForSelector(
                     `#scanningContainerSecurity_${containerSecurityName}`,
                     { hidden: true, timeout: operationTimeOut }
                 );
-                await page.click(
+                await init.pageClick(page, 
                     `#moreContainerSecurity_${containerSecurityName}`
                 );
                 const issueCount = await page.waitForSelector('#issueCount', {
@@ -169,16 +169,16 @@ describe('Container Security Page', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
+                await init.pageClick(page, '#components');
 
                 await page.waitForSelector('#component0', { visible: true });
-                await page.click(`#more-details-${component}`);
+                await init.pageClick(page, `#more-details-${component}`);
                 await page.waitForSelector('#security', { visible: true });
-                await page.click('#security');
+                await init.pageClick(page, '#security');
                 await page.waitForSelector('#container', { visible: true });
-                await page.click('#container');
+                await init.pageClick(page, '#container');
                 await page.waitForSelector('#largeSpinner', { hidden: true });
-                await page.click(
+                await init.pageClick(page, 
                     `#moreContainerSecurity_${containerSecurityName}`
                 );
                 const securityLog = await page.waitForSelector('#securityLog', {
@@ -198,17 +198,17 @@ describe('Container Security Page', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
+                await init.pageClick(page, '#components');
 
                 await page.waitForSelector('#component0', { visible: true });
-                await page.click(`#more-details-${component}`);
+                await init.pageClick(page, `#more-details-${component}`);
                 await page.waitForSelector('#security', { visible: true });
-                await page.click('#security');
+                await init.pageClick(page, '#security');
                 await page.waitForSelector('#container', { visible: true });
-                await page.click('#container');
+                await init.pageClick(page, '#container');
                 await page.waitForSelector('#largeSpinner', { hidden: true });
 
-                await page.click('#issueCount');
+                await init.pageClick(page, '#issueCount');
                 const securityLog = await page.waitForSelector('#securityLog', {
                     visible: true,
                 });
@@ -226,16 +226,16 @@ describe('Container Security Page', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
+                await init.pageClick(page, '#components');
 
                 await page.waitForSelector('#component0', { visible: true });
-                await page.click(`#more-details-${component}`);
+                await init.pageClick(page, `#more-details-${component}`);
                 await page.waitForSelector('#security', { visible: true });
-                await page.click('#security');
+                await init.pageClick(page, '#security');
                 await page.waitForSelector('#container', { visible: true });
-                await page.click('#container');
+                await init.pageClick(page, '#container');
                 await page.waitForSelector('#largeSpinner', { hidden: true });
-                await page.click(
+                await init.pageClick(page, 
                     `#moreContainerSecurity_${containerSecurityName}`
                 );
 
@@ -258,29 +258,29 @@ describe('Container Security Page', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
+                await init.pageClick(page, '#components');
 
                 await page.waitForSelector('#component0', { visible: true });
-                await page.click(`#more-details-${component}`);
+                await init.pageClick(page, `#more-details-${component}`);
                 await page.waitForSelector('#security', { visible: true });
-                await page.click('#security');
+                await init.pageClick(page, '#security');
                 await page.waitForSelector('#container', { visible: true });
-                await page.click('#container');
+                await init.pageClick(page, '#container');
                 await page.waitForSelector('#largeSpinner', { hidden: true });
-                await page.click(
+                await init.pageClick(page, 
                     `#moreContainerSecurity_${containerSecurityName}`
                 );
 
                 await page.waitForSelector(`#edit_${containerSecurityName}`, {
                     visible: true,
                 });
-                await page.click(`#edit_${containerSecurityName}`);
+                await init.pageClick(page, `#edit_${containerSecurityName}`);
                 await page.waitForSelector('#editContainerSecurityForm', {
                     visible: true,
                 });
-                await page.click('#name', { clickCount: 3 });
-                await page.type('#name', newContainerSecurityName);
-                await page.click('#editContainerBtn');
+                await init.pageClick(page, '#name', { clickCount: 3 });
+                await init.pageType(page, '#name', newContainerSecurityName);
+                await init.pageClick(page, '#editContainerBtn');
                 await page.waitForSelector('#editContainerSecurityForm', {
                     hidden: true,
                 });
@@ -302,26 +302,26 @@ describe('Container Security Page', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
+                await init.pageClick(page, '#components');
 
                 await page.waitForSelector('#component0', { visible: true });
-                await page.click(`#more-details-${component}`);
+                await init.pageClick(page, `#more-details-${component}`);
                 await page.waitForSelector('#security', { visible: true });
-                await page.click('#security');
+                await init.pageClick(page, '#security');
                 await page.waitForSelector('#container', { visible: true });
-                await page.click('#container');
+                await init.pageClick(page, '#container');
                 await page.waitForSelector('#largeSpinner', { hidden: true });
-                await page.click(
+                await init.pageClick(page, 
                     `#moreContainerSecurity_${newContainerSecurityName}`
                 );
                 await page.waitForSelector('#deleteContainerSecurityBtn', {
                     visible: true,
                 });
-                await page.click('#deleteContainerSecurityBtn');
+                await init.pageClick(page, '#deleteContainerSecurityBtn');
                 await page.waitForSelector('#deleteContainerSecurityModalBtn', {
                     visible: true,
                 });
-                await page.click('#deleteContainerSecurityModalBtn');
+                await init.pageClick(page, '#deleteContainerSecurityModalBtn');
                 await page.waitForNavigation();
 
                 const containerSecurity = await page.waitForSelector(

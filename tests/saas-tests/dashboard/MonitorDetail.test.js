@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 let browser, page;
@@ -20,10 +20,10 @@ const incidentTitle = utils.generateRandomString();
 const newIncidentTitle = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -85,9 +85,9 @@ describe('Monitor Detail API', () => {
             await page.waitForSelector('#createIncident');
             await init.selectByText('#incidentType', 'Offline', page);
             await init.selectByText('#incidentPriority', priorityName, page);
-            await page.click('#title', { clickCount: 3 });
+            await init.pageClick(page, '#title', { clickCount: 3 });
             // await page.keyboard.press('Backspace');
-            await page.type('#title', incidentTitle);
+            await init.pageType(page, '#title', incidentTitle);
             await page.$eval('#createIncident', e => e.click());
             await page.waitForSelector('#closeIncident_0', {
                 visible: true,
@@ -136,10 +136,10 @@ describe('Monitor Detail API', () => {
             );
             expect(currentTitle).toEqual(incidentTitle);
             // The Edit Button has been removed and replaced with another functions
-            await page.click('#incidentTitle');
-            await page.click('#title', { clickCount: 3 });
+            await init.pageClick(page, '#incidentTitle');
+            await init.pageClick(page, '#title', { clickCount: 3 });
             await page.keyboard.press('Backspace');
-            await page.type('#title', newIncidentTitle);
+            await init.pageType(page, '#title', newIncidentTitle);
             await page.keyboard.press('Enter');
             await page.waitForSelector(incidentTitleSelector);
             currentTitle = await page.$eval(
@@ -278,7 +278,7 @@ describe('Monitor Detail API', () => {
             await page.waitForSelector('#alertViaId');
 
             await init.selectByText('#alertViaId', 'email', page);
-            await page.type('input[name=email]', subscriberEmail);
+            await init.pageType(page, 'input[name=email]', subscriberEmail);
             await page.$eval('#createSubscriber', e => e.click());
             await page.waitForSelector('#createSubscriber', {
                 hidden: true,
@@ -318,7 +318,7 @@ describe('Monitor Detail API', () => {
                 await page.$eval(addButtonSelector, e => e.click());
                 await page.waitForSelector('#alertViaId');
                 await init.selectByText('#alertViaId', 'email', page);
-                await page.type(
+                await init.pageType(page, 
                     'input[name=email]',
                     utils.generateRandomBusinessEmail()
                 );
@@ -392,8 +392,8 @@ describe('Monitor Detail API', () => {
             await page.waitForSelector('#endpoint');
 
             // Name is required to submit a msteams webhook AND only name is rendered. webHookEndPoint only shows when edit button is clicked.
-            await page.type('#webHookName', webHookName);
-            await page.type('#endpoint', webhookEndpoint);
+            await init.pageType(page, '#webHookName', webHookName);
+            await init.pageType(page, '#endpoint', webhookEndpoint);
 
             await page.evaluate(() => {
                 document.querySelector('input[name=incidentCreated]').click();
@@ -446,10 +446,10 @@ describe('Monitor Detail API', () => {
             await page.$eval(editWebhookButtonSelector, e => e.click());
 
             const newWebhookEndpoint = utils.generateRandomWebsite();
-            await page.click('#webHookName', { clickCount: 3 });
-            await page.type('#webHookName', newWebHookName);
-            await page.click('#endpoint', { clickCount: 3 });
-            await page.type('#endpoint', newWebhookEndpoint);
+            await init.pageClick(page, '#webHookName', { clickCount: 3 });
+            await init.pageType(page, '#webHookName', newWebHookName);
+            await init.pageClick(page, '#endpoint', { clickCount: 3 });
+            await init.pageType(page, '#endpoint', newWebhookEndpoint);
             await page.$eval('#msteamsUpdate', e => e.click());
             await page.waitForSelector('#msteamsUpdate', { hidden: true });
             await page.waitForSelector(`#msteam_${newWebHookName}`);
@@ -518,8 +518,8 @@ describe('Monitor Detail API', () => {
             for (let i = 0; i < 11; i++) {
                 await page.$eval(addButtonSelector, e => e.click());
                 await page.waitForSelector('#endpoint');
-                await page.type('#webHookName', utils.generateRandomString());
-                await page.type('#endpoint', utils.generateRandomWebsite());
+                await init.pageType(page, '#webHookName', utils.generateRandomString());
+                await init.pageType(page, '#endpoint', utils.generateRandomWebsite());
                 await page.evaluate(() => {
                     document
                         .querySelector('input[name=incidentCreated]')
@@ -590,8 +590,8 @@ describe('Monitor Detail API', () => {
 
             await page.waitForSelector('#endpoint');
 
-            await page.type('#webHookName', webHookName);
-            await page.type('#endpoint', webhookEndpoint);
+            await init.pageType(page, '#webHookName', webHookName);
+            await init.pageType(page, '#endpoint', webhookEndpoint);
 
             await page.evaluate(() => {
                 document.querySelector('input[name=incidentCreated]').click();
@@ -642,10 +642,10 @@ describe('Monitor Detail API', () => {
             await page.$eval(editWebhookButtonSelector, e => e.click());
 
             const newWebhookEndpoint = utils.generateRandomWebsite();
-            await page.click('#webHookName', { clickCount: 3 });
-            await page.type('#webHookName', newWebHookName);
-            await page.click('#endpoint', { clickCount: 3 });
-            await page.type('#endpoint', newWebhookEndpoint);
+            await init.pageClick(page, '#webHookName', { clickCount: 3 });
+            await init.pageType(page, '#webHookName', newWebHookName);
+            await init.pageClick(page, '#endpoint', { clickCount: 3 });
+            await init.pageType(page, '#endpoint', newWebhookEndpoint);
             await page.$eval('#slackUpdate', e => e.click());
             await page.waitForSelector('#slackUpdate', { hidden: true });
             await page.waitForSelector(`#name_slack_${newWebHookName}`);
@@ -713,8 +713,8 @@ describe('Monitor Detail API', () => {
                 await page.$eval(addButtonSelector, e => e.click());
                 await page.waitForSelector('#endpoint');
 
-                await page.type('#webHookName', utils.generateRandomString());
-                await page.type('#endpoint', utils.generateRandomWebsite());
+                await init.pageType(page, '#webHookName', utils.generateRandomString());
+                await init.pageType(page, '#endpoint', utils.generateRandomWebsite());
                 await page.evaluate(() => {
                     document
                         .querySelector('input[name=incidentCreated]')
@@ -787,7 +787,7 @@ describe('Monitor Detail API', () => {
             await page.$eval(addButtonSelector, e => e.click());
 
             await page.waitForSelector('#endpoint');
-            await page.type('#endpoint', webhookEndpoint);
+            await init.pageType(page, '#endpoint', webhookEndpoint);
             await init.selectByText('#endpointType', 'GET', page);
 
             await page.evaluate(() => {
@@ -830,7 +830,7 @@ describe('Monitor Detail API', () => {
                 await page.$eval(addButtonSelector, e => e.click());
                 await page.waitForSelector('#endpoint');
 
-                await page.type('#endpoint', utils.generateRandomWebsite());
+                await init.pageType(page, '#endpoint', utils.generateRandomWebsite());
                 await init.selectByText('#endpointType', 'GET', page);
                 await page.evaluate(() => {
                     document
@@ -895,11 +895,11 @@ describe('Monitor Detail API', () => {
 
             await page.waitForSelector('#form-new-monitor');
             await page.$eval('input[id=name]', e => e.click());
-            await page.type('input[id=name]', urlMonitorName);
-            await page.click('[data-testId=type_url]');
+            await init.pageType(page, 'input[id=name]', urlMonitorName);
+            await init.pageClick(page, '[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
             await page.$eval('#url', e => e.click());
-            await page.type('#url', 'https://google.com');
+            await init.pageType(page, '#url', 'https://google.com');
             await page.$eval('button[type=submit]', e => e.click());
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });
@@ -942,9 +942,9 @@ describe('Monitor Detail API', () => {
             await page.$eval(`#addSiteUrl_${urlMonitorName}`, e => e.click());
 
             await page.waitForSelector('input[id=siteUrl]');
-            await page.type('input[id=siteUrl]', 'https://fyipe.com');
+            await init.pageType(page, 'input[id=siteUrl]', 'https://fyipe.com');
             await page.$eval('#addSiteUrlButton', e => e.click());
-            // await page.waitForTimeout(5000);
+            // 
             await page.waitForSelector('#addSiteUrlButton', {
                 hidden: true,
             });
@@ -1010,8 +1010,6 @@ describe('Monitor Detail API', () => {
 
             await page.waitForSelector(`#scanWebsites_${urlMonitorName}`);
             await page.$eval(`#scanWebsites_${urlMonitorName}`, e => e.click());
-
-            // await page.waitForTimeout(200000);
 
             let lighthousePerformanceElement = await page.waitForSelector(
                 `#performance_${urlMonitorName}_0`,
@@ -1157,8 +1155,8 @@ describe('Monitor Detail API', () => {
             await page.$eval(editButtonSelector, e => e.click());
 
             await page.waitForSelector('#form-new-monitor');
-            await page.click('input[id=name]', { clickCount: 3 });
-            await page.type('input[id=name]', newMonitorName);
+            await init.pageClick(page, 'input[id=name]', { clickCount: 3 });
+            await init.pageType(page, 'input[id=name]', newMonitorName);
             await page.$eval('button[type=submit]', e => e.click());
             await page.waitForSelector('#form-new-monitor', {
                 hidden: true,

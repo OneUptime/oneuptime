@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 
@@ -15,10 +15,10 @@ const phoneNumber = '9173976235';
 const subscriberEmail = utils.generateRandomBusinessEmail();
 
 describe('Subscribers Alert logs API', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -69,13 +69,13 @@ describe('Subscribers Alert logs API', () => {
             );
             await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
             await page.waitForSelector('#addSubscriberButton');
-            await page.click('#addSubscriberButton');
+            await init.pageClick(page, '#addSubscriberButton');
             await page.waitForSelector('#alertViaId');
             await init.selectByText('#alertViaId', 'sms', page);
             await page.waitForSelector('#countryCodeId');
             await init.selectByText('#countryCodeId', countryCode, page);
-            await page.type('#contactPhoneId', phoneNumber);
-            await page.click('#createSubscriber');
+            await init.pageType(page, '#contactPhoneId', phoneNumber);
+            await init.pageClick(page, '#createSubscriber');
             await page.waitForSelector('#createSubscriber', {
                 hidden: true,
             });
@@ -107,12 +107,12 @@ describe('Subscribers Alert logs API', () => {
             );
             await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
             await page.waitForSelector('#addSubscriberButton');
-            await page.click('#addSubscriberButton');
+            await init.pageClick(page, '#addSubscriberButton');
             await page.waitForSelector('#alertViaId');
             await init.selectByText('#alertViaId', 'email', page);
             await page.waitForSelector('#emailId');
-            await page.type('#emailId', subscriberEmail);
-            await page.click('#createSubscriber');
+            await init.pageType(page, '#emailId', subscriberEmail);
+            await init.pageClick(page, '#createSubscriber');
             await page.waitForSelector('#createSubscriber', {
                 hidden: true,
             });
@@ -141,13 +141,13 @@ describe('Subscribers Alert logs API', () => {
             );
 
             await page.waitForSelector(`#monitorCreateIncident_${monitorName}`);
-            await page.click(`#monitorCreateIncident_${monitorName}`);
+            await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
             await page.waitForSelector('#incidentType');
             await init.selectByText('#incidentType', 'offline', page);
-            await page.click('#createIncident');
+            await init.pageClick(page, '#createIncident');
             await page.waitForSelector(`#incident_${monitorName}_0`);
             await page.waitForSelector('#notificationscroll');
-            await page.click('#viewIncident-0');
+            await init.pageClick(page, '#viewIncident-0');
             await page.waitForSelector('#incident_0');
 
             await page.reload({ waitUntil: 'networkidle0' });
@@ -159,7 +159,7 @@ describe('Subscribers Alert logs API', () => {
 
             const firstRowIdentifier =
                 '#subscriberAlertTable tbody tr:nth-of-type(1)';
-            await page.click(firstRowIdentifier);
+            await init.pageClick(page, firstRowIdentifier);
             await page.waitForSelector('#backboneModals .bs-Modal-content');
 
             const subscriber = await page.$eval(
@@ -187,14 +187,14 @@ describe('Subscribers Alert logs API', () => {
             expect(type).toEqual('identified');
             expect(alertStatus).toEqual('Sent');
 
-            await page.click('#backboneModals #closeBtn');
+            await init.pageClick(page, '#backboneModals #closeBtn');
             await page.waitForSelector('#backboneModals .bs-Modal-content', {
                 hidden: true,
             });
 
             const secondRowIdentifier =
                 '#subscriberAlertTable tbody tr:nth-of-type(2)';
-            await page.click(secondRowIdentifier);
+            await init.pageClick(page, secondRowIdentifier);
             await page.waitForSelector('#backboneModals .bs-Modal-content');
 
             const subscriber1 = await page.$eval(

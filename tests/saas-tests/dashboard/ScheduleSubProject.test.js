@@ -20,7 +20,7 @@ const user = {
 };
 
 describe('Schedule API With SubProjects', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

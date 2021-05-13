@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 require('should');
 
@@ -11,10 +11,10 @@ const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
 describe('Enterprise License API', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(init.timeout);
 
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
@@ -73,18 +73,18 @@ describe('Enterprise License API', () => {
                 await init.loginUser(user, page);
 
                 await page.waitForSelector('#settings');
-                await page.click('#settings');
+                await init.pageClick(page, '#settings');
 
                 await page.waitForSelector('#license');
-                await page.click('input[name=license]');
-                await page.type('input[name=license]', 'expired-license');
-                await page.click('input[name=email]');
-                await page.type(
+                await init.pageClick(page, 'input[name=license]');
+                await init.pageType(page, 'input[name=license]', 'expired-license');
+                await init.pageClick(page, 'input[name=email]');
+                await init.pageType(page, 
                     'input[name=email]',
                     utils.generateRandomBusinessEmail()
                 );
-                await page.click('button[type=submit]');
-                await page.waitForTimeout(20000);
+                await init.pageClick(page, 'button[type=submit]');
+                
 
                 const expiredError = await page.$eval('#licenseError', e => {
                     return e.innerHTML;

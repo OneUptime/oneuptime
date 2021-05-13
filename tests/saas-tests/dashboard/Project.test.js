@@ -24,7 +24,7 @@ const memberUser = {
 let browser, page;
 
 describe('Project Settings', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout; 
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

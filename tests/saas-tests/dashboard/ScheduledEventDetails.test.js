@@ -19,7 +19,7 @@ const user = {
 require('should');
 
 describe('Scheduled Event Note', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout; 
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
@@ -188,7 +188,7 @@ describe('Scheduled Event Note', () => {
 });
 
 describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout; 
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

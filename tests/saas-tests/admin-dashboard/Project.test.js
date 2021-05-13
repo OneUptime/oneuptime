@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 const utils = require('../../../admin-dashboard/src/test/test-utils');
 const init = require('../../../admin-dashboard/src/test/test-init');
-const { Cluster } = require('puppeteer-cluster');
+
 
 require('should');
 
@@ -10,9 +10,9 @@ const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
 describe('Project', () => {
-    const operationTimeOut = 1000000;
+    const operationTimeOut = init.timeout;
 
-    let cluster;
+    
 
     beforeAll(async () => {
         jest.setTimeout(2000000);

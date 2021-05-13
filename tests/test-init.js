@@ -1,4 +1,4 @@
-const utils = require('./test-utils');
+const utils = require('../../test-utils');
 const chai = require('chai');
 chai.use(require('chai-http'));
 const request = chai.request(utils.BACKEND_URL);
@@ -12,7 +12,7 @@ const _this = {
      * @returns { void }
      */
 
-    timeout: 180000, // 3 mins
+    timeout: 180000, // 3 mins. If things take longer than 3 mins. We consider it a failure. Please do not add your custom timeout.
     registerUser: async function(user, page) {
         if (
             utils.BACKEND_URL.includes('localhost') ||

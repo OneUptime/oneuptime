@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 require('should');
 
@@ -17,12 +17,12 @@ const newMonitorName = utils.generateRandomString();
 const applicationLogName = utils.generateRandomString();
 
 describe('Components', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
     let cluster, browser, componentPage;
 
     beforeAll(async () => {
-        jest.setTimeout(200000);
+        jest.setTimeout(init.timeout);
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
@@ -129,7 +129,7 @@ describe('Components', () => {
                 await page.$eval('#components', e => e.click());
                 // Fill and submit New Component form
                 await page.waitForSelector('#form-new-component');
-                await page.type('input[id=name]', componentName);
+                await init.pageType(page, 'input[id=name]', componentName);
                 await page.$eval('button[type=submit]', e => e.click());
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
@@ -274,12 +274,12 @@ describe('Components', () => {
                 await init.navigateToComponentDetails(componentName, page);
 
                 await page.waitForSelector('#form-new-monitor');
-                await page.click('input[id=name]');
-                await page.type('input[id=name]', monitorName);
-                await page.click('[data-testId=type_url]');
+                await init.pageClick(page, 'input[id=name]');
+                await init.pageType(page, 'input[id=name]', monitorName);
+                await init.pageClick(page, '[data-testId=type_url]');
                 await page.waitForSelector('#url', { visible: true });
-                await page.click('#url');
-                await page.type('#url', 'https://google.com');
+                await init.pageClick(page, '#url');
+                await init.pageType(page, '#url', 'https://google.com');
                 await page.$eval('button[type=submit]', e => e.click());
 
                 let spanElement = await page.waitForSelector(
@@ -311,12 +311,12 @@ describe('Components', () => {
                 await init.navigateToComponentDetails(componentName, page);
                 const newMonitorName = `another-${monitorName}`;
                 await page.waitForSelector('#form-new-monitor');
-                await page.click('input[id=name]');
-                await page.type('input[id=name]', newMonitorName);
-                await page.click('[data-testId=type_url]');
+                await init.pageClick(page, 'input[id=name]');
+                await init.pageType(page, 'input[id=name]', newMonitorName);
+                await init.pageClick(page, '[data-testId=type_url]');
                 await page.waitForSelector('#url', { visible: true });
-                await page.click('#url');
-                await page.type('#url', 'https://google.com');
+                await init.pageClick(page, '#url');
+                await init.pageType(page, '#url', 'https://google.com');
                 await page.$eval('button[type=submit]', e => e.click());
 
                 let spanElement = await page.waitForSelector(
@@ -389,11 +389,11 @@ describe('Components', () => {
                 await init.navigateToComponentDetails(componentName, page);
 
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
 
                 // Fill and submit New Application  log form
                 await page.waitForSelector('#form-new-application-log');
-                await page.type('input[id=name]', applicationLogName);
+                await init.pageType(page, 'input[id=name]', applicationLogName);
                 await page.$eval('button[type=submit]', e => e.click());
 
                 let spanElement;
@@ -421,16 +421,16 @@ describe('Components', () => {
 
                 // Fill and submit New Component form
                 await page.waitForSelector('#form-new-component');
-                await page.type('input[id=name]', newComponentName);
+                await init.pageType(page, 'input[id=name]', newComponentName);
                 await page.$eval('button[type=submit]', e => e.click());
 
                 await page.waitForSelector('#form-new-monitor');
-                await page.click('input[id=name]');
-                await page.type('input[id=name]', newMonitorName);
-                await page.click('[data-testId=type_url]');
+                await init.pageClick(page, 'input[id=name]');
+                await init.pageType(page, 'input[id=name]', newMonitorName);
+                await init.pageClick(page, '[data-testId=type_url]');
                 await page.waitForSelector('#url', { visible: true });
-                await page.click('#url');
-                await page.type('#url', 'https://google.com');
+                await init.pageClick(page, '#url');
+                await init.pageType(page, '#url', 'https://google.com');
                 await page.$eval('button[type=submit]', e => e.click());
                 await page.waitForSelector(`#cb${newMonitorName}`, {
                     visible: true,
@@ -513,7 +513,7 @@ describe('Components', () => {
                     'Low',
                     monitorPage
                 );
-                await monitorPage.click('#createIncident');
+                await monitorinit.pageClick(page, '#createIncident');
                 await monitorPage.waitForSelector('#createIncident', {
                     hidden: true,
                 });
@@ -637,7 +637,7 @@ describe('Components', () => {
                 await page.waitForSelector('#components');
                 await page.$eval('#components', e => e.click());
 
-                await page.waitForTimeout(2000);
+               
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector(`#count_${componentName}`);
@@ -672,13 +672,13 @@ describe('Components', () => {
             await page.waitForSelector('#components', { visible: true });
             await page.$eval('#components', e => e.click());
 
-            await page.click(`#more-details-${componentName}`);
+            await init.pageClick(page, `#more-details-${componentName}`);
 
             await page.waitForSelector('#componentSettings');
-            await page.click('#componentSettings');
+            await init.pageClick(page, '#componentSettings');
 
             await page.waitForSelector('input[name=name]');
-            await page.type('input[name=name]', '-two');
+            await init.pageType(page, 'input[name=name]', '-two');
             await page.$eval('#editComponentButton', e => e.click());
 
             let spanElement = await page.waitForSelector(
@@ -697,24 +697,24 @@ describe('Components', () => {
             });
 
             await page.waitForSelector('#components', { visible: true });
-            await page.click('#components');
+            await init.pageClick(page, '#components');
 
-            await page.click(`#more-details-${componentName}-two`);
+            await init.pageClick(page, `#more-details-${componentName}-two`);
 
             await page.waitForSelector('#componentSettings');
-            await page.click('#componentSettings');
+            await init.pageClick(page, '#componentSettings');
 
             await page.waitForSelector('#advanced');
-            await page.click('#advanced');
+            await init.pageClick(page, '#advanced');
 
             await page.waitForSelector(
                 `#delete-component-${componentName}-two`,
                 { visible: true }
             );
-            await page.click(`#delete-component-${componentName}-two`);
+            await init.pageClick(page, `#delete-component-${componentName}-two`);
 
             await page.waitForSelector('#deleteComponent', { visible: true });
-            await page.click('#deleteComponent'); // after deleting the component
+            await init.pageClick(page, '#deleteComponent'); // after deleting the component
 
             const componentClicked = await page.waitForSelector('#components', {
                 visible: true,
@@ -762,7 +762,7 @@ describe('Components', () => {
                 await page.waitForSelector('#create-project');
                 await page.$eval('#create-project', e => e.click());
                 await page.waitForSelector('#name');
-                await page.type('input[id=name]', utils.generateRandomString());
+                await init.pageType(page, 'input[id=name]', utils.generateRandomString());
                 await page.$eval('label[for=Startup_month]', e => e.click());
                 await page.$eval('button[type=submit]', e => e.click());
 

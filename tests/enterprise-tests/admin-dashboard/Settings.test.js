@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const { Cluster } = require('puppeteer-cluster');
-const utils = require('./test-utils');
-const init = require('./test-init');
+
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 
@@ -9,9 +9,9 @@ const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
 describe('Settings Component (IS_SAAS_SERVICE=false)', () => {
-    const operationTimeOut = 1000000;
+    const operationTimeOut = init.timeout;
 
-    let cluster;
+    
 
     beforeAll(async done => {
         jest.setTimeout(2000000);

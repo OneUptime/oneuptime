@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 require('should');
 
@@ -14,9 +14,9 @@ const newProjectName = 'Test';
 const subProjectName = 'Trial';
 
 describe('Project Setting: Change Plan', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
-    let cluster;
+    
     beforeAll(async done => {
         jest.setTimeout(360000);
 
@@ -24,7 +24,7 @@ describe('Project Setting: Change Plan', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 500000,
+            timeout: init.timeout,
         });
 
         cluster.on('error', err => {
@@ -75,9 +75,9 @@ describe('Project Setting: Change Plan', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#billing');
-                await page.click('#billing');
+                await init.pageClick(page, '#billing');
 
                 // get current balance as $0
                 let spanBalanceElement = await page.waitForSelector(
@@ -91,13 +91,13 @@ describe('Project Setting: Change Plan', () => {
 
                 // add $20 to the account then click cancel
                 await page.waitForSelector('#rechargeBalanceAmount');
-                await page.click('#rechargeBalanceAmount');
+                await init.pageClick(page, '#rechargeBalanceAmount');
                 creditedBalance = -20;
-                await page.type(
+                await init.pageType(page, 
                     '#rechargeBalanceAmount',
                     creditedBalance.toString()
                 );
-                await page.click('#rechargeAccount');
+                await init.pageClick(page, '#rechargeAccount');
 
                 // confirm the current balance is still $0
                 spanBalanceElement = await page.waitForSelector('#field-error');
@@ -123,9 +123,9 @@ describe('Project Setting: Change Plan', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#billing');
-                await page.click('#billing');
+                await init.pageClick(page, '#billing');
 
                 // get current balance as $0
                 let spanBalanceElement = await page.waitForSelector(
@@ -139,17 +139,17 @@ describe('Project Setting: Change Plan', () => {
 
                 // add $20 to the account
                 await page.waitForSelector('#rechargeBalanceAmount');
-                await page.click('#rechargeBalanceAmount');
+                await init.pageClick(page, '#rechargeBalanceAmount');
                 creditedBalance = 20;
-                await page.type(
+                await init.pageType(page, 
                     '#rechargeBalanceAmount',
                     creditedBalance.toString()
                 );
-                await page.click('#rechargeAccount');
+                await init.pageClick(page, '#rechargeAccount');
                 balance += creditedBalance;
 
                 await page.waitForSelector('#confirmBalanceTopUp');
-                await page.click('#confirmBalanceTopUp');
+                await init.pageClick(page, '#confirmBalanceTopUp');
                 await page.waitForSelector('#confirmBalanceTopUp', {
                     hidden: true,
                 });
@@ -168,7 +168,7 @@ describe('Project Setting: Change Plan', () => {
 
                 // click ok
                 await page.waitForSelector('#modal-ok');
-                await page.click('#modal-ok');
+                await init.pageClick(page, '#modal-ok');
                 await page.waitForSelector('#modal-ok', { hidden: true });
 
                 // confirm the current balance is $20
@@ -195,9 +195,9 @@ describe('Project Setting: Change Plan', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#billing');
-                await page.click('#billing');
+                await init.pageClick(page, '#billing');
 
                 // get current balance as $0
                 let spanBalanceElement = await page.waitForSelector(
@@ -211,16 +211,16 @@ describe('Project Setting: Change Plan', () => {
 
                 // add $20 to the account then click cancel
                 await page.waitForSelector('#rechargeBalanceAmount');
-                await page.click('#rechargeBalanceAmount');
+                await init.pageClick(page, '#rechargeBalanceAmount');
                 creditedBalance = 20;
-                await page.type(
+                await init.pageType(page, 
                     '#rechargeBalanceAmount',
                     creditedBalance.toString()
                 );
-                await page.click('#rechargeAccount');
+                await init.pageClick(page, '#rechargeAccount');
 
                 await page.waitForSelector('#confirmBalanceTopUp');
-                await page.click('#cancelBalanceTopUp');
+                await init.pageClick(page, '#cancelBalanceTopUp');
                 await page.waitForSelector('#cancelBalanceTopUp', {
                     hidden: true,
                 });
@@ -242,12 +242,12 @@ describe('Project Setting: Change Plan', () => {
 });
 
 describe('Member Restriction', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout; 
 
-    let cluster;
+    
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(init.timeout);
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
@@ -319,12 +319,12 @@ describe('Member Restriction', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#billing');
-                await page.click('#billing');
+                await init.pageClick(page, '#billing');
                 await page.waitForSelector('#alertEnable', { visible: true });
                 await page.$eval('#alertEnable', checkbox => checkbox.click);
-                await page.click('#alertOptionSave');
+                await init.pageClick(page, '#alertOptionSave');
                 const unauthorisedModal = await page.waitForSelector(
                     '#unauthorisedModal',
                     { visible: true }
@@ -344,13 +344,13 @@ describe('Member Restriction', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#billing');
-                await page.click('#billing');
+                await init.pageClick(page, '#billing');
                 await page.waitForSelector('#rechargeBalanceAmount');
-                await page.click('#rechargeBalanceAmount');
-                await page.type('#rechargeBalanceAmount', '20');
-                await page.click('#rechargeAccount');
+                await init.pageClick(page, '#rechargeBalanceAmount');
+                await init.pageType(page, '#rechargeBalanceAmount', '20');
+                await init.pageClick(page, '#rechargeAccount');
                 const unauthorisedModal = await page.waitForSelector(
                     '#unauthorisedModal',
                     { visible: true }
@@ -370,14 +370,14 @@ describe('Member Restriction', () => {
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#billing');
-                await page.click('#billing');
+                await init.pageClick(page, '#billing');
                 await page.waitForSelector('input#Startup_month', {
                     visible: true,
                 });
-                await page.click('input#Startup_month');
-                await page.click('#changePlanBtn');
+                await init.pageClick(page, 'input#Startup_month');
+                await init.pageClick(page, '#changePlanBtn');
                 const unauthorisedModal = await page.waitForSelector(
                     '#unauthorisedModal',
                     { visible: true }

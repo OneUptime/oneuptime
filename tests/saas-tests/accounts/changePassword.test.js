@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
 const should = require('should');
-const utils = require('./test-utils');
+const utils = require('../../test-utils');
 
 let browser;
 let page;
@@ -32,12 +32,12 @@ describe('Change Password API', () => {
             { waitUntil: 'networkidle2' }
         );
         await page.waitForSelector('#password');
-        await page.click('input[name=password]');
-        await page.type('input[name=password]', user.password);
+        await init.pageClick(page, 'input[name=password]');
+        await init.pageType(page, 'input[name=password]', user.password);
         await page.waitForSelector('#confirmPassword');
-        await page.click('input[name=confirmPassword]');
-        await page.type('input[name=confirmPassword]', 'unmatchingPassword');
-        await page.click('button[type=submit]');
+        await init.pageClick(page, 'input[name=confirmPassword]');
+        await init.pageType(page, 'input[name=confirmPassword]', 'unmatchingPassword');
+        await init.pageClick(page, 'button[type=submit]');
         await page.waitForSelector(
             '#confirmPasswordField > span > span:nth-child(2)'
         );
@@ -57,12 +57,12 @@ describe('Change Password API', () => {
             { waitUntil: 'networkidle2' }
         );
         await page.waitForSelector('#password');
-        await page.click('input[name=password]');
-        await page.type('input[name=password]', '123456');
+        await init.pageClick(page, 'input[name=password]');
+        await init.pageType(page, 'input[name=password]', '123456');
         await page.waitForSelector('#confirmPassword');
-        await page.click('input[name=confirmPassword]');
-        await page.type('input[name=confirmPassword]', '123456');
-        await page.click('button[type=submit]');
+        await init.pageClick(page, 'input[name=confirmPassword]');
+        await init.pageType(page, 'input[name=confirmPassword]', '123456');
+        await init.pageClick(page, 'button[type=submit]');
         await page.waitForSelector('#passwordField > span > span:nth-child(1)');
         const html = await page.$eval(
             '#passwordField > span > span:nth-child(2)',
@@ -80,12 +80,12 @@ describe('Change Password API', () => {
             { waitUntil: 'networkidle2' }
         );
         await page.waitForSelector('#password');
-        await page.click('input[name=password]');
-        await page.type('input[name=password]', '');
+        await init.pageClick(page, 'input[name=password]');
+        await init.pageType(page, 'input[name=password]', '');
         await page.waitForSelector('#confirmPassword');
-        await page.click('input[name=confirmPassword]');
-        await page.type('input[name=confirmPassword]', '123456');
-        await page.click('button[type=submit]');
+        await init.pageClick(page, 'input[name=confirmPassword]');
+        await init.pageType(page, 'input[name=confirmPassword]', '123456');
+        await init.pageClick(page, 'button[type=submit]');
         await page.waitForSelector('#passwordField > span > span:nth-child(1)');
         const html = await page.$eval(
             '#passwordField > span > span:nth-child(2)',

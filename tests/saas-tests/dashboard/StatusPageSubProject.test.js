@@ -14,7 +14,7 @@ const subProjectName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
 describe('StatusPage API With SubProjects', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
@@ -191,7 +191,7 @@ describe('StatusPage API With SubProjects', () => {
         expect(countStatusPages).toEqual(10);
 
         done();
-    }, 500000);
+    }, init.timeout);
 
     test(
         'should update sub-project status page settings',

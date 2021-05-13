@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 require('should');
 
@@ -10,9 +10,9 @@ const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
 describe('Audit Logs', () => {
-    const operationTimeOut = 1000000;
+    const operationTimeOut = init.timeout;
 
-    let cluster;
+    
 
     beforeAll(async () => {
         jest.setTimeout(2000000);
@@ -48,15 +48,15 @@ describe('Audit Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
                 await page.waitForSelector('#auditLogs');
-                await page.click('#auditLogs');
+                await init.pageClick(page, '#auditLogs');
                 await page.waitForSelector('#deleteLog');
-                await page.click('#deleteLog');
+                await init.pageClick(page, '#deleteLog');
                 await page.waitForSelector('#confirmDelete');
-                await page.click('#confirmDelete');
+                await init.pageClick(page, '#confirmDelete');
                 await page.waitForSelector('#confirmDelete', { hidden: true });
 
                 const rowNum = await page.$$eval(
@@ -76,15 +76,15 @@ describe('Audit Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
                 await page.waitForSelector('#auditLogs');
-                await page.click('#auditLogs');
+                await init.pageClick(page, '#auditLogs');
                 await page.waitForSelector('#deleteLog');
-                await page.click('#deleteLog');
+                await init.pageClick(page, '#deleteLog');
                 await page.waitForSelector('#cancelAuditDelete');
-                await page.click('#cancelAuditDelete');
+                await init.pageClick(page, '#cancelAuditDelete');
 
                 const rowNum = await page.$$eval(
                     'tbody tr.Table-row',
@@ -103,21 +103,21 @@ describe('Audit Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
                 await page.waitForSelector('#auditLogs');
-                await page.click('#auditLogs');
+                await init.pageClick(page, '#auditLogs');
                 await page.waitForSelector('#deleteLog');
-                await page.click('#deleteLog');
+                await init.pageClick(page, '#deleteLog');
                 await page.waitForSelector('#confirmDelete');
-                await page.click('#confirmDelete');
+                await init.pageClick(page, '#confirmDelete');
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
                 await page.waitForSelector('#auditLogs');
-                await page.click('#auditLogs');
+                await init.pageClick(page, '#auditLogs');
 
                 const rowNum = await page.$$eval(
                     'tbody tr.Table-row',
@@ -136,14 +136,14 @@ describe('Audit Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
                 await page.waitForSelector('#auditLogs');
-                await page.click('#auditLogs');
+                await init.pageClick(page, '#auditLogs');
                 await page.waitForSelector('#searchAuditLog');
-                await page.click('#searchAuditLog');
-                await page.type('#searchAuditLog', 'probe');
+                await init.pageClick(page, '#searchAuditLog');
+                await init.pageType(page, '#searchAuditLog', 'probe');
 
                 const rowNum = await page.$$eval(
                     'tbody tr.Table-row',
@@ -162,14 +162,14 @@ describe('Audit Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
                 await page.waitForSelector('#auditLogs');
-                await page.click('#auditLogs');
+                await init.pageClick(page, '#auditLogs');
                 await page.waitForSelector('#searchAuditLog');
-                await page.click('#searchAuditLog');
-                await page.type('#searchAuditLog', 'somerandom');
+                await init.pageClick(page, '#searchAuditLog');
+                await init.pageType(page, '#searchAuditLog', 'somerandom');
 
                 const rowNum = await page.$$eval(
                     'tbody tr.Table-row',
@@ -188,9 +188,9 @@ describe('Audit Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
                 await page.waitForSelector('#auditLogs');
-                await page.click('#auditLogs');
+                await init.pageClick(page, '#auditLogs');
 
                 // count currently available logs
                 let logCount = await page.waitForSelector(`#audit-log-count`);
@@ -199,15 +199,15 @@ describe('Audit Logs', () => {
                 logCount = Number(logCount);
                 // goto other pages
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
 
                 // come back to logs page
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
                 await page.waitForSelector('#auditLogs');
-                await page.click('#auditLogs');
+                await init.pageClick(page, '#auditLogs');
 
-                await page.waitForTimeout(5000);
+                
 
                 // get the new log count
                 let newLogCount = await page.waitForSelector(
@@ -228,17 +228,17 @@ describe('Audit Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
                 await page.waitForSelector('#auditLogs');
-                await page.click('#auditLogs');
+                await init.pageClick(page, '#auditLogs');
 
                 // visit the audit log settings page by clicking on settings first to show drop down
                 await page.waitForSelector('#settings');
-                await page.click('#settings');
+                await init.pageClick(page, '#settings');
 
                 // click on th audit log
                 await page.waitForSelector('#auditLog');
-                await page.click('#auditLog');
+                await init.pageClick(page, '#auditLog');
 
                 // turn audit log off
                 await page.$eval('input[name=auditStatusToggler]', e =>
@@ -247,17 +247,17 @@ describe('Audit Logs', () => {
 
                 // click the submit button
                 await page.waitForSelector('#auditLogSubmit');
-                await page.click('#auditLogSubmit');
+                await init.pageClick(page, '#auditLogSubmit');
 
-                await page.waitForTimeout(5000);
+                
 
                 // go back to audit logs page
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
                 await page.waitForSelector('#auditLogs');
-                await page.click('#auditLogs');
+                await init.pageClick(page, '#auditLogs');
 
-                await page.waitForTimeout(5000);
+                
                 // look for the alert panel
                 const alertPanelElement = await page.waitForSelector(
                     `#auditLogDisabled`
@@ -274,9 +274,9 @@ describe('Audit Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
                 await page.waitForSelector('#auditLogs');
-                await page.click('#auditLogs');
+                await init.pageClick(page, '#auditLogs');
 
                 // look for the alert panel
                 const alertPanelElement = await page.waitForSelector(
@@ -292,15 +292,15 @@ describe('Audit Logs', () => {
 
                 // goto other pages
                 await page.waitForSelector('#probes');
-                await page.click('#probes');
+                await init.pageClick(page, '#probes');
 
                 // come back to logs page
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
                 await page.waitForSelector('#auditLogs');
-                await page.click('#auditLogs');
+                await init.pageClick(page, '#auditLogs');
 
-                await page.waitForTimeout(5000);
+                
 
                 // validate that the number doesnt change
                 let newLogCount = await page.waitForSelector(
@@ -321,9 +321,9 @@ describe('Audit Logs', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
                 await page.waitForSelector('#auditLogs');
-                await page.click('#auditLogs');
+                await init.pageClick(page, '#auditLogs');
 
                 // count number of logs
                 let logCount = await page.waitForSelector(`#audit-log-count`);
@@ -339,7 +339,7 @@ describe('Audit Logs', () => {
 
                 // find the a tag to enable logs and click on it
                 await page.waitForSelector('#auditLogSetting');
-                await page.click('#auditLogSetting');
+                await init.pageClick(page, '#auditLogSetting');
 
                 // enable logs
                 await page.$eval('input[name=auditStatusToggler]', e =>
@@ -348,17 +348,17 @@ describe('Audit Logs', () => {
 
                 // click the submit button
                 await page.waitForSelector('#auditLogSubmit');
-                await page.click('#auditLogSubmit');
+                await init.pageClick(page, '#auditLogSubmit');
 
-                await page.waitForTimeout(5000);
+                
 
                 // go back to audit logs
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
                 await page.waitForSelector('#auditLogs');
-                await page.click('#auditLogs');
+                await init.pageClick(page, '#auditLogs');
 
-                await page.waitForTimeout(5000);
+                
 
                 // count new number of logs
                 let newLogCount = await page.waitForSelector(

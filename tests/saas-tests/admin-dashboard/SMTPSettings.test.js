@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 require('should');
 
@@ -13,12 +13,12 @@ const randomEmail = utils.generateRandomBusinessEmail();
 const wrongPassword = utils.generateRandomString();
 
 describe('SMTP Settings API', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
-    let cluster;
+    
 
     beforeAll(async () => {
-        jest.setTimeout(200000);
+        jest.setTimeout(init.timeout);
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
@@ -55,27 +55,27 @@ describe('SMTP Settings API', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#settings');
-                await page.click('#settings a');
+                await init.pageClick(page, '#settings a');
 
                 await page.waitForSelector('#smtp');
-                await page.click('#smtp a');
+                await init.pageClick(page, '#smtp a');
                 await page.waitForSelector('#smtp-form');
                 const originalValues = await page.$$eval('input', e =>
                     e.map(field => field.value)
                 );
-                await page.click('input[name=email]', { clickCount: 3 });
-                await page.type('input[name=email]', ' ');
-                await page.click('input[name=password]', { clickCount: 3 });
-                await page.type('input[name=password]', ' ');
-                await page.click('input[name=smtp-server]', { clickCount: 3 });
-                await page.type('input[name=smtp-server]', ' ');
-                await page.click('input[name=smtp-port]', { clickCount: 3 });
-                await page.type('input[name=smtp-port]', ' ');
-                await page.click('input[name=from]', { clickCount: 3 });
-                await page.type('input[name=from]', ' ');
-                await page.click('input[name=from-name]', { clickCount: 3 });
-                await page.type('input[name=from-name]', ' ');
-                await page.click('button[type=submit]');
+                await init.pageClick(page, 'input[name=email]', { clickCount: 3 });
+                await init.pageType(page, 'input[name=email]', ' ');
+                await init.pageClick(page, 'input[name=password]', { clickCount: 3 });
+                await init.pageType(page, 'input[name=password]', ' ');
+                await init.pageClick(page, 'input[name=smtp-server]', { clickCount: 3 });
+                await init.pageType(page, 'input[name=smtp-server]', ' ');
+                await init.pageClick(page, 'input[name=smtp-port]', { clickCount: 3 });
+                await init.pageType(page, 'input[name=smtp-port]', ' ');
+                await init.pageClick(page, 'input[name=from]', { clickCount: 3 });
+                await init.pageType(page, 'input[name=from]', ' ');
+                await init.pageClick(page, 'input[name=from-name]', { clickCount: 3 });
+                await init.pageType(page, 'input[name=from-name]', ' ');
+                await init.pageClick(page, 'button[type=submit]');
 
                 // All fields should validate false
                 expect((await page.$$('span.field-error')).length).toEqual(
@@ -100,39 +100,39 @@ describe('SMTP Settings API', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#settings');
-                await page.click('#settings');
+                await init.pageClick(page, '#settings');
 
                 await page.waitForSelector('#smtp');
-                await page.click('#smtp a');
+                await init.pageClick(page, '#smtp a');
                 await page.waitForSelector('#smtp-form');
 
-                await page.click('input[name=email]', { clickCount: 3 });
-                await page.type('input[name=email]', utils.smtpCredential.user);
-                await page.click('input[name=password]', { clickCount: 3 });
-                await page.type(
+                await init.pageClick(page, 'input[name=email]', { clickCount: 3 });
+                await init.pageType(page, 'input[name=email]', utils.smtpCredential.user);
+                await init.pageClick(page, 'input[name=password]', { clickCount: 3 });
+                await init.pageType(page, 
                     'input[name=password]',
                     utils.smtpCredential.pass
                 );
-                await page.click('input[name=smtp-server]', { clickCount: 3 });
-                await page.type(
+                await init.pageClick(page, 'input[name=smtp-server]', { clickCount: 3 });
+                await init.pageType(page, 
                     'input[name=smtp-server]',
                     utils.smtpCredential.host
                 );
-                await page.click('input[name=smtp-port]', { clickCount: 3 });
-                await page.type(
+                await init.pageClick(page, 'input[name=smtp-port]', { clickCount: 3 });
+                await init.pageType(page, 
                     'input[name=smtp-port]',
                     utils.smtpCredential.port
                 );
-                await page.click('input[name=from]', { clickCount: 3 });
-                await page.type('input[name=from]', randomEmail);
-                await page.click('input[name=from-name]', { clickCount: 3 });
-                await page.type(
+                await init.pageClick(page, 'input[name=from]', { clickCount: 3 });
+                await init.pageType(page, 'input[name=from]', randomEmail);
+                await init.pageClick(page, 'input[name=from-name]', { clickCount: 3 });
+                await init.pageType(page, 
                     'input[name=from-name]',
                     utils.smtpCredential.name
                 );
                 await page.$eval('#smtp-secure', element => element.click());
-                await page.click('button[type=submit]');
-                await page.waitForTimeout(2000);
+                await init.pageClick(page, 'button[type=submit]');
+               
                 await page.reload();
 
                 const value = await page.$eval(
@@ -152,17 +152,17 @@ describe('SMTP Settings API', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#settings');
-                await page.click('#settings');
+                await init.pageClick(page, '#settings');
 
                 await page.waitForSelector('#smtp');
-                await page.click('#smtp a');
+                await init.pageClick(page, '#smtp a');
                 await page.waitForSelector('#smtp-form');
 
-                await page.click('#testSmtpSettingsButton');
+                await init.pageClick(page, '#testSmtpSettingsButton');
                 await page.waitForSelector('input[name=test-email]');
-                await page.type('input[name=test-email]', email);
-                await page.click('#confirmSmtpTest');
-                await page.waitForTimeout(10000);
+                await init.pageType(page, 'input[name=test-email]', email);
+                await init.pageClick(page, '#confirmSmtpTest');
+                
                 await page.waitForSelector(
                     '.bs-Modal-header > div > span > span'
                 );
@@ -182,20 +182,20 @@ describe('SMTP Settings API', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#settings');
-                await page.click('#settings');
+                await init.pageClick(page, '#settings');
 
                 await page.waitForSelector('#smtp');
-                await page.click('#smtp a');
+                await init.pageClick(page, '#smtp a');
                 await page.waitForSelector('#smtp-form');
 
-                await page.click('input[name=password]', { clickCount: 3 });
-                await page.type('input[name=password]', wrongPassword);
+                await init.pageClick(page, 'input[name=password]', { clickCount: 3 });
+                await init.pageType(page, 'input[name=password]', wrongPassword);
 
-                await page.click('#testSmtpSettingsButton');
+                await init.pageClick(page, '#testSmtpSettingsButton');
                 await page.waitForSelector('input[name=test-email]');
-                await page.type('input[name=test-email]', email);
-                await page.click('#confirmSmtpTest');
-                await page.waitForTimeout(10000);
+                await init.pageType(page, 'input[name=test-email]', email);
+                await init.pageClick(page, '#confirmSmtpTest');
+                
                 await page.waitForSelector(
                     '.bs-Modal-header > div > span > span'
                 );

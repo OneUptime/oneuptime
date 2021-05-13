@@ -186,7 +186,6 @@ module.exports = {
     updatedScheduledEventName,
     updatedScheduledEventDescription,
     generateRandomWebsite,
-    timeout: 500000,
     parseBoolean,
     dockerCredential,
     gitCredential,

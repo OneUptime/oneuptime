@@ -13,7 +13,7 @@ const user = {
 };
 
 describe('Status Page -> Pricing Plan Component', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);

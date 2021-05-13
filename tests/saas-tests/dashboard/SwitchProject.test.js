@@ -13,7 +13,7 @@ const user = {
 };
 
 describe('Project API', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout; 
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

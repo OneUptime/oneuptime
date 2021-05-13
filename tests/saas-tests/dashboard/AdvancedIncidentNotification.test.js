@@ -12,7 +12,7 @@ const user = {
     password,
 };
 describe('Project Settings Page - (Email and SMS & Calls)', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(operationTimeOut);

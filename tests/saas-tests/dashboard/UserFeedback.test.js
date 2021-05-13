@@ -8,7 +8,7 @@ const password = '1234567890';
 
 let browser, page;
 describe('User Feedback', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout; 
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

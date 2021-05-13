@@ -20,7 +20,7 @@ const incidentRequest = {
 };
 
 describe('Incoming HTTP Request', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

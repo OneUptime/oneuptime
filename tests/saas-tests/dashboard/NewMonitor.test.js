@@ -12,7 +12,7 @@ const user = {
     password,
 };
 describe('New Monitor API', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

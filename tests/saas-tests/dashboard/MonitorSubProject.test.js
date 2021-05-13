@@ -15,7 +15,7 @@ const newPassword = '1234567890';
 const subProjectName = utils.generateRandomString();
 
 describe('Monitor API With SubProjects', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

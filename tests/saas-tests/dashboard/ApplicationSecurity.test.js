@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 require('should');
 
@@ -12,9 +12,9 @@ const component = 'TestComponent';
 const applicationSecurityName = 'Test';
 
 describe('Application Security Page', () => {
-    const operationTimeOut = 900000;
+    const operationTimeOut = init.timeout; 
 
-    let cluster;
+    
     beforeAll(async done => {
         jest.setTimeout(operationTimeOut);
 
@@ -63,39 +63,39 @@ describe('Application Security Page', () => {
                 await init.navigateToComponentDetails(component, page);
 
                 await page.waitForSelector('#security', { visible: true });
-                await page.click('#security');
+                await init.pageClick(page, '#security');
                 await page.waitForSelector('#application', { visible: true });
-                await page.click('#application');
+                await init.pageClick(page, '#application');
 
                 await page.waitForSelector('#applicationSecurityForm', {
                     visible: true,
                 });
-                await page.click('#addCredentialBtn');
+                await init.pageClick(page, '#addCredentialBtn');
                 await page.waitForSelector('#gitCredentialForm', {
                     visible: true,
                 });
-                await page.click('#gitUsername');
-                await page.type('#gitUsername', gitUsername);
-                await page.click('#gitPassword');
-                await page.type('#gitPassword', gitPassword);
-                await page.click('#addCredentialModalBtn');
+                await init.pageClick(page, '#gitUsername');
+                await init.pageType(page, '#gitUsername', gitUsername);
+                await init.pageClick(page, '#gitPassword');
+                await init.pageType(page, '#gitPassword', gitPassword);
+                await init.pageClick(page, '#addCredentialModalBtn');
                 await page.waitForSelector('#gitCredentialForm', {
                     hidden: true,
                 });
 
-                await page.click('#name');
-                await page.type('#name', applicationSecurityName);
+                await init.pageClick(page, '#name');
+                await init.pageType(page, '#name', applicationSecurityName);
                 await init.selectByText(
                     '#resourceCategory',
                     categoryName,
                     page
                 ); // add category
-                await page.click('#gitRepositoryUrl');
-                await page.type('#gitRepositoryUrl', gitRepositoryUrl);
-                await page.click('#gitCredential');
-                await page.type('#gitCredential', gitUsername); // select the created credential
+                await init.pageClick(page, '#gitRepositoryUrl');
+                await init.pageType(page, '#gitRepositoryUrl', gitRepositoryUrl);
+                await init.pageClick(page, '#gitCredential');
+                await init.pageType(page, '#gitCredential', gitUsername); // select the created credential
                 await page.keyboard.press('Enter'); // Enter Key
-                await page.click('#addApplicationBtn');
+                await init.pageClick(page, '#addApplicationBtn');
 
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 const applicationSecurity = await page.waitForSelector(
@@ -129,14 +129,14 @@ describe('Application Security Page', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
+                await init.pageClick(page, '#components');
 
                 await page.waitForSelector('#component0', { visible: true });
-                await page.click(`#more-details-${component}`);
+                await init.pageClick(page, `#more-details-${component}`);
                 await page.waitForSelector('#security', { visible: true });
-                await page.click('#security');
+                await init.pageClick(page, '#security');
                 await page.waitForSelector('#application', { visible: true });
-                await page.click('#application');
+                await init.pageClick(page, '#application');
                 await page.waitForSelector(
                     `#applicationSecurityHeader_${applicationSecurityName}`,
                     { visible: true }
@@ -146,7 +146,7 @@ describe('Application Security Page', () => {
                     `#scanningApplicationSecurity_${applicationSecurityName}`,
                     { hidden: true, timeout: operationTimeOut }
                 );
-                await page.click(
+                await init.pageClick(page, 
                     `#moreApplicationSecurity_${applicationSecurityName}`
                 );
                 const issueCount = await page.waitForSelector('#issueCount', {
@@ -165,19 +165,19 @@ describe('Application Security Page', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
+                await init.pageClick(page, '#components');
 
                 await page.waitForSelector('#component0', { visible: true });
-                await page.click(`#more-details-${component}`);
+                await init.pageClick(page, `#more-details-${component}`);
                 await page.waitForSelector('#security', { visible: true });
-                await page.click('#security');
+                await init.pageClick(page, '#security');
                 await page.waitForSelector('#application', { visible: true });
-                await page.click('#application');
+                await init.pageClick(page, '#application');
                 await page.waitForSelector(
                     `#applicationSecurityHeader_${applicationSecurityName}`,
                     { visible: true }
                 );
-                await page.click(
+                await init.pageClick(page, 
                     `#moreApplicationSecurity_${applicationSecurityName}`
                 );
                 const securityLog = await page.waitForSelector('#securityLog', {
@@ -197,19 +197,19 @@ describe('Application Security Page', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
+                await init.pageClick(page, '#components');
 
                 await page.waitForSelector('#component0', { visible: true });
-                await page.click(`#more-details-${component}`);
+                await init.pageClick(page, `#more-details-${component}`);
                 await page.waitForSelector('#security', { visible: true });
-                await page.click('#security');
+                await init.pageClick(page, '#security');
                 await page.waitForSelector('#application', { visible: true });
-                await page.click('#application');
+                await init.pageClick(page, '#application');
                 await page.waitForSelector(
                     `#applicationSecurityHeader_${applicationSecurityName}`,
                     { visible: true }
                 );
-                await page.click('#issueCount');
+                await init.pageClick(page, '#issueCount');
                 const securityLog = await page.waitForSelector('#securityLog', {
                     visible: true,
                 });
@@ -227,19 +227,19 @@ describe('Application Security Page', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
+                await init.pageClick(page, '#components');
 
                 await page.waitForSelector('#component0', { visible: true });
-                await page.click(`#more-details-${component}`);
+                await init.pageClick(page, `#more-details-${component}`);
                 await page.waitForSelector('#security', { visible: true });
-                await page.click('#security');
+                await init.pageClick(page, '#security');
                 await page.waitForSelector('#application', { visible: true });
-                await page.click('#application');
+                await init.pageClick(page, '#application');
                 await page.waitForSelector(
                     `#applicationSecurityHeader_${applicationSecurityName}`,
                     { visible: true }
                 );
-                await page.click(
+                await init.pageClick(page, 
                     `#moreApplicationSecurity_${applicationSecurityName}`
                 );
 
@@ -263,32 +263,32 @@ describe('Application Security Page', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
+                await init.pageClick(page, '#components');
 
                 await page.waitForSelector('#component0', { visible: true });
-                await page.click(`#more-details-${component}`);
+                await init.pageClick(page, `#more-details-${component}`);
                 await page.waitForSelector('#security', { visible: true });
-                await page.click('#security');
+                await init.pageClick(page, '#security');
                 await page.waitForSelector('#application', { visible: true });
-                await page.click('#application');
+                await init.pageClick(page, '#application');
                 await page.waitForSelector(
                     `#applicationSecurityHeader_${applicationSecurityName}`,
                     { visible: true }
                 );
-                await page.click(
+                await init.pageClick(page, 
                     `#moreApplicationSecurity_${applicationSecurityName}`
                 );
 
                 await page.waitForSelector(`#edit_${applicationSecurityName}`, {
                     visible: true,
                 });
-                await page.click(`#edit_${applicationSecurityName}`);
+                await init.pageClick(page, `#edit_${applicationSecurityName}`);
                 await page.waitForSelector('#editApplicationSecurityForm', {
                     visible: true,
                 });
-                await page.click('#name', { clickCount: 3 });
-                await page.type('#name', newApplicationName);
-                await page.click('#editApplicationBtn');
+                await init.pageClick(page, '#name', { clickCount: 3 });
+                await init.pageType(page, '#name', newApplicationName);
+                await init.pageClick(page, '#editApplicationBtn');
                 await page.waitForSelector('#editApplicationSecurityForm', {
                     hidden: true,
                 });
@@ -311,30 +311,30 @@ describe('Application Security Page', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
+                await init.pageClick(page, '#components');
 
                 await page.waitForSelector('#component0', { visible: true });
-                await page.click(`#more-details-${component}`);
+                await init.pageClick(page, `#more-details-${component}`);
                 await page.waitForSelector('#security', { visible: true });
-                await page.click('#security');
+                await init.pageClick(page, '#security');
                 await page.waitForSelector('#application', { visible: true });
-                await page.click('#application');
+                await init.pageClick(page, '#application');
                 await page.waitForSelector(
                     `#applicationSecurityHeader_${newApplicationName}`,
                     { visible: true }
                 );
-                await page.click(
+                await init.pageClick(page, 
                     `#moreApplicationSecurity_${newApplicationName}`
                 );
                 await page.waitForSelector('#deleteApplicationSecurityBtn', {
                     visible: true,
                 });
-                await page.click('#deleteApplicationSecurityBtn');
+                await init.pageClick(page, '#deleteApplicationSecurityBtn');
                 await page.waitForSelector(
                     '#deleteApplicationSecurityModalBtn',
                     { visible: true }
                 );
-                await page.click('#deleteApplicationSecurityModalBtn');
+                await init.pageClick(page, '#deleteApplicationSecurityModalBtn');
                 await page.waitForNavigation();
 
                 const applicationSecurity = await page.waitForSelector(

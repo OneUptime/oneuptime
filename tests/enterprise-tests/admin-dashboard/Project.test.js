@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 require('should');
 
@@ -10,9 +10,9 @@ const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
 describe('Project', () => {
-    const operationTimeOut = 1000000;
+    const operationTimeOut = init.timeout;
 
-    let cluster;
+    
 
     beforeAll(async () => {
         jest.setTimeout(2000000);
@@ -79,7 +79,7 @@ describe('Project', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#projects', { visible: true });
-                await page.click('#projects');
+                await init.pageClick(page, '#projects');
 
                 const firstProject = await page.waitForSelector('#project_0', {
                     visible: true,
@@ -87,9 +87,9 @@ describe('Project', () => {
                 firstProject.click();
 
                 await page.waitForSelector('#delete', { visible: true });
-                await page.click('#delete');
+                await init.pageClick(page, '#delete');
                 await page.waitForSelector('#confirmDelete', { visible: true });
-                await page.click('#confirmDelete');
+                await init.pageClick(page, '#confirmDelete');
                 await page.waitForSelector('#confirmDelete', { hidden: true });
 
                 const restoreBtn = await page.waitForSelector('#restore', {
@@ -109,14 +109,14 @@ describe('Project', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#projects', { visible: true });
-                await page.click('#projects');
+                await init.pageClick(page, '#projects');
 
                 const firstProject = await page.waitForSelector('#project_0', {
                     visible: true,
                 });
                 firstProject.click();
                 await page.waitForSelector('#restore', { visible: true });
-                await page.click('#restore');
+                await init.pageClick(page, '#restore');
 
                 const deleteBtn = await page.waitForSelector('#delete', {
                     visible: true,

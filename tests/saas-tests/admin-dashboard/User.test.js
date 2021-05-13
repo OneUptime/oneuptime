@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 require('should');
 
@@ -10,12 +10,12 @@ const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
 describe('SMTP Settings API', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
-    let cluster;
+    
 
     beforeAll(async () => {
-        jest.setTimeout(200000);
+        jest.setTimeout(init.timeout);
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
@@ -54,7 +54,7 @@ describe('SMTP Settings API', () => {
                 await users[1].click();
                 await page.waitFor(5000);
                 await page.waitForSelector('#disableUser2fa');
-                await page.click('#disableUser2fa');
+                await init.pageClick(page, '#disableUser2fa');
 
                 await page.waitForSelector('.bs-Modal-content > span');
                 let info = await page.$('.bs-Modal-content > span');

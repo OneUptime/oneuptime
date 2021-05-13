@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 const should = require('should');
-const utils = require('./test-utils');
-const init = require('./test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 let browser, otherBrowser;
 let page, otherPage;
@@ -35,7 +35,7 @@ describe('Enterprise Registration API', () => {
 
     it('Should register Initial User with valid details', async () => {
         await init.registerEnterpriseUser(user, page);
-        await page.waitForTimeout(2000);
+       
 
         const localStorageData = await page.evaluate(() => {
             const json = {};
@@ -46,7 +46,7 @@ describe('Enterprise Registration API', () => {
             return json;
         });
 
-        await page.waitForTimeout(10000);
+        
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property('email', email);
         page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);

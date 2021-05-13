@@ -13,7 +13,7 @@ const user = {
     password,
 };
 describe('Keyboard Shortcut: Dashboard', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

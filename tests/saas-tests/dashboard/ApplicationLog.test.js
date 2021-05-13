@@ -14,7 +14,7 @@ const applicationLogName = utils.generateRandomString();
 let applicationLogKey = '';
 
 describe('Log Containers', () => {
-    const operationTimeOut = 900000;
+    const operationTimeOut = init.timeout; 
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);

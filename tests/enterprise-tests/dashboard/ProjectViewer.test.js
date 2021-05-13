@@ -20,7 +20,7 @@ const role = 'Viewer';
 
 let browser, page;
 describe('Sub-Project API', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout; 
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

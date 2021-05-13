@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 require('should');
 
@@ -10,9 +10,9 @@ const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
 describe('Keyboard Shortcut: Admin Dashboard', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
-    let cluster;
+    
     beforeAll(async done => {
         jest.setTimeout(360000);
 
@@ -20,7 +20,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 500000,
+            timeout: init.timeout,
         });
 
         cluster.on('error', err => {
@@ -87,7 +87,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#logs');
-                await page.click('#logs');
+                await init.pageClick(page, '#logs');
                 await page.waitForSelector('#auditLogs', { visible: true });
                 await page.keyboard.press('f');
                 await page.keyboard.press('a');

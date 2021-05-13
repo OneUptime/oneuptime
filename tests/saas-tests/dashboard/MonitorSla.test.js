@@ -13,7 +13,7 @@ const component = 'sampleComponent';
 const monitor = 'sampleMonitor';
 
 describe('Monitor SLA', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

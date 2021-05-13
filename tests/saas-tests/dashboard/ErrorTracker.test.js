@@ -14,7 +14,7 @@ const errorTrackerName = utils.generateRandomString();
 let errorTrackerKey = '';
 
 describe('Error Trackers', () => {
-    const operationTimeOut = 900000;
+    const operationTimeOut = init.timeout; 
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);

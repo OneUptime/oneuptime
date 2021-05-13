@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 const axios = require('axios');
 axios.defaults.adapter = require('axios/lib/adapters/http');
 let serverMonitor;
@@ -20,18 +20,18 @@ const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
 describe('Server Monitor API', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
-    let cluster;
+    
 
     beforeAll(async () => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: utils.timeout,
+            timeout: init.timeout,
         });
 
         cluster.on('taskerror', err => {
@@ -66,10 +66,10 @@ describe('Server Monitor API', () => {
                 await init.addComponent(componentName, page);
 
                 await page.waitForSelector('#form-new-monitor');
-                await page.click('input[id=name]');
-                await page.type('input[id=name]', monitorName);
+                await init.pageClick(page, 'input[id=name]');
+                await init.pageType(page, 'input[id=name]', monitorName);
                 await init.selectByText('#type', 'server-monitor', page);
-                await page.click('button[type=submit]');
+                await init.pageClick(page, 'button[type=submit]');
 
                 let spanElement = await page.waitForSelector(
                     `#monitor-title-${monitorName}`
@@ -77,8 +77,6 @@ describe('Server Monitor API', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(monitorName);
-
-                await page.waitForTimeout(300000);
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
@@ -103,9 +101,9 @@ describe('Server Monitor API', () => {
                 });
 
                 await page.waitForSelector('#projectSettings');
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#api');
-                await page.click('#api a');
+                await init.pageClick(page, '#api a');
 
                 let projectId = await page.$('#projectId', { visible: true });
                 projectId = await projectId.getProperty('innerText');
@@ -115,7 +113,7 @@ describe('Server Monitor API', () => {
                 apiUrl = await apiUrl.getProperty('innerText');
                 apiUrl = await apiUrl.jsonValue();
 
-                await page.click('#apiKey');
+                await init.pageClick(page, '#apiKey');
                 let apiKey = await page.$('#apiKey', { visible: true });
                 apiKey = await apiKey.getProperty('innerText');
                 apiKey = await apiKey.jsonValue();
@@ -144,7 +142,7 @@ describe('Server Monitor API', () => {
 
                 monitor.start();
 
-                await page.waitForTimeout(120000);
+               
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
@@ -173,9 +171,9 @@ describe('Server Monitor API', () => {
                 });
 
                 await page.waitForSelector('#projectSettings');
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#api');
-                await page.click('#api a');
+                await init.pageClick(page, '#api a');
 
                 let projectId = await page.$('#projectId', { visible: true });
                 projectId = await projectId.getProperty('innerText');
@@ -185,7 +183,7 @@ describe('Server Monitor API', () => {
                 apiUrl = await apiUrl.getProperty('innerText');
                 apiUrl = await apiUrl.jsonValue();
 
-                await page.click('#apiKey');
+                await init.pageClick(page, '#apiKey');
                 let apiKey = await page.$('#apiKey', { visible: true });
                 apiKey = await apiKey.getProperty('innerText');
                 apiKey = await apiKey.jsonValue();
@@ -214,7 +212,7 @@ describe('Server Monitor API', () => {
 
                 monitor.start();
 
-                await page.waitForTimeout(120000);
+               
 
                 // check status
                 const element = await page.waitForSelector(
@@ -237,9 +235,9 @@ describe('Server Monitor API', () => {
                 });
 
                 await page.waitForSelector('#projectSettings');
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#api');
-                await page.click('#api a');
+                await init.pageClick(page, '#api a');
 
                 let projectId = await page.$('#projectId', { visible: true });
                 projectId = await projectId.getProperty('innerText');
@@ -249,7 +247,7 @@ describe('Server Monitor API', () => {
                 apiUrl = await apiUrl.getProperty('innerText');
                 apiUrl = await apiUrl.jsonValue();
 
-                await page.click('#apiKey');
+                await init.pageClick(page, '#apiKey');
                 let apiKey = await page.$('#apiKey', { visible: true });
                 apiKey = await apiKey.getProperty('innerText');
                 apiKey = await apiKey.jsonValue();
@@ -278,7 +276,7 @@ describe('Server Monitor API', () => {
 
                 monitor.start();
 
-                await page.waitForTimeout(120000);
+               
 
                 // check status
                 const element = await page.waitForSelector(
@@ -301,9 +299,9 @@ describe('Server Monitor API', () => {
                 });
 
                 await page.waitForSelector('#projectSettings');
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#api');
-                await page.click('#api a');
+                await init.pageClick(page, '#api a');
 
                 let projectId = await page.$('#projectId', { visible: true });
                 projectId = await projectId.getProperty('innerText');
@@ -313,7 +311,7 @@ describe('Server Monitor API', () => {
                 apiUrl = await apiUrl.getProperty('innerText');
                 apiUrl = await apiUrl.jsonValue();
 
-                await page.click('#apiKey');
+                await init.pageClick(page, '#apiKey');
                 let apiKey = await page.$('#apiKey', { visible: true });
                 apiKey = await apiKey.getProperty('innerText');
                 apiKey = await apiKey.jsonValue();
@@ -342,11 +340,7 @@ describe('Server Monitor API', () => {
 
                 monitor.start();
 
-                await page.waitForTimeout(120000);
-
                 monitor.stop();
-
-                await page.waitForTimeout(300000);
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
@@ -375,11 +369,11 @@ describe('Server Monitor API', () => {
                 await page.$eval(`#${monitorName}_EditIncidentDetails_0`, e =>
                     e.click()
                 );
-                await page.waitForTimeout(5000);
+                
                 await page.$eval(`#${monitorName}_EditIncidentDetails_0`, e =>
                     e.click()
                 );
-                await page.waitForTimeout(5000);
+                
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
@@ -392,8 +386,6 @@ describe('Server Monitor API', () => {
                 expect(activeIncidents).toEqual(
                     'No incidents currently active.'
                 );
-
-                await page.waitForTimeout(300000);
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,

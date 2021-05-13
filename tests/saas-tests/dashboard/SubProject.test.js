@@ -12,7 +12,7 @@ const newProjectName = 'Test';
 const subProjectName = 'Trial';
 
 describe('Sub-Project API', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout; 
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
@@ -62,7 +62,7 @@ describe('Sub-Project API', () => {
 });
 
 describe('Member Restriction', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout; 
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

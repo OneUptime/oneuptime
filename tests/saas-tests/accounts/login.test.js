@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 
@@ -33,13 +33,13 @@ describe('Login API', () => {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#login-button');
-        await page.click('input[name=email]');
-        await page.type('input[name=email]', user.email);
-        await page.click('input[name=password]');
-        await page.type('input[name=password]', user.password);
-        await page.click('#signUpLink a');
+        await init.pageClick(page, 'input[name=email]');
+        await init.pageType(page, 'input[name=email]', user.email);
+        await init.pageClick(page, 'input[name=password]');
+        await init.pageType(page, 'input[name=password]', user.password);
+        await init.pageClick(page, '#signUpLink a');
         await page.waitForSelector('#loginLink');
-        await page.click('#loginLink a');
+        await init.pageClick(page, '#loginLink a');
         await page.waitForSelector('input[name=email]', { visible: true });
         const email = await page.$eval(
             'input[name=email]',
@@ -58,12 +58,12 @@ describe('Login API', () => {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#login-button');
-        await page.click('input[name=email]');
-        await page.type('input[name=email]', user.email);
-        await page.click('input[name=password]');
-        await page.type('input[name=password]', user.password);
-        await page.click('button[type=submit]');
-        await page.waitForTimeout(10000);
+        await init.pageClick(page, 'input[name=email]');
+        await init.pageType(page, 'input[name=email]', user.email);
+        await init.pageClick(page, 'input[name=password]');
+        await init.pageType(page, 'input[name=password]', user.password);
+        await init.pageClick(page, 'button[type=submit]');
+        
         const html = await page.$eval('#main-body', e => {
             return e.innerHTML;
         });

@@ -16,7 +16,7 @@ const user = {
 const smtpData = { ...utils.smtpCredential };
 
 describe('Custom SMTP Settings', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

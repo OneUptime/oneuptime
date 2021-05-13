@@ -18,7 +18,7 @@ const user = {
     password,
 };
 describe('Incident Communication SLA', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

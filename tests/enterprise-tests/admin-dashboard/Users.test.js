@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const { Cluster } = require('puppeteer-cluster');
-const utils = require('./test-utils');
-const init = require('./test-init');
+
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 
@@ -9,9 +9,9 @@ const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
 describe('Users Component (IS_SAAS_SERVICE=false)', () => {
-    const operationTimeOut = 1000000;
+    const operationTimeOut = init.timeout;
 
-    let cluster;
+    
 
     beforeAll(async done => {
         jest.setTimeout(2000000);
@@ -77,15 +77,15 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
 
                 const userSelector = '#masteradmin';
                 await page.waitForSelector(userSelector);
-                await page.click(userSelector);
-                await page.waitForTimeout(1000); // wait for the contents to load in the background
+                await init.pageClick(page, userSelector);
+                
                 await page.waitForSelector('#delete');
-                await page.click('#delete');
+                await init.pageClick(page, '#delete');
                 await page.waitForSelector('#confirmDelete');
-                await page.click('#confirmDelete');
+                await init.pageClick(page, '#confirmDelete');
                 await page.waitForSelector('#confirmDelete', { hidden: true });
                 await page.waitForSelector('#users');
-                await page.click('#users');
+                await init.pageClick(page, '#users');
                 const loginBtn = await page.waitForSelector('#login-button', {
                     visible: true,
                 });

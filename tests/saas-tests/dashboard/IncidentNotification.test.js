@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 require('should');
 
@@ -16,20 +16,20 @@ const user1 = {
 };
 
 describe('Incident Created test', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
-    let cluster;
+    
     const monitorName = utils.generateRandomString();
     const monitorName2 = utils.generateRandomString();
 
     beforeAll(async () => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: utils.timeout,
+            timeout: init.timeout,
         });
 
         cluster.on('taskerror', err => {
@@ -61,8 +61,8 @@ describe('Incident Created test', () => {
                 await page.waitForSelector('#projectSettings');
                 await page.$eval('#projectSettings', e => e.click());
                 await page.waitForSelector('input[name=project_name]');
-                await page.click('input[name=project_name]', { clickCount: 3 });
-                await page.type('input[name=project_name]', projectName);
+                await init.pageClick(page, 'input[name=project_name]', { clickCount: 3 });
+                await init.pageType(page, 'input[name=project_name]', projectName);
                 await page.waitForSelector('button[id=btnCreateProject]');
                 await page.$eval('button[id=btnCreateProject]', e => e.click());
                 await page.waitForSelector(`#cb${projectName}`, {
@@ -166,7 +166,7 @@ describe('Incident Created test', () => {
                 await page.waitForSelector(`#btn_${projectName}`);
                 await page.$eval(`#btn_${projectName}`, e => e.click());
                 await page.waitForSelector('input[name=emails]');
-                await page.type('input[name=emails]', user1.email);
+                await init.pageType(page, 'input[name=emails]', user1.email);
                 await page.waitForSelector(`#${role}_${projectName}`);
                 await page.$eval(`#${role}_${projectName}`, e => e.click());
                 await page.$eval(`#btn_modal_${projectName}`, e => e.click());
@@ -333,9 +333,9 @@ describe('Incident Created test', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 //Navigate to Integrations Page before clicking 'activeIncidents' to confirm it  truly navigates back to homepage.
                 await page.waitForSelector('#projectSettings');
-                await page.click('#projectSettings');
+                await init.pageClick(page, '#projectSettings');
                 await page.waitForSelector('#integrations');
-                await page.click('#integrations');
+                await init.pageClick(page, '#integrations');
 
                 await page.waitForSelector('#activeIncidents');
                 await page.$eval('#activeIncidents', e => e.click());

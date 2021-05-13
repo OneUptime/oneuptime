@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer');
-const { Cluster } = require('puppeteer-cluster');
+
 const utils = require('../../../admin-dashboard/src/test/test-utils');
 const init = require('../../../admin-dashboard/src/test/test-init');
 
@@ -9,9 +9,7 @@ const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
 describe('About Modal (IS_SAAS_SERVICE=false)', () => {
-    const operationTimeOut = 1000000;
-
-    let cluster;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(2000000);
@@ -142,7 +140,7 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 await page.waitForSelector('.bs-Button', {
                     visible: true,
                 });
-                await page.click('.bs-Button');
+                await init.pageClick(page, '.bs-Button');
             });
         },
         operationTimeOut

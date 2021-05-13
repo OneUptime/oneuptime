@@ -17,7 +17,7 @@ const user = {
     password,
 };
 describe('Scheduled event', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout; 
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);

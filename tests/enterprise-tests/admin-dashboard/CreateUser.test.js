@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 require('should');
 
@@ -11,10 +11,10 @@ const userEmail = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
 describe('Enterprise User API', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(200000);
+        jest.setTimeout(init.timeout);
 
         const cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
@@ -75,23 +75,23 @@ describe('Enterprise User API', () => {
                 await init.loginUser(user, page);
 
                 await page.waitForSelector('#add_user');
-                await page.click('#add_user');
+                await init.pageClick(page, '#add_user');
 
                 await page.waitForSelector('#email');
-                await page.click('input[name=email]');
-                await page.type('input[name=email]', data.newEmail);
-                await page.click('input[name=name]');
-                await page.type('input[name=name]', 'Test Name');
-                await page.click('input[name=companyName]');
-                await page.type('input[name=companyName]', 'Test Name');
-                await page.click('input[name=companyPhoneNumber]');
-                await page.type('input[name=companyPhoneNumber]', '99105688');
-                await page.click('input[name=password]');
-                await page.type('input[name=password]', '1234567890');
-                await page.click('input[name=confirmPassword]');
-                await page.type('input[name=confirmPassword]', '1234567890');
-                await page.click('button[type=submit]');
-                await page.waitForTimeout(20000);
+                await init.pageClick(page, 'input[name=email]');
+                await init.pageType(page, 'input[name=email]', data.newEmail);
+                await init.pageClick(page, 'input[name=name]');
+                await init.pageType(page, 'input[name=name]', 'Test Name');
+                await init.pageClick(page, 'input[name=companyName]');
+                await init.pageType(page, 'input[name=companyName]', 'Test Name');
+                await init.pageClick(page, 'input[name=companyPhoneNumber]');
+                await init.pageType(page, 'input[name=companyPhoneNumber]', '99105688');
+                await init.pageClick(page, 'input[name=password]');
+                await init.pageType(page, 'input[name=password]', '1234567890');
+                await init.pageClick(page, 'input[name=confirmPassword]');
+                await init.pageType(page, 'input[name=confirmPassword]', '1234567890');
+                await init.pageClick(page, 'button[type=submit]');
+                await page.WaitForSelector('a.db-UserListRow');
 
                 const userRows = await page.$$('a.db-UserListRow');
                 const countUsers = userRows.length;
@@ -132,26 +132,26 @@ describe('Enterprise User API', () => {
             for (let i = 0; i < 10; i++) {
                 // add new user
                 await page.waitForSelector('#add_user');
-                await page.click('#add_user');
+                await init.pageClick(page, '#add_user');
 
                 await page.waitForSelector('#email');
-                await page.click('input[name=email]');
-                await page.type(
+                await init.pageClick(page, 'input[name=email]');
+                await init.pageType(page, 
                     'input[name=email]',
                     utils.generateRandomBusinessEmail()
                 );
-                await page.click('input[name=name]');
-                await page.type('input[name=name]', 'Test Name');
-                await page.click('input[name=companyName]');
-                await page.type('input[name=companyName]', 'Test Name');
-                await page.click('input[name=companyPhoneNumber]');
-                await page.type('input[name=companyPhoneNumber]', '99105688');
-                await page.click('input[name=password]');
-                await page.type('input[name=password]', '1234567890');
-                await page.click('input[name=confirmPassword]');
-                await page.type('input[name=confirmPassword]', '1234567890');
-                await page.click('button[type=submit]');
-                await page.waitForTimeout(20000);
+                await init.pageClick(page, 'input[name=name]');
+                await init.pageType(page, 'input[name=name]', 'Test Name');
+                await init.pageClick(page, 'input[name=companyName]');
+                await init.pageType(page, 'input[name=companyName]', 'Test Name');
+                await init.pageClick(page, 'input[name=companyPhoneNumber]');
+                await init.pageType(page, 'input[name=companyPhoneNumber]', '99105688');
+                await init.pageClick(page, 'input[name=password]');
+                await init.pageType(page, 'input[name=password]', '1234567890');
+                await init.pageClick(page, 'input[name=confirmPassword]');
+                await init.pageType(page, 'input[name=confirmPassword]', '1234567890');
+                await init.pageClick(page, 'button[type=submit]');
+                
             }
 
             let userRows = await page.$$('a.db-UserListRow');
@@ -162,7 +162,7 @@ describe('Enterprise User API', () => {
             const nextSelector = await page.$('#btnNext');
 
             await nextSelector.click();
-            await page.waitForTimeout(5000);
+            
             userRows = await page.$$('a.db-UserListRow');
             countUsers = userRows.length;
             expect(countUsers).toBeGreaterThanOrEqual(2);
@@ -170,7 +170,7 @@ describe('Enterprise User API', () => {
             const prevSelector = await page.$('#btnPrev');
 
             await prevSelector.click();
-            await page.waitForTimeout(5000);
+            
             userRows = await page.$$('a.db-UserListRow');
             countUsers = userRows.length;
             expect(countUsers).toEqual(10);
@@ -180,7 +180,7 @@ describe('Enterprise User API', () => {
         await cluster.idle();
         await cluster.close();
         done();
-    }, 500000);
+    }, init.timeout);
 
     test(
         'Should not create a user with incorrect details',
@@ -205,24 +205,24 @@ describe('Enterprise User API', () => {
                 await init.loginUser(user, page);
 
                 await page.waitForSelector('#add_user');
-                await page.click('#add_user');
+                await init.pageClick(page, '#add_user');
 
                 // user with non-business email
                 await page.waitForSelector('#email');
-                await page.click('input[name=email]');
-                await page.type('input[name=email]', 'fyipe@gmail.com');
-                await page.click('input[name=name]');
-                await page.type('input[name=name]', 'Test Name');
-                await page.click('input[name=companyName]');
-                await page.type('input[name=companyName]', 'Test Name');
-                await page.click('input[name=companyPhoneNumber]');
-                await page.type('input[name=companyPhoneNumber]', '99105688');
-                await page.click('input[name=password]');
-                await page.type('input[name=password]', '1234567890');
-                await page.click('input[name=confirmPassword]');
-                await page.type('input[name=confirmPassword]', '1234567890');
-                await page.click('button[type=submit]');
-                await page.waitForTimeout(5000);
+                await init.pageClick(page, 'input[name=email]');
+                await init.pageType(page, 'input[name=email]', 'fyipe@gmail.com');
+                await init.pageClick(page, 'input[name=name]');
+                await init.pageType(page, 'input[name=name]', 'Test Name');
+                await init.pageClick(page, 'input[name=companyName]');
+                await init.pageType(page, 'input[name=companyName]', 'Test Name');
+                await init.pageClick(page, 'input[name=companyPhoneNumber]');
+                await init.pageType(page, 'input[name=companyPhoneNumber]', '99105688');
+                await init.pageClick(page, 'input[name=password]');
+                await init.pageType(page, 'input[name=password]', '1234567890');
+                await init.pageClick(page, 'input[name=confirmPassword]');
+                await init.pageType(page, 'input[name=confirmPassword]', '1234567890');
+                await init.pageClick(page, 'button[type=submit]');
+                
 
                 const html = await page.$eval('#frmUser', e => {
                     return e.innerHTML;

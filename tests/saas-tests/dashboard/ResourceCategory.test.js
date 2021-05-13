@@ -17,7 +17,7 @@ const user = {
 };
 
 describe('Resource Category', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout; 
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -190,7 +190,7 @@ describe('Resource Category', () => {
 });
 
 describe('Member Restriction', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout; 
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

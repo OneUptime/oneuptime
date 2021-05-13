@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 // parent user credentials
 const email = utils.generateRandomBusinessEmail();
@@ -11,9 +11,9 @@ const monitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
 describe('Incident Reports API', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
-    let cluster;
+    
 
     beforeAll(async () => {
         jest.setTimeout(360000);
@@ -22,7 +22,7 @@ describe('Incident Reports API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: 500000,
+            timeout: init.timeout,
         });
 
         cluster.on('taskerror', err => {
@@ -44,11 +44,11 @@ describe('Incident Reports API', () => {
             // add new monitor to project
             await page.waitForSelector('#form-new-monitor', { visible: true });
             await page.$eval('input[id=name]', e => e.click());
-            await page.type('input[id=name]', monitorName);
-            await page.click('[data-testId=type_url]');
+            await init.pageType(page, 'input[id=name]', monitorName);
+            await init.pageClick(page, '[data-testId=type_url]');
             await page.waitForSelector('#url', { visible: true });
             await page.$eval('#url', e => e.click());
-            await page.type('#url', utils.HTTP_TEST_SERVER_URL);
+            await init.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
             await page.$eval('button[type=submit]', e => e.click());
             await page.waitForSelector(`#monitor-title-${monitorName}`, {
                 visible: true,
@@ -74,12 +74,12 @@ describe('Incident Reports API', () => {
                     () => (document.getElementById('statusCode').value = '')
                 );
                 await page.waitForSelector('#responseTime');
-                await page.click('input[name=responseTime]');
-                await page.type('input[name=responseTime]', '5000');
+                await init.pageClick(page, 'input[name=responseTime]');
+                await init.pageType(page, 'input[name=responseTime]', '5000');
                 await page.waitForSelector('#statusCode');
-                await page.click('input[name=statusCode]');
-                await page.type('input[name=statusCode]', '200');
-                await page.click('button[type=submit]');
+                await init.pageClick(page, 'input[name=statusCode]');
+                await init.pageType(page, 'input[name=statusCode]', '200');
+                await init.pageClick(page, 'button[type=submit]');
                 await page.waitForSelector('#save-btn');
                 await page.waitForSelector('#save-btn', { visible: true });
             };
@@ -121,12 +121,12 @@ describe('Incident Reports API', () => {
                     () => (document.getElementById('statusCode').value = '')
                 );
                 await page.waitForSelector('#responseTime');
-                await page.click('input[name=responseTime]');
-                await page.type('input[name=responseTime]', '0');
+                await init.pageClick(page, 'input[name=responseTime]');
+                await init.pageType(page, 'input[name=responseTime]', '0');
                 await page.waitForSelector('#statusCode');
-                await page.click('input[name=statusCode]');
-                await page.type('input[name=statusCode]', '400');
-                await page.click('button[type=submit]');
+                await init.pageClick(page, 'input[name=statusCode]');
+                await init.pageType(page, 'input[name=statusCode]', '400');
+                await init.pageClick(page, 'button[type=submit]');
                 await page.waitForSelector('#save-btn');
                 await page.waitForSelector('#save-btn', { visible: true });
             };

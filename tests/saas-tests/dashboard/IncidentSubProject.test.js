@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
-const { Cluster } = require('puppeteer-cluster');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
+
 
 // parent user credentials
 const user = {
@@ -23,18 +23,18 @@ const componentName = utils.generateRandomString();
 const newComponentName = utils.generateRandomString();
 
 describe('Incident API With SubProjects', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
-    let cluster;
+    
 
     beforeAll(async () => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_CONTEXT,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
-            timeout: utils.timeout,
+            timeout: init.timeout,
         });
 
         cluster.on('taskerror', err => {
@@ -97,11 +97,11 @@ describe('Incident API With SubProjects', () => {
                     `#create_incident_${projectMonitorName}`,
                     { visible: true }
                 );
-                await page.click(`#create_incident_${projectMonitorName}`);
+                await init.pageClick(page, `#create_incident_${projectMonitorName}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
-                await page.type('#title', 'new incident');
-                await page.click('#createIncident');
+                await init.pageType(page, '#title', 'new incident');
+                await init.pageClick(page, '#createIncident');
                 await page.waitForSelector('#createIncident', { hidden: true });
 
                 // close incident modal
@@ -171,11 +171,11 @@ describe('Incident API With SubProjects', () => {
                 await page.waitForSelector(
                     `#create_incident_${projectMonitorName1}`
                 );
-                await page.click(`#create_incident_${projectMonitorName1}`);
+                await init.pageClick(page, `#create_incident_${projectMonitorName1}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
-                await page.type('#title', 'new incident');
-                await page.click('#createIncident');
+                await init.pageType(page, '#title', 'new incident');
+                await init.pageClick(page, '#createIncident');
                 await page.waitForSelector('#createIncident', { hidden: true });
 
                 await page.reload({ waitUntil: 'networkidle0' });
@@ -216,7 +216,7 @@ describe('Incident API With SubProjects', () => {
                 await page.waitForSelector('#btnAcknowledge_0', {
                     visible: true,
                 });
-                await page.click('#btnAcknowledge_0');
+                await init.pageClick(page, '#btnAcknowledge_0');
                 await page.waitForSelector('#AcknowledgeText_0', {
                     visible: true,
                     timeout: operationTimeOut,
@@ -243,7 +243,7 @@ describe('Incident API With SubProjects', () => {
                 await init.navigateToComponentDetails(componentName, page);
                 // resolve incident
                 await page.waitForSelector('#btnResolve_0', { visible: true });
-                await page.click('#btnResolve_0');
+                await init.pageClick(page, '#btnResolve_0');
                 await page.waitForSelector('#ResolveText_0', {
                     visible: true,
                     timeout: operationTimeOut,
@@ -288,14 +288,14 @@ describe('Incident API With SubProjects', () => {
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`
                 );
-                await page.click(`textarea[id=new-${type}]`);
-                await page.type(`textarea[id=new-${type}]`, internalNote);
+                await init.pageClick(page, `textarea[id=new-${type}]`);
+                await init.pageType(page, `textarea[id=new-${type}]`, internalNote);
                 await init.selectByText(
                     '#incident_state',
                     'investigating',
                     page
                 );
-                await page.click(`#${type}-addButton`);
+                await init.pageClick(page, `#${type}-addButton`);
                 await page.waitForSelector(`#${type}-addButton`, {
                     hidden: true,
                 });
@@ -324,14 +324,14 @@ describe('Incident API With SubProjects', () => {
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`
                 );
-                await page.click(`textarea[id=new-${type}]`);
-                await page.type(`textarea[id=new-${type}]`, investigationNote);
+                await init.pageClick(page, `textarea[id=new-${type}]`);
+                await init.pageType(page, `textarea[id=new-${type}]`, investigationNote);
                 await init.selectByText(
                     '#incident_state',
                     'investigating',
                     page
                 );
-                await page.click(`#${type}-addButton`);
+                await init.pageClick(page, `#${type}-addButton`);
                 await page.waitForSelector(`#${type}-addButton`, {
                     hidden: true,
                 });
@@ -380,20 +380,20 @@ describe('Incident API With SubProjects', () => {
                 await page.waitForSelector('#incident_0', { visible: true });
                 // click on incident notes tab
                 await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
-                await page.waitForTimeout(2000);
+               
 
                 for (let i = 0; i < 10; i++) {
                     await page.$eval(`#add-${type}-message`, e => e.click());
                     await page.waitForSelector(
                         `#form-new-incident-${type}-message`
                     );
-                    await page.click(`textarea[id=new-${type}]`);
-                    await page.type(
+                    await init.pageClick(page, `textarea[id=new-${type}]`);
+                    await init.pageType(page, 
                         `textarea[id=new-${type}]`,
                         `${internalNote}`
                     );
                     await init.selectByText('#incident_state', 'update', page);
-                    await page.click(`#${type}-addButton`);
+                    await init.pageClick(page, `#${type}-addButton`);
                     await page.waitForSelector(`#${type}-addButton`, {
                         hidden: true,
                     });

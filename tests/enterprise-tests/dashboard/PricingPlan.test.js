@@ -14,7 +14,7 @@ const user = {
 };
 
 describe('Status Page', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);

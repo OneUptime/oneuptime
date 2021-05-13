@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('./test-utils');
-const init = require('./test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 require('should');
 
@@ -34,19 +34,19 @@ describe('Registration API', () => {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#email');
-        await page.click('input[name=email]');
-        await page.type('input[name=email]', invalidEmail);
-        await page.click('input[name=name]');
-        await page.type('input[name=name]', utils.user.name);
-        await page.click('input[name=companyName]');
-        await page.type('input[name=companyName]', utils.user.company.name);
-        await page.click('input[name=companyPhoneNumber]');
-        await page.type('input[name=companyPhoneNumber]', utils.user.phone);
-        await page.click('input[name=password]');
-        await page.type('input[name=password]', user.password);
-        await page.click('input[name=confirmPassword]');
-        await page.type('input[name=confirmPassword]', user.password);
-        await page.click('button[type=submit]');
+        await init.pageClick(page, 'input[name=email]');
+        await init.pageType(page, 'input[name=email]', invalidEmail);
+        await init.pageClick(page, 'input[name=name]');
+        await init.pageType(page, 'input[name=name]', utils.user.name);
+        await init.pageClick(page, 'input[name=companyName]');
+        await init.pageType(page, 'input[name=companyName]', utils.user.company.name);
+        await init.pageClick(page, 'input[name=companyPhoneNumber]');
+        await init.pageType(page, 'input[name=companyPhoneNumber]', utils.user.phone);
+        await init.pageClick(page, 'input[name=password]');
+        await init.pageType(page, 'input[name=password]', user.password);
+        await init.pageClick(page, 'input[name=confirmPassword]');
+        await init.pageType(page, 'input[name=confirmPassword]', user.password);
+        await init.pageClick(page, 'button[type=submit]');
 
         await page.waitForSelector('#email_error');
         const errorMsg = await page.$eval(
@@ -62,19 +62,19 @@ describe('Registration API', () => {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#email');
-        await page.click('input[name=email]');
-        await page.type('input[name=email]', personalEmail);
-        await page.click('input[name=name]');
-        await page.type('input[name=name]', utils.user.name);
-        await page.click('input[name=companyName]');
-        await page.type('input[name=companyName]', utils.user.company.name);
-        await page.click('input[name=companyPhoneNumber]');
-        await page.type('input[name=companyPhoneNumber]', utils.user.phone);
-        await page.click('input[name=password]');
-        await page.type('input[name=password]', user.password);
-        await page.click('input[name=confirmPassword]');
-        await page.type('input[name=confirmPassword]', user.password);
-        await page.click('button[type=submit]');
+        await init.pageClick(page, 'input[name=email]');
+        await init.pageType(page, 'input[name=email]', personalEmail);
+        await init.pageClick(page, 'input[name=name]');
+        await init.pageType(page, 'input[name=name]', utils.user.name);
+        await init.pageClick(page, 'input[name=companyName]');
+        await init.pageType(page, 'input[name=companyName]', utils.user.company.name);
+        await init.pageClick(page, 'input[name=companyPhoneNumber]');
+        await init.pageType(page, 'input[name=companyPhoneNumber]', utils.user.phone);
+        await init.pageClick(page, 'input[name=password]');
+        await init.pageType(page, 'input[name=password]', user.password);
+        await init.pageClick(page, 'input[name=confirmPassword]');
+        await init.pageType(page, 'input[name=confirmPassword]', user.password);
+        await init.pageClick(page, 'button[type=submit]');
 
         await page.waitForSelector('#email_error');
         const errorMsg = await page.$eval(
@@ -89,22 +89,22 @@ describe('Registration API', () => {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#email');
-        await page.click('input[name=email]');
-        await page.type('input[name=email]', user.email);
-        await page.click('input[name=name]');
-        await page.type('input[name=name]', utils.user.name);
-        await page.click('input[name=companyName]');
-        await page.type('input[name=companyName]', utils.user.company.name);
-        await page.click('input[name=companyPhoneNumber]');
-        await page.type('input[name=companyPhoneNumber]', '1234567890');
-        await page.click('input[name=password]');
-        await page.type('input[name=password]', '1234567890');
-        await page.click('input[name=confirmPassword]');
-        await page.type('input[name=confirmPassword]', '1234567890');
+        await init.pageClick(page, 'input[name=email]');
+        await init.pageType(page, 'input[name=email]', user.email);
+        await init.pageClick(page, 'input[name=name]');
+        await init.pageType(page, 'input[name=name]', utils.user.name);
+        await init.pageClick(page, 'input[name=companyName]');
+        await init.pageType(page, 'input[name=companyName]', utils.user.company.name);
+        await init.pageClick(page, 'input[name=companyPhoneNumber]');
+        await init.pageType(page, 'input[name=companyPhoneNumber]', '1234567890');
+        await init.pageClick(page, 'input[name=password]');
+        await init.pageType(page, 'input[name=password]', '1234567890');
+        await init.pageClick(page, 'input[name=confirmPassword]');
+        await init.pageType(page, 'input[name=confirmPassword]', '1234567890');
 
-        await page.click('#loginLink a');
+        await init.pageClick(page, '#loginLink a');
         await page.waitForSelector('#signUpLink a');
-        await page.click('#signUpLink a');
+        await init.pageClick(page, '#signUpLink a');
 
         await page.waitForSelector('input[name=email]');
         const email = await page.$eval(
@@ -119,27 +119,27 @@ describe('Registration API', () => {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#email');
-        await page.click('input[name=email]');
-        await page.type('input[name=email]', user.email);
-        await page.click('input[name=name]');
-        await page.type('input[name=name]', utils.user.name);
-        await page.click('input[name=companyName]');
-        await page.type('input[name=companyName]', utils.user.company.name);
-        await page.click('input[name=companyPhoneNumber]');
-        await page.type('input[name=companyPhoneNumber]', '1234567890');
-        await page.click('input[name=password]');
-        await page.type('input[name=password]', '1234567890');
-        await page.click('input[name=confirmPassword]');
-        await page.type('input[name=confirmPassword]', '1234567890');
-        await page.click('button[type=submit]');
+        await init.pageClick(page, 'input[name=email]');
+        await init.pageType(page, 'input[name=email]', user.email);
+        await init.pageClick(page, 'input[name=name]');
+        await init.pageType(page, 'input[name=name]', utils.user.name);
+        await init.pageClick(page, 'input[name=companyName]');
+        await init.pageType(page, 'input[name=companyName]', utils.user.company.name);
+        await init.pageClick(page, 'input[name=companyPhoneNumber]');
+        await init.pageType(page, 'input[name=companyPhoneNumber]', '1234567890');
+        await init.pageClick(page, 'input[name=password]');
+        await init.pageType(page, 'input[name=password]', '1234567890');
+        await init.pageClick(page, 'input[name=confirmPassword]');
+        await init.pageType(page, 'input[name=confirmPassword]', '1234567890');
+        await init.pageClick(page, 'button[type=submit]');
 
         await page.waitForSelector('input[name=cardName]');
-        await page.click('input[name=cardName]');
-        await page.type('input[name=cardName]', 'Test name');
+        await init.pageClick(page, 'input[name=cardName]');
+        await init.pageType(page, 'input[name=cardName]', 'Test name');
 
-        await page.click('#loginLink a');
+        await init.pageClick(page, '#loginLink a');
         await page.waitForSelector('#signUpLink a');
-        await page.click('#signUpLink a');
+        await init.pageClick(page, '#signUpLink a');
 
         await page.waitForSelector('input[name=email]');
         const email = await page.$eval(
@@ -151,7 +151,7 @@ describe('Registration API', () => {
 
     it('Should register User with valid details', async () => {
         await init.registerUser(user, page);
-        await page.waitForTimeout(5000);
+        
         await page.waitForSelector('#titleText');
         const innerText = await page.$eval(
             '#titleText',
