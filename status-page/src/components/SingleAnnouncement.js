@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import { getSingleAnnouncement, getStatusPage } from '../actions/status';
 import { bindActionCreators } from 'redux';
 import { handleResources } from '../config';
+import ShouldRender from './ShouldRender';
 
 class SingleAnnouncement extends Component {
     async componentDidMount() {
@@ -86,31 +87,38 @@ class SingleAnnouncement extends Component {
                                                 {announcement?.description}
                                             </span>
                                         </div>
-                                        <div
-                                            className="ongoing__affectedmonitor"
-                                            style={{ marginTop: 0 }}
+                                        <ShouldRender
+                                            if={
+                                                announcement.monitors.length > 0
+                                            }
                                         >
-                                            <span
-                                                className="ongoing__affectedmonitor--title"
-                                                style={{
-                                                    color:
-                                                        'rgba(76, 76, 76, 0.8)',
-                                                }}
+                                            <div
+                                                className="ongoing__affectedmonitor"
+                                                style={{ marginTop: 0 }}
                                             >
-                                                Resource Affected:
-                                            </span>{' '}
-                                            <span
-                                                className="ongoing__affectedmonitor--content"
-                                                style={{
-                                                    color: 'rgba(0, 0, 0, 0.5)',
-                                                }}
-                                            >
-                                                {handleResources(
-                                                    monitorState,
-                                                    announcement
-                                                )}
-                                            </span>
-                                        </div>
+                                                <span
+                                                    className="ongoing__affectedmonitor--title"
+                                                    style={{
+                                                        color:
+                                                            'rgba(76, 76, 76, 0.8)',
+                                                    }}
+                                                >
+                                                    Resource Affected:
+                                                </span>{' '}
+                                                <span
+                                                    className="ongoing__affectedmonitor--content"
+                                                    style={{
+                                                        color:
+                                                            'rgba(0, 0, 0, 0.5)',
+                                                    }}
+                                                >
+                                                    {handleResources(
+                                                        monitorState,
+                                                        announcement
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </ShouldRender>
                                     </div>
                                 </div>
                             </div>
