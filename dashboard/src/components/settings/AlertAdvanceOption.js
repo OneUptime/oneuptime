@@ -177,7 +177,10 @@ export class AlertAdvanceOption extends Component {
                                                             }}
                                                         ></div>
                                                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                            <label className="Checkbox" id="alert">
+                                                            <label
+                                                                className="Checkbox"
+                                                                id="alert"
+                                                            >
                                                                 <Field
                                                                     component="input"
                                                                     type="checkbox"

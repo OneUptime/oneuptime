@@ -154,7 +154,11 @@ function TeamMemberProfile({
                                                                                                     marginTop:
                                                                                                         '6px',
                                                                                                 }}
-                                                                                                id={teamMember.email.split('@')[0]}
+                                                                                                id={
+                                                                                                    teamMember.email.split(
+                                                                                                        '@'
+                                                                                                    )[0]
+                                                                                                }
                                                                                             >
                                                                                                 {
                                                                                                     teamMember.email

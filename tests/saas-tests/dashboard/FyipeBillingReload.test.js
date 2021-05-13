@@ -8,10 +8,6 @@ const user = {
     password: '1234567890',
 };
 
-const projectName = utils.generateRandomString();
-const teamMember = utils.generateRandomBusinessEmail();
-
-
 /** This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
@@ -29,7 +25,7 @@ describe('Fyipe Page Reload', () => {
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
         );
 
-        await init.registerUser(user, page); // This automatically routes to dashboard page        
+        await init.registerUser(user, page); // This automatically routes to dashboard page
         done();
     });
 
@@ -41,24 +37,29 @@ describe('Fyipe Page Reload', () => {
     test(
         'Should reload the incidents page and confirm there are no errors',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);     
+            await page.goto(utils.DASHBOARD_URL);
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#billing');
-            await page.waitForSelector('#Startup_month', {visible: true});
-            await init.pageClick(page, '#alert');            
+            await page.waitForSelector('#Startup_month', { visible: true });
+            await init.pageClick(page, '#alert');
             await init.pageClick(page, '#alertOptionSave');
-            await page.waitForSelector('#message-modal-message', {visible: true});            
+            await page.waitForSelector('#message-modal-message', {
+                visible: true,
+            });
             await init.pageClick(page, '#modal-ok');
-            await page.waitForSelector('#message-modal-message', {hidden: true});
+            await page.waitForSelector('#message-modal-message', {
+                hidden: true,
+            });
 
-             //To confirm no errors and stays on the same page on reload
-             await page.reload({ waitUntil: 'networkidle0' });      
-             await page.waitForSelector('#cbBilling', {visible : true});       
-             const spanElement = await page.waitForSelector('#Startup_month', {visible : true});             
-             expect(spanElement).toBeDefined();
+            //To confirm no errors and stays on the same page on reload
+            await page.reload({ waitUntil: 'networkidle0' });
+            await page.waitForSelector('#cbBilling', { visible: true });
+            const spanElement = await page.waitForSelector('#Startup_month', {
+                visible: true,
+            });
+            expect(spanElement).toBeDefined();
             done();
         },
         operationTimeOut
     );
-
 });

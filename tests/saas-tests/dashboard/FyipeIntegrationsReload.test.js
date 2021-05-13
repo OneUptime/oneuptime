@@ -12,7 +12,6 @@ const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 const webHookEndpoint = utils.generateRandomWebsite();
 
-
 /** This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
@@ -26,11 +25,13 @@ describe('Fyipe Page Reload', () => {
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setViewport( { 'width' : 1024, 'height' : 1600 } );
+        await page.setViewport({ width: 1024, height: 1600 });
         await page.setUserAgent(
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
         );
-        await page.addStyleTag({ content: "{scroll-behavior: auto !important;}" });        
+        await page.addStyleTag({
+            content: '{scroll-behavior: auto !important;}',
+        });
 
         await init.registerUser(user, page); // This automatically routes to dashboard page
         await init.addComponent(componentName, page);
@@ -52,7 +53,11 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector('#addSlackButton', { visible: true });
             await init.pageClick(page, '#addWebhookButton');
             await init.pageType(page, '#endpoint', webHookEndpoint);
-            await init.selectByText('#monitorId', `${componentName} / ${monitorName}`, page);
+            await init.selectByText(
+                '#monitorId',
+                `${componentName} / ${monitorName}`,
+                page
+            );
             await init.selectByText('#endpointType', 'GET', page);
             await init.pageClick(page, '#createWebhook');
             await page.waitForSelector('#createWebhook', { hidden: true });
@@ -60,11 +65,12 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector('#webhook_name');
             await page.reload({ waitUntil: 'networkidle0' });
             await page.waitForSelector('#cbIntegrations', { visible: true });
-            const spanElement = await page.waitForSelector('#addSlackButton', { visible: true });
+            const spanElement = await page.waitForSelector('#addSlackButton', {
+                visible: true,
+            });
             expect(spanElement).toBeDefined();
             done();
         },
         operationTimeOut
     );
-
 });

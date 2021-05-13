@@ -373,7 +373,9 @@ const _this = {
     },
     themeNavigationAndConfirmation: async function(page, theme) {
         await page.waitForSelector('ul#customTabList > li', { visible: true });
-        await page.$$eval('ul#customTabList > li', elems => elems.find((i)=> i.innerText === "Branding").click());
+        await page.$$eval('ul#customTabList > li', elems =>
+            elems.find(i => i.innerText === 'Branding').click()
+        );
         await page.waitForSelector(`#${theme}`, { visible: true });
         await _this.pageClick(page, `#${theme}`);
         await page.waitForSelector('#changePlanBtn', { visible: true });

@@ -159,25 +159,53 @@ class StatusPage extends Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab custom-tab-6 basic-tab'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 basic-tab'
+                                    }
+                                >
                                     Basic
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6 subscribers-tab'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 subscribers-tab'
+                                    }
+                                >
                                     Subscribers
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6 announcements-tab'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 announcements-tab'
+                                    }
+                                >
                                     Announcements
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6 custom-domains-tab'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 custom-domains-tab'
+                                    }
+                                >
                                     Custom Domains
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6 branding-tab'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 branding-tab'
+                                    }
+                                >
                                     Branding
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6 embedded-tab'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 embedded-tab'
+                                    }
+                                >
                                     Embedded
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6 advanced-options-tab'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 advanced-options-tab'
+                                    }
+                                >
                                     Advanced Options
                                 </Tab>
                                 <div
