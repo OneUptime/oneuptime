@@ -43,8 +43,8 @@ describe('Monitor SLA', () => {
         'should not add a monitor SLA if no name was specified',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -82,8 +82,8 @@ describe('Monitor SLA', () => {
         'should not add a monitor SLA if monitor uptime was not specified',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -120,8 +120,8 @@ describe('Monitor SLA', () => {
         'should not add a monitor SLA if monitor uptime is not a numeric value',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -160,8 +160,8 @@ describe('Monitor SLA', () => {
         'should not add a monitor SLA if monitor uptime is greater than 100%',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -200,8 +200,8 @@ describe('Monitor SLA', () => {
         'should not add a monitor SLA if monitor uptime is less than 1%',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -240,8 +240,8 @@ describe('Monitor SLA', () => {
         'should not add a monitor SLA if frequency is not a numeric value',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -280,8 +280,8 @@ describe('Monitor SLA', () => {
         'should add a monitor SLA',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -323,8 +323,8 @@ describe('Monitor SLA', () => {
         'should update a monitor SLA',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -392,8 +392,8 @@ describe('Monitor SLA', () => {
         'should delete a monitor SLA',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });

@@ -68,7 +68,9 @@ describe('Status Page', () => {
             await page.waitForSelector('.advanced-options-tab', {
                 visible: true,
             });
-            await page.$$eval('.advanced-options-tab', elems => elems[0].click());
+            await page.$$eval('.advanced-options-tab', elems =>
+                elems[0].click()
+            );
             await page.$eval('input[name="isPrivate"]', elem => elem.click());
 
             const modal = await page.$('#pricingPlanModal');

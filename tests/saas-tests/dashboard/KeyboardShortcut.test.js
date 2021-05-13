@@ -38,8 +38,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to component pages with keyboard shortcut (f + c)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#components', { visible: true });
             await page.keyboard.press('f');
             await page.keyboard.press('c');
@@ -58,8 +58,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to incident logs page with keyboard shortcut (f + i)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#incidents', { visible: true });
             await page.keyboard.press('f');
             await page.keyboard.press('i');
@@ -77,8 +77,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to status pages with keyboard shortcut (f + p)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#statusPages', { visible: true });
             await page.keyboard.press('f');
             await page.keyboard.press('p');
@@ -97,8 +97,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to on-call schedule page with keyboard shortcut (f + o)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#onCallDuty', {
                 visible: true,
             });
@@ -118,8 +118,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to alert log page with keyboard shortcut (o + a)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#onCallDuty', {
                 visible: true,
             });
@@ -139,8 +139,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate scheduled events page with keyboard shortcut (f + e)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -161,8 +161,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to reports page with keyboard shortcut (f + v)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#reports', { visible: true });
             await page.keyboard.press('f');
             await page.keyboard.press('v');
@@ -180,8 +180,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to team members page with keyboard shortcut (f + u)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#teamMembers', { visible: true });
             await page.keyboard.press('f');
             await page.keyboard.press('u');
@@ -199,8 +199,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to project settings page with keyboard shortcut (f + s)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -220,8 +220,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to consulting and services page with keyboard shortcut (f + q)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#consultingServices', {
                 visible: true,
             });
@@ -242,8 +242,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to billing settings page with keyboard shortcut (s + b)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -263,8 +263,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to resource category page with keyboard shortcut (s + r)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -285,8 +285,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to monitor page (project settings) with keyboard shortcut (s + m)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -307,8 +307,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to incidents page (project settings) with keyboard shortcut (s + t)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -329,8 +329,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to integrations page with keyboard shortcut (s + i)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -350,8 +350,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to email settings page with keyboard shortcut (s + e)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -371,8 +371,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to sms settings page with keyboard shortcut (s + c)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -392,8 +392,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to webhooks page (project settings) with keyboard shortcut (s + w)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -414,8 +414,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to probe in settings page with keyboard shortcut (s + p)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -435,8 +435,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to git credential page with keyboard shortcut (s + g)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -457,8 +457,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to docker credential page with keyboard shortcut (s + k)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -479,8 +479,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to git credentials page (project settings) with keyboard shortcut (s + g)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -501,8 +501,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to docker credentials page (project settings) with keyboard shortcut (s + d)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -523,8 +523,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to api page with keyboard shortcut (s + a)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -544,8 +544,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to advanced page (project settings) with keyboard shortcut (s + v)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -566,8 +566,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to profile settings with keyboard shortcut (f + n)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#profile-menu', { visible: true });
             await init.pageClick(page, '#profile-menu');
             await page.waitForSelector('#profileBilling');
@@ -593,8 +593,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to change password page with keyboard shortcut (f + w)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#profile-menu', { visible: true });
             await init.pageClick(page, '#profile-menu');
             await page.waitForSelector('#userProfile');
@@ -620,8 +620,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to profile billing page with keyboard shortcut (f + b)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#profile-menu', { visible: true });
             await init.pageClick(page, '#profile-menu');
             await page.waitForSelector('#userProfile');
@@ -645,8 +645,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate to advanced page with keyboard shortcut (f + a)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#profile-menu', { visible: true });
             await init.pageClick(page, '#profile-menu');
             await page.waitForSelector('#userProfile');
@@ -670,8 +670,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
         'should navigate back to dashboard from profile using keyboard shortcut (f + k)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#profile-menu', { visible: true });
             await init.pageClick(page, '#profile-menu');
             await page.waitForSelector('#userProfile');

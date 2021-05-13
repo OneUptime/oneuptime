@@ -41,8 +41,8 @@ describe('Custom SMTP Settings', () => {
         'should create a custom smtp settings',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -68,7 +68,7 @@ describe('Custom SMTP Settings', () => {
             await init.pageType(page, '#name', name);
             await page.$eval('#secure', elem => (elem.checked = true));
             await init.pageClick(page, '#saveSmtp');
-            
+
             await page.waitForSelector('.ball-beat', { hidden: true });
             await page.reload();
             await page.waitForSelector('#host', { visible: true });
@@ -84,8 +84,8 @@ describe('Custom SMTP Settings', () => {
         'should update a custom smtp settings',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -115,8 +115,8 @@ describe('Custom SMTP Settings', () => {
         'should not save a custom smtp settings if one of the input fields is missing',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -150,8 +150,8 @@ describe('Custom SMTP Settings', () => {
         'should delete custom smtp settings',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -183,8 +183,8 @@ describe('Custom SMTP Settings', () => {
         'should not display any error message if custom smtp settings is already deleted and user clicks on save',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });

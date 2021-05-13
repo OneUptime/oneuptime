@@ -54,8 +54,8 @@ describe('Log Containers', () => {
                 visible: true,
             });
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#components', { visible: true });
             await init.pageClick(page, '#components');
 
@@ -85,9 +85,6 @@ describe('Log Containers', () => {
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', applicationLogName);
             await init.pageClick(page, 'button[type=submit]');
-            //await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
 
             let spanElement = await page.waitForSelector(
                 `span#application-log-title-${applicationLogName}`
@@ -238,7 +235,6 @@ describe('Log Containers', () => {
             await page.waitForSelector(`#${applicationLogName}-warning`);
             await init.pageClick(page, `#${applicationLogName}-warning`);
 
-            
             // confim that thee drop down current value is warning
             logTypeElement = await page.waitForSelector(
                 'input[name=log_type_selector]'
@@ -252,7 +248,6 @@ describe('Log Containers', () => {
             await page.waitForSelector(`#${applicationLogName}-info`);
             await init.pageClick(page, `#${applicationLogName}-info`);
 
-            
             // confim that thee drop down current value is info
             logTypeElement = await page.waitForSelector(
                 'input[name=log_type_selector]'
@@ -266,7 +261,6 @@ describe('Log Containers', () => {
             await page.waitForSelector(`#${applicationLogName}-error`);
             await init.pageClick(page, `#${applicationLogName}-error`);
 
-            
             // confim that thee drop down current value is error
             logTypeElement = await page.waitForSelector(
                 'input[name=log_type_selector]'
@@ -280,7 +274,6 @@ describe('Log Containers', () => {
             await page.waitForSelector(`#${applicationLogName}-all`);
             await init.pageClick(page, `#${applicationLogName}-all`);
 
-            
             // confim that thee drop down current value is all
             logTypeElement = await page.waitForSelector(
                 'input[name=log_type_selector]'
@@ -569,8 +562,8 @@ describe('Log Containers', () => {
 
             // delete the category
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
@@ -583,7 +576,6 @@ describe('Log Containers', () => {
             await init.pageClick(page, `#delete_${categoryName}`);
             await page.waitForSelector('#deleteResourceCategory');
             await init.pageClick(page, '#deleteResourceCategory');
-            
 
             // go back to log details and confirm it is not there anymore
             const spanElementBadge = await page.$(

@@ -1,5 +1,6 @@
 const utils = require('../../test-utils');
 const puppeteer = require('puppeteer');
+const init = require('../../test-init');
 
 let page, browser;
 

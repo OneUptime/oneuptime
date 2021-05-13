@@ -53,8 +53,8 @@ describe('New Monitor API', () => {
             // try to add more monitor
             const monitorName = utils.generateRandomString();
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#components', { visible: true });
             await init.pageClick(page, '#components');
             await page.waitForSelector('#component0', { visible: true });
@@ -105,8 +105,8 @@ describe('New Monitor API', () => {
             // try to add more monitor
             const monitorName = utils.generateRandomString();
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#components', { visible: true });
             await init.pageClick(page, '#components');
             await page.waitForSelector('#component0', { visible: true });
@@ -158,8 +158,8 @@ describe('New Monitor API', () => {
             // try to add more monitor
             const monitorName = utils.generateRandomString();
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#components', { visible: true });
             await init.pageClick(page, '#components');
             await page.waitForSelector('#component0', { visible: true });

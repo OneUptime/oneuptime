@@ -43,8 +43,8 @@ describe('Incident Communication SLA', () => {
         'should not add incident communication SLA if no name was specified',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -61,7 +61,9 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('.communication-sla-tab', {
                 visible: true,
             });
-            await page.$$eval('.communication-sla-tab', elems => elems[0].click());
+            await page.$$eval('.communication-sla-tab', elems =>
+                elems[0].click()
+            );
 
             await page.waitForSelector('#addIncidentSlaBtn', {
                 visible: true,
@@ -92,8 +94,8 @@ describe('Incident Communication SLA', () => {
         'should not add incident communication SLA if alert time is greater or equal to duration',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -110,7 +112,9 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('.communication-sla-tab', {
                 visible: true,
             });
-            await page.$$eval('.communication-sla-tab', elems => elems[0].click());
+            await page.$$eval('.communication-sla-tab', elems =>
+                elems[0].click()
+            );
 
             await page.waitForSelector('#addIncidentSlaBtn', {
                 visible: true,
@@ -141,8 +145,8 @@ describe('Incident Communication SLA', () => {
         'should not add incident communication SLA if alert time is not a number',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -159,7 +163,9 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('.communication-sla-tab', {
                 visible: true,
             });
-            await page.$$eval('.communication-sla-tab', elems => elems[0].click());
+            await page.$$eval('.communication-sla-tab', elems =>
+                elems[0].click()
+            );
 
             await page.waitForSelector('#addIncidentSlaBtn', {
                 visible: true,
@@ -190,8 +196,8 @@ describe('Incident Communication SLA', () => {
         'should add incident communication SLA',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -208,7 +214,9 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('.communication-sla-tab', {
                 visible: true,
             });
-            await page.$$eval('.communication-sla-tab', elems => elems[0].click());
+            await page.$$eval('.communication-sla-tab', elems =>
+                elems[0].click()
+            );
 
             await page.waitForSelector('#addIncidentSlaBtn', {
                 visible: true,
@@ -242,8 +250,8 @@ describe('Incident Communication SLA', () => {
         'should not edit an incident communication SLA if there is no name',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -260,7 +268,9 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('.communication-sla-tab', {
                 visible: true,
             });
-            await page.$$eval('.communication-sla-tab', elems => elems[0].click());
+            await page.$$eval('.communication-sla-tab', elems =>
+                elems[0].click()
+            );
 
             await page.waitForSelector(`#editIncidentSlaBtn_${slaName}`, {
                 visible: true,
@@ -288,8 +298,8 @@ describe('Incident Communication SLA', () => {
         'should edit an incident communication SLA',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -306,7 +316,9 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('.communication-sla-tab', {
                 visible: true,
             });
-            await page.$$eval('.communication-sla-tab', elems => elems[0].click());
+            await page.$$eval('.communication-sla-tab', elems =>
+                elems[0].click()
+            );
 
             await page.waitForSelector(`#editIncidentSlaBtn_${slaName}`, {
                 visible: true,
@@ -402,8 +414,8 @@ describe('Incident Communication SLA', () => {
         'should delete an incident communication SLA',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: ['networkidle2'],
-        });
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -420,7 +432,9 @@ describe('Incident Communication SLA', () => {
             await page.waitForSelector('.communication-sla-tab', {
                 visible: true,
             });
-            await page.$$eval('.communication-sla-tab', elems => elems[0].click());
+            await page.$$eval('.communication-sla-tab', elems =>
+                elems[0].click()
+            );
 
             await page.waitForSelector(`#deleteIncidentSlaBtn_${slaName}`, {
                 visible: true,

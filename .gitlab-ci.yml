@@ -19,20 +19,17 @@ include:
 
   # ACCOUNTS
   - '/ci/spec/accounts/audit.yaml'
-  - '/ci/spec/accounts/build-n-test.yaml'
   - '/ci/spec/accounts/deploy.yaml'
   - '/ci/spec/accounts/rollback.yaml'
   - '/ci/spec/accounts/lighthouse.yaml'
 
   # ADMIN DASHBOARD
   - '/ci/spec/admin-dashboard/audit.yaml'
-  - '/ci/spec/admin-dashboard/build-n-test.yaml'
   - '/ci/spec/admin-dashboard/deploy.yaml'
   - '/ci/spec/admin-dashboard/rollback.yaml'
 
   # API-DOCS DASHBOARD
   - '/ci/spec/api-docs/audit.yaml'
-  - '/ci/spec/api-docs/build-n-test.yaml'
   - '/ci/spec/api-docs/deploy.yaml'
   - '/ci/spec/api-docs/rollback.yaml'
 
@@ -44,7 +41,6 @@ include:
 
   # DASHBOARD
   - '/ci/spec/dashboard/audit.yaml'
-  - '/ci/spec/dashboard/build-n-test.yaml'
   - '/ci/spec/dashboard/deploy.yaml'
   - '/ci/spec/dashboard/rollback.yaml'
 
@@ -56,20 +52,17 @@ include:
 
   # HOME
   - '/ci/spec/home/audit.yaml'
-  - '/ci/spec/home/build-n-test.yaml'
   - '/ci/spec/home/deploy.yaml'
   - '/ci/spec/home/rollback.yaml'
   - '/ci/spec/home/lighthouse.yaml'
 
   # HTTP-TEST-SERVER
   - '/ci/spec/http-test-server/audit.yaml'
-  - '/ci/spec/http-test-server/build-n-test.yaml'
   - '/ci/spec/http-test-server/deploy.yaml'
   - '/ci/spec/http-test-server/rollback.yaml'
 
   # INIT-SCRIPT
   - '/ci/spec/init-script/audit.yaml'
-  - '/ci/spec/init-script/build-n-test.yaml'
   - '/ci/spec/init-script/deploy.yaml'
 
   # LICENSING
@@ -80,13 +73,11 @@ include:
 
   # PROBE
   - '/ci/spec/probe/audit.yaml'
-  - '/ci/spec/probe/build-n-test.yaml'
   - '/ci/spec/probe/deploy.yaml'
   - '/ci/spec/probe/rollback.yaml'
 
   # STATUS-PAGE
   - '/ci/spec/status-page/audit.yaml'
-  - '/ci/spec/status-page/build-n-test.yaml'
   - '/ci/spec/status-page/deploy.yaml'
   - '/ci/spec/status-page/rollback.yaml'
 

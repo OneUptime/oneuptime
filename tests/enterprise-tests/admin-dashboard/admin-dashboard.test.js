@@ -30,24 +30,28 @@ describe('Enterprise Admin Dashboard API', () => {
         done();
     });
 
-    it('Should login to admin dashboard and create a new user with correct details', async done => {
-        await init.registerEnterpriseUser(user, page);
+    it(
+        'Should login to admin dashboard and create a new user with correct details',
+        async done => {
+            await init.registerEnterpriseUser(user, page);
 
-        const localStorageData = await page.evaluate(() => {
-            const json = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                json[key] = localStorage.getItem(key);
-            }
-            return json;
-        });
+            const localStorageData = await page.evaluate(() => {
+                const json = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    json[key] = localStorage.getItem(key);
+                }
+                return json;
+            });
 
-        localStorageData.should.have.property('access_token');
-        localStorageData.should.have.property(
-            'email',
-            'masteradmin@hackerbay.io'
-        );
-        page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
-        done();
-    }, 1init.timeout);
+            localStorageData.should.have.property('access_token');
+            localStorageData.should.have.property(
+                'email',
+                'masteradmin@hackerbay.io'
+            );
+            page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
+            done();
+        },
+        init.timeout
+    );
 });
