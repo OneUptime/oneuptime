@@ -11,7 +11,7 @@ const user = {
 };
 
 describe('Enterprise Dashboard API', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
     const monitorName = utils.generateRandomString();
     const componentName = utils.generateRandomString();
 

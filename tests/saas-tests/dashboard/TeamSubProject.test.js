@@ -17,7 +17,7 @@ const anotherEmail = utils.generateRandomBusinessEmail();
 const subProjectName = utils.generateRandomString();
 
 describe('Team API With SubProjects', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

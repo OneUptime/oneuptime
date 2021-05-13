@@ -15,7 +15,7 @@ const user = {
 };
 
 describe('Enterprise Accounts API', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);

@@ -12,7 +12,7 @@ const user = {
     password,
 };
 describe('SMS Templates API', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
     let initialTemplate;
     beforeAll(async done => {

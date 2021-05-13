@@ -172,5 +172,5 @@ describe('Project Settings', () => {
         );
         expect(childCount).toEqual(13);
         done();
-    }, 100000);
+    }, init.timeout);
 });

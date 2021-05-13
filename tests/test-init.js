@@ -142,7 +142,7 @@ const _this = {
         await _this.pageType(page, 'input[name=password]', password);
         await _this.pageClick(page, 'button[type=submit]');
 
-        await page.waitForSelector('#home', { visible: true, timeout: 100000 });
+        await page.waitForSelector('#home', { visible: true, timeout: _this.timeout });
     },
     loginEnterpriseUser: async function(user, page) {
         const { email, password } = user;
@@ -158,7 +158,7 @@ const _this = {
 
         await page.waitForSelector('#users', {
             visible: true,
-            timeout: 100000,
+            timeout: _this.timeout,
         });
     },
     registerEnterpriseUser: async function(user, page) {
@@ -199,7 +199,7 @@ const _this = {
                 _this.pageClick(page, 'button[type=submit]'),
                 page.waitForSelector('#users', {
                     visible: true,
-                    timeout: 100000,
+                    timeout: _this.timeout,
                 }),
             ]);
         } else {
