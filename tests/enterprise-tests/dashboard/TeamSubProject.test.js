@@ -48,17 +48,17 @@ describe('Enterprise Team SubProject API', () => {
             await init.addSubProject(subProjectName, page);
             const role = 'Member';
 
-            await page.waitForSelector('#teamMembers', {
+            await init.pageWaitForSelector(page, '#teamMembers', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#teamMembers');
-            await page.waitForSelector(`#btn_${subProjectName}`, {
+            await init.pageWaitForSelector(page, `#btn_${subProjectName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, `#btn_${subProjectName}`);
-            await page.waitForSelector(`#frm_${subProjectName}`, {
+            await init.pageWaitForSelector(page, `#frm_${subProjectName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -70,7 +70,7 @@ describe('Enterprise Team SubProject API', () => {
             );
             await init.pageClick(page, `#${role}_${subProjectName}`);
             await init.pageClick(page, `#btn_modal_${subProjectName}`);
-            await page.waitForSelector(`#btn_modal_${subProjectName}`, {
+            await init.pageWaitForSelector(page, `#btn_modal_${subProjectName}`, {
                 hidden: true,
             });
             done();

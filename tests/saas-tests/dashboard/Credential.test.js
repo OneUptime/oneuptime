@@ -42,33 +42,33 @@ describe('Credential Page', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
 
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#gitCredentials', {
+            await init.pageWaitForSelector(page, '#gitCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#gitCredentials');
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
             const initialTableRow = await page.$$('tbody tr');
-            await page.waitForSelector('#addCredentialBtn', {
+            await init.pageWaitForSelector(page, '#addCredentialBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#addCredentialBtn');
 
-            await page.waitForSelector('#gitCredentialForm', {
+            await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval('#cancelCredentialModalBtn', e => e.click());
 
-            await page.waitForSelector('#gitCredentialForm', {
+            await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 hidden: true,
             });
             const finalTableRow = await page.$$('tbody tr');
@@ -85,25 +85,25 @@ describe('Credential Page', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
 
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#gitCredentials', {
+            await init.pageWaitForSelector(page, '#gitCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#gitCredentials');
-            await page.waitForSelector('#addCredentialBtn', {
+            await init.pageWaitForSelector(page, '#addCredentialBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#addCredentialBtn');
 
-            await page.waitForSelector('#gitCredentialForm', {
+            await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -113,7 +113,7 @@ describe('Credential Page', () => {
             await init.pageType(page, '#gitPassword', gitPassword);
             await init.pageClick(page, '#addCredentialModalBtn');
 
-            const credentialModal = await page.waitForSelector(
+            const credentialModal = await init.pageWaitForSelector(page, 
                 '#gitCredentialForm',
                 { hidden: true }
             );
@@ -128,33 +128,33 @@ describe('Credential Page', () => {
         'should update a git credential',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#gitCredentials', {
+            await init.pageWaitForSelector(page, '#gitCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#gitCredentials');
 
-            await page.waitForSelector('#editCredentialBtn_0', {
+            await init.pageWaitForSelector(page, '#editCredentialBtn_0', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#editCredentialBtn_0');
-            await page.waitForSelector('#gitCredentialForm');
+            await init.pageWaitForSelector(page, '#gitCredentialForm');
             const gitUsername = 'newusername';
             await init.pageClick(page, '#gitUsername', { clickCount: 3 });
             await init.pageType(page, '#gitUsername', gitUsername);
             await init.pageClick(page, '#updateCredentialModalBtn');
-            await page.waitForSelector('#gitCredentialForm', {
+            await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 hidden: true,
             });
-            const updatedCredential = await page.waitForSelector(
+            const updatedCredential = await init.pageWaitForSelector(page, 
                 `#gitUsername_${gitUsername}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -170,29 +170,29 @@ describe('Credential Page', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
 
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#gitCredentials', {
+            await init.pageWaitForSelector(page, '#gitCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#gitCredentials');
 
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
             const initialTableRow = await page.$$('tbody tr');
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
-            await page.waitForSelector('#cancelCredentialDeleteBtn', {
+            await init.pageWaitForSelector(page, '#cancelCredentialDeleteBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#cancelCredentialDeleteBtn');
-            await page.waitForSelector('#deleteCredentialModal', {
+            await init.pageWaitForSelector(page, '#deleteCredentialModal', {
                 hidden: true,
             });
             const finalTableRow = await page.$$('tbody tr');
@@ -209,32 +209,32 @@ describe('Credential Page', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
 
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#gitCredentials', {
+            await init.pageWaitForSelector(page, '#gitCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#gitCredentials');
 
-            await page.waitForSelector('tbody tr', {
+            await init.pageWaitForSelector(page, 'tbody tr', {
                 visible: true,
                 timeout: init.timeout,
             });
             const initialTableRow = await page.$$('tbody tr');
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
-            await page.waitForSelector('#deleteCredentialBtn', {
+            await init.pageWaitForSelector(page, '#deleteCredentialBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteCredentialBtn');
-            await page.waitForSelector('#deleteCredentialModal', {
+            await init.pageWaitForSelector(page, '#deleteCredentialModal', {
                 hidden: true,
             });
             const finalTableRow = await page.$$('tbody tr');
@@ -253,28 +253,28 @@ describe('Credential Page', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
 
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#dockerCredentials', {
+            await init.pageWaitForSelector(page, '#dockerCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#dockerCredentials');
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
             const initialTableRow = await page.$$('tbody tr');
             await init.pageClick(page, '#addCredentialBtn');
 
-            await page.waitForSelector('#dockerCredentialForm', {
+            await init.pageWaitForSelector(page, '#dockerCredentialForm', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval('#cancelCredentialModalBtn', e => e.click());
-            await page.waitForSelector('#dockerCredentialForm', {
+            await init.pageWaitForSelector(page, '#dockerCredentialForm', {
                 hidden: true,
             });
             const finalTableRow = await page.$$('tbody tr');
@@ -291,25 +291,25 @@ describe('Credential Page', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
 
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#dockerCredentials', {
+            await init.pageWaitForSelector(page, '#dockerCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#dockerCredentials');
-            await page.waitForSelector('#addCredentialBtn', {
+            await init.pageWaitForSelector(page, '#addCredentialBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#addCredentialBtn');
 
-            await page.waitForSelector('#dockerCredentialForm', {
+            await init.pageWaitForSelector(page, '#dockerCredentialForm', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -321,7 +321,7 @@ describe('Credential Page', () => {
             await init.pageType(page, '#dockerPassword', dockerPassword);
             await init.pageClick(page, '#addCredentialModalBtn');
 
-            const credentialModalForm = await page.waitForSelector(
+            const credentialModalForm = await init.pageWaitForSelector(page, 
                 '#dockerCredentialForm',
                 { hidden: true }
             );
@@ -336,22 +336,22 @@ describe('Credential Page', () => {
         'should update a docker credential',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#dockerCredentials', {
+            await init.pageWaitForSelector(page, '#dockerCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#dockerCredentials');
 
-            await page.waitForSelector('#editCredentialBtn_0');
+            await init.pageWaitForSelector(page, '#editCredentialBtn_0');
             await init.pageClick(page, '#editCredentialBtn_0');
-            await page.waitForSelector('#dockerCredentialForm');
+            await init.pageWaitForSelector(page, '#dockerCredentialForm');
             const dockerUsername = 'username';
             const dockerPassword = 'hello1234567890';
             await init.pageClick(page, '#dockerUsername', { clickCount: 3 });
@@ -359,11 +359,11 @@ describe('Credential Page', () => {
             await init.pageClick(page, '#dockerPassword', { clickCount: 3 });
             await init.pageType(page, '#dockerPassword', dockerPassword);
             await init.pageClick(page, '#updateCredentialModalBtn');
-            await page.waitForSelector('#dockerCredentialForm', {
+            await init.pageWaitForSelector(page, '#dockerCredentialForm', {
                 hidden: true,
             });
 
-            const updatedCredential = await page.waitForSelector(
+            const updatedCredential = await init.pageWaitForSelector(page, 
                 `#dockerUsername_${dockerUsername}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -378,22 +378,22 @@ describe('Credential Page', () => {
         'should not update a docker credential if username or password is invalid',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#dockerCredentials', {
+            await init.pageWaitForSelector(page, '#dockerCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#dockerCredentials');
 
-            await page.waitForSelector('#editCredentialBtn_0');
+            await init.pageWaitForSelector(page, '#editCredentialBtn_0');
             await init.pageClick(page, '#editCredentialBtn_0');
-            await page.waitForSelector('#dockerCredentialForm');
+            await init.pageWaitForSelector(page, '#dockerCredentialForm');
             const dockerUsername = 'invalidusername';
             const dockerPassword = 'hello1234567890';
             await init.pageClick(page, '#dockerUsername', { clickCount: 3 });
@@ -402,7 +402,7 @@ describe('Credential Page', () => {
             await init.pageType(page, '#dockerPassword', dockerPassword);
             await init.pageClick(page, '#updateCredentialModalBtn');
 
-            const updateCredentialError = await page.waitForSelector(
+            const updateCredentialError = await init.pageWaitForSelector(page, 
                 '#updateCredentialError',
                 { visible: true, timeout: operationTimeOut }
             );
@@ -418,25 +418,25 @@ describe('Credential Page', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
 
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#dockerCredentials', {
+            await init.pageWaitForSelector(page, '#dockerCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#dockerCredentials');
-            await page.waitForSelector('#addCredentialBtn', {
+            await init.pageWaitForSelector(page, '#addCredentialBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#addCredentialBtn');
 
-            await page.waitForSelector('#dockerCredentialForm', {
+            await init.pageWaitForSelector(page, '#dockerCredentialForm', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -448,7 +448,7 @@ describe('Credential Page', () => {
             await init.pageType(page, '#dockerPassword', 'invalidpassword');
             await init.pageClick(page, '#addCredentialModalBtn');
 
-            const addCredentialError = await page.waitForSelector(
+            const addCredentialError = await init.pageWaitForSelector(page, 
                 '#addCredentialError',
                 { visible: true, timeout: operationTimeOut }
             );
@@ -464,29 +464,29 @@ describe('Credential Page', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
 
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#dockerCredentials', {
+            await init.pageWaitForSelector(page, '#dockerCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#dockerCredentials');
 
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
             const initialTableRow = await page.$$('tbody tr');
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
-            await page.waitForSelector('#cancelCredentialDeleteBtn', {
+            await init.pageWaitForSelector(page, '#cancelCredentialDeleteBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#cancelCredentialDeleteBtn');
-            await page.waitForSelector('#deleteCredentialModal', {
+            await init.pageWaitForSelector(page, '#deleteCredentialModal', {
                 hidden: true,
             });
             const finalTableRow = await page.$$('tbody tr');
@@ -503,32 +503,32 @@ describe('Credential Page', () => {
         async done => {
             await page.goto(utils.DASHBOARD_URL);
 
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#dockerCredentials', {
+            await init.pageWaitForSelector(page, '#dockerCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#dockerCredentials');
 
-            await page.waitForSelector('tbody tr', {
+            await init.pageWaitForSelector(page, 'tbody tr', {
                 visible: true,
                 timeout: init.timeout,
             });
             const initialTableRow = await page.$$('tbody tr');
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
-            await page.waitForSelector('#deleteCredentialBtn', {
+            await init.pageWaitForSelector(page, '#deleteCredentialBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteCredentialBtn');
-            await page.waitForSelector('#deleteCredentialModal', {
+            await init.pageWaitForSelector(page, '#deleteCredentialModal', {
                 hidden: true,
             });
             const finalTableRow = await page.$$('tbody tr');

@@ -57,18 +57,18 @@ describe('Fyipe Page Reload', () => {
             await init.selectByText('#frequencyOption', 'Every 3 months', page);
             await init.selectByText('#monitorUptimeOption', '99.90%', page);
             await init.pageClick(page, '#createSlaBtn');
-            await page.waitForSelector('#createSlaBtn', { hidden: true });
-            await page.waitForSelector(`#monitorSla_${monitorSlaName}`, {
+            await init.pageWaitForSelector(page, '#createSlaBtn', { hidden: true });
+            await init.pageWaitForSelector(page, `#monitorSla_${monitorSlaName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbMonitors', {
+            await init.pageWaitForSelector(page, '#cbMonitors', {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await page.waitForSelector(
+            const spanElement = await init.pageWaitForSelector(page, 
                 `#monitorSla_${monitorSlaName}`,
                 { visible: true, timeout: init.timeout }
             );

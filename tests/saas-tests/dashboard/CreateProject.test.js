@@ -37,16 +37,16 @@ describe('Project API', () => {
         async done => {
             const projectName = utils.generateRandomString();
             //Login is no longer required as Dashboard page is loaded automatically.
-            await page.waitForSelector('#selector', {
+            await init.pageWaitForSelector(page, '#selector', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval('#create-project', e => e.click());
-            await page.waitForSelector('#name', {
+            await init.pageWaitForSelector(page, '#name', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('input[id=name]', {
+            await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -55,7 +55,7 @@ describe('Project API', () => {
             await init.pageType(page, 'input[id=name]', projectName);
             await init.pageClick(page, 'input[id=Startup_month]');
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector(`#cb${projectName}`, {
+            await init.pageWaitForSelector(page, `#cb${projectName}`, {
                 visible: true,
                 timeout: init.timeout,
             });

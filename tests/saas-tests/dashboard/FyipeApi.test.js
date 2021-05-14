@@ -46,12 +46,12 @@ describe('API test', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#api', {
+            await init.pageWaitForSelector(page, '#api', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -76,12 +76,12 @@ describe('API test', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#api', {
+            await init.pageWaitForSelector(page, '#api', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -114,12 +114,12 @@ describe('API test', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#api', {
+            await init.pageWaitForSelector(page, '#api', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -136,12 +136,12 @@ describe('API test', () => {
             await init.pageClick(page, 'button[id=resetApiKey]', {
                 delay: 100,
             });
-            await page.waitForSelector('button[id=resetApiKeySave]', {
+            await init.pageWaitForSelector(page, 'button[id=resetApiKeySave]', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, 'button[id=resetApiKeySave]');
-            await page.waitForSelector('button[id=resetApiKeySave]', {
+            await init.pageWaitForSelector(page, 'button[id=resetApiKeySave]', {
                 hidden: true,
             });
 
@@ -169,12 +169,12 @@ describe('API test', () => {
                 waitUntil: 'networkidle2',
             });
             // Rename project
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('input[name=project_name]', {
+            await init.pageWaitForSelector(page, 'input[name=project_name]', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -182,7 +182,7 @@ describe('API test', () => {
                 clickCount: 3,
             });
             await init.pageType(page, 'input[name=project_name]', projectName);
-            await page.waitForSelector('button[id=btnCreateProject]', {
+            await init.pageWaitForSelector(page, 'button[id=btnCreateProject]', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -192,44 +192,44 @@ describe('API test', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#teamMembers', {
+            await init.pageWaitForSelector(page, '#teamMembers', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#teamMembers');
-            await page.waitForSelector(`#btn_${projectName}`, {
+            await init.pageWaitForSelector(page, `#btn_${projectName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, `#btn_${projectName}`);
-            await page.waitForSelector('input[name=emails]', {
+            await init.pageWaitForSelector(page, 'input[name=emails]', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, 'input[name=emails]');
             await init.pageType(page, 'input[name=emails]', member.email);
-            await page.waitForSelector(`#${role}_${projectName}`, {
+            await init.pageWaitForSelector(page, `#${role}_${projectName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, `#${role}_${projectName}`);
-            await page.waitForSelector('button[type=submit]', {
+            await init.pageWaitForSelector(page, 'button[type=submit]', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector('button[type=submit]', { hidden: true });
+            await init.pageWaitForSelector(page, 'button[type=submit]', { hidden: true });
             await init.logout(page);
 
             // Login as member
             await init.loginUser(member, page);
             await init.switchProject(projectName, page);
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#api', {
+            await init.pageWaitForSelector(page, '#api', {
                 visible: true,
                 timeout: init.timeout,
             });

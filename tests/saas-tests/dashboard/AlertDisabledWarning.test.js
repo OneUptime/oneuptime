@@ -37,18 +37,18 @@ describe('Alert Warning', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#billing', {
+            await init.pageWaitForSelector(page, '#billing', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#billing');
 
-            const element = await page.waitForSelector('#alertWarning', {
+            const element = await init.pageWaitForSelector(page, '#alertWarning', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -64,17 +64,17 @@ describe('Alert Warning', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#billing', {
+            await init.pageWaitForSelector(page, '#billing', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#billing a');
-            await page.waitForSelector('#alertEnable', {
+            await init.pageWaitForSelector(page, '#alertEnable', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -92,7 +92,7 @@ describe('Alert Warning', () => {
                     document.querySelector('#alertOptionSave').click();
                 });
             }
-            const element = await page.waitForSelector('#alertWarning', {
+            const element = await init.pageWaitForSelector(page, '#alertWarning', {
                 hidden: true,
             });
             expect(element).toBeNull();

@@ -43,17 +43,17 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '.incident-priority-tab'); // Navigate to the Incident Priority Tab
             await init.pageClick(page, '#priorityDefault_Low_1');
             await init.pageClick(page, '#SetDefaultIncidentPriority');
-            await page.waitForSelector('#SetDefaultIncidentPriority', {
+            await init.pageWaitForSelector(page, '#SetDefaultIncidentPriority', {
                 hidden: true,
             });
 
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbProjectSettings', {
+            await init.pageWaitForSelector(page, '#cbProjectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await page.waitForSelector('#cbIncidents', {
+            const spanElement = await init.pageWaitForSelector(page, '#cbIncidents', {
                 visible: true,
                 timeout: init.timeout,
             });

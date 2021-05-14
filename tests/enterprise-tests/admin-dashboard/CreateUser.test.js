@@ -49,10 +49,10 @@ describe('Enterprise User API', () => {
 
             await init.loginUser(user, page);
 
-            await page.waitForSelector('#add_user');
+            await init.pageWaitForSelector(page, '#add_user');
             await init.pageClick(page, '#add_user');
 
-            await page.waitForSelector('#email');
+            await init.pageWaitForSelector(page, '#email');
             await init.pageClick(page, 'input[name=email]');
             await init.pageType(page, 'input[name=email]', newEmail);
             await init.pageClick(page, 'input[name=name]');
@@ -74,7 +74,7 @@ describe('Enterprise User API', () => {
                 '1234567890'
             );
             await init.pageClick(page, 'button[type=submit]');
-            await page.WaitForSelector('a.db-UserListRow');
+            await init.pageWaitForSelector(page, 'a.db-UserListRow');
 
             const userRows = await page.$$('a.db-UserListRow');
             const countUsers = userRows.length;
@@ -103,10 +103,10 @@ describe('Enterprise User API', () => {
 
             for (let i = 0; i < 10; i++) {
                 // add new user
-                await page.waitForSelector('#add_user');
+                await init.pageWaitForSelector(page, '#add_user');
                 await init.pageClick(page, '#add_user');
 
-                await page.waitForSelector('#email');
+                await init.pageWaitForSelector(page, '#email');
                 await init.pageClick(page, 'input[name=email]');
                 await init.pageType(
                     page,
@@ -179,11 +179,11 @@ describe('Enterprise User API', () => {
 
             await init.loginUser(user, page);
 
-            await page.waitForSelector('#add_user');
+            await init.pageWaitForSelector(page, '#add_user');
             await init.pageClick(page, '#add_user');
 
             // user with non-business email
-            await page.waitForSelector('#email');
+            await init.pageWaitForSelector(page, '#email');
             await init.pageClick(page, 'input[name=email]');
             await init.pageType(page, 'input[name=email]', 'fyipe@gmail.com');
             await init.pageClick(page, 'input[name=name]');

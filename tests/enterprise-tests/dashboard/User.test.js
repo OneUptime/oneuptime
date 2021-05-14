@@ -64,9 +64,9 @@ describe('Users', () => {
             });
 
             await page.bringToFront();
-            await page.waitForSelector('#statusPages');
+            await init.pageWaitForSelector(page, '#statusPages');
             await init.pageClick(page, '#statusPages');
-            await page.waitForSelector('#login-button', {
+            await init.pageWaitForSelector(page, '#login-button', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -79,18 +79,18 @@ describe('Users', () => {
         'should be able to restore deleted users (using admin account)',
         async done => {
             await init.loginUser(admin, page);
-            await page.waitForSelector(
+            await init.pageWaitForSelector(page, 
                 `#deleted__${user.email.split('@')[0]}`,
                 { visible: true, timeout: init.timeout }
             );
             await init.pageClick(page, `#deleted__${user.email.split('@')[0]}`);
 
-            await page.waitForSelector('#restore', {
+            await init.pageWaitForSelector(page, '#restore', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#restore');
-            const delBtn = await page.waitForSelector('#delete', {
+            const delBtn = await init.pageWaitForSelector(page, '#delete', {
                 visible: true,
                 timeout: init.timeout,
             });

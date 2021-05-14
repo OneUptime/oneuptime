@@ -41,24 +41,24 @@ describe('Fyipe Monitor Reload', () => {
         'Should reload the monitor in component-details page and confirm no error',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#incidentLog', {
+            await init.pageWaitForSelector(page, '#incidentLog', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#incidentLog');
-            await page.waitForSelector('#cbIncidents');
-            await page.waitForSelector('#incident_title');
+            await init.pageWaitForSelector(page, '#cbIncidents');
+            await init.pageWaitForSelector(page, '#incident_title');
             //To confirm no error on page reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector(`#cb${componentName}`, {
+            await init.pageWaitForSelector(page, `#cb${componentName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('#cbIncidents', {
+            await init.pageWaitForSelector(page, '#cbIncidents', {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await page.waitForSelector(`#incident_title`, {
+            const spanElement = await init.pageWaitForSelector(page, `#incident_title`, {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -73,31 +73,31 @@ describe('Fyipe Monitor Reload', () => {
         'Should navigate to incident detail page and reload to check errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#incidentLog', {
+            await init.pageWaitForSelector(page, '#incidentLog', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#incidentLog');
-            await page.waitForSelector(`#incident_${monitorName}_0`, {
+            await init.pageWaitForSelector(page, `#incident_${monitorName}_0`, {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, `#incident_${monitorName}_0`);
-            await page.waitForSelector('#incident_0', {
+            await init.pageWaitForSelector(page, '#incident_0', {
                 visible: true,
                 timeout: init.timeout,
             });
             //To confirm no error on page reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector(`#cb${componentName}`, {
+            await init.pageWaitForSelector(page, `#cb${componentName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('#cbIncidentLog', {
+            await init.pageWaitForSelector(page, '#cbIncidentLog', {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await page.waitForSelector('#incident_0', {
+            const spanElement = await init.pageWaitForSelector(page, '#incident_0', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -114,31 +114,31 @@ describe('Fyipe Monitor Reload', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#incidents', {
+            await init.pageWaitForSelector(page, '#incidents', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#incidents');
-            await page.waitForSelector(`#incident_${monitorName}_0`, {
+            await init.pageWaitForSelector(page, `#incident_${monitorName}_0`, {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, `#incident_${monitorName}_0`);
-            await page.waitForSelector('#incident_0', {
+            await init.pageWaitForSelector(page, '#incident_0', {
                 visible: true,
                 timeout: init.timeout,
             });
             //To confirm no error on page reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector(`#cb${componentName}`, {
+            await init.pageWaitForSelector(page, `#cb${componentName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('#cbIncidentLog', {
+            await init.pageWaitForSelector(page, '#cbIncidentLog', {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await page.waitForSelector('#incident_0', {
+            const spanElement = await init.pageWaitForSelector(page, '#incident_0', {
                 visible: true,
                 timeout: init.timeout,
             });

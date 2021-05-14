@@ -43,17 +43,17 @@ describe('Sub-Project API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
 
             await init.pageClick(page, '#projectSettings');
 
-            await page.waitForSelector('#btn_Add_SubProjects');
+            await init.pageWaitForSelector(page, '#btn_Add_SubProjects');
 
             await init.pageClick(page, '#btn_Add_SubProjects');
 
             await init.pageClick(page, '#btnAddSubProjects');
 
-            const spanSelector = await page.waitForSelector(
+            const spanSelector = await init.pageWaitForSelector(page, 
                 '#subProjectCreateErrorMessage',
                 { visible: true, timeout: init.timeout }
             );
@@ -75,15 +75,15 @@ describe('Sub-Project API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#btn_Add_SubProjects');
+            await init.pageWaitForSelector(page, '#btn_Add_SubProjects');
             await init.pageClick(page, '#btn_Add_SubProjects');
-            await page.waitForSelector('#title');
+            await init.pageWaitForSelector(page, '#title');
             await init.pageType(page, '#title', subProjectName);
             await init.pageClick(page, '#btnAddSubProjects');
-            await page.waitForSelector('#title', { hidden: true });
-            const subProjectSelector = await page.waitForSelector(
+            await init.pageWaitForSelector(page, '#title', { hidden: true });
+            const subProjectSelector = await init.pageWaitForSelector(page, 
                 `#sub_project_name_${subProjectName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -105,7 +105,7 @@ describe('Sub-Project API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
             const editSubProjectName = utils.generateRandomString();
             await init.pageClick(page, `#sub_project_edit_${subProjectName}`);
@@ -113,8 +113,8 @@ describe('Sub-Project API', () => {
             await input.click({ clickCount: 3 });
             await input.type(editSubProjectName);
             await init.pageClick(page, '#btnAddSubProjects');
-            await page.waitForSelector('#title', { hidden: true });
-            const subProjectSelector = await page.waitForSelector(
+            await init.pageWaitForSelector(page, '#title', { hidden: true });
+            const subProjectSelector = await init.pageWaitForSelector(page, 
                 `#sub_project_name_${editSubProjectName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -136,14 +136,14 @@ describe('Sub-Project API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#btn_Add_SubProjects');
             const input = await page.$('#title');
             await input.click({ clickCount: 3 });
             await input.type(subProjectName);
             await init.pageClick(page, '#btnAddSubProjects');
-            const spanSelector = await page.waitForSelector(
+            const spanSelector = await init.pageWaitForSelector(page, 
                 '#subProjectCreateErrorMessage',
                 { visible: true, timeout: init.timeout }
             );
@@ -164,13 +164,13 @@ describe('Sub-Project API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector(`#sub_project_delete_${subProjectName}`);
+            await init.pageWaitForSelector(page, `#sub_project_delete_${subProjectName}`);
             await init.pageClick(page, `#sub_project_delete_${subProjectName}`);
-            await page.waitForSelector('#removeSubProject');
+            await init.pageWaitForSelector(page, '#removeSubProject');
             await init.pageClick(page, '#removeSubProject');
-            const subProjectSelector = await page.waitForSelector(
+            const subProjectSelector = await init.pageWaitForSelector(page, 
                 `#sub_project_name_${subProjectName}`,
                 { hidden: true }
             );
@@ -188,16 +188,16 @@ describe('Sub-Project API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#btn_Add_SubProjects');
+            await init.pageWaitForSelector(page, '#btn_Add_SubProjects');
             await init.pageClick(page, '#btn_Add_SubProjects');
-            await page.waitForSelector('#title');
+            await init.pageWaitForSelector(page, '#title');
             await init.pageType(page, '#title', newSubProjectName);
             await init.pageClick(page, '#btnAddSubProjects');
-            await page.waitForSelector('button[title=apiKey]');
+            await init.pageWaitForSelector(page, 'button[title=apiKey]');
             await init.pageClick(page, 'button[title=apiKey]');
-            await page.waitForSelector('button[id=removeSubProject]');
+            await init.pageWaitForSelector(page, 'button[id=removeSubProject]');
             await init.pageClick(page, 'button[id=removeSubProject]');
             let modalTitle = await page.$('span#modalTitle');
             modalTitle = await modalTitle.getProperty('innerText');
@@ -215,25 +215,25 @@ describe('Sub-Project API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('button[title=apiKey]');
+            await init.pageWaitForSelector(page, 'button[title=apiKey]');
             await init.pageClick(page, 'button[title=apiKey]');
-            await page.waitForSelector('span#apiKey');
+            await init.pageWaitForSelector(page, 'span#apiKey');
             await init.pageClick(page, 'span#apiKey');
             let oldApiKey = await page.$('span#apiKey');
             oldApiKey = await oldApiKey.getProperty('innerText');
             oldApiKey = await oldApiKey.jsonValue();
 
-            await page.waitForSelector('button[id=removeSubProject]');
+            await init.pageWaitForSelector(page, 'button[id=removeSubProject]');
             await init.pageClick(page, 'button[id=removeSubProject]');
-            await page.waitForSelector('button[id=confirmResetKey]');
+            await init.pageWaitForSelector(page, 'button[id=confirmResetKey]');
             await init.pageClick(page, 'button[id=confirmResetKey]');
-            await page.waitForSelector('button[title=apiKey]');
+            await init.pageWaitForSelector(page, 'button[title=apiKey]');
             await init.pageClick(page, 'button[title=apiKey]');
-            await page.waitForSelector('button[id=sub_project_api_key_0]');
+            await init.pageWaitForSelector(page, 'button[id=sub_project_api_key_0]');
             await init.pageClick(page, 'button[id=sub_project_api_key_0]');
-            await page.waitForSelector('span#apiKey');
+            await init.pageWaitForSelector(page, 'span#apiKey');
             await init.pageClick(page, 'span#apiKey');
             let newApiKey = await page.$('span#apiKey');
             newApiKey = await newApiKey.getProperty('innerText');

@@ -16,9 +16,9 @@ const gotoTheFirstStatusPage = async page => {
     await page.goto(utils.DASHBOARD_URL, {
         waitUntil: ['networkidle2'],
     });
-    await page.waitForSelector('#statusPages');
+    await init.pageWaitForSelector(page, '#statusPages');
     await page.$eval('#statusPages', e => e.click());
-    const rowItem = await page.waitForSelector(
+    const rowItem = await init.pageWaitForSelector(page, 
         '#statusPagesListContainer > tr',
         { visible: true, timeout: init.timeout }
     );
@@ -63,7 +63,7 @@ describe('Status Page', () => {
         'should indicate that no monitor is set yet for a status page',
         async done => {
             await gotoTheFirstStatusPage(page);
-            const elem = await page.waitForSelector('#app-loading', {
+            const elem = await init.pageWaitForSelector(page, '#app-loading', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -83,14 +83,14 @@ describe('Status Page', () => {
         'should show error message and not submit the form if no monitor is selected and user clicks on save.',
         async done => {
             await gotoTheFirstStatusPage(page);
-            await page.waitForSelector('#addMoreMonitors', {
+            await init.pageWaitForSelector(page, '#addMoreMonitors', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#addMoreMonitors');
-            await page.waitForSelector('#monitor-0');
+            await init.pageWaitForSelector(page, '#monitor-0');
             await init.pageClick(page, '#btnAddStatusPageMonitors');
-            await page.waitForSelector('#monitor-0', {
+            await init.pageWaitForSelector(page, '#monitor-0', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -102,7 +102,7 @@ describe('Status Page', () => {
                 true
             );
             await page.reload({ waitUntil: 'networkidle2' });
-            const monitor = await page.waitForSelector('#monitor-0', {
+            const monitor = await init.pageWaitForSelector(page, '#monitor-0', {
                 hidden: true,
             });
             expect(monitor).toBeNull();
@@ -115,19 +115,19 @@ describe('Status Page', () => {
         'should show error message and not submit the form if no chart is selected.',
         async done => {
             await gotoTheFirstStatusPage(page);
-            await page.waitForSelector('#addMoreMonitors', {
+            await init.pageWaitForSelector(page, '#addMoreMonitors', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#addMoreMonitors');
-            await page.waitForSelector('#monitor-0');
+            await init.pageWaitForSelector(page, '#monitor-0');
             await init.selectByText(
                 '#monitor-0 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
             );
             await init.pageClick(page, '#monitor-0 .Checkbox');
-            await page.waitForSelector('#monitor-0 .errors', {
+            await init.pageWaitForSelector(page, '#monitor-0 .errors', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -139,7 +139,7 @@ describe('Status Page', () => {
             );
             await init.pageClick(page, '#btnAddStatusPageMonitors');
             await page.reload({ waitUntil: 'networkidle2' });
-            const monitor = await page.waitForSelector('#monitor-0', {
+            const monitor = await init.pageWaitForSelector(page, '#monitor-0', {
                 hidden: true,
             });
             expect(monitor).toBeNull();
@@ -152,26 +152,26 @@ describe('Status Page', () => {
         'should show an error message and not submit the form if the users select the same monitor twice.',
         async done => {
             await gotoTheFirstStatusPage(page);
-            await page.waitForSelector('#addMoreMonitors', {
+            await init.pageWaitForSelector(page, '#addMoreMonitors', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#addMoreMonitors');
-            await page.waitForSelector('#monitor-0');
+            await init.pageWaitForSelector(page, '#monitor-0');
             await init.selectByText(
                 '#monitor-0 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
             );
             await init.pageClick(page, '#addMoreMonitors');
-            await page.waitForSelector('#monitor-1');
+            await init.pageWaitForSelector(page, '#monitor-1');
             await init.selectByText(
                 '#monitor-1 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
             );
             await init.pageClick(page, '#btnAddStatusPageMonitors');
-            await page.waitForSelector('#monitor-1', {
+            await init.pageWaitForSelector(page, '#monitor-1', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -184,11 +184,11 @@ describe('Status Page', () => {
             ).toEqual(true);
             await page.reload({ waitUntil: 'networkidle2' });
 
-            const monitor = await page.waitForSelector('#monitor-0', {
+            const monitor = await init.pageWaitForSelector(page, '#monitor-0', {
                 hidden: true,
             });
             expect(monitor).toBeNull();
-            const monitor1 = await page.waitForSelector('#montior-1', {
+            const monitor1 = await init.pageWaitForSelector(page, '#montior-1', {
                 hidden: true,
             });
             expect(monitor1).toBeNull();
@@ -201,26 +201,26 @@ describe('Status Page', () => {
         'should add a new monitor.',
         async done => {
             await gotoTheFirstStatusPage(page);
-            await page.waitForSelector('#addMoreMonitors', {
+            await init.pageWaitForSelector(page, '#addMoreMonitors', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#addMoreMonitors');
-            await page.waitForSelector('#monitor-0');
+            await init.pageWaitForSelector(page, '#monitor-0');
             await init.selectByText(
                 '#monitor-0 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
             );
             await init.pageClick(page, '#btnAddStatusPageMonitors');
-            await page.waitForSelector('.ball-beat', {
+            await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
 
             await page.reload({ waitUntil: 'networkidle2' });
-            const elem = await page.waitForSelector('#monitor-0', {
+            const elem = await init.pageWaitForSelector(page, '#monitor-0', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -234,16 +234,16 @@ describe('Status Page', () => {
         'should remove monitor.',
         async done => {
             await gotoTheFirstStatusPage(page);
-            await page.waitForSelector('#monitor-0');
+            await init.pageWaitForSelector(page, '#monitor-0');
             await init.pageClick(page, '#delete-monitor-0');
             await init.pageClick(page, '#btnAddStatusPageMonitors');
-            await page.waitForSelector('.ball-beat', {
+            await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
             await page.reload({ waitUntil: 'networkidle2' });
-            const elem = await page.waitForSelector('#app-loading', {
+            const elem = await init.pageWaitForSelector(page, '#app-loading', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -263,39 +263,39 @@ describe('Status Page', () => {
         'should add more than one monitor.',
         async done => {
             await gotoTheFirstStatusPage(page);
-            await page.waitForSelector('#addMoreMonitors', {
+            await init.pageWaitForSelector(page, '#addMoreMonitors', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#addMoreMonitors');
-            await page.waitForSelector('#monitor-0');
+            await init.pageWaitForSelector(page, '#monitor-0');
             await init.selectByText(
                 '#monitor-0 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
             );
             await init.pageClick(page, '#addMoreMonitors');
-            await page.waitForSelector('#monitor-1');
+            await init.pageWaitForSelector(page, '#monitor-1');
             await init.selectByText(
                 '#monitor-1 .db-select-nw',
                 `${componentName} / ${monitorName1}`,
                 page
             );
             await init.pageClick(page, '#btnAddStatusPageMonitors');
-            await page.waitForSelector('.ball-beat', {
+            await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
             await page.reload({ waitUntil: 'networkidle2' });
-            const firstMonitorContainer = await page.waitForSelector(
+            const firstMonitorContainer = await init.pageWaitForSelector(page, 
                 '#monitor-0',
                 {
                     visible: true,
                 }
             );
             expect(firstMonitorContainer).toBeDefined();
-            const secondMonitorContainer = await page.waitForSelector(
+            const secondMonitorContainer = await init.pageWaitForSelector(page, 
                 '#monitor-1',
                 {
                     visible: true,
@@ -313,7 +313,7 @@ describe('Status Page', () => {
         link = await link.getProperty('href');
         link = await link.jsonValue();
         await page.goto(link);
-        const classicTheme = await page.waitForSelector('.uptime-stat-name');
+        const classicTheme = await init.pageWaitForSelector(page, '.uptime-stat-name');
         expect(classicTheme).toBeDefined();
         done();
     });
@@ -322,13 +322,13 @@ describe('Status Page', () => {
         'Status page should render monitors in the same order as in the form.',
         async done => {
             await gotoTheFirstStatusPage(page);
-            await page.waitForSelector('#publicStatusPageUrl');
+            await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
             let link = await page.$('#publicStatusPageUrl > span > a');
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);
-            await page.waitForSelector('#monitor0');
+            await init.pageWaitForSelector(page, '#monitor0');
             const firstMonitorBeforeSwap = await page.$eval(
                 '#monitor0 .uptime-stat-name',
                 e => e.textContent
@@ -342,31 +342,31 @@ describe('Status Page', () => {
 
             // We delete the first monitor in the status page, and we insert it again
             await gotoTheFirstStatusPage(page);
-            await page.waitForSelector('#delete-monitor-0');
+            await init.pageWaitForSelector(page, '#delete-monitor-0');
             await init.pageClick(page, '#delete-monitor-0');
             await init.pageClick(page, '#addMoreMonitors');
-            await page.waitForSelector('#monitor-1');
+            await init.pageWaitForSelector(page, '#monitor-1');
             await init.selectByText(
                 '#monitor-1 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
             );
             await init.pageClick(page, '#btnAddStatusPageMonitors');
-            await page.waitForSelector('.ball-beat', {
+            await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
             await page.reload({ waitUntil: 'networkidle2' });
             // We check if the monitors are added
-            const firstMonitorContainer = await page.waitForSelector(
+            const firstMonitorContainer = await init.pageWaitForSelector(page, 
                 '#monitor-0',
                 {
                     visible: true,
                 }
             );
             expect(firstMonitorContainer).toBeDefined();
-            const secondMonitorContainer = await page.waitForSelector(
+            const secondMonitorContainer = await init.pageWaitForSelector(page, 
                 '#monitor-1',
                 {
                     visible: true,
@@ -375,7 +375,7 @@ describe('Status Page', () => {
             expect(secondMonitorContainer).toBeDefined();
 
             await page.goto(link);
-            await page.waitForSelector('#monitor0');
+            await init.pageWaitForSelector(page, '#monitor0');
             const firstMonitorAfterSwap = await page.$eval(
                 '#monitor0 .uptime-stat-name',
                 e => e.textContent
@@ -396,7 +396,7 @@ describe('Status Page', () => {
         async done => {
             await gotoTheFirstStatusPage(page);
             await init.gotoTab(4, page);
-            const elem = await page.waitForSelector('#domainNotSet', {
+            const elem = await init.pageWaitForSelector(page, '#domainNotSet', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -411,26 +411,26 @@ describe('Status Page', () => {
         async done => {
             await gotoTheFirstStatusPage(page);
             await init.gotoTab(4, page);
-            await page.waitForSelector('#addMoreDomain');
+            await init.pageWaitForSelector(page, '#addMoreDomain');
             await init.pageClick(page, '#addMoreDomain');
 
-            await page.waitForSelector('#addMoreDomainModal', {
+            await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageType(page, '#customDomain', 'fyipeapp.com');
             await init.pageClick(page, '#createCustomDomainBtn');
-            await page.waitForSelector('#addMoreDomainModal', {
+            await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 hidden: true,
             });
-            const elem = await page.waitForSelector('#domainNotSet', {
+            const elem = await init.pageWaitForSelector(page, '#domainNotSet', {
                 hidden: true,
             });
             expect(elem).toBeNull();
 
             // if domain was not added sucessfully, list will be undefined
             // it will timeout
-            const list = await page.waitForSelector(
+            const list = await init.pageWaitForSelector(page, 
                 'fieldset[name="added-domain"]',
                 { visible: true, timeout: init.timeout }
             );
@@ -449,7 +449,7 @@ describe('Status Page', () => {
             });
             await page.$eval('#statusPages', elem => elem.click());
 
-            const elem = await page.waitForSelector('#domainSet', {
+            const elem = await init.pageWaitForSelector(page, '#domainSet', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -467,34 +467,34 @@ describe('Status Page', () => {
             await gotoTheFirstStatusPage(page);
             await init.gotoTab(4, page);
 
-            await page.waitForSelector('#editDomain_0', {
+            await init.pageWaitForSelector(page, '#editDomain_0', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#editDomain_0');
-            await page.waitForSelector('#editMoreDomainModal', {
+            await init.pageWaitForSelector(page, '#editMoreDomainModal', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('#customDomain');
+            await init.pageWaitForSelector(page, '#customDomain');
             const input = await page.$('#customDomain');
             await input.click({ clickCount: 3 });
             await input.type(finalValue);
 
             await init.pageClick(page, '#updateCustomDomainBtn');
-            await page.waitForSelector('.ball-beat', {
+            await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('.ball-beat', { hidden: true });
-            await page.waitForSelector('#editMoreDomainModal', {
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '#editMoreDomainModal', {
                 hidden: true,
             });
             await page.reload({ waitUntil: 'networkidle2' });
 
             await init.gotoTab(4, page);
             let finalInputValue;
-            finalInputValue = await page.waitForSelector('#domain-name', {
+            finalInputValue = await init.pageWaitForSelector(page, '#domain-name', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -512,13 +512,13 @@ describe('Status Page', () => {
         async done => {
             await gotoTheFirstStatusPage(page);
             await init.gotoTab(4, page);
-            await page.waitForSelector('#btnVerifyDomain_0');
+            await init.pageWaitForSelector(page, '#btnVerifyDomain_0');
             await init.pageClick(page, '#btnVerifyDomain_0');
 
-            await page.waitForSelector('#confirmVerifyDomain');
+            await init.pageWaitForSelector(page, '#confirmVerifyDomain');
             await init.pageClick(page, '#confirmVerifyDomain');
             // element will be visible once the domain was not verified
-            const elem = await page.waitForSelector('#verifyDomainError', {
+            const elem = await init.pageWaitForSelector(page, '#verifyDomainError', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -533,7 +533,7 @@ describe('Status Page', () => {
         async done => {
             await gotoTheFirstStatusPage(page);
             await init.gotoTab(4, page);
-            await page.waitForSelector('fieldset[name="added-domain"]', {
+            await init.pageWaitForSelector(page, 'fieldset[name="added-domain"]', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -545,35 +545,35 @@ describe('Status Page', () => {
             );
 
             // create one more domain on the status page
-            await page.waitForSelector('#addMoreDomain');
+            await init.pageWaitForSelector(page, '#addMoreDomain');
             await init.pageClick(page, '#addMoreDomain');
-            await page.waitForSelector('#addMoreDomainModal', {
+            await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageType(page, '#customDomain', 'app.fyipeapp.com');
             await init.pageClick(page, '#createCustomDomainBtn');
-            await page.waitForSelector('#addMoreDomainModal', {
+            await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 hidden: true,
             });
             await page.reload({ waitUntil: 'networkidle2' });
 
             await init.gotoTab(4, page);
-            await page.waitForSelector('#btnDeleteDomain_0');
+            await init.pageWaitForSelector(page, '#btnDeleteDomain_0');
             await page.$eval('#btnDeleteDomain_0', elem => elem.click());
-            await page.waitForSelector('#confirmDomainDelete', {
+            await init.pageWaitForSelector(page, '#confirmDomainDelete', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval('#confirmDomainDelete', elem => elem.click());
-            await page.waitForSelector('#confirmDomainDelete', {
+            await init.pageWaitForSelector(page, '#confirmDomainDelete', {
                 hidden: true,
             });
 
             await page.reload({ waitUntil: 'networkidle2' });
             // get the final length of domains after deleting
             await init.gotoTab(4, page);
-            await page.waitForSelector('fieldset[name="added-domain"]');
+            await init.pageWaitForSelector(page, 'fieldset[name="added-domain"]');
             const finalLength = await page.$$eval(
                 'fieldset[name="added-domain"]',
                 domains => domains.length
@@ -591,7 +591,7 @@ describe('Status Page', () => {
             await gotoTheFirstStatusPage(page);
             await init.gotoTab(4, page);
 
-            await page.waitForSelector('fieldset[name="added-domain"]', {
+            await init.pageWaitForSelector(page, 'fieldset[name="added-domain"]', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -602,28 +602,28 @@ describe('Status Page', () => {
             );
 
             // create one more domain on the status page
-            await page.waitForSelector('#addMoreDomain');
+            await init.pageWaitForSelector(page, '#addMoreDomain');
             await init.pageClick(page, '#addMoreDomain');
-            await page.waitForSelector('#addMoreDomainModal', {
+            await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageType(page, '#customDomain', 'server.fyipeapp.com');
             await init.pageClick(page, '#createCustomDomainBtn');
-            await page.waitForSelector('#addMoreDomainModal', {
+            await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 hidden: true,
             });
             await page.reload({ waitUntil: 'networkidle2' });
 
             await init.gotoTab(4, page);
 
-            await page.waitForSelector('#btnDeleteDomain_0');
+            await init.pageWaitForSelector(page, '#btnDeleteDomain_0');
             await page.$eval('#btnDeleteDomain_0', elem => elem.click());
             await page.$eval('#cancelDomainDelete', elem => elem.click());
 
             await page.reload({ waitUntil: 'networkidle2' });
             await init.gotoTab(4, page);
-            await page.waitForSelector('fieldset[name="added-domain"]');
+            await init.pageWaitForSelector(page, 'fieldset[name="added-domain"]');
             // get the final length of domains after cancelling
             const finalLength = await page.$$eval(
                 'fieldset[name="added-domain"]',
@@ -641,22 +641,22 @@ describe('Status Page', () => {
         async done => {
             await gotoTheFirstStatusPage(page);
 
-            await page.waitForSelector('#react-tabs-6');
+            await init.pageWaitForSelector(page, '#react-tabs-6');
             await init.pageClick(page, '#react-tabs-6');
             await init.pageType(page, '#headerHTML textarea', '<div>My header'); // Ace editor completes the div tag
             await init.pageClick(page, '#btnAddCustomStyles');
 
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
 
-            await page.waitForSelector('#react-tabs-2');
+            await init.pageWaitForSelector(page, '#react-tabs-2');
             await init.pageClick(page, '#react-tabs-2');
-            await page.waitForSelector('#publicStatusPageUrl');
+            await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
             let link = await page.$('#publicStatusPageUrl > span > a');
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);
-            await page.waitForSelector('#customHeaderHTML > div');
+            await init.pageWaitForSelector(page, '#customHeaderHTML > div');
 
             let spanElement = await page.$('#customHeaderHTML > div');
             spanElement = await spanElement.getProperty('innerText');
@@ -674,9 +674,9 @@ describe('Status Page', () => {
             await gotoTheFirstStatusPage(page);
             await page.waitForNavigation({ waitUntil: 'load' });
 
-            await page.waitForSelector('#react-tabs-6');
+            await init.pageWaitForSelector(page, '#react-tabs-6');
             await init.pageClick(page, '#react-tabs-6');
-            await page.waitForSelector('#customJS textarea');
+            await init.pageWaitForSelector(page, '#customJS textarea');
             await init.pageType(
                 page,
                 '#customJS textarea',
@@ -684,17 +684,17 @@ describe('Status Page', () => {
             );
             await init.pageClick(page, '#btnAddCustomStyles');
 
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
 
-            await page.waitForSelector('#react-tabs-2');
+            await init.pageWaitForSelector(page, '#react-tabs-2');
             await init.pageClick(page, '#react-tabs-2');
-            await page.waitForSelector('#publicStatusPageUrl');
+            await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
             let link = await page.$('#publicStatusPageUrl > span > a');
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);
-            await page.waitForSelector('#js');
+            await init.pageWaitForSelector(page, '#js');
 
             const code = await page.$eval('#js', script => script.innerHTML);
             expect(code).toEqual(javascript);
@@ -707,17 +707,17 @@ describe('Status Page', () => {
         'should show incidents in the top of status page',
         async done => {
             await gotoTheFirstStatusPage(page);
-            await page.waitForSelector('#publicStatusPageUrl');
+            await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            await page.waitForSelector('#react-tabs-10'); // Advanced tab
+            await init.pageWaitForSelector(page, '#react-tabs-10'); // Advanced tab
             await init.pageClick(page, '#react-tabs-10');
 
-            await page.waitForSelector('#moreAdvancedOptions', {
+            await init.pageWaitForSelector(page, '#moreAdvancedOptions', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval('#moreAdvancedOptions', elem => elem.click());
-            await page.waitForSelector('#statuspage_moveIncidentToTheTop', {
+            await init.pageWaitForSelector(page, '#statuspage_moveIncidentToTheTop', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -726,9 +726,9 @@ describe('Status Page', () => {
             );
             await init.pageClick(page, '#saveAdvancedOptions');
 
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
 
-            await page.waitForSelector('#statuspage_moveIncidentToTheTop', {
+            await init.pageWaitForSelector(page, '#statuspage_moveIncidentToTheTop', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -747,14 +747,14 @@ describe('Status Page', () => {
         async done => {
             await gotoTheFirstStatusPage(page);
             await init.gotoTab(4, page);
-            await page.waitForSelector('#addMoreDomain');
+            await init.pageWaitForSelector(page, '#addMoreDomain');
             await init.pageClick(page, '#addMoreDomain');
-            await page.waitForSelector('#createCustomDomainBtn', {
+            await init.pageWaitForSelector(page, '#createCustomDomainBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#createCustomDomainBtn');
-            await page.waitForSelector('#field-error', {
+            await init.pageWaitForSelector(page, '#field-error', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -772,18 +772,18 @@ describe('Status Page', () => {
         async done => {
             await gotoTheFirstStatusPage(page);
             await init.gotoTab(4, page);
-            await page.waitForSelector('#addMoreDomain');
+            await init.pageWaitForSelector(page, '#addMoreDomain');
             await init.pageClick(page, '#addMoreDomain');
-            await page.waitForSelector('#addMoreDomainModal', {
+            await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('#customDomain');
+            await init.pageWaitForSelector(page, '#customDomain');
             await init.pageType(page, '#customDomain', 'fyipeapp');
 
-            await page.waitForSelector('#createCustomDomainBtn');
+            await init.pageWaitForSelector(page, '#createCustomDomainBtn');
             await init.pageClick(page, '#createCustomDomainBtn');
-            await page.waitForSelector('#field-error', {
+            await init.pageWaitForSelector(page, '#field-error', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -802,26 +802,26 @@ describe('Status Page', () => {
         async done => {
             await gotoTheFirstStatusPage(page);
             await page.waitForNavigation({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#react-tabs-2');
+            await init.pageWaitForSelector(page, '#react-tabs-2');
             await init.pageClick(page, '#react-tabs-2');
-            await page.waitForSelector('#addMoreDomain');
+            await init.pageWaitForSelector(page, '#addMoreDomain');
             await init.pageClick(page, '#addMoreDomain');
-            await page.waitForSelector('#domain_1', {
+            await init.pageWaitForSelector(page, '#domain_1', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageType(page, '#domain_1', 'fyipe.fyipeapp.com');
 
             await init.pageClick(page, '#addMoreDomain');
-            await page.waitForSelector('#domain_2', {
+            await init.pageWaitForSelector(page, '#domain_2', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageType(page, '#domain_2', 'api.fyipeapp.com');
-            await page.waitForSelector('#btnAddDomain');
+            await init.pageWaitForSelector(page, '#btnAddDomain');
             await init.pageClick(page, '#btnAddDomain');
 
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
             const domains = await page.$$eval(
                 'fieldset[name="added-domain"]',
                 domains => domains.length
@@ -838,16 +838,16 @@ describe('Status Page', () => {
             await gotoTheFirstStatusPage(page);
             //Removal of repeated function
             await init.gotoTab(4, page);
-            await page.waitForSelector('#addMoreDomain');
+            await init.pageWaitForSelector(page, '#addMoreDomain');
             await init.pageClick(page, '#addMoreDomain');
-            await page.waitForSelector('#addMoreDomainModal', {
+            await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('#customDomain');
+            await init.pageWaitForSelector(page, '#customDomain');
             await init.pageType(page, '#customDomain', 'fyipe.fyipeapp.com');
             await init.pageClick(page, '#createCustomDomainBtn');
-            const addDomainError = await page.waitForSelector(
+            const addDomainError = await init.pageWaitForSelector(page, 
                 '#addDomainError',
                 {
                     visible: true,

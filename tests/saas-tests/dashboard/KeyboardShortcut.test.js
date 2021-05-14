@@ -38,13 +38,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#components', {
+            await init.pageWaitForSelector(page, '#components', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('f');
             await page.keyboard.press('c');
-            const componentForm = await page.waitForSelector(
+            const componentForm = await init.pageWaitForSelector(page, 
                 '#form-new-component',
                 { visible: true, timeout: init.timeout }
             );
@@ -61,13 +61,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#incidents', {
+            await init.pageWaitForSelector(page, '#incidents', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('f');
             await page.keyboard.press('i');
-            const incidentLogs = await page.waitForSelector('#incidentLogs', {
+            const incidentLogs = await init.pageWaitForSelector(page, '#incidentLogs', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -84,13 +84,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#statusPages', {
+            await init.pageWaitForSelector(page, '#statusPages', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('f');
             await page.keyboard.press('p');
-            const statusPageTable = await page.waitForSelector(
+            const statusPageTable = await init.pageWaitForSelector(page, 
                 '#statusPageTable',
                 { visible: true, timeout: init.timeout }
             );
@@ -107,13 +107,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#onCallDuty', {
+            await init.pageWaitForSelector(page, '#onCallDuty', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('f');
             await page.keyboard.press('o');
-            const onCall = await page.waitForSelector('#onCallSchedulePage', {
+            const onCall = await init.pageWaitForSelector(page, '#onCallSchedulePage', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -130,13 +130,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#onCallDuty', {
+            await init.pageWaitForSelector(page, '#onCallDuty', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('o');
             await page.keyboard.press('a');
-            const alertLog = await page.waitForSelector('#alertLogPage', {
+            const alertLog = await init.pageWaitForSelector(page, '#alertLogPage', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -153,13 +153,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#scheduledMaintenance', {
+            await init.pageWaitForSelector(page, '#scheduledMaintenance', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('f');
             await page.keyboard.press('e');
-            const scheduledEventsPage = await page.waitForSelector(
+            const scheduledEventsPage = await init.pageWaitForSelector(page, 
                 '#scheduleEventsPage',
                 { visible: true, timeout: init.timeout }
             );
@@ -176,13 +176,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#reports', {
+            await init.pageWaitForSelector(page, '#reports', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('f');
             await page.keyboard.press('v');
-            const report = await page.waitForSelector('#reportPage', {
+            const report = await init.pageWaitForSelector(page, '#reportPage', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -199,13 +199,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#teamMembers', {
+            await init.pageWaitForSelector(page, '#teamMembers', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('f');
             await page.keyboard.press('u');
-            const teamMember = await page.waitForSelector('#teamMemberPage', {
+            const teamMember = await init.pageWaitForSelector(page, '#teamMemberPage', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -222,13 +222,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('f');
             await page.keyboard.press('s');
-            const projectSettings = await page.waitForSelector(
+            const projectSettings = await init.pageWaitForSelector(page, 
                 '#settingsPage',
                 { visible: true, timeout: init.timeout }
             );
@@ -244,13 +244,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#consultingServices', {
+            await init.pageWaitForSelector(page, '#consultingServices', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('f');
             await page.keyboard.press('q');
-            const consultingServicesPage = await page.waitForSelector(
+            const consultingServicesPage = await init.pageWaitForSelector(page, 
                 '#consultingServicesPage',
                 { visible: true, timeout: init.timeout }
             );
@@ -267,13 +267,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
             await page.keyboard.press('b');
-            const billing = await page.waitForSelector('#billing', {
+            const billing = await init.pageWaitForSelector(page, '#billing', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -290,13 +290,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
             await page.keyboard.press('r');
-            const resourceCategory = await page.waitForSelector(
+            const resourceCategory = await init.pageWaitForSelector(page, 
                 '#resourceCategories',
                 { visible: true, timeout: init.timeout }
             );
@@ -313,13 +313,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
             await page.keyboard.press('m');
-            const monitorSettings = await page.waitForSelector(
+            const monitorSettings = await init.pageWaitForSelector(page, 
                 '#monitorSettingsPage',
                 { visible: true, timeout: init.timeout }
             );
@@ -336,13 +336,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
             await page.keyboard.press('t');
-            const incidentSettings = await page.waitForSelector(
+            const incidentSettings = await init.pageWaitForSelector(page, 
                 '#incidentSettingsPage',
                 { visible: true, timeout: init.timeout }
             );
@@ -359,13 +359,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
             await page.keyboard.press('i');
-            const integrations = await page.waitForSelector('#integrations', {
+            const integrations = await init.pageWaitForSelector(page, '#integrations', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -382,13 +382,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
             await page.keyboard.press('e');
-            const emailTemplate = await page.waitForSelector('#emailTemplate', {
+            const emailTemplate = await init.pageWaitForSelector(page, '#emailTemplate', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -405,13 +405,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
             await page.keyboard.press('c');
-            const smsTemplate = await page.waitForSelector('#smsTemplate', {
+            const smsTemplate = await init.pageWaitForSelector(page, '#smsTemplate', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -428,13 +428,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
             await page.keyboard.press('w');
-            const webhooksSettingsPage = await page.waitForSelector(
+            const webhooksSettingsPage = await init.pageWaitForSelector(page, 
                 '#webhooksSettingsPage',
                 { visible: true, timeout: init.timeout }
             );
@@ -451,13 +451,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
             await page.keyboard.press('p');
-            const probe = await page.waitForSelector('#probeList', {
+            const probe = await init.pageWaitForSelector(page, '#probeList', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -474,13 +474,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
             await page.keyboard.press('g');
-            const gitCredential = await page.waitForSelector(
+            const gitCredential = await init.pageWaitForSelector(page, 
                 '#gitCredentialPage',
                 { visible: true, timeout: init.timeout }
             );
@@ -497,13 +497,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
             await page.keyboard.press('k'); // k is the new addition
-            const dockerCredential = await page.waitForSelector(
+            const dockerCredential = await init.pageWaitForSelector(page, 
                 '#dockerCredentialPage',
                 { visible: true, timeout: init.timeout }
             );
@@ -520,13 +520,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
             await page.keyboard.press('g');
-            const gitCredentialsSettings = await page.waitForSelector(
+            const gitCredentialsSettings = await init.pageWaitForSelector(page, 
                 '#gitCredentialPage',
                 { visible: true, timeout: init.timeout }
             );
@@ -543,13 +543,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
             await page.keyboard.press('k'); // k is the new addition
-            const dockerCredentialsSettings = await page.waitForSelector(
+            const dockerCredentialsSettings = await init.pageWaitForSelector(page, 
                 '#dockerCredentialPage',
                 { visible: true, timeout: init.timeout }
             );
@@ -566,13 +566,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
             await page.keyboard.press('a');
-            const fyipeApi = await page.waitForSelector('#fyipeApi', {
+            const fyipeApi = await init.pageWaitForSelector(page, '#fyipeApi', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -589,13 +589,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
             await page.keyboard.press('v');
-            const advancedSettingsPage = await page.waitForSelector(
+            const advancedSettingsPage = await init.pageWaitForSelector(page, 
                 '#advancedPage',
                 { visible: true, timeout: init.timeout }
             );
@@ -612,21 +612,21 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#profile-menu', {
+            await init.pageWaitForSelector(page, '#profile-menu', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#profileBilling');
+            await init.pageWaitForSelector(page, '#profileBilling');
             await init.pageClick(page, '#profileBilling');
-            await page.waitForSelector('#profileSettings', {
+            await init.pageWaitForSelector(page, '#profileSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
 
             await page.keyboard.press('f');
             await page.keyboard.press('n');
-            const profileSetting = await page.waitForSelector(
+            const profileSetting = await init.pageWaitForSelector(page, 
                 '#profileSettingPage',
                 { visible: true, timeout: init.timeout }
             );
@@ -643,21 +643,21 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#profile-menu', {
+            await init.pageWaitForSelector(page, '#profile-menu', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#userProfile');
+            await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
-            await page.waitForSelector('#changePassword', {
+            await init.pageWaitForSelector(page, '#changePassword', {
                 visible: true,
                 timeout: init.timeout,
             });
 
             await page.keyboard.press('f');
             await page.keyboard.press('w');
-            const changePassword = await page.waitForSelector(
+            const changePassword = await init.pageWaitForSelector(page, 
                 '#changePasswordSetting',
                 { visible: true, timeout: init.timeout }
             );
@@ -674,21 +674,21 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#profile-menu', {
+            await init.pageWaitForSelector(page, '#profile-menu', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#userProfile');
+            await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
-            await page.waitForSelector('#billing', {
+            await init.pageWaitForSelector(page, '#billing', {
                 visible: true,
                 timeout: init.timeout,
             });
 
             await page.keyboard.press('f');
             await page.keyboard.press('b');
-            const profileBilling = await page.waitForSelector(
+            const profileBilling = await init.pageWaitForSelector(page, 
                 '#profileBilling',
                 { visible: true, timeout: init.timeout }
             );
@@ -705,21 +705,21 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#profile-menu', {
+            await init.pageWaitForSelector(page, '#profile-menu', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#userProfile');
+            await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
-            await page.waitForSelector('#advanced', {
+            await init.pageWaitForSelector(page, '#advanced', {
                 visible: true,
                 timeout: init.timeout,
             });
 
             await page.keyboard.press('f');
             await page.keyboard.press('a');
-            const deleteBtn = await page.waitForSelector(
+            const deleteBtn = await init.pageWaitForSelector(page, 
                 '#btn_delete_account',
                 { visible: true, timeout: init.timeout }
             );
@@ -736,21 +736,21 @@ describe('Keyboard Shortcut: Dashboard', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#profile-menu', {
+            await init.pageWaitForSelector(page, '#profile-menu', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#userProfile');
+            await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
-            await page.waitForSelector('#backToDashboard', {
+            await init.pageWaitForSelector(page, '#backToDashboard', {
                 visible: true,
                 timeout: init.timeout,
             });
 
             await page.keyboard.press('f');
             await page.keyboard.press('k');
-            const component = await page.waitForSelector('#components', {
+            const component = await init.pageWaitForSelector(page, '#components', {
                 visible: true,
                 timeout: init.timeout,
             });

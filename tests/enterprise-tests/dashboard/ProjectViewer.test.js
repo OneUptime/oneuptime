@@ -54,25 +54,25 @@ describe('Sub-Project API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
 
-            await page.waitForSelector('#btn_Add_SubProjects', {
+            await init.pageWaitForSelector(page, '#btn_Add_SubProjects', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#btn_Add_SubProjects');
-            await page.waitForSelector('#title', {
+            await init.pageWaitForSelector(page, '#title', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageType(page, '#title', subProjectName);
             await init.pageClick(page, '#btnAddSubProjects');
-            await page.waitForSelector('#title', { hidden: true });
-            const subProjectSelector = await page.waitForSelector(
+            await init.pageWaitForSelector(page, '#title', { hidden: true });
+            const subProjectSelector = await init.pageWaitForSelector(page, 
                 `#sub_project_name_${subProjectName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -91,7 +91,7 @@ describe('Sub-Project API', () => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
-        await page.waitForSelector('#teamMembers', {
+        await init.pageWaitForSelector(page, '#teamMembers', {
             visible: true,
             timeout: init.timeout,
         });
@@ -101,24 +101,24 @@ describe('Sub-Project API', () => {
             elem => elem.textContent
         );
         prevMemberCount = Number(prevMemberCount.split(' ')[0]);
-        await page.waitForSelector(`button[id=btn_${subProjectName}]`, {
+        await init.pageWaitForSelector(page, `button[id=btn_${subProjectName}]`, {
             visible: true,
         });
         await init.pageClick(page, `button[id=btn_${subProjectName}]`);
-        await page.waitForSelector(`#frm_${subProjectName}`, {
+        await init.pageWaitForSelector(page, `#frm_${subProjectName}`, {
             visible: true,
             timeout: init.timeout,
         });
         await init.pageType(page, 'input[name=emails]', email);
         await init.pageClick(page, `#${role}_${subProjectName}`);
-        await page.waitForSelector(`#btn_modal_${subProjectName}`, {
+        await init.pageWaitForSelector(page, `#btn_modal_${subProjectName}`, {
             visible: true,
         });
         await init.pageClick(page, `#btn_modal_${subProjectName}`);
-        await page.waitForSelector(`#btn_modal_${subProjectName}`, {
+        await init.pageWaitForSelector(page, `#btn_modal_${subProjectName}`, {
             hidden: true,
         });
-        await page.waitForSelector(`#count_${subProjectName}`, {
+        await init.pageWaitForSelector(page, `#count_${subProjectName}`, {
             visible: true,
         });
         let memberCount = await page.$eval(
@@ -134,12 +134,12 @@ describe('Sub-Project API', () => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
-        await page.waitForSelector('#teamMembers', {
+        await init.pageWaitForSelector(page, '#teamMembers', {
             visible: true,
             timeout: init.timeout,
         });
         await init.pageClick(page, '#teamMembers');
-        await page.waitForSelector(`#count_${newProjectName}`, {
+        await init.pageWaitForSelector(page, `#count_${newProjectName}`, {
             visible: true,
         });
         let prevMemberCount = await page.$eval(
@@ -148,26 +148,26 @@ describe('Sub-Project API', () => {
         );
         prevMemberCount = Number(prevMemberCount.split(' ')[0]);
 
-        await page.waitForSelector(`button[id=btn_${newProjectName}]`, {
+        await init.pageWaitForSelector(page, `button[id=btn_${newProjectName}]`, {
             visible: true,
         });
         await init.pageClick(page, `button[id=btn_${newProjectName}]`);
-        await page.waitForSelector(`#frm_${newProjectName}`, {
+        await init.pageWaitForSelector(page, `#frm_${newProjectName}`, {
             visible: true,
             timeout: init.timeout,
         });
         await init.pageType(page, 'input[name=emails]', projectViewer.email);
         await init.pageClick(page, `#${role}_${newProjectName}`);
-        await page.waitForSelector(`#btn_modal_${newProjectName}`, {
+        await init.pageWaitForSelector(page, `#btn_modal_${newProjectName}`, {
             visible: true,
         });
         await init.pageClick(page, `#btn_modal_${newProjectName}`);
         const elem = await page.$('button[id=btnConfirmInvite]');
         elem.click();
-        await page.waitForSelector(`#btn_modal_${newProjectName}`, {
+        await init.pageWaitForSelector(page, `#btn_modal_${newProjectName}`, {
             hidden: true,
         });
-        await page.waitForSelector(`#count_${newProjectName}`, {
+        await init.pageWaitForSelector(page, `#count_${newProjectName}`, {
             visible: true,
         });
         let memberCount = await page.$eval(
@@ -183,12 +183,12 @@ describe('Sub-Project API', () => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
-        await page.waitForSelector('#statusPages', {
+        await init.pageWaitForSelector(page, '#statusPages', {
             visible: true,
             timeout: init.timeout,
         });
         await init.pageClick(page, '#statusPages');
-        await page.waitForSelector(`#status_page_count_${newProjectName}`, {
+        await init.pageWaitForSelector(page, `#status_page_count_${newProjectName}`, {
             visible: true,
         });
         let oldStatusPageCounter = await page.$eval(
@@ -197,7 +197,7 @@ describe('Sub-Project API', () => {
         );
         oldStatusPageCounter = Number(oldStatusPageCounter.split(' ')[0]);
         await init.addStatusPageToProject(statusPageName, newProjectName, page);
-        await page.waitForSelector(`#status_page_count_${newProjectName}`, {
+        await init.pageWaitForSelector(page, `#status_page_count_${newProjectName}`, {
             visible: true,
         });
         let statusPageCounter = await page.$eval(
@@ -215,12 +215,12 @@ describe('Sub-Project API', () => {
             // Login as viewer
             await init.logout(page);
             await init.loginUser({ email, password }, page);
-            await page.waitForSelector('#AccountSwitcherId', {
+            await init.pageWaitForSelector(page, '#AccountSwitcherId', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#AccountSwitcherId');
-            await page.waitForSelector('#accountSwitcher', {
+            await init.pageWaitForSelector(page, '#accountSwitcher', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -228,7 +228,7 @@ describe('Sub-Project API', () => {
                 `#accountSwitcher > div[title=${newProjectName}]`
             );
             element.click();
-            await page.waitForSelector('#statusPageTable_0', {
+            await init.pageWaitForSelector(page, '#statusPageTable_0', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -247,12 +247,12 @@ describe('Sub-Project API', () => {
         async done => {
             await init.logout(page);
             await init.loginUser(projectViewer, page);
-            await page.waitForSelector('#AccountSwitcherId', {
+            await init.pageWaitForSelector(page, '#AccountSwitcherId', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#AccountSwitcherId');
-            await page.waitForSelector('#accountSwitcher', {
+            await init.pageWaitForSelector(page, '#accountSwitcher', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -260,7 +260,7 @@ describe('Sub-Project API', () => {
                 `#accountSwitcher > div[title=${newProjectName}]`
             );
             element.click();
-            await page.waitForSelector('#statusPageTable_0', {
+            await init.pageWaitForSelector(page, '#statusPageTable_0', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -277,12 +277,12 @@ describe('Sub-Project API', () => {
     test('should redirect viewer to external status page', async done => {
         await init.logout(page);
         await init.loginUser(projectViewer, page);
-        await page.waitForSelector('#AccountSwitcherId', {
+        await init.pageWaitForSelector(page, '#AccountSwitcherId', {
             visible: true,
             timeout: init.timeout,
         });
         await init.pageClick(page, '#AccountSwitcherId');
-        await page.waitForSelector('#accountSwitcher', {
+        await init.pageWaitForSelector(page, '#accountSwitcher', {
             visible: true,
             timeout: init.timeout,
         });
@@ -290,7 +290,7 @@ describe('Sub-Project API', () => {
             `#accountSwitcher > div[title=${newProjectName}]`
         );
         element.click();
-        const rowItem = await page.waitForSelector(
+        const rowItem = await init.pageWaitForSelector(page, 
             '#statusPagesListContainer > tr',
             { visible: true, timeout: init.timeout }
         );

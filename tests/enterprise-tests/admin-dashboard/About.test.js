@@ -40,12 +40,12 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
             });
 
             // if element does not exist it will timeout and throw
-            await page.waitForSelector('#profile-menu', {
+            await init.pageWaitForSelector(page, '#profile-menu', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval('#profile-menu', elem => elem.click());
-            const about = await page.waitForSelector('#about-button', {
+            const about = await init.pageWaitForSelector(page, '#about-button', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -60,21 +60,21 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#profile-menu', {
+            await init.pageWaitForSelector(page, '#profile-menu', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval('#profile-menu', elem => elem.click());
-            await page.waitForSelector('#about-button', {
+            await init.pageWaitForSelector(page, '#about-button', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval('#about-button', elem => elem.click());
-            await page.waitForSelector('.bs-Modal', {
+            await init.pageWaitForSelector(page, '.bs-Modal', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('#server-version', {
+            await init.pageWaitForSelector(page, '#server-version', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -120,17 +120,17 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#profile-menu', {
+            await init.pageWaitForSelector(page, '#profile-menu', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval('#profile-menu', elem => elem.click());
-            await page.waitForSelector('#about-button', {
+            await init.pageWaitForSelector(page, '#about-button', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval('#about-button', elem => elem.click());
-            await page.waitForSelector('.bs-Button', {
+            await init.pageWaitForSelector(page, '.bs-Button', {
                 visible: true,
                 timeout: init.timeout,
             });

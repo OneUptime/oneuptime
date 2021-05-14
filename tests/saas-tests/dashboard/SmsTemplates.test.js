@@ -38,24 +38,24 @@ describe('SMS Templates API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#smsCalls');
+            await init.pageWaitForSelector(page, '#smsCalls');
             await init.pageClick(page, '#smsCalls');
-            await page.waitForSelector('#type');
+            await init.pageWaitForSelector(page, '#type');
             await init.selectByText(
                 '#type',
                 'External Subscriber Incident Created',
                 page
             );
-            await page.waitForSelector('#templateField');
+            await init.pageWaitForSelector(page, '#templateField');
             initialTemplate = await page.$eval(
                 '#templateField',
                 elem => elem.value
             );
-            const resetBtn = await page.waitForSelector('#templateReset', {
+            const resetBtn = await init.pageWaitForSelector(page, '#templateReset', {
                 hidden: true,
             });
             expect(resetBtn).toBeNull();
@@ -71,26 +71,26 @@ describe('SMS Templates API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#smsCalls');
+            await init.pageWaitForSelector(page, '#smsCalls');
             await init.pageClick(page, '#smsCalls');
-            await page.waitForSelector('#type');
+            await init.pageWaitForSelector(page, '#type');
             await init.selectByText(
                 '#type',
                 ' External Subscriber Incident Created',
                 page
             );
-            await page.waitForSelector('#frmSmsTemplate');
+            await init.pageWaitForSelector(page, '#frmSmsTemplate');
             const newTemplate = 'New Body';
             await init.pageClick(page, 'textarea[name=body]', {
                 clickCount: 3,
             });
             await init.pageType(page, 'textarea[name=body]', newTemplate);
             await init.pageClick(page, '#saveTemplate');
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
 
             await page.reload({
                 waitUntil: ['networkidle2', 'domcontentloaded'],
@@ -100,7 +100,7 @@ describe('SMS Templates API', () => {
                 'External Subscriber Incident Created',
                 page
             );
-            await page.waitForSelector('#frmSmsTemplate');
+            await init.pageWaitForSelector(page, '#frmSmsTemplate');
 
             const smsTemplateBody = await page.$eval(
                 'textarea[name=body]',
@@ -119,19 +119,19 @@ describe('SMS Templates API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#smsCalls');
+            await init.pageWaitForSelector(page, '#smsCalls');
             await init.pageClick(page, '#smsCalls');
-            await page.waitForSelector('#type');
+            await init.pageWaitForSelector(page, '#type');
             await init.selectByText(
                 '#type',
                 'External Subscriber Incident Created',
                 page
             );
-            const resetBtn = await page.waitForSelector('#templateReset', {
+            const resetBtn = await init.pageWaitForSelector(page, '#templateReset', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -148,35 +148,35 @@ describe('SMS Templates API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#smsCalls');
+            await init.pageWaitForSelector(page, '#smsCalls');
             await init.pageClick(page, '#smsCalls');
-            await page.waitForSelector('#type');
+            await init.pageWaitForSelector(page, '#type');
             await init.selectByText(
                 '#type',
                 'External Subscriber Incident Created',
                 page
             );
 
-            await page.waitForSelector('#templateReset');
+            await init.pageWaitForSelector(page, '#templateReset');
             await init.pageClick(page, '#templateReset');
-            await page.waitForSelector('#ResetSmsTemplate');
+            await init.pageWaitForSelector(page, '#ResetSmsTemplate');
             await init.pageClick(page, '#ResetSmsTemplate');
 
-            await page.waitForSelector('#ResetSmsTemplate', {
+            await init.pageWaitForSelector(page, '#ResetSmsTemplate', {
                 hidden: true,
             });
             await page.reload();
-            await page.waitForSelector('#type');
+            await init.pageWaitForSelector(page, '#type');
             await init.selectByText(
                 '#type',
                 'External Subscriber Incident Created',
                 page
             );
-            await page.waitForSelector('#templateField');
+            await init.pageWaitForSelector(page, '#templateField');
             const template = await page.$eval(
                 '#templateField',
                 elem => elem.value

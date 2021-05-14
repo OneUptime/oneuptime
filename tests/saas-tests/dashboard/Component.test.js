@@ -46,13 +46,13 @@ describe('Components', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            const componentBoxElement = await page.waitForSelector(
+            const componentBoxElement = await init.pageWaitForSelector(page, 
                 '#info-teamMember'
             );
             expect(componentBoxElement).toBeDefined();
 
             let spanElement;
-            spanElement = await page.waitForSelector(
+            spanElement = await init.pageWaitForSelector(page, 
                 `span#box-header-teamMember`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -60,10 +60,10 @@ describe('Components', () => {
             spanElement.should.be.exactly('Invite your Team');
 
             // click on the call to action button
-            await page.waitForSelector('#gotoPage-teamMember');
+            await init.pageWaitForSelector(page, '#gotoPage-teamMember');
             await page.$eval('#gotoPage-teamMember', e => e.click());
 
-            const componentFormElement = await page.waitForSelector(
+            const componentFormElement = await init.pageWaitForSelector(page, 
                 `#teamMemberPage`
             );
             expect(componentFormElement).toBeDefined();
@@ -77,13 +77,13 @@ describe('Components', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            const componentBoxElement = await page.waitForSelector(
+            const componentBoxElement = await init.pageWaitForSelector(page, 
                 '#info-component'
             );
             expect(componentBoxElement).toBeDefined();
 
             let spanElement;
-            spanElement = await page.waitForSelector(
+            spanElement = await init.pageWaitForSelector(page, 
                 `span#box-header-component`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -91,10 +91,10 @@ describe('Components', () => {
             spanElement.should.be.exactly('Create your first Component');
 
             // click on the call to action button
-            await page.waitForSelector('#gotoPage-component');
+            await init.pageWaitForSelector(page, '#gotoPage-component');
             await page.$eval('#gotoPage-component', e => e.click());
 
-            const componentFormElement = await page.waitForSelector(
+            const componentFormElement = await init.pageWaitForSelector(page, 
                 '#form-new-component'
             );
             expect(componentFormElement).toBeDefined();
@@ -108,21 +108,21 @@ describe('Components', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#components');
+            await init.pageWaitForSelector(page, '#components');
             await page.$eval('#components', e => e.click());
             // Fill and submit New Component form
-            await page.waitForSelector('#form-new-component');
+            await init.pageWaitForSelector(page, '#form-new-component');
             await init.pageType(page, 'input[id=name]', componentName);
             await page.$eval('button[type=submit]', e => e.click());
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', {
+            await init.pageWaitForSelector(page, '#components', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval('#components', e => e.click());
 
             let spanElement;
-            spanElement = await page.waitForSelector(
+            spanElement = await init.pageWaitForSelector(page, 
                 `span#component-title-${componentName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -139,25 +139,25 @@ describe('Components', () => {
                 waitUntil: 'networkidle0',
             });
 
-            const monitorBoxElement = await page.waitForSelector(
+            const monitorBoxElement = await init.pageWaitForSelector(page, 
                 '#info-monitor'
             );
             expect(monitorBoxElement).toBeDefined();
 
             let spanElement;
-            spanElement = await page.waitForSelector(`span#box-header-monitor`);
+            spanElement = await init.pageWaitForSelector(page, `span#box-header-monitor`);
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly('Create a Monitor');
 
             // click on the call to action button
-            await page.waitForSelector('#gotoPage-monitor');
+            await init.pageWaitForSelector(page, '#gotoPage-monitor');
             await page.$eval('#gotoPage-monitor', e => e.click());
 
             // Navigate to Component details
-            await page.waitForSelector(`#more-details-${componentName}`);
+            await init.pageWaitForSelector(page, `#more-details-${componentName}`);
             await page.$eval(`#more-details-${componentName}`, e => e.click());
-            await page.waitForSelector('#form-new-monitor');
+            await init.pageWaitForSelector(page, '#form-new-monitor');
         },
         operationTimeOut
     );
@@ -166,14 +166,14 @@ describe('Components', () => {
         'should show the correct path on the breadcrumbs inside a component',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', {
+            await init.pageWaitForSelector(page, '#components', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval('#components', e => e.click());
 
             const moreBtn = `#more-details-${componentName}`;
-            await page.waitForSelector(moreBtn, {
+            await init.pageWaitForSelector(page, moreBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -181,7 +181,7 @@ describe('Components', () => {
 
             const projectSelector = `#cbUnnamedProject`;
             const componentSelector = `#cb${componentName}`;
-            await page.waitForSelector(projectSelector, {
+            await init.pageWaitForSelector(page, projectSelector, {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -190,7 +190,7 @@ describe('Components', () => {
                     document.querySelector(projectSelector).textContent,
                 projectSelector
             );
-            await page.waitForSelector(componentSelector, {
+            await init.pageWaitForSelector(page, componentSelector, {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -215,12 +215,12 @@ describe('Components', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#components');
+            await init.pageWaitForSelector(page, '#components');
             await page.$eval('#components', e => e.click());
 
             // Fill and submit New Component form with incorrect details
-            await page.waitForSelector('#form-new-component');
-            await page.waitForSelector('#name');
+            await init.pageWaitForSelector(page, '#form-new-component');
+            await init.pageWaitForSelector(page, '#name');
             await page.$eval('button[type=submit]', e => e.click());
 
             let spanElement = await page.$(
@@ -240,7 +240,7 @@ describe('Components', () => {
 
             const customTutorialType = 'monitor';
             // confirm that monitor box exist on component details page
-            const componentBoxElement = await page.waitForSelector(
+            const componentBoxElement = await init.pageWaitForSelector(page, 
                 `#info-${customTutorialType}`
             );
             expect(componentBoxElement).toBeDefined();
@@ -254,11 +254,11 @@ describe('Components', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            await page.waitForSelector('#form-new-monitor');
+            await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageClick(page, 'input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', {
+            await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -266,7 +266,7 @@ describe('Components', () => {
             await init.pageType(page, '#url', 'https://google.com');
             await page.$eval('button[type=submit]', e => e.click());
 
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(page, 
                 `#monitor-title-${monitorName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -278,7 +278,7 @@ describe('Components', () => {
 
             const customTutorialType = 'monitor';
             // find monitor quick tip and confirm it shows
-            const monitorQuickTip = await page.waitForSelector(
+            const monitorQuickTip = await init.pageWaitForSelector(page, 
                 `#quick-tip-${customTutorialType}`
             );
             expect(monitorQuickTip).toBeDefined();
@@ -292,11 +292,11 @@ describe('Components', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
             const newMonitorName = `another-${monitorName}`;
-            await page.waitForSelector('#form-new-monitor');
+            await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageClick(page, 'input[id=name]');
             await init.pageType(page, 'input[id=name]', newMonitorName);
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', {
+            await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -304,7 +304,7 @@ describe('Components', () => {
             await init.pageType(page, '#url', 'https://google.com');
             await page.$eval('button[type=submit]', e => e.click());
 
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(page, 
                 `#monitor-title-${newMonitorName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -312,7 +312,7 @@ describe('Components', () => {
             spanElement.should.be.exactly(newMonitorName);
 
             // check if the tabs on the details page are defined
-            const monitorTabsComponent = await page.waitForSelector(
+            const monitorTabsComponent = await init.pageWaitForSelector(page, 
                 `#customTabList`
             );
             expect(monitorTabsComponent).toBeDefined();
@@ -326,7 +326,7 @@ describe('Components', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
             const monitorDetailsBtn = `#more-details-${monitorName}`;
-            await page.waitForSelector(monitorDetailsBtn, {
+            await init.pageWaitForSelector(page, monitorDetailsBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -335,15 +335,15 @@ describe('Components', () => {
             const projectSelector = `#cbUnnamedProject`;
             const componentSelector = `#cb${componentName}`;
             const monitorSelector = `#cb${monitorName}`;
-            await page.waitForSelector(projectSelector, {
+            await init.pageWaitForSelector(page, projectSelector, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector(componentSelector, {
+            await init.pageWaitForSelector(page, componentSelector, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector(monitorSelector, {
+            await init.pageWaitForSelector(page, monitorSelector, {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -378,16 +378,16 @@ describe('Components', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            await page.waitForSelector('#logs');
+            await init.pageWaitForSelector(page, '#logs');
             await init.pageClick(page, '#logs');
 
             // Fill and submit New Application  log form
-            await page.waitForSelector('#form-new-application-log');
+            await init.pageWaitForSelector(page, '#form-new-application-log');
             await init.pageType(page, 'input[id=name]', applicationLogName);
             await page.$eval('button[type=submit]', e => e.click());
 
             let spanElement;
-            spanElement = await page.waitForSelector(
+            spanElement = await init.pageWaitForSelector(page, 
                 `span#application-log-title-${applicationLogName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -404,37 +404,37 @@ describe('Components', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#components');
+            await init.pageWaitForSelector(page, '#components');
             await page.$eval('#components', e => e.click());
 
             // Fill and submit New Component form
-            await page.waitForSelector('#form-new-component');
+            await init.pageWaitForSelector(page, '#form-new-component');
             await init.pageType(page, 'input[id=name]', newComponentName);
             await page.$eval('button[type=submit]', e => e.click());
 
-            await page.waitForSelector('#form-new-monitor');
+            await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageClick(page, 'input[id=name]');
             await init.pageType(page, 'input[id=name]', newMonitorName);
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', {
+            await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await page.$eval('button[type=submit]', e => e.click());
-            await page.waitForSelector(`#cb${newMonitorName}`, {
+            await init.pageWaitForSelector(page, `#cb${newMonitorName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
 
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components');
+            await init.pageWaitForSelector(page, '#components');
             await page.$eval('#components', e => e.click());
 
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
 
-            await page.waitForSelector('#component0', {
+            await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -442,14 +442,14 @@ describe('Components', () => {
             const newComponentSelector = `#count_${newComponentName}`;
             const componentSelector = `#count_${componentName}`;
 
-            await page.waitForSelector(newComponentSelector);
+            await init.pageWaitForSelector(page, newComponentSelector);
             const newResourceCount = await page.$eval(
                 newComponentSelector,
                 elem => elem.textContent
             );
             expect(newResourceCount).toEqual('1 Resource');
 
-            await page.waitForSelector(componentSelector);
+            await init.pageWaitForSelector(page, componentSelector);
             const firstResourceCount = await page.$eval(
                 componentSelector,
                 elem => elem.textContent
@@ -467,9 +467,9 @@ describe('Components', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#components');
+            await init.pageWaitForSelector(page, '#components');
             await page.$eval('#components', e => e.click());
-            let componentSpanElement = await page.waitForSelector(
+            let componentSpanElement = await init.pageWaitForSelector(page, 
                 `#resource_type_${monitorName}`
             );
             componentSpanElement = await componentSpanElement.getProperty(
@@ -503,7 +503,7 @@ describe('Components', () => {
             });
 
             // close incident modal
-            await page.waitForSelector('#closeIncident_0', {
+            await init.pageWaitForSelector(page, '#closeIncident_0', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -511,7 +511,7 @@ describe('Components', () => {
 
             await page.bringToFront();
             // check that the monitor is offline on component page
-            componentSpanElement = await page.waitForSelector(
+            componentSpanElement = await init.pageWaitForSelector(page, 
                 `#resource_status_${monitorName}`
             );
             componentSpanElement = await componentSpanElement.getProperty(
@@ -547,7 +547,7 @@ describe('Components', () => {
             await page.bringToFront();
             await page.reload({ waitUntil: 'networkidle0' });
             // confirm that the monitor is back online!
-            componentSpanElement = await page.waitForSelector(
+            componentSpanElement = await init.pageWaitForSelector(page, 
                 `#resource_status_${monitorName}`
             );
             componentSpanElement = await componentSpanElement.getProperty(
@@ -567,19 +567,19 @@ describe('Components', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#components');
+            await init.pageWaitForSelector(page, '#components');
             await page.$eval('#components', e => e.click());
 
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
 
-            await page.waitForSelector(`#count_${componentName}`);
+            await init.pageWaitForSelector(page, `#count_${componentName}`);
             const firstResourceCount = await page.$eval(
                 `#count_${componentName}`,
                 elem => elem.textContent
             );
             expect(firstResourceCount).toEqual('3 Resources');
 
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(page, 
                 `#resource_type_${monitorName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -587,7 +587,7 @@ describe('Components', () => {
 
             expect(spanElement).toMatch('Website Monitor');
 
-            spanElement = await page.waitForSelector(
+            spanElement = await init.pageWaitForSelector(page, 
                 `#resource_type_${applicationLogName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -595,7 +595,7 @@ describe('Components', () => {
 
             expect(spanElement).toMatch('Log Container');
 
-            spanElement = await page.waitForSelector(
+            spanElement = await init.pageWaitForSelector(page, 
                 `#resource_status_${applicationLogName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -613,12 +613,12 @@ describe('Components', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#components');
+            await init.pageWaitForSelector(page, '#components');
             await page.$eval('#components', e => e.click());
 
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
 
-            await page.waitForSelector(`#count_${componentName}`);
+            await init.pageWaitForSelector(page, `#count_${componentName}`);
             const firstResourceCount = await page.$eval(
                 `#count_${componentName}`,
                 elem => elem.textContent
@@ -629,7 +629,7 @@ describe('Components', () => {
                 e.click()
             );
 
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(page, 
                 `#application-log-title-${applicationLogName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -645,7 +645,7 @@ describe('Components', () => {
             waitUntil: 'networkidle0',
         });
 
-        await page.waitForSelector('#components', {
+        await init.pageWaitForSelector(page, '#components', {
             visible: true,
             timeout: init.timeout,
         });
@@ -653,14 +653,14 @@ describe('Components', () => {
 
         await init.pageClick(page, `#more-details-${componentName}`);
 
-        await page.waitForSelector('#componentSettings');
+        await init.pageWaitForSelector(page, '#componentSettings');
         await init.pageClick(page, '#componentSettings');
 
-        await page.waitForSelector('input[name=name]');
+        await init.pageWaitForSelector(page, 'input[name=name]');
         await init.pageType(page, 'input[name=name]', '-two');
         await page.$eval('#editComponentButton', e => e.click());
 
-        let spanElement = await page.waitForSelector(
+        let spanElement = await init.pageWaitForSelector(page, 
             `span#component-title-${componentName}-two`
         );
         spanElement = await spanElement.getProperty('innerText');
@@ -673,7 +673,7 @@ describe('Components', () => {
             waitUntil: 'networkidle0',
         });
 
-        await page.waitForSelector('#components', {
+        await init.pageWaitForSelector(page, '#components', {
             visible: true,
             timeout: init.timeout,
         });
@@ -681,24 +681,24 @@ describe('Components', () => {
 
         await init.pageClick(page, `#more-details-${componentName}-two`);
 
-        await page.waitForSelector('#componentSettings');
+        await init.pageWaitForSelector(page, '#componentSettings');
         await init.pageClick(page, '#componentSettings');
 
-        await page.waitForSelector('#advanced');
+        await init.pageWaitForSelector(page, '#advanced');
         await init.pageClick(page, '#advanced');
 
-        await page.waitForSelector(`#delete-component-${componentName}-two`, {
+        await init.pageWaitForSelector(page, `#delete-component-${componentName}-two`, {
             visible: true,
         });
         await init.pageClick(page, `#delete-component-${componentName}-two`);
 
-        await page.waitForSelector('#deleteComponent', {
+        await init.pageWaitForSelector(page, '#deleteComponent', {
             visible: true,
             timeout: init.timeout,
         });
         await init.pageClick(page, '#deleteComponent'); // after deleting the component
 
-        const componentClicked = await page.waitForSelector('#components', {
+        const componentClicked = await init.pageWaitForSelector(page, '#components', {
             visible: true,
         });
         expect(componentClicked).toBeDefined();
@@ -713,33 +713,33 @@ describe('Components', () => {
                 newMonitorName,
                 page
             );
-            await page.waitForSelector(
+            await init.pageWaitForSelector(page, 
                 `#monitorCreateIncident_${newMonitorName}`
             );
             await page.$eval(`#monitorCreateIncident_${newMonitorName}`, e =>
                 e.click()
             );
-            await page.waitForSelector('#createIncident');
+            await init.pageWaitForSelector(page, '#createIncident');
             await init.selectByText('#incidentType', 'Offline', page);
             await init.selectByText('#incidentPriority', 'Low', page);
             await page.$eval('#createIncident', e => e.click());
-            await page.waitForSelector('#createIncident', { hidden: true });
+            await init.pageWaitForSelector(page, '#createIncident', { hidden: true });
 
             // close incident modal
-            await page.waitForSelector('#closeIncident_0', {
+            await init.pageWaitForSelector(page, '#closeIncident_0', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval('#closeIncident_0', elem => elem.click());
 
-            await page.waitForSelector(`#incident_${newMonitorName}_0`);
+            await init.pageWaitForSelector(page, `#incident_${newMonitorName}_0`);
             await page.$eval(`#incident_${newMonitorName}_0`, e => e.click());
 
-            await page.waitForSelector('#AccountSwitcherId');
+            await init.pageWaitForSelector(page, '#AccountSwitcherId');
             await page.$eval('#AccountSwitcherId', e => e.click());
-            await page.waitForSelector('#create-project');
+            await init.pageWaitForSelector(page, '#create-project');
             await page.$eval('#create-project', e => e.click());
-            await page.waitForSelector('#name');
+            await init.pageWaitForSelector(page, '#name');
             await init.pageType(
                 page,
                 'input[id=name]',
@@ -748,7 +748,7 @@ describe('Components', () => {
             await page.$eval('label[for=Startup_month]', e => e.click());
             await page.$eval('button[type=submit]', e => e.click());
 
-            let currentPage = await page.waitForSelector('#cbHome', {
+            let currentPage = await init.pageWaitForSelector(page, '#cbHome', {
                 visible: true,
                 timeout: init.timeout,
             });

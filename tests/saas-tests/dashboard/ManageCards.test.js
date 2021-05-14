@@ -34,9 +34,9 @@ describe('Stripe cards API', () => {
         'should add a valid card',
         async done => {
             await page.goto(`${utils.DASHBOARD_URL}/dashboard/profile/billing`);
-            await page.waitForSelector('#addCardButton');
+            await init.pageWaitForSelector(page, '#addCardButton');
             await init.pageClick(page, '#addCardButton');
-            await page.waitForSelector(
+            await init.pageWaitForSelector(page, 
                 '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]',
                 {
                     visible: true,
@@ -58,7 +58,7 @@ describe('Stripe cards API', () => {
             frame.waitForSelector('input[name=postal]');
             await frame.type('input[name=postal]', '11234');
             await init.pageClick(page, '#addCardButtonSubmit');
-            await page.waitForSelector('#addCardButtonSubmit', {
+            await init.pageWaitForSelector(page, '#addCardButtonSubmit', {
                 hidden: true,
                 timeout: operationTimeOut,
             });
@@ -79,11 +79,11 @@ describe('Stripe cards API', () => {
         'should delete card',
         async done => {
             await page.goto(`${utils.DASHBOARD_URL}/dashboard/profile/billing`);
-            await page.waitForSelector('#deleteCard1');
+            await init.pageWaitForSelector(page, '#deleteCard1');
             await init.pageClick(page, '#deleteCard1');
-            await page.waitForSelector('#deleteCardButton');
+            await init.pageWaitForSelector(page, '#deleteCardButton');
             await init.pageClick(page, '#deleteCardButton');
-            await page.waitForSelector('#deleteCardButton', {
+            await init.pageWaitForSelector(page, '#deleteCardButton', {
                 hidden: true,
             });
 
@@ -103,11 +103,11 @@ describe('Stripe cards API', () => {
         'should not delete card when there is only one card left',
         async done => {
             await page.goto(`${utils.DASHBOARD_URL}/dashboard/profile/billing`);
-            await page.waitForSelector('#deleteCard0');
+            await init.pageWaitForSelector(page, '#deleteCard0');
             await init.pageClick(page, '#deleteCard0');
-            await page.waitForSelector('#deleteCardButton');
+            await init.pageWaitForSelector(page, '#deleteCardButton');
             await init.pageClick(page, '#deleteCardButton');
-            const deleteError = await page.waitForSelector('#deleteCardError', {
+            const deleteError = await init.pageWaitForSelector(page, '#deleteCardError', {
                 visible: true,
                 timeout: operationTimeOut,
             });
@@ -129,9 +129,9 @@ describe('Stripe cards API', () => {
         'should not add an invalid card',
         async done => {
             await page.goto(`${utils.DASHBOARD_URL}/dashboard/profile/billing`);
-            await page.waitForSelector('#addCardButton');
+            await init.pageWaitForSelector(page, '#addCardButton');
             await init.pageClick(page, '#addCardButton');
-            await page.waitForSelector(
+            await init.pageWaitForSelector(page, 
                 '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]',
                 {
                     visible: true,
@@ -154,7 +154,7 @@ describe('Stripe cards API', () => {
             frame.waitForSelector('input[name=postal]');
             await frame.type('input[name=postal]', '11234');
             await init.pageClick(page, '#addCardButtonSubmit');
-            const error = await page.waitForSelector('#cardError', {
+            const error = await init.pageWaitForSelector(page, '#cardError', {
                 visible: true,
                 timeout: init.timeout,
             });

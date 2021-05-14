@@ -48,7 +48,7 @@ describe('Project Settings', () => {
             },
             page
         );
-        await page.waitForSelector('#added_team_members');
+        await init.pageWaitForSelector(page, '#added_team_members');
         await init.logout(page);
 
         done();
@@ -63,18 +63,18 @@ describe('Project Settings', () => {
         'should show unauthorised modal when trying to save project name for non-admins',
         async done => {
             await init.registerAndLoggingTeamMember(memberUser, page);
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('input[name=project_name]');
-            await page.waitForSelector('#btnCreateProject', {
+            await init.pageWaitForSelector(page, 'input[name=project_name]');
+            await init.pageWaitForSelector(page, '#btnCreateProject', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#btnCreateProject');
-            const unauthorisedModal = await page.waitForSelector(
+            const unauthorisedModal = await init.pageWaitForSelector(page, 
                 '#unauthorisedModal',
                 { visible: true, timeout: init.timeout }
             );
@@ -91,30 +91,30 @@ describe('Project Settings', () => {
         async done => {
             await init.loginUser({ email, password }, page);
             // click on settings
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             // click on advanced
-            await page.waitForSelector('#advanced', {
+            await init.pageWaitForSelector(page, '#advanced', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#advanced');
             // click on delete button
-            await page.waitForSelector(`#delete-${newProjectName}`, {
+            await init.pageWaitForSelector(page, `#delete-${newProjectName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, `#delete-${newProjectName}`);
             // confirm the delete modal comes up and the form is available
-            await page.waitForSelector('#btnDeleteProject', {
+            await init.pageWaitForSelector(page, '#btnDeleteProject', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#btnDeleteProject');
-            await page.waitForSelector(`#delete-project-form`, {
+            await init.pageWaitForSelector(page, `#delete-project-form`, {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -126,14 +126,14 @@ describe('Project Settings', () => {
                 `This is a test deletion`
             );
             // click submit button
-            await page.waitForSelector('#btnDeleteProject', {
+            await init.pageWaitForSelector(page, '#btnDeleteProject', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#btnDeleteProject');
 
             // find the button for creating a project and expect it to be defined
-            const createProjectBtn = await page.waitForSelector(
+            const createProjectBtn = await init.pageWaitForSelector(page, 
                 '#createButton',
                 {
                     visible: true,
@@ -167,11 +167,11 @@ describe('Project Settings', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#AccountSwitcherId');
+            await init.pageWaitForSelector(page, '#AccountSwitcherId');
             await init.pageClick(page, '#AccountSwitcherId');
 
             const parentContainer = '#accountSwitcher';
-            await page.waitForSelector(parentContainer, {
+            await init.pageWaitForSelector(page, parentContainer, {
                 visible: true,
                 timeout: init.timeout,
             });

@@ -45,37 +45,37 @@ describe('Fyipe Page Reload', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#onCallDuty', {
+            await init.pageWaitForSelector(page, '#onCallDuty', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval('#onCallDuty', elem => elem.click());
             const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
-            await page.waitForSelector(createScheduleBtn, {
+            await init.pageWaitForSelector(page, createScheduleBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval(createScheduleBtn, elem => elem.click());
 
-            await page.waitForSelector('#name', {
+            await init.pageWaitForSelector(page, '#name', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageType(page, '#name', onCallName);
             await init.pageClick(page, '#btnCreateSchedule');
-            await page.waitForSelector('#name', { hidden: true });
+            await init.pageWaitForSelector(page, '#name', { hidden: true });
 
-            await page.waitForSelector('#viewOnCallSchedule', {
+            await init.pageWaitForSelector(page, '#viewOnCallSchedule', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#viewOnCallSchedule');
-            await page.waitForSelector('#scheduleMonitor_0', {
+            await init.pageWaitForSelector(page, '#scheduleMonitor_0', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduleMonitor_0');
-            await page.waitForSelector('#btnSaveMonitors', {
+            await init.pageWaitForSelector(page, '#btnSaveMonitors', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -86,7 +86,7 @@ describe('Fyipe Page Reload', () => {
                 'Test Name',
                 page
             );
-            await page.waitForSelector('#saveSchedulePolicy', {
+            await init.pageWaitForSelector(page, '#saveSchedulePolicy', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -94,16 +94,16 @@ describe('Fyipe Page Reload', () => {
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbOn-CallDuty', {
+            await init.pageWaitForSelector(page, '#cbOn-CallDuty', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector(`#cb${onCallName}`, {
+            await init.pageWaitForSelector(page, `#cb${onCallName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
 
-            const spanElement = await page.waitForSelector('#onCallDutyNote', {
+            const spanElement = await init.pageWaitForSelector(page, '#onCallDutyNote', {
                 visible: true,
                 timeout: init.timeout,
             });

@@ -22,7 +22,7 @@ describe('Request demo', () => {
         'user can submit request through a demo form',
         async done => {
             await page.goto(`${utils.HOME_URL}/enterprise/demo`);
-            await page.waitForSelector('#form-section');
+            await init.pageWaitForSelector(page, '#form-section');
             await init.pageType(page, '#fullname', utils.user.name);
             await init.pageType(page, '#email', utils.user.email);
             await init.pageType(page, '#Phone', utils.user.phone);
@@ -35,9 +35,9 @@ describe('Request demo', () => {
             await page.keyboard.down('Enter');
             await init.pageType(page, '#message', utils.user.message);
             await init.pageClick(page, '#request-demo-btn');
-            await page.waitForSelector('#success');
+            await init.pageWaitForSelector(page, '#success');
             // Check if user's email is submitted successfully
-            await page.waitForSelector('.submitted-email', {
+            await init.pageWaitForSelector(page, '.submitted-email', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -53,7 +53,7 @@ describe('Request demo', () => {
         'user can request for website monitoring resource',
         async done => {
             await page.goto(`${utils.HOME_URL}/enterprise/resources`);
-            await page.waitForSelector('#website-monitoring', {
+            await init.pageWaitForSelector(page, '#website-monitoring', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -61,7 +61,7 @@ describe('Request demo', () => {
                 page.waitForNavigation(),
                 init.pageClick(page, '#website-monitoring'),
             ]);
-            await page.waitForSelector('#form-section', {
+            await init.pageWaitForSelector(page, '#form-section', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -77,7 +77,7 @@ describe('Request demo', () => {
             await page.keyboard.down('Enter');
             await init.pageClick(page, '#request-resource-btn');
             // Check if user's email is submitted successfully
-            await page.waitForSelector('.submitted-email', {
+            await init.pageWaitForSelector(page, '.submitted-email', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -93,7 +93,7 @@ describe('Request demo', () => {
         'user can request for speed equals revenue resource',
         async done => {
             await page.goto(`${utils.HOME_URL}/enterprise/resources`);
-            await page.waitForSelector('#speed-revenue', {
+            await init.pageWaitForSelector(page, '#speed-revenue', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -101,7 +101,7 @@ describe('Request demo', () => {
                 page.waitForNavigation(),
                 init.pageClick(page, '#speed-revenue'),
             ]);
-            await page.waitForSelector('#form-section', {
+            await init.pageWaitForSelector(page, '#form-section', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -117,7 +117,7 @@ describe('Request demo', () => {
             await page.keyboard.down('Enter');
             await init.pageClick(page, '#request-resource-btn');
             // Check if user's email is submitted successfully
-            await page.waitForSelector('.submitted-email', {
+            await init.pageWaitForSelector(page, '.submitted-email', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -133,7 +133,7 @@ describe('Request demo', () => {
         'user can request for best practices resource',
         async done => {
             await page.goto(`${utils.HOME_URL}/enterprise/resources`);
-            await page.waitForSelector('#best-practices', {
+            await init.pageWaitForSelector(page, '#best-practices', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -141,7 +141,7 @@ describe('Request demo', () => {
                 page.waitForNavigation(),
                 init.pageClick(page, '#best-practices'),
             ]);
-            await page.waitForSelector('#form-section', {
+            await init.pageWaitForSelector(page, '#form-section', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -157,7 +157,7 @@ describe('Request demo', () => {
             await page.keyboard.down('Enter');
             await init.pageClick(page, '#request-resource-btn');
             // Check if user's email is submitted successfully
-            await page.waitForSelector('.submitted-email', {
+            await init.pageWaitForSelector(page, '.submitted-email', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -173,7 +173,7 @@ describe('Request demo', () => {
         'user can request for peak performance resource',
         async done => {
             await page.goto(`${utils.HOME_URL}/enterprise/resources`);
-            await page.waitForSelector('#peak-performance', {
+            await init.pageWaitForSelector(page, '#peak-performance', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -181,7 +181,7 @@ describe('Request demo', () => {
                 page.waitForNavigation(),
                 init.pageClick(page, '#peak-performance'),
             ]);
-            await page.waitForSelector('#form-section', {
+            await init.pageWaitForSelector(page, '#form-section', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -197,7 +197,7 @@ describe('Request demo', () => {
             await page.keyboard.down('Enter');
             await init.pageClick(page, '#request-resource-btn');
             // Check if user's email is submitted successfully
-            await page.waitForSelector('.submitted-email', {
+            await init.pageWaitForSelector(page, '.submitted-email', {
                 visible: true,
                 timeout: init.timeout,
             });

@@ -44,20 +44,20 @@ describe('BreadCrumb Component test', () => {
             });
             await init.addMonitorToComponent(componentName, monitorName, page);
 
-            const monitorBreadcrumb = await page.waitForSelector(
+            const monitorBreadcrumb = await init.pageWaitForSelector(page, 
                 `#cb${monitorName}`,
                 {
                     visible: true,
                 }
             );
-            const componentBreadcrumb = await page.waitForSelector(
+            const componentBreadcrumb = await init.pageWaitForSelector(page, 
                 '#cbMonitors'
             );
             expect(monitorBreadcrumb).toBeDefined();
             expect(componentBreadcrumb).toBeDefined();
             await init.pageClick(page, '#cbMonitors');
 
-            const monitorTitle = await page.waitForSelector(
+            const monitorTitle = await init.pageWaitForSelector(page, 
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -73,12 +73,12 @@ describe('BreadCrumb Component test', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#cbUnnamedProject', {
+            await init.pageWaitForSelector(page, '#cbUnnamedProject', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#cbUnnamedProject');
-            let currentPage = await page.waitForSelector('#cbUnnamedProject', {
+            let currentPage = await init.pageWaitForSelector(page, '#cbUnnamedProject', {
                 visible: true,
                 timeout: init.timeout,
             });

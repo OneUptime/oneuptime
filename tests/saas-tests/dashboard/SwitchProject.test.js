@@ -39,16 +39,16 @@ describe('Project API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#selector', {
+            await init.pageWaitForSelector(page, '#selector', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$eval('#create-project', e => e.click());
-            await page.waitForSelector('#name', {
+            await init.pageWaitForSelector(page, '#name', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('input[id=name]', {
+            await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -87,12 +87,12 @@ describe('Project API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#AccountSwitcherId', {
+            await init.pageWaitForSelector(page, '#AccountSwitcherId', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#AccountSwitcherId');
-            await page.waitForSelector('#accountSwitcher', {
+            await init.pageWaitForSelector(page, '#accountSwitcher', {
                 visible: true,
                 timeout: init.timeout,
             });

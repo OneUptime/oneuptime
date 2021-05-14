@@ -38,10 +38,10 @@ describe('Enterprise Project API', () => {
         async done => {
             await init.adminLogout(page);
             await init.loginUser(user, page);
-            await page.waitForSelector('#selector', { visble: true });
+            await init.pageWaitForSelector(page, '#selector', { visble: true });
             await page.$eval('#create-project', e => e.click());
-            await page.waitForSelector('#name', { visble: true });
-            await page.waitForSelector('input[id=name]', {
+            await init.pageWaitForSelector(page, '#name', { visble: true });
+            await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
             });

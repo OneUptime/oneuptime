@@ -31,42 +31,42 @@ describe('Monitor API', () => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'domcontentloaded',
         });
-        await page.waitForSelector('#components');
+        await init.pageWaitForSelector(page, '#components');
         await init.pageClick(page, '#components');
-        await page.waitForSelector(`#more-details-${componentName}`);
+        await init.pageWaitForSelector(page, `#more-details-${componentName}`);
         await init.pageClick(page, `#more-details-${componentName}`);
-        await page.waitForSelector(`#more-details-${monitorName}`);
+        await init.pageWaitForSelector(page, `#more-details-${monitorName}`);
         await init.pageClick(page, `#more-details-${monitorName}`);
-        await page.waitForSelector(`#delete_${monitorName}`);
+        await init.pageWaitForSelector(page, `#delete_${monitorName}`);
         await init.pageClick(page, `#delete_${monitorName}`);
-        await page.waitForSelector('#deleteMonitor');
+        await init.pageWaitForSelector(page, '#deleteMonitor');
         await init.pageClick(page, '#deleteMonitor');
 
-        await page.waitForSelector('.ball-beat', {
+        await init.pageWaitForSelector(page, '.ball-beat', {
             visible: true,
             timeout: init.timeout,
         });
-        await page.waitForSelector('.ball-beat', { hidden: true });
+        await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
 
         // delete component
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'domcontentloaded',
         });
-        await page.waitForSelector('#components');
+        await init.pageWaitForSelector(page, '#components');
         await init.pageClick(page, '#components');
 
-        await page.waitForSelector(`#more-details-${componentName}`);
+        await init.pageWaitForSelector(page, `#more-details-${componentName}`);
         await init.pageClick(page, `#more-details-${componentName}`);
-        await page.waitForSelector(`#componentSettings`);
+        await init.pageWaitForSelector(page, `#componentSettings`);
         await init.pageClick(page, `#componentSettings`);
-        await page.waitForSelector(`#advanced`);
+        await init.pageWaitForSelector(page, `#advanced`);
         await init.pageClick(page, `#advanced`);
 
-        await page.waitForSelector(`#delete-component-${componentName}`);
+        await init.pageWaitForSelector(page, `#delete-component-${componentName}`);
         await init.pageClick(page, `#delete-component-${componentName}`);
-        await page.waitForSelector('#deleteComponent');
+        await init.pageWaitForSelector(page, '#deleteComponent');
         await init.pageClick(page, '#deleteComponent');
-        await page.waitForSelector('#deleteComponent', { hidden: true });
+        await init.pageWaitForSelector(page, '#deleteComponent', { hidden: true });
 
         await browser.close();
         done();
@@ -79,12 +79,12 @@ describe('Monitor API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'domcontentloaded',
             });
-            await page.waitForSelector('#components');
+            await init.pageWaitForSelector(page, '#components');
             await init.pageClick(page, '#components');
 
             // Fill and submit New Component form
-            await page.waitForSelector('#form-new-component');
-            await page.waitForSelector('input[id=name]', {
+            await init.pageWaitForSelector(page, '#form-new-component');
+            await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -93,7 +93,7 @@ describe('Monitor API', () => {
             await init.pageType(page, 'input[id=name]', componentName);
             await init.pageClick(page, '#addComponentButton');
 
-            await page.waitForSelector('#monitors', {
+            await init.pageWaitForSelector(page, '#monitors', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -101,14 +101,14 @@ describe('Monitor API', () => {
                 waitUntil: 'domcontentloaded',
             });
 
-            await page.waitForSelector('#components', {
+            await init.pageWaitForSelector(page, '#components', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#components');
 
             let spanElement;
-            spanElement = await page.waitForSelector(
+            spanElement = await init.pageWaitForSelector(page, 
                 `span#component-title-${componentName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -127,13 +127,13 @@ describe('Monitor API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'domcontentloaded',
             });
-            await page.waitForSelector('#components');
+            await init.pageWaitForSelector(page, '#components');
             await init.pageClick(page, '#components');
 
             // Navigate to details page of component created in previous test
-            await page.waitForSelector(`#more-details-${componentName}`);
+            await init.pageWaitForSelector(page, `#more-details-${componentName}`);
             await init.pageClick(page, `#more-details-${componentName}`);
-            await page.waitForSelector('#form-new-monitor', {
+            await init.pageWaitForSelector(page, '#form-new-monitor', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -146,7 +146,7 @@ describe('Monitor API', () => {
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', {
+            await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -155,7 +155,7 @@ describe('Monitor API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             let spanElement;
-            spanElement = await page.waitForSelector(
+            spanElement = await init.pageWaitForSelector(page, 
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -175,13 +175,13 @@ describe('Monitor API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'domcontentloaded',
             });
-            await page.waitForSelector('#components');
+            await init.pageWaitForSelector(page, '#components');
             await init.pageClick(page, '#components');
 
             // Navigate to details page of component created in previous test
-            await page.waitForSelector(`#more-details-${componentName}`);
+            await init.pageWaitForSelector(page, `#more-details-${componentName}`);
             await init.pageClick(page, `#more-details-${componentName}`);
-            await page.waitForSelector('#form-new-monitor', {
+            await init.pageWaitForSelector(page, '#form-new-monitor', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -193,7 +193,7 @@ describe('Monitor API', () => {
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', '');
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', {
+            await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -202,7 +202,7 @@ describe('Monitor API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             let spanElement;
-            spanElement = await page.waitForSelector(
+            spanElement = await init.pageWaitForSelector(page, 
                 '#form-new-monitor span#field-error',
                 { visible: true, timeout: init.timeout }
             );

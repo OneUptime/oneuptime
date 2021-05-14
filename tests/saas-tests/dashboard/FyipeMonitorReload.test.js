@@ -42,16 +42,16 @@ describe('Fyipe Monitor Reload', () => {
             await init.navigateToComponentDetails(componentName, page);
             // To confirm no error on page reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector(`#cb${componentName}`, {
+            await init.pageWaitForSelector(page, `#cb${componentName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('#cbMonitors', {
+            await init.pageWaitForSelector(page, '#cbMonitors', {
                 visible: true,
                 timeout: init.timeout,
             });
 
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(page, 
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -74,20 +74,20 @@ describe('Fyipe Monitor Reload', () => {
             );
             // To confirm no error on page reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector(`#cb${componentName}`, {
+            await init.pageWaitForSelector(page, `#cb${componentName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector('#cbMonitors', {
+            await init.pageWaitForSelector(page, '#cbMonitors', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.waitForSelector(`#cb${monitorName}`, {
+            await init.pageWaitForSelector(page, `#cb${monitorName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
 
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(page, 
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }
             );

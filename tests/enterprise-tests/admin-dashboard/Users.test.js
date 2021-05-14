@@ -42,7 +42,7 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
             });
 
             // if element does not exist it will timeout and throw
-            const elem = await page.waitForSelector('#add_user', {
+            const elem = await init.pageWaitForSelector(page, '#add_user', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -63,17 +63,17 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
             });
 
             const userSelector = '#masteradmin';
-            await page.waitForSelector(userSelector);
+            await init.pageWaitForSelector(page, userSelector);
             await init.pageClick(page, userSelector);
 
-            await page.waitForSelector('#delete');
+            await init.pageWaitForSelector(page, '#delete');
             await init.pageClick(page, '#delete');
-            await page.waitForSelector('#confirmDelete');
+            await init.pageWaitForSelector(page, '#confirmDelete');
             await init.pageClick(page, '#confirmDelete');
-            await page.waitForSelector('#confirmDelete', { hidden: true });
-            await page.waitForSelector('#users');
+            await init.pageWaitForSelector(page, '#confirmDelete', { hidden: true });
+            await init.pageWaitForSelector(page, '#users');
             await init.pageClick(page, '#users');
-            const loginBtn = await page.waitForSelector('#login-button', {
+            const loginBtn = await init.pageWaitForSelector(page, '#login-button', {
                 visible: true,
                 timeout: init.timeout,
             });

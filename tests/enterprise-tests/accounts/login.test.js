@@ -9,22 +9,22 @@ const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
 const moveToSsoPage = async page => {
-    await page.waitForSelector('#settings', {
+    await init.pageWaitForSelector(page, '#settings', {
         visible: true,
         timeout: init.timeout,
     });
     await init.pageClick(page, '#settings');
-    await page.waitForSelector('#sso');
+    await init.pageWaitForSelector(page, '#sso');
     await init.pageClick(page, '#sso');
 };
 
 const createSso = async (page, data) => {
-    await page.waitForSelector('#add-sso', {
+    await init.pageWaitForSelector(page, '#add-sso', {
         visible: true,
         timeout: init.timeout,
     });
     await init.pageClick(page, '#add-sso');
-    await page.waitForSelector('#save-button');
+    await init.pageWaitForSelector(page, '#save-button');
 
     if (data['saml-enabled'])
         await init.pageClick(page, '#saml-enabled-slider');
@@ -49,7 +49,7 @@ const createSso = async (page, data) => {
     await init.pageType(page, '#ipRanges', data.ipRanges);
 
     await init.pageClick(page, '#save-button');
-    await page.waitForSelector('#save-button', { hidden: true });
+    await init.pageWaitForSelector(page, '#save-button', { hidden: true });
 };
 
 describe('SSO login', () => {
@@ -96,7 +96,7 @@ describe('SSO login', () => {
             await page.goto(utils.ACCOUNTS_URL + '/login', {
                 waitUntil: 'networkidle2',
             });
-            await page.waitForSelector('#login-button');
+            await init.pageWaitForSelector(page, '#login-button');
             await init.pageClick(page, '#sso-login');
             await init.pageClick(page, 'input[name=email]');
             await init.pageType(
@@ -122,7 +122,7 @@ describe('SSO login', () => {
             await page.goto(utils.ACCOUNTS_URL + '/login', {
                 waitUntil: 'networkidle2',
             });
-            await page.waitForSelector('#login-button');
+            await init.pageWaitForSelector(page, '#login-button');
             await init.pageClick(page, '#sso-login');
             await init.pageClick(page, 'input[name=email]');
             await init.pageType(
@@ -150,7 +150,7 @@ describe('SSO login', () => {
             await page.goto(utils.ACCOUNTS_URL + '/login', {
                 waitUntil: 'networkidle2',
             });
-            await page.waitForSelector('#login-button');
+            await init.pageWaitForSelector(page, '#login-button');
             await init.pageClick(page, '#sso-login');
             await init.pageClick(page, 'input[name=email]');
             await init.pageType(
@@ -176,7 +176,7 @@ describe('SSO login', () => {
                 init.pageClick(page, 'button'),
             ]);
 
-            await page.waitForSelector('#createButton');
+            await init.pageWaitForSelector(page, '#createButton');
 
             done();
         },

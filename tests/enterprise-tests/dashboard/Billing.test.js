@@ -37,7 +37,7 @@ describe('Enterprise Disabled Billing API', () => {
         async done => {
             await init.adminLogout(page);
             await init.loginUser(user, page);
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -56,7 +56,7 @@ describe('Enterprise Disabled Billing API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#profile-menu', {
+            await init.pageWaitForSelector(page, '#profile-menu', {
                 visible: true,
                 timeout: init.timeout,
             });

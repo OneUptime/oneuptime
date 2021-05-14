@@ -38,14 +38,14 @@ describe('Incident Priority API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings');
+            await init.pageWaitForSelector(page, '#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
 
-            await page.waitForSelector('.incident-priority-tab', {
+            await init.pageWaitForSelector(page, '.incident-priority-tab', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -54,9 +54,9 @@ describe('Incident Priority API', () => {
             );
 
             const deleteButtonFirstRowIndentifier = '#priorityDelete_High_0';
-            await page.waitForSelector(deleteButtonFirstRowIndentifier);
+            await init.pageWaitForSelector(page, deleteButtonFirstRowIndentifier);
             await init.pageClick(page, deleteButtonFirstRowIndentifier);
-            await page.waitForSelector('#message-modal-message');
+            await init.pageWaitForSelector(page, '#message-modal-message');
             const warningMessage = await page.$eval(
                 '#message-modal-message',
                 e => e.textContent
@@ -75,14 +75,14 @@ describe('Incident Priority API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings');
+            await init.pageWaitForSelector(page, '#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
 
-            await page.waitForSelector('.incident-priority-tab', {
+            await init.pageWaitForSelector(page, '.incident-priority-tab', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -90,18 +90,18 @@ describe('Incident Priority API', () => {
                 elems[0].click()
             );
 
-            await page.waitForSelector('#addNewPriority');
+            await init.pageWaitForSelector(page, '#addNewPriority');
             await init.pageClick(page, '#addNewPriority');
-            await page.waitForSelector('#CreateIncidentPriority');
+            await init.pageWaitForSelector(page, '#CreateIncidentPriority');
             await init.pageType(page, 'input[name=name]', priorityName);
             await init.pageClick(page, '#CreateIncidentPriority');
-            await page.waitForSelector('#CreateIncidentPriority', {
+            await init.pageWaitForSelector(page, '#CreateIncidentPriority', {
                 hidden: true,
             });
             await page.reload({
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('.incident-priority-tab', {
+            await init.pageWaitForSelector(page, '.incident-priority-tab', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -111,7 +111,7 @@ describe('Incident Priority API', () => {
             // two incident priority is automatically added to a project
             // High incident priority is marked as default
             const lastRowFirstColumnIndentifier = `#priority_${priorityName}_2`;
-            await page.waitForSelector(lastRowFirstColumnIndentifier);
+            await init.pageWaitForSelector(page, lastRowFirstColumnIndentifier);
             const content = await page.$eval(
                 lastRowFirstColumnIndentifier,
                 e => e.textContent
@@ -128,14 +128,14 @@ describe('Incident Priority API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings');
+            await init.pageWaitForSelector(page, '#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
 
-            await page.waitForSelector('.incident-priority-tab', {
+            await init.pageWaitForSelector(page, '.incident-priority-tab', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -143,21 +143,21 @@ describe('Incident Priority API', () => {
                 elems[0].click()
             );
             const editButtonLastRowIndentifier = `#priorityEdit_${priorityName}_2`;
-            await page.waitForSelector(editButtonLastRowIndentifier);
+            await init.pageWaitForSelector(page, editButtonLastRowIndentifier);
             await init.pageClick(page, editButtonLastRowIndentifier);
-            await page.waitForSelector('#EditIncidentPriority');
+            await init.pageWaitForSelector(page, '#EditIncidentPriority');
             await init.pageClick(page, 'input[name=name]', { clickCount: 3 });
             await page.keyboard.press('Backspace');
             await init.pageType(page, 'input[name=name]', newPriorityName);
             await init.pageClick(page, '#EditIncidentPriority');
-            await page.waitForSelector('#EditIncidentPriority', {
+            await init.pageWaitForSelector(page, '#EditIncidentPriority', {
                 hidden: true,
             });
             await page.reload({
                 waitUntil: 'networkidle0',
             });
 
-            await page.waitForSelector('.incident-priority-tab', {
+            await init.pageWaitForSelector(page, '.incident-priority-tab', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -165,7 +165,7 @@ describe('Incident Priority API', () => {
                 elems[0].click()
             );
             const lastRowIndentifier = `#priority_${newPriorityName}_2`;
-            await page.waitForSelector(lastRowIndentifier);
+            await init.pageWaitForSelector(page, lastRowIndentifier);
             const content = await page.$eval(
                 lastRowIndentifier,
                 e => e.textContent
@@ -182,14 +182,14 @@ describe('Incident Priority API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings');
+            await init.pageWaitForSelector(page, '#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
 
-            await page.waitForSelector('.incident-priority-tab', {
+            await init.pageWaitForSelector(page, '.incident-priority-tab', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -197,7 +197,7 @@ describe('Incident Priority API', () => {
                 elems[0].click()
             );
             const incidentPrioritiesCount = '#incidentPrioritiesCount';
-            await page.waitForSelector(incidentPrioritiesCount);
+            await init.pageWaitForSelector(page, incidentPrioritiesCount);
             const incidentsCountBeforeDeletion = await page.$eval(
                 incidentPrioritiesCount,
                 e => e.textContent
@@ -207,23 +207,23 @@ describe('Incident Priority API', () => {
             );
             const deleteButtonLastRowIndentifier = `#priorityDelete_${newPriorityName}_2`;
             await init.pageClick(page, deleteButtonLastRowIndentifier);
-            await page.waitForSelector('#RemoveIncidentPriority');
+            await init.pageWaitForSelector(page, '#RemoveIncidentPriority');
             await init.pageClick(page, '#RemoveIncidentPriority');
-            await page.waitForSelector('#RemoveIncidentPriority', {
+            await init.pageWaitForSelector(page, '#RemoveIncidentPriority', {
                 hidden: true,
             });
             await page.reload({
                 waitUntil: 'networkidle0',
             });
 
-            await page.waitForSelector('.incident-priority-tab', {
+            await init.pageWaitForSelector(page, '.incident-priority-tab', {
                 visible: true,
                 timeout: init.timeout,
             });
             await page.$$eval('.incident-priority-tab', elems =>
                 elems[0].click()
             );
-            await page.waitForSelector(incidentPrioritiesCount);
+            await init.pageWaitForSelector(page, incidentPrioritiesCount);
             const incidentsCountAfterDeletion = await page.$eval(
                 incidentPrioritiesCount,
                 e => e.textContent
@@ -242,14 +242,14 @@ describe('Incident Priority API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings');
+            await init.pageWaitForSelector(page, '#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
 
-            await page.waitForSelector('.incident-priority-tab', {
+            await init.pageWaitForSelector(page, '.incident-priority-tab', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -257,13 +257,13 @@ describe('Incident Priority API', () => {
                 elems[0].click()
             );
             // default priority
-            await page.waitForSelector('#priority_High_0', {
+            await init.pageWaitForSelector(page, '#priority_High_0', {
                 visible: true,
                 timeout: init.timeout,
             });
             const incidentPrioritiesCountIdentifier =
                 '#incidentPrioritiesCount';
-            await page.waitForSelector(incidentPrioritiesCountIdentifier);
+            await init.pageWaitForSelector(page, incidentPrioritiesCountIdentifier);
             let incidentPrioritiesCount = await page.$eval(
                 incidentPrioritiesCountIdentifier,
                 e => e.textContent
@@ -273,16 +273,16 @@ describe('Incident Priority API', () => {
             );
 
             for (let i = 0; i < 11; i++) {
-                await page.waitForSelector('#addNewPriority');
+                await init.pageWaitForSelector(page, '#addNewPriority');
                 await init.pageClick(page, '#addNewPriority');
-                await page.waitForSelector('#CreateIncidentPriority');
+                await init.pageWaitForSelector(page, '#CreateIncidentPriority');
                 await init.pageType(
                     page,
                     'input[name=name]',
                     utils.generateRandomString()
                 );
                 await init.pageClick(page, '#CreateIncidentPriority');
-                await page.waitForSelector('#CreateIncidentPriority', {
+                await init.pageWaitForSelector(page, '#CreateIncidentPriority', {
                     hidden: true,
                 });
             }
@@ -291,7 +291,7 @@ describe('Incident Priority API', () => {
                 waitUntil: 'networkidle0',
             });
 
-            await page.waitForSelector('.incident-priority-tab', {
+            await init.pageWaitForSelector(page, '.incident-priority-tab', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -300,14 +300,14 @@ describe('Incident Priority API', () => {
             );
 
             // default priority
-            await page.waitForSelector('#priority_High_0', {
+            await init.pageWaitForSelector(page, '#priority_High_0', {
                 visible: true,
                 timeout: init.timeout,
             });
 
-            await page.waitForSelector('#btnNext');
+            await init.pageWaitForSelector(page, '#btnNext');
             await init.pageClick(page, '#btnNext');
-            await page.waitForSelector(incidentPrioritiesCountIdentifier);
+            await init.pageWaitForSelector(page, incidentPrioritiesCountIdentifier);
             incidentPrioritiesCount = await page.$eval(
                 incidentPrioritiesCountIdentifier,
                 e => e.textContent
@@ -316,9 +316,9 @@ describe('Incident Priority API', () => {
                 'Page 2 of 2 (13 Priorities)'
             );
 
-            await page.waitForSelector('#btnPrev');
+            await init.pageWaitForSelector(page, '#btnPrev');
             await init.pageClick(page, '#btnPrev');
-            await page.waitForSelector(incidentPrioritiesCountIdentifier);
+            await init.pageWaitForSelector(page, incidentPrioritiesCountIdentifier);
             incidentPrioritiesCount = await page.$eval(
                 incidentPrioritiesCountIdentifier,
                 e => e.textContent
