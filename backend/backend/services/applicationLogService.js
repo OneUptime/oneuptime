@@ -38,10 +38,7 @@ module.exports = {
             if (resourceCategory) {
                 applicationLog.resourceCategory = data.resourceCategory;
             }
-            let name = data.name;
-            name = slugify(name);
-            name = `${name}-${generate('1234567890', 8)}`;
-            applicationLog.slug = name.toLowerCase();
+            applicationLog.slug = getSlug(data.name);
             const savedApplicationLog = await applicationLog.save();
             applicationLog = await _this.findOneBy({
                 _id: savedApplicationLog._id,
@@ -183,10 +180,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
+                data.slug = getSlug(data.name);
             }
             let applicationLog = await ApplicationLogModel.findOneAndUpdate(
                 query,
@@ -244,9 +238,8 @@ module.exports = {
 const ApplicationLogModel = require('../models/applicationLog');
 const ErrorService = require('./errorService');
 const ComponentService = require('./componentService');
-const generate = require('nanoid/generate');
-const slugify = require('slugify');
 const RealTimeService = require('./realTimeService');
 const NotificationService = require('./notificationService');
 const ResourceCategoryService = require('./resourceCategoryService');
 const uuid = require('uuid');
+const getSlug = require('../utils/getSlug');
