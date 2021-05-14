@@ -73,6 +73,18 @@ module.exports = {
                     event_state: 'Started',
                 });
             }
+
+            //Create event end note immediately if end time equal to create time
+            const endTime = moment(scheduledEvent.endDate);
+            if (endTime <= currentTime) {
+                await ScheduledEventNoteService.create({
+                    content: 'THIS SCHEDULED EVENT HAS ENDED',
+                    scheduledEventId: scheduledEvent._id,
+                    type: 'investigation',
+                    event_state: 'Ended',
+                });
+            }
+
             if (scheduledEvent.alertSubscriber) {
                 // handle this asynchronous operation in the background
                 AlertService.sendCreatedScheduledEventToSubscribers(
@@ -551,6 +563,54 @@ module.exports = {
         } catch (error) {
             ErrorService.log(
                 'scheduledEventService.createScheduledEventStartedNote',
+                error
+            );
+            throw error;
+        }
+    },
+
+    /**
+     * @description Create Ended note for all schedule events
+     */
+    createScheduledEventEndedNote: async function() {
+        try {
+            const currentTime = moment();
+
+            //fetch events that have ended
+            const scheduledEventList = await this.findBy(
+                {
+                    endDate: { $lte: currentTime },
+                    deleted: false,
+                    cancelled: false,
+                },
+                0,
+                0
+            );
+
+            //fetch event notes without started note and create
+            scheduledEventList.map(async scheduledEvent => {
+                const scheduledEventId = scheduledEvent._id;
+                const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
+                    {
+                        scheduledEventId,
+                        event_state: 'Ended',
+                    }
+                );
+                if (
+                    scheduledEventNoteList &&
+                    scheduledEventNoteList.length === 0
+                ) {
+                    await ScheduledEventNoteService.create({
+                        content: 'THIS SCHEDULED EVENT HAS ENDED',
+                        scheduledEventId,
+                        type: 'investigation',
+                        event_state: 'Ended',
+                    });
+                }
+            });
+        } catch (error) {
+            ErrorService.log(
+                'scheduledEventService.createScheduledEventEndedNote',
                 error
             );
             throw error;

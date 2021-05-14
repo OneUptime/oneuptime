@@ -39,6 +39,7 @@ cron.schedule('0 0 * * *', () => {
 cron.schedule('* * * * *', () => {
     setTimeout(() => {
         scheduledEventService.createScheduledEventStartedNote();
+        scheduledEventService.createScheduledEventEndedNote();
     }, cronMinuteStartTime * 1000);
 });
 
