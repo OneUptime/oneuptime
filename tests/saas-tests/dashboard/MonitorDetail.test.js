@@ -1028,7 +1028,7 @@ describe('Monitor Detail API', () => {
 
             let lighthousePerformanceElement = await page.waitForSelector(
                 `#performance_${urlMonitorName}_0`,
-                { visible: true, timeout: 200000 }
+                { visible: true, timeout: init.timeout }
             );
             lighthousePerformanceElement = await lighthousePerformanceElement.getProperty(
                 'innerText'
@@ -1092,7 +1092,7 @@ describe('Monitor Detail API', () => {
 
             let lighthousePerformanceElement = await page.waitForSelector(
                 `#lighthouse-performance-${urlMonitorName}`,
-                { visible: true, timeout: 100000 }
+                { visible: true, timeout: init.timeout }
             );
             lighthousePerformanceElement = await lighthousePerformanceElement.getProperty(
                 'innerText'
@@ -1102,7 +1102,7 @@ describe('Monitor Detail API', () => {
 
             let lighthouseAccessibilityElement = await page.waitForSelector(
                 `#lighthouse-availability-${urlMonitorName}`,
-                { visible: true, timeout: 100000 }
+                { visible: true, timeout: init.timeout }
             );
             lighthouseAccessibilityElement = await lighthouseAccessibilityElement.getProperty(
                 'innerText'
@@ -1112,7 +1112,7 @@ describe('Monitor Detail API', () => {
 
             let lighthouseBestPracticesElement = await page.waitForSelector(
                 `#lighthouse-bestPractices-${urlMonitorName}`,
-                { visible: true, timeout: 100000 }
+                { visible: true, timeout: init.timeout }
             );
             lighthouseBestPracticesElement = await lighthouseBestPracticesElement.getProperty(
                 'innerText'
@@ -1122,7 +1122,7 @@ describe('Monitor Detail API', () => {
 
             let lighthouseSeoElement = await page.waitForSelector(
                 `#lighthouse-seo-${urlMonitorName}`,
-                { visible: true, timeout: 100000 }
+                { visible: true, timeout: init.timeout }
             );
             lighthouseSeoElement = await lighthouseSeoElement.getProperty(
                 'innerText'
@@ -1132,7 +1132,7 @@ describe('Monitor Detail API', () => {
 
             let lighthousePwaElement = await page.waitForSelector(
                 `#lighthouse-pwa-${urlMonitorName}`,
-                { visible: true, timeout: 100000 }
+                { visible: true, timeout: init.timeout }
             );
             lighthousePwaElement = await lighthousePwaElement.getProperty(
                 'innerText'

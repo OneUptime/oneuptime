@@ -467,8 +467,8 @@ const _this = {
         await _this.navigateToComponentDetails(component, page);
 
         // Navigate to details page of monitor assumed created
-        await page.waitForSelector(`#more-details-${monitor}`);
-        await page.$eval(`#more-details-${monitor}`, e => e.click());
+        await _this.pageClick(page, `#more-details-${monitor}`);
+
         await page.waitForSelector(`#monitor-title-${monitor}`, {
             visible: true,
         });
@@ -1290,12 +1290,12 @@ const _this = {
         await page.waitForSelector('#customFieldForm', { visible: 'hidden' });
     },
     pageType: async function(page, selector, text, opts) {
-        await page.waitForSelector(selector, { visible: true });
+        await page.waitForSelector(selector, { visible: true, timeout: _this.timeout });
         await page.focus(selector);
         await page.type(selector, text, opts);
     },
     pageClick: async function(page, selector) {
-        await page.waitForSelector(selector, { visible: true });
+        await page.waitForSelector(selector, { visible: true, timeout: _this.timeout });
         await page.click(selector);
     },
 };
