@@ -237,10 +237,10 @@ describe('Status-Page Advanced Options', () => {
             await page.waitForSelector('#viewStatusPage');
             await init.pageClick(page, '#viewStatusPage');
             // Navigate to custom domain tab in status-page.
-            await page.waitForSelector('.domains-tab', {
+            await page.waitForSelector('.custom-domains-tab', {
                 visible: true,
             });
-            await page.$$eval('.domains-tab', elems => elems[0].click());
+            await page.$$eval('.custom-domains-tab', elems => elems[0].click());
             await page.waitForSelector('#addMoreDomain');
             await init.pageClick(page, '#addMoreDomain');
             await page.waitForSelector('#customDomain');
