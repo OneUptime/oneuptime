@@ -1454,17 +1454,17 @@ const _this = {
             timeout: _this.timeout,
         });
         await page.focus(selector);
-        await page.type(selector, text, opts);
+        return await page.type(selector, text, opts);
     },
     pageClick: async function(page, selector) {
         await _this.pageWaitForSelector(page, selector, {
             visible: true,
             timeout: _this.timeout,
         });
-        await page.click(selector);
+        return await page.click(selector);
     },
     pageWaitForSelector: async function(page, selector, opts) {
-        await page.waitForSelector(selector, {
+        return await page.waitForSelector(selector, {
             visible: true,
             timeout: _this.timeout,
             ...opts,

@@ -20,7 +20,7 @@
             "type": "node-terminal"
         },
         {
-            "command": "export SLOMO=20 && export HEADLESS=false && jest ./saas-tests/status-page/status-page.test.js",
+            "command": "export SLOMO=20 && export HEADLESS=false && jest ./saas-tests/status-page/status-page-advanced.test.js",
             "name": "Debug Single File: Local SaaS test",
             "request": "launch",
             "type": "node-terminal"
