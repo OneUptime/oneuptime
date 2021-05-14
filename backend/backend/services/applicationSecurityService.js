@@ -1,12 +1,11 @@
 const ApplicationSecurityModel = require('../models/applicationSecurity');
 const ErrorService = require('./errorService');
 const moment = require('moment');
-const generate = require('nanoid/generate');
-const slugify = require('slugify');
 const { decrypt } = require('../config/encryptDecrypt');
 const ApplicationSecurityLogService = require('./applicationSecurityLogService');
 const GitCredentialService = require('./gitCredentialService');
 const ResourceCategoryService = require('./resourceCategoryService');
+const getSlug = require('../utils/getSlug');
 
 module.exports = {
     create: async function(data) {
@@ -52,10 +51,7 @@ module.exports = {
             if (!resourceCategory) {
                 delete data.resourceCategory;
             }
-            let name = data.name;
-            name = slugify(name, { remove: /[*+~.()'"!:@]/g });
-            name = `${name}-${generate('1234567890', 8)}`;
-            data.slug = name.toLowerCase();
+            data.slug = getSlug(data.name);
             const applicationSecurity = await ApplicationSecurityModel.create(
                 data
             );
@@ -120,10 +116,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name, { remove: /[*+~.()'"!:@]/g });
-                name = `${name}-${generate('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
+                data.slug = getSlug(data.name);
             }
             let applicationSecurity = await ApplicationSecurityModel.findOneAndUpdate(
                 query,

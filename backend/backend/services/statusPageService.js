@@ -72,10 +72,7 @@ module.exports = {
             statusPageModel.statusBubbleId = data.statusBubbleId || uuid.v4();
 
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name, { remove: /[*+~.()'"!:@]/g });
-                name = `${name}-${generate('1234567890', 8)}`;
-                statusPageModel.slug = name.toLowerCase();
+                statusPageModel.slug = getSlug(data.name);
             }
 
             const statusPage = await statusPageModel.save();
@@ -497,10 +494,7 @@ module.exports = {
             }
 
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name, { remove: /[*+~.()'"!:@]/g });
-                name = `${name}-${generate('1234567890', 8)}`;
-                existingStatusPage.slug = name.toLowerCase();
+                existingStatusPage.slug = getSlug(data.name);
             }
 
             if (!query) {
@@ -1267,6 +1261,5 @@ const IncidentMessageService = require('./incidentMessageService');
 const moment = require('moment');
 const uuid = require('uuid');
 const greenlock = require('../../greenlock');
-const slugify = require('slugify');
-const generate = require('nanoid/generate');
 const CertificateStoreService = require('./certificateStoreService');
+const getSlug = require('../utils/getSlug');

@@ -1,12 +1,11 @@
 const ContainerSecurityModel = require('../models/containerSecurity');
 const ErrorService = require('./errorService');
 const moment = require('moment');
-const generate = require('nanoid/generate');
-const slugify = require('slugify');
 const { decrypt } = require('../config/encryptDecrypt');
 const ContainerSecurityLogService = require('./containerSecurityLogService');
 const DockerCredentialService = require('./dockerCredentialService');
 const ResourceCategoryService = require('./resourceCategoryService');
+const getSlug = require('../utils/getSlug');
 
 module.exports = {
     create: async function(data) {
@@ -52,10 +51,7 @@ module.exports = {
             if (!resourceCategory) {
                 delete data.resourceCategory;
             }
-            let name = data.name;
-            name = slugify(name, { remove: /[*+~.()'"!:@]/g });
-            name = `${name}-${generate('1234567890', 8)}`;
-            data.slug = name.toLowerCase();
+            data.slug = getSlug(data.name);
             const containerSecurity = await ContainerSecurityModel.create(data);
             return containerSecurity;
         } catch (error) {
@@ -118,10 +114,7 @@ module.exports = {
 
             // The received value from probe service is '{ scanning: true }'
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name, { remove: /[*+~.()'"!:@]/g });
-                name = `${name}-${generate('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
+                data.slug = getSlug(data.name);
             }
 
             let containerSecurity = await ContainerSecurityModel.findOneAndUpdate(

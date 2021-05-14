@@ -1,20 +1,17 @@
 const { find, update } = require('../util/db');
-const slugify = require('slugify');
-const generate = require('nanoid/generate');
+const getSlug = require('../util/getSlug');
 const errortrackerCollection = 'errortrackers';
 
 async function run() {
     const errorTrackers = await find(errortrackerCollection, {
         $or: [
             { slug: { $exists: false } },
-            { slug: { $regex: /[*+~.()'"!:@]/g } },
+            { slug: { $regex: /[*+~.()'"!:@]+/g } },
         ],
     });
     for (let i = 0; i < errorTrackers.length; i++) {
-        let { name } = errorTrackers[i];
-        name = slugify(name, { remove: /[*+~.()'"!:@]/g });
-        name = `${name}-${generate('1234567890', 8)}`;
-        errorTrackers[i].slug = name.toLowerCase();
+        const { name } = errorTrackers[i];
+        errorTrackers[i].slug = getSlug(name);
         await update(
             errortrackerCollection,
             { _id: errorTrackers[i]._id },
