@@ -5,11 +5,14 @@ const errortrackerCollection = 'errortrackers';
 
 async function run() {
     const errorTrackers = await find(errortrackerCollection, {
-        slug: { $exists: false },
+        $or: [
+            { slug: { $exists: false } },
+            { slug: { $regex: /[*+~.()'"!:@]/g } },
+        ],
     });
     for (let i = 0; i < errorTrackers.length; i++) {
         let { name } = errorTrackers[i];
-        name = slugify(name);
+        name = slugify(name, { remove: /[*+~.()'"!:@]/g });
         name = `${name}-${generate('1234567890', 8)}`;
         errorTrackers[i].slug = name.toLowerCase();
         await update(

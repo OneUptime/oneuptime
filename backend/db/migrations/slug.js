@@ -7,7 +7,7 @@ module.exports.init = async function() {
 
     projects.forEach(async project => {
         let name = project.name;
-        name = slugify(name);
+        name = slugify(name, { remove: /[*+~.()'"!:@]/g });
         name = `${name}-${generate('1234567890', 5)}`;
 
         projectModel.update(
