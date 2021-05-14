@@ -457,6 +457,18 @@ module.exports = {
             throw error;
         }
     },
+    fetchOngoingSchedule: async event => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            global.io.emit(`fetchOngoingSchedule-${statusPageId}`);
+        } catch (error) {
+            ErrorService.log('realTimeService.fetchOngoingSchedule', error);
+            throw error;
+        }
+    },
 
     sendComponentCreated: async component => {
         try {
@@ -1110,3 +1122,4 @@ const ErrorService = require('./errorService');
 const ProjectService = require('./projectService');
 const MonitorService = require('./monitorService');
 const IncidentService = require('./incidentService');
+const StatusPageService = require('./statusPageService');

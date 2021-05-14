@@ -989,26 +989,11 @@ router.get(
             );
 
             let events = response.events;
-            const count = response.count;
-            onGoingEventCount = 0;
+            let ongoing = false;
             if ((theme && typeof theme === 'boolean') || theme === 'true') {
-                const updatedEvents = [];
-                if (events.length > 0) {
-                    for (const event of events) {
-                        if (
-                            !event.cancelled &&
-                            !event.deleted &&
-                            !event.resolved &&
-                            event.showEventOnStatusPage &&
-                            moment() < moment(event.endDate)
-                        ) {
-                            onGoingEventCount++;
-                        }
-                    }
-                }
+                ongoing = await StatusPageService.getOngoingEventsCount(events);
             }
 
-            const ongoing = onGoingEventCount > 0 ? true : false;
             return sendListResponse(req, res, {
                 ongoing,
             });

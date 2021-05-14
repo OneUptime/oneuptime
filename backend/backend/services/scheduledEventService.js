@@ -498,7 +498,11 @@ module.exports = {
             }
 
             // realtime update
+            console.log(resolvedScheduledEvent);
+
+            //get statuspage ID
             await RealTimeService.resolveScheduledEvent(resolvedScheduledEvent);
+            await RealTimeService.fetchOngoingSchedule(resolvedScheduledEvent);
 
             return resolvedScheduledEvent;
         } catch (error) {

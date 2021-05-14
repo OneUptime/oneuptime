@@ -759,6 +759,30 @@ module.exports = {
             throw error;
         }
     },
+    getOngoingEventsCount: async function(events) {
+        try {
+            onGoingEventCount = 0;
+            if (events.length > 0) {
+                for (const event of events) {
+                    if (
+                        !event.cancelled &&
+                        !event.deleted &&
+                        !event.resolved &&
+                        event.showEventOnStatusPage &&
+                        moment() < moment(event.endDate)
+                    ) {
+                        onGoingEventCount++;
+                    }
+                }
+            }
+
+            const ongoing = onGoingEventCount > 0 ? true : false;
+            return ongoing;
+        } catch (error) {
+            ErrorService.log('statusPageService.getOngoingEventsCount', error);
+            throw error;
+        }
+    },
 
     getFutureEvents: async function(query, skip, limit) {
         try {
