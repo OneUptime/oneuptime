@@ -48,7 +48,9 @@ describe('Incident Priority API', () => {
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
             });
-            await page.$$eval('.incident-priority-tab', elems => elems[0].click());
+            await page.$$eval('.incident-priority-tab', elems =>
+                elems[0].click()
+            );
 
             const deleteButtonFirstRowIndentifier = '#priorityDelete_High_0';
             await page.waitForSelector(deleteButtonFirstRowIndentifier);
@@ -82,7 +84,9 @@ describe('Incident Priority API', () => {
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
             });
-            await page.$$eval('.incident-priority-tab', elems => elems[0].click());
+            await page.$$eval('.incident-priority-tab', elems =>
+                elems[0].click()
+            );
 
             await page.waitForSelector('#addNewPriority');
             await init.pageClick(page, '#addNewPriority');
@@ -98,7 +102,9 @@ describe('Incident Priority API', () => {
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
             });
-            await page.$$eval('.incident-priority-tab', elems => elems[0].click());
+            await page.$$eval('.incident-priority-tab', elems =>
+                elems[0].click()
+            );
             // two incident priority is automatically added to a project
             // High incident priority is marked as default
             const lastRowFirstColumnIndentifier = `#priority_${priorityName}_2`;
@@ -129,7 +135,9 @@ describe('Incident Priority API', () => {
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
             });
-            await page.$$eval('.incident-priority-tab', elems => elems[0].click());
+            await page.$$eval('.incident-priority-tab', elems =>
+                elems[0].click()
+            );
             const editButtonLastRowIndentifier = `#priorityEdit_${priorityName}_2`;
             await page.waitForSelector(editButtonLastRowIndentifier);
             await init.pageClick(page, editButtonLastRowIndentifier);
@@ -148,7 +156,9 @@ describe('Incident Priority API', () => {
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
             });
-            await page.$$eval('.incident-priority-tab', elems => elems[0].click());
+            await page.$$eval('.incident-priority-tab', elems =>
+                elems[0].click()
+            );
             const lastRowIndentifier = `#priority_${newPriorityName}_2`;
             await page.waitForSelector(lastRowIndentifier);
             const content = await page.$eval(
@@ -177,7 +187,9 @@ describe('Incident Priority API', () => {
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
             });
-            await page.$$eval('.incident-priority-tab', elems => elems[0].click());
+            await page.$$eval('.incident-priority-tab', elems =>
+                elems[0].click()
+            );
             const incidentPrioritiesCount = '#incidentPrioritiesCount';
             await page.waitForSelector(incidentPrioritiesCount);
             const incidentsCountBeforeDeletion = await page.$eval(
@@ -201,7 +213,9 @@ describe('Incident Priority API', () => {
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
             });
-            await page.$$eval('.incident-priority-tab', elems => elems[0].click());
+            await page.$$eval('.incident-priority-tab', elems =>
+                elems[0].click()
+            );
             await page.waitForSelector(incidentPrioritiesCount);
             const incidentsCountAfterDeletion = await page.$eval(
                 incidentPrioritiesCount,
@@ -231,7 +245,9 @@ describe('Incident Priority API', () => {
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
             });
-            await page.$$eval('.incident-priority-tab', elems => elems[0].click());
+            await page.$$eval('.incident-priority-tab', elems =>
+                elems[0].click()
+            );
             // default priority
             await page.waitForSelector('#priority_High_0', {
                 visible: true,
@@ -269,7 +285,9 @@ describe('Incident Priority API', () => {
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
             });
-            await page.$$eval('.incident-priority-tab', elems => elems[0].click());
+            await page.$$eval('.incident-priority-tab', elems =>
+                elems[0].click()
+            );
 
             // default priority
             await page.waitForSelector('#priority_High_0', {

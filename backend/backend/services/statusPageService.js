@@ -1200,10 +1200,7 @@ module.exports = {
             }));
             // slugify announcement name
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
+                data.slug = getSlug(data.name);
             }
 
             const announcement = new AnnouncementModel();

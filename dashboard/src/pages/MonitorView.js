@@ -276,16 +276,32 @@ class MonitorView extends React.Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab custom-tab-4 basic-tab'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-4 basic-tab'
+                                    }
+                                >
                                     Basic
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-4 subscribers-tab'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-4 subscribers-tab'
+                                    }
+                                >
                                     Subscribers
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-4 integrations-tab'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-4 integrations-tab'
+                                    }
+                                >
                                     Integrations
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-4 advanced-options-tab'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-4 advanced-options-tab'
+                                    }
+                                >
                                     Advanced Options
                                 </Tab>
                                 <div
