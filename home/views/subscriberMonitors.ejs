@@ -51,7 +51,7 @@
     .monitors {
       font-size: 18px;
       color: #000;
-      margin-top: 10px;
+      margin: 10px 0px;
       font-family: 'Source Sans Pro', sans-serif;
     }
 
@@ -64,6 +64,13 @@
       background-color: #000;
       border: none;
       font-family: 'Source Sans Pro', sans-serif;
+    }
+    .monitor_wrapper{
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      width: 100%;
+      flex-wrap: wrap;
     }
   </style>
   <title>Fyipe | Help and Support</title>
@@ -94,11 +101,13 @@
           <input name="email[]" value="<%=subscriptions[0].contactEmail%>" hidden>
           <% for(var i=0; i < subscriptions.length; i++) { %>
             <% if(subscriptions[i].monitorId==defaultMonitor){%>
-              <div class="monitors">
-                <input type="checkbox" name="monitors[]" value=<%=subscriptions[i].monitorId%> checked>
-                <label for="default">
-                  <%= subscriptions[i].monitorName%>
-                </label>
+              <div class="monitor_wrapper">
+                <div class="monitors">
+                  <input type="checkbox" name="monitors[]" value=<%=subscriptions[i].monitorId%> checked>
+                  <label for="default">
+                    <%= subscriptions[i].monitorName%>
+                  </label>
+                </div>
               </div>
 
 
