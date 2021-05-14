@@ -45,7 +45,7 @@ describe('Reset Password API', () => {
         html.should.containEql(
             " An email is on its way to you. Follow the instructions to reset your password. Please don't forget to check spam. "
         );
-    }, 160000);
+    }, init.timeout);
 
     it('User cannot reset password with non-existing email', async () => {
         await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
@@ -65,5 +65,5 @@ describe('Reset Password API', () => {
         });
         should.exist(html);
         html.should.containEql('User does not exist.');
-    }, 160000);
+    }, init.timeout);
 });

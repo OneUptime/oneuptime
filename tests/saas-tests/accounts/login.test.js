@@ -52,7 +52,7 @@ describe('Login API', () => {
             element => element.value
         );
         expect(password).toEqual('');
-    }, 160000);
+    }, init.timeout);
 
     it('Users cannot login with incorrect credentials', async () => {
         await page.goto(utils.ACCOUNTS_URL + '/login', {
@@ -69,7 +69,7 @@ describe('Login API', () => {
             return e.innerHTML;
         });
         html.should.containEql('User does not exist.');
-    }, 160000);
+    }, init.timeout);
 
     it(
         'Should login valid User',

@@ -53,7 +53,7 @@ describe('Change Password API', () => {
         );
         should.exist(html);
         html.should.containEql('Password and confirm password should match.');
-    }, 160000);
+    }, init.timeout);
 
     it('Should submit if password is less than 8 characters', async () => {
         await page.goto(
@@ -79,7 +79,7 @@ describe('Change Password API', () => {
         );
         should.exist(html);
         html.should.containEql('Password should be atleast 8 characters long');
-    }, 160000);
+    }, init.timeout);
 
     it('Should submit if password is missing', async () => {
         await page.goto(
@@ -105,5 +105,5 @@ describe('Change Password API', () => {
         );
         should.exist(html);
         html.should.containEql('Password is required.');
-    }, 160000);
+    }, init.timeout);
 });

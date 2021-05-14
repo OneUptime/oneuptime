@@ -33,5 +33,5 @@ describe('Resend Verification API', () => {
         });
         should.exist(html);
         html.should.containEql('No user associated with this account');
-    }, 160000);
+    }, init.timeout);
 });
