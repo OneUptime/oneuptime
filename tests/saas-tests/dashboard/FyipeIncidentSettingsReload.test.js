@@ -22,7 +22,7 @@ describe('Fyipe Page Reload', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
 
-        await init.registerUser(user, page); // This automatically routes to dashboard page        
+        await init.registerUser(user, page); // This automatically routes to dashboard page
         done();
     });
 
@@ -43,12 +43,16 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '.incident-priority-tab'); // Navigate to the Incident Priority Tab
             await init.pageClick(page, '#priorityDefault_Low_1');
             await init.pageClick(page, '#SetDefaultIncidentPriority');
-            await page.waitForSelector('#SetDefaultIncidentPriority', { hidden: true });
+            await page.waitForSelector('#SetDefaultIncidentPriority', {
+                hidden: true,
+            });
 
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbProjectSettings', { visible: true });
-            const spanElement = await page.waitForSelector('#cbIncidents', { visible: true });
+            const spanElement = await page.waitForSelector('#cbIncidents', {
+                visible: true,
+            });
             expect(spanElement).toBeDefined();
             done();
         },

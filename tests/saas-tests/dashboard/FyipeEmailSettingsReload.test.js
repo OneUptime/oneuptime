@@ -22,7 +22,7 @@ describe('Fyipe Page Reload', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
 
-        await init.registerUser(user, page); // This automatically routes to dashboard page        
+        await init.registerUser(user, page); // This automatically routes to dashboard page
         done();
     });
 
@@ -45,7 +45,9 @@ describe('Fyipe Page Reload', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbProjectSettings', { visible: true });
             await page.waitForSelector('#cbEmail', { visible: true });
-            const spanElement = await page.waitForSelector('#showsmtpForm', { visible: true });
+            const spanElement = await page.waitForSelector('#showsmtpForm', {
+                visible: true,
+            });
             expect(spanElement).toBeDefined();
             done();
         },

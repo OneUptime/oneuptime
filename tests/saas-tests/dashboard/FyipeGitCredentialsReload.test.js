@@ -24,7 +24,7 @@ describe('Fyipe Page Reload', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
 
-        await init.registerUser(user, page); // This automatically routes to dashboard page        
+        await init.registerUser(user, page); // This automatically routes to dashboard page
         done();
     });
 
@@ -44,16 +44,20 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#gitCredentials');
             await init.pageClick(page, '#addCredentialBtn');
             await init.pageType(page, '#gitUsername', gitUsername);
-            await init.pageType(page, '#gitPassword',gitPassword);
-            await init.pageClick(page, '#addCredentialModalBtn');            
-            const spanElement = await page.waitForSelector(`#gitUsername_${gitUsername}`);
+            await init.pageType(page, '#gitPassword', gitPassword);
+            await init.pageClick(page, '#addCredentialModalBtn');
+            const spanElement = await page.waitForSelector(
+                `#gitUsername_${gitUsername}`
+            );
             expect(spanElement).toBeDefined();
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbProjectSettings', { visible: true });
             await page.waitForSelector('#cbGitCredentials', { visible: true });
-            const spanElement2 = await page.waitForSelector(`#gitUsername_${gitUsername}`);
-            expect(spanElement2).toBeDefined();            
+            const spanElement2 = await page.waitForSelector(
+                `#gitUsername_${gitUsername}`
+            );
+            expect(spanElement2).toBeDefined();
             done();
         },
         operationTimeOut
