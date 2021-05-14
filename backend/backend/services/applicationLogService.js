@@ -39,7 +39,7 @@ module.exports = {
                 applicationLog.resourceCategory = data.resourceCategory;
             }
             let name = data.name;
-            name = slugify(name);
+            name = slugify(name, { remove: /[*+~.()'"!:@]/g });
             name = `${name}-${generate('1234567890', 8)}`;
             applicationLog.slug = name.toLowerCase();
             const savedApplicationLog = await applicationLog.save();
@@ -184,7 +184,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
             if (data && data.name) {
                 let name = data.name;
-                name = slugify(name);
+                name = slugify(name, { remove: /[*+~.()'"!:@]/g });
                 name = `${name}-${generate('1234567890', 8)}`;
                 data.slug = name.toLowerCase();
             }

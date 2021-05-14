@@ -45,7 +45,7 @@ module.exports = {
             projectModel.name = data.name || null;
             if (data && data.name) {
                 let name = data.name;
-                name = slugify(name);
+                name = slugify(name, { remove: /[*+~.()'"!:@]/g });
                 name = `${name}-${generate('1234567890', 8)}`;
                 projectModel.slug = name.toLowerCase();
             }
@@ -221,7 +221,7 @@ module.exports = {
 
             if (data && data.name) {
                 let name = data.name;
-                name = slugify(name);
+                name = slugify(name, { remove: /[*+~.()'"!:@]/g });
                 name = `${name}-${generate('1234567890', 8)}`;
                 data.slug = name.toLowerCase();
             }

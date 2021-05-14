@@ -53,7 +53,7 @@ module.exports = {
                 delete data.resourceCategory;
             }
             let name = data.name;
-            name = slugify(name);
+            name = slugify(name, { remove: /[*+~.()'"!:@]/g });
             name = `${name}-${generate('1234567890', 8)}`;
             data.slug = name.toLowerCase();
             const containerSecurity = await ContainerSecurityModel.create(data);
@@ -119,7 +119,7 @@ module.exports = {
             // The received value from probe service is '{ scanning: true }'
             if (data && data.name) {
                 let name = data.name;
-                name = slugify(name);
+                name = slugify(name, { remove: /[*+~.()'"!:@]/g });
                 name = `${name}-${generate('1234567890', 8)}`;
                 data.slug = name.toLowerCase();
             }
