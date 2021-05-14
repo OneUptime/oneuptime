@@ -47,23 +47,37 @@ describe('Incoming HTTP Request', () => {
             });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#integrations', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#integrations', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#integrations');
 
             await page.waitForSelector('#addIncomingRequestBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addIncomingRequestBtn');
-            await page.waitForSelector('#name', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#name', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', incidentRequest.name);
             await page.$eval('#createIncident', elem => elem.click());
-            await page.waitForSelector('#isDefault', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#isDefault', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval('#isDefault', elem => elem.click());
             await init.pageClick(page, '#advancedOptionsBtn');
-            await page.waitForSelector('#incidentTitle', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#incidentTitle', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#incidentTitle');
             await init.pageType(
                 page,
@@ -81,7 +95,10 @@ describe('Incoming HTTP Request', () => {
             await page.waitForSelector('#createIncomingRequest', {
                 hidden: true,
             });
-            await page.waitForSelector('#requestOkBtn', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#requestOkBtn', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#requestOkBtn');
             await page.waitForSelector('#requestOkBtn', { hidden: true });
 
@@ -104,16 +121,24 @@ describe('Incoming HTTP Request', () => {
             });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#integrations', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#integrations', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#integrations');
 
             await page.waitForSelector('#editIncomingRequestBtn_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#editIncomingRequestBtn_0');
-            await page.waitForSelector('#name', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#name', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#name', { clickCount: 3 });
             // change the name of the incoming http request
             await init.pageType(page, '#name', 'newName');
@@ -140,17 +165,23 @@ describe('Incoming HTTP Request', () => {
             });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#integrations', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#integrations', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#integrations');
 
             await page.waitForSelector('#deleteIncomingRequestBtn_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteIncomingRequestBtn_0');
             await page.waitForSelector('#deleteIncomingRequestBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteIncomingRequestBtn');
             await page.waitForSelector('#deleteIncomingRequestBtn', {

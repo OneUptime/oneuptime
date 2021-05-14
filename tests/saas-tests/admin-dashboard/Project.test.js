@@ -55,6 +55,7 @@ describe('Project', () => {
 
             await page.waitForSelector('input[name="planId"]#Enterprise', {
                 visible: true,
+                timeout: init.timeout,
             });
 
             await page.$eval('input[name="planId"]#Enterprise', elem =>
@@ -92,6 +93,7 @@ describe('Project', () => {
 
             await page.waitForSelector('input[name="planId"]#Growth_annual', {
                 visible: true,
+                timeout: init.timeout,
             });
 
             await page.$eval('input[name="planId"]#Growth_annual', elem =>

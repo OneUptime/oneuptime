@@ -49,7 +49,10 @@ describe('Status-Page Advanced Options', () => {
             await page.waitForSelector(`#btnCreateStatusPage_${projectName}`);
             await init.pageClick(page, `#btnCreateStatusPage_${projectName}`);
             await page.waitForSelector('#name');
-            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', statusPageName);
@@ -84,15 +87,24 @@ describe('Status-Page Advanced Options', () => {
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component');
-            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', componentName);
             await init.pageClick(page, 'button[type=submit]');
 
             // Create a Manual Monitor
-            await page.waitForSelector('#form-new-monitor', { visible: true, timeout: init.timeout });
-            await init.pageClick(page, 'input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#form-new-monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, '[data-testId=type_manual]');
@@ -126,7 +138,10 @@ describe('Status-Page Advanced Options', () => {
             await page.waitForSelector('#statusPagesListContainer');
             await page.waitForSelector('#viewStatusPage');
             await init.pageClick(page, '#viewStatusPage');
-            await page.waitForSelector('#addMoreMonitors');
+            await page.waitForSelector('#addMoreMonitors', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#addMoreMonitors');
             await init.selectByText(
                 '#monitor-name',
@@ -175,6 +190,7 @@ describe('Status-Page Advanced Options', () => {
             // Navigate to subscriber tab in monitor.
             await page.waitForSelector('.subscribers-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.subscribers-tab', elems => elems[0].click());
             await page.waitForSelector('#addSubscriberButton');
@@ -211,6 +227,7 @@ describe('Status-Page Advanced Options', () => {
             await init.pageClick(page, '#viewStatusPage');
             await page.waitForSelector('.subscribers-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.subscribers-tab', elems => elems[0].click());
             // To confirm that the subscriber created is present.
@@ -239,6 +256,7 @@ describe('Status-Page Advanced Options', () => {
             // Navigate to custom domain tab in status-page.
             await page.waitForSelector('.custom-domains-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.custom-domains-tab', elems => elems[0].click());
             await page.waitForSelector('#addMoreDomain');
@@ -273,6 +291,7 @@ describe('Status-Page Advanced Options', () => {
             // Navigate to advanced tab in status-page
             await page.waitForSelector('.advanced-options-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.advanced-options-tab', elems =>
                 elems[0].click()
@@ -304,7 +323,10 @@ describe('Status-Page Advanced Options', () => {
                 waitUntil: 'networkidle2',
             });
             await init.navigateToStatusPage(page);
-            await page.waitForSelector('#subscriber-button');
+            await page.waitForSelector('#subscriber-button', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#subscriber-button');
             await page.waitForSelector('input[name=email]');
             await init.pageClick(page, 'input[name=email]');
@@ -340,6 +362,7 @@ describe('Status-Page Advanced Options', () => {
             // Navigate to advanced tab in status-page
             await page.waitForSelector('.advanced-options-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.advanced-options-tab', elems =>
                 elems[0].click()

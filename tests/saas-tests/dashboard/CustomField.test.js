@@ -63,12 +63,14 @@ describe('Incident Custom Field', () => {
             });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
             await page.waitForSelector('#incidentSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#incidentSettings');
             await page.reload({
@@ -78,10 +80,12 @@ describe('Incident Custom Field', () => {
 
             await page.waitForSelector('#editCustomField_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#editCustomField_0');
             await page.waitForSelector('#customFieldForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#fieldName', { clickCount: 3 });
             await init.pageType(
@@ -96,6 +100,7 @@ describe('Incident Custom Field', () => {
             );
             await page.waitForSelector('#updateCustomField', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#updateCustomField');
             await page.waitForSelector('#updateCustomField', {
@@ -120,12 +125,14 @@ describe('Incident Custom Field', () => {
             });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
             await page.waitForSelector('#incidentSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#incidentSettings');
             await page.reload({
@@ -135,10 +142,12 @@ describe('Incident Custom Field', () => {
 
             await page.waitForSelector('#deleteCustomField_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteCustomField_0');
             await page.waitForSelector('#deleteCustomFieldModalBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteCustomFieldModalBtn');
             await page.waitForSelector('#deleteCustomFieldModalBtn', {

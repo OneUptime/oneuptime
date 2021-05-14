@@ -39,11 +39,15 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#email', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#email', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#email');
 
             await page.waitForSelector(
@@ -99,11 +103,15 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#email', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#email', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#email');
 
             await page.waitForSelector(
@@ -147,11 +155,15 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#email', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#email', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#email');
 
             await page.waitForSelector(
@@ -196,11 +208,15 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#email', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#email', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#email');
 
             await page.waitForSelector(
@@ -244,11 +260,15 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#email', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#email', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#email');
 
             await page.waitForSelector(
@@ -293,15 +313,20 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#smsCalls', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#smsCalls', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#smsCalls');
 
             await page.waitForSelector('#sendCreatedIncidentNotificationSms', {
                 visible: true,
+                timeout: init.timeout,
             });
             let sendCreatedIncidentNotification = await page.$eval(
                 '#sendCreatedIncidentNotificationSms',
@@ -350,15 +375,20 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#smsCalls', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#smsCalls', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#smsCalls');
 
             await page.waitForSelector('#sendCreatedIncidentNotificationSms', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#sendCreatedIncidentNotificationSms', elem =>
                 elem.click()
@@ -370,6 +400,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#sendCreatedIncidentNotificationSms', {
                 visible: true,
+                timeout: init.timeout,
             });
             let checkedState = await page.$eval(
                 '#sendCreatedIncidentNotificationSms',
@@ -392,11 +423,15 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#smsCalls', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#smsCalls', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#smsCalls');
             await page.waitForSelector(
                 '#sendAcknowledgedIncidentNotificationSms',
@@ -439,16 +474,21 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#smsCalls', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#smsCalls', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#smsCalls');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
             await page.waitForSelector('#sendResolvedIncidentNotificationSms', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#sendResolvedIncidentNotificationSms', elem =>
                 elem.click()
@@ -460,6 +500,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#sendResolvedIncidentNotificationSms', {
                 visible: true,
+                timeout: init.timeout,
             });
             let checkedState = await page.$eval(
                 '#sendResolvedIncidentNotificationSms',
@@ -481,11 +522,15 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
 
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#smsCalls', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#smsCalls', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#smsCalls');
 
             await page.waitForSelector(

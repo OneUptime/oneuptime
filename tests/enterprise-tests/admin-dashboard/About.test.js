@@ -42,10 +42,12 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
             // if element does not exist it will timeout and throw
             await page.waitForSelector('#profile-menu', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#profile-menu', elem => elem.click());
             const about = await page.waitForSelector('#about-button', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(about).toBeDefined();
         },
@@ -60,17 +62,21 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
             });
             await page.waitForSelector('#profile-menu', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#profile-menu', elem => elem.click());
             await page.waitForSelector('#about-button', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#about-button', elem => elem.click());
             await page.waitForSelector('.bs-Modal', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.waitForSelector('#server-version', {
                 visible: true,
+                timeout: init.timeout,
             });
             const serverVersion = await page.$eval(
                 '#server-version',
@@ -116,14 +122,17 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
             });
             await page.waitForSelector('#profile-menu', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#profile-menu', elem => elem.click());
             await page.waitForSelector('#about-button', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#about-button', elem => elem.click());
             await page.waitForSelector('.bs-Button', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '.bs-Button');
         },

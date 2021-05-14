@@ -46,6 +46,7 @@ describe('Twilio Settings API', () => {
             await init.pageClick(page, 'button[type=submit]');
             const error = await page.waitForSelector('.field-error', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(error).toBeDefined();
 
@@ -88,7 +89,10 @@ describe('Twilio Settings API', () => {
             await init.pageType(page, 'input[name=alert-limit]', '5');
 
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector('#errors', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#errors', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const errorMessage = await page.$eval(
                 '#errors',
                 element => element.textContent
@@ -98,6 +102,7 @@ describe('Twilio Settings API', () => {
 
             await page.waitForSelector('input[name=account-sid]', {
                 visible: true,
+                timeout: init.timeout,
             });
             const value = await page.$eval(
                 'input[name=account-sid]',
@@ -141,7 +146,10 @@ describe('Twilio Settings API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            await page.waitForSelector('#errors', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#errors', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const errorMessage = await page.$eval(
                 '#errors',
                 element => element.textContent
@@ -153,6 +161,7 @@ describe('Twilio Settings API', () => {
 
             await page.waitForSelector('input[name=account-sid]', {
                 visible: true,
+                timeout: init.timeout,
             });
             const value = await page.$eval(
                 'input[name=account-sid]',
@@ -201,12 +210,16 @@ describe('Twilio Settings API', () => {
             await init.pageType(page, 'input[name=alert-limit]', '5');
 
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('.ball-beat', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.waitForSelector('.ball-beat', { hidden: true });
             await page.reload();
 
             await page.waitForSelector('input[name=account-sid]', {
                 visible: true,
+                timeout: init.timeout,
             });
             const value = await page.$eval(
                 'input[name=account-sid]',
@@ -238,6 +251,7 @@ describe('Twilio Settings API', () => {
             await init.pageClick(page, '#verify');
             await page.waitForSelector('#smsVerificationErrors', {
                 visible: true,
+                timeout: init.timeout,
             });
             const message = await page.$eval(
                 '#smsVerificationErrors',
@@ -265,6 +279,7 @@ describe('Twilio Settings API', () => {
             await init.pageType(page, 'input[type=tel]', phoneNumber);
             await page.waitForSelector('#sendVerificationSMS', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#sendVerificationSMS');
             await page.waitForSelector('#otp');
@@ -272,6 +287,7 @@ describe('Twilio Settings API', () => {
             await init.pageClick(page, '#verify');
             await page.waitForSelector('#successMessage', {
                 visible: true,
+                timeout: init.timeout,
             });
             const message = await page.$eval(
                 '#successMessage',
@@ -306,6 +322,7 @@ describe('Twilio Settings API', () => {
             });
             await page.waitForSelector('#sendVerificationSMS', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#sendVerificationSMS');
             await page.waitForSelector('#otp');
@@ -313,6 +330,7 @@ describe('Twilio Settings API', () => {
             await init.pageClick(page, '#verify');
             await page.waitForSelector('#successMessage', {
                 visible: true,
+                timeout: init.timeout,
             });
             const message = await page.$eval(
                 '#successMessage',

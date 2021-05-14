@@ -56,7 +56,10 @@ describe('Monitor Detail API', () => {
             await page.waitForSelector(importFileSelector);
             await init.pageClick(page, importFileSelector);
 
-            await page.waitForSelector('#fileInput', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#fileInput', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const input = await page.$('#fileInput');
             await input.uploadFile(csvFile);
             await input.evaluate(upload =>
@@ -94,7 +97,10 @@ describe('Monitor Detail API', () => {
             await page.waitForSelector(importFileSelector);
             await init.pageClick(page, importFileSelector);
 
-            await page.waitForSelector('#fileInput', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#fileInput', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const input = await page.$('#fileInput');
             await input.uploadFile(emptyFile);
             await input.evaluate(upload =>
@@ -127,7 +133,10 @@ describe('Monitor Detail API', () => {
             await page.waitForSelector(importFileSelector);
             await init.pageClick(page, importFileSelector);
 
-            await page.waitForSelector('#fileInput', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#fileInput', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const input = await page.$('#fileInput');
             await input.uploadFile(csvFile);
             await input.evaluate(upload =>
@@ -164,7 +173,10 @@ describe('Monitor Detail API', () => {
             await page.waitForSelector(importFileSelector);
             await init.pageClick(page, importFileSelector);
 
-            await page.waitForSelector('#fileInput', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#fileInput', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const input = await page.$('#fileInput');
             await input.uploadFile(existingSubscribers);
             await input.evaluate(upload =>

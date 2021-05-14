@@ -43,15 +43,28 @@ describe('Custom SMTP Settings', () => {
             });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#more', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#email', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#email', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#email');
-            await page.waitForSelector('#showsmtpForm', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#showsmtpForm', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#showsmtpForm');
-            await page.waitForSelector('#user', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#user', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#user');
             await init.pageType(page, '#user', smtpData.user);
             await init.pageClick(page, '#pass');
@@ -69,7 +82,10 @@ describe('Custom SMTP Settings', () => {
 
             await page.waitForSelector('.ball-beat', { hidden: true });
             await page.reload();
-            await page.waitForSelector('#host', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#host', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const host = await page.$eval('#host', elem => elem.value);
             expect(host).toEqual(smtpData.host);
 
@@ -86,21 +102,37 @@ describe('Custom SMTP Settings', () => {
             });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#more', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#email', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#email', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#email');
             const from = 'test@fyipe.com';
-            await page.waitForSelector('#from', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#from', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#from', { clickCount: 3 });
             await init.pageType(page, '#from', from);
             await init.pageClick(page, '#saveSmtp');
-            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('.ball-beat', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.waitForSelector('.ball-beat', { hidden: true });
             await page.reload();
-            await page.waitForSelector('#from', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#from', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const fromVal = await page.$eval('#from', elem => elem.value);
             expect(fromVal).toEqual(from);
 
@@ -117,19 +149,30 @@ describe('Custom SMTP Settings', () => {
             });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#more', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#email', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#email', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#email');
-            await page.waitForSelector('#port', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#port', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const port = await page.$('#port');
             await port.click({ clickCount: 3 });
             await port.press('Backspace'); // clear out the input field
             await init.pageClick(page, '#saveSmtp');
             await page.waitForSelector('#field-error', {
                 visible: true,
+                timeout: init.timeout,
             });
             const errorMessage = await page.$eval(
                 '#field-error',
@@ -152,19 +195,31 @@ describe('Custom SMTP Settings', () => {
             });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#more', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#email', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#email', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#email');
             await page.waitForSelector('label[id=showsmtpForm]', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.waitForSelector('label[id=enableSecureTransport]', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#saveSmtp', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#saveSmtp', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'label[id=enableSecureTransport]');
             await init.pageClick(page, 'label[id=showsmtpForm]');
             await init.pageClick(page, '#saveSmtp');
@@ -185,13 +240,23 @@ describe('Custom SMTP Settings', () => {
             });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#more', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#email', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#email', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#email');
-            await page.waitForSelector('#saveSmtp', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#saveSmtp', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#saveSmtp');
             const error = await page.waitForSelector('#errorInfo', {
                 hidden: true,

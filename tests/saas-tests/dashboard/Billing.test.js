@@ -59,6 +59,7 @@ describe('Project Setting: Change Plan', () => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#billing');
@@ -107,6 +108,7 @@ describe('Project Setting: Change Plan', () => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#billing');
@@ -175,6 +177,7 @@ describe('Project Setting: Change Plan', () => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#billing');
@@ -279,11 +282,15 @@ describe('Member Restriction', () => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#billing');
             await init.pageClick(page, '#billing');
-            await page.waitForSelector('#alertEnable', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#alertEnable', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval('#alertEnable', checkbox => checkbox.click);
             await init.pageClick(page, '#alertOptionSave');
             const unauthorisedModal = await page.waitForSelector(
@@ -303,6 +310,7 @@ describe('Member Restriction', () => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#billing');
@@ -328,12 +336,14 @@ describe('Member Restriction', () => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#billing');
             await init.pageClick(page, '#billing');
             await page.waitForSelector('input#Startup_month', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, 'input#Startup_month');
             await init.pageClick(page, '#changePlanBtn');

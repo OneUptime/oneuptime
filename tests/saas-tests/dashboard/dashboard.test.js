@@ -42,7 +42,10 @@ describe('Monitor API', () => {
         await page.waitForSelector('#deleteMonitor');
         await init.pageClick(page, '#deleteMonitor');
 
-        await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
+        await page.waitForSelector('.ball-beat', {
+            visible: true,
+            timeout: init.timeout,
+        });
         await page.waitForSelector('.ball-beat', { hidden: true });
 
         // delete component
@@ -81,18 +84,27 @@ describe('Monitor API', () => {
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component');
-            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', componentName);
             await init.pageClick(page, '#addComponentButton');
 
-            await page.waitForSelector('#monitors', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#monitors', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'domcontentloaded',
             });
 
-            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#components');
 
             let spanElement;
@@ -123,14 +135,21 @@ describe('Monitor API', () => {
             await init.pageClick(page, `#more-details-${componentName}`);
             await page.waitForSelector('#form-new-monitor', {
                 visible: true,
+                timeout: init.timeout,
             });
 
             // Fill and submit New Monitor form
-            await init.pageClick(page, 'input[id=name]', { visible: true, timeout: init.timeout });
+            await init.pageClick(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#url', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await init.pageClick(page, 'button[type=submit]');
@@ -164,13 +183,20 @@ describe('Monitor API', () => {
             await init.pageClick(page, `#more-details-${componentName}`);
             await page.waitForSelector('#form-new-monitor', {
                 visible: true,
+                timeout: init.timeout,
             });
             // Submit New Monitor form with incorrect details
-            await init.pageClick(page, 'input[id=name]', { visible: true, timeout: init.timeout });
+            await init.pageClick(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', '');
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#url', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await init.pageClick(page, 'button[type=submit]');

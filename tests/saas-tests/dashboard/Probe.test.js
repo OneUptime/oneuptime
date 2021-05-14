@@ -41,7 +41,10 @@ describe('API test', () => {
             await init.pageClick(page, '#more');
             await page.waitForSelector('#probe');
             await init.pageClick(page, '#probe a');
-            await page.waitForSelector('#probe_0', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#probe_0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const elementHandle = await page.$('#offline_0 > span > span');
             if (elementHandle) {
                 // Probe is offline

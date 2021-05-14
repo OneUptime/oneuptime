@@ -41,12 +41,17 @@ describe('Fyipe Page Reload', () => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#performanceTracker', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#performanceTracker');
             await page.waitForSelector('#form-new-performance-tracker', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('input[name=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[name=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageType(
                 page,
                 'input[name=name]',
@@ -54,6 +59,7 @@ describe('Fyipe Page Reload', () => {
             );
             await page.waitForSelector('#addPerformanceTrackerButton', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addPerformanceTrackerButton');
             let spanElement;
@@ -67,12 +73,15 @@ describe('Fyipe Page Reload', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.waitForSelector('#cbPerformanceTracker', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.waitForSelector(`#cb${performanceTrackerName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
 
             spanElement = await page.waitForSelector(

@@ -39,15 +39,23 @@ describe('Fyipe Page Reload', () => {
         'Should reload the error tracker page and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#errorTracking', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#errorTracking', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#errorTracking');
             await page.waitForSelector('#form-new-error-tracker', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('input[name=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[name=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageType(page, 'input[name=name]', errorTrackerName);
             await page.waitForSelector('#addErrorTrackerButton', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addErrorTrackerButton');
             let spanElement;
@@ -61,10 +69,15 @@ describe('Fyipe Page Reload', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#cbErrorTracking', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#cbErrorTracking', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.waitForSelector(`#cb${errorTrackerName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
 
             spanElement = await page.waitForSelector(

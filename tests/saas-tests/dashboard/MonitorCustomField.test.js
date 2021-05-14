@@ -63,11 +63,18 @@ describe('Monitor Custom Field', () => {
             });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#more', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#monitor');
             await page.reload({
                 waitUntil: 'networkidle2',
@@ -76,10 +83,12 @@ describe('Monitor Custom Field', () => {
 
             await page.waitForSelector('#editCustomField_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#editCustomField_0');
             await page.waitForSelector('#customFieldForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#fieldName', { clickCount: 3 });
             await init.pageType(
@@ -115,11 +124,18 @@ describe('Monitor Custom Field', () => {
             });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#more', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#monitor');
             await page.reload({
                 waitUntil: 'networkidle2',
@@ -128,10 +144,12 @@ describe('Monitor Custom Field', () => {
 
             await page.waitForSelector('#deleteCustomField_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteCustomField_0');
             await page.waitForSelector('#deleteCustomFieldModalBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteCustomFieldModalBtn');
             await page.waitForSelector('#deleteCustomFieldModalBtn', {

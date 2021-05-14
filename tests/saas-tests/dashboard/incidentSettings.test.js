@@ -90,6 +90,7 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, '#incidentSettings');
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.incident-priority-tab', elems =>
                 elems[0].click()
@@ -245,6 +246,7 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, '#incidentSettings');
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.incident-priority-tab', elems =>
                 elems[0].click()
@@ -253,6 +255,7 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, '#priorityDelete_High_0');
             await page.waitForSelector('#RemoveIncidentPriority', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#RemoveIncidentPriority');
             const deletedPriority = await page.waitForSelector(
@@ -280,6 +283,7 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, '#incidentSettings');
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.incident-priority-tab', elems =>
                 elems[0].click()
@@ -295,6 +299,7 @@ describe('Incident Settings API', () => {
             });
             await page.waitForSelector('#incidentPrioritiesList', {
                 visible: true,
+                timeout: init.timeout,
             });
             // Set the new Priority as Default
             await init.pageClick(
@@ -307,6 +312,7 @@ describe('Incident Settings API', () => {
             await page.reload({ waitUntil: 'networkidle0' });
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.incident-priority-tab', elems =>
                 elems[0].click()

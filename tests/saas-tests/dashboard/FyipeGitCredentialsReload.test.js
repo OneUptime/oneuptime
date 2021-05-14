@@ -52,8 +52,14 @@ describe('Fyipe Page Reload', () => {
             expect(spanElement).toBeDefined();
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbProjectSettings', { visible: true, timeout: init.timeout });
-            await page.waitForSelector('#cbGitCredentials', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#cbProjectSettings', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await page.waitForSelector('#cbGitCredentials', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const spanElement2 = await page.waitForSelector(
                 `#gitUsername_${gitUsername}`
             );

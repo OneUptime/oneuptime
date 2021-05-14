@@ -44,8 +44,12 @@ describe('Fyipe Monitor Reload', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#cbMonitors', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#cbMonitors', {
+                visible: true,
+                timeout: init.timeout,
+            });
 
             let spanElement = await page.waitForSelector(
                 `#monitor-title-${monitorName}`,
@@ -72,9 +76,16 @@ describe('Fyipe Monitor Reload', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#cbMonitors', { visible: true, timeout: init.timeout });
-            await page.waitForSelector(`#cb${monitorName}`, { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#cbMonitors', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await page.waitForSelector(`#cb${monitorName}`, {
+                visible: true,
+                timeout: init.timeout,
+            });
 
             let spanElement = await page.waitForSelector(
                 `#monitor-title-${monitorName}`,

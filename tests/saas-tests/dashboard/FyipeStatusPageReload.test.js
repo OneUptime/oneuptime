@@ -46,7 +46,10 @@ describe('Fyipe Page Reload', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#statusPages', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#statusPages', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval('#statusPages', e => e.click());
             const rowItem = await page.waitForSelector(
                 '#statusPagesListContainer > tr',
@@ -54,26 +57,40 @@ describe('Fyipe Page Reload', () => {
             );
             rowItem.click();
 
-            await page.waitForSelector('#addMoreMonitors', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#addMoreMonitors', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#addMoreMonitors');
-            await page.waitForSelector('#monitor-0', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#monitor-0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.selectByText(
                 '#monitor-0 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
             );
             await init.pageClick(page, '#btnAddStatusPageMonitors');
-            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('.ball-beat', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbStatusPages', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#cbStatusPages', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.waitForSelector(`#cb${statusPageName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             const elem = await page.waitForSelector('#monitor-0', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(elem).toBeDefined();
 

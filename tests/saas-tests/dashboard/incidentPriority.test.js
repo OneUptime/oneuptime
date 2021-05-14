@@ -47,6 +47,7 @@ describe('Incident Priority API', () => {
 
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.incident-priority-tab', elems =>
                 elems[0].click()
@@ -83,6 +84,7 @@ describe('Incident Priority API', () => {
 
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.incident-priority-tab', elems =>
                 elems[0].click()
@@ -101,6 +103,7 @@ describe('Incident Priority API', () => {
             });
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.incident-priority-tab', elems =>
                 elems[0].click()
@@ -134,6 +137,7 @@ describe('Incident Priority API', () => {
 
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.incident-priority-tab', elems =>
                 elems[0].click()
@@ -155,6 +159,7 @@ describe('Incident Priority API', () => {
 
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.incident-priority-tab', elems =>
                 elems[0].click()
@@ -186,6 +191,7 @@ describe('Incident Priority API', () => {
 
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.incident-priority-tab', elems =>
                 elems[0].click()
@@ -212,6 +218,7 @@ describe('Incident Priority API', () => {
 
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.incident-priority-tab', elems =>
                 elems[0].click()
@@ -244,6 +251,7 @@ describe('Incident Priority API', () => {
 
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.incident-priority-tab', elems =>
                 elems[0].click()
@@ -251,6 +259,7 @@ describe('Incident Priority API', () => {
             // default priority
             await page.waitForSelector('#priority_High_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             const incidentPrioritiesCountIdentifier =
                 '#incidentPrioritiesCount';
@@ -284,6 +293,7 @@ describe('Incident Priority API', () => {
 
             await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.incident-priority-tab', elems =>
                 elems[0].click()
@@ -292,6 +302,7 @@ describe('Incident Priority API', () => {
             // default priority
             await page.waitForSelector('#priority_High_0', {
                 visible: true,
+                timeout: init.timeout,
             });
 
             await page.waitForSelector('#btnNext');

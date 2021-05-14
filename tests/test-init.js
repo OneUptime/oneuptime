@@ -48,10 +48,12 @@ const _this = {
             await _this.pageClick(page, 'button[type=submit]');
             await page.waitForSelector(`form#card-form`, {
                 visible: true,
+                timeout: _this.timeout,
             });
 
             await page.waitForSelector('.__PrivateStripeElement > iframe', {
                 visible: true,
+                timeout: _this.timeout,
             });
             const stripeIframeElements = await page.$$(
                 '.__PrivateStripeElement > iframe'
@@ -255,7 +257,10 @@ const _this = {
         await page.goto(utils.ADMIN_DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
-        await page.waitForSelector('button#profile-menu', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('button#profile-menu', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, 'button#profile-menu');
         await page.waitForSelector('button#logout-button');
         await _this.pageClick(page, 'button#logout-button');
@@ -263,7 +268,10 @@ const _this = {
     },
     saasLogout: async function(page) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
-        await page.waitForSelector('button#profile-menu', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('button#profile-menu', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, 'button#profile-menu');
         await page.waitForSelector('button#logout-button');
         await _this.pageClick(page, 'button#logout-button');
@@ -291,22 +299,37 @@ const _this = {
         await _this.pageClick(page, '#btnCreateProject');
     },
     addMonitor: async function(monitorName, description, page) {
-        await page.waitForSelector('#form-new-monitor', { visible: true, timeout: _this.timeout });
-        await page.waitForSelector('input[id=name]', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#form-new-monitor', {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await page.waitForSelector('input[id=name]', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
         await _this.pageType(page, 'input[id=name]', monitorName);
         await _this.pageClick(page, '[data-testId=type_manual]');
-        await page.waitForSelector('#description', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#description', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, '#description');
         await _this.pageType(page, '#description', description);
         await _this.pageClick(page, 'button[type=submit]');
-        await page.waitForSelector(`#cb${monitorName}`, { visible: true, timeout: _this.timeout });
+        await page.waitForSelector(`#cb${monitorName}`, {
+            visible: true,
+            timeout: _this.timeout,
+        });
     },
     navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
-        await page.waitForSelector('#components', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#components', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, '#components');
 
         // Navigate to details page of component assumed created
@@ -321,7 +344,10 @@ const _this = {
         await page.waitForSelector('#statusPagesListContainer');
         await page.waitForSelector('#viewStatusPage');
         await _this.pageClick(page, '#viewStatusPage');
-        await page.waitForSelector('#addMoreMonitors');
+        await page.waitForSelector('#addMoreMonitors', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, '#addMoreMonitors');
         await _this.selectByText(
             'ul > li:last-of-type #monitor-name',
@@ -360,7 +386,10 @@ const _this = {
     },
     growthPlanUpgrade: async function(page) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
-        await page.waitForSelector('#projectSettings', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#projectSettings', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, '#projectSettings');
         await page.waitForSelector('#billing');
         await _this.pageClick(page, '#billing');
@@ -372,7 +401,10 @@ const _this = {
         await page.waitForSelector('.ball-beat', { hidden: true });
     },
     gotoTab: async function(tabId, page) {
-        await page.waitForSelector(`#react-tabs-${tabId}`, { visible: true, timeout: _this.timeout });
+        await page.waitForSelector(`#react-tabs-${tabId}`, {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await page.$eval(`#react-tabs-${tabId}`, e => e.click());
     },
     themeNavigationAndConfirmation: async function(page, theme) {
@@ -380,9 +412,15 @@ const _this = {
             visible: true,
         });
         await page.$$eval('.branding-tab', elems => elems[0].click());
-        await page.waitForSelector(`#${theme}`, { visible: true, timeout: _this.timeout });
+        await page.waitForSelector(`#${theme}`, {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, `#${theme}`);
-        await page.waitForSelector('#changePlanBtn', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#changePlanBtn', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, '#changePlanBtn');
         await _this.gotoTab(0, page);
     },
@@ -422,7 +460,10 @@ const _this = {
         await _this.pageType(page, 'input[name=email]', email);
         await _this.pageClick(page, 'input[name=password]');
         await _this.pageType(page, 'input[name=password]', password);
-        await page.waitForSelector('button[type=submit]', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('button[type=submit]', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await Promise.all([
             page.waitForNavigation({ waitUntil: 'networkidle2' }),
             _this.pageClick(page, 'button[type=submit]'),
@@ -436,7 +477,10 @@ const _this = {
         await page.goto(utils.ADMIN_DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
-        await page.waitForSelector('button#profile-menu', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('button#profile-menu', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, 'button#profile-menu');
         await page.waitForSelector('button#logout-button');
         await _this.pageClick(page, 'button#logout-button');
@@ -444,7 +488,10 @@ const _this = {
     },
     addComponent: async function(component, page, projectName = null) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
-        await page.waitForSelector('#components', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#components', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, '#components');
 
         // Fill and submit New Component form
@@ -547,7 +594,10 @@ const _this = {
         page.waitForSelector('#name', { timeout: 2000 });
         await _this.pageType(page, '#name', callSchedule);
         await _this.pageClick(page, '#btnCreateSchedule');
-        await page.waitForSelector(`#duty_${callSchedule}`, { visible: true, timeout: _this.timeout });
+        await page.waitForSelector(`#duty_${callSchedule}`, {
+            visible: true,
+            timeout: _this.timeout,
+        });
     },
     addSubProject: async function(subProjectName, page) {
         const subProjectNameSelector = await page.$('#btn_Add_SubProjects');
@@ -582,11 +632,17 @@ const _this = {
     },
     switchProject: async function(projectName, page) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
-        await page.waitForSelector('#AccountSwitcherId', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#AccountSwitcherId', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, '#AccountSwitcherId');
         await page.waitForSelector(`#accountSwitcher div#${projectName}`);
         await _this.pageClick(page, `#accountSwitcher div#${projectName}`);
-        await page.waitForSelector('#components', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#components', {
+            visible: true,
+            timeout: _this.timeout,
+        });
     },
     addMonitorToComponent: async function(component, monitorName, page) {
         component && (await _this.addComponent(component, page));
@@ -597,7 +653,10 @@ const _this = {
         await page.waitForSelector('button[id=showMoreMonitors]');
         await _this.pageClick(page, 'button[id=showMoreMonitors]');
         await _this.pageClick(page, '[data-testId=type_url]');
-        await page.waitForSelector('#url', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#url', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, '#url');
         await _this.pageType(page, '#url', 'https://google.com');
         await _this.pageClick(page, 'button[type=submit]');
@@ -620,7 +679,10 @@ const _this = {
         await page.focus('input[id=name]');
         await _this.pageType(page, 'input[id=name]', monitorName);
         await _this.pageClick(page, '[data-testId=type_url]');
-        await page.waitForSelector('#url', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#url', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, '#url');
         await _this.pageType(page, '#url', 'https://google.com');
         await _this.pageClick(page, 'button[type=submit]');
@@ -645,7 +707,10 @@ const _this = {
         await _this.pageType(page, 'input[id=name]', monitorName);
         await _this.pageClick(page, 'input[data-testId=type_api]');
         await _this.selectByText('#method', 'get', page);
-        await page.waitForSelector('#url', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#url', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, '#url');
         await _this.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
         await page.waitForSelector('#advanceOptions');
@@ -698,6 +763,7 @@ const _this = {
 
             await page.waitForSelector('input[name^=createAlert_up]', {
                 visible: true,
+                timeout: _this.timeout,
             });
             await page.$eval('input[name^=createAlert_up]', element =>
                 element.click()
@@ -971,7 +1037,10 @@ const _this = {
                 delay: 150,
             });
         }
-        await page.waitForSelector('#btnCreateProject', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#btnCreateProject', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await Promise.all([
             _this.pageClick(page, '#btnCreateProject'),
             page.waitForNavigation({ waitUntil: 'networkidle2' }),
@@ -1090,7 +1159,10 @@ const _this = {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
-        await page.waitForSelector('#components', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#components', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, '#components');
         await page.waitForSelector(`#view-resource-${monitorName}`, {
             visible: true,
@@ -1109,7 +1181,10 @@ const _this = {
             );
         }
         await _this.pageClick(page, '#createIncident');
-        await page.waitForSelector('.ball-beat', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('.ball-beat', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await page.waitForSelector('.ball-beat', { hidden: true });
     },
     addTwilioSettings: async function(
@@ -1206,7 +1281,10 @@ const _this = {
             e.checked = secure;
         });
         await _this.pageClick(page, '#saveSmtp');
-        await page.waitForSelector('.ball-beat', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('.ball-beat', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await page.waitForSelector('.ball-beat', { hidden: true });
         await page.reload();
         await page.waitForSelector('#user');
@@ -1257,12 +1335,18 @@ const _this = {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
-        await page.waitForSelector('#projectSettings', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#projectSettings', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, '#projectSettings');
         if (owner === 'monitor') {
             await page.waitForSelector('#more');
             await _this.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true, timeout: _this.timeout });
+            await page.waitForSelector('#monitor', {
+                visible: true,
+                timeout: _this.timeout,
+            });
             await _this.pageClick(page, '#monitor');
             await page.reload({
                 waitUntil: 'networkidle2',
@@ -1271,7 +1355,10 @@ const _this = {
         } else {
             await page.waitForSelector('#more');
             await _this.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings', { visible: true, timeout: _this.timeout });
+            await page.waitForSelector('#incidentSettings', {
+                visible: true,
+                timeout: _this.timeout,
+            });
             await _this.pageClick(page, '#incidentSettings');
             await page.reload({
                 waitUntil: 'networkidle2',
@@ -1279,9 +1366,15 @@ const _this = {
             await _this.gotoTab(6, page);
         }
 
-        await page.waitForSelector('#addCustomField', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#addCustomField', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, '#addCustomField');
-        await page.waitForSelector('#customFieldForm', { visible: true, timeout: _this.timeout });
+        await page.waitForSelector('#customFieldForm', {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await _this.pageClick(page, '#fieldName');
         await _this.pageType(page, '#fieldName', data.fieldName);
         await _this.selectByText('#fieldType', data.fieldType, page);
@@ -1290,12 +1383,18 @@ const _this = {
         await page.waitForSelector('#customFieldForm', { visible: 'hidden' });
     },
     pageType: async function(page, selector, text, opts) {
-        await page.waitForSelector(selector, { visible: true, timeout: _this.timeout });
+        await page.waitForSelector(selector, {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await page.focus(selector);
         await page.type(selector, text, opts);
     },
     pageClick: async function(page, selector) {
-        await page.waitForSelector(selector, { visible: true, timeout: _this.timeout });
+        await page.waitForSelector(selector, {
+            visible: true,
+            timeout: _this.timeout,
+        });
         await page.click(selector);
     },
 };

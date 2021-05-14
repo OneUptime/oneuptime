@@ -37,16 +37,28 @@ describe('Project API', () => {
         async done => {
             const projectName = utils.generateRandomString();
             //Login is no longer required as Dashboard page is loaded automatically.
-            await page.waitForSelector('#selector', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#selector', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval('#create-project', e => e.click());
-            await page.waitForSelector('#name', { visible: true, timeout: init.timeout });
-            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#name', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await page.waitForSelector('input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', projectName);
             await init.pageClick(page, 'input[id=Startup_month]');
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector(`#cb${projectName}`, { visible: true, timeout: init.timeout });
+            await page.waitForSelector(`#cb${projectName}`, {
+                visible: true,
+                timeout: init.timeout,
+            });
             // eslint-disable-next-line no-undef
             localStorageData = await page.evaluate(() => {
                 const json = {};

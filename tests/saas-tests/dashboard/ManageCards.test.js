@@ -156,6 +156,7 @@ describe('Stripe cards API', () => {
             await init.pageClick(page, '#addCardButtonSubmit');
             const error = await page.waitForSelector('#cardError', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(error).toBeDefined();
             done();

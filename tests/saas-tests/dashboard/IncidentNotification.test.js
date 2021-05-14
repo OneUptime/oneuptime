@@ -58,6 +58,7 @@ describe('Incident Created test', () => {
             await page.$eval('button[id=btnCreateProject]', e => e.click());
             await page.waitForSelector(`#cb${projectName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
 
             await init.addComponent(componentName, page);
@@ -88,7 +89,10 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#btnResolve_0');
             await page.$eval('#btnResolve_0', e => e.click());
-            await page.waitForSelector('#ResolveText_0', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#ResolveText_0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const closeAllButton = await page.waitForSelector(
                 '#incidents-close-all-btn',
                 { visible: true, timeout: init.timeout }
@@ -185,7 +189,10 @@ describe('Incident Created test', () => {
             await page.$eval('#btnAcknowledge_0', e => e.click());
             await page.waitForSelector('#btnResolve_0');
             await page.$eval('#btnResolve_0', e => e.click());
-            await page.waitForSelector('#ResolveText_0', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#ResolveText_0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.goto(utils.DASHBOARD_URL);
 
             await init.logout(page);
@@ -227,12 +234,18 @@ describe('Incident Created test', () => {
         'Should navigate to incident detail page when the view button is clicked',
         async () => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval('#components', e => e.click());
 
             await page.waitForSelector('button[id=viewIncident-0]');
             await page.$eval('button[id=viewIncident-0]', e => e.click());
-            await page.waitForSelector('#cbIncident', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#cbIncident', {
+                visible: true,
+                timeout: init.timeout,
+            });
             let pageTitle = await page.$('#cbIncident');
             pageTitle = await pageTitle.getProperty('innerText');
             pageTitle = await pageTitle.jsonValue();
@@ -250,6 +263,7 @@ describe('Incident Created test', () => {
             await init.addIncident(monitorName, 'Offline', page, 'Low');
             await page.waitForSelector('#closeIncident_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#closeIncident_0', elem => elem.click());
             const closeButton = await page.waitForSelector('#closeIncident_0', {
@@ -284,6 +298,7 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('span#activeIncidentsText', {
                 visible: true,
+                timeout: init.timeout,
             });
             let activeIncidents = await page.$('span#activeIncidentsText');
             activeIncidents = await activeIncidents.getProperty('innerText');
@@ -310,6 +325,7 @@ describe('Incident Created test', () => {
             await page.waitForSelector('#cbHome');
             let activeIncidents = await page.$('#cbHome', {
                 visible: true,
+                timeout: init.timeout,
             });
             activeIncidents = await activeIncidents.getProperty('innerText');
             activeIncidents = await activeIncidents.jsonValue();

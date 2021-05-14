@@ -9,14 +9,20 @@ const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
 const moveToSsoPage = async page => {
-    await page.waitForSelector('#settings', { visible: true, timeout: init.timeout });
+    await page.waitForSelector('#settings', {
+        visible: true,
+        timeout: init.timeout,
+    });
     await init.pageClick(page, '#settings');
     await page.waitForSelector('#sso');
     await init.pageClick(page, '#sso');
 };
 
 const createSso = async (page, data) => {
-    await page.waitForSelector('#add-sso', { visible: true, timeout: init.timeout });
+    await page.waitForSelector('#add-sso', {
+        visible: true,
+        timeout: init.timeout,
+    });
     await init.pageClick(page, '#add-sso');
     await page.waitForSelector('#save-button');
 

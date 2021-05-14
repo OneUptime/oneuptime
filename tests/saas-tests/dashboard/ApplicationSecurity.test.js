@@ -49,17 +49,25 @@ describe('Application Security Page', () => {
             //navigate to component details
             await init.navigateToComponentDetails(component, page);
 
-            await page.waitForSelector('#security', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#security', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#security');
-            await page.waitForSelector('#application', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#application', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#application');
 
             await page.waitForSelector('#applicationSecurityForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addCredentialBtn');
             await page.waitForSelector('#gitCredentialForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#gitUsername');
             await init.pageType(page, '#gitUsername', gitUsername);
@@ -108,14 +116,26 @@ describe('Application Security Page', () => {
         'should scan an application security',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#components');
 
-            await page.waitForSelector('#component0', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#component0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, `#more-details-${component}`);
-            await page.waitForSelector('#security', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#security', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#security');
-            await page.waitForSelector('#application', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#application', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#application');
             await page.waitForSelector(
                 `#applicationSecurityHeader_${applicationSecurityName}`,
@@ -132,6 +152,7 @@ describe('Application Security Page', () => {
             );
             const issueCount = await page.waitForSelector('#issueCount', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(issueCount).toBeDefined();
 
@@ -144,14 +165,26 @@ describe('Application Security Page', () => {
         'should view details of security log',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#components');
 
-            await page.waitForSelector('#component0', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#component0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, `#more-details-${component}`);
-            await page.waitForSelector('#security', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#security', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#security');
-            await page.waitForSelector('#application', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#application', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#application');
             await page.waitForSelector(
                 `#applicationSecurityHeader_${applicationSecurityName}`,
@@ -163,6 +196,7 @@ describe('Application Security Page', () => {
             );
             const securityLog = await page.waitForSelector('#securityLog', {
                 visible: true,
+                timeout: init.timeout,
             });
 
             expect(securityLog).toBeDefined();
@@ -176,14 +210,26 @@ describe('Application Security Page', () => {
         'should also view details of a security log, on clicking the issue count section',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#components');
 
-            await page.waitForSelector('#component0', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#component0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, `#more-details-${component}`);
-            await page.waitForSelector('#security', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#security', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#security');
-            await page.waitForSelector('#application', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#application', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#application');
             await page.waitForSelector(
                 `#applicationSecurityHeader_${applicationSecurityName}`,
@@ -192,6 +238,7 @@ describe('Application Security Page', () => {
             await init.pageClick(page, '#issueCount');
             const securityLog = await page.waitForSelector('#securityLog', {
                 visible: true,
+                timeout: init.timeout,
             });
 
             expect(securityLog).toBeDefined();
@@ -205,14 +252,26 @@ describe('Application Security Page', () => {
         'should display log(s) of an application security scan',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#components');
 
-            await page.waitForSelector('#component0', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#component0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, `#more-details-${component}`);
-            await page.waitForSelector('#security', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#security', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#security');
-            await page.waitForSelector('#application', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#application', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#application');
             await page.waitForSelector(
                 `#applicationSecurityHeader_${applicationSecurityName}`,
@@ -225,6 +284,7 @@ describe('Application Security Page', () => {
 
             await page.waitForSelector('#securityLog tbody', {
                 visible: true,
+                timeout: init.timeout,
             });
             // make sure the added application security
             // has atleast one security vulnerability
@@ -242,14 +302,26 @@ describe('Application Security Page', () => {
             const newApplicationName = 'AnotherName';
 
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#components');
 
-            await page.waitForSelector('#component0', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#component0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, `#more-details-${component}`);
-            await page.waitForSelector('#security', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#security', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#security');
-            await page.waitForSelector('#application', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#application', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#application');
             await page.waitForSelector(
                 `#applicationSecurityHeader_${applicationSecurityName}`,
@@ -262,10 +334,12 @@ describe('Application Security Page', () => {
 
             await page.waitForSelector(`#edit_${applicationSecurityName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#edit_${applicationSecurityName}`);
             await page.waitForSelector('#editApplicationSecurityForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#name', { clickCount: 3 });
             await init.pageType(page, '#name', newApplicationName);
@@ -291,14 +365,26 @@ describe('Application Security Page', () => {
             const newApplicationName = 'AnotherName';
 
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#components');
 
-            await page.waitForSelector('#component0', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#component0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, `#more-details-${component}`);
-            await page.waitForSelector('#security', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#security', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#security');
-            await page.waitForSelector('#application', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#application', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#application');
             await page.waitForSelector(
                 `#applicationSecurityHeader_${newApplicationName}`,
@@ -310,10 +396,12 @@ describe('Application Security Page', () => {
             );
             await page.waitForSelector('#deleteApplicationSecurityBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteApplicationSecurityBtn');
             await page.waitForSelector('#deleteApplicationSecurityModalBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteApplicationSecurityModalBtn');
             await page.waitForNavigation();

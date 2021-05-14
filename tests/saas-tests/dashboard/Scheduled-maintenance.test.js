@@ -43,25 +43,37 @@ describe('Check scheduled maintenace', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#statusPages', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#statusPages', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#statusPages');
             await page.waitForSelector(`#btnCreateStatusPage_${projectName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#btnCreateStatusPage_${projectName}`);
-            await page.waitForSelector('#name', { visible: true, timeout: init.timeout });
-            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#name', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await page.waitForSelector('input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', statusPageName);
             await init.pageClick(page, '#btnCreateStatusPage');
             await page.waitForSelector('#statusPagesListContainer', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.waitForSelector('#viewStatusPage');
             await init.pageClick(page, '#viewStatusPage');
             await page.waitForSelector(`#header-${statusPageName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
 
             // To confirm the status-page name.
@@ -85,26 +97,42 @@ describe('Check scheduled maintenace', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval('#components', el => el.click());
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', componentName);
             await init.pageClick(page, 'button[type=submit]');
 
             // Create a Manual Monitor
-            await page.waitForSelector('#form-new-monitor', { visible: true, timeout: init.timeout });
-            await init.pageClick(page, 'input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#form-new-monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, '[data-testId=type_manual]');
-            await page.waitForSelector('#description', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#description', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#description');
             await init.pageType(page, '#description', 'My Manual Monitor');
             await init.pageClick(page, 'button[type=submit]');
@@ -130,14 +158,24 @@ describe('Check scheduled maintenace', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#statusPages', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#statusPages', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#statusPages');
             await page.waitForSelector('#statusPagesListContainer', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#viewStatusPage', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#viewStatusPage', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#viewStatusPage');
-            await page.waitForSelector('#addMoreMonitors', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#addMoreMonitors', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#addMoreMonitors');
             await init.selectByText(
                 '#monitor-name',
@@ -155,6 +193,7 @@ describe('Check scheduled maintenace', () => {
 
             await page.waitForSelector('#publicStatusPageUrl', {
                 visible: true,
+                timeout: init.timeout,
             });
             let link = await page.$('#publicStatusPageUrl > span > a');
             link = await link.getProperty('href');
@@ -184,17 +223,23 @@ describe('Check scheduled maintenace', () => {
 
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
             await page.waitForSelector('#addScheduledEventButton', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addScheduledEventButton');
 
             await page.waitForSelector('#scheduledEventForm', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#name', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#name', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', scheduledMaintenanceName);
 
@@ -206,6 +251,7 @@ describe('Check scheduled maintenace', () => {
             );
             await page.waitForSelector('input[name=startDate]', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, 'input[name=startDate]');
             await init.pageClick(
@@ -262,16 +308,24 @@ describe('Check scheduled maintenace', () => {
     test(
         'should view scheduled maintenance details in status-page',
         async done => {
-            await page.waitForSelector('#statusPages', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#statusPages', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#statusPages');
             await page.waitForSelector('#statusPagesListContainer', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#viewStatusPage', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#viewStatusPage', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#viewStatusPage');
 
             await page.waitForSelector('#publicStatusPageUrl', {
                 visible: true,
+                timeout: init.timeout,
             });
             let link = await page.$('#publicStatusPageUrl > span > a');
             link = await link.getProperty('href');
@@ -300,7 +354,10 @@ describe('Check scheduled maintenace', () => {
             expect(eventDescription).toMatch(scheduledMaintenanceDescription);
 
             // To confirm scheduled maintenance date
-            await page.waitForSelector('#event-date', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#event-date', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const eventDate = await page.$eval(
                 '#event-date',
                 elem => elem.textContent
@@ -308,7 +365,10 @@ describe('Check scheduled maintenace', () => {
             expect(eventDate).toBeDefined();
 
             // To confirm this is a future scheduled maintenance
-            await page.waitForSelector('#ongoing-event', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#ongoing-event', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const futureEvent = await page.$eval(
                 '#ongoing-event',
                 elem => elem.textContent

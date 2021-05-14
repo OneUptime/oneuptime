@@ -40,13 +40,23 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#more');
             await init.pageClick(page, '#email');
-            await page.waitForSelector('#showsmtpForm', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#showsmtpForm', {
+                visible: true,
+                timeout: init.timeout,
+            });
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbProjectSettings', { visible: true, timeout: init.timeout });
-            await page.waitForSelector('#cbEmail', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#cbProjectSettings', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await page.waitForSelector('#cbEmail', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const spanElement = await page.waitForSelector('#showsmtpForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(spanElement).toBeDefined();
             done();

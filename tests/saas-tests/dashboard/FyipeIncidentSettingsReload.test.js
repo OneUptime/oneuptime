@@ -49,9 +49,13 @@ describe('Fyipe Page Reload', () => {
 
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbProjectSettings', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#cbProjectSettings', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const spanElement = await page.waitForSelector('#cbIncidents', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(spanElement).toBeDefined();
             done();

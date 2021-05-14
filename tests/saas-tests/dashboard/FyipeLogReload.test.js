@@ -39,15 +39,23 @@ describe('Fyipe Page Reload', () => {
         'Should reload the component logs page and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#logs', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#logs', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#logs');
             await page.waitForSelector('#form-new-application-log', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('input[name=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[name=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageType(page, 'input[name=name]', logName);
             await page.waitForSelector('#addApplicationLogButton', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addApplicationLogButton');
             let spanElement;
@@ -61,9 +69,16 @@ describe('Fyipe Page Reload', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#cbLogs', { visible: true, timeout: init.timeout });
-            await page.waitForSelector(`#cb${logName}`, { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#cbLogs', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await page.waitForSelector(`#cb${logName}`, {
+                visible: true,
+                timeout: init.timeout,
+            });
 
             spanElement = await page.waitForSelector(
                 '#application-content-header',

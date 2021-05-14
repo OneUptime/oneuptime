@@ -51,15 +51,18 @@ describe('Scheduled event', () => {
             });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
             await page.waitForSelector('#addScheduledEventButton', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addScheduledEventButton');
 
             await page.waitForSelector('#scheduledEventForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.waitForSelector('#name');
             await init.pageClick(page, '#name');
@@ -94,6 +97,7 @@ describe('Scheduled event', () => {
             await init.pageClick(page, '#createScheduledEventButton');
             const monitorError = await page.waitForSelector('#monitorError', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(monitorError).toBeDefined();
             done();
@@ -109,15 +113,18 @@ describe('Scheduled event', () => {
             });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
             await page.waitForSelector('#addScheduledEventButton', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addScheduledEventButton');
 
             await page.waitForSelector('#scheduledEventForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.waitForSelector('#name');
             await init.pageClick(page, '#name');
@@ -152,6 +159,7 @@ describe('Scheduled event', () => {
             });
             await page.waitForSelector('.scheduled-event-list-item', {
                 visible: true,
+                timeout: init.timeout,
             });
             const scheduledMaintenanceList = await page.$$(
                 '.scheduled-event-list-item'
@@ -171,11 +179,13 @@ describe('Scheduled event', () => {
             });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
             //Refactored UI
             await page.waitForSelector('#viewScheduledEvent_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
             await page.waitForSelector(
@@ -191,6 +201,7 @@ describe('Scheduled event', () => {
 
             await page.waitForSelector('#editScheduledEventForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.waitForSelector('#name');
             await init.pageClick(page, '#name', { clickCount: 3 });
@@ -205,11 +216,13 @@ describe('Scheduled event', () => {
             });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
 
             await page.waitForSelector('.scheduled-event-name', {
                 visible: true,
+                timeout: init.timeout,
             });
             const eventName = await page.evaluate(
                 () =>
@@ -231,15 +244,18 @@ describe('Scheduled event', () => {
             });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
             //Refactored UI
             await page.waitForSelector('#viewScheduledEvent_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
             await page.waitForSelector('.advanced-options-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.advanced-options-tab', elems =>
                 elems[0].click()
@@ -247,10 +263,12 @@ describe('Scheduled event', () => {
 
             await page.waitForSelector('#deleteScheduleEvent', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteScheduleEvent');
             await page.waitForSelector('#deleteScheduleModalBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteScheduleModalBtn');
             await page.waitForSelector('#deleteScheduleModalBtn', {

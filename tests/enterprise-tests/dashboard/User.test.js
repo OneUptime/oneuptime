@@ -45,13 +45,18 @@ describe('Users', () => {
             await browserPage.bringToFront();
             await browserPage.waitForSelector(`#${user.email.split('@')[0]}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(browserPage, `#${user.email.split('@')[0]}`);
-            await browserPage.waitForSelector('#delete', { visible: true, timeout: init.timeout });
+            await browserPage.waitForSelector('#delete', {
+                visible: true,
+                timeout: init.timeout,
+            });
 
             await init.pageClick(browserPage, '#delete');
             await browserPage.waitForSelector('#confirmDelete', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(browserPage, '#confirmDelete');
             await browserPage.waitForSelector('#confirmDelete', {
@@ -61,7 +66,10 @@ describe('Users', () => {
             await page.bringToFront();
             await page.waitForSelector('#statusPages');
             await init.pageClick(page, '#statusPages');
-            await page.waitForSelector('#login-button', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#login-button', {
+                visible: true,
+                timeout: init.timeout,
+            });
             done();
         },
         operationTimeOut
@@ -77,10 +85,14 @@ describe('Users', () => {
             );
             await init.pageClick(page, `#deleted__${user.email.split('@')[0]}`);
 
-            await page.waitForSelector('#restore', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#restore', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#restore');
             const delBtn = await page.waitForSelector('#delete', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(delBtn).toBeDefined();
             done();

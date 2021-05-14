@@ -52,6 +52,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageClick(page, 'button[id=btnCreateProject]');
             await page.waitForSelector(`#cb${projectName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
 
             // Invite member on the project

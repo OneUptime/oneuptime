@@ -65,11 +65,13 @@ describe('Project Settings', () => {
             await init.registerAndLoggingTeamMember(memberUser, page);
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('input[name=project_name]');
             await page.waitForSelector('#btnCreateProject', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#btnCreateProject');
             const unauthorisedModal = await page.waitForSelector(
@@ -91,25 +93,30 @@ describe('Project Settings', () => {
             // click on settings
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             // click on advanced
             await page.waitForSelector('#advanced', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#advanced');
             // click on delete button
             await page.waitForSelector(`#delete-${newProjectName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#delete-${newProjectName}`);
             // confirm the delete modal comes up and the form is available
             await page.waitForSelector('#btnDeleteProject', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#btnDeleteProject');
             await page.waitForSelector(`#delete-project-form`, {
                 visible: true,
+                timeout: init.timeout,
             });
             // fill the feedback form
             await init.pageClick(page, `textarea[id=feedback]`);
@@ -121,6 +128,7 @@ describe('Project Settings', () => {
             // click submit button
             await page.waitForSelector('#btnDeleteProject', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#btnDeleteProject');
 
@@ -165,6 +173,7 @@ describe('Project Settings', () => {
             const parentContainer = '#accountSwitcher';
             await page.waitForSelector(parentContainer, {
                 visible: true,
+                timeout: init.timeout,
             });
             const childCount = await page.$eval(
                 parentContainer,

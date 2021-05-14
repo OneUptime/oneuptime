@@ -73,10 +73,14 @@ describe('BreadCrumb Component test', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#cbUnnamedProject', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#cbUnnamedProject', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#cbUnnamedProject');
             let currentPage = await page.waitForSelector('#cbUnnamedProject', {
                 visible: true,
+                timeout: init.timeout,
             });
             currentPage = await currentPage.getProperty('innerText');
             currentPage = await currentPage.jsonValue();

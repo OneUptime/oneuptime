@@ -134,7 +134,10 @@ describe('Team API With SubProjects', () => {
             });
             const role = 'Member';
 
-            await page.waitForSelector('#teamMembers', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#teamMembers', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#teamMembers');
             await page.waitForSelector(`#btn_${subProjectName}`);
             await init.pageClick(page, `#btn_${subProjectName}`);
@@ -201,6 +204,7 @@ describe('Team API With SubProjects', () => {
             await init.pageClick(page, '#teamMembers');
             await page.waitForSelector(`#removeMember__${emailSelector}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#removeMember__${emailSelector}`);
             await page.waitForSelector('#removeTeamUser');

@@ -89,6 +89,7 @@ describe('Monitor Detail API', () => {
             await page.$eval('#createIncident', e => e.click());
             await page.waitForSelector('#closeIncident_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#closeIncident_0', elem => elem.click());
 
@@ -102,6 +103,7 @@ describe('Monitor Detail API', () => {
 
             await page.waitForSelector(`#name_${priorityName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             const selector1 = `#name_${priorityName}`;
             const rowContent = await page.$eval(selector1, e => e.textContent);
@@ -127,6 +129,7 @@ describe('Monitor Detail API', () => {
             const incidentTitleSelector = '#incidentTitle';
             await page.waitForSelector(incidentTitleSelector, {
                 visible: true,
+                timeout: init.timeout,
             });
             let currentTitle = await page.$eval(
                 incidentTitleSelector,
@@ -233,10 +236,12 @@ describe('Monitor Detail API', () => {
             await page.$eval('#deleteIncidentButton', e => e.click());
             await page.waitForSelector('#confirmDeleteIncident', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#confirmDeleteIncident', e => e.click());
             await page.waitForSelector(`#cb${monitorName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
 
             // click on basic tab
@@ -552,6 +557,7 @@ describe('Monitor Detail API', () => {
 
             await page.waitForSelector('#btnNextMsTeams', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#btnNextMsTeams', elem => elem.click());
             await page.waitForSelector('.ball-beat', { hidden: true });
@@ -563,6 +569,7 @@ describe('Monitor Detail API', () => {
 
             await page.waitForSelector('#btnPrevMsTeams', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#btnPrevMsTeams', elem => elem.click());
             await page.waitForSelector('.ball-beat', { hidden: true });
@@ -755,7 +762,10 @@ describe('Monitor Detail API', () => {
             const nextSelector = await page.$('#btnNextSlack');
 
             await nextSelector.click();
-            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('.ball-beat', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.waitForSelector(createdWebhookSelector);
@@ -768,7 +778,10 @@ describe('Monitor Detail API', () => {
             const prevSelector = await page.$('#btnPrevSlack');
 
             await prevSelector.click();
-            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('.ball-beat', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.waitForSelector(createdWebhookSelector);
@@ -877,9 +890,13 @@ describe('Monitor Detail API', () => {
 
             await page.waitForSelector('#btnNextWebhook', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#btnNextWebhook', elem => elem.click());
-            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('.ball-beat', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.waitForSelector(createdWebhookSelector);
@@ -889,6 +906,7 @@ describe('Monitor Detail API', () => {
 
             await page.waitForSelector('#btnPrevWebhook', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#btnPrevWebhook', elem => elem.click());
             await page.waitForSelector('.ball-beat', { hidden: true });
@@ -912,11 +930,17 @@ describe('Monitor Detail API', () => {
             await page.$eval('input[id=name]', e => e.click());
             await init.pageType(page, 'input[id=name]', urlMonitorName);
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#url', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval('#url', e => e.click());
             await init.pageType(page, '#url', 'https://google.com');
             await page.$eval('button[type=submit]', e => e.click());
-            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('.ball-beat', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             // Navigate to Monitor details
@@ -1166,6 +1190,7 @@ describe('Monitor Detail API', () => {
             const editButtonSelector = `#edit_${monitorName}`;
             await page.waitForSelector(editButtonSelector, {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval(editButtonSelector, e => e.click());
 

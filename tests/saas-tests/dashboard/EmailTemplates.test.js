@@ -123,6 +123,7 @@ describe('Email Templates API', () => {
             );
             const resetBtn = await page.waitForSelector('#templateReset', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(resetBtn).toBeDefined();
 
@@ -150,6 +151,7 @@ describe('Email Templates API', () => {
             );
             await page.waitForSelector('#templateReset', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#templateReset');
             await page.waitForSelector('#ball-beat', { hidden: true });

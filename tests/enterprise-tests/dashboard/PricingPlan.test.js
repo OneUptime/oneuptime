@@ -53,7 +53,10 @@ describe('Status Page', () => {
                 page,
                 'button[type="button"] .bs-FileUploadButton'
             );
-            await page.waitForSelector('#name', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#name', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', pageName);
             await init.pageClick(page, '#btnCreateStatusPage');
@@ -65,6 +68,7 @@ describe('Status Page', () => {
             rowItem.click();
             await page.waitForSelector('.advanced-options-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.advanced-options-tab', elems =>
                 elems[0].click()

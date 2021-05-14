@@ -51,14 +51,21 @@ describe('Fyipe Page Reload', () => {
                 hidden: true,
             });
             await init.pageClick(page, `#${teamMember.split('@')[0]}-profile`);
-            await page.waitForSelector('#cbTeamMembers', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#cbTeamMembers', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.waitForSelector(`#${teamMember.split('@')[0]}`, {
                 visible: true,
+                timeout: init.timeout,
             });
 
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbTeamMembers', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#cbTeamMembers', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const spanElement = await page.waitForSelector(
                 `#${teamMember.split('@')[0]}`,
                 { visible: true, timeout: init.timeout }

@@ -440,7 +440,10 @@ describe('Status page monitors check', function() {
         await page.waitForSelector(monitorDaySelector);
         await page.$eval(monitorDaySelector, e => e.click());
 
-        await page.waitForSelector('li.scheduledEvent', { visible: true, timeout: init.timeout });
+        await page.waitForSelector('li.scheduledEvent', {
+            visible: true,
+            timeout: init.timeout,
+        });
         const scheduledEvents = await page.$$('li.scheduledEvent');
         const countScheduledEvents = scheduledEvents.length;
 

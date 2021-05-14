@@ -133,6 +133,7 @@ describe('SMS Templates API', () => {
             );
             const resetBtn = await page.waitForSelector('#templateReset', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(resetBtn).toBeDefined();
 

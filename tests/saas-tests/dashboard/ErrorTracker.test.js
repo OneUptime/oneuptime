@@ -43,18 +43,25 @@ describe('Error Trackers', () => {
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component');
-            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', componentName);
             await init.pageClick(page, '#addComponentButton');
             await page.waitForSelector('#form-new-monitor', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#components');
 
             let spanElement = await page.waitForSelector(
@@ -77,7 +84,10 @@ describe('Error Trackers', () => {
 
             // Fill and submit New Error tracking form
             await page.waitForSelector('#form-new-error-tracker');
-            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', errorTrackerName);
@@ -109,7 +119,10 @@ describe('Error Trackers', () => {
             // create a new error tracker and select the category
             // Fill and submit New Error Tracker form
             await page.waitForSelector('#form-new-error-tracker');
-            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', newErrorTrackerName);
@@ -120,6 +133,7 @@ describe('Error Trackers', () => {
             // confirm the category shows in the details page.
             await page.waitForSelector(`#${newErrorTrackerName}-badge`, {
                 visible: true,
+                timeout: init.timeout,
             });
             let spanElement = await page.$(`#${newErrorTrackerName}-badge`);
             spanElement = await spanElement.getProperty('innerText');
@@ -139,7 +153,10 @@ describe('Error Trackers', () => {
 
             // Fill and submit New Error Tracker form
             await page.waitForSelector('#form-new-error-tracker');
-            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', '');
@@ -422,6 +439,7 @@ describe('Error Trackers', () => {
 
             await page.waitForSelector(`#${errorTrackerName}-new-badge`, {
                 visible: true,
+                timeout: init.timeout,
             });
             // confirm the new category shows in the details page.
             let spanElement = await page.$(`#${errorTrackerName}-new-badge`);

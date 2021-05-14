@@ -60,10 +60,14 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector('#createSlaBtn', { hidden: true });
             await page.waitForSelector(`#monitorSla_${monitorSlaName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbMonitors', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#cbMonitors', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const spanElement = await page.waitForSelector(
                 `#monitorSla_${monitorSlaName}`,
                 { visible: true, timeout: init.timeout }

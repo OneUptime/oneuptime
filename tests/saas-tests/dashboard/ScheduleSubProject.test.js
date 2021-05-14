@@ -97,6 +97,7 @@ describe('Schedule API With SubProjects', () => {
             await init.addScheduleToProject(scheduleName, subProjectName, page);
             await page.waitForSelector(`#schedule_count_${subProjectName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.reload({ waitUntil: 'networkidle2' });
 
@@ -143,6 +144,7 @@ describe('Schedule API With SubProjects', () => {
             //const nextSelector =
             await page.waitForSelector(`#btnNext-${subProjectName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
 
             // await nextSelector.click();
@@ -155,6 +157,7 @@ describe('Schedule API With SubProjects', () => {
             // const prevSelector =
             await page.waitForSelector(`#btnPrev-${subProjectName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#btnPrev-${subProjectName}`);
             //await prevSelector.click();

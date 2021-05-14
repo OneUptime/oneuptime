@@ -36,11 +36,17 @@ describe('Incident Timeline API', () => {
         await init.addComponent(componentName, page);
 
         // add new monitor to project
-        await page.waitForSelector('#form-new-monitor', { visible: true, timeout: init.timeout });
+        await page.waitForSelector('#form-new-monitor', {
+            visible: true,
+            timeout: init.timeout,
+        });
         await page.$eval('input[id=name]', e => e.click());
         await init.pageType(page, 'input[id=name]', projectMonitorName);
         await init.pageClick(page, '[data-testId=type_url]');
-        await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
+        await page.waitForSelector('#url', {
+            visible: true,
+            timeout: init.timeout,
+        });
         await page.$eval('#url', e => e.click());
         await init.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
         await page.$eval('button[type=submit]', e => e.click());
@@ -82,6 +88,7 @@ describe('Incident Timeline API', () => {
 
             await page.waitForSelector(`#incident_${projectMonitorName}_0`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                 e.click()
@@ -91,6 +98,7 @@ describe('Incident Timeline API', () => {
             // fill investigation message thread form
             await page.waitForSelector(`#add-${type}-message`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#add-${type}-message`);
             await page.waitForSelector(`#form-new-incident-${type}-message`);
@@ -103,6 +111,7 @@ describe('Incident Timeline API', () => {
 
             await page.waitForSelector(`#content_${type}_incident_message_0`, {
                 visible: true,
+                timeout: init.timeout,
             });
             const investigationMessage = await page.$(
                 `#content_${type}_incident_message_0`
@@ -126,6 +135,7 @@ describe('Incident Timeline API', () => {
             // navigate to monitor details
             await page.waitForSelector(`#more-details-${projectMonitorName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
@@ -152,6 +162,7 @@ describe('Incident Timeline API', () => {
             //Incident Notes Tab has been refactored. It functionality is now in 'Incident Timeline' which is below the BASIC tab.
             await page.waitForSelector(`#content_${type}_incident_message_0`, {
                 visible: true,
+                timeout: init.timeout,
             });
             const investigationMessage = await page.$(
                 `#content_${type}_incident_message_0`
@@ -176,6 +187,7 @@ describe('Incident Timeline API', () => {
             // navigate to monitor details
             await page.waitForSelector(`#more-details-${projectMonitorName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
@@ -204,6 +216,7 @@ describe('Incident Timeline API', () => {
 
             await page.waitForSelector(`#content_${type}_incident_message_0`, {
                 visible: true,
+                timeout: init.timeout,
             });
             const incidentMessage = await page.$(
                 `#content_${type}_incident_message_0`
@@ -227,6 +240,7 @@ describe('Incident Timeline API', () => {
             // navigate to monitor details
             await page.waitForSelector(`#more-details-${projectMonitorName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
@@ -253,6 +267,7 @@ describe('Incident Timeline API', () => {
 
             await page.waitForSelector(`#content_${type}_incident_message_0`, {
                 visible: true,
+                timeout: init.timeout,
             });
             const incidentMessage = await page.$(
                 `#content_${type}_incident_message_0`
@@ -369,6 +384,7 @@ describe('Incident Timeline API', () => {
             await page.$eval('#btnAcknowledge_0', e => e.click());
             await page.waitForSelector('#AcknowledgeText_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.reload({ waitUntil: 'networkidle0' });
             // Incident Timeline Tab Does Not Exist Anymore

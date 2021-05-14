@@ -38,11 +38,15 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         'should navigate to projects page with keyboard shortcut (f + p)',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#projects', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#projects', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.keyboard.press('f');
             await page.keyboard.press('p');
             const project = await page.waitForSelector('#fyipeProject', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(project).toBeDefined();
 
@@ -55,11 +59,15 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         'should navigate to probes page with keyboard shortcut (f + b)',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#probes', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#probes', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.keyboard.press('f');
             await page.keyboard.press('b');
             const probe = await page.waitForSelector('#fyipeProbe', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(probe).toBeDefined();
 
@@ -74,11 +82,15 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await page.waitForSelector('#logs');
             await init.pageClick(page, '#logs');
-            await page.waitForSelector('#auditLogs', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#auditLogs', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.keyboard.press('f');
             await page.keyboard.press('a');
             const auditLog = await page.waitForSelector('#fyipeAuditLog', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(auditLog).toBeDefined();
 
@@ -91,11 +103,15 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         'should navigate to license setting with keyboard shortcut (f + l)',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#settings', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#settings', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.keyboard.press('f');
             await page.keyboard.press('l');
             const license = await page.waitForSelector('#fyipeLicense', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(license).toBeDefined();
 
@@ -108,11 +124,15 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         'should navigate to smtp setting with keyboard shortcut (f + m)',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#settings', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#settings', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.keyboard.press('f');
             await page.keyboard.press('m');
             const smtp = await page.waitForSelector('#fyipeSmtp', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(smtp).toBeDefined();
 
@@ -125,11 +145,15 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         'should navigate to twilio setting with keyboard shortcut (f + t)',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#settings', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#settings', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.keyboard.press('f');
             await page.keyboard.press('t');
             const twilio = await page.waitForSelector('#fyipeTwilio', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(twilio).toBeDefined();
 
@@ -142,11 +166,15 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         'should navigate to sso setting with keyboard shortcut (f + o)',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#settings', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#settings', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.keyboard.press('f');
             await page.keyboard.press('o');
             const sso = await page.waitForSelector('#fyipeSso', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(sso).toBeDefined();
 
@@ -161,11 +189,13 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await page.waitForSelector('#goToUserDashboard', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.keyboard.press('f');
             await page.keyboard.press('d');
             const component = await page.waitForSelector('#components', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(component).toBeDefined();
 

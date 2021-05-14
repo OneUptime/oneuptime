@@ -115,7 +115,10 @@ describe('Components', () => {
             await init.pageType(page, 'input[id=name]', componentName);
             await page.$eval('button[type=submit]', e => e.click());
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval('#components', e => e.click());
 
             let spanElement;
@@ -163,16 +166,25 @@ describe('Components', () => {
         'should show the correct path on the breadcrumbs inside a component',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval('#components', e => e.click());
 
             const moreBtn = `#more-details-${componentName}`;
-            await page.waitForSelector(moreBtn, { visible: true, timeout: init.timeout });
+            await page.waitForSelector(moreBtn, {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval(moreBtn, e => e.click());
 
             const projectSelector = `#cbUnnamedProject`;
             const componentSelector = `#cb${componentName}`;
-            await page.waitForSelector(projectSelector, { visible: true, timeout: init.timeout });
+            await page.waitForSelector(projectSelector, {
+                visible: true,
+                timeout: init.timeout,
+            });
             const projectBreadcrumb = await page.evaluate(
                 projectSelector =>
                     document.querySelector(projectSelector).textContent,
@@ -180,6 +192,7 @@ describe('Components', () => {
             );
             await page.waitForSelector(componentSelector, {
                 visible: true,
+                timeout: init.timeout,
             });
             const componentBreadcrumb = await page.evaluate(
                 componentSelector =>
@@ -245,7 +258,10 @@ describe('Components', () => {
             await init.pageClick(page, 'input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#url', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await page.$eval('button[type=submit]', e => e.click());
@@ -280,7 +296,10 @@ describe('Components', () => {
             await init.pageClick(page, 'input[id=name]');
             await init.pageType(page, 'input[id=name]', newMonitorName);
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#url', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await page.$eval('button[type=submit]', e => e.click());
@@ -309,17 +328,25 @@ describe('Components', () => {
             const monitorDetailsBtn = `#more-details-${monitorName}`;
             await page.waitForSelector(monitorDetailsBtn, {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval(monitorDetailsBtn, e => e.click());
 
             const projectSelector = `#cbUnnamedProject`;
             const componentSelector = `#cb${componentName}`;
             const monitorSelector = `#cb${monitorName}`;
-            await page.waitForSelector(projectSelector, { visible: true, timeout: init.timeout });
+            await page.waitForSelector(projectSelector, {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.waitForSelector(componentSelector, {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector(monitorSelector, { visible: true, timeout: init.timeout });
+            await page.waitForSelector(monitorSelector, {
+                visible: true,
+                timeout: init.timeout,
+            });
 
             const projectBreadcrumb = await page.evaluate(
                 projectSelector =>
@@ -389,12 +416,16 @@ describe('Components', () => {
             await init.pageClick(page, 'input[id=name]');
             await init.pageType(page, 'input[id=name]', newMonitorName);
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#url', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await page.$eval('button[type=submit]', e => e.click());
             await page.waitForSelector(`#cb${newMonitorName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
 
             await page.goto(utils.DASHBOARD_URL);
@@ -403,7 +434,10 @@ describe('Components', () => {
 
             await page.waitForSelector('.ball-beat', { hidden: true });
 
-            await page.waitForSelector('#component0', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#component0', {
+                visible: true,
+                timeout: init.timeout,
+            });
 
             const newComponentSelector = `#count_${newComponentName}`;
             const componentSelector = `#count_${componentName}`;
@@ -471,6 +505,7 @@ describe('Components', () => {
             // close incident modal
             await page.waitForSelector('#closeIncident_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#closeIncident_0', elem => elem.click());
 
@@ -610,7 +645,10 @@ describe('Components', () => {
             waitUntil: 'networkidle0',
         });
 
-        await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
+        await page.waitForSelector('#components', {
+            visible: true,
+            timeout: init.timeout,
+        });
         await page.$eval('#components', e => e.click());
 
         await init.pageClick(page, `#more-details-${componentName}`);
@@ -635,7 +673,10 @@ describe('Components', () => {
             waitUntil: 'networkidle0',
         });
 
-        await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
+        await page.waitForSelector('#components', {
+            visible: true,
+            timeout: init.timeout,
+        });
         await init.pageClick(page, '#components');
 
         await init.pageClick(page, `#more-details-${componentName}-two`);
@@ -651,7 +692,10 @@ describe('Components', () => {
         });
         await init.pageClick(page, `#delete-component-${componentName}-two`);
 
-        await page.waitForSelector('#deleteComponent', { visible: true, timeout: init.timeout });
+        await page.waitForSelector('#deleteComponent', {
+            visible: true,
+            timeout: init.timeout,
+        });
         await init.pageClick(page, '#deleteComponent'); // after deleting the component
 
         const componentClicked = await page.waitForSelector('#components', {
@@ -684,6 +728,7 @@ describe('Components', () => {
             // close incident modal
             await page.waitForSelector('#closeIncident_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#closeIncident_0', elem => elem.click());
 
@@ -705,6 +750,7 @@ describe('Components', () => {
 
             let currentPage = await page.waitForSelector('#cbHome', {
                 visible: true,
+                timeout: init.timeout,
             });
             currentPage = await currentPage.getProperty('innerText');
             currentPage = await currentPage.jsonValue();

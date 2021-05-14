@@ -44,6 +44,7 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
             // if element does not exist it will timeout and throw
             const elem = await page.waitForSelector('#add_user', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(elem).toBeTruthy();
 
@@ -74,6 +75,7 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
             await init.pageClick(page, '#users');
             const loginBtn = await page.waitForSelector('#login-button', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(loginBtn).toBeDefined();
 

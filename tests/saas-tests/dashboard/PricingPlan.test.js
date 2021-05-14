@@ -48,6 +48,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             rowItem.click();
             await page.waitForSelector('.advanced-options-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.advanced-options-tab', elems =>
                 elems[0].click()
@@ -55,6 +56,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             await page.$eval('input[name="isPrivate"]', elem => elem.click());
             const modal = await page.waitForSelector('#pricingPlanModal', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(modal).toBeDefined();
 
@@ -79,6 +81,7 @@ describe('Status Page -> Pricing Plan Component', () => {
 
             await page.waitForSelector('.advanced-options-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
 
             await page.$$eval('.advanced-options-tab', elems =>
@@ -91,6 +94,7 @@ describe('Status Page -> Pricing Plan Component', () => {
 
             const modal = await page.waitForSelector('#pricingPlanModal', {
                 visible: true,
+                timeout: init.timeout,
             });
             const emailBtn = await page.waitForSelector('#enterpriseMail');
 
@@ -151,6 +155,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             rowItem.click();
             await page.waitForSelector('.advanced-options-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.advanced-options-tab', elems =>
                 elems[0].click()
@@ -159,13 +164,17 @@ describe('Status Page -> Pricing Plan Component', () => {
 
             await page.waitForSelector('#pricingPlanModal', {
                 visible: true,
+                timeout: init.timeout,
             });
             const growthOption = await page.waitForSelector(
                 'label[for=Growth_month]',
                 { visible: true, timeout: init.timeout }
             );
             growthOption.click();
-            await page.waitForSelector('#cancelPlanUpgrade', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#cancelPlanUpgrade', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#cancelPlanUpgrade');
             const elem = await page.waitForSelector('#pricingPlanModal', {
                 hidden: true,
@@ -192,6 +201,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             rowItem.click();
             await page.waitForSelector('.advanced-options-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.advanced-options-tab', elems =>
                 elems[0].click()
@@ -200,6 +210,7 @@ describe('Status Page -> Pricing Plan Component', () => {
 
             await page.waitForSelector('#pricingPlanModal', {
                 visible: true,
+                timeout: init.timeout,
             });
             const growthOption = await page.waitForSelector(
                 'label[for=Growth_month]',
@@ -208,6 +219,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             growthOption.click();
             await page.waitForSelector('#confirmPlanUpgrade', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#confirmPlanUpgrade');
 
@@ -218,6 +230,7 @@ describe('Status Page -> Pricing Plan Component', () => {
 
             await page.waitForSelector('.advanced-options-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.advanced-options-tab', elems =>
                 elems[0].click()

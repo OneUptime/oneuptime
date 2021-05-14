@@ -48,6 +48,7 @@ describe('Custom Twilio Settings', () => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
@@ -56,9 +57,13 @@ describe('Custom Twilio Settings', () => {
             await init.pageClick(page, '#smsCalls');
             await page.waitForSelector('#enableTwilio', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#enableTwilio');
-            await page.waitForSelector('#accountSid', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#accountSid', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageType(
                 page,
                 '#accountSid',
@@ -75,13 +80,19 @@ describe('Custom Twilio Settings', () => {
                 twilioCredentials.phoneNumber
             );
             await init.pageClick(page, '#submitTwilioSettings');
-            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('.ball-beat', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({
                 waitUntil: ['networkidle0', 'domcontentloaded'],
             });
-            await page.waitForSelector('#accountSid', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#accountSid', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const savedAccountSid = await page.$eval(
                 '#accountSid',
                 elem => elem.value
@@ -161,6 +172,7 @@ describe('Custom Twilio Settings', () => {
             await page.$eval('#btnAcknowledge_0', e => e.click());
             await page.waitForSelector('#AcknowledgeText_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.reload({ waitUntil: 'networkidle0' });
 
@@ -200,6 +212,7 @@ describe('Custom Twilio Settings', () => {
             await page.$eval('#btnResolve_0', e => e.click());
             await page.waitForSelector('#ResolveText_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.reload({ waitUntil: 'networkidle0' });
 
@@ -260,6 +273,7 @@ describe('Custom Twilio Settings', () => {
             await init.pageType(page, 'input[type=tel]', alertPhone);
             await page.waitForSelector('#sendVerificationSMS', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#sendVerificationSMS');
             await page.waitForSelector('#otp');
@@ -267,6 +281,7 @@ describe('Custom Twilio Settings', () => {
             await init.pageClick(page, '#verify');
             await page.waitForSelector('#successMessage', {
                 visible: true,
+                timeout: init.timeout,
             });
             const message = await page.$eval(
                 '#successMessage',
@@ -299,6 +314,7 @@ describe('Custom Twilio Settings', () => {
             });
             await page.waitForSelector('#sendVerificationSMS', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#sendVerificationSMS');
             await page.waitForSelector('#otp');
@@ -306,6 +322,7 @@ describe('Custom Twilio Settings', () => {
             await init.pageClick(page, '#verify');
             await page.waitForSelector('#successMessage', {
                 visible: true,
+                timeout: init.timeout,
             });
             const message = await page.$eval(
                 '#successMessage',

@@ -48,17 +48,25 @@ describe('Fyipe Page Reload', () => {
             //navigate to component details
             await init.navigateToComponentDetails(componentName, page);
 
-            await page.waitForSelector('#security', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#security', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#security');
-            await page.waitForSelector('#application', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#application', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#application');
 
             await page.waitForSelector('#applicationSecurityForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addCredentialBtn');
             await page.waitForSelector('#gitCredentialForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#gitUsername');
             await init.pageType(page, '#gitUsername', gitUsername);
@@ -90,12 +98,15 @@ describe('Fyipe Page Reload', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.waitForSelector('#cbApplicationSecurity', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.waitForSelector(`#cb${applicationSecurityName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
 
             const spanElement = await page.waitForSelector(

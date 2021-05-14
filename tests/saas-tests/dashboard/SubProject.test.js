@@ -105,10 +105,12 @@ describe('Member Restriction', () => {
             });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#btn_Add_SubProjects', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#btn_Add_SubProjects');
             const unauthorisedModal = await page.waitForSelector(
@@ -139,11 +141,13 @@ describe('Member Restriction', () => {
             await init.loginUser({ email: teamEmail, password }, page);
             await page.waitForSelector('#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             const deleteSubProjectBtn = `#sub_project_delete_${subProjectName}`;
             await page.waitForSelector(deleteSubProjectBtn, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, deleteSubProjectBtn);
             const unauthorisedModal = await page.waitForSelector(

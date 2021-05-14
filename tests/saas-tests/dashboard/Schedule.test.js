@@ -45,11 +45,13 @@ describe('Schedule', () => {
 
             await page.waitForSelector('#onCallDuty', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#onCallDuty', elem => elem.click());
             const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
             await page.waitForSelector(createScheduleBtn, {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval(createScheduleBtn, elem => elem.click());
 
@@ -68,6 +70,7 @@ describe('Schedule', () => {
 
             const modal = await page.waitForSelector('#pricingPlanModal', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(modal).toBeDefined();
             done();
@@ -83,6 +86,7 @@ describe('Schedule', () => {
             });
             await page.waitForSelector('#onCallDuty', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#onCallDuty', elem => elem.click());
 
@@ -97,6 +101,7 @@ describe('Schedule', () => {
 
             const modal = await page.waitForSelector('#pricingPlanModal', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(modal).toBeDefined();
 
@@ -120,6 +125,7 @@ describe('Schedule', () => {
             });
             await page.waitForSelector('#onCallDuty', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#onCallDuty', elem => elem.click());
 
@@ -150,11 +156,13 @@ describe('Schedule', () => {
 
             await page.waitForSelector('#onCallDuty', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#onCallDuty', elem => elem.click());
             const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
             await page.waitForSelector(createScheduleBtn, {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval(createScheduleBtn, elem => elem.click());
 
@@ -163,10 +171,12 @@ describe('Schedule', () => {
             await init.pageClick(page, '#btnCreateSchedule');
             await page.waitForSelector('#viewOnCallSchedule', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#viewOnCallSchedule');
             await page.waitForSelector(`#cb${newScheduleName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             const onCallScheduleName = await page.$eval(
                 `#cb${newScheduleName}`,

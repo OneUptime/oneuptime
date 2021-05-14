@@ -43,6 +43,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageClick(page, '#userProfile');
             await page.waitForSelector('#profileSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#profileSettings');
             await page.waitForSelector('input[name=name]');
@@ -161,12 +162,14 @@ describe('Profile -> Delete Account Component test', () => {
 
             await page.waitForSelector('#profileSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#profileSettings');
 
             // toggle the google authenticator
             await page.waitForSelector('input[name=twoFactorAuthEnabled]', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.reload({ waitUntil: 'networkidle2' });
             await page.$eval('input[name=twoFactorAuthEnabled]', e =>
@@ -174,7 +177,10 @@ describe('Profile -> Delete Account Component test', () => {
             );
 
             //wait for the QR code to show
-            await page.waitForSelector('#qr-code', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('#qr-code', {
+                visible: true,
+                timeout: init.timeout,
+            });
 
             // click on the next button
             await page.waitForSelector('#nextFormButton');
@@ -191,6 +197,7 @@ describe('Profile -> Delete Account Component test', () => {
             // verify there is an error message
             let spanElement = await page.waitForSelector('#modal-message', {
                 visible: true,
+                timeout: init.timeout,
             });
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();

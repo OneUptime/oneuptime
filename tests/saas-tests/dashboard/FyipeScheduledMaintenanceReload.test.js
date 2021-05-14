@@ -47,6 +47,7 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#addScheduledEventButton');
             await page.waitForSelector('#scheduledEventForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', scheduleMaintenanceName);
@@ -64,9 +65,11 @@ describe('Fyipe Page Reload', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbScheduledMaintenanceEvent', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.waitForSelector(`#cb${scheduleMaintenanceName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             const spanElement = await page.waitForSelector(
                 `#editScheduledEvent-${scheduleMaintenanceName}`,
