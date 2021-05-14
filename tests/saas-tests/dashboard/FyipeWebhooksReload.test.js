@@ -40,19 +40,25 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#more');
             await init.pageClick(page, '#webhooks');
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 '#enableInvestigationNoteNotificationWebhook',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbProjectSettings', { visible: true });
-            await page.waitForSelector('#cbWebhooksSettings', {
+            await init.pageWaitForSelector(page, '#cbProjectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
-            const spanElement = await page.waitForSelector(
+            await init.pageWaitForSelector(page, '#cbWebhooksSettings', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
                 '#enableInvestigationNoteNotificationWebhook',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(spanElement).toBeDefined();
             done();

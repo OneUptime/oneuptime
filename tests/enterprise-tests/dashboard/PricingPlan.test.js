@@ -45,26 +45,32 @@ describe('Status Page', () => {
                 waitUntil: 'networkidle2',
             });
             await page.$eval('#statusPages', elem => elem.click());
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 'button[type="button"] .bs-FileUploadButton',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             await init.pageClick(
                 page,
                 'button[type="button"] .bs-FileUploadButton'
             );
-            await page.waitForSelector('#name', { visible: true });
+            await init.pageWaitForSelector(page, '#name', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', pageName);
             await init.pageClick(page, '#btnCreateStatusPage');
             // select the first item from the table row
-            const rowItem = await page.waitForSelector(
+            const rowItem = await init.pageWaitForSelector(
+                page,
                 '#statusPagesListContainer > tr',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             rowItem.click();
-            await page.waitForSelector('.advanced-options-tab', {
+            await init.pageWaitForSelector(page, '.advanced-options-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.advanced-options-tab', elems =>
                 elems[0].click()

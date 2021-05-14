@@ -33,11 +33,11 @@ describe('Reset Password API', () => {
         await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
             waitUntil: 'networkidle2',
         });
-        await page.waitForSelector('#email');
+        await init.pageWaitForSelector(page, '#email');
         await init.pageClick(page, 'input[name=email]');
         await init.pageType(page, 'input[name=email]', email);
         await init.pageClick(page, 'button[type=submit]');
-        await page.waitForSelector('#reset-password-success');
+        await init.pageWaitForSelector(page, '#reset-password-success');
         const html = await page.$eval('#reset-password-success', e => {
             return e.innerHTML;
         });
@@ -51,7 +51,7 @@ describe('Reset Password API', () => {
         await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
             waitUntil: 'networkidle2',
         });
-        await page.waitForSelector('#email');
+        await init.pageWaitForSelector(page, '#email');
         await init.pageClick(page, 'input[name=email]');
         await init.pageType(
             page,
@@ -59,7 +59,7 @@ describe('Reset Password API', () => {
             utils.generateWrongEmail()
         );
         await init.pageClick(page, 'button[type=submit]');
-        await page.waitForSelector('#error-msg');
+        await init.pageWaitForSelector(page, '#error-msg');
         const html = await page.$eval('#error-msg', e => {
             return e.innerHTML;
         });

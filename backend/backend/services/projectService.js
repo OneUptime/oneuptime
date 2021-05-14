@@ -777,4 +777,3 @@ const componentService = require('./componentService');
 const DomainVerificationService = require('./domainVerificationService');
 const SsoDefaultRolesService = require('./ssoDefaultRolesService');
 const getSlug = require('../utils/getSlug');
-

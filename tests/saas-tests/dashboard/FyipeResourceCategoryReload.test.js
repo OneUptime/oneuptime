@@ -49,18 +49,23 @@ describe('Fyipe Page Reload', () => {
                 resourceCategory
             );
             await init.pageClick(page, '#addResourceCategoryButton');
-            await page.waitForSelector('#addResourceCategoryButton', {
+            await init.pageWaitForSelector(page, '#addResourceCategoryButton', {
                 hidden: true,
             });
-            await page.waitForSelector('#resource-category-name', {
+            await init.pageWaitForSelector(page, '#resource-category-name', {
                 visible: true,
+                timeout: init.timeout,
             });
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbResources', { visible: true });
-            const spanElement = await page.waitForSelector(
+            await init.pageWaitForSelector(page, '#cbResources', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
                 '#resource-category-name',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(spanElement).toBeDefined();
             done();

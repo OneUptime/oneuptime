@@ -30,15 +30,18 @@ describe('Login API', () => {
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
         });
-        await page.waitForSelector('#login-button');
+        await init.pageWaitForSelector(page, '#login-button');
         await init.pageClick(page, 'input[name=email]');
         await init.pageType(page, 'input[name=email]', user.email);
         await init.pageClick(page, 'input[name=password]');
         await init.pageType(page, 'input[name=password]', user.password);
         await init.pageClick(page, '#signUpLink a');
-        await page.waitForSelector('#loginLink');
+        await init.pageWaitForSelector(page, '#loginLink');
         await init.pageClick(page, '#loginLink a');
-        await page.waitForSelector('input[name=email]', { visible: true });
+        await init.pageWaitForSelector(page, 'input[name=email]', {
+            visible: true,
+            timeout: init.timeout,
+        });
         const email = await page.$eval(
             'input[name=email]',
             element => element.value
@@ -55,7 +58,7 @@ describe('Login API', () => {
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
         });
-        await page.waitForSelector('#login-button');
+        await init.pageWaitForSelector(page, '#login-button');
         await init.pageClick(page, 'input[name=email]');
         await init.pageType(page, 'input[name=email]', user.email);
         await init.pageClick(page, 'input[name=password]');
@@ -75,7 +78,10 @@ describe('Login API', () => {
             await init.logoutUser(page);
             await init.loginUser(user, page);
 
-            await page.waitForSelector('#components', { visible: true });
+            await init.pageWaitForSelector(page, '#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
 
             const localStorageData = await page.evaluate(() => {
                 const json = {};
@@ -105,7 +111,10 @@ describe('Login API', () => {
                 utils.ACCOUNTS_URL1 + '/accounts/login'
             );
 
-            await page.waitForSelector('#components', { visible: true });
+            await init.pageWaitForSelector(page, '#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
 
             const localStorageData = await page.evaluate(() => {
                 const json = {};

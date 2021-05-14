@@ -47,21 +47,33 @@ describe('Fyipe Page Reload', () => {
             await init.pageType(page, `#emails_${projectName}`, teamMember);
             await init.pageClick(page, '#member');
             await init.pageClick(page, `#btn_modal_${projectName}`);
-            await page.waitForSelector(`#frm_${projectName}`, {
+            await init.pageWaitForSelector(page, `#frm_${projectName}`, {
                 hidden: true,
             });
             await init.pageClick(page, `#${teamMember.split('@')[0]}-profile`);
-            await page.waitForSelector('#cbTeamMembers', { visible: true });
-            await page.waitForSelector(`#${teamMember.split('@')[0]}`, {
+            await init.pageWaitForSelector(page, '#cbTeamMembers', {
                 visible: true,
+                timeout: init.timeout,
             });
+            await init.pageWaitForSelector(
+                page,
+                `#${teamMember.split('@')[0]}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
 
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbTeamMembers', { visible: true });
-            const spanElement = await page.waitForSelector(
+            await init.pageWaitForSelector(page, '#cbTeamMembers', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
                 `#${teamMember.split('@')[0]}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(spanElement).toBeDefined();
             done();

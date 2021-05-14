@@ -49,27 +49,30 @@ describe('Monitor Detail API', () => {
             );
 
             // click on subscribers tab
-            await page.waitForSelector('#react-tabs-2');
+            await init.pageWaitForSelector(page, '#react-tabs-2');
             await init.pageClick(page, '#react-tabs-2');
 
             const importFileSelector = '#importFromCsv';
-            await page.waitForSelector(importFileSelector);
+            await init.pageWaitForSelector(page, importFileSelector);
             await init.pageClick(page, importFileSelector);
 
-            await page.waitForSelector('#fileInput', { visible: true });
+            await init.pageWaitForSelector(page, '#fileInput', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const input = await page.$('#fileInput');
             await input.uploadFile(csvFile);
             await input.evaluate(upload =>
                 upload.dispatchEvent(new Event('change', { bubbles: true }))
             );
             await init.pageClick(page, '#importCsvButton');
-            await page.waitForSelector('#importCsvButton', {
+            await init.pageWaitForSelector(page, '#importCsvButton', {
                 hidden: true,
             });
 
             const createdSubscriberSelector = '.subscriber-list-item';
 
-            await page.waitForSelector(createdSubscriberSelector);
+            await init.pageWaitForSelector(page, createdSubscriberSelector);
             const subscriberRows = await page.$$(createdSubscriberSelector);
             const countSubscribers = subscriberRows.length;
             expect(countSubscribers).toEqual(3);
@@ -88,13 +91,16 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on subscribers tab
-            await page.waitForSelector('#react-tabs-2');
+            await init.pageWaitForSelector(page, '#react-tabs-2');
             await init.pageClick(page, '#react-tabs-2');
             const importFileSelector = '#importFromCsv';
-            await page.waitForSelector(importFileSelector);
+            await init.pageWaitForSelector(page, importFileSelector);
             await init.pageClick(page, importFileSelector);
 
-            await page.waitForSelector('#fileInput', { visible: true });
+            await init.pageWaitForSelector(page, '#fileInput', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const input = await page.$('#fileInput');
             await input.uploadFile(emptyFile);
             await input.evaluate(upload =>
@@ -102,7 +108,10 @@ describe('Monitor Detail API', () => {
             );
             await init.pageClick(page, '#importCsvButton');
             let elementHandle;
-            elementHandle = await page.waitForSelector('span#errorMsg');
+            elementHandle = await init.pageWaitForSelector(
+                page,
+                'span#errorMsg'
+            );
             elementHandle = await elementHandle.getProperty('innerText');
             elementHandle = await elementHandle.jsonValue();
             elementHandle.should.be.exactly('Empty files submitted');
@@ -121,25 +130,28 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on subscribers tab
-            await page.waitForSelector('#react-tabs-2');
+            await init.pageWaitForSelector(page, '#react-tabs-2');
             await init.pageClick(page, '#react-tabs-2');
             const importFileSelector = '#importFromCsv';
-            await page.waitForSelector(importFileSelector);
+            await init.pageWaitForSelector(page, importFileSelector);
             await init.pageClick(page, importFileSelector);
 
-            await page.waitForSelector('#fileInput', { visible: true });
+            await init.pageWaitForSelector(page, '#fileInput', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const input = await page.$('#fileInput');
             await input.uploadFile(csvFile);
             await input.evaluate(upload =>
                 upload.dispatchEvent(new Event('change', { bubbles: true }))
             );
             await init.pageClick(page, '#importCsvButton');
-            await page.waitForSelector('#importCsvButton', {
+            await init.pageWaitForSelector(page, '#importCsvButton', {
                 hidden: true,
             });
             const createdSubscriberSelector = '.subscriber-list-item';
 
-            await page.waitForSelector(createdSubscriberSelector);
+            await init.pageWaitForSelector(page, createdSubscriberSelector);
             const subscriberRows = await page.$$(createdSubscriberSelector);
             const countSubscribers = subscriberRows.length;
             expect(countSubscribers).toEqual(3);
@@ -158,25 +170,28 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on subscribers tab
-            await page.waitForSelector('#react-tabs-2');
+            await init.pageWaitForSelector(page, '#react-tabs-2');
             await init.pageClick(page, '#react-tabs-2');
             const importFileSelector = '#importFromCsv';
-            await page.waitForSelector(importFileSelector);
+            await init.pageWaitForSelector(page, importFileSelector);
             await init.pageClick(page, importFileSelector);
 
-            await page.waitForSelector('#fileInput', { visible: true });
+            await init.pageWaitForSelector(page, '#fileInput', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const input = await page.$('#fileInput');
             await input.uploadFile(existingSubscribers);
             await input.evaluate(upload =>
                 upload.dispatchEvent(new Event('change', { bubbles: true }))
             );
             await init.pageClick(page, '#importCsvButton');
-            await page.waitForSelector('#importCsvButton', {
+            await init.pageWaitForSelector(page, '#importCsvButton', {
                 hidden: true,
             });
             const createdSubscriberSelector = '.subscriber-list-item';
 
-            await page.waitForSelector(createdSubscriberSelector);
+            await init.pageWaitForSelector(page, createdSubscriberSelector);
             const subscriberRows = await page.$$(createdSubscriberSelector);
             const countSubscribers = subscriberRows.length;
             expect(countSubscribers).toEqual(4);
@@ -195,27 +210,30 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on subscribers tab
-            await page.waitForSelector('#react-tabs-2');
+            await init.pageWaitForSelector(page, '#react-tabs-2');
             await init.pageClick(page, '#react-tabs-2');
 
             let initialSubscribers = '.subscriber-list-item';
 
-            await page.waitForSelector(initialSubscribers);
+            await init.pageWaitForSelector(page, initialSubscribers);
             initialSubscribers = await page.$$(initialSubscribers);
             const initialCount = initialSubscribers.length;
 
-            await page.waitForSelector('button[id=deleteSubscriber_0]');
+            await init.pageWaitForSelector(
+                page,
+                'button[id=deleteSubscriber_0]'
+            );
             await init.pageClick(page, 'button[id=deleteSubscriber_0]');
-            await page.waitForSelector('#deleteSubscriber');
+            await init.pageWaitForSelector(page, '#deleteSubscriber');
             await init.pageClick(page, '#deleteSubscriber');
-            await page.waitForSelector('#deleteSubscriber', {
+            await init.pageWaitForSelector(page, '#deleteSubscriber', {
                 hidden: true,
             });
-            await page.waitForSelector('#subscribersList');
+            await init.pageWaitForSelector(page, '#subscribersList');
 
             let finalSubscribers = '.subscriber-list-item';
 
-            await page.waitForSelector(finalSubscribers);
+            await init.pageWaitForSelector(page, finalSubscribers);
             finalSubscribers = await page.$$(finalSubscribers);
             const finalCount = finalSubscribers.length;
 
@@ -236,24 +254,27 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on subscribers tab
-            await page.waitForSelector('#react-tabs-2');
+            await init.pageWaitForSelector(page, '#react-tabs-2');
             await init.pageClick(page, '#react-tabs-2');
 
             let initialSubscribers = '.subscriber-list-item';
 
-            await page.waitForSelector(initialSubscribers);
+            await init.pageWaitForSelector(page, initialSubscribers);
             initialSubscribers = await page.$$(initialSubscribers);
             const initialCount = initialSubscribers.length;
 
-            await page.waitForSelector('button[id=deleteSubscriber_0]');
+            await init.pageWaitForSelector(
+                page,
+                'button[id=deleteSubscriber_0]'
+            );
             await init.pageClick(page, 'button[id=deleteSubscriber_0]');
-            await page.waitForSelector('#cancelDeleteSubscriber');
+            await init.pageWaitForSelector(page, '#cancelDeleteSubscriber');
             await init.pageClick(page, '#cancelDeleteSubscriber');
-            await page.waitForSelector('#subscribersList');
+            await init.pageWaitForSelector(page, '#subscribersList');
 
             let finalSubscribers = '.subscriber-list-item';
 
-            await page.waitForSelector(finalSubscribers);
+            await init.pageWaitForSelector(page, finalSubscribers);
             finalSubscribers = await page.$$(finalSubscribers);
             const finalCount = finalSubscribers.length;
 

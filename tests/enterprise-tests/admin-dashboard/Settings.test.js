@@ -40,8 +40,9 @@ describe('Settings Component (IS_SAAS_SERVICE=false)', () => {
             });
 
             // if element does not exist it will timeout and throw
-            const elem = await page.waitForSelector('#settings', {
+            const elem = await init.pageWaitForSelector(page, '#settings', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(elem).toBeDefined();
         },
@@ -55,13 +56,21 @@ describe('Settings Component (IS_SAAS_SERVICE=false)', () => {
                 waitUntil: 'networkidle0',
             });
 
-            await page.waitForSelector('#settings', { visible: true });
+            await init.pageWaitForSelector(page, '#settings', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval('#settings a', elem => elem.click());
 
             // if element does not exist it will timeout and throw
-            const licenseOption = await page.waitForSelector('#license', {
-                visible: true,
-            });
+            const licenseOption = await init.pageWaitForSelector(
+                page,
+                '#license',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(licenseOption).toBeDefined();
         },
         operationTimeOut

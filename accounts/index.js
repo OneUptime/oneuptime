@@ -22,7 +22,6 @@ const path = require('path');
 const app = express();
 const compression = require('compression');
 
-
 app.use(compression());
 
 app.use('/', (req, res, next) => {

@@ -42,14 +42,15 @@ describe('Sub-Project API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#btn_Add_SubProjects');
+            await init.pageWaitForSelector(page, '#btn_Add_SubProjects');
             await init.pageClick(page, '#btn_Add_SubProjects');
 
-            const pricingPlanModal = await page.waitForSelector(
+            const pricingPlanModal = await init.pageWaitForSelector(
+                page,
                 '#pricingPlanModal',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
 
             expect(pricingPlanModal).toBeDefined();
@@ -103,17 +104,20 @@ describe('Member Restriction', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#btn_Add_SubProjects', {
+            await init.pageWaitForSelector(page, '#btn_Add_SubProjects', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#btn_Add_SubProjects');
-            const unauthorisedModal = await page.waitForSelector(
+            const unauthorisedModal = await init.pageWaitForSelector(
+                page,
                 '#unauthorisedModal',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
 
             expect(unauthorisedModal).toBeDefined();
@@ -137,18 +141,21 @@ describe('Member Restriction', () => {
             await init.logout(page);
 
             await init.loginUser({ email: teamEmail, password }, page);
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
             const deleteSubProjectBtn = `#sub_project_delete_${subProjectName}`;
-            await page.waitForSelector(deleteSubProjectBtn, {
+            await init.pageWaitForSelector(page, deleteSubProjectBtn, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, deleteSubProjectBtn);
-            const unauthorisedModal = await page.waitForSelector(
+            const unauthorisedModal = await init.pageWaitForSelector(
+                page,
                 '#unauthorisedModal',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(unauthorisedModal).toBeDefined();
 
