@@ -149,9 +149,11 @@ export class IncidentStatus extends Component {
     };
     acknowledge = async setLoading => {
         const userId = User.getUserId();
+        const projectId =
+            this.props.incident.projectId._id ?? this.props.incident.projectId;
         await this.props
             .acknowledgeIncident(
-                this.props.incident.projectId,
+                projectId,
                 this.props.incident._id,
                 userId,
                 this.props.multiple
@@ -159,7 +161,7 @@ export class IncidentStatus extends Component {
             .then(() => {
                 this.setState({ resolveLoad: false });
                 this.props.markAsRead(
-                    this.props.incident.projectId,
+                    projectId,
                     this.props.incident.notificationId
                 );
                 if (setLoading) {
@@ -176,7 +178,7 @@ export class IncidentStatus extends Component {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > INCIDENT ACKNOWLEDGED',
                 {
-                    ProjectId: this.props.incident.projectId,
+                    ProjectId: projectId,
                     incidentId: this.props.incident._id,
                     userId: userId,
                 }
@@ -186,9 +188,11 @@ export class IncidentStatus extends Component {
 
     resolve = async setLoading => {
         const userId = User.getUserId();
+        const projectId =
+            this.props.incident.projectId._id ?? this.props.incident.projectId;
         await this.props
             .resolveIncident(
-                this.props.incident.projectId,
+                projectId,
                 this.props.incident._id,
                 userId,
                 this.props.multiple
@@ -199,7 +203,7 @@ export class IncidentStatus extends Component {
                     setLoading(false);
                 }
                 this.props.markAsRead(
-                    this.props.incident.projectId,
+                    projectId,
                     this.props.incident.notificationId
                 );
                 this.props.getIncidentTimeline(
@@ -213,7 +217,7 @@ export class IncidentStatus extends Component {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > INCIDENT RESOLVED',
                 {
-                    ProjectId: this.props.incident.projectId,
+                    ProjectId: projectId,
                     incidentId: this.props.incident._id,
                     userId: userId,
                 }
@@ -222,10 +226,9 @@ export class IncidentStatus extends Component {
     };
 
     closeIncident = () => {
-        this.props.closeIncident(
-            this.props.incident.projectId,
-            this.props.incident._id
-        );
+        const projectId =
+            this.props.incident.projectId._id ?? this.props.incident.projectId;
+        this.props.closeIncident(projectId, this.props.incident._id);
     };
 
     handleIncident = (value, stats, setLoading) => {
