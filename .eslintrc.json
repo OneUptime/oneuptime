@@ -32,23 +32,14 @@
         "no-func-assign": "error",
         "no-extra-semi": "error",
         "linebreak-style": ["error", "unix"],
-        "no-unused-vars": [
-            "error",
-            {
-                "varsIgnorePattern": "[iI]gnored",
-                "vars": "all",
-                "args": "after-used",
-                "ignoreRestSiblings": true,
-                "argsIgnorePattern": "[iI]gnored"
-            }
-        ],
+        "no-unused-vars": "error",
         "no-console": "error",
         "no-undef": "error",
         "no-empty": "error",
         "no-case-declarations": "error",
         "no-mixed-spaces-and-tabs": "error",
         "no-useless-escape": "error",
-        "prettier/prettier": "warn",
+        "prettier/prettier": "error",
         "react/jsx-no-undef": "error",
         "react/jsx-no-bind": [
             "error",
@@ -74,12 +65,7 @@
         "react/no-string-refs": "error",
         "jsx-a11y/href-no-hash": [0],
         "react/no-unescaped-entities": "error",
-        "react/display-name": [
-            "error",
-            {
-                "ignoreTranspilerName": true
-            }
-        ],
+        "react/display-name": "error",
         "react/jsx-pascal-case": "error",
         "array-callback-return": "error",
         "no-loop-func": "error",
