@@ -44,10 +44,7 @@ module.exports = {
             }
             projectModel.name = data.name || null;
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                projectModel.slug = name.toLowerCase();
+                projectModel.slug = getSlug(data.name);
             }
             projectModel.apiKey = uuidv1();
             projectModel.stripePlanId = data.stripePlanId || null;
@@ -229,10 +226,7 @@ module.exports = {
             }
 
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
+                data.slug = getSlug(data.name);
             }
 
             let updatedProject = await ProjectModel.findOneAndUpdate(
@@ -778,9 +772,9 @@ const EscalationService = require('./escalationService');
 const StripeService = require('./stripeService');
 const TeamService = require('./teamService');
 const StatusPageService = require('./statusPageService');
-const slugify = require('slugify');
-const generate = require('nanoid/generate');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const componentService = require('./componentService');
-const SsoDefaultRolesService = require('./ssoDefaultRolesService');
 const DomainVerificationService = require('./domainVerificationService');
+const SsoDefaultRolesService = require('./ssoDefaultRolesService');
+const getSlug = require('../utils/getSlug');
+

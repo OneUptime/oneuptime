@@ -84,10 +84,7 @@ module.exports = {
             }
 
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                scheduleModel.slug = name.toLowerCase();
+                scheduleModel.slug = getSlug(data.name);
             }
             const schedule = await scheduleModel.save();
             const newSchedule = await this.findOneBy({
@@ -223,10 +220,7 @@ module.exports = {
                 );
             }
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
+                data.slug = getSlug(data.name);
             }
 
             schedule = await ScheduleModel.findOneAndUpdate(
@@ -439,5 +433,4 @@ module.exports = {
 const ScheduleModel = require('../models/schedule');
 const EscalationService = require('../services/escalationService');
 const ErrorService = require('../services/errorService');
-const generate = require('nanoid/generate');
-const slugify = require('slugify');
+const getSlug = require('../utils/getSlug');
