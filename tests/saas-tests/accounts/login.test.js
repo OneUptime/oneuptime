@@ -75,7 +75,7 @@ describe('Login API', () => {
         'Should login valid User',
         async () => {
             await init.registerUser(user, page);
-            await init.logoutUser(page);
+            await init.logout(page);
             await init.loginUser(user, page);
 
             await init.pageWaitForSelector(page, '#components', {
@@ -127,7 +127,7 @@ describe('Login API', () => {
 
             localStorageData.should.have.property('access_token');
             localStorageData.should.have.property('email', email);
-            page.url().should.containEql(utils.DASHBOARD_URL1);
+            page.url().should.containEql(utils.DASHBOARD_URL);
         },
         init.timeout
     );

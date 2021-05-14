@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../admin-dashboard/src/test/test-utils');
-const init = require('../../../admin-dashboard/src/test/test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 let browser, page;
 require('should');

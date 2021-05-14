@@ -80,7 +80,7 @@ describe('SSO login', () => {
             remoteLogoutUrl: 'http://localhost:9876/logout',
             ipRanges: '127.0.0.1',
         });
-        await init.logoutUser(page);
+        await init.logout(page);
 
         done();
     });
