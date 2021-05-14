@@ -2228,12 +2228,13 @@ export class IncidentStatus extends Component {
                                                                                 {member.user &&
                                                                                     (member
                                                                                         .user
-                                                                                        .name ? member
-                                                                                        .user
-                                                                                        .name : 
-                                                                                        member
-                                                                                            .user
-                                                                                            .email)}
+                                                                                        .name
+                                                                                        ? member
+                                                                                              .user
+                                                                                              .name
+                                                                                        : member
+                                                                                              .user
+                                                                                              .email)}
                                                                             </span>
                                                                         </div>
                                                                     )
