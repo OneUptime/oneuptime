@@ -5,14 +5,11 @@ const containerSecurityCollection = 'containersecurities';
 
 async function run() {
     const containerSecurities = await find(containerSecurityCollection, {
-        $or: [
-            { slug: { $exists: false } },
-            { slug: { $regex: /[*+~.()'"!:@]/g } },
-        ],
+        slug: { $exists: false },
     });
     for (let i = 0; i < containerSecurities.length; i++) {
         let { name } = containerSecurities[i];
-        name = slugify(name, { remove: /[*+~.()'"!:@]/g });
+        name = slugify(name);
         name = `${name}-${generate('1234567890', 8)}`;
         containerSecurities[i].slug = name.toLowerCase();
         await update(

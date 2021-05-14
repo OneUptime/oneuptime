@@ -5,14 +5,11 @@ const monitorCollection = 'monitors';
 
 async function run() {
     const monitors = await find(monitorCollection, {
-        $or: [
-            { slug: { $exists: false } },
-            { slug: { $regex: /[*+~.()'"!:@]/g } },
-        ],
+        slug: { $exists: false },
     });
     for (let i = 0; i < monitors.length; i++) {
         let { name } = monitors[i];
-        name = slugify(name, { remove: /[*+~.()'"!:@]/g });
+        name = slugify(name);
         name = `${name}-${generate('1234567890', 8)}`;
         monitors[i].slug = name.toLowerCase();
         await update(

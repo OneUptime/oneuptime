@@ -5,14 +5,11 @@ const logContainerCollection = 'applicationlogs';
 
 async function run() {
     const logContainers = await find(logContainerCollection, {
-        $or: [
-            { slug: { $exists: false } },
-            { slug: { $regex: /[*+~.()'"!:@]/g } },
-        ],
+        slug: { $exists: false },
     });
     for (let i = 0; i < logContainers.length; i++) {
         let { name } = logContainers[i];
-        name = slugify(name, { remove: /[*+~.()'"!:@]/g });
+        name = slugify(name);
         name = `${name}-${generate('1234567890', 8)}`;
         logContainers[i].slug = name.toLowerCase();
         await update(

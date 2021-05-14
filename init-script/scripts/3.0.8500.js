@@ -5,14 +5,11 @@ const applicationSecurityCollection = 'applicationsecurities';
 
 async function run() {
     const applicationSecurities = await find(applicationSecurityCollection, {
-        $or: [
-            { slug: { $exists: false } },
-            { slug: { $regex: /[*+~.()'"!:@]/g } },
-        ],
+        slug: { $exists: false },
     });
     for (let i = 0; i < applicationSecurities.length; i++) {
         let { name } = applicationSecurities[i];
-        name = slugify(name, { remove: /[*+~.()'"!:@]/g });
+        name = slugify(name);
         name = `${name}-${generate('1234567890', 8)}`;
         applicationSecurities[i].slug = name.toLowerCase();
         await update(

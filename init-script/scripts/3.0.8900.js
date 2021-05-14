@@ -5,14 +5,11 @@ const componentCollection = 'components';
 
 async function run() {
     const components = await find(componentCollection, {
-        $or: [
-            { slug: { $exists: false } },
-            { slug: { $regex: /[*+~.()'"!:@]/g } },
-        ],
+        slug: { $exists: false },
     });
     for (let i = 0; i < components.length; i++) {
         let { name } = components[i];
-        name = slugify(name, { remove: /[*+~.()'"!:@]/g });
+        name = slugify(name);
         name = `${name}-${generate('1234567890', 8)}`;
         components[i].slug = name.toLowerCase();
         await update(
