@@ -11,10 +11,16 @@ user.message = 'Test message';
 const agent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36';
 
+let slomo = 20;
+ 
+if(process.env.SLOMO && parseInt(process.env.SLOMO) && parseInt(process.env.SLOMO) > 20){
+    slomo = parseInt(process.env.SLOMO);
+}
+
 const puppeteerLaunchConfig = {
     headless: process.env.HEADLESS === 'false' ? false : true,
     defaultViewport: null,
-    slowMo: process.env.SLOMO ? parseInt(process.env.SLOMO) : null,
+    slowMo: slomo,
     args: [
         '--start-maximized',
         '--disable-web-security',
