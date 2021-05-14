@@ -49,6 +49,7 @@
         "react-csv": "^1.1.1",
         "react-dom": "^16.5.2",
         "react-dropzone": "^11.0.1",
+        "react-env": "^0.0.0",
         "react-frontload": "^1.0.3",
         "react-ga": "^2.5.3",
         "react-google-charts": "^3.0.15",

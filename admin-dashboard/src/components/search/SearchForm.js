@@ -34,7 +34,7 @@ class Search extends Component {
 
 Search.displayName = 'Search';
 
-const mapStateToProps = state_Ignored => {
+const mapStateToProps = () => {
     return {};
 };
 

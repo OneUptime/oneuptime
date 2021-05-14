@@ -2,7 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 const UploadFile = ({
     fileInputKey,
+    //eslint-disable-next-line
     input: { value: omitValue, ...inputProps },
+    //eslint-disable-next-line
     meta: omitMeta,
     ...props
 }) => <input key={fileInputKey} type="file" {...inputProps} {...props} />;

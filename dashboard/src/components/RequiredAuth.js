@@ -44,11 +44,11 @@ export default function(ComposedComponent) {
 
     Authentication.displayName = 'RequireAuth';
 
-    function mapStateToProps(state_Ignored) {
+    function mapStateToProps() {
         return {};
     }
 
-    function mapDispatchToProps(dispatch_Ignored) {
+    function mapDispatchToProps() {
         return {};
     }
 

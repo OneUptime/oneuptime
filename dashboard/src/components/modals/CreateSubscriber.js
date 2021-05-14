@@ -97,7 +97,7 @@ class CreateSubscriber extends Component {
         const { monitorId, subProjectId, statusPage, limit } = data;
         createSubscriber(
             subProjectId,
-            monitorId ?? values.monitorId,
+            monitorId || values.monitorId,
             values
         ).then(
             function() {

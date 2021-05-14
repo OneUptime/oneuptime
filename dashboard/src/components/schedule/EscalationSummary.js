@@ -201,7 +201,7 @@ EscalationSummary.propTypes = {
 
 const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
 
-const mapStateToProps = (state_ignored, props_ignored) => {
+const mapStateToProps = () => {
     return {};
 };
 

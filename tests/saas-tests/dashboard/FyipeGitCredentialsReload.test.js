@@ -7,8 +7,8 @@ const user = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-
-const resourceCategory = utils.generateRandomString();
+const gitUsername = utils.gitCredential.gitUsername;
+const gitPassword = utils.gitCredential.gitPassword;
 
 /** This is a test to check:
  * No errors on page reload
@@ -16,14 +16,14 @@ const resourceCategory = utils.generateRandomString();
  */
 
 describe('Fyipe Page Reload', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut = 100000;
 
     beforeAll(async done => {
-        jest.setTimeout(init.timeout);
+        jest.setTimeout(100000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(utils.agent);
+
         await init.registerUser(user, page); // This automatically routes to dashboard page
         done();
     });
@@ -34,35 +34,30 @@ describe('Fyipe Page Reload', () => {
     });
 
     test(
-        'Should reload the resource category page and confirm there are no errors',
+        'Should reload the probe page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#more');
-            await init.pageClick(page, '#resources');
-            await init.pageClick(page, '#createResourceCategoryButton');
-            await init.pageType(
-                page,
-                '#resourceCategoryName',
-                resourceCategory
-            );
-            await init.pageClick(page, '#addResourceCategoryButton');
-            await page.waitForSelector('#addResourceCategoryButton', {
-                hidden: true,
-            });
-            await page.waitForSelector('#resource-category-name', {
-                visible: true,
-            });
-            //To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbResources', { visible: true });
+            await init.pageClick(page, '#gitCredentials');
+            await init.pageClick(page, '#addCredentialBtn');
+            await init.pageType(page, '#gitUsername', gitUsername);
+            await init.pageType(page, '#gitPassword', gitPassword);
+            await init.pageClick(page, '#addCredentialModalBtn');
             const spanElement = await page.waitForSelector(
-                '#resource-category-name',
-                { visible: true }
+                `#gitUsername_${gitUsername}`
             );
             expect(spanElement).toBeDefined();
+            //To confirm no errors and stays on the same page on reload
+            await page.reload({ waitUntil: 'networkidle2' });
+            await page.waitForSelector('#cbProjectSettings', { visible: true });
+            await page.waitForSelector('#cbGitCredentials', { visible: true });
+            const spanElement2 = await page.waitForSelector(
+                `#gitUsername_${gitUsername}`
+            );
+            expect(spanElement2).toBeDefined();
             done();
         },
         operationTimeOut
