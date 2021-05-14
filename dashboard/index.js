@@ -62,10 +62,6 @@ app.use(function(req, res, next) {
     next();
 });
 
-child_process.execSync('react-env', {
-    stdio: [0, 1, 2],
-});
-
 app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
     const isClustLocal = req.get('host').includes('cluster.local');
     if (!isClustLocal) {
