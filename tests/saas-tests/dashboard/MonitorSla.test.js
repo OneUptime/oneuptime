@@ -49,7 +49,7 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await page.waitForSelector('#monitor', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#monitor');
 
             await page.waitForSelector('#addMonitorSlaBtn', {
@@ -88,7 +88,7 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await page.waitForSelector('#monitor', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#monitor');
 
             await page.waitForSelector('#addMonitorSlaBtn', {
@@ -102,7 +102,7 @@ describe('Monitor SLA', () => {
             await init.pageType(page, '#name', slaName);
             await page.$eval('#isDefault', elem => elem.click());
             await init.pageClick(page, '#createSlaBtn');
-            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             const slaError = await page.waitForSelector(`#slaError`, {
@@ -126,7 +126,7 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await page.waitForSelector('#monitor', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#monitor');
 
             await page.waitForSelector('#addMonitorSlaBtn', {
@@ -166,7 +166,7 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await page.waitForSelector('#monitor', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#monitor');
 
             await page.waitForSelector('#addMonitorSlaBtn', {
@@ -206,7 +206,7 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await page.waitForSelector('#monitor', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#monitor');
 
             await page.waitForSelector('#addMonitorSlaBtn', {
@@ -246,7 +246,7 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await page.waitForSelector('#monitor', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#monitor');
 
             await page.waitForSelector('#addMonitorSlaBtn', {
@@ -286,7 +286,7 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await page.waitForSelector('#monitor', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#monitor');
 
             await page.waitForSelector('#addMonitorSlaBtn', {
@@ -304,12 +304,12 @@ describe('Monitor SLA', () => {
                 page
             );
             await init.pageClick(page, '#createSlaBtn');
-            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             const monitorSla = await page.waitForSelector(
                 `#monitorSla_${slaName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(monitorSla).toBeDefined();
             done();
@@ -329,7 +329,7 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await page.waitForSelector('#monitor', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#monitor');
 
             await page.waitForSelector('#editMonitorSlaBtn_0', {
@@ -341,7 +341,7 @@ describe('Monitor SLA', () => {
             });
             await page.$eval('#isDefault', elem => elem.click()); // set isDefault to false
             await init.pageClick(page, '#editSlaBtn');
-            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             const setDefaultBtn = await page.waitForSelector(
@@ -378,7 +378,7 @@ describe('Monitor SLA', () => {
 
             const breachedIndicator = await page.waitForSelector(
                 '#monitorSlaBreached',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(breachedIndicator).toBeDefined();
             done();
@@ -398,7 +398,7 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await page.waitForSelector('#monitor', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#monitor');
 
             await page.waitForSelector('#deleteMonitorSlaBtn_0', {
@@ -407,7 +407,7 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#deleteMonitorSlaBtn_0');
             await page.waitForSelector('#DeleteMonitorSlaBtn');
             await init.pageClick(page, '#DeleteMonitorSlaBtn');
-            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             const monitorSla = await page.waitForSelector(

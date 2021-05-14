@@ -47,20 +47,20 @@ describe('Status Page', () => {
             await page.$eval('#statusPages', elem => elem.click());
             await page.waitForSelector(
                 'button[type="button"] .bs-FileUploadButton',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             await init.pageClick(
                 page,
                 'button[type="button"] .bs-FileUploadButton'
             );
-            await page.waitForSelector('#name', { visible: true });
+            await page.waitForSelector('#name', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', pageName);
             await init.pageClick(page, '#btnCreateStatusPage');
             // select the first item from the table row
             const rowItem = await page.waitForSelector(
                 '#statusPagesListContainer > tr',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             rowItem.click();
             await page.waitForSelector('.advanced-options-tab', {

@@ -57,7 +57,7 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#viewScheduledEvent_0');
             await page.waitForSelector(
                 `#editScheduledEvent-${scheduleMaintenanceName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
 
             // To confirm no errors and stays on the same page on reload
@@ -70,7 +70,7 @@ describe('Fyipe Page Reload', () => {
             });
             const spanElement = await page.waitForSelector(
                 `#editScheduledEvent-${scheduleMaintenanceName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(spanElement).toBeDefined();
             done();

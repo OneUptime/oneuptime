@@ -42,7 +42,7 @@ describe('Monitor API', () => {
         await page.waitForSelector('#deleteMonitor');
         await init.pageClick(page, '#deleteMonitor');
 
-        await page.waitForSelector('.ball-beat', { visible: true });
+        await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
         await page.waitForSelector('.ball-beat', { hidden: true });
 
         // delete component
@@ -81,18 +81,18 @@ describe('Monitor API', () => {
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component');
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', componentName);
             await init.pageClick(page, '#addComponentButton');
 
-            await page.waitForSelector('#monitors', { visible: true });
+            await page.waitForSelector('#monitors', { visible: true, timeout: init.timeout });
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'domcontentloaded',
             });
 
-            await page.waitForSelector('#components', { visible: true });
+            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#components');
 
             let spanElement;
@@ -126,11 +126,11 @@ describe('Monitor API', () => {
             });
 
             // Fill and submit New Monitor form
-            await init.pageClick(page, 'input[id=name]', { visible: true });
+            await init.pageClick(page, 'input[id=name]', { visible: true, timeout: init.timeout });
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true });
+            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await init.pageClick(page, 'button[type=submit]');
@@ -138,7 +138,7 @@ describe('Monitor API', () => {
             let spanElement;
             spanElement = await page.waitForSelector(
                 `#monitor-title-${monitorName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
@@ -166,11 +166,11 @@ describe('Monitor API', () => {
                 visible: true,
             });
             // Submit New Monitor form with incorrect details
-            await init.pageClick(page, 'input[id=name]', { visible: true });
+            await init.pageClick(page, 'input[id=name]', { visible: true, timeout: init.timeout });
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', '');
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true });
+            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await init.pageClick(page, 'button[type=submit]');
@@ -178,7 +178,7 @@ describe('Monitor API', () => {
             let spanElement;
             spanElement = await page.waitForSelector(
                 '#form-new-monitor span#field-error',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();

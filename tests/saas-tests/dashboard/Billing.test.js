@@ -283,12 +283,12 @@ describe('Member Restriction', () => {
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#billing');
             await init.pageClick(page, '#billing');
-            await page.waitForSelector('#alertEnable', { visible: true });
+            await page.waitForSelector('#alertEnable', { visible: true, timeout: init.timeout });
             await page.$eval('#alertEnable', checkbox => checkbox.click);
             await init.pageClick(page, '#alertOptionSave');
             const unauthorisedModal = await page.waitForSelector(
                 '#unauthorisedModal',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(unauthorisedModal).toBeDefined();
 
@@ -313,7 +313,7 @@ describe('Member Restriction', () => {
             await init.pageClick(page, '#rechargeAccount');
             const unauthorisedModal = await page.waitForSelector(
                 '#unauthorisedModal',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(unauthorisedModal).toBeDefined();
 
@@ -339,7 +339,7 @@ describe('Member Restriction', () => {
             await init.pageClick(page, '#changePlanBtn');
             const unauthorisedModal = await page.waitForSelector(
                 '#unauthorisedModal',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(unauthorisedModal).toBeDefined();
 

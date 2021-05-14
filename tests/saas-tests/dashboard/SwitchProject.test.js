@@ -39,10 +39,10 @@ describe('Project API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#selector', { visible: true });
+            await page.waitForSelector('#selector', { visible: true, timeout: init.timeout });
             await page.$eval('#create-project', e => e.click());
-            await page.waitForSelector('#name', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('#name', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(
@@ -78,9 +78,9 @@ describe('Project API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#AccountSwitcherId', { visible: true });
+            await page.waitForSelector('#AccountSwitcherId', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#AccountSwitcherId');
-            await page.waitForSelector('#accountSwitcher', { visible: true });
+            await page.waitForSelector('#accountSwitcher', { visible: true, timeout: init.timeout });
 
             const element = await page.$(
                 '#accountSwitcher > div[title="Unnamed Project"]'

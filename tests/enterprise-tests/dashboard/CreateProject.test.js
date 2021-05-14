@@ -41,7 +41,7 @@ describe('Enterprise Project API', () => {
             await page.waitForSelector('#selector', { visble: true });
             await page.$eval('#create-project', e => e.click());
             await page.waitForSelector('#name', { visble: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(

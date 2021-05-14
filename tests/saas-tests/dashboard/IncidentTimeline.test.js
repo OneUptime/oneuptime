@@ -36,11 +36,11 @@ describe('Incident Timeline API', () => {
         await init.addComponent(componentName, page);
 
         // add new monitor to project
-        await page.waitForSelector('#form-new-monitor', { visible: true });
+        await page.waitForSelector('#form-new-monitor', { visible: true, timeout: init.timeout });
         await page.$eval('input[id=name]', e => e.click());
         await init.pageType(page, 'input[id=name]', projectMonitorName);
         await init.pageClick(page, '[data-testId=type_url]');
-        await page.waitForSelector('#url', { visible: true });
+        await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
         await page.$eval('#url', e => e.click());
         await init.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
         await page.$eval('button[type=submit]', e => e.click());

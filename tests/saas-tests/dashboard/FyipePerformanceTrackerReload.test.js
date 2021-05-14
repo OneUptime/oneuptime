@@ -46,7 +46,7 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector('#form-new-performance-tracker', {
                 visible: true,
             });
-            await page.waitForSelector('input[name=name]', { visible: true });
+            await page.waitForSelector('input[name=name]', { visible: true, timeout: init.timeout });
             await init.pageType(
                 page,
                 'input[name=name]',
@@ -59,7 +59,7 @@ describe('Fyipe Page Reload', () => {
             let spanElement;
             spanElement = await page.waitForSelector(
                 `#performance-tracker-title-${performanceTrackerName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(spanElement).toBeDefined();
 
@@ -77,7 +77,7 @@ describe('Fyipe Page Reload', () => {
 
             spanElement = await page.waitForSelector(
                 `#performance-tracker-title-${performanceTrackerName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(spanElement).toBeDefined();
             done();

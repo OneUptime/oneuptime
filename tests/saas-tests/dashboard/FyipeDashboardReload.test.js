@@ -36,7 +36,7 @@ describe('Fyipe Page Reload', () => {
         'Should reload the dashboard page and confirm there are no errors',
         async done => {
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbHome', { visible: true });
+            await page.waitForSelector('#cbHome', { visible: true, timeout: init.timeout });
             done();
         },
         operationTimeOut
@@ -48,12 +48,12 @@ describe('Fyipe Page Reload', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#components', { visible: true });
+            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#components');
-            await page.waitForSelector('#cbComponents', { visible: true });
+            await page.waitForSelector('#cbComponents', { visible: true, timeout: init.timeout });
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbComponents', { visible: true });
+            await page.waitForSelector('#cbComponents', { visible: true, timeout: init.timeout });
             done();
         },
         operationTimeOut
@@ -65,12 +65,12 @@ describe('Fyipe Page Reload', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#incidents', { visible: true });
+            await page.waitForSelector('#incidents', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#incidents');
-            await page.waitForSelector('#cbIncidents', { visible: true });
+            await page.waitForSelector('#cbIncidents', { visible: true, timeout: init.timeout });
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbIncidents', { visible: true });
+            await page.waitForSelector('#cbIncidents', { visible: true, timeout: init.timeout });
             done();
         },
         operationTimeOut
@@ -82,12 +82,12 @@ describe('Fyipe Page Reload', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#statusPages', { visible: true });
+            await page.waitForSelector('#statusPages', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#statusPages');
-            await page.waitForSelector('#cbStatusPages', { visible: true });
+            await page.waitForSelector('#cbStatusPages', { visible: true, timeout: init.timeout });
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbStatusPages', { visible: true });
+            await page.waitForSelector('#cbStatusPages', { visible: true, timeout: init.timeout });
             done();
         },
         operationTimeOut
@@ -99,12 +99,12 @@ describe('Fyipe Page Reload', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#onCallDuty', { visible: true });
+            await page.waitForSelector('#onCallDuty', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#onCallDuty');
-            await page.waitForSelector('#cbOn-CallDuty', { visible: true });
+            await page.waitForSelector('#cbOn-CallDuty', { visible: true, timeout: init.timeout });
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbOn-CallDuty', { visible: true });
+            await page.waitForSelector('#cbOn-CallDuty', { visible: true, timeout: init.timeout });
             done();
         },
         operationTimeOut
@@ -139,12 +139,12 @@ describe('Fyipe Page Reload', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#reports', { visible: true });
+            await page.waitForSelector('#reports', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#reports');
-            await page.waitForSelector('#cbReports', { visible: true });
+            await page.waitForSelector('#cbReports', { visible: true, timeout: init.timeout });
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbReports', { visible: true });
+            await page.waitForSelector('#cbReports', { visible: true, timeout: init.timeout });
             done();
         },
         operationTimeOut
@@ -156,12 +156,12 @@ describe('Fyipe Page Reload', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#teamMembers', { visible: true });
+            await page.waitForSelector('#teamMembers', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#teamMembers');
-            await page.waitForSelector('#cbTeamMembers', { visible: true });
+            await page.waitForSelector('#cbTeamMembers', { visible: true, timeout: init.timeout });
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbTeamMembers', { visible: true });
+            await page.waitForSelector('#cbTeamMembers', { visible: true, timeout: init.timeout });
             done();
         },
         operationTimeOut
@@ -173,12 +173,12 @@ describe('Fyipe Page Reload', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', { visible: true });
+            await page.waitForSelector('#projectSettings', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#cbProjectSettings', { visible: true });
+            await page.waitForSelector('#cbProjectSettings', { visible: true, timeout: init.timeout });
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbProjectSettings', { visible: true });
+            await page.waitForSelector('#cbProjectSettings', { visible: true, timeout: init.timeout });
             done();
         },
         operationTimeOut

@@ -45,7 +45,7 @@ describe('Enterprise Component API', () => {
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component');
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', componentName);
@@ -53,7 +53,7 @@ describe('Enterprise Component API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await page.waitForSelector('#components', { visible: true });
+            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#components');
 
             let spanElement;

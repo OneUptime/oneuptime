@@ -43,7 +43,7 @@ describe('Log Containers', () => {
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component');
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', componentName);
@@ -54,7 +54,7 @@ describe('Log Containers', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#components', { visible: true });
+            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#components');
 
             let spanElement = await page.waitForSelector(
@@ -78,7 +78,7 @@ describe('Log Containers', () => {
 
             // Fill and submit New Application  log form
             await page.waitForSelector('#form-new-application-log');
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', applicationLogName);
@@ -116,7 +116,7 @@ describe('Log Containers', () => {
             // create a new log and select the category
             // Fill and submit New Application  log form
             await page.waitForSelector('#form-new-application-log');
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', appLogName);
@@ -145,7 +145,7 @@ describe('Log Containers', () => {
 
             // Fill and submit New Application  log form
             await page.waitForSelector('#form-new-application-log');
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', '');
@@ -153,7 +153,7 @@ describe('Log Containers', () => {
 
             await page.waitForSelector(
                 '#form-new-application-log span#field-error',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             let spanElement = await page.$(
                 '#form-new-application-log span#field-error'

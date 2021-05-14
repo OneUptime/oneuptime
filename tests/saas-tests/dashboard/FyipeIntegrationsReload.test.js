@@ -50,7 +50,7 @@ describe('Fyipe Page Reload', () => {
             });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#integrations');
-            await page.waitForSelector('#addSlackButton', { visible: true });
+            await page.waitForSelector('#addSlackButton', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#addWebhookButton');
             await init.pageType(page, '#endpoint', webHookEndpoint);
             await init.selectByText(
@@ -64,7 +64,7 @@ describe('Fyipe Page Reload', () => {
             //To confirm no errors and stays on the same page on reload
             await page.waitForSelector('#webhook_name');
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbIntegrations', { visible: true });
+            await page.waitForSelector('#cbIntegrations', { visible: true, timeout: init.timeout });
             const spanElement = await page.waitForSelector('#addSlackButton', {
                 visible: true,
             });

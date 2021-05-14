@@ -145,7 +145,7 @@ describe('Credential Page', () => {
             });
             const updatedCredential = await page.waitForSelector(
                 `#gitUsername_${gitUsername}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(updatedCredential).toBeDefined();
 
@@ -206,7 +206,7 @@ describe('Credential Page', () => {
             });
             await init.pageClick(page, '#gitCredentials');
 
-            await page.waitForSelector('tbody tr', { visible: true });
+            await page.waitForSelector('tbody tr', { visible: true, timeout: init.timeout });
             const initialTableRow = await page.$$('tbody tr');
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
@@ -336,7 +336,7 @@ describe('Credential Page', () => {
 
             const updatedCredential = await page.waitForSelector(
                 `#dockerUsername_${dockerUsername}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(updatedCredential).toBeDefined();
 
@@ -476,7 +476,7 @@ describe('Credential Page', () => {
             });
             await init.pageClick(page, '#dockerCredentials');
 
-            await page.waitForSelector('tbody tr', { visible: true });
+            await page.waitForSelector('tbody tr', { visible: true, timeout: init.timeout });
             const initialTableRow = await page.$$('tbody tr');
             await init.pageClick(page, '#deleteCredentialBtn_0');
 

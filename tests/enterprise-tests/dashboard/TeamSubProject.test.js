@@ -48,7 +48,7 @@ describe('Enterprise Team SubProject API', () => {
             await init.addSubProject(subProjectName, page);
             const role = 'Member';
 
-            await page.waitForSelector('#teamMembers', { visible: true });
+            await page.waitForSelector('#teamMembers', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#teamMembers');
             await page.waitForSelector(`#btn_${subProjectName}`, {
                 visible: true,

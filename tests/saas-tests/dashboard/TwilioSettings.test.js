@@ -58,7 +58,7 @@ describe('Custom Twilio Settings', () => {
                 visible: true,
             });
             await init.pageClick(page, '#enableTwilio');
-            await page.waitForSelector('#accountSid', { visible: true });
+            await page.waitForSelector('#accountSid', { visible: true, timeout: init.timeout });
             await init.pageType(
                 page,
                 '#accountSid',
@@ -75,13 +75,13 @@ describe('Custom Twilio Settings', () => {
                 twilioCredentials.phoneNumber
             );
             await init.pageClick(page, '#submitTwilioSettings');
-            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.reload({
                 waitUntil: ['networkidle0', 'domcontentloaded'],
             });
-            await page.waitForSelector('#accountSid', { visible: true });
+            await page.waitForSelector('#accountSid', { visible: true, timeout: init.timeout });
             const savedAccountSid = await page.$eval(
                 '#accountSid',
                 elem => elem.value

@@ -43,14 +43,14 @@ describe('Check scheduled maintenace', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#statusPages', { visible: true });
+            await page.waitForSelector('#statusPages', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#statusPages');
             await page.waitForSelector(`#btnCreateStatusPage_${projectName}`, {
                 visible: true,
             });
             await init.pageClick(page, `#btnCreateStatusPage_${projectName}`);
-            await page.waitForSelector('#name', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('#name', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', statusPageName);
@@ -67,7 +67,7 @@ describe('Check scheduled maintenace', () => {
             // To confirm the status-page name.
             let spanElement = await page.waitForSelector(
                 `#header-${statusPageName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
@@ -85,26 +85,26 @@ describe('Check scheduled maintenace', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#components', { visible: true });
+            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
             await page.$eval('#components', el => el.click());
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component', {
                 visible: true,
             });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', componentName);
             await init.pageClick(page, 'button[type=submit]');
 
             // Create a Manual Monitor
-            await page.waitForSelector('#form-new-monitor', { visible: true });
-            await init.pageClick(page, 'input[id=name]', { visible: true });
+            await page.waitForSelector('#form-new-monitor', { visible: true, timeout: init.timeout });
+            await init.pageClick(page, 'input[id=name]', { visible: true, timeout: init.timeout });
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, '[data-testId=type_manual]');
-            await page.waitForSelector('#description', { visible: true });
+            await page.waitForSelector('#description', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#description');
             await init.pageType(page, '#description', 'My Manual Monitor');
             await init.pageClick(page, 'button[type=submit]');
@@ -112,7 +112,7 @@ describe('Check scheduled maintenace', () => {
             // To confirm the manual monitor is created
             let spanElement = await page.waitForSelector(
                 `#monitor-title-${monitorName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
@@ -130,14 +130,14 @@ describe('Check scheduled maintenace', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#statusPages', { visible: true });
+            await page.waitForSelector('#statusPages', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#statusPages');
             await page.waitForSelector('#statusPagesListContainer', {
                 visible: true,
             });
-            await page.waitForSelector('#viewStatusPage', { visible: true });
+            await page.waitForSelector('#viewStatusPage', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#viewStatusPage');
-            await page.waitForSelector('#addMoreMonitors', { visible: true });
+            await page.waitForSelector('#addMoreMonitors', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#addMoreMonitors');
             await init.selectByText(
                 '#monitor-name',
@@ -164,7 +164,7 @@ describe('Check scheduled maintenace', () => {
             // To confirm the monitor is present in the status-page
             let spanElement = await page.waitForSelector(
                 `#monitor-${monitorName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
@@ -194,7 +194,7 @@ describe('Check scheduled maintenace', () => {
             await page.waitForSelector('#scheduledEventForm', {
                 visible: true,
             });
-            await page.waitForSelector('#name', { visible: true });
+            await page.waitForSelector('#name', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', scheduledMaintenanceName);
 
@@ -262,12 +262,12 @@ describe('Check scheduled maintenace', () => {
     test(
         'should view scheduled maintenance details in status-page',
         async done => {
-            await page.waitForSelector('#statusPages', { visible: true });
+            await page.waitForSelector('#statusPages', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#statusPages');
             await page.waitForSelector('#statusPagesListContainer', {
                 visible: true,
             });
-            await page.waitForSelector('#viewStatusPage', { visible: true });
+            await page.waitForSelector('#viewStatusPage', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#viewStatusPage');
 
             await page.waitForSelector('#publicStatusPageUrl', {
@@ -291,7 +291,7 @@ describe('Check scheduled maintenace', () => {
             // To confirm scheduled maintenance description
             await page.waitForSelector(
                 `#event-description-${scheduledMaintenanceDescription}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             const eventDescription = await page.$eval(
                 `#event-description-${scheduledMaintenanceDescription}`,
@@ -300,7 +300,7 @@ describe('Check scheduled maintenace', () => {
             expect(eventDescription).toMatch(scheduledMaintenanceDescription);
 
             // To confirm scheduled maintenance date
-            await page.waitForSelector('#event-date', { visible: true });
+            await page.waitForSelector('#event-date', { visible: true, timeout: init.timeout });
             const eventDate = await page.$eval(
                 '#event-date',
                 elem => elem.textContent
@@ -308,7 +308,7 @@ describe('Check scheduled maintenace', () => {
             expect(eventDate).toBeDefined();
 
             // To confirm this is a future scheduled maintenance
-            await page.waitForSelector('#ongoing-event', { visible: true });
+            await page.waitForSelector('#ongoing-event', { visible: true, timeout: init.timeout });
             const futureEvent = await page.$eval(
                 '#ongoing-event',
                 elem => elem.textContent

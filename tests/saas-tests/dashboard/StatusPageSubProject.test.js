@@ -141,7 +141,7 @@ describe('StatusPage API With SubProjects', () => {
 
         let statusPageNameOnStatusPage = await page.waitForSelector(
             `#cb${statuspageName}`,
-            { visible: true }
+            { visible: true, timeout: init.timeout }
         );
         statusPageNameOnStatusPage = await statusPageNameOnStatusPage.getProperty(
             'innerText'

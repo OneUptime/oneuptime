@@ -94,7 +94,7 @@ describe('Scheduled Event Note', () => {
             );
             const note = await page.waitForSelector(
                 '#Internal_incident_message_0',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(note).toBeDefined();
             done();
@@ -140,7 +140,7 @@ describe('Scheduled Event Note', () => {
             );
             const edited = await page.waitForSelector(
                 '#edited_Internal_incident_message_0',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(edited).toBeDefined();
             done();
@@ -169,7 +169,7 @@ describe('Scheduled Event Note', () => {
                 visible: true,
             });
             await init.pageClick(page, '#delete_Internal_incident_message_0');
-            await page.waitForSelector('#deleteNote', { visible: true });
+            await page.waitForSelector('#deleteNote', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#deleteNote');
             await page.waitForSelector('#deleteNote', { hidden: true });
 
@@ -250,7 +250,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
             const tenthItem = await page.waitForSelector(
                 '#Internal_incident_message_9',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(tenthItem).toBeDefined();
             done();
@@ -275,12 +275,12 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
-            await page.waitForSelector('#nextBtn', { visible: true });
+            await page.waitForSelector('#nextBtn', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#nextBtn');
 
             const fifthItem = await page.waitForSelector(
                 '#Internal_incident_message_4',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             const sixthItem = await page.waitForSelector(
                 '#Internal_incident_message_5',

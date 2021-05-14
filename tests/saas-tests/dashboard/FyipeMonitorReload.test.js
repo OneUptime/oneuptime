@@ -45,11 +45,11 @@ describe('Fyipe Monitor Reload', () => {
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
-            await page.waitForSelector('#cbMonitors', { visible: true });
+            await page.waitForSelector('#cbMonitors', { visible: true, timeout: init.timeout });
 
             let spanElement = await page.waitForSelector(
                 `#monitor-title-${monitorName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             spanElement = spanElement.getProperty('innerText');
             spanElement = spanElement.jsonValue();
@@ -73,12 +73,12 @@ describe('Fyipe Monitor Reload', () => {
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
-            await page.waitForSelector('#cbMonitors', { visible: true });
-            await page.waitForSelector(`#cb${monitorName}`, { visible: true });
+            await page.waitForSelector('#cbMonitors', { visible: true, timeout: init.timeout });
+            await page.waitForSelector(`#cb${monitorName}`, { visible: true, timeout: init.timeout });
 
             let spanElement = await page.waitForSelector(
                 `#monitor-title-${monitorName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             spanElement = spanElement.getProperty('innerText');
             spanElement = spanElement.jsonValue();

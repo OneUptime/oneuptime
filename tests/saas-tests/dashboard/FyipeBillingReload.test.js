@@ -40,7 +40,7 @@ describe('Fyipe Page Reload', () => {
             });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#billing');
-            await page.waitForSelector('#Startup_month', { visible: true });
+            await page.waitForSelector('#Startup_month', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#alert');
             await init.pageClick(page, '#alertOptionSave');
             await page.waitForSelector('#message-modal-message', {
@@ -53,7 +53,7 @@ describe('Fyipe Page Reload', () => {
 
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbBilling', { visible: true });
+            await page.waitForSelector('#cbBilling', { visible: true, timeout: init.timeout });
             const spanElement = await page.waitForSelector('#Startup_month', {
                 visible: true,
             });

@@ -59,7 +59,7 @@ describe('BreadCrumb Component test', () => {
 
             const monitorTitle = await page.waitForSelector(
                 `#monitor-title-${monitorName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(monitorTitle).toBeDefined();
             done();
@@ -73,7 +73,7 @@ describe('BreadCrumb Component test', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#cbUnnamedProject', { visible: true });
+            await page.waitForSelector('#cbUnnamedProject', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#cbUnnamedProject');
             let currentPage = await page.waitForSelector('#cbUnnamedProject', {
                 visible: true,

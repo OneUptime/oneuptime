@@ -44,14 +44,14 @@ describe('Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
             const monitorName = utils.generateRandomString();
 
-            await page.waitForSelector('#form-new-monitor', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('#form-new-monitor', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true });
+            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await init.pageClick(page, 'button[type=submit]');
@@ -75,13 +75,13 @@ describe('Monitor API', () => {
             const monitorName = utils.generateRandomString();
 
             await page.waitForSelector('#form-new-monitor');
-            await page.waitForSelector('input[id=name]', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, 'input[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true });
+            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
 
@@ -132,13 +132,13 @@ describe('Monitor API', () => {
         const monitorName = utils.generateRandomString();
 
         await page.waitForSelector('#form-new-monitor');
-        await page.waitForSelector('input[id=name]', { visible: true });
-        await page.waitForSelector('input[id=name]', { visible: true });
+        await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+        await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
         await init.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
         await init.pageType(page, 'input[id=name]', monitorName);
         await init.pageClick(page, 'input[data-testId=type_url]');
-        await page.waitForSelector('#url', { visible: true });
+        await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
         await init.pageClick(page, '#url');
         await init.pageType(page, '#url', 'https://google.com');
 
@@ -329,13 +329,13 @@ describe('Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
             const monitorName = utils.generateRandomString();
             await page.waitForSelector('#form-new-monitor');
-            await page.waitForSelector('input[id=name]', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true });
+            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             // select multiple schedules
@@ -376,7 +376,7 @@ describe('Monitor API', () => {
 
             await page.waitForSelector('#form-new-monitor');
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true });
+            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
 
@@ -418,13 +418,13 @@ describe('Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#form-new-monitor');
-            await page.waitForSelector('input[id=name]', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', testServerMonitorName);
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true });
+            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
             await init.pageClick(page, 'button[type=submit]');
@@ -450,13 +450,13 @@ describe('Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#form-new-monitor');
-            await page.waitForSelector('input[id=name]', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', selfSignedMonitorName);
             await init.selectByText('#type', 'url', page);
-            await page.waitForSelector('#url', { visible: true });
+            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://self-signed.badssl.com');
             await init.pageClick(page, 'button[type=submit]');
@@ -529,7 +529,7 @@ describe('Monitor API', () => {
                 `<h1 id="html"><span>${bodyText}</span></h1>`
             );
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector('#save-btn', { visible: true });
+            await page.waitForSelector('#save-btn', { visible: true, timeout: init.timeout });
 
             // Component and Monitor are already created. This is code refactoring
             await init.navigateToMonitorDetails(
@@ -590,7 +590,7 @@ describe('Monitor API', () => {
                 `<h1 id="html"><span>${bodyText}</span></h1>`
             );
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector('#save-btn', { visible: true });
+            await page.waitForSelector('#save-btn', { visible: true, timeout: init.timeout });
 
             // Component and Monitor are already created. This is code refactoring
             await init.navigateToMonitorDetails(
@@ -663,7 +663,7 @@ describe('API Monitor API', () => {
         await init.pageType(page, 'textarea[name=body]', '{"status":"ok"}');
         await init.pageClick(page, 'button[type=submit]');
         await page.waitForSelector('#save-btn');
-        await page.waitForSelector('#save-btn', { visible: true });
+        await page.waitForSelector('#save-btn', { visible: true, timeout: init.timeout });
 
         const user = {
             email: utils.generateRandomBusinessEmail(),
@@ -686,13 +686,13 @@ describe('API Monitor API', () => {
             // Redirects automatically component to details page
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#form-new-monitor');
-            await page.waitForSelector('input[id=name]', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, 'input[data-testId=type_api]');
-            await page.waitForSelector('#url', { visible: true });
+            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await init.selectByText('#method', 'get', page);
@@ -719,13 +719,13 @@ describe('API Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#form-new-monitor');
-            await page.waitForSelector('input[id=name]', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, 'input[data-testId=type_api]');
-            await page.waitForSelector('#url', { visible: true });
+            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#url');
             await init.pageType(
                 page,
@@ -752,14 +752,14 @@ describe('API Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#form-new-monitor');
-            await page.waitForSelector('input[id=name]', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, 'input[data-testId=type_api]');
             await init.selectByText('#method', 'post', page);
-            await page.waitForSelector('#url', { visible: true });
+            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#url');
             await init.pageType(
                 page,
@@ -805,14 +805,14 @@ describe('API Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#form-new-monitor');
-            await page.waitForSelector('input[id=name]', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, 'input[data-testId=type_api]');
             await init.selectByText('#method', 'get', page);
-            await page.waitForSelector('#url', { visible: true });
+            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'http://localhost:3002');
             await init.pageClick(page, 'button[type=submit]');
@@ -933,7 +933,7 @@ describe('API Monitor API', () => {
             );
             await init.pageClick(page, 'button[type=submit]');
             await page.waitForSelector('#save-btn');
-            await page.waitForSelector('#save-btn', { visible: true });
+            await page.waitForSelector('#save-btn', { visible: true, timeout: init.timeout });
 
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
@@ -988,7 +988,7 @@ describe('API Monitor API', () => {
             );
             await init.pageClick(page, 'button[type=submit]');
             await page.waitForSelector('#save-btn');
-            await page.waitForSelector('#save-btn', { visible: true });
+            await page.waitForSelector('#save-btn', { visible: true, timeout: init.timeout });
 
             // Dashboard Page
             await page.goto(utils.DASHBOARD_URL, {
@@ -1043,7 +1043,7 @@ describe('API Monitor API', () => {
         await init.pageType(page, 'textarea[name=body]', '{"status":"not ok"}');
         await init.pageClick(page, 'button[type=submit]');
         await page.waitForSelector('#save-btn');
-        await page.waitForSelector('#save-btn', { visible: true });
+        await page.waitForSelector('#save-btn', { visible: true, timeout: init.timeout });
 
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],

@@ -43,12 +43,12 @@ describe('Resource Category', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', { visible: true });
+            await page.waitForSelector('#projectSettings', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true });
+            await page.waitForSelector('#more', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#more');
 
-            await page.waitForSelector('li#resources a', { visible: true });
+            await page.waitForSelector('li#resources a', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'li#resources a');
             await page.waitForSelector('#createResourceCategoryButton', {
                 visible: true,
@@ -86,7 +86,7 @@ describe('Resource Category', () => {
         async done => {
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#form-new-monitor', { visible: true });
+            await page.waitForSelector('#form-new-monitor', { visible: true, timeout: init.timeout });
 
             let resourceCategoryCheck = false;
 
@@ -113,8 +113,8 @@ describe('Resource Category', () => {
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
 
-            await page.waitForSelector('#form-new-monitor', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('#form-new-monitor', { visible: true, timeout: init.timeout });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', utils.monitorName);
@@ -124,7 +124,7 @@ describe('Resource Category', () => {
                 page
             );
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true });
+            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await Promise.all([
@@ -154,17 +154,17 @@ describe('Resource Category', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', { visible: true });
+            await page.waitForSelector('#projectSettings', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true });
+            await page.waitForSelector('#more', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#more');
 
-            await page.waitForSelector('li#resources a', { visible: true });
+            await page.waitForSelector('li#resources a', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'li#resources a');
 
             const deleteButtonSelector = `button#delete_${utils.resourceCategoryName}`;
 
-            await page.waitForSelector(deleteButtonSelector, { visible: true });
+            await page.waitForSelector(deleteButtonSelector, { visible: true, timeout: init.timeout });
             await init.pageClick(page, deleteButtonSelector);
             await page.waitForSelector('#deleteResourceCategory', {
                 visible: true,
@@ -235,10 +235,10 @@ describe('Member Restriction', () => {
                 visible: true,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true });
+            await page.waitForSelector('#more', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#more');
 
-            await page.waitForSelector('#resources', { visible: true });
+            await page.waitForSelector('#resources', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#resources');
             await page.waitForSelector('#createResourceCategoryButton', {
                 visible: true,
@@ -263,10 +263,10 @@ describe('Member Restriction', () => {
                 visible: true,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true });
+            await page.waitForSelector('#more', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#more');
 
-            await page.waitForSelector('#resources', { visible: true });
+            await page.waitForSelector('#resources', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#resources');
             const editBtn = `#edit_${resourceCategory}`;
             await page.waitForSelector(editBtn, {
@@ -292,10 +292,10 @@ describe('Member Restriction', () => {
                 visible: true,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true });
+            await page.waitForSelector('#more', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#more');
 
-            await page.waitForSelector('#resources', { visible: true });
+            await page.waitForSelector('#resources', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#resources');
             const deleteBtn = `#delete_${resourceCategory}`;
             await page.waitForSelector(deleteBtn, {

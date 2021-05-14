@@ -49,21 +49,21 @@ describe('Incoming HTTP Request', () => {
                 visible: true,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#integrations', { visible: true });
+            await page.waitForSelector('#integrations', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#integrations');
 
             await page.waitForSelector('#addIncomingRequestBtn', {
                 visible: true,
             });
             await init.pageClick(page, '#addIncomingRequestBtn');
-            await page.waitForSelector('#name', { visible: true });
+            await page.waitForSelector('#name', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', incidentRequest.name);
             await page.$eval('#createIncident', elem => elem.click());
-            await page.waitForSelector('#isDefault', { visible: true });
+            await page.waitForSelector('#isDefault', { visible: true, timeout: init.timeout });
             await page.$eval('#isDefault', elem => elem.click());
             await init.pageClick(page, '#advancedOptionsBtn');
-            await page.waitForSelector('#incidentTitle', { visible: true });
+            await page.waitForSelector('#incidentTitle', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#incidentTitle');
             await init.pageType(
                 page,
@@ -81,13 +81,13 @@ describe('Incoming HTTP Request', () => {
             await page.waitForSelector('#createIncomingRequest', {
                 hidden: true,
             });
-            await page.waitForSelector('#requestOkBtn', { visible: true });
+            await page.waitForSelector('#requestOkBtn', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#requestOkBtn');
             await page.waitForSelector('#requestOkBtn', { hidden: true });
 
             const firstIncomingHttpRequest = await page.waitForSelector(
                 '#copyIncomingRequestBtn_0',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(firstIncomingHttpRequest).toBeDefined();
 
@@ -106,14 +106,14 @@ describe('Incoming HTTP Request', () => {
                 visible: true,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#integrations', { visible: true });
+            await page.waitForSelector('#integrations', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#integrations');
 
             await page.waitForSelector('#editIncomingRequestBtn_0', {
                 visible: true,
             });
             await init.pageClick(page, '#editIncomingRequestBtn_0');
-            await page.waitForSelector('#name', { visible: true });
+            await page.waitForSelector('#name', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#name', { clickCount: 3 });
             // change the name of the incoming http request
             await init.pageType(page, '#name', 'newName');
@@ -124,7 +124,7 @@ describe('Incoming HTTP Request', () => {
 
             const updatedRequest = await page.waitForSelector(
                 '#incomingRequest_newName',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(updatedRequest).toBeDefined();
             done();
@@ -142,7 +142,7 @@ describe('Incoming HTTP Request', () => {
                 visible: true,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#integrations', { visible: true });
+            await page.waitForSelector('#integrations', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#integrations');
 
             await page.waitForSelector('#deleteIncomingRequestBtn_0', {
@@ -159,7 +159,7 @@ describe('Incoming HTTP Request', () => {
 
             const noIncomingRequest = await page.waitForSelector(
                 '#noIncomingRequest',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(noIncomingRequest).toBeDefined();
             done();

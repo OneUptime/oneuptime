@@ -755,7 +755,7 @@ describe('Monitor Detail API', () => {
             const nextSelector = await page.$('#btnNextSlack');
 
             await nextSelector.click();
-            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.waitForSelector(createdWebhookSelector);
@@ -768,7 +768,7 @@ describe('Monitor Detail API', () => {
             const prevSelector = await page.$('#btnPrevSlack');
 
             await prevSelector.click();
-            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.waitForSelector(createdWebhookSelector);
@@ -879,7 +879,7 @@ describe('Monitor Detail API', () => {
                 visible: true,
             });
             await page.$eval('#btnNextWebhook', elem => elem.click());
-            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.waitForSelector(createdWebhookSelector);
@@ -912,11 +912,11 @@ describe('Monitor Detail API', () => {
             await page.$eval('input[id=name]', e => e.click());
             await init.pageType(page, 'input[id=name]', urlMonitorName);
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true });
+            await page.waitForSelector('#url', { visible: true, timeout: init.timeout });
             await page.$eval('#url', e => e.click());
             await init.pageType(page, '#url', 'https://google.com');
             await page.$eval('button[type=submit]', e => e.click());
-            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             // Navigate to Monitor details

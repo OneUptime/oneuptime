@@ -39,12 +39,12 @@ describe('Fyipe Page Reload', () => {
         'Should reload the component logs page and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#logs', { visible: true });
+            await page.waitForSelector('#logs', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#logs');
             await page.waitForSelector('#form-new-application-log', {
                 visible: true,
             });
-            await page.waitForSelector('input[name=name]', { visible: true });
+            await page.waitForSelector('input[name=name]', { visible: true, timeout: init.timeout });
             await init.pageType(page, 'input[name=name]', logName);
             await page.waitForSelector('#addApplicationLogButton', {
                 visible: true,
@@ -53,7 +53,7 @@ describe('Fyipe Page Reload', () => {
             let spanElement;
             spanElement = await page.waitForSelector(
                 '#application-content-header',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(spanElement).toBeDefined();
 
@@ -62,12 +62,12 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
-            await page.waitForSelector('#cbLogs', { visible: true });
-            await page.waitForSelector(`#cb${logName}`, { visible: true });
+            await page.waitForSelector('#cbLogs', { visible: true, timeout: init.timeout });
+            await page.waitForSelector(`#cb${logName}`, { visible: true, timeout: init.timeout });
 
             spanElement = await page.waitForSelector(
                 '#application-content-header',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(spanElement).toBeDefined();
             done();

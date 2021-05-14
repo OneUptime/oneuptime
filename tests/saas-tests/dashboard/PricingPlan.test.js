@@ -43,7 +43,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             // select the first item from the table row
             const rowItem = await page.waitForSelector(
                 '#statusPagesListContainer > tr',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             rowItem.click();
             await page.waitForSelector('.advanced-options-tab', {
@@ -73,7 +73,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             // select the first item from the table row
             const rowItem = await page.waitForSelector(
                 '#statusPagesListContainer > tr',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             rowItem.click();
 
@@ -146,7 +146,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             // select the first item from the table row
             const rowItem = await page.waitForSelector(
                 '#statusPagesListContainer > tr',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             rowItem.click();
             await page.waitForSelector('.advanced-options-tab', {
@@ -162,10 +162,10 @@ describe('Status Page -> Pricing Plan Component', () => {
             });
             const growthOption = await page.waitForSelector(
                 'label[for=Growth_month]',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             growthOption.click();
-            await page.waitForSelector('#cancelPlanUpgrade', { visible: true });
+            await page.waitForSelector('#cancelPlanUpgrade', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#cancelPlanUpgrade');
             const elem = await page.waitForSelector('#pricingPlanModal', {
                 hidden: true,
@@ -187,7 +187,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             // select the first item from the table row
             const rowItem = await page.waitForSelector(
                 '#statusPagesListContainer > tr',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             rowItem.click();
             await page.waitForSelector('.advanced-options-tab', {
@@ -203,7 +203,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             });
             const growthOption = await page.waitForSelector(
                 'label[for=Growth_month]',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             growthOption.click();
             await page.waitForSelector('#confirmPlanUpgrade', {

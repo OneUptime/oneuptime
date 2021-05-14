@@ -88,7 +88,7 @@ describe('Twilio Settings API', () => {
             await init.pageType(page, 'input[name=alert-limit]', '5');
 
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector('#errors', { visible: true });
+            await page.waitForSelector('#errors', { visible: true, timeout: init.timeout });
             const errorMessage = await page.$eval(
                 '#errors',
                 element => element.textContent
@@ -141,7 +141,7 @@ describe('Twilio Settings API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            await page.waitForSelector('#errors', { visible: true });
+            await page.waitForSelector('#errors', { visible: true, timeout: init.timeout });
             const errorMessage = await page.$eval(
                 '#errors',
                 element => element.textContent
@@ -201,7 +201,7 @@ describe('Twilio Settings API', () => {
             await init.pageType(page, 'input[name=alert-limit]', '5');
 
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
             await page.waitForSelector('.ball-beat', { hidden: true });
             await page.reload();
 

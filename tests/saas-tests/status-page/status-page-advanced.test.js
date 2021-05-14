@@ -49,7 +49,7 @@ describe('Status-Page Advanced Options', () => {
             await page.waitForSelector(`#btnCreateStatusPage_${projectName}`);
             await init.pageClick(page, `#btnCreateStatusPage_${projectName}`);
             await page.waitForSelector('#name');
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', statusPageName);
@@ -84,15 +84,15 @@ describe('Status-Page Advanced Options', () => {
 
             // Fill and submit New Component form
             await page.waitForSelector('#form-new-component');
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await page.waitForSelector('input[id=name]', { visible: true, timeout: init.timeout });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', componentName);
             await init.pageClick(page, 'button[type=submit]');
 
             // Create a Manual Monitor
-            await page.waitForSelector('#form-new-monitor', { visible: true });
-            await init.pageClick(page, 'input[id=name]', { visible: true });
+            await page.waitForSelector('#form-new-monitor', { visible: true, timeout: init.timeout });
+            await init.pageClick(page, 'input[id=name]', { visible: true, timeout: init.timeout });
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, '[data-testId=type_manual]');

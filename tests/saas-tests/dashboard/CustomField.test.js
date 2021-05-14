@@ -47,7 +47,7 @@ describe('Incident Custom Field', () => {
 
             const firstCustomField = await page.waitForSelector(
                 `#customfield_${incidentFieldText.fieldName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(firstCustomField).toBeDefined();
             done();
@@ -104,7 +104,7 @@ describe('Incident Custom Field', () => {
 
             const updatedField = await page.waitForSelector(
                 `#customfield_${incidentFieldNumber.fieldName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(updatedField).toBeDefined();
             done();
@@ -147,7 +147,7 @@ describe('Incident Custom Field', () => {
 
             const noCustomFields = await page.waitForSelector(
                 '#noCustomFields',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(noCustomFields).toBeDefined();
 

@@ -48,9 +48,9 @@ describe('Fyipe Page Reload', () => {
             //navigate to component details
             await init.navigateToComponentDetails(componentName, page);
 
-            await page.waitForSelector('#security', { visible: true });
+            await page.waitForSelector('#security', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#security');
-            await page.waitForSelector('#application', { visible: true });
+            await page.waitForSelector('#application', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#application');
 
             await page.waitForSelector('#applicationSecurityForm', {
@@ -82,7 +82,7 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector('.ball-beat', { hidden: true });
             const applicationSecurity = await page.waitForSelector(
                 `#applicationSecurityHeader_${applicationSecurityName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(applicationSecurity).toBeDefined();
 

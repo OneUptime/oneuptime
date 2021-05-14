@@ -88,10 +88,10 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL);
             await page.waitForSelector('#btnResolve_0');
             await page.$eval('#btnResolve_0', e => e.click());
-            await page.waitForSelector('#ResolveText_0', { visible: true });
+            await page.waitForSelector('#ResolveText_0', { visible: true, timeout: init.timeout });
             const closeAllButton = await page.waitForSelector(
                 '#incidents-close-all-btn',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(closeAllButton).toBeDefined();
         },
@@ -121,7 +121,7 @@ describe('Incident Created test', () => {
 
             const viewIncidentButton = await page.waitForSelector(
                 'button[id=viewIncident-0]',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(viewIncidentButton).toBeDefined();
         },
@@ -139,7 +139,7 @@ describe('Incident Created test', () => {
             await page.$eval('button[id=viewIncident-0]', e => e.click());
             await page.waitForSelector('#btnAcknowledge_0');
             await page.$eval('#btnAcknowledge_0', e => e.click());
-            // await page.waitForSelector('#ResolveText_0', { visible: true });
+            // await page.waitForSelector('#ResolveText_0', { visible: true, timeout: init.timeout });
             await page.goto(utils.DASHBOARD_URL);
 
             // Invite member on the project
@@ -185,7 +185,7 @@ describe('Incident Created test', () => {
             await page.$eval('#btnAcknowledge_0', e => e.click());
             await page.waitForSelector('#btnResolve_0');
             await page.$eval('#btnResolve_0', e => e.click());
-            await page.waitForSelector('#ResolveText_0', { visible: true });
+            await page.waitForSelector('#ResolveText_0', { visible: true, timeout: init.timeout });
             await page.goto(utils.DASHBOARD_URL);
 
             await init.logout(page);
@@ -216,7 +216,7 @@ describe('Incident Created test', () => {
             await init.switchProject(projectName, page);
             const viewIncidentButton = await page.waitForSelector(
                 'button[id=viewIncident-0]',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(viewIncidentButton).toBeDefined();
         },
@@ -227,12 +227,12 @@ describe('Incident Created test', () => {
         'Should navigate to incident detail page when the view button is clicked',
         async () => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', { visible: true });
+            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
             await page.$eval('#components', e => e.click());
 
             await page.waitForSelector('button[id=viewIncident-0]');
             await page.$eval('button[id=viewIncident-0]', e => e.click());
-            await page.waitForSelector('#cbIncident', { visible: true });
+            await page.waitForSelector('#cbIncident', { visible: true, timeout: init.timeout });
             let pageTitle = await page.$('#cbIncident');
             pageTitle = await pageTitle.getProperty('innerText');
             pageTitle = await pageTitle.jsonValue();

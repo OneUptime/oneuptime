@@ -37,7 +37,7 @@ describe('Enterprise Disabled Billing API', () => {
         async done => {
             await init.adminLogout(page);
             await init.loginUser(user, page);
-            await page.waitForSelector('#projectSettings', { visible: true });
+            await page.waitForSelector('#projectSettings', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#projectSettings');
 
             const projectBilling = await page.$('#billingSetting');
@@ -53,7 +53,7 @@ describe('Enterprise Disabled Billing API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#profile-menu', { visible: true });
+            await page.waitForSelector('#profile-menu', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#profile-menu');
 
             const profileBilling = await page.$('#cbBilling');

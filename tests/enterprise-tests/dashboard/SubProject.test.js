@@ -55,7 +55,7 @@ describe('Sub-Project API', () => {
 
             const spanSelector = await page.waitForSelector(
                 '#subProjectCreateErrorMessage',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
 
             expect(
@@ -85,7 +85,7 @@ describe('Sub-Project API', () => {
             await page.waitForSelector('#title', { hidden: true });
             const subProjectSelector = await page.waitForSelector(
                 `#sub_project_name_${subProjectName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
 
             expect(
@@ -116,7 +116,7 @@ describe('Sub-Project API', () => {
             await page.waitForSelector('#title', { hidden: true });
             const subProjectSelector = await page.waitForSelector(
                 `#sub_project_name_${editSubProjectName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
 
             expect(
@@ -145,7 +145,7 @@ describe('Sub-Project API', () => {
             await init.pageClick(page, '#btnAddSubProjects');
             const spanSelector = await page.waitForSelector(
                 '#subProjectCreateErrorMessage',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
 
             expect(

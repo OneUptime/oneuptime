@@ -37,9 +37,9 @@ describe('Alert Warning', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', { visible: true });
+            await page.waitForSelector('#projectSettings', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#billing', { visible: true });
+            await page.waitForSelector('#billing', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#billing');
 
             const element = await page.waitForSelector('#alertWarning', {
@@ -57,11 +57,11 @@ describe('Alert Warning', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', { visible: true });
+            await page.waitForSelector('#projectSettings', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#billing', { visible: true });
+            await page.waitForSelector('#billing', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#billing a');
-            await page.waitForSelector('#alertEnable', { visible: true });
+            await page.waitForSelector('#alertEnable', { visible: true, timeout: init.timeout });
 
             const rowLength = await page.$$eval(
                 '#alertOptionRow > div.bs-Fieldset-row',

@@ -39,7 +39,7 @@ describe('Fyipe Component Reload', () => {
             await init.addComponent(componentName, page);
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbMonitors', { visible: true });
+            await page.waitForSelector('#cbMonitors', { visible: true, timeout: init.timeout });
             done();
         },
         operationTimeOut
@@ -49,14 +49,14 @@ describe('Fyipe Component Reload', () => {
         'Should create a component and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#incidentLog', { visible: true });
+            await page.waitForSelector('#incidentLog', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#incidentLog');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
-            await page.waitForSelector('#cbIncidents', { visible: true });
+            await page.waitForSelector('#cbIncidents', { visible: true, timeout: init.timeout });
             done();
         },
         operationTimeOut
@@ -66,14 +66,14 @@ describe('Fyipe Component Reload', () => {
         'Should navigate to Log page inside component and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#logs', { visible: true });
+            await page.waitForSelector('#logs', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#logs');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
-            await page.waitForSelector('#cbLogs', { visible: true });
+            await page.waitForSelector('#cbLogs', { visible: true, timeout: init.timeout });
             done();
         },
         operationTimeOut
@@ -83,14 +83,14 @@ describe('Fyipe Component Reload', () => {
         'Should navigate to Error tracking page inside component and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#errorTracking', { visible: true });
+            await page.waitForSelector('#errorTracking', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#errorTracking');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
-            await page.waitForSelector('#cbErrorTracking', { visible: true });
+            await page.waitForSelector('#cbErrorTracking', { visible: true, timeout: init.timeout });
             done();
         },
         operationTimeOut
@@ -121,7 +121,7 @@ describe('Fyipe Component Reload', () => {
         'Should navigate to Container security page inside component and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#security', { visible: true });
+            await page.waitForSelector('#security', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#security');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
@@ -140,9 +140,9 @@ describe('Fyipe Component Reload', () => {
         'Should navigate to Application security inside component and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#security', { visible: true });
+            await page.waitForSelector('#security', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#security');
-            await page.waitForSelector('#application', { visible: true });
+            await page.waitForSelector('#application', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#application');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
@@ -161,9 +161,9 @@ describe('Fyipe Component Reload', () => {
         'Should navigate to Component-Settings(Basic) inside component and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#componentSettings', { visible: true });
+            await page.waitForSelector('#componentSettings', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#componentSettings');
-            await page.waitForSelector('#basic', { visible: true });
+            await page.waitForSelector('#basic', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#basic');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
@@ -182,13 +182,13 @@ describe('Fyipe Component Reload', () => {
         'Should navigate to Component-Settings(Advanced) inside component and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#componentSettings', { visible: true });
+            await page.waitForSelector('#componentSettings', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#componentSettings');
-            await page.waitForSelector('#advanced', { visible: true });
+            await page.waitForSelector('#advanced', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#advanced');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbAdvanced', { visible: true });
+            await page.waitForSelector('#cbAdvanced', { visible: true, timeout: init.timeout });
             done();
         },
         operationTimeOut

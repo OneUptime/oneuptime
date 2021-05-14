@@ -81,7 +81,7 @@ describe('Incident API With SubProjects', () => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector(
                 `#create_incident_${projectMonitorName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             await init.pageClick(
                 page,
@@ -224,7 +224,7 @@ describe('Incident API With SubProjects', () => {
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
             // resolve incident
-            await page.waitForSelector('#btnResolve_0', { visible: true });
+            await page.waitForSelector('#btnResolve_0', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#btnResolve_0');
             await page.waitForSelector('#ResolveText_0', {
                 visible: true,
@@ -255,7 +255,7 @@ describe('Incident API With SubProjects', () => {
             await page.$eval(`#incident_${projectMonitorName1}_0`, e =>
                 e.click()
             );
-            await page.waitForSelector('#incident_0', { visible: true });
+            await page.waitForSelector('#incident_0', { visible: true, timeout: init.timeout });
 
             // click on incident notes tab
             await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
@@ -339,7 +339,7 @@ describe('Incident API With SubProjects', () => {
             await page.$eval(`#incident_${projectMonitorName1}_0`, e =>
                 e.click()
             );
-            await page.waitForSelector('#incident_0', { visible: true });
+            await page.waitForSelector('#incident_0', { visible: true, timeout: init.timeout });
             // click on incident notes tab
             await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
 
@@ -373,7 +373,7 @@ describe('Incident API With SubProjects', () => {
 
             await page.waitForSelector(
                 '#incidentTimeline tr.incidentListItem',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             let incidentTimelineRows = await page.$$(
                 '#incidentTimeline tr.incidentListItem'
@@ -383,7 +383,7 @@ describe('Incident API With SubProjects', () => {
             expect(countIncidentTimelines).toEqual(10);
 
             await page.$eval('#btnTimelineNext', e => e.click());
-            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
             await page.waitForSelector('.ball-beat', { hidden: true });
             incidentTimelineRows = await page.$$(
                 '#incidentTimeline tr.incidentListItem'
@@ -392,7 +392,7 @@ describe('Incident API With SubProjects', () => {
             expect(countIncidentTimelines).toEqual(5);
 
             await page.$eval('#btnTimelinePrev', e => e.click());
-            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.waitForSelector('.ball-beat', { visible: true, timeout: init.timeout });
             await page.waitForSelector('.ball-beat', { hidden: true });
             incidentTimelineRows = await page.$$(
                 '#incidentTimeline tr.incidentListItem'

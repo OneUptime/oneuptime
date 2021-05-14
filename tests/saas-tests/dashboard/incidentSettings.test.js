@@ -98,7 +98,7 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, '#priorityDelete_High_0');
             const unableToDeleteDefault = await page.waitForSelector(
                 '#message-modal-message',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(unableToDeleteDefault).toBeDefined();
             done();
@@ -314,7 +314,7 @@ describe('Incident Settings API', () => {
 
             let newDefaultPriority = await page.waitForSelector(
                 `span#priorityDefault_${customPriority}_1_default`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             newDefaultPriority = await newDefaultPriority.getProperty(
                 'innerText'

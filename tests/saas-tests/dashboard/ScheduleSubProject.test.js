@@ -102,7 +102,7 @@ describe('Schedule API With SubProjects', () => {
 
             const scheduleCountSelector = await page.waitForSelector(
                 `#schedule_count_${subProjectName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             let textContent = await scheduleCountSelector.getProperty(
                 'innerText'

@@ -47,7 +47,7 @@ describe('Monitor Custom Field', () => {
 
             const firstCustomField = await page.waitForSelector(
                 `#customfield_${monitorFieldText.fieldName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(firstCustomField).toBeDefined();
             done();
@@ -65,9 +65,9 @@ describe('Monitor Custom Field', () => {
                 visible: true,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true });
+            await page.waitForSelector('#more', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await page.waitForSelector('#monitor', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#monitor');
             await page.reload({
                 waitUntil: 'networkidle2',
@@ -99,7 +99,7 @@ describe('Monitor Custom Field', () => {
 
             const updatedField = await page.waitForSelector(
                 `#customfield_${monitorFieldNumber.fieldName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(updatedField).toBeDefined();
             done();
@@ -117,9 +117,9 @@ describe('Monitor Custom Field', () => {
                 visible: true,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true });
+            await page.waitForSelector('#more', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await page.waitForSelector('#monitor', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#monitor');
             await page.reload({
                 waitUntil: 'networkidle2',
@@ -140,7 +140,7 @@ describe('Monitor Custom Field', () => {
 
             const noCustomFields = await page.waitForSelector(
                 '#noCustomFields',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(noCustomFields).toBeDefined();
             done();

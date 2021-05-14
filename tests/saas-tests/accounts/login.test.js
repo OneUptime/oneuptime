@@ -38,7 +38,7 @@ describe('Login API', () => {
         await init.pageClick(page, '#signUpLink a');
         await page.waitForSelector('#loginLink');
         await init.pageClick(page, '#loginLink a');
-        await page.waitForSelector('input[name=email]', { visible: true });
+        await page.waitForSelector('input[name=email]', { visible: true, timeout: init.timeout });
         const email = await page.$eval(
             'input[name=email]',
             element => element.value
@@ -75,7 +75,7 @@ describe('Login API', () => {
             await init.logoutUser(page);
             await init.loginUser(user, page);
 
-            await page.waitForSelector('#components', { visible: true });
+            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
 
             const localStorageData = await page.evaluate(() => {
                 const json = {};
@@ -105,7 +105,7 @@ describe('Login API', () => {
                 utils.ACCOUNTS_URL1 + '/accounts/login'
             );
 
-            await page.waitForSelector('#components', { visible: true });
+            await page.waitForSelector('#components', { visible: true, timeout: init.timeout });
 
             const localStorageData = await page.evaluate(() => {
                 const json = {};

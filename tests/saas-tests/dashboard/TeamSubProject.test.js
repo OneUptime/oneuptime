@@ -134,7 +134,7 @@ describe('Team API With SubProjects', () => {
             });
             const role = 'Member';
 
-            await page.waitForSelector('#teamMembers', { visible: true });
+            await page.waitForSelector('#teamMembers', { visible: true, timeout: init.timeout });
             await init.pageClick(page, '#teamMembers');
             await page.waitForSelector(`#btn_${subProjectName}`);
             await init.pageClick(page, `#btn_${subProjectName}`);

@@ -174,7 +174,7 @@ describe('Profile -> Delete Account Component test', () => {
             );
 
             //wait for the QR code to show
-            await page.waitForSelector('#qr-code', { visible: true });
+            await page.waitForSelector('#qr-code', { visible: true, timeout: init.timeout });
 
             // click on the next button
             await page.waitForSelector('#nextFormButton');

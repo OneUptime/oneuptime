@@ -74,7 +74,7 @@ describe('Project Settings', () => {
             await init.pageClick(page, '#btnCreateProject');
             const unauthorisedModal = await page.waitForSelector(
                 '#unauthorisedModal',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
 
             expect(unauthorisedModal).toBeDefined();

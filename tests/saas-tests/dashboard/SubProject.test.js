@@ -49,7 +49,7 @@ describe('Sub-Project API', () => {
 
             const pricingPlanModal = await page.waitForSelector(
                 '#pricingPlanModal',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
 
             expect(pricingPlanModal).toBeDefined();
@@ -113,7 +113,7 @@ describe('Member Restriction', () => {
             await init.pageClick(page, '#btn_Add_SubProjects');
             const unauthorisedModal = await page.waitForSelector(
                 '#unauthorisedModal',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
 
             expect(unauthorisedModal).toBeDefined();
@@ -148,7 +148,7 @@ describe('Member Restriction', () => {
             await init.pageClick(page, deleteSubProjectBtn);
             const unauthorisedModal = await page.waitForSelector(
                 '#unauthorisedModal',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(unauthorisedModal).toBeDefined();
 
