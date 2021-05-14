@@ -142,6 +142,18 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
 
+    init-script:
+        build: ./init-script
+        env_file:
+            - ./init-script/.env
+        environment:
+            - MONGO_URL=mongodb://mongo:27017/fyipedb
+            - REDIS_HOST=redis
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        depends_on:
+            - mongo
+            - redis
+
     ##IMPORTANT:
     ## This container is an SMTP server used to send emails.
     ## Setup private, tls_cert and tls_key keys before running this part
