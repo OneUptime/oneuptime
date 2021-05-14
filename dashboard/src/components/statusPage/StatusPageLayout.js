@@ -30,8 +30,8 @@ export class StatusPageLayout extends Component {
         visible: [
             { name: 'Resources Status', id: 12, key: 'resources' },
             { name: 'Services Status', id: 13, key: 'services' },
-            { name: 'Past Incidents', id: 15, key: 'pastIncidents' },
-            { name: 'Scheduled Maintenance', id: 18, key: 'maintenance' },
+            { name: 'Past Incidents', id: 14, key: 'pastIncidents' },
+            { name: 'Scheduled Maintenance', id: 15, key: 'maintenance' },
         ],
         invisible: [],
     };
@@ -165,8 +165,8 @@ export class StatusPageLayout extends Component {
                                                 }}
                                                 className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                             >
-                                                VISIBLE{' '}
-                                                <span className="ContentHeader-description Text-color--inherit Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                Visible{' '}
+                                                <span className="ContentHeader-description Text-color--inherit Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Layout-content-header">
                                                     (Items in this column will
                                                     be visible on status page)
                                                 </span>
@@ -180,12 +180,14 @@ export class StatusPageLayout extends Component {
                                                         style={getListStyle(
                                                             snapshot.isDraggingOver
                                                         )}
+                                                        className="layoutContainer"
                                                     >
                                                         <div
                                                             style={getItemStyle(
                                                                 false,
                                                                 false
                                                             )}
+                                                            className='Layout-box'
                                                         >
                                                             Header
                                                         </div>
@@ -221,6 +223,7 @@ export class StatusPageLayout extends Component {
                                                                                     .style,
                                                                                 item.color
                                                                             )}
+                                                                             className='Layout-box'
                                                                         >
                                                                             {
                                                                                 item.name
@@ -236,6 +239,7 @@ export class StatusPageLayout extends Component {
                                                                 false,
                                                                 false
                                                             )}
+                                                            className='Layout-box'
                                                         >
                                                             Footer
                                                         </div>
@@ -259,8 +263,8 @@ export class StatusPageLayout extends Component {
                                                 }}
                                                 className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                             >
-                                                INVISIBLE{' '}
-                                                <span className="ContentHeader-description Text-color--inherit Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                Invisible{' '}
+                                                <span className="ContentHeader-description Text-color--inherit Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Layout-content-header">
                                                     (Items in this column will
                                                     be hidden on status page)
                                                 </span>
@@ -274,6 +278,7 @@ export class StatusPageLayout extends Component {
                                                             snapshot.isDraggingOver,
                                                             true
                                                         )}
+                                                        className="layoutContainer"
                                                     >
                                                         {this.state.invisible.map(
                                                             (item, index) => (
@@ -307,6 +312,7 @@ export class StatusPageLayout extends Component {
                                                                                     .style,
                                                                                 item.color
                                                                             )}
+                                                                            className='Layout-box'
                                                                         >
                                                                             {
                                                                                 item.name
@@ -381,7 +387,7 @@ export class StatusPageLayout extends Component {
     }
 }
 
-StatusPageLayout.displayName = 'Custom Styles';
+StatusPageLayout.displayName = 'StatusPageLayout';
 
 StatusPageLayout.propTypes = {
     statusPage: PropTypes.object.isRequired,

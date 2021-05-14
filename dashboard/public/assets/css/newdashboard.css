@@ -11536,6 +11536,14 @@ table {
     {
         display:none;
     }
+    .layoutContainer{
+        width: 100%!important;
+    }
+}
+@media only screen and (max-width: 1159){
+    .layoutContainer{
+        width: 100%!important;
+    }
 }
 
 @media (max-width: 1136px)
@@ -11579,6 +11587,15 @@ table {
     }
     .db-Topnav-wrap{
         display: block!important
+    }
+      .layoutContainer{
+        width: 100%!important;
+    }
+    .Layout-content-header{
+        font-size: 13px!important
+    }
+    .Layout-box{
+        padding: 27px 20px!important
     }
 }
 .error-marker {

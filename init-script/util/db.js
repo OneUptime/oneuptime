@@ -35,6 +35,11 @@ async function removeField(collection, query, field) {
         .collection(collection)
         .updateOne(query, { $unset: field }, { multi: true });
 }
+async function removeFieldsFromMany(collection, query, field) {
+    return global.db
+        .collection(collection)
+        .updateMany(query, { $unset: field }, { multi: true });
+}
 
 async function rename(oldCollectionName, newCollectionName) {
     return global.db
@@ -72,4 +77,5 @@ module.exports = {
     rename,
     updateMany,
     removeMany,
+    removeFieldsFromMany,
 };
