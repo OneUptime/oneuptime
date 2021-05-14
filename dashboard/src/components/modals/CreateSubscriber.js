@@ -117,7 +117,6 @@ class CreateSubscriber extends Component {
         );
     };
 
- s
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
