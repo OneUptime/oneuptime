@@ -1,4 +1,4 @@
-const utils = require('../../test-utils');
+const utils = require('./test-utils');
 const chai = require('chai');
 chai.use(require('chai-http'));
 const request = chai.request(utils.BACKEND_URL);
