@@ -14,16 +14,15 @@ const user = {
  */
 
 describe('Fyipe Page Reload', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut = 100000;
 
     beforeAll(async done => {
-        jest.setTimeout(init.timeout);
+        jest.setTimeout(100000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(utils.agent);
 
-        await init.registerUser(user, page); // This automatically routes to dashboard page
+        await init.registerUser(user, page); // This automatically routes to dashboard page        
         done();
     });
 
@@ -33,31 +32,24 @@ describe('Fyipe Page Reload', () => {
     });
 
     test(
-        'Should reload the billing page and confirm there are no errors',
+        'Should reload the probe page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
             await init.pageClick(page, '#projectSettings');
-            await init.pageClick(page, '#billing');
-            await page.waitForSelector('#Startup_month', { visible: true });
-            await init.pageClick(page, '#alert');
-            await init.pageClick(page, '#alertOptionSave');
-            await page.waitForSelector('#message-modal-message', {
-                visible: true,
-            });
-            await init.pageClick(page, '#modal-ok');
-            await page.waitForSelector('#message-modal-message', {
-                hidden: true,
-            });
-
+            await init.pageClick(page, '#more');
+            await init.pageClick(page, '#probe');
+            await page.waitForSelector('#probe_0', { visible: true });
+            await page.waitForSelector('#probe_1', { visible: true });
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbBilling', { visible: true });
-            const spanElement = await page.waitForSelector('#Startup_month', {
-                visible: true,
-            });
+            await page.waitForSelector('#cbProjectSettings', { visible: true });
+            await page.waitForSelector('#cbProbe', { visible: true });
+            const spanElement = await page.waitForSelector('#probe_0', { visible: true });
+            const spanElement2 = await page.waitForSelector('#probe_1', { visible: true });
             expect(spanElement).toBeDefined();
+            expect(spanElement2).toBeDefined();
             done();
         },
         operationTimeOut
