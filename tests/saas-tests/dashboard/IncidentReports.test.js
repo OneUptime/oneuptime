@@ -31,15 +31,21 @@ describe('Incident Reports API', () => {
         await init.addComponent(componentName, page);
 
         // add new monitor to project
-        await page.waitForSelector('#form-new-monitor', { visible: true });
+        await init.pageWaitForSelector(page, '#form-new-monitor', {
+            visible: true,
+            timeout: init.timeout,
+        });
         await page.$eval('input[id=name]', e => e.click());
         await init.pageType(page, 'input[id=name]', monitorName);
         await init.pageClick(page, '[data-testId=type_url]');
-        await page.waitForSelector('#url', { visible: true });
+        await init.pageWaitForSelector(page, '#url', {
+            visible: true,
+            timeout: init.timeout,
+        });
         await page.$eval('#url', e => e.click());
         await init.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
         await page.$eval('button[type=submit]', e => e.click());
-        await page.waitForSelector(`#monitor-title-${monitorName}`, {
+        await init.pageWaitForSelector(page, `#monitor-title-${monitorName}`, {
             visible: true,
         });
     });
@@ -59,23 +65,27 @@ describe('Incident Reports API', () => {
             await page.evaluate(
                 () => (document.getElementById('statusCode').value = '')
             );
-            await page.waitForSelector('#responseTime');
+            await init.pageWaitForSelector(page, '#responseTime');
             await init.pageClick(page, 'input[name=responseTime]');
             await init.pageType(page, 'input[name=responseTime]', '5000');
-            await page.waitForSelector('#statusCode');
+            await init.pageWaitForSelector(page, '#statusCode');
             await init.pageClick(page, 'input[name=statusCode]');
             await init.pageType(page, 'input[name=statusCode]', '200');
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector('#save-btn');
-            await page.waitForSelector('#save-btn', { visible: true });
+            await init.pageWaitForSelector(page, '#save-btn');
+            await init.pageWaitForSelector(page, '#save-btn', {
+                visible: true,
+                timeout: init.timeout,
+            });
 
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#closeIncident_0', {
+            await init.pageWaitForSelector(page, '#closeIncident_0', {
                 visible: true,
                 timeout: 100000,
             });
-            let incidentReportElement = await page.waitForSelector(
+            let incidentReportElement = await init.pageWaitForSelector(
+                page,
                 `#${monitorName}_IncidentReport_0`,
                 { visible: true, timeout: operationTimeOut }
             );
@@ -100,23 +110,27 @@ describe('Incident Reports API', () => {
             await page.evaluate(
                 () => (document.getElementById('statusCode').value = '')
             );
-            await page.waitForSelector('#responseTime');
+            await init.pageWaitForSelector(page, '#responseTime');
             await init.pageClick(page, 'input[name=responseTime]');
             await init.pageType(page, 'input[name=responseTime]', '0');
-            await page.waitForSelector('#statusCode');
+            await init.pageWaitForSelector(page, '#statusCode');
             await init.pageClick(page, 'input[name=statusCode]');
             await init.pageType(page, 'input[name=statusCode]', '400');
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector('#save-btn');
-            await page.waitForSelector('#save-btn', { visible: true });
+            await init.pageWaitForSelector(page, '#save-btn');
+            await init.pageWaitForSelector(page, '#save-btn', {
+                visible: true,
+                timeout: init.timeout,
+            });
 
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#closeIncident_1', {
+            await init.pageWaitForSelector(page, '#closeIncident_1', {
                 visible: true,
                 timeout: 100000,
             });
-            let incidentReportElement = await page.waitForSelector(
+            let incidentReportElement = await init.pageWaitForSelector(
+                page,
                 `#${monitorName}_IncidentReport_0`,
                 { visible: true, timeout: operationTimeOut }
             );

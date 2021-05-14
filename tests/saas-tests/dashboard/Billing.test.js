@@ -42,7 +42,7 @@ describe('Project Setting: Change Plan', () => {
         async () => {
             await init.growthPlanUpgrade(page);
             await page.reload({ waitUntil: 'networkidle0' });
-            await page.waitForSelector('input#Growth_month');
+            await init.pageWaitForSelector(page, 'input#Growth_month');
             const checked = await page.$eval(
                 'input#Growth_month',
                 input => input.checked
@@ -57,15 +57,17 @@ describe('Project Setting: Change Plan', () => {
             const balance = 0;
             let creditedBalance = 0;
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#billing');
+            await init.pageWaitForSelector(page, '#billing');
             await init.pageClick(page, '#billing');
 
             // get current balance as $0
-            let spanBalanceElement = await page.waitForSelector(
+            let spanBalanceElement = await init.pageWaitForSelector(
+                page,
                 '#currentBalance'
             );
             spanBalanceElement = await spanBalanceElement.getProperty(
@@ -75,7 +77,7 @@ describe('Project Setting: Change Plan', () => {
             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
             // add $20 to the account then click cancel
-            await page.waitForSelector('#rechargeBalanceAmount');
+            await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
             await init.pageClick(page, '#rechargeBalanceAmount');
             creditedBalance = -20;
             await init.pageType(
@@ -86,7 +88,10 @@ describe('Project Setting: Change Plan', () => {
             await init.pageClick(page, '#rechargeAccount');
 
             // confirm the current balance is still $0
-            spanBalanceElement = await page.waitForSelector('#field-error');
+            spanBalanceElement = await init.pageWaitForSelector(
+                page,
+                '#field-error'
+            );
             spanBalanceElement = await spanBalanceElement.getProperty(
                 'innerText'
             );
@@ -105,15 +110,17 @@ describe('Project Setting: Change Plan', () => {
             let balance = 0,
                 creditedBalance = 0;
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#billing');
+            await init.pageWaitForSelector(page, '#billing');
             await init.pageClick(page, '#billing');
 
             // get current balance as $0
-            let spanBalanceElement = await page.waitForSelector(
+            let spanBalanceElement = await init.pageWaitForSelector(
+                page,
                 '#currentBalance'
             );
             spanBalanceElement = await spanBalanceElement.getProperty(
@@ -123,7 +130,7 @@ describe('Project Setting: Change Plan', () => {
             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
             // add $20 to the account
-            await page.waitForSelector('#rechargeBalanceAmount');
+            await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
             await init.pageClick(page, '#rechargeBalanceAmount');
             creditedBalance = 20;
             await init.pageType(
@@ -134,14 +141,15 @@ describe('Project Setting: Change Plan', () => {
             await init.pageClick(page, '#rechargeAccount');
             balance += creditedBalance;
 
-            await page.waitForSelector('#confirmBalanceTopUp');
+            await init.pageWaitForSelector(page, '#confirmBalanceTopUp');
             await init.pageClick(page, '#confirmBalanceTopUp');
-            await page.waitForSelector('#confirmBalanceTopUp', {
+            await init.pageWaitForSelector(page, '#confirmBalanceTopUp', {
                 hidden: true,
             });
 
             // confirm a pop up comes up and the message is a successful
-            let spanModalElement = await page.waitForSelector(
+            let spanModalElement = await init.pageWaitForSelector(
+                page,
                 '#message-modal-message'
             );
             spanModalElement = await spanModalElement.getProperty('innerText');
@@ -151,12 +159,15 @@ describe('Project Setting: Change Plan', () => {
             );
 
             // click ok
-            await page.waitForSelector('#modal-ok');
+            await init.pageWaitForSelector(page, '#modal-ok');
             await init.pageClick(page, '#modal-ok');
-            await page.waitForSelector('#modal-ok', { hidden: true });
+            await init.pageWaitForSelector(page, '#modal-ok', { hidden: true });
 
             // confirm the current balance is $20
-            spanBalanceElement = await page.waitForSelector('#currentBalance');
+            spanBalanceElement = await init.pageWaitForSelector(
+                page,
+                '#currentBalance'
+            );
             spanBalanceElement = await spanBalanceElement.getProperty(
                 'innerText'
             );
@@ -173,15 +184,17 @@ describe('Project Setting: Change Plan', () => {
             const balance = 0;
             let creditedBalance = 0;
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#billing');
+            await init.pageWaitForSelector(page, '#billing');
             await init.pageClick(page, '#billing');
 
             // get current balance as $0
-            let spanBalanceElement = await page.waitForSelector(
+            let spanBalanceElement = await init.pageWaitForSelector(
+                page,
                 '#currentBalance'
             );
             spanBalanceElement = await spanBalanceElement.getProperty(
@@ -191,7 +204,7 @@ describe('Project Setting: Change Plan', () => {
             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
             // add $20 to the account then click cancel
-            await page.waitForSelector('#rechargeBalanceAmount');
+            await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
             await init.pageClick(page, '#rechargeBalanceAmount');
             creditedBalance = 20;
             await init.pageType(
@@ -201,14 +214,17 @@ describe('Project Setting: Change Plan', () => {
             );
             await init.pageClick(page, '#rechargeAccount');
 
-            await page.waitForSelector('#confirmBalanceTopUp');
+            await init.pageWaitForSelector(page, '#confirmBalanceTopUp');
             await init.pageClick(page, '#cancelBalanceTopUp');
-            await page.waitForSelector('#cancelBalanceTopUp', {
+            await init.pageWaitForSelector(page, '#cancelBalanceTopUp', {
                 hidden: true,
             });
 
             // confirm the current balance is still $0
-            spanBalanceElement = await page.waitForSelector('#currentBalance');
+            spanBalanceElement = await init.pageWaitForSelector(
+                page,
+                '#currentBalance'
+            );
             spanBalanceElement = await spanBalanceElement.getProperty(
                 'innerText'
             );
@@ -277,18 +293,23 @@ describe('Member Restriction', () => {
                 page
             );
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#billing');
+            await init.pageWaitForSelector(page, '#billing');
             await init.pageClick(page, '#billing');
-            await page.waitForSelector('#alertEnable', { visible: true });
+            await init.pageWaitForSelector(page, '#alertEnable', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval('#alertEnable', checkbox => checkbox.click);
             await init.pageClick(page, '#alertOptionSave');
-            const unauthorisedModal = await page.waitForSelector(
+            const unauthorisedModal = await init.pageWaitForSelector(
+                page,
                 '#unauthorisedModal',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(unauthorisedModal).toBeDefined();
 
@@ -301,19 +322,21 @@ describe('Member Restriction', () => {
         'should show unauthorised modal when a team member who is not an admin or owner of the project tries to recharge account',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#billing');
+            await init.pageWaitForSelector(page, '#billing');
             await init.pageClick(page, '#billing');
-            await page.waitForSelector('#rechargeBalanceAmount');
+            await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
             await init.pageClick(page, '#rechargeBalanceAmount');
             await init.pageType(page, '#rechargeBalanceAmount', '20');
             await init.pageClick(page, '#rechargeAccount');
-            const unauthorisedModal = await page.waitForSelector(
+            const unauthorisedModal = await init.pageWaitForSelector(
+                page,
                 '#unauthorisedModal',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(unauthorisedModal).toBeDefined();
 
@@ -326,20 +349,23 @@ describe('Member Restriction', () => {
         'should show unauthorised modal when a team member who is not an admin or owner of the project tries to change project plan',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#billing');
+            await init.pageWaitForSelector(page, '#billing');
             await init.pageClick(page, '#billing');
-            await page.waitForSelector('input#Startup_month', {
+            await init.pageWaitForSelector(page, 'input#Startup_month', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, 'input#Startup_month');
             await init.pageClick(page, '#changePlanBtn');
-            const unauthorisedModal = await page.waitForSelector(
+            const unauthorisedModal = await init.pageWaitForSelector(
+                page,
                 '#unauthorisedModal',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(unauthorisedModal).toBeDefined();
 

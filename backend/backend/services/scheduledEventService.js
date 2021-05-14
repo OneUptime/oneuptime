@@ -5,8 +5,7 @@ const RealTimeService = require('./realTimeService');
 const ScheduledEventNoteService = require('./scheduledEventNoteService');
 const AlertService = require('./alertService');
 const moment = require('moment');
-const generate = require('nanoid/generate');
-const slugify = require('slugify');
+const getSlug = require('../utils/getSlug');
 
 module.exports = {
     create: async function({ projectId }, data, recurring) {
@@ -33,10 +32,7 @@ module.exports = {
 
             data.projectId = projectId;
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
+                data.slug = getSlug(data.name);
             }
 
             let scheduledEvent = await ScheduledEventModel.create({
@@ -119,10 +115,7 @@ module.exports = {
                 monitorId: monitor,
             }));
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
+                data.slug = getSlug(data.name);
             }
             let updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
                 { _id: query._id },

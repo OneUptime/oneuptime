@@ -39,11 +39,11 @@ describe('User Feedback', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#feedback-div');
+            await init.pageWaitForSelector(page, '#feedback-div');
             await init.pageClick(page, '#feedback-div', { clickCount: 2 });
             await init.pageType(page, '#feedback-textarea', testFeedback);
             await init.pageClick(page, '#feedback-button');
-            await page.waitForSelector('#feedback-div');
+            await init.pageWaitForSelector(page, '#feedback-div');
 
             const feedbackMessage = await page.$eval(
                 '#feedback-div',

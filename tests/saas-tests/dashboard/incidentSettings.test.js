@@ -46,13 +46,13 @@ describe('Incident Settings API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings');
+            await init.pageWaitForSelector(page, '#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
-            await page.waitForSelector('input[name=title]');
+            await init.pageWaitForSelector(page, 'input[name=title]');
             const priorityFieldValue = await page.$eval(
                 '#incidentPriority',
                 e => e.textContent
@@ -82,23 +82,25 @@ describe('Incident Settings API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings');
+            await init.pageWaitForSelector(page, '#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
-            await page.waitForSelector('ul#customTabList > li', {
+            await init.pageWaitForSelector(page, '.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[1].click()
+            await page.$$eval('.incident-priority-tab', elems =>
+                elems[0].click()
             );
-            await page.waitForSelector('#priorityDelete_High_0');
+            await init.pageWaitForSelector(page, '#priorityDelete_High_0');
             await init.pageClick(page, '#priorityDelete_High_0');
-            const unableToDeleteDefault = await page.waitForSelector(
+            const unableToDeleteDefault = await init.pageWaitForSelector(
+                page,
                 '#message-modal-message',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(unableToDeleteDefault).toBeDefined();
             done();
@@ -112,13 +114,13 @@ describe('Incident Settings API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings');
+            await init.pageWaitForSelector(page, '#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
-            await page.waitForSelector('input[name=title]');
+            await init.pageWaitForSelector(page, 'input[name=title]');
             await init.selectByText('#incidentPriority', 'low', page);
             await init.pageClick(page, 'input[name=title]', { clickCount: 3 });
             await page.keyboard.press('Backspace');
@@ -142,7 +144,7 @@ describe('Incident Settings API', () => {
                 waitUntil: 'networkidle0',
             });
 
-            await page.waitForSelector('input[name=title]');
+            await init.pageWaitForSelector(page, 'input[name=title]');
             const priorityFieldValue = await page.$eval(
                 '#incidentPriority',
                 e => e.textContent
@@ -176,9 +178,12 @@ describe('Incident Settings API', () => {
             await page.reload({
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector(`#monitorCreateIncident_${monitorName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#monitorCreateIncident_${monitorName}`
+            );
             await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
-            await page.waitForSelector('#title');
+            await init.pageWaitForSelector(page, '#title');
 
             const priorityFieldValue = await page.$eval(
                 '#incidentPriority',
@@ -196,7 +201,7 @@ describe('Incident Settings API', () => {
             );
             await init.selectByText('#incidentType', incidentType, page);
             await init.pageClick(page, '#createIncident');
-            await page.waitForSelector('#closeIncident_0');
+            await init.pageWaitForSelector(page, '#closeIncident_0');
             await init.pageClick(page, '#closeIncident_0');
             done();
         },
@@ -214,7 +219,7 @@ describe('Incident Settings API', () => {
             //Incident Description is no longer on UI
             const incidentPrioritySelector = '#name_Low';
 
-            await page.waitForSelector(incidentTitleSelector);
+            await init.pageWaitForSelector(page, incidentTitleSelector);
             const title = await page.$eval(
                 incidentTitleSelector,
                 e => e.textContent
@@ -237,25 +242,28 @@ describe('Incident Settings API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings');
+            await init.pageWaitForSelector(page, '#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
-            await page.waitForSelector('ul#customTabList > li', {
+            await init.pageWaitForSelector(page, '.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[1].click()
+            await page.$$eval('.incident-priority-tab', elems =>
+                elems[0].click()
             );
-            await page.waitForSelector('#priorityDelete_High_0');
+            await init.pageWaitForSelector(page, '#priorityDelete_High_0');
             await init.pageClick(page, '#priorityDelete_High_0');
-            await page.waitForSelector('#RemoveIncidentPriority', {
+            await init.pageWaitForSelector(page, '#RemoveIncidentPriority', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#RemoveIncidentPriority');
-            const deletedPriority = await page.waitForSelector(
+            const deletedPriority = await init.pageWaitForSelector(
+                page,
                 '#RemoveIncidentPriority',
                 { hidden: true }
             );
@@ -272,49 +280,53 @@ describe('Incident Settings API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings');
+            await init.pageWaitForSelector(page, '#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
-            await page.waitForSelector('ul#customTabList > li', {
+            await init.pageWaitForSelector(page, '.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[1].click()
+            await page.$$eval('.incident-priority-tab', elems =>
+                elems[0].click()
             );
             // Add New Priority
-            await page.waitForSelector('#addNewPriority');
+            await init.pageWaitForSelector(page, '#addNewPriority');
             await init.pageClick(page, '#addNewPriority');
-            await page.waitForSelector('#CreateIncidentPriority');
+            await init.pageWaitForSelector(page, '#CreateIncidentPriority');
             await init.pageType(page, 'input[name=name]', customPriority);
             await init.pageClick(page, '#CreateIncidentPriority');
-            await page.waitForSelector('#CreateIncidentPriority', {
+            await init.pageWaitForSelector(page, '#CreateIncidentPriority', {
                 hidden: true,
             });
-            await page.waitForSelector('#incidentPrioritiesList', {
+            await init.pageWaitForSelector(page, '#incidentPrioritiesList', {
                 visible: true,
+                timeout: init.timeout,
             });
             // Set the new Priority as Default
             await init.pageClick(
                 page,
                 `button#priorityDefault_${customPriority}_1`
             );
-            await page.waitForSelector('#priorityDefaultModal');
+            await init.pageWaitForSelector(page, '#priorityDefaultModal');
             await init.pageClick(page, '#SetDefaultIncidentPriority');
 
             await page.reload({ waitUntil: 'networkidle0' });
-            await page.waitForSelector('ul#customTabList > li', {
+            await init.pageWaitForSelector(page, '.incident-priority-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[1].click()
+            await page.$$eval('.incident-priority-tab', elems =>
+                elems[0].click()
             );
 
-            let newDefaultPriority = await page.waitForSelector(
+            let newDefaultPriority = await init.pageWaitForSelector(
+                page,
                 `span#priorityDefault_${customPriority}_1_default`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             newDefaultPriority = await newDefaultPriority.getProperty(
                 'innerText'

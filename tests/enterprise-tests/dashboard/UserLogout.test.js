@@ -35,9 +35,9 @@ describe('User logout', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#profile-menu');
+            await init.pageWaitForSelector(page, '#profile-menu');
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#logout-button');
+            await init.pageWaitForSelector(page, '#logout-button');
             await init.pageClick(page, '#logout-button');
             await page.waitForNavigation({ waitUntil: 'networkidle2' });
             await page.goto(utils.ADMIN_DASHBOARD_URL);

@@ -9,7 +9,7 @@ let page;
 
 describe('Resend Verification API', () => {
     beforeAll(async () => {
-        jest.setTimeout(30000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -23,11 +23,11 @@ describe('Resend Verification API', () => {
         await page.goto(utils.ACCOUNTS_URL + '/user-verify/resend', {
             waitUntil: 'networkidle2',
         });
-        await page.waitForSelector('#email');
+        await init.pageWaitForSelector(page, '#email');
         await init.pageClick(page, 'input[name=email]');
         await init.pageType(page, 'input[name=email]', 'invalid@email.com');
         await init.pageClick(page, 'button[type=submit]');
-        await page.waitForSelector('#error-msg');
+        await init.pageWaitForSelector(page, '#error-msg');
         const html = await page.$eval('#error-msg', e => {
             return e.innerHTML;
         });

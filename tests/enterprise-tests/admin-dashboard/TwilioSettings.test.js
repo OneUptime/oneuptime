@@ -36,16 +36,17 @@ describe('Twilio Settings API', () => {
         'Should not submit empty fields',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#settings');
+            await init.pageWaitForSelector(page, '#settings');
             await init.pageClick(page, '#settings a');
 
-            await page.waitForSelector('#twilio');
+            await init.pageWaitForSelector(page, '#twilio');
             await init.pageClick(page, '#twilio a');
-            await page.waitForSelector('#twilio-form');
+            await init.pageWaitForSelector(page, '#twilio-form');
 
             await init.pageClick(page, 'button[type=submit]');
-            const error = await page.waitForSelector('.field-error', {
+            const error = await init.pageWaitForSelector(page, '.field-error', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(error).toBeDefined();
 
@@ -58,12 +59,12 @@ describe('Twilio Settings API', () => {
         'Should show error message if an invalid account-sid is used.',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#settings');
+            await init.pageWaitForSelector(page, '#settings');
             await init.pageClick(page, '#settings a');
 
-            await page.waitForSelector('#twilio');
+            await init.pageWaitForSelector(page, '#twilio');
             await init.pageClick(page, '#twilio a');
-            await page.waitForSelector('#twilio-form');
+            await init.pageWaitForSelector(page, '#twilio-form');
 
             await init.pageClick(page, 'input[name=account-sid]');
             await init.pageType(
@@ -88,7 +89,10 @@ describe('Twilio Settings API', () => {
             await init.pageType(page, 'input[name=alert-limit]', '5');
 
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector('#errors', { visible: true });
+            await init.pageWaitForSelector(page, '#errors', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const errorMessage = await page.$eval(
                 '#errors',
                 element => element.textContent
@@ -96,8 +100,9 @@ describe('Twilio Settings API', () => {
             expect(errorMessage).toEqual('accountSid must start with AC');
             await page.reload();
 
-            await page.waitForSelector('input[name=account-sid]', {
+            await init.pageWaitForSelector(page, 'input[name=account-sid]', {
                 visible: true,
+                timeout: init.timeout,
             });
             const value = await page.$eval(
                 'input[name=account-sid]',
@@ -114,12 +119,12 @@ describe('Twilio Settings API', () => {
         'Should show error if an invalid phone number is used.',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#settings');
+            await init.pageWaitForSelector(page, '#settings');
             await init.pageClick(page, '#settings a');
 
-            await page.waitForSelector('#twilio');
+            await init.pageWaitForSelector(page, '#twilio');
             await init.pageClick(page, '#twilio a');
-            await page.waitForSelector('#twilio-form');
+            await init.pageWaitForSelector(page, '#twilio-form');
 
             await init.pageClick(page, 'input[name=account-sid]');
             await init.pageType(
@@ -141,7 +146,10 @@ describe('Twilio Settings API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            await page.waitForSelector('#errors', { visible: true });
+            await init.pageWaitForSelector(page, '#errors', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const errorMessage = await page.$eval(
                 '#errors',
                 element => element.textContent
@@ -151,8 +159,9 @@ describe('Twilio Settings API', () => {
             );
             await page.reload();
 
-            await page.waitForSelector('input[name=account-sid]', {
+            await init.pageWaitForSelector(page, 'input[name=account-sid]', {
                 visible: true,
+                timeout: init.timeout,
             });
             const value = await page.$eval(
                 'input[name=account-sid]',
@@ -169,12 +178,12 @@ describe('Twilio Settings API', () => {
         'Should save valid form data',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#settings');
+            await init.pageWaitForSelector(page, '#settings');
             await init.pageClick(page, '#settings a');
 
-            await page.waitForSelector('#twilio');
+            await init.pageWaitForSelector(page, '#twilio');
             await init.pageClick(page, '#twilio a');
-            await page.waitForSelector('#twilio-form');
+            await init.pageWaitForSelector(page, '#twilio-form');
 
             await page.$eval('#sms-enabled', e => e.click());
 
@@ -201,12 +210,18 @@ describe('Twilio Settings API', () => {
             await init.pageType(page, 'input[name=alert-limit]', '5');
 
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector('.ball-beat', { visible: true });
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
             await page.reload();
 
-            await page.waitForSelector('input[name=account-sid]', {
+            await init.pageWaitForSelector(page, 'input[name=account-sid]', {
                 visible: true,
+                timeout: init.timeout,
             });
             const value = await page.$eval(
                 'input[name=account-sid]',
@@ -224,20 +239,21 @@ describe('Twilio Settings API', () => {
         'should render an error message if the user try to update his alert phone number without typing the right verification code.',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#goToUserDashboard');
+            await init.pageWaitForSelector(page, '#goToUserDashboard');
             await init.pageClick(page, '#goToUserDashboard');
-            await page.waitForSelector('#profile-menu');
+            await init.pageWaitForSelector(page, '#profile-menu');
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#userProfile');
+            await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
-            await page.waitForSelector('input[type=tel]');
+            await init.pageWaitForSelector(page, 'input[type=tel]');
             await init.pageType(page, 'input[type=tel]', phoneNumber);
             await init.pageClick(page, '#sendVerificationSMS');
-            await page.waitForSelector('#otp');
+            await init.pageWaitForSelector(page, '#otp');
             await init.pageType(page, '#otp', '654321');
             await init.pageClick(page, '#verify');
-            await page.waitForSelector('#smsVerificationErrors', {
+            await init.pageWaitForSelector(page, '#smsVerificationErrors', {
                 visible: true,
+                timeout: init.timeout,
             });
             const message = await page.$eval(
                 '#smsVerificationErrors',
@@ -254,24 +270,26 @@ describe('Twilio Settings API', () => {
         'should set the alert phone number if the user types the right verification code.',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#goToUserDashboard');
+            await init.pageWaitForSelector(page, '#goToUserDashboard');
             await init.pageClick(page, '#goToUserDashboard');
-            await page.waitForSelector('#profile-menu');
+            await init.pageWaitForSelector(page, '#profile-menu');
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#userProfile');
+            await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
-            await page.waitForSelector('input[type=tel]');
+            await init.pageWaitForSelector(page, 'input[type=tel]');
             await init.pageClick(page, 'input[type=tel]', { clickCount: 3 });
             await init.pageType(page, 'input[type=tel]', phoneNumber);
-            await page.waitForSelector('#sendVerificationSMS', {
+            await init.pageWaitForSelector(page, '#sendVerificationSMS', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#sendVerificationSMS');
-            await page.waitForSelector('#otp');
+            await init.pageWaitForSelector(page, '#otp');
             await init.pageType(page, '#otp', '123456');
             await init.pageClick(page, '#verify');
-            await page.waitForSelector('#successMessage', {
+            await init.pageWaitForSelector(page, '#successMessage', {
                 visible: true,
+                timeout: init.timeout,
             });
             const message = await page.$eval(
                 '#successMessage',
@@ -290,29 +308,31 @@ describe('Twilio Settings API', () => {
         'should update alert phone number if user types the right verification code.',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#goToUserDashboard');
+            await init.pageWaitForSelector(page, '#goToUserDashboard');
             await init.pageClick(page, '#goToUserDashboard');
-            await page.waitForSelector('#profile-menu');
+            await init.pageWaitForSelector(page, '#profile-menu');
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#userProfile');
+            await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
 
             await page.reload({ waitUntil: 'networkidle0' });
-            await page.waitForSelector('input[type=tel]');
+            await init.pageWaitForSelector(page, 'input[type=tel]');
             await init.pageClick(page, 'input[type=tel]');
             await page.keyboard.press('Backspace');
             await init.pageType(page, 'input[type=tel]', '1', {
                 delay: 150,
             });
-            await page.waitForSelector('#sendVerificationSMS', {
+            await init.pageWaitForSelector(page, '#sendVerificationSMS', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#sendVerificationSMS');
-            await page.waitForSelector('#otp');
+            await init.pageWaitForSelector(page, '#otp');
             await init.pageType(page, '#otp', '123456');
             await init.pageClick(page, '#verify');
-            await page.waitForSelector('#successMessage', {
+            await init.pageWaitForSelector(page, '#successMessage', {
                 visible: true,
+                timeout: init.timeout,
             });
             const message = await page.$eval(
                 '#successMessage',

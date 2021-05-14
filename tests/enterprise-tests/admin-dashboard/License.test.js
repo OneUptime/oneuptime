@@ -48,10 +48,10 @@ describe('Enterprise License API', () => {
 
             await init.loginUser(user, page);
 
-            await page.waitForSelector('#settings');
+            await init.pageWaitForSelector(page, '#settings');
             await init.pageClick(page, '#settings');
 
-            await page.waitForSelector('#license');
+            await init.pageWaitForSelector(page, '#license');
             await init.pageClick(page, 'input[name=license]');
             await init.pageType(page, 'input[name=license]', 'expired-license');
             await init.pageClick(page, 'input[name=email]');

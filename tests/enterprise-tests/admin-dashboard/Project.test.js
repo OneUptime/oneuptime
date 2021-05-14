@@ -60,23 +60,44 @@ describe('Project', () => {
         'should delete a project',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#projects', { visible: true });
+            await init.pageWaitForSelector(page, '#projects', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#projects');
 
-            const firstProject = await page.waitForSelector('#project_0', {
-                visible: true,
-            });
+            const firstProject = await init.pageWaitForSelector(
+                page,
+                '#project_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             firstProject.click();
 
-            await page.waitForSelector('#delete', { visible: true });
-            await init.pageClick(page, '#delete');
-            await page.waitForSelector('#confirmDelete', { visible: true });
-            await init.pageClick(page, '#confirmDelete');
-            await page.waitForSelector('#confirmDelete', { hidden: true });
-
-            const restoreBtn = await page.waitForSelector('#restore', {
+            await init.pageWaitForSelector(page, '#delete', {
                 visible: true,
+                timeout: init.timeout,
             });
+            await init.pageClick(page, '#delete');
+            await init.pageWaitForSelector(page, '#confirmDelete', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#confirmDelete');
+            await init.pageWaitForSelector(page, '#confirmDelete', {
+                hidden: true,
+            });
+
+            const restoreBtn = await init.pageWaitForSelector(
+                page,
+                '#restore',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(restoreBtn).toBeDefined();
 
             done();
@@ -88,18 +109,30 @@ describe('Project', () => {
         'should restore a deleted project',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#projects', { visible: true });
+            await init.pageWaitForSelector(page, '#projects', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#projects');
 
-            const firstProject = await page.waitForSelector('#project_0', {
-                visible: true,
-            });
+            const firstProject = await init.pageWaitForSelector(
+                page,
+                '#project_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             firstProject.click();
-            await page.waitForSelector('#restore', { visible: true });
+            await init.pageWaitForSelector(page, '#restore', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#restore');
 
-            const deleteBtn = await page.waitForSelector('#delete', {
+            const deleteBtn = await init.pageWaitForSelector(page, '#delete', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(deleteBtn).toBeDefined();
 

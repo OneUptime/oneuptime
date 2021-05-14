@@ -48,24 +48,32 @@ describe('Fyipe Page Reload', () => {
             //navigate to component details
             await init.navigateToComponentDetails(componentName, page);
 
-            await page.waitForSelector('#security', { visible: true });
+            await init.pageWaitForSelector(page, '#security', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#security');
-            await page.waitForSelector('#application', { visible: true });
+            await init.pageWaitForSelector(page, '#application', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#application');
 
-            await page.waitForSelector('#applicationSecurityForm', {
+            await init.pageWaitForSelector(page, '#applicationSecurityForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addCredentialBtn');
-            await page.waitForSelector('#gitCredentialForm', {
+            await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#gitUsername');
             await init.pageType(page, '#gitUsername', gitUsername);
             await init.pageClick(page, '#gitPassword');
             await init.pageType(page, '#gitPassword', gitPassword);
             await init.pageClick(page, '#addCredentialModalBtn');
-            await page.waitForSelector('#gitCredentialForm', {
+            await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 hidden: true,
             });
 
@@ -79,26 +87,37 @@ describe('Fyipe Page Reload', () => {
             await page.keyboard.press('Enter'); // Enter Key
             await init.pageClick(page, '#addApplicationBtn');
 
-            await page.waitForSelector('.ball-beat', { hidden: true });
-            const applicationSecurity = await page.waitForSelector(
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
+            const applicationSecurity = await init.pageWaitForSelector(
+                page,
                 `#applicationSecurityHeader_${applicationSecurityName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(applicationSecurity).toBeDefined();
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector(`#cb${componentName}`, {
+            await init.pageWaitForSelector(page, `#cb${componentName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#cbApplicationSecurity', {
+            await init.pageWaitForSelector(page, '#cbApplicationSecurity', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector(`#cb${applicationSecurityName}`, {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#cb${applicationSecurityName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
 
-            const spanElement = await page.waitForSelector(
+            const spanElement = await init.pageWaitForSelector(
+                page,
                 `#applicationSecurityTitle_${applicationSecurityName}`
             );
             expect(spanElement).toBeDefined();

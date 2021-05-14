@@ -39,35 +39,50 @@ describe('Fyipe Page Reload', () => {
         'Should reload the error tracker page and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#errorTracking', { visible: true });
-            await init.pageClick(page, '#errorTracking');
-            await page.waitForSelector('#form-new-error-tracker', {
+            await init.pageWaitForSelector(page, '#errorTracking', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('input[name=name]', { visible: true });
-            await init.pageType(page, 'input[name=name]', errorTrackerName);
-            await page.waitForSelector('#addErrorTrackerButton', {
+            await init.pageClick(page, '#errorTracking');
+            await init.pageWaitForSelector(page, '#form-new-error-tracker', {
                 visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, 'input[name=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageType(page, 'input[name=name]', errorTrackerName);
+            await init.pageWaitForSelector(page, '#addErrorTrackerButton', {
+                visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addErrorTrackerButton');
             let spanElement;
-            spanElement = await page.waitForSelector(
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `#error-tracker-title-${errorTrackerName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(spanElement).toBeDefined();
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector(`#cb${componentName}`, {
+            await init.pageWaitForSelector(page, `#cb${componentName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#cbErrorTracking', { visible: true });
-            await page.waitForSelector(`#cb${errorTrackerName}`, {
+            await init.pageWaitForSelector(page, '#cbErrorTracking', {
                 visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, `#cb${errorTrackerName}`, {
+                visible: true,
+                timeout: init.timeout,
             });
 
-            spanElement = await page.waitForSelector(
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `#error-tracker-title-${errorTrackerName}`
             );
             expect(spanElement).toBeDefined();

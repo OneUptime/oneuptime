@@ -36,14 +36,14 @@ describe('SMTP Settings API', () => {
         'Admin should not turn on 2FA for a user',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('.bs-ObjectList-rows > a');
+            await init.pageWaitForSelector(page, '.bs-ObjectList-rows > a');
             const users = await page.$$('.bs-ObjectList-rows > a');
             await users[1].click();
             await page.waitFor(5000);
-            await page.waitForSelector('#disableUser2fa');
+            await init.pageWaitForSelector(page, '#disableUser2fa');
             await init.pageClick(page, '#disableUser2fa');
 
-            await page.waitForSelector('.bs-Modal-content > span');
+            await init.pageWaitForSelector(page, '.bs-Modal-content > span');
             let info = await page.$('.bs-Modal-content > span');
             expect(info).toBeDefined();
             info = await info.getProperty('innerText');
@@ -57,7 +57,7 @@ describe('SMTP Settings API', () => {
         'Admin should not turn on or off his 2fa',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('.bs-ObjectList-rows > a');
+            await init.pageWaitForSelector(page, '.bs-ObjectList-rows > a');
             const users = await page.$$('.bs-ObjectList-rows > a');
             await users[0].click();
             await page.waitFor(5000);

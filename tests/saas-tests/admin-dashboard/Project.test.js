@@ -53,16 +53,21 @@ describe('Project', () => {
                 elem[0].click();
             });
 
-            await page.waitForSelector('input[name="planId"]#Enterprise', {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                'input[name="planId"]#Enterprise',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
 
             await page.$eval('input[name="planId"]#Enterprise', elem =>
                 elem.click()
             );
             await page.$eval('#submitChangePlan', elem => elem.click());
 
-            const loader = await page.waitForSelector('.ball-beat', {
+            const loader = await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
 
@@ -90,16 +95,21 @@ describe('Project', () => {
                 elem[0].click();
             });
 
-            await page.waitForSelector('input[name="planId"]#Growth_annual', {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                'input[name="planId"]#Growth_annual',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
 
             await page.$eval('input[name="planId"]#Growth_annual', elem =>
                 elem.click()
             );
             await page.$eval('#submitChangePlan', elem => elem.click());
 
-            const loader = await page.waitForSelector('.ball-beat', {
+            const loader = await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
 
