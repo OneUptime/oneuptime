@@ -100,7 +100,7 @@ AdminNotes.displayName = 'AdminNotes';
 
 const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
 
-const mapStateToProps = state_Ignored => {
+const mapStateToProps = () => {
     return {};
 };
 

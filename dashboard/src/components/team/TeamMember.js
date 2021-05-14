@@ -234,7 +234,7 @@ export class TeamMember extends Component {
                                                                     name:
                                                                         this
                                                                             .props
-                                                                            .name ??
+                                                                            .name ||
                                                                         this
                                                                             .props
                                                                             .email,

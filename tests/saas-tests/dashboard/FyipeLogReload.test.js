@@ -36,7 +36,7 @@ describe('Fyipe Page Reload', () => {
     });
 
     test(
-        'Should reload the incidents page and confirm there are no errors',
+        'Should reload the component logs page and confirm there are no errors',
         async done => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitForSelector('#logs', { visible: true });

@@ -65,11 +65,11 @@ class ChangePasswordPage extends React.Component {
     }
 }
 
-const mapStateToProps = state_Ignored => {
+const mapStateToProps = () => {
     return null;
 };
 
-const mapDispatchToProps = dispatch_Ignored => {
+const mapDispatchToProps = () => {
     return null;
 };
 
