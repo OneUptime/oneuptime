@@ -512,7 +512,7 @@ module.exports = {
             }
 
             if (data && data.name) {
-                existingStatusPage.slug = getSlug(data.name);
+                data.slug = getSlug(data.name);
             }
 
             if (!query) {
@@ -1198,13 +1198,6 @@ module.exports = {
             data.monitors = data.monitors.map(monitor => ({
                 monitorId: monitor,
             }));
-            // slugify announcement name
-            if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
-            }
 
             const announcement = new AnnouncementModel();
             announcement.name = data.name || null;
@@ -1213,7 +1206,11 @@ module.exports = {
             announcement.description = data.description || null;
             announcement.monitors = data.monitors || null;
             announcement.createdById = data.createdById || null;
-            announcement.slug = data.slug || null;
+
+            // slugify announcement name
+            if (data && data.name) {
+                announcement.slug = getSlug(data.name);
+            }
             const newAnnouncement = await announcement.save();
 
             return newAnnouncement;

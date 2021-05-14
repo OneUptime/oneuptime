@@ -20,6 +20,28 @@ class Schedule extends Component {
         super(props);
         this.state = { editSchedule: false, error: false };
     }
+
+    async componentDidMount() {
+        const {
+            subProjectId,
+            scheduleId,
+            getEscalation,
+            subProjectTeamLoading,
+            teamLoading,
+        } = this.props;
+        if (scheduleId && subProjectId) {
+            try {
+                await Promise.all([
+                    getEscalation(subProjectId, scheduleId),
+                    subProjectTeamLoading(subProjectId),
+                    teamLoading(subProjectId),
+                ]);
+            } catch (e) {
+                this.handleError(e);
+            }
+        }
+    }
+
     async componentDidUpdate(prevProps) {
         if (
             prevProps.schedule !== this.props.schedule ||

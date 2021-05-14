@@ -20,6 +20,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { history } from '../../store';
 
 //Client side validation
 function validate(values) {
@@ -83,7 +84,10 @@ export class Branding extends Component {
         if (_id) values._id = _id;
         const { reset, resetLogoCache, resetFaviconCache } = this.props;
         this.props.updateStatusPageName(projectId, values).then(
-            () => {
+            data => {
+                history.replace(
+                    `/dashboard/project/${this.props.currentProject.slug}/status-page/${data.data.slug}`
+                );
                 this.props.fetchProjectStatusPage(projectId, true, 0, 10);
                 resetLogoCache();
                 resetFaviconCache();
@@ -247,6 +251,7 @@ Branding.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     resetLogoCache: PropTypes.func.isRequired,
     createFaviconCache: PropTypes.func.isRequired,
+    currentProject: PropTypes.func.isRequired,
     resetFaviconCache: PropTypes.func.isRequired,
     updateStatusPageName: PropTypes.func.isRequired,
     createLogoCache: PropTypes.func.isRequired,
