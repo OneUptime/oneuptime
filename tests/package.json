@@ -25,5 +25,8 @@
         "testMatch": [
             "<rootDir>/**/**/**/*.test.js"
         ]
+    },
+    "dependencies": {
+        "axios": "^0.21.1"
     }
 }
