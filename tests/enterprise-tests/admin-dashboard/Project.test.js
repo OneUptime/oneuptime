@@ -66,10 +66,14 @@ describe('Project', () => {
             });
             await init.pageClick(page, '#projects');
 
-            const firstProject = await init.pageWaitForSelector(page, '#project_0', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const firstProject = await init.pageWaitForSelector(
+                page,
+                '#project_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             firstProject.click();
 
             await init.pageWaitForSelector(page, '#delete', {
@@ -82,12 +86,18 @@ describe('Project', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#confirmDelete');
-            await init.pageWaitForSelector(page, '#confirmDelete', { hidden: true });
-
-            const restoreBtn = await init.pageWaitForSelector(page, '#restore', {
-                visible: true,
-                timeout: init.timeout,
+            await init.pageWaitForSelector(page, '#confirmDelete', {
+                hidden: true,
             });
+
+            const restoreBtn = await init.pageWaitForSelector(
+                page,
+                '#restore',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(restoreBtn).toBeDefined();
 
             done();
@@ -105,10 +115,14 @@ describe('Project', () => {
             });
             await init.pageClick(page, '#projects');
 
-            const firstProject = await init.pageWaitForSelector(page, '#project_0', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const firstProject = await init.pageWaitForSelector(
+                page,
+                '#project_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             firstProject.click();
             await init.pageWaitForSelector(page, '#restore', {
                 visible: true,

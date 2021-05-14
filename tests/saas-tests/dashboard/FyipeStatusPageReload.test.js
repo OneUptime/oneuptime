@@ -51,7 +51,8 @@ describe('Fyipe Page Reload', () => {
                 timeout: init.timeout,
             });
             await page.$eval('#statusPages', e => e.click());
-            const rowItem = await init.pageWaitForSelector(page, 
+            const rowItem = await init.pageWaitForSelector(
+                page,
                 '#statusPagesListContainer > tr',
                 { visible: true, timeout: init.timeout }
             );
@@ -76,7 +77,9 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });

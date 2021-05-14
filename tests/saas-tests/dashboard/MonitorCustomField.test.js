@@ -45,7 +45,8 @@ describe('Monitor Custom Field', () => {
         async done => {
             await init.addCustomField(page, monitorFieldText, 'monitor');
 
-            const firstCustomField = await init.pageWaitForSelector(page, 
+            const firstCustomField = await init.pageWaitForSelector(
+                page,
                 `#customfield_${monitorFieldText.fieldName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -106,7 +107,8 @@ describe('Monitor Custom Field', () => {
                 hidden: true,
             });
 
-            const updatedField = await init.pageWaitForSelector(page, 
+            const updatedField = await init.pageWaitForSelector(
+                page,
                 `#customfield_${monitorFieldNumber.fieldName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -156,7 +158,8 @@ describe('Monitor Custom Field', () => {
                 hidden: true,
             });
 
-            const noCustomFields = await init.pageWaitForSelector(page, 
+            const noCustomFields = await init.pageWaitForSelector(
+                page,
                 '#noCustomFields',
                 { visible: true, timeout: init.timeout }
             );

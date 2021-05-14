@@ -108,7 +108,10 @@ describe('Monitor Detail API', () => {
             );
             await init.pageClick(page, '#importCsvButton');
             let elementHandle;
-            elementHandle = await init.pageWaitForSelector(page, 'span#errorMsg');
+            elementHandle = await init.pageWaitForSelector(
+                page,
+                'span#errorMsg'
+            );
             elementHandle = await elementHandle.getProperty('innerText');
             elementHandle = await elementHandle.jsonValue();
             elementHandle.should.be.exactly('Empty files submitted');
@@ -216,7 +219,10 @@ describe('Monitor Detail API', () => {
             initialSubscribers = await page.$$(initialSubscribers);
             const initialCount = initialSubscribers.length;
 
-            await init.pageWaitForSelector(page, 'button[id=deleteSubscriber_0]');
+            await init.pageWaitForSelector(
+                page,
+                'button[id=deleteSubscriber_0]'
+            );
             await init.pageClick(page, 'button[id=deleteSubscriber_0]');
             await init.pageWaitForSelector(page, '#deleteSubscriber');
             await init.pageClick(page, '#deleteSubscriber');
@@ -257,7 +263,10 @@ describe('Monitor Detail API', () => {
             initialSubscribers = await page.$$(initialSubscribers);
             const initialCount = initialSubscribers.length;
 
-            await init.pageWaitForSelector(page, 'button[id=deleteSubscriber_0]');
+            await init.pageWaitForSelector(
+                page,
+                'button[id=deleteSubscriber_0]'
+            );
             await init.pageClick(page, 'button[id=deleteSubscriber_0]');
             await init.pageWaitForSelector(page, '#cancelDeleteSubscriber');
             await init.pageClick(page, '#cancelDeleteSubscriber');

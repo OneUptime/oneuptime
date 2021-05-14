@@ -41,7 +41,8 @@ describe('Status Page -> Pricing Plan Component', () => {
             await init.pageType(page, '#name', 'test');
             await init.pageClick(page, '#btnCreateStatusPage');
             // select the first item from the table row
-            const rowItem = await init.pageWaitForSelector(page, 
+            const rowItem = await init.pageWaitForSelector(
+                page,
                 '#statusPagesListContainer > tr',
                 { visible: true, timeout: init.timeout }
             );
@@ -54,10 +55,14 @@ describe('Status Page -> Pricing Plan Component', () => {
                 elems[0].click()
             );
             await page.$eval('input[name="isPrivate"]', elem => elem.click());
-            const modal = await init.pageWaitForSelector(page, '#pricingPlanModal', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const modal = await init.pageWaitForSelector(
+                page,
+                '#pricingPlanModal',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(modal).toBeDefined();
 
             done();
@@ -73,7 +78,8 @@ describe('Status Page -> Pricing Plan Component', () => {
             });
             await page.$eval('#statusPages', elem => elem.click());
             // select the first item from the table row
-            const rowItem = await init.pageWaitForSelector(page, 
+            const rowItem = await init.pageWaitForSelector(
+                page,
                 '#statusPagesListContainer > tr',
                 { visible: true, timeout: init.timeout }
             );
@@ -92,11 +98,18 @@ describe('Status Page -> Pricing Plan Component', () => {
                 elem.click()
             );
 
-            const modal = await init.pageWaitForSelector(page, '#pricingPlanModal', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            const emailBtn = await init.pageWaitForSelector(page, '#enterpriseMail');
+            const modal = await init.pageWaitForSelector(
+                page,
+                '#pricingPlanModal',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
+            const emailBtn = await init.pageWaitForSelector(
+                page,
+                '#enterpriseMail'
+            );
 
             expect(modal).toBeDefined();
             expect(emailBtn).toBeDefined();
@@ -131,9 +144,13 @@ describe('Status Page -> Pricing Plan Component', () => {
             await page.evaluate(() => {
                 document.querySelector('#billingRiskCountries').click();
             });
-            const elem = await init.pageWaitForSelector(page, '#pricingPlanModal', {
-                hidden: true,
-            });
+            const elem = await init.pageWaitForSelector(
+                page,
+                '#pricingPlanModal',
+                {
+                    hidden: true,
+                }
+            );
             expect(elem).toBeNull();
             done();
         },
@@ -148,7 +165,8 @@ describe('Status Page -> Pricing Plan Component', () => {
             });
             await page.$eval('#statusPages', elem => elem.click());
             // select the first item from the table row
-            const rowItem = await init.pageWaitForSelector(page, 
+            const rowItem = await init.pageWaitForSelector(
+                page,
                 '#statusPagesListContainer > tr',
                 { visible: true, timeout: init.timeout }
             );
@@ -166,7 +184,8 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const growthOption = await init.pageWaitForSelector(page, 
+            const growthOption = await init.pageWaitForSelector(
+                page,
                 'label[for=Growth_month]',
                 { visible: true, timeout: init.timeout }
             );
@@ -176,9 +195,13 @@ describe('Status Page -> Pricing Plan Component', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#cancelPlanUpgrade');
-            const elem = await init.pageWaitForSelector(page, '#pricingPlanModal', {
-                hidden: true,
-            });
+            const elem = await init.pageWaitForSelector(
+                page,
+                '#pricingPlanModal',
+                {
+                    hidden: true,
+                }
+            );
             expect(elem).toBeNull();
 
             done();
@@ -194,7 +217,8 @@ describe('Status Page -> Pricing Plan Component', () => {
             });
             await page.$eval('#statusPages', elem => elem.click());
             // select the first item from the table row
-            const rowItem = await init.pageWaitForSelector(page, 
+            const rowItem = await init.pageWaitForSelector(
+                page,
                 '#statusPagesListContainer > tr',
                 { visible: true, timeout: init.timeout }
             );
@@ -212,7 +236,8 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const growthOption = await init.pageWaitForSelector(page, 
+            const growthOption = await init.pageWaitForSelector(
+                page,
                 'label[for=Growth_month]',
                 { visible: true, timeout: init.timeout }
             );

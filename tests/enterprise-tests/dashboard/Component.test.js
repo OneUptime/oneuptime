@@ -40,7 +40,9 @@ describe('Enterprise Component API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await init.pageWaitForSelector(page, '#components', { timeout: 120000 });
+            await init.pageWaitForSelector(page, '#components', {
+                timeout: 120000,
+            });
             await init.pageClick(page, '#components');
 
             // Fill and submit New Component form
@@ -63,7 +65,8 @@ describe('Enterprise Component API', () => {
             await init.pageClick(page, '#components');
 
             let spanElement;
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `span#component-title-${componentName}`
             );
             spanElement = await spanElement.getProperty('innerText');

@@ -48,10 +48,14 @@ describe('Check scheduled maintenace', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#statusPages');
-            await init.pageWaitForSelector(page, `#btnCreateStatusPage_${projectName}`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#btnCreateStatusPage_${projectName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, `#btnCreateStatusPage_${projectName}`);
             await init.pageWaitForSelector(page, '#name', {
                 visible: true,
@@ -77,7 +81,8 @@ describe('Check scheduled maintenace', () => {
             });
 
             // To confirm the status-page name.
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#header-${statusPageName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -138,7 +143,8 @@ describe('Check scheduled maintenace', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             // To confirm the manual monitor is created
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -201,7 +207,8 @@ describe('Check scheduled maintenace', () => {
             await page.goto(link);
 
             // To confirm the monitor is present in the status-page
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-${monitorName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -258,7 +265,8 @@ describe('Check scheduled maintenace', () => {
                 page,
                 'div.MuiDialogActions-root button:nth-child(2)'
             );
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 'div.MuiDialogActions-root button:nth-child(2)',
                 { hidden: true }
             );
@@ -279,7 +287,8 @@ describe('Check scheduled maintenace', () => {
                 page,
                 'div.MuiDialogActions-root button:nth-child(2)'
             );
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 'div.MuiDialogActions-root button:nth-child(2)',
                 { hidden: true }
             );
@@ -288,7 +297,8 @@ describe('Check scheduled maintenace', () => {
                 hidden: true,
             });
             // This is to confirm that the created scheduled maintenance is present and monitor is there.
-            let scheduledMaintenance = await init.pageWaitForSelector(page, 
+            let scheduledMaintenance = await init.pageWaitForSelector(
+                page,
                 `#monitor-${monitorName}`,
                 {
                     visible: true,
@@ -333,7 +343,8 @@ describe('Check scheduled maintenace', () => {
             await page.goto(link);
 
             // To confirm scheduled maintenance name
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#event-name-${scheduledMaintenanceName}`
             );
             const eventName = await page.$eval(
@@ -343,7 +354,8 @@ describe('Check scheduled maintenace', () => {
             expect(eventName).toMatch(scheduledMaintenanceName);
 
             // To confirm scheduled maintenance description
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#event-description-${scheduledMaintenanceDescription}`,
                 { visible: true, timeout: init.timeout }
             );

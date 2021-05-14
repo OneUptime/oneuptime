@@ -59,7 +59,8 @@ describe('Fyipe Page Reload', () => {
             });
             await init.pageClick(page, '#addApplicationLogButton');
             let spanElement;
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 '#application-content-header',
                 { visible: true, timeout: init.timeout }
             );
@@ -80,7 +81,8 @@ describe('Fyipe Page Reload', () => {
                 timeout: init.timeout,
             });
 
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 '#application-content-header',
                 { visible: true, timeout: init.timeout }
             );

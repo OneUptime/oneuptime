@@ -58,10 +58,14 @@ describe('Fyipe Monitor Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(page, `#incident_title`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
+                `#incident_title`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(spanElement).toBeDefined();
 
             done();
@@ -97,10 +101,14 @@ describe('Fyipe Monitor Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(page, '#incident_0', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
+                '#incident_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(spanElement).toBeDefined();
 
             done();
@@ -138,10 +146,14 @@ describe('Fyipe Monitor Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(page, '#incident_0', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
+                '#incident_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(spanElement).toBeDefined();
 
             done();

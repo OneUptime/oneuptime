@@ -145,11 +145,18 @@ describe('Team API With SubProjects', () => {
             await init.pageClick(page, `#emails_${subProjectName}`);
             await init.pageType(page, `#emails_${subProjectName}`, newEmail);
             await init.pageClick(page, `#${role}_${subProjectName}`);
-            await init.pageWaitForSelector(page, `#btn_modal_${subProjectName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#btn_modal_${subProjectName}`
+            );
             await init.pageClick(page, `#btn_modal_${subProjectName}`);
-            await init.pageWaitForSelector(page, `#btn_modal_${subProjectName}`, {
-                hidden: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#btn_modal_${subProjectName}`,
+                {
+                    hidden: true,
+                }
+            );
 
             await init.pageWaitForSelector(page, `#count_${subProjectName}`);
             const memberCount = await page.$eval(
@@ -174,12 +181,16 @@ describe('Team API With SubProjects', () => {
 
             await init.pageWaitForSelector(page, '#teamMembers');
             await init.pageClick(page, '#teamMembers');
-            await init.pageWaitForSelector(page, `#changeRole_${emailSelector}`);
+            await init.pageWaitForSelector(
+                page,
+                `#changeRole_${emailSelector}`
+            );
             await init.pageClick(page, `#changeRole_${emailSelector}`);
             await init.pageWaitForSelector(page, `div[title="${newRole}"]`);
             await init.pageClick(page, `div[title="${newRole}"]`);
 
-            const member = await init.pageWaitForSelector(page, 
+            const member = await init.pageWaitForSelector(
+                page,
                 `#${newRole}_${emailSelector}`,
                 {
                     visible: true,
@@ -202,10 +213,14 @@ describe('Team API With SubProjects', () => {
 
             await init.pageWaitForSelector(page, '#teamMembers');
             await init.pageClick(page, '#teamMembers');
-            await init.pageWaitForSelector(page, `#removeMember__${emailSelector}`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#removeMember__${emailSelector}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, `#removeMember__${emailSelector}`);
             await init.pageWaitForSelector(page, '#removeTeamUser');
             await init.pageClick(page, '#removeTeamUser');
@@ -237,7 +252,10 @@ describe('Team API With SubProjects', () => {
 
             await init.pageWaitForSelector(page, '#teamMembers');
             await init.pageClick(page, '#teamMembers');
-            await init.pageWaitForSelector(page, `button[id=btn_${projectName}]`);
+            await init.pageWaitForSelector(
+                page,
+                `button[id=btn_${projectName}]`
+            );
             await init.pageClick(page, `button[id=btn_${projectName}]`);
             await init.pageWaitForSelector(page, 'input[name=emails]');
             await init.pageClick(page, 'input[name=emails]');
@@ -246,7 +264,8 @@ describe('Team API With SubProjects', () => {
             await init.pageClick(page, `#${role}_${projectName}`);
             await init.pageWaitForSelector(page, `#btn_modal_${projectName}`);
             await init.pageClick(page, `#btn_modal_${projectName}`);
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#frm_${projectName} span#field-error`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -289,7 +308,10 @@ describe('Team API With SubProjects', () => {
                 hidden: true,
             });
 
-            await init.pageWaitForSelector(page, `#changeRole_${memberEmailSelector}`);
+            await init.pageWaitForSelector(
+                page,
+                `#changeRole_${memberEmailSelector}`
+            );
             const oldMemberRole = await page.$eval(
                 `#Member_${memberEmailSelector}`,
                 elem => elem.innerHTML

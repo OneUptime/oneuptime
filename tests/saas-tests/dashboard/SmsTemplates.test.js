@@ -55,9 +55,13 @@ describe('SMS Templates API', () => {
                 '#templateField',
                 elem => elem.value
             );
-            const resetBtn = await init.pageWaitForSelector(page, '#templateReset', {
-                hidden: true,
-            });
+            const resetBtn = await init.pageWaitForSelector(
+                page,
+                '#templateReset',
+                {
+                    hidden: true,
+                }
+            );
             expect(resetBtn).toBeNull();
 
             done();
@@ -90,7 +94,9 @@ describe('SMS Templates API', () => {
             });
             await init.pageType(page, 'textarea[name=body]', newTemplate);
             await init.pageClick(page, '#saveTemplate');
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
 
             await page.reload({
                 waitUntil: ['networkidle2', 'domcontentloaded'],
@@ -131,10 +137,14 @@ describe('SMS Templates API', () => {
                 'External Subscriber Incident Created',
                 page
             );
-            const resetBtn = await init.pageWaitForSelector(page, '#templateReset', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const resetBtn = await init.pageWaitForSelector(
+                page,
+                '#templateReset',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(resetBtn).toBeDefined();
 
             done();

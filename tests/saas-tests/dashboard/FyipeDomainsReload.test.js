@@ -45,7 +45,9 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#addCustomField');
             await init.pageType(page, '#domain', customDomain);
             await init.pageClick(page, '#createDomainBtn');
-            await init.pageWaitForSelector(page, '#createDomainBtn', { hidden: true });
+            await init.pageWaitForSelector(page, '#createDomainBtn', {
+                hidden: true,
+            });
             await init.pageWaitForSelector(page, '#projectdomain_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -56,10 +58,14 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(page, '#projectdomain_0', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
+                '#projectdomain_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(spanElement).toBeDefined();
             done();
         },

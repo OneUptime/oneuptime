@@ -59,7 +59,8 @@ describe('Fyipe Page Reload', () => {
             });
             await init.pageClick(page, '#addErrorTrackerButton');
             let spanElement;
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `#error-tracker-title-${errorTrackerName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -80,7 +81,8 @@ describe('Fyipe Page Reload', () => {
                 timeout: init.timeout,
             });
 
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `#error-tracker-title-${errorTrackerName}`
             );
             expect(spanElement).toBeDefined();

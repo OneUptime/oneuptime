@@ -160,16 +160,24 @@ describe('Fyipe Page Reload', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
-            await init.pageWaitForSelector(page, '#cbScheduledMaintenanceEvent', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                '#cbScheduledMaintenanceEvent',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await init.pageWaitForSelector(page, '#cbScheduledMaintenanceEvent', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                '#cbScheduledMaintenanceEvent',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             done();
         },
         operationTimeOut

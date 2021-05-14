@@ -45,7 +45,8 @@ describe('Incident Custom Field', () => {
         async done => {
             await init.addCustomField(page, incidentFieldText, 'incident');
 
-            const firstCustomField = await init.pageWaitForSelector(page, 
+            const firstCustomField = await init.pageWaitForSelector(
+                page,
                 `#customfield_${incidentFieldText.fieldName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -107,7 +108,8 @@ describe('Incident Custom Field', () => {
                 hidden: true,
             });
 
-            const updatedField = await init.pageWaitForSelector(page, 
+            const updatedField = await init.pageWaitForSelector(
+                page,
                 `#customfield_${incidentFieldNumber.fieldName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -154,7 +156,8 @@ describe('Incident Custom Field', () => {
                 hidden: true,
             });
 
-            const noCustomFields = await init.pageWaitForSelector(page, 
+            const noCustomFields = await init.pageWaitForSelector(
+                page,
                 '#noCustomFields',
                 { visible: true, timeout: init.timeout }
             );

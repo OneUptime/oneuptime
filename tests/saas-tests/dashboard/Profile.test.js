@@ -52,8 +52,11 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageWaitForSelector(page, 'button[type=submit]');
             await init.pageClick(page, 'button[type=submit]');
 
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
-            let spanElement = await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 'span#userProfileName'
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -94,10 +97,14 @@ describe('Profile -> Delete Account Component test', () => {
             );
             await init.pageWaitForSelector(page, 'button[type=submit]');
             await init.pageClick(page, 'button[type=submit]');
-            let spanElement = await init.pageWaitForSelector(page, '.bs-Modal-content', {
-                visible: true,
-                timeout: operationTimeOut,
-            });
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                '.bs-Modal-content',
+                {
+                    visible: true,
+                    timeout: operationTimeOut,
+                }
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(
@@ -137,7 +144,10 @@ describe('Profile -> Delete Account Component test', () => {
             );
             await init.pageWaitForSelector(page, 'button[type=submit]');
             await init.pageClick(page, 'button[type=submit]');
-            let spanElement = await init.pageWaitForSelector(page, '#errorMessage');
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                '#errorMessage'
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(
@@ -167,10 +177,14 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageClick(page, '#profileSettings');
 
             // toggle the google authenticator
-            await init.pageWaitForSelector(page, 'input[name=twoFactorAuthEnabled]', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                'input[name=twoFactorAuthEnabled]',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await page.reload({ waitUntil: 'networkidle2' });
             await page.$eval('input[name=twoFactorAuthEnabled]', e =>
                 e.click()
@@ -195,10 +209,14 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageClick(page, '#enableTwoFactorAuthButton');
 
             // verify there is an error message
-            let spanElement = await init.pageWaitForSelector(page, '#modal-message', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                '#modal-message',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly('Invalid token.');

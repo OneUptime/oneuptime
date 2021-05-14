@@ -46,7 +46,8 @@ describe('Fyipe Page Reload', () => {
             await init.pageType(page, '#gitUsername', gitUsername);
             await init.pageType(page, '#gitPassword', gitPassword);
             await init.pageClick(page, '#addCredentialModalBtn');
-            const spanElement = await init.pageWaitForSelector(page, 
+            const spanElement = await init.pageWaitForSelector(
+                page,
                 `#gitUsername_${gitUsername}`
             );
             expect(spanElement).toBeDefined();
@@ -60,7 +61,8 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement2 = await init.pageWaitForSelector(page, 
+            const spanElement2 = await init.pageWaitForSelector(
+                page,
                 `#gitUsername_${gitUsername}`
             );
             expect(spanElement2).toBeDefined();

@@ -51,7 +51,8 @@ describe('Fyipe Monitor Reload', () => {
                 timeout: init.timeout,
             });
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -87,7 +88,8 @@ describe('Fyipe Monitor Reload', () => {
                 timeout: init.timeout,
             });
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }
             );

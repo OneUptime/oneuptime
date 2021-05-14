@@ -68,7 +68,8 @@ describe('Monitor API', () => {
             await init.pageType(page, '#url', 'https://google.com');
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -108,7 +109,8 @@ describe('Monitor API', () => {
 
             // change up criterion's name
             await init.pageClick(page, '#advanceOptions');
-            let criterionAdvancedOptions = await init.pageWaitForSelector(page, 
+            let criterionAdvancedOptions = await init.pageWaitForSelector(
+                page,
                 '[data-testId=criterionAdvancedOptions_up]'
             );
             await criterionAdvancedOptions.click();
@@ -123,7 +125,8 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -132,7 +135,8 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, `#edit_${monitorName}`);
             await init.pageClick(page, '#advanceOptions');
-            criterionAdvancedOptions = await init.pageWaitForSelector(page, 
+            criterionAdvancedOptions = await init.pageWaitForSelector(
+                page,
                 '[data-testId=criterionAdvancedOptions_up]'
             );
             await criterionAdvancedOptions.click();
@@ -179,7 +183,8 @@ describe('Monitor API', () => {
             (await page.$$('[data-testId^=single_criterion_up')).length
         ).toEqual(1);
 
-        let criterionAdvancedOption = await init.pageWaitForSelector(page, 
+        let criterionAdvancedOption = await init.pageWaitForSelector(
+            page,
             '[data-testId=criterionAdvancedOptions_up]'
         );
         await criterionAdvancedOption.click();
@@ -222,7 +227,8 @@ describe('Monitor API', () => {
         // add the monitor and check if the criteria are persisted
         await init.pageClick(page, 'button[type=submit]');
 
-        let spanElement = await init.pageWaitForSelector(page, 
+        let spanElement = await init.pageWaitForSelector(
+            page,
             `#monitor-title-${monitorName}`
         );
         spanElement = await spanElement.getProperty('innerText');
@@ -232,18 +238,27 @@ describe('Monitor API', () => {
         await init.pageClick(page, `#edit_${monitorName}`);
         await init.pageClick(page, '#advanceOptions');
         // for up criteria
-        await init.pageWaitForSelector(page, '[data-testId^=single_criterion_up]');
+        await init.pageWaitForSelector(
+            page,
+            '[data-testId^=single_criterion_up]'
+        );
         expect(
             (await page.$$('[data-testId^=single_criterion_up')).length
         ).toEqual(2);
 
         // for degraded criteria
-        await init.pageWaitForSelector(page, '[data-testId^=single_criterion_degraded]');
+        await init.pageWaitForSelector(
+            page,
+            '[data-testId^=single_criterion_degraded]'
+        );
         expect(
             (await page.$$('[data-testId^=single_criterion_degraded]')).length
         ).toEqual(2);
         // for down criteria
-        await init.pageWaitForSelector(page, '[data-testId^=single_criterion_down]');
+        await init.pageWaitForSelector(
+            page,
+            '[data-testId^=single_criterion_down]'
+        );
         expect(
             (await page.$$('[data-testId^=single_criterion_down]')).length
         ).toEqual(2);
@@ -261,12 +276,17 @@ describe('Monitor API', () => {
                 page
             );
 
-            await init.pageWaitForSelector(page, `#lighthouseLogs_${monitorName}_0`, {
-                visible: true,
-                timeout: operationTimeOut,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#lighthouseLogs_${monitorName}_0`,
+                {
+                    visible: true,
+                    timeout: operationTimeOut,
+                }
+            );
 
-            let lighthousePerformanceElement = await init.pageWaitForSelector(page, 
+            let lighthousePerformanceElement = await init.pageWaitForSelector(
+                page,
                 `#lighthouse-performance-${monitorName}`,
                 { visible: true, timeout: operationTimeOut }
             );
@@ -276,7 +296,8 @@ describe('Monitor API', () => {
             lighthousePerformanceElement = await lighthousePerformanceElement.jsonValue();
             lighthousePerformanceElement.should.endWith('%');
 
-            let lighthouseAccessibilityElement = await init.pageWaitForSelector(page, 
+            let lighthouseAccessibilityElement = await init.pageWaitForSelector(
+                page,
                 `#lighthouse-accessibility-${monitorName}`,
                 { visible: true, timeout: operationTimeOut }
             );
@@ -286,7 +307,8 @@ describe('Monitor API', () => {
             lighthouseAccessibilityElement = await lighthouseAccessibilityElement.jsonValue();
             lighthouseAccessibilityElement.should.endWith('%');
 
-            let lighthouseBestPracticesElement = await init.pageWaitForSelector(page, 
+            let lighthouseBestPracticesElement = await init.pageWaitForSelector(
+                page,
                 `#lighthouse-bestPractices-${monitorName}`,
                 { visible: true, timeout: operationTimeOut }
             );
@@ -296,7 +318,8 @@ describe('Monitor API', () => {
             lighthouseBestPracticesElement = await lighthouseBestPracticesElement.jsonValue();
             lighthouseBestPracticesElement.should.endWith('%');
 
-            let lighthouseSeoElement = await init.pageWaitForSelector(page, 
+            let lighthouseSeoElement = await init.pageWaitForSelector(
+                page,
                 `#lighthouse-seo-${monitorName}`,
                 { visible: true, timeout: operationTimeOut }
             );
@@ -306,7 +329,8 @@ describe('Monitor API', () => {
             lighthouseSeoElement = await lighthouseSeoElement.jsonValue();
             lighthouseSeoElement.should.endWith('%');
 
-            let lighthousePwaElement = await init.pageWaitForSelector(page, 
+            let lighthousePwaElement = await init.pageWaitForSelector(
+                page,
                 `#lighthouse-pwa-${monitorName}`,
                 { visible: true, timeout: operationTimeOut }
             );
@@ -337,10 +361,12 @@ describe('Monitor API', () => {
             expect(probe0).toBeDefined();
             expect(probe1).toBeDefined();
 
-            const monitorStatus = await init.pageWaitForSelector(page, 
+            const monitorStatus = await init.pageWaitForSelector(
+                page,
                 `#monitor-status-${monitorName}`
             );
-            const sslStatus = await init.pageWaitForSelector(page, 
+            const sslStatus = await init.pageWaitForSelector(
+                page,
                 `#ssl-status-${monitorName}`
             );
 
@@ -384,7 +410,8 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -424,7 +451,8 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 '#form-new-monitor span#field-error'
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -441,7 +469,8 @@ describe('Monitor API', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            let sslStatusElement = await init.pageWaitForSelector(page, 
+            let sslStatusElement = await init.pageWaitForSelector(
+                page,
                 `#ssl-status-${monitorName}`,
                 { visible: true, timeout: operationTimeOut }
             );
@@ -480,7 +509,8 @@ describe('Monitor API', () => {
             await init.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
             await init.pageClick(page, 'button[type=submit]');
 
-            let sslStatusElement = await init.pageWaitForSelector(page, 
+            let sslStatusElement = await init.pageWaitForSelector(
+                page,
                 `#ssl-status-${testServerMonitorName}`,
                 { visible: true, timeout: operationTimeOut }
             );
@@ -521,7 +551,8 @@ describe('Monitor API', () => {
             await init.pageType(page, '#url', 'https://self-signed.badssl.com');
             await init.pageClick(page, 'button[type=submit]');
 
-            let sslStatusElement = await init.pageWaitForSelector(page, 
+            let sslStatusElement = await init.pageWaitForSelector(
+                page,
                 `#ssl-status-${selfSignedMonitorName}`,
                 { visible: true, timeout: operationTimeOut }
             );
@@ -601,7 +632,8 @@ describe('Monitor API', () => {
                 page
             );
 
-            let monitorStatusElement = await init.pageWaitForSelector(page, 
+            let monitorStatusElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-status-${testServerMonitorName}`,
                 { visible: true, timeout: operationTimeOut }
             );
@@ -669,7 +701,8 @@ describe('Monitor API', () => {
                 timeout: 280000,
             });
 
-            let monitorStatusElement = await init.pageWaitForSelector(page, 
+            let monitorStatusElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-status-${testServerMonitorName}`,
                 { visible: true, timeout: operationTimeOut }
             );
@@ -777,7 +810,8 @@ describe('API Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 '#formNewMonitorError'
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -823,7 +857,8 @@ describe('API Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            const spanElement = await init.pageWaitForSelector(page, 
+            const spanElement = await init.pageWaitForSelector(
+                page,
                 '#formNewMonitorError'
             );
             expect(spanElement).toBeDefined();
@@ -867,7 +902,10 @@ describe('API Monitor API', () => {
 
             await init.pageWaitForSelector(page, '#addApiHeaders');
             await init.pageClick(page, '#addApiHeaders');
-            await init.pageWaitForSelector(page, 'input[id=headers_1000_0_key]');
+            await init.pageWaitForSelector(
+                page,
+                'input[id=headers_1000_0_key]'
+            );
             await init.pageClick(page, 'input[id=headers_1000_0_key]');
             await init.pageType(
                 page,
@@ -885,7 +923,8 @@ describe('API Monitor API', () => {
             await init.pageType(page, '#feedback-textarea', 'BAD');
             await init.pageClick(page, 'button[type=submit]');
 
-            const spanElement = await init.pageWaitForSelector(page, 
+            const spanElement = await init.pageWaitForSelector(
+                page,
                 '#formNewMonitorError'
             );
             expect(spanElement).toBeDefined();
@@ -922,7 +961,8 @@ describe('API Monitor API', () => {
             await init.pageType(page, '#url', 'http://localhost:3002');
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -942,7 +982,8 @@ describe('API Monitor API', () => {
             //const newMonitorName = utils.generateRandomString();
             await init.addAPIMonitorWithJSExpression(page, testMonitorName);
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${testMonitorName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -1203,9 +1244,13 @@ describe('API Monitor API', () => {
             });
 
             // wait for a new incident is created
-            await init.pageWaitForSelector(page, `#incident_${newMonitorName}_0`, {
-                timeout: 120 * 1000,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#incident_${newMonitorName}_0`,
+                {
+                    timeout: 120 * 1000,
+                }
+            );
             await Promise.all([
                 page.$eval(`#incident_${newMonitorName}_0`, element =>
                     element.click()
@@ -1213,7 +1258,8 @@ describe('API Monitor API', () => {
                 page.waitForNavigation(),
             ]);
 
-            let monitorIncidentReportElement = await init.pageWaitForSelector(page, 
+            let monitorIncidentReportElement = await init.pageWaitForSelector(
+                page,
                 `#${newMonitorName}_IncidentReport_0`
             );
             monitorIncidentReportElement = await monitorIncidentReportElement.getProperty(
@@ -1224,10 +1270,14 @@ describe('API Monitor API', () => {
                 /.*Response {"status":"ok"} Did evaluate response.body.status === 'ok'.*/
             );
 
-            await init.pageWaitForSelector(page, `#${newMonitorName}_ShowResponse_0`);
+            await init.pageWaitForSelector(
+                page,
+                `#${newMonitorName}_ShowResponse_0`
+            );
             await init.pageClick(page, `#${newMonitorName}_ShowResponse_0`);
 
-            let monitorIncidentModalElement = await init.pageWaitForSelector(page, 
+            let monitorIncidentModalElement = await init.pageWaitForSelector(
+                page,
                 '#API_Response'
             );
             monitorIncidentModalElement = await monitorIncidentModalElement.getProperty(

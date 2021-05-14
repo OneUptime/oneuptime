@@ -46,7 +46,10 @@ describe('Status-Page Advanced Options', () => {
 
             await init.pageWaitForSelector(page, '#statusPages');
             await init.pageClick(page, '#statusPages');
-            await init.pageWaitForSelector(page, `#btnCreateStatusPage_${projectName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#btnCreateStatusPage_${projectName}`
+            );
             await init.pageClick(page, `#btnCreateStatusPage_${projectName}`);
             await init.pageWaitForSelector(page, '#name');
             await init.pageWaitForSelector(page, 'input[id=name]', {
@@ -63,7 +66,8 @@ describe('Status-Page Advanced Options', () => {
             await init.pageWaitForSelector(page, `#header-${statusPageName}`);
 
             // To confirm the status-page name.
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#header-${statusPageName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -114,7 +118,8 @@ describe('Status-Page Advanced Options', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             // To confirm the manual monitor is created.
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -164,7 +169,8 @@ describe('Status-Page Advanced Options', () => {
             await page.goto(link);
 
             // To confirm the monitor is present in the status-page.
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-${monitorName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -203,7 +209,8 @@ describe('Status-Page Advanced Options', () => {
             await init.pageWaitForSelector(page, '#createSubscriber');
             await init.pageClick(page, '#createSubscriber');
             // To confirm that the subscriber is created.
-            const subscriberContact = await init.pageWaitForSelector(page, 
+            const subscriberContact = await init.pageWaitForSelector(
+                page,
                 '#subscriber_contact'
             );
             expect(subscriberContact).toBeDefined();
@@ -231,7 +238,8 @@ describe('Status-Page Advanced Options', () => {
             });
             await page.$$eval('.subscribers-tab', elems => elems[0].click());
             // To confirm that the subscriber created is present.
-            const subscriberContact = await init.pageWaitForSelector(page, 
+            const subscriberContact = await init.pageWaitForSelector(
+                page,
                 '#subscriber_contact'
             );
             expect(subscriberContact).toBeDefined();
@@ -266,7 +274,8 @@ describe('Status-Page Advanced Options', () => {
             await init.pageType(page, '#customDomain', customDomainWebsite);
             await init.pageClick(page, '#createCustomDomainBtn');
             // To confirm that custom domain is created.
-            const customDomain = await init.pageWaitForSelector(page, 
+            const customDomain = await init.pageWaitForSelector(
+                page,
                 '#publicStatusPageUrl'
             );
             expect(customDomain).toBeDefined();
@@ -306,7 +315,8 @@ describe('Status-Page Advanced Options', () => {
             link = await link.jsonValue();
             await page.goto(link);
             // To confirm subscribe button is present in status-page
-            const subscriberButton = await init.pageWaitForSelector(page, 
+            const subscriberButton = await init.pageWaitForSelector(
+                page,
                 '#subscriber-button'
             );
             expect(subscriberButton).toBeDefined();
@@ -333,7 +343,8 @@ describe('Status-Page Advanced Options', () => {
             await init.pageType(page, 'input[name=email]', subscriberEmail);
             await init.pageClick(page, '#subscribe-btn-email');
             // To confirm successful subscription
-            let subscribeSuccess = await init.pageWaitForSelector(page, 
+            let subscribeSuccess = await init.pageWaitForSelector(
+                page,
                 '#monitor-subscribe-success-message'
             );
             subscribeSuccess = await subscribeSuccess.getProperty('innerText');
@@ -374,7 +385,8 @@ describe('Status-Page Advanced Options', () => {
             await init.pageClick(page, '#confirmDelete');
 
             // To confirm status-page has been deleted.
-            const deletedStatusPage = await init.pageWaitForSelector(page, 
+            const deletedStatusPage = await init.pageWaitForSelector(
+                page,
                 '#statusPagesListContainer'
             );
             expect(deletedStatusPage).toBeDefined();

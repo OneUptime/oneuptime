@@ -63,10 +63,14 @@ describe('Settings Component (IS_SAAS_SERVICE=false)', () => {
             await page.$eval('#settings a', elem => elem.click());
 
             // if element does not exist it will timeout and throw
-            const licenseOption = await init.pageWaitForSelector(page, '#license', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const licenseOption = await init.pageWaitForSelector(
+                page,
+                '#license',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(licenseOption).toBeDefined();
         },
         operationTimeOut

@@ -51,10 +51,14 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(page, '#cbCallRouting', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
+                '#cbCallRouting',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(spanElement).toBeDefined();
             done();
         },

@@ -58,7 +58,8 @@ describe('Server Monitor API', () => {
             await init.selectByText('#type', 'server-monitor', page);
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -208,7 +209,8 @@ describe('Server Monitor API', () => {
             monitor.start();
 
             // check status
-            const element = await init.pageWaitForSelector(page, 
+            const element = await init.pageWaitForSelector(
+                page,
                 `#${monitorName}-degraded`
             );
             expect(element).toBeDefined();
@@ -277,7 +279,8 @@ describe('Server Monitor API', () => {
             monitor.start();
 
             // check status
-            const element = await init.pageWaitForSelector(page, 
+            const element = await init.pageWaitForSelector(
+                page,
                 `#${monitorName}-offline`
             );
             expect(element).toBeDefined();
@@ -365,7 +368,10 @@ describe('Server Monitor API', () => {
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
 
-            await init.pageWaitForSelector(page, `#${monitorName}_EditIncidentDetails_0`);
+            await init.pageWaitForSelector(
+                page,
+                `#${monitorName}_EditIncidentDetails_0`
+            );
             await page.$eval(`#${monitorName}_EditIncidentDetails_0`, e =>
                 e.click()
             );

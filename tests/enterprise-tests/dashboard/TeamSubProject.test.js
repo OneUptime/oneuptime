@@ -70,9 +70,13 @@ describe('Enterprise Team SubProject API', () => {
             );
             await init.pageClick(page, `#${role}_${subProjectName}`);
             await init.pageClick(page, `#btn_modal_${subProjectName}`);
-            await init.pageWaitForSelector(page, `#btn_modal_${subProjectName}`, {
-                hidden: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#btn_modal_${subProjectName}`,
+                {
+                    hidden: true,
+                }
+            );
             done();
         },
         operationTimeOut

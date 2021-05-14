@@ -50,10 +50,14 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(page, '#enableTwilio', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
+                '#enableTwilio',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(spanElement).toBeDefined();
             done();
         },

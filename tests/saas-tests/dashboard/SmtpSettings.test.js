@@ -80,7 +80,9 @@ describe('Custom SMTP Settings', () => {
             await page.$eval('#secure', elem => (elem.checked = true));
             await init.pageClick(page, '#saveSmtp');
 
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
             await page.reload();
             await init.pageWaitForSelector(page, '#host', {
                 visible: true,
@@ -127,7 +129,9 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
             await page.reload();
             await init.pageWaitForSelector(page, '#from', {
                 visible: true,
@@ -212,10 +216,14 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageWaitForSelector(page, 'label[id=enableSecureTransport]', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                'label[id=enableSecureTransport]',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageWaitForSelector(page, '#saveSmtp', {
                 visible: true,
                 timeout: init.timeout,

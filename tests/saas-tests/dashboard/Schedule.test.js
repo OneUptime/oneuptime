@@ -68,10 +68,14 @@ describe('Schedule', () => {
             await init.pageWaitForSelector(page, '#enableTeamRotation');
             await init.pageClick(page, '#enableTeamRotation');
 
-            const modal = await init.pageWaitForSelector(page, '#pricingPlanModal', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const modal = await init.pageWaitForSelector(
+                page,
+                '#pricingPlanModal',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(modal).toBeDefined();
             done();
         },
@@ -99,10 +103,14 @@ describe('Schedule', () => {
             await init.pageWaitForSelector(page, '#addOnCallDutyTimes');
             await init.pageClick(page, '#addOnCallDutyTimes');
 
-            const modal = await init.pageWaitForSelector(page, '#pricingPlanModal', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const modal = await init.pageWaitForSelector(
+                page,
+                '#pricingPlanModal',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(modal).toBeDefined();
 
             done();

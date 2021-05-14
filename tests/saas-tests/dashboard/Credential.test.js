@@ -54,7 +54,9 @@ describe('Credential Page', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#gitCredentials');
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
             const initialTableRow = await page.$$('tbody tr');
             await init.pageWaitForSelector(page, '#addCredentialBtn', {
                 visible: true,
@@ -113,7 +115,8 @@ describe('Credential Page', () => {
             await init.pageType(page, '#gitPassword', gitPassword);
             await init.pageClick(page, '#addCredentialModalBtn');
 
-            const credentialModal = await init.pageWaitForSelector(page, 
+            const credentialModal = await init.pageWaitForSelector(
+                page,
                 '#gitCredentialForm',
                 { hidden: true }
             );
@@ -154,7 +157,8 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 hidden: true,
             });
-            const updatedCredential = await init.pageWaitForSelector(page, 
+            const updatedCredential = await init.pageWaitForSelector(
+                page,
                 `#gitUsername_${gitUsername}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -183,7 +187,9 @@ describe('Credential Page', () => {
             });
             await init.pageClick(page, '#gitCredentials');
 
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
             const initialTableRow = await page.$$('tbody tr');
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
@@ -265,7 +271,9 @@ describe('Credential Page', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#dockerCredentials');
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
             const initialTableRow = await page.$$('tbody tr');
             await init.pageClick(page, '#addCredentialBtn');
 
@@ -321,7 +329,8 @@ describe('Credential Page', () => {
             await init.pageType(page, '#dockerPassword', dockerPassword);
             await init.pageClick(page, '#addCredentialModalBtn');
 
-            const credentialModalForm = await init.pageWaitForSelector(page, 
+            const credentialModalForm = await init.pageWaitForSelector(
+                page,
                 '#dockerCredentialForm',
                 { hidden: true }
             );
@@ -363,7 +372,8 @@ describe('Credential Page', () => {
                 hidden: true,
             });
 
-            const updatedCredential = await init.pageWaitForSelector(page, 
+            const updatedCredential = await init.pageWaitForSelector(
+                page,
                 `#dockerUsername_${dockerUsername}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -402,7 +412,8 @@ describe('Credential Page', () => {
             await init.pageType(page, '#dockerPassword', dockerPassword);
             await init.pageClick(page, '#updateCredentialModalBtn');
 
-            const updateCredentialError = await init.pageWaitForSelector(page, 
+            const updateCredentialError = await init.pageWaitForSelector(
+                page,
                 '#updateCredentialError',
                 { visible: true, timeout: operationTimeOut }
             );
@@ -448,7 +459,8 @@ describe('Credential Page', () => {
             await init.pageType(page, '#dockerPassword', 'invalidpassword');
             await init.pageClick(page, '#addCredentialModalBtn');
 
-            const addCredentialError = await init.pageWaitForSelector(page, 
+            const addCredentialError = await init.pageWaitForSelector(
+                page,
                 '#addCredentialError',
                 { visible: true, timeout: operationTimeOut }
             );
@@ -477,7 +489,9 @@ describe('Credential Page', () => {
             });
             await init.pageClick(page, '#dockerCredentials');
 
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
             const initialTableRow = await page.$$('tbody tr');
             await init.pageClick(page, '#deleteCredentialBtn_0');
 

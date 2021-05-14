@@ -38,7 +38,9 @@ describe('Error Trackers', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await init.pageWaitForSelector(page, '#components', { timeout: 120000 });
+            await init.pageWaitForSelector(page, '#components', {
+                timeout: 120000,
+            });
             await init.pageClick(page, '#components');
 
             // Fill and submit New Component form
@@ -64,7 +66,8 @@ describe('Error Trackers', () => {
             });
             await init.pageClick(page, '#components');
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `span#component-title-${componentName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -93,7 +96,8 @@ describe('Error Trackers', () => {
             await init.pageType(page, 'input[id=name]', errorTrackerName);
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `span#error-tracker-title-${errorTrackerName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -131,10 +135,14 @@ describe('Error Trackers', () => {
             // As soon as an error tracker with a resource category is created, it automatically navigates to the details page
 
             // confirm the category shows in the details page.
-            await init.pageWaitForSelector(page, `#${newErrorTrackerName}-badge`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#${newErrorTrackerName}-badge`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             let spanElement = await page.$(`#${newErrorTrackerName}-badge`);
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
@@ -162,7 +170,8 @@ describe('Error Trackers', () => {
             await init.pageType(page, 'input[id=name]', '');
             await init.pageClick(page, 'button[type=submit]');
 
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 '#form-new-error-tracker span#field-error',
                 { visible: true, timeout: init.timeout }
             );
@@ -185,7 +194,8 @@ describe('Error Trackers', () => {
                 page
             );
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#error-tracker-title-${errorTrackerName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -207,11 +217,13 @@ describe('Error Trackers', () => {
             await init.pageWaitForSelector(page, `#edit_${errorTrackerName}`);
             await init.pageClick(page, `#edit_${errorTrackerName}`);
 
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#error-tracker-edit-title-${errorTrackerName}`,
                 { visible: true, timeout: init.timeout }
             );
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#error-tracker-edit-title-${errorTrackerName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -234,7 +246,8 @@ describe('Error Trackers', () => {
             await init.pageClick(page, `#key_${errorTrackerName}`);
 
             // click show applicaion log key
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#show_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
@@ -243,7 +256,8 @@ describe('Error Trackers', () => {
             );
 
             // get error tracker key
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#error_tracker_key_${errorTrackerName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -251,7 +265,8 @@ describe('Error Trackers', () => {
             expect(spanElement).toBeDefined();
 
             // click cancel
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#cancel_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
@@ -274,20 +289,23 @@ describe('Error Trackers', () => {
             await init.pageClick(page, `#key_${errorTrackerName}`);
 
             // click show error tracker  key
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#show_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
                 page,
                 `#show_error_tracker_key_${errorTrackerName}`
             );
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#error_tracker_key_${errorTrackerName}`
             );
             expect(spanElement).toBeDefined();
 
             // find the eye icon to hide error tracker key
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#hide_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
@@ -295,7 +313,8 @@ describe('Error Trackers', () => {
                 `#hide_error_tracker_key_${errorTrackerName}`
             );
 
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `#show_error_tracker_key_${errorTrackerName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -319,7 +338,8 @@ describe('Error Trackers', () => {
             await init.pageClick(page, `#key_${errorTrackerName}`);
 
             // click show error tracker key
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#show_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
@@ -328,14 +348,16 @@ describe('Error Trackers', () => {
             );
 
             // get error tracker key
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#error_tracker_key_${errorTrackerName}`
             );
             spanElement = await spanElement.getProperty('innerText');
             errorTrackerKey = await spanElement.jsonValue();
 
             // click reset key
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#reset_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
@@ -344,14 +366,16 @@ describe('Error Trackers', () => {
             );
 
             // click confirm reset key
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#confirm_reset_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
                 page,
                 `#confirm_reset_error_tracker_key_${errorTrackerName}`
             );
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#confirm_reset_error_tracker_key_${errorTrackerName}`,
                 { hidden: true }
             );
@@ -361,7 +385,8 @@ describe('Error Trackers', () => {
             await init.pageClick(page, `#key_${errorTrackerName}`);
 
             // click show error tracker key
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#show_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
@@ -370,7 +395,8 @@ describe('Error Trackers', () => {
             );
 
             // get tracker container key
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `#error_tracker_key_${errorTrackerName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -403,7 +429,8 @@ describe('Error Trackers', () => {
 
             await init.pageWaitForSelector(page, '#errorTracking');
             await init.pageClick(page, '#errorTracking');
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#error-tracker-title-${errorTrackerName}-new`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -426,7 +453,10 @@ describe('Error Trackers', () => {
                 `${errorTrackerName}-new`,
                 page
             );
-            await init.pageWaitForSelector(page, `#edit_${errorTrackerName}-new`);
+            await init.pageWaitForSelector(
+                page,
+                `#edit_${errorTrackerName}-new`
+            );
             await init.pageClick(page, `#edit_${errorTrackerName}-new`);
             // Fill and submit edit Error tracker form
             await init.pageWaitForSelector(page, '#form-new-error-tracker');
@@ -437,10 +467,14 @@ describe('Error Trackers', () => {
                 hidden: true,
             });
 
-            await init.pageWaitForSelector(page, `#${errorTrackerName}-new-badge`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#${errorTrackerName}-new-badge`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             // confirm the new category shows in the details page.
             let spanElement = await page.$(`#${errorTrackerName}-new-badge`);
             spanElement = await spanElement.getProperty('innerText');

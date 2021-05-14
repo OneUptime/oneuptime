@@ -95,10 +95,14 @@ describe('Scheduled event', () => {
             );
 
             await init.pageClick(page, '#createScheduledEventButton');
-            const monitorError = await init.pageWaitForSelector(page, '#monitorError', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const monitorError = await init.pageWaitForSelector(
+                page,
+                '#monitorError',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(monitorError).toBeDefined();
             done();
         },
@@ -188,7 +192,8 @@ describe('Scheduled event', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#editScheduledEvent-${scheduleMaintenanceName}`,
                 {
                     visible: true,
@@ -274,7 +279,8 @@ describe('Scheduled event', () => {
             await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {
                 hidden: true,
             });
-            const scheduledEventList = await init.pageWaitForSelector(page, 
+            const scheduledEventList = await init.pageWaitForSelector(
+                page,
                 '.scheduled-event-list-item',
                 {
                     hidden: true,

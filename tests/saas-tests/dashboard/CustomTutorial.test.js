@@ -36,7 +36,8 @@ describe('Custom Tutorial With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            const componentBoxElement = await init.pageWaitForSelector(page, 
+            const componentBoxElement = await init.pageWaitForSelector(
+                page,
                 `#info-${customTutorialType}`
             );
             expect(componentBoxElement).toBeDefined();
@@ -46,7 +47,8 @@ describe('Custom Tutorial With SubProjects', () => {
             await init.pageClick(page, '#components');
 
             // find that same tutorial box on component page
-            const newComponentBoxElement = await init.pageWaitForSelector(page, 
+            const newComponentBoxElement = await init.pageWaitForSelector(
+                page,
                 `#info-${customTutorialType}`
             );
             expect(newComponentBoxElement).toBeDefined();
@@ -64,7 +66,8 @@ describe('Custom Tutorial With SubProjects', () => {
                 waitUntil: 'networkidle2',
             });
 
-            const componentBoxElement = await init.pageWaitForSelector(page, 
+            const componentBoxElement = await init.pageWaitForSelector(
+                page,
                 `#info-${customTutorialType}`
             );
             expect(componentBoxElement).toBeDefined();
@@ -74,15 +77,20 @@ describe('Custom Tutorial With SubProjects', () => {
             await init.pageClick(page, '#components');
 
             // find that same tutorial box on component page
-            const newComponentBoxElement = await init.pageWaitForSelector(page, 
+            const newComponentBoxElement = await init.pageWaitForSelector(
+                page,
                 `#info-${customTutorialType}`
             );
             expect(newComponentBoxElement).toBeDefined();
             // click on the call to action button
-            await init.pageWaitForSelector(page, `#close-${customTutorialType}`);
+            await init.pageWaitForSelector(
+                page,
+                `#close-${customTutorialType}`
+            );
             await init.pageClick(page, `#close-${customTutorialType}`);
             // find component quick tip and confirm it shows
-            const componentQuickTip = await init.pageWaitForSelector(page, 
+            const componentQuickTip = await init.pageWaitForSelector(
+                page,
                 `#quick-tip-${customTutorialType}`
             );
             expect(componentQuickTip).toBeDefined();
@@ -99,13 +107,17 @@ describe('Custom Tutorial With SubProjects', () => {
                 waitUntil: 'networkidle2',
             });
 
-            const componentBoxElement = await init.pageWaitForSelector(page, 
+            const componentBoxElement = await init.pageWaitForSelector(
+                page,
                 `#info-${customTutorialType}`
             );
             expect(componentBoxElement).toBeDefined();
 
             // click on the call to action button
-            await init.pageWaitForSelector(page, `#close-${customTutorialType}`);
+            await init.pageWaitForSelector(
+                page,
+                `#close-${customTutorialType}`
+            );
             await init.pageClick(page, `#close-${customTutorialType}`);
 
             done();
@@ -121,13 +133,17 @@ describe('Custom Tutorial With SubProjects', () => {
                 waitUntil: 'networkidle2',
             });
 
-            const componentBoxElement = await init.pageWaitForSelector(page, 
+            const componentBoxElement = await init.pageWaitForSelector(
+                page,
                 `#info-${customTutorialType}`
             );
             expect(componentBoxElement).toBeDefined();
 
             // click on the call to action button
-            await init.pageWaitForSelector(page, `#close-${customTutorialType}`);
+            await init.pageWaitForSelector(
+                page,
+                `#close-${customTutorialType}`
+            );
             await init.pageClick(page, `#close-${customTutorialType}`);
 
             done();

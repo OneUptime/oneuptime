@@ -45,10 +45,14 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 timeout: init.timeout,
             });
             await page.$eval('#profile-menu', elem => elem.click());
-            const about = await init.pageWaitForSelector(page, '#about-button', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const about = await init.pageWaitForSelector(
+                page,
+                '#about-button',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(about).toBeDefined();
         },
         operationTimeOut

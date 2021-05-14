@@ -63,7 +63,9 @@ describe('Fyipe Page Reload', () => {
             );
             await init.selectByText('#endpointType', 'GET', page);
             await init.pageClick(page, '#createWebhook');
-            await init.pageWaitForSelector(page, '#createWebhook', { hidden: true });
+            await init.pageWaitForSelector(page, '#createWebhook', {
+                hidden: true,
+            });
             //To confirm no errors and stays on the same page on reload
             await init.pageWaitForSelector(page, '#webhook_name');
             await page.reload({ waitUntil: 'networkidle2' });
@@ -71,10 +73,14 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(page, '#addSlackButton', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
+                '#addSlackButton',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(spanElement).toBeDefined();
             done();
         },

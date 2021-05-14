@@ -75,7 +75,8 @@ describe('Incident Created test', () => {
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
             await page.$eval('#btnAcknowledge_0', e => e.click());
             await page.goto(utils.DASHBOARD_URL);
-            const closeAllButton = await init.pageWaitForSelector(page, 
+            const closeAllButton = await init.pageWaitForSelector(
+                page,
                 '#incidents-close-all-btn',
                 { hidden: true }
             );
@@ -93,7 +94,8 @@ describe('Incident Created test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const closeAllButton = await init.pageWaitForSelector(page, 
+            const closeAllButton = await init.pageWaitForSelector(
+                page,
                 '#incidents-close-all-btn',
                 { visible: true, timeout: init.timeout }
             );
@@ -107,7 +109,8 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#incidents-close-all-btn');
             await page.$eval('#incidents-close-all-btn', elem => elem.click());
-            const closeButton = await init.pageWaitForSelector(page, 
+            const closeButton = await init.pageWaitForSelector(
+                page,
                 '#closeIncidentButton_0',
                 {
                     hidden: true,
@@ -123,7 +126,8 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL);
             await init.addIncident(monitorName, 'Degraded', page, 'Low');
 
-            const viewIncidentButton = await init.pageWaitForSelector(page, 
+            const viewIncidentButton = await init.pageWaitForSelector(
+                page,
                 'button[id=viewIncident-0]',
                 { visible: true, timeout: init.timeout }
             );
@@ -221,7 +225,8 @@ describe('Incident Created test', () => {
             await init.loginUser(user1, page);
             // Switch projects
             await init.switchProject(projectName, page);
-            const viewIncidentButton = await init.pageWaitForSelector(page, 
+            const viewIncidentButton = await init.pageWaitForSelector(
+                page,
                 'button[id=viewIncident-0]',
                 { visible: true, timeout: init.timeout }
             );
@@ -266,9 +271,13 @@ describe('Incident Created test', () => {
                 timeout: init.timeout,
             });
             await page.$eval('#closeIncident_0', elem => elem.click());
-            const closeButton = await init.pageWaitForSelector(page, '#closeIncident_0', {
-                hidden: true,
-            });
+            const closeButton = await init.pageWaitForSelector(
+                page,
+                '#closeIncident_0',
+                {
+                    hidden: true,
+                }
+            );
             expect(closeButton).toBeNull();
             await init.logout(page);
             await init.loginUser(user1, page);
@@ -372,7 +381,10 @@ describe('Incident Created test', () => {
             await page.$eval('#incidents', e => e.click());
 
             // Acknowledge the second incident
-            await init.pageWaitForSelector(page, `tr#incident_${monitorName}_1`);
+            await init.pageWaitForSelector(
+                page,
+                `tr#incident_${monitorName}_1`
+            );
             await page.$eval(`tr#incident_${monitorName}_1`, e => e.click());
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
             await page.$eval('#btnAcknowledge_0', e => e.click());
@@ -383,7 +395,10 @@ describe('Incident Created test', () => {
             await page.$eval('#incidents', e => e.click());
 
             // Acknowledge the third incident
-            await init.pageWaitForSelector(page, `tr#incident_${monitorName}_2`);
+            await init.pageWaitForSelector(
+                page,
+                `tr#incident_${monitorName}_2`
+            );
             await page.$eval(`tr#incident_${monitorName}_2`, e => e.click());
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
             await page.$eval('#btnAcknowledge_0', e => e.click());
@@ -416,7 +431,8 @@ describe('Incident Created test', () => {
             await init.pageWaitForSelector(page, '#components');
             await page.$eval('#components', e => e.click());
 
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `button[id=view-resource-${monitorName}]`
             );
             await page.$eval(`button[id=view-resource-${monitorName}]`, e =>
@@ -444,7 +460,8 @@ describe('Incident Created test', () => {
             await init.pageWaitForSelector(page, '#components');
             await page.$eval('#components', e => e.click());
 
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `button[id=view-resource-${monitorName}]`
             );
             await page.$eval(`button[id=view-resource-${monitorName}]`, e =>
@@ -499,7 +516,10 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#incidents');
             await page.$eval('#incidents', e => e.click());
-            await init.pageWaitForSelector(page, `#btnCreateIncident_${projectName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#btnCreateIncident_${projectName}`
+            );
             await page.$eval(`#btnCreateIncident_${projectName}`, e =>
                 e.click()
             );
@@ -509,7 +529,9 @@ describe('Incident Created test', () => {
             await init.selectByText('#incidentTypeId', 'Degraded', page);
             await init.selectByText('#incidentPriority', 'Low', page);
             await page.$eval('#createIncident', e => e.click());
-            await init.pageWaitForSelector(page, '#createIncident', { hidden: true });
+            await init.pageWaitForSelector(page, '#createIncident', {
+                hidden: true,
+            });
             await init.pageWaitForSelector(page, 'tr.incidentListItem');
             const filteredIncidents = await page.$$('tr.incidentListItem');
             const filteredIncidentsCount = filteredIncidents.length;
@@ -545,7 +567,10 @@ describe('Incident Created test', () => {
             // remove existing notification
             await init.pageWaitForSelector(page, '#incidents');
             await page.$eval('#incidents', e => e.click());
-            await init.pageWaitForSelector(page, `#btnCreateIncident_${projectName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#btnCreateIncident_${projectName}`
+            );
             await page.$eval(`#btnCreateIncident_${projectName}`, e =>
                 e.click()
             );
@@ -555,7 +580,9 @@ describe('Incident Created test', () => {
             await init.selectByText('#incidentTypeId', 'Online', page);
             await init.selectByText('#incidentPriority', 'Low', page);
             await page.$eval('#createIncident', e => e.click());
-            await init.pageWaitForSelector(page, '#createIncident', { hidden: true });
+            await init.pageWaitForSelector(page, '#createIncident', {
+                hidden: true,
+            });
             await page.goto(utils.DASHBOARD_URL);
             await page.$eval(`#${monitorName2}_ViewIncidentDetails`, elem =>
                 elem.click()

@@ -182,10 +182,14 @@ describe('API test', () => {
                 clickCount: 3,
             });
             await init.pageType(page, 'input[name=project_name]', projectName);
-            await init.pageWaitForSelector(page, 'button[id=btnCreateProject]', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                'button[id=btnCreateProject]',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, 'button[id=btnCreateProject]');
 
             // Invite member on the project
@@ -218,7 +222,9 @@ describe('API test', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, 'button[type=submit]');
-            await init.pageWaitForSelector(page, 'button[type=submit]', { hidden: true });
+            await init.pageWaitForSelector(page, 'button[type=submit]', {
+                hidden: true,
+            });
             await init.logout(page);
 
             // Login as member

@@ -92,11 +92,13 @@ describe('Scheduled Event Note', () => {
                 'Some random description'
             );
             await init.pageClick(page, '#internal-addButton');
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 '#form-new-schedule-investigation-message',
                 { hidden: true }
             );
-            const note = await init.pageWaitForSelector(page, 
+            const note = await init.pageWaitForSelector(
+                page,
                 '#Internal_incident_message_0',
                 { visible: true, timeout: init.timeout }
             );
@@ -126,10 +128,14 @@ describe('Scheduled Event Note', () => {
             // navigate to the note tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
 
-            await init.pageWaitForSelector(page, '#edit_Internal_incident_message_0', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                '#edit_Internal_incident_message_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, '#edit_Internal_incident_message_0');
             await init.pageWaitForSelector(page, '#update-internal', {
                 visible: true,
@@ -142,11 +148,13 @@ describe('Scheduled Event Note', () => {
                 'An updated description'
             );
             await init.pageClick(page, '#internal-updateButton');
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 '#form-update-schedule-internal-message',
                 { hidden: true }
             );
-            const edited = await init.pageWaitForSelector(page, 
+            const edited = await init.pageWaitForSelector(
+                page,
                 '#edited_Internal_incident_message_0',
                 { visible: true, timeout: init.timeout }
             );
@@ -175,19 +183,26 @@ describe('Scheduled Event Note', () => {
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
-            await init.pageWaitForSelector(page, '#delete_Internal_incident_message_0', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                '#delete_Internal_incident_message_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, '#delete_Internal_incident_message_0');
             await init.pageWaitForSelector(page, '#deleteNote', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteNote');
-            await init.pageWaitForSelector(page, '#deleteNote', { hidden: true });
+            await init.pageWaitForSelector(page, '#deleteNote', {
+                hidden: true,
+            });
 
-            const note = await init.pageWaitForSelector(page, 
+            const note = await init.pageWaitForSelector(
+                page,
                 '#delete_Internal_incident_message_0',
                 { hidden: true }
             );
@@ -264,7 +279,8 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
-            const tenthItem = await init.pageWaitForSelector(page, 
+            const tenthItem = await init.pageWaitForSelector(
+                page,
                 '#Internal_incident_message_9',
                 { visible: true, timeout: init.timeout }
             );
@@ -299,11 +315,13 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             });
             await init.pageClick(page, '#nextBtn');
 
-            const fifthItem = await init.pageWaitForSelector(page, 
+            const fifthItem = await init.pageWaitForSelector(
+                page,
                 '#Internal_incident_message_4',
                 { visible: true, timeout: init.timeout }
             );
-            const sixthItem = await init.pageWaitForSelector(page, 
+            const sixthItem = await init.pageWaitForSelector(
+                page,
                 '#Internal_incident_message_5',
                 { hidden: true }
             );
@@ -351,7 +369,8 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {
                 hidden: true,
             });
-            const scheduledEventList = await init.pageWaitForSelector(page, 
+            const scheduledEventList = await init.pageWaitForSelector(
+                page,
                 '.scheduled-event-list-item',
                 {
                     hidden: true,

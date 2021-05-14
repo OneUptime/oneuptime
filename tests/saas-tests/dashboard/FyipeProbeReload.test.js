@@ -58,14 +58,22 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(page, '#probe_0', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            const spanElement2 = await init.pageWaitForSelector(page, '#probe_1', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
+                '#probe_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
+            const spanElement2 = await init.pageWaitForSelector(
+                page,
+                '#probe_1',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(spanElement).toBeDefined();
             expect(spanElement2).toBeDefined();
             done();

@@ -55,10 +55,14 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageWaitForSelector(page, `#${teamMember.split('@')[0]}`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#${teamMember.split('@')[0]}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
 
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
@@ -66,7 +70,8 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(page, 
+            const spanElement = await init.pageWaitForSelector(
+                page,
                 `#${teamMember.split('@')[0]}`,
                 { visible: true, timeout: init.timeout }
             );

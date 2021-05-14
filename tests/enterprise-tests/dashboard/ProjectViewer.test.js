@@ -72,7 +72,8 @@ describe('Sub-Project API', () => {
             await init.pageType(page, '#title', subProjectName);
             await init.pageClick(page, '#btnAddSubProjects');
             await init.pageWaitForSelector(page, '#title', { hidden: true });
-            const subProjectSelector = await init.pageWaitForSelector(page, 
+            const subProjectSelector = await init.pageWaitForSelector(
+                page,
                 `#sub_project_name_${subProjectName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -101,9 +102,13 @@ describe('Sub-Project API', () => {
             elem => elem.textContent
         );
         prevMemberCount = Number(prevMemberCount.split(' ')[0]);
-        await init.pageWaitForSelector(page, `button[id=btn_${subProjectName}]`, {
-            visible: true,
-        });
+        await init.pageWaitForSelector(
+            page,
+            `button[id=btn_${subProjectName}]`,
+            {
+                visible: true,
+            }
+        );
         await init.pageClick(page, `button[id=btn_${subProjectName}]`);
         await init.pageWaitForSelector(page, `#frm_${subProjectName}`, {
             visible: true,
@@ -148,9 +153,13 @@ describe('Sub-Project API', () => {
         );
         prevMemberCount = Number(prevMemberCount.split(' ')[0]);
 
-        await init.pageWaitForSelector(page, `button[id=btn_${newProjectName}]`, {
-            visible: true,
-        });
+        await init.pageWaitForSelector(
+            page,
+            `button[id=btn_${newProjectName}]`,
+            {
+                visible: true,
+            }
+        );
         await init.pageClick(page, `button[id=btn_${newProjectName}]`);
         await init.pageWaitForSelector(page, `#frm_${newProjectName}`, {
             visible: true,
@@ -188,18 +197,26 @@ describe('Sub-Project API', () => {
             timeout: init.timeout,
         });
         await init.pageClick(page, '#statusPages');
-        await init.pageWaitForSelector(page, `#status_page_count_${newProjectName}`, {
-            visible: true,
-        });
+        await init.pageWaitForSelector(
+            page,
+            `#status_page_count_${newProjectName}`,
+            {
+                visible: true,
+            }
+        );
         let oldStatusPageCounter = await page.$eval(
             `#status_page_count_${newProjectName}`,
             elem => elem.textContent
         );
         oldStatusPageCounter = Number(oldStatusPageCounter.split(' ')[0]);
         await init.addStatusPageToProject(statusPageName, newProjectName, page);
-        await init.pageWaitForSelector(page, `#status_page_count_${newProjectName}`, {
-            visible: true,
-        });
+        await init.pageWaitForSelector(
+            page,
+            `#status_page_count_${newProjectName}`,
+            {
+                visible: true,
+            }
+        );
         let statusPageCounter = await page.$eval(
             `#status_page_count_${newProjectName}`,
             elem => elem.textContent
@@ -290,7 +307,8 @@ describe('Sub-Project API', () => {
             `#accountSwitcher > div[title=${newProjectName}]`
         );
         element.click();
-        const rowItem = await init.pageWaitForSelector(page, 
+        const rowItem = await init.pageWaitForSelector(
+            page,
             '#statusPagesListContainer > tr',
             { visible: true, timeout: init.timeout }
         );

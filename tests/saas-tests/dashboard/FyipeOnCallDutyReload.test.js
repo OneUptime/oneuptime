@@ -103,10 +103,14 @@ describe('Fyipe Page Reload', () => {
                 timeout: init.timeout,
             });
 
-            const spanElement = await init.pageWaitForSelector(page, '#onCallDutyNote', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
+                '#onCallDutyNote',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(spanElement).toBeDefined();
 
             done();

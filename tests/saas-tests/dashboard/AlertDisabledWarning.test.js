@@ -48,10 +48,14 @@ describe('Alert Warning', () => {
             });
             await init.pageClick(page, '#billing');
 
-            const element = await init.pageWaitForSelector(page, '#alertWarning', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const element = await init.pageWaitForSelector(
+                page,
+                '#alertWarning',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(element).toBeDefined();
             done();
         },
@@ -92,9 +96,13 @@ describe('Alert Warning', () => {
                     document.querySelector('#alertOptionSave').click();
                 });
             }
-            const element = await init.pageWaitForSelector(page, '#alertWarning', {
-                hidden: true,
-            });
+            const element = await init.pageWaitForSelector(
+                page,
+                '#alertWarning',
+                {
+                    hidden: true,
+                }
+            );
             expect(element).toBeNull();
             done();
         },

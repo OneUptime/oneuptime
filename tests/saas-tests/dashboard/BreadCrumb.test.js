@@ -44,20 +44,23 @@ describe('BreadCrumb Component test', () => {
             });
             await init.addMonitorToComponent(componentName, monitorName, page);
 
-            const monitorBreadcrumb = await init.pageWaitForSelector(page, 
+            const monitorBreadcrumb = await init.pageWaitForSelector(
+                page,
                 `#cb${monitorName}`,
                 {
                     visible: true,
                 }
             );
-            const componentBreadcrumb = await init.pageWaitForSelector(page, 
+            const componentBreadcrumb = await init.pageWaitForSelector(
+                page,
                 '#cbMonitors'
             );
             expect(monitorBreadcrumb).toBeDefined();
             expect(componentBreadcrumb).toBeDefined();
             await init.pageClick(page, '#cbMonitors');
 
-            const monitorTitle = await init.pageWaitForSelector(page, 
+            const monitorTitle = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -78,10 +81,14 @@ describe('BreadCrumb Component test', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#cbUnnamedProject');
-            let currentPage = await init.pageWaitForSelector(page, '#cbUnnamedProject', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            let currentPage = await init.pageWaitForSelector(
+                page,
+                '#cbUnnamedProject',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             currentPage = await currentPage.getProperty('innerText');
             currentPage = await currentPage.jsonValue();
             expect(currentPage).toBe('Unnamed Project');

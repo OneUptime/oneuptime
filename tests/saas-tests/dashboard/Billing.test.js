@@ -66,7 +66,8 @@ describe('Project Setting: Change Plan', () => {
             await init.pageClick(page, '#billing');
 
             // get current balance as $0
-            let spanBalanceElement = await init.pageWaitForSelector(page, 
+            let spanBalanceElement = await init.pageWaitForSelector(
+                page,
                 '#currentBalance'
             );
             spanBalanceElement = await spanBalanceElement.getProperty(
@@ -87,7 +88,10 @@ describe('Project Setting: Change Plan', () => {
             await init.pageClick(page, '#rechargeAccount');
 
             // confirm the current balance is still $0
-            spanBalanceElement = await init.pageWaitForSelector(page, '#field-error');
+            spanBalanceElement = await init.pageWaitForSelector(
+                page,
+                '#field-error'
+            );
             spanBalanceElement = await spanBalanceElement.getProperty(
                 'innerText'
             );
@@ -115,7 +119,8 @@ describe('Project Setting: Change Plan', () => {
             await init.pageClick(page, '#billing');
 
             // get current balance as $0
-            let spanBalanceElement = await init.pageWaitForSelector(page, 
+            let spanBalanceElement = await init.pageWaitForSelector(
+                page,
                 '#currentBalance'
             );
             spanBalanceElement = await spanBalanceElement.getProperty(
@@ -143,7 +148,8 @@ describe('Project Setting: Change Plan', () => {
             });
 
             // confirm a pop up comes up and the message is a successful
-            let spanModalElement = await init.pageWaitForSelector(page, 
+            let spanModalElement = await init.pageWaitForSelector(
+                page,
                 '#message-modal-message'
             );
             spanModalElement = await spanModalElement.getProperty('innerText');
@@ -158,7 +164,10 @@ describe('Project Setting: Change Plan', () => {
             await init.pageWaitForSelector(page, '#modal-ok', { hidden: true });
 
             // confirm the current balance is $20
-            spanBalanceElement = await init.pageWaitForSelector(page, '#currentBalance');
+            spanBalanceElement = await init.pageWaitForSelector(
+                page,
+                '#currentBalance'
+            );
             spanBalanceElement = await spanBalanceElement.getProperty(
                 'innerText'
             );
@@ -184,7 +193,8 @@ describe('Project Setting: Change Plan', () => {
             await init.pageClick(page, '#billing');
 
             // get current balance as $0
-            let spanBalanceElement = await init.pageWaitForSelector(page, 
+            let spanBalanceElement = await init.pageWaitForSelector(
+                page,
                 '#currentBalance'
             );
             spanBalanceElement = await spanBalanceElement.getProperty(
@@ -211,7 +221,10 @@ describe('Project Setting: Change Plan', () => {
             });
 
             // confirm the current balance is still $0
-            spanBalanceElement = await init.pageWaitForSelector(page, '#currentBalance');
+            spanBalanceElement = await init.pageWaitForSelector(
+                page,
+                '#currentBalance'
+            );
             spanBalanceElement = await spanBalanceElement.getProperty(
                 'innerText'
             );
@@ -293,7 +306,8 @@ describe('Member Restriction', () => {
             });
             await page.$eval('#alertEnable', checkbox => checkbox.click);
             await init.pageClick(page, '#alertOptionSave');
-            const unauthorisedModal = await init.pageWaitForSelector(page, 
+            const unauthorisedModal = await init.pageWaitForSelector(
+                page,
                 '#unauthorisedModal',
                 { visible: true, timeout: init.timeout }
             );
@@ -319,7 +333,8 @@ describe('Member Restriction', () => {
             await init.pageClick(page, '#rechargeBalanceAmount');
             await init.pageType(page, '#rechargeBalanceAmount', '20');
             await init.pageClick(page, '#rechargeAccount');
-            const unauthorisedModal = await init.pageWaitForSelector(page, 
+            const unauthorisedModal = await init.pageWaitForSelector(
+                page,
                 '#unauthorisedModal',
                 { visible: true, timeout: init.timeout }
             );
@@ -347,7 +362,8 @@ describe('Member Restriction', () => {
             });
             await init.pageClick(page, 'input#Startup_month');
             await init.pageClick(page, '#changePlanBtn');
-            const unauthorisedModal = await init.pageWaitForSelector(page, 
+            const unauthorisedModal = await init.pageWaitForSelector(
+                page,
                 '#unauthorisedModal',
                 { visible: true, timeout: init.timeout }
             );

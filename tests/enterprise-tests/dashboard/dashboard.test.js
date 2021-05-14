@@ -42,7 +42,9 @@ describe('Enterprise Dashboard API', () => {
         await init.pageClick(page, `#delete_${monitorName}`);
         await init.pageWaitForSelector(page, '#deleteMonitor');
         await init.pageClick(page, '#deleteMonitor');
-        await init.pageWaitForSelector(page, '#deleteMonitor', { hidden: true });
+        await init.pageWaitForSelector(page, '#deleteMonitor', {
+            hidden: true,
+        });
 
         // delete component
         await page.goto(utils.DASHBOARD_URL, {
@@ -57,11 +59,16 @@ describe('Enterprise Dashboard API', () => {
         await init.pageClick(page, `#componentSettings`);
         await init.pageWaitForSelector(page, `#advanced`);
         await init.pageClick(page, `#advanced`);
-        await init.pageWaitForSelector(page, `#delete-component-${componentName}`);
+        await init.pageWaitForSelector(
+            page,
+            `#delete-component-${componentName}`
+        );
         await init.pageClick(page, `#delete-component-${componentName}`);
         await init.pageWaitForSelector(page, '#deleteComponent');
         await init.pageClick(page, '#deleteComponent');
-        await init.pageWaitForSelector(page, '#deleteComponent', { hidden: true });
+        await init.pageWaitForSelector(page, '#deleteComponent', {
+            hidden: true,
+        });
 
         await browser.close();
         done();
@@ -93,7 +100,10 @@ describe('Enterprise Dashboard API', () => {
             await page.$eval('#components', el => el.click());
 
             // Navigate to details page of component created in previous test
-            await init.pageWaitForSelector(page, `#more-details-${componentName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#more-details-${componentName}`
+            );
             await init.pageClick(page, `#more-details-${componentName}`);
             await init.pageWaitForSelector(page, '#form-new-monitor', {
                 visible: true,
@@ -117,7 +127,8 @@ describe('Enterprise Dashboard API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             let spanElement;
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -140,7 +151,10 @@ describe('Enterprise Dashboard API', () => {
             await page.$eval('#components', el => el.click());
 
             // Navigate to details page of component created in previous test
-            await init.pageWaitForSelector(page, `#more-details-${componentName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#more-details-${componentName}`
+            );
             await init.pageClick(page, `#more-details-${componentName}`);
             await init.pageWaitForSelector(page, '#form-new-monitor', {
                 visible: true,
@@ -158,7 +172,8 @@ describe('Enterprise Dashboard API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             let spanElement;
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 '#form-new-monitor span#field-error'
             );
             spanElement = await spanElement.getProperty('innerText');

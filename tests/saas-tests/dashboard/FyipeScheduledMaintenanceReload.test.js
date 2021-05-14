@@ -56,22 +56,32 @@ describe('Fyipe Page Reload', () => {
                 hidden: true,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#editScheduledEvent-${scheduleMaintenanceName}`,
                 { visible: true, timeout: init.timeout }
             );
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await init.pageWaitForSelector(page, '#cbScheduledMaintenanceEvent', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageWaitForSelector(page, `#cb${scheduleMaintenanceName}`, {
-                visible: true,
-                timeout: init.timeout,
-            });
-            const spanElement = await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
+                '#cbScheduledMaintenanceEvent',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
+            await init.pageWaitForSelector(
+                page,
+                `#cb${scheduleMaintenanceName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
+            const spanElement = await init.pageWaitForSelector(
+                page,
                 `#editScheduledEvent-${scheduleMaintenanceName}`,
                 { visible: true, timeout: init.timeout }
             );

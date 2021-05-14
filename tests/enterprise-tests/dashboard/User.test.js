@@ -79,7 +79,8 @@ describe('Users', () => {
         'should be able to restore deleted users (using admin account)',
         async done => {
             await init.loginUser(admin, page);
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#deleted__${user.email.split('@')[0]}`,
                 { visible: true, timeout: init.timeout }
             );

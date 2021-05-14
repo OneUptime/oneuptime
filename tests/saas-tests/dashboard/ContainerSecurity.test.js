@@ -95,15 +95,19 @@ describe('Container Security Page', () => {
             await init.pageType(page, '#imageTags', imageTags);
             await init.pageClick(page, '#addContainerBtn');
 
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
-            const containerSecurity = await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
+            const containerSecurity = await init.pageWaitForSelector(
+                page,
                 `#containerSecurityHeader_${containerSecurityName}`,
                 { visible: true, timeout: init.timeout }
             );
             expect(containerSecurity).toBeDefined();
 
             // find the edit button which appears only on the details page
-            const editContainerElement = await init.pageWaitForSelector(page, 
+            const editContainerElement = await init.pageWaitForSelector(
+                page,
                 `#edit_${containerSecurityName}`
             );
             expect(editContainerElement).toBeDefined();
@@ -144,8 +148,11 @@ describe('Container Security Page', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#container');
-            await init.pageWaitForSelector(page, '#largeSpinner', { hidden: true });
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(page, '#largeSpinner', {
+                hidden: true,
+            });
+            await init.pageWaitForSelector(
+                page,
                 `#scanningContainerSecurity_${containerSecurityName}`,
                 { hidden: true, timeout: operationTimeOut }
             );
@@ -153,10 +160,14 @@ describe('Container Security Page', () => {
                 page,
                 `#moreContainerSecurity_${containerSecurityName}`
             );
-            const issueCount = await init.pageWaitForSelector(page, '#issueCount', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const issueCount = await init.pageWaitForSelector(
+                page,
+                '#issueCount',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(issueCount).toBeDefined();
 
             done();
@@ -189,15 +200,21 @@ describe('Container Security Page', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#container');
-            await init.pageWaitForSelector(page, '#largeSpinner', { hidden: true });
+            await init.pageWaitForSelector(page, '#largeSpinner', {
+                hidden: true,
+            });
             await init.pageClick(
                 page,
                 `#moreContainerSecurity_${containerSecurityName}`
             );
-            const securityLog = await init.pageWaitForSelector(page, '#securityLog', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const securityLog = await init.pageWaitForSelector(
+                page,
+                '#securityLog',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
 
             expect(securityLog).toBeDefined();
 
@@ -231,13 +248,19 @@ describe('Container Security Page', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#container');
-            await init.pageWaitForSelector(page, '#largeSpinner', { hidden: true });
+            await init.pageWaitForSelector(page, '#largeSpinner', {
+                hidden: true,
+            });
 
             await init.pageClick(page, '#issueCount');
-            const securityLog = await init.pageWaitForSelector(page, '#securityLog', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const securityLog = await init.pageWaitForSelector(
+                page,
+                '#securityLog',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
 
             expect(securityLog).toBeDefined();
 
@@ -271,7 +294,9 @@ describe('Container Security Page', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#container');
-            await init.pageWaitForSelector(page, '#largeSpinner', { hidden: true });
+            await init.pageWaitForSelector(page, '#largeSpinner', {
+                hidden: true,
+            });
             await init.pageClick(
                 page,
                 `#moreContainerSecurity_${containerSecurityName}`
@@ -316,16 +341,22 @@ describe('Container Security Page', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#container');
-            await init.pageWaitForSelector(page, '#largeSpinner', { hidden: true });
+            await init.pageWaitForSelector(page, '#largeSpinner', {
+                hidden: true,
+            });
             await init.pageClick(
                 page,
                 `#moreContainerSecurity_${containerSecurityName}`
             );
 
-            await init.pageWaitForSelector(page, `#edit_${containerSecurityName}`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#edit_${containerSecurityName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, `#edit_${containerSecurityName}`);
             await init.pageWaitForSelector(page, '#editContainerSecurityForm', {
                 visible: true,
@@ -374,24 +405,35 @@ describe('Container Security Page', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#container');
-            await init.pageWaitForSelector(page, '#largeSpinner', { hidden: true });
+            await init.pageWaitForSelector(page, '#largeSpinner', {
+                hidden: true,
+            });
             await init.pageClick(
                 page,
                 `#moreContainerSecurity_${newContainerSecurityName}`
             );
-            await init.pageWaitForSelector(page, '#deleteContainerSecurityBtn', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                '#deleteContainerSecurityBtn',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, '#deleteContainerSecurityBtn');
-            await init.pageWaitForSelector(page, '#deleteContainerSecurityModalBtn', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                '#deleteContainerSecurityModalBtn',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, '#deleteContainerSecurityModalBtn');
             await page.waitForNavigation();
 
-            const containerSecurity = await init.pageWaitForSelector(page, 
+            const containerSecurity = await init.pageWaitForSelector(
+                page,
                 `#containerSecurityHeader_${newContainerSecurityName}`,
                 { hidden: true }
             );

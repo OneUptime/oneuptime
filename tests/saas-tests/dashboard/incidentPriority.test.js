@@ -54,7 +54,10 @@ describe('Incident Priority API', () => {
             );
 
             const deleteButtonFirstRowIndentifier = '#priorityDelete_High_0';
-            await init.pageWaitForSelector(page, deleteButtonFirstRowIndentifier);
+            await init.pageWaitForSelector(
+                page,
+                deleteButtonFirstRowIndentifier
+            );
             await init.pageClick(page, deleteButtonFirstRowIndentifier);
             await init.pageWaitForSelector(page, '#message-modal-message');
             const warningMessage = await page.$eval(
@@ -263,7 +266,10 @@ describe('Incident Priority API', () => {
             });
             const incidentPrioritiesCountIdentifier =
                 '#incidentPrioritiesCount';
-            await init.pageWaitForSelector(page, incidentPrioritiesCountIdentifier);
+            await init.pageWaitForSelector(
+                page,
+                incidentPrioritiesCountIdentifier
+            );
             let incidentPrioritiesCount = await page.$eval(
                 incidentPrioritiesCountIdentifier,
                 e => e.textContent
@@ -282,9 +288,13 @@ describe('Incident Priority API', () => {
                     utils.generateRandomString()
                 );
                 await init.pageClick(page, '#CreateIncidentPriority');
-                await init.pageWaitForSelector(page, '#CreateIncidentPriority', {
-                    hidden: true,
-                });
+                await init.pageWaitForSelector(
+                    page,
+                    '#CreateIncidentPriority',
+                    {
+                        hidden: true,
+                    }
+                );
             }
 
             await page.reload({
@@ -307,7 +317,10 @@ describe('Incident Priority API', () => {
 
             await init.pageWaitForSelector(page, '#btnNext');
             await init.pageClick(page, '#btnNext');
-            await init.pageWaitForSelector(page, incidentPrioritiesCountIdentifier);
+            await init.pageWaitForSelector(
+                page,
+                incidentPrioritiesCountIdentifier
+            );
             incidentPrioritiesCount = await page.$eval(
                 incidentPrioritiesCountIdentifier,
                 e => e.textContent
@@ -318,7 +331,10 @@ describe('Incident Priority API', () => {
 
             await init.pageWaitForSelector(page, '#btnPrev');
             await init.pageClick(page, '#btnPrev');
-            await init.pageWaitForSelector(page, incidentPrioritiesCountIdentifier);
+            await init.pageWaitForSelector(
+                page,
+                incidentPrioritiesCountIdentifier
+            );
             incidentPrioritiesCount = await page.$eval(
                 incidentPrioritiesCountIdentifier,
                 e => e.textContent

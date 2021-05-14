@@ -164,7 +164,10 @@ describe('SMTP Settings API', () => {
             await init.pageType(page, 'input[name=test-email]', email);
             await init.pageClick(page, '#confirmSmtpTest');
 
-            await init.pageWaitForSelector(page, '.bs-Modal-header > div > span > span');
+            await init.pageWaitForSelector(
+                page,
+                '.bs-Modal-header > div > span > span'
+            );
             let elem = await page.$('.bs-Modal-header > div > span > span');
             elem = await elem.getProperty('innerText');
             elem = await elem.jsonValue();
@@ -195,7 +198,10 @@ describe('SMTP Settings API', () => {
             await init.pageType(page, 'input[name=test-email]', email);
             await init.pageClick(page, '#confirmSmtpTest');
 
-            await init.pageWaitForSelector(page, '.bs-Modal-header > div > span > span');
+            await init.pageWaitForSelector(
+                page,
+                '.bs-Modal-header > div > span > span'
+            );
             let elem = await page.$('.bs-Modal-header > div > span > span');
             elem = await elem.getProperty('innerText');
             elem = await elem.jsonValue();

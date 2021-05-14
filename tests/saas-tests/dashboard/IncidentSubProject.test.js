@@ -79,7 +79,8 @@ describe('Incident API With SubProjects', () => {
 
             // Navigate to details page of monitor
             await init.navigateToComponentDetails(componentName, page);
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#create_incident_${projectMonitorName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -91,7 +92,9 @@ describe('Incident API With SubProjects', () => {
             await init.selectByText('#incidentType', 'Offline', page);
             await init.pageType(page, '#title', 'new incident');
             await init.pageClick(page, '#createIncident');
-            await init.pageWaitForSelector(page, '#createIncident', { hidden: true });
+            await init.pageWaitForSelector(page, '#createIncident', {
+                hidden: true,
+            });
 
             // close incident modal
             await init.pageWaitForSelector(page, '#closeIncident_0', {
@@ -156,7 +159,8 @@ describe('Incident API With SubProjects', () => {
             // Navigate to details page of monitor
             await init.navigateToComponentDetails(componentName, page);
             // create incident
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#create_incident_${projectMonitorName1}`
             );
             await init.pageClick(
@@ -167,7 +171,9 @@ describe('Incident API With SubProjects', () => {
             await init.selectByText('#incidentType', 'Offline', page);
             await init.pageType(page, '#title', 'new incident');
             await init.pageClick(page, '#createIncident');
-            await init.pageWaitForSelector(page, '#createIncident', { hidden: true });
+            await init.pageWaitForSelector(page, '#createIncident', {
+                hidden: true,
+            });
 
             await page.reload({ waitUntil: 'networkidle0' });
             // close incident modal
@@ -257,10 +263,14 @@ describe('Incident API With SubProjects', () => {
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
 
-            await init.pageWaitForSelector(page, `#incident_${projectMonitorName1}_0`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#incident_${projectMonitorName1}_0`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await page.$eval(`#incident_${projectMonitorName1}_0`, e =>
                 e.click()
             );
@@ -276,7 +286,10 @@ describe('Incident API With SubProjects', () => {
             // fill internal message thread form
             await init.pageWaitForSelector(page, `#add-${type}-message`);
             await page.$eval(`#add-${type}-message`, e => e.click());
-            await init.pageWaitForSelector(page, `#form-new-incident-${type}-message`);
+            await init.pageWaitForSelector(
+                page,
+                `#form-new-incident-${type}-message`
+            );
             await init.pageClick(page, `textarea[id=new-${type}]`);
             await init.pageType(page, `textarea[id=new-${type}]`, internalNote);
             await init.selectByText('#incident_state', 'investigating', page);
@@ -303,7 +316,10 @@ describe('Incident API With SubProjects', () => {
             // fill investigation message thread form
             await init.pageWaitForSelector(page, `#add-${type}-message`);
             await page.$eval(`#add-${type}-message`, e => e.click());
-            await init.pageWaitForSelector(page, `#form-new-incident-${type}-message`);
+            await init.pageWaitForSelector(
+                page,
+                `#form-new-incident-${type}-message`
+            );
             await init.pageClick(page, `textarea[id=new-${type}]`);
             await init.pageType(
                 page,
@@ -345,10 +361,14 @@ describe('Incident API With SubProjects', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            await init.pageWaitForSelector(page, `#incident_${projectMonitorName1}_0`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#incident_${projectMonitorName1}_0`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await page.$eval(`#incident_${projectMonitorName1}_0`, e =>
                 e.click()
             );
@@ -361,7 +381,8 @@ describe('Incident API With SubProjects', () => {
 
             for (let i = 0; i < 10; i++) {
                 await page.$eval(`#add-${type}-message`, e => e.click());
-                await init.pageWaitForSelector(page, 
+                await init.pageWaitForSelector(
+                    page,
                     `#form-new-incident-${type}-message`
                 );
                 await init.pageClick(page, `textarea[id=new-${type}]`);
@@ -387,7 +408,8 @@ describe('Incident API With SubProjects', () => {
                 page
             );
 
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 '#incidentTimeline tr.incidentListItem',
                 { visible: true, timeout: init.timeout }
             );
@@ -403,7 +425,9 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
             incidentTimelineRows = await page.$$(
                 '#incidentTimeline tr.incidentListItem'
             );
@@ -415,7 +439,9 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
             incidentTimelineRows = await page.$$(
                 '#incidentTimeline tr.incidentListItem'
             );

@@ -51,10 +51,14 @@ const _this = {
                 timeout: _this.timeout,
             });
 
-            await _this.pageWaitForSelector(page, '.__PrivateStripeElement > iframe', {
-                visible: true,
-                timeout: _this.timeout,
-            });
+            await _this.pageWaitForSelector(
+                page,
+                '.__PrivateStripeElement > iframe',
+                {
+                    visible: true,
+                    timeout: _this.timeout,
+                }
+            );
             const stripeIframeElements = await page.$$(
                 '.__PrivateStripeElement > iframe'
             );
@@ -533,9 +537,15 @@ const _this = {
         await _this.pageClick(page, '#logs');
 
         // Navigate to details page of log container assumed created
-        await _this.pageWaitForSelector(page, `#more-details-${applicationLog}`);
+        await _this.pageWaitForSelector(
+            page,
+            `#more-details-${applicationLog}`
+        );
         await _this.pageClick(page, `#more-details-${applicationLog}`);
-        await _this.pageWaitForSelector(page, `#application-log-title-${applicationLog}`);
+        await _this.pageWaitForSelector(
+            page,
+            `#application-log-title-${applicationLog}`
+        );
     },
     navigateToErrorTrackerDetails: async function(
         component,
@@ -552,7 +562,10 @@ const _this = {
         // Navigate to details page of error tracker assumed created
         await _this.pageWaitForSelector(page, `#more-details-${errorTracker}`);
         await _this.pageClick(page, `#more-details-${errorTracker}`);
-        await _this.pageWaitForSelector(page, `#error-tracker-title-${errorTracker}`);
+        await _this.pageWaitForSelector(
+            page,
+            `#error-tracker-title-${errorTracker}`
+        );
     },
 
     createUserFromAdminDashboard: async function(user, page) {
@@ -616,7 +629,9 @@ const _this = {
             await _this.pageType(page, '#title', subProjectName);
             await _this.pageClick(page, '#btnAddSubProjects');
         }
-        await _this.pageWaitForSelector(page, '#btnAddSubProjects', { hidden: true });
+        await _this.pageWaitForSelector(page, '#btnAddSubProjects', {
+            hidden: true,
+        });
     },
     addUserToProject: async function(data, page) {
         const { email, role, subProjectName } = data;
@@ -637,7 +652,10 @@ const _this = {
             timeout: _this.timeout,
         });
         await _this.pageClick(page, '#AccountSwitcherId');
-        await _this.pageWaitForSelector(page, `#accountSwitcher div#${projectName}`);
+        await _this.pageWaitForSelector(
+            page,
+            `#accountSwitcher div#${projectName}`
+        );
         await _this.pageClick(page, `#accountSwitcher div#${projectName}`);
         await _this.pageWaitForSelector(page, '#components', {
             visible: true,
@@ -726,7 +744,8 @@ const _this = {
                 lastAddCriterionButton.click();
             }
         );
-        await _this.pageWaitForSelector(page, 
+        await _this.pageWaitForSelector(
+            page,
             'ul[data-testId=up_criteria_list]> div:last-of-type #responseType'
         );
         await _this.selectByText(
@@ -734,7 +753,8 @@ const _this = {
             'responseBody',
             page
         );
-        await _this.pageWaitForSelector(page, 
+        await _this.pageWaitForSelector(
+            page,
             'ul[data-testId=up_criteria_list]> div:last-of-type #filter'
         );
         await _this.selectByText(
@@ -742,7 +762,8 @@ const _this = {
             'evaluateResponse',
             page
         );
-        await _this.pageWaitForSelector(page, 
+        await _this.pageWaitForSelector(
+            page,
             'ul[data-testId=up_criteria_list]> div:last-of-type #value'
         );
         await _this.pageClick(
@@ -761,10 +782,14 @@ const _this = {
                 '[data-testId=criterionAdvancedOptions_up]'
             );
 
-            await _this.pageWaitForSelector(page, 'input[name^=createAlert_up]', {
-                visible: true,
-                timeout: _this.timeout,
-            });
+            await _this.pageWaitForSelector(
+                page,
+                'input[name^=createAlert_up]',
+                {
+                    visible: true,
+                    timeout: _this.timeout,
+                }
+            );
             await page.$eval('input[name^=createAlert_up]', element =>
                 element.click()
             );
@@ -779,7 +804,8 @@ const _this = {
                 lastAddCriterionButton.click();
             }
         );
-        await _this.pageWaitForSelector(page, 
+        await _this.pageWaitForSelector(
+            page,
             'ul[data-testId=degraded_criteria_list] > div:last-of-type #responseType'
         );
         await _this.selectByText(
@@ -787,7 +813,8 @@ const _this = {
             'responseBody',
             page
         );
-        await _this.pageWaitForSelector(page, 
+        await _this.pageWaitForSelector(
+            page,
             'ul[data-testId=degraded_criteria_list] > div:last-of-type #filter'
         );
         await _this.selectByText(
@@ -795,7 +822,8 @@ const _this = {
             'evaluateResponse',
             page
         );
-        await _this.pageWaitForSelector(page, 
+        await _this.pageWaitForSelector(
+            page,
             'ul[data-testId=degraded_criteria_list] > div:last-of-type #value'
         );
         await _this.pageClick(
@@ -839,7 +867,10 @@ const _this = {
             { visible: true, timeout: _this.timeout }
         );
         if (createIncidentSelector) {
-            await _this.pageWaitForSelector(page, `#btnCreateIncident_${projectName}`);
+            await _this.pageWaitForSelector(
+                page,
+                `#btnCreateIncident_${projectName}`
+            );
             await page.$eval(`#btnCreateIncident_${projectName}`, e =>
                 e.click()
             );
@@ -849,7 +880,10 @@ const _this = {
         } else {
             await _this.pageWaitForSelector(page, '#incidentLog');
             await page.$eval('#incidentLog', e => e.click());
-            await _this.pageWaitForSelector(page, `#btnCreateIncident_${projectName}`);
+            await _this.pageWaitForSelector(
+                page,
+                `#btnCreateIncident_${projectName}`
+            );
             await page.$eval(`#btnCreateIncident_${projectName}`, e =>
                 e.click()
             );
@@ -857,7 +891,9 @@ const _this = {
             await _this.selectByText('#monitorList', monitorName, page);
             await page.$eval('#createIncident', e => e.click());
         }
-        await _this.pageWaitForSelector(page, '#createIncident', { hidden: true });
+        await _this.pageWaitForSelector(page, '#createIncident', {
+            hidden: true,
+        });
     },
     addIncidentPriority: async function(incidentPriority, page) {
         await page.goto(utils.DASHBOARD_URL, {
@@ -880,7 +916,9 @@ const _this = {
         await _this.pageWaitForSelector(page, '#CreateIncidentPriority');
         await _this.pageType(page, 'input[name=name]', incidentPriority);
         await _this.pageClick(page, '#CreateIncidentPriority');
-        await _this.pageWaitForSelector(page, '#CreateIncidentPriority', { hidden: true });
+        await _this.pageWaitForSelector(page, '#CreateIncidentPriority', {
+            hidden: true,
+        });
     },
     addStatusPageToProject: async function(statusPageName, projectName, page) {
         const createStatusPageSelector = await page.$(
@@ -894,20 +932,28 @@ const _this = {
         } else {
             await _this.pageWaitForSelector(page, '#statusPages');
             await _this.pageClick(page, '#statusPages');
-            await _this.pageWaitForSelector(page, `#btnCreateStatusPage_${projectName}`);
+            await _this.pageWaitForSelector(
+                page,
+                `#btnCreateStatusPage_${projectName}`
+            );
             await _this.pageClick(page, `#btnCreateStatusPage_${projectName}`);
             await _this.pageWaitForSelector(page, '#btnCreateStatusPage');
             await _this.pageType(page, '#name', statusPageName);
             await _this.pageClick(page, '#btnCreateStatusPage');
         }
-        await _this.pageWaitForSelector(page, '#btnCreateStatusPage', { hidden: true });
+        await _this.pageWaitForSelector(page, '#btnCreateStatusPage', {
+            hidden: true,
+        });
     },
     addScheduleToProject: async function(scheduleName, projectName, page) {
         const createStatusPageSelector = await page.$(
             `#btnCreateStatusPage_${projectName}`
         );
         if (createStatusPageSelector) {
-            await _this.pageWaitForSelector(page, `#btnCreateSchedule_${projectName}`);
+            await _this.pageWaitForSelector(
+                page,
+                `#btnCreateSchedule_${projectName}`
+            );
             await _this.pageClick(page, `#btnCreateSchedule_${projectName}`);
             await _this.pageWaitForSelector(page, '#btnCreateSchedule');
             await _this.pageType(page, '#name', scheduleName);
@@ -915,7 +961,10 @@ const _this = {
         } else {
             await _this.pageWaitForSelector(page, '#onCallDuty');
             await _this.pageClick(page, '#onCallDuty');
-            await _this.pageWaitForSelector(page, `#btnCreateSchedule_${projectName}`);
+            await _this.pageWaitForSelector(
+                page,
+                `#btnCreateSchedule_${projectName}`
+            );
             await _this.pageClick(page, `#btnCreateSchedule_${projectName}`);
             await _this.pageWaitForSelector(page, '#btnCreateSchedule');
             await _this.pageType(page, '#name', scheduleName);
@@ -964,7 +1013,8 @@ const _this = {
             page,
             'div.MuiDialogActions-root button:nth-child(2)'
         );
-        await _this.pageWaitForSelector(page, 
+        await _this.pageWaitForSelector(
+            page,
             'div.MuiDialogActions-root button:nth-child(2)',
             { hidden: true }
         );
@@ -973,7 +1023,8 @@ const _this = {
             page,
             'div.MuiDialogActions-root button:nth-child(2)'
         );
-        await _this.pageWaitForSelector(page, 
+        await _this.pageWaitForSelector(
+            page,
             'div.MuiDialogActions-root button:nth-child(2)',
             { hidden: true }
         );
@@ -1004,14 +1055,18 @@ const _this = {
         await _this.pageWaitForSelector(page, '#name');
         await _this.pageType(page, '#name', projectName ? projectName : 'test');
         await _this.pageClick(page, 'label[for=Startup_month]');
-        const startupOption = await _this.pageWaitForSelector(page, 
+        const startupOption = await _this.pageWaitForSelector(
+            page,
             'label[for=Startup_month]',
             { visible: true, timeout: _this.timeout }
         );
         startupOption.click();
         if (checkCard) {
             await page.waitFor(5000);
-            await _this.pageWaitForSelector(page, 'iframe[name=__privateStripeFrame5]');
+            await _this.pageWaitForSelector(
+                page,
+                'iframe[name=__privateStripeFrame5]'
+            );
 
             const elementHandle = await page.$(
                 'iframe[name=__privateStripeFrame5]'
@@ -1083,7 +1138,8 @@ const _this = {
         await _this.pageWaitForSelector(page, '#name');
         await _this.pageType(page, '#name', projectName);
         await _this.pageClick(page, 'label[for=Growth_month]');
-        const growthOption = await _this.pageWaitForSelector(page, 
+        const growthOption = await _this.pageWaitForSelector(
+            page,
             'label[for=Growth_month]',
             { visible: true, timeout: _this.timeout }
         );
@@ -1104,7 +1160,8 @@ const _this = {
         await _this.pageWaitForSelector(page, '#name');
         await _this.pageType(page, '#name', projectName);
         await _this.pageClick(page, 'label[for=Scale_month]');
-        const scaleOption = await _this.pageWaitForSelector(page, 
+        const scaleOption = await _this.pageWaitForSelector(
+            page,
             'label[for=Scale_month]',
             { visible: true, timeout: _this.timeout }
         );
@@ -1146,9 +1203,13 @@ const _this = {
         await _this.pageClick(page, '#new-internal');
         await _this.pageType(page, '#new-internal', noteDescription);
         await _this.pageClick(page, '#internal-addButton');
-        await _this.pageWaitForSelector(page, '#form-new-schedule-internal-message', {
-            hidden: true,
-        });
+        await _this.pageWaitForSelector(
+            page,
+            '#form-new-schedule-internal-message',
+            {
+                hidden: true,
+            }
+        );
     },
     addIncident: async function(
         monitorName,
@@ -1169,7 +1230,10 @@ const _this = {
         });
         await _this.pageClick(page, `#view-resource-${monitorName}`);
 
-        await _this.pageWaitForSelector(page, `#monitorCreateIncident_${monitorName}`);
+        await _this.pageWaitForSelector(
+            page,
+            `#monitorCreateIncident_${monitorName}`
+        );
         await _this.pageClick(page, `#monitorCreateIncident_${monitorName}`);
         await _this.pageWaitForSelector(page, '#createIncident');
         await _this.selectByText('#incidentType', incidentType, page);
@@ -1380,7 +1444,9 @@ const _this = {
         await _this.selectByText('#fieldType', data.fieldType, page);
 
         await _this.pageClick(page, '#createCustomFieldButton');
-        await _this.pageWaitForSelector(page, '#customFieldForm', { visible: 'hidden' });
+        await _this.pageWaitForSelector(page, '#customFieldForm', {
+            visible: 'hidden',
+        });
     },
     pageType: async function(page, selector, text, opts) {
         await _this.pageWaitForSelector(page, selector, {
@@ -1397,13 +1463,13 @@ const _this = {
         });
         await page.click(selector);
     },
-    pageWaitForSelector: async function(page, selector, opts){
+    pageWaitForSelector: async function(page, selector, opts) {
         await page.waitForSelector(selector, {
             visible: true,
             timeout: _this.timeout,
             ...opts,
         });
-    }
+    },
 };
 
 module.exports = _this;

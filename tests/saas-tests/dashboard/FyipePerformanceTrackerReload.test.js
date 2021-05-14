@@ -44,10 +44,14 @@ describe('Fyipe Page Reload', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#performanceTracker');
-            await init.pageWaitForSelector(page, '#form-new-performance-tracker', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                '#form-new-performance-tracker',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageWaitForSelector(page, 'input[name=name]', {
                 visible: true,
                 timeout: init.timeout,
@@ -57,13 +61,18 @@ describe('Fyipe Page Reload', () => {
                 'input[name=name]',
                 performanceTrackerName
             );
-            await init.pageWaitForSelector(page, '#addPerformanceTrackerButton', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                '#addPerformanceTrackerButton',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, '#addPerformanceTrackerButton');
             let spanElement;
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `#performance-tracker-title-${performanceTrackerName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -79,12 +88,17 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageWaitForSelector(page, `#cb${performanceTrackerName}`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#cb${performanceTrackerName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
 
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `#performance-tracker-title-${performanceTrackerName}`,
                 { visible: true, timeout: init.timeout }
             );

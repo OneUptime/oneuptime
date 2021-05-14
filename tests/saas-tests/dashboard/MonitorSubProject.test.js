@@ -113,7 +113,8 @@ describe('Monitor API With SubProjects', () => {
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await init.pageClick(page, 'button[type=submit]');
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${subProjectMonitorName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -150,7 +151,8 @@ describe('Monitor API With SubProjects', () => {
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, '[data-testId=type_manual]');
             await init.pageClick(page, 'button[type=submit]');
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: operationTimeOut }
             );
@@ -219,7 +221,9 @@ describe('Monitor API With SubProjects', () => {
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, '[data-testId=type_manual]');
             await init.pageClick(page, '#addMonitorButton');
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
             await init.pageWaitForSelector(page, '#cbMonitors', {
                 visible: true,
                 timeout: init.timeout,
@@ -238,7 +242,9 @@ describe('Monitor API With SubProjects', () => {
             await init.pageType(page, 'input[id=name]', `${monitorName}1`);
             await init.pageClick(page, '[data-testId=type_manual]');
             await init.pageClick(page, '#addMonitorButton');
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
             await init.pageWaitForSelector(page, '#cbMonitors', {
                 visible: true,
                 timeout: init.timeout,

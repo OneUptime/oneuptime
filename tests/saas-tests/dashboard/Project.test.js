@@ -74,7 +74,8 @@ describe('Project Settings', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#btnCreateProject');
-            const unauthorisedModal = await init.pageWaitForSelector(page, 
+            const unauthorisedModal = await init.pageWaitForSelector(
+                page,
                 '#unauthorisedModal',
                 { visible: true, timeout: init.timeout }
             );
@@ -133,7 +134,8 @@ describe('Project Settings', () => {
             await init.pageClick(page, '#btnDeleteProject');
 
             // find the button for creating a project and expect it to be defined
-            const createProjectBtn = await init.pageWaitForSelector(page, 
+            const createProjectBtn = await init.pageWaitForSelector(
+                page,
                 '#createButton',
                 {
                     visible: true,

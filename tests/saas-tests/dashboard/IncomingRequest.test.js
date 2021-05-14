@@ -100,9 +100,12 @@ describe('Incoming HTTP Request', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#requestOkBtn');
-            await init.pageWaitForSelector(page, '#requestOkBtn', { hidden: true });
+            await init.pageWaitForSelector(page, '#requestOkBtn', {
+                hidden: true,
+            });
 
-            const firstIncomingHttpRequest = await init.pageWaitForSelector(page, 
+            const firstIncomingHttpRequest = await init.pageWaitForSelector(
+                page,
                 '#copyIncomingRequestBtn_0',
                 { visible: true, timeout: init.timeout }
             );
@@ -147,7 +150,8 @@ describe('Incoming HTTP Request', () => {
                 hidden: true,
             });
 
-            const updatedRequest = await init.pageWaitForSelector(page, 
+            const updatedRequest = await init.pageWaitForSelector(
+                page,
                 '#incomingRequest_newName',
                 { visible: true, timeout: init.timeout }
             );
@@ -174,10 +178,14 @@ describe('Incoming HTTP Request', () => {
             });
             await init.pageClick(page, '#integrations');
 
-            await init.pageWaitForSelector(page, '#deleteIncomingRequestBtn_0', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                '#deleteIncomingRequestBtn_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, '#deleteIncomingRequestBtn_0');
             await init.pageWaitForSelector(page, '#deleteIncomingRequestBtn', {
                 visible: true,
@@ -188,7 +196,8 @@ describe('Incoming HTTP Request', () => {
                 hidden: true,
             });
 
-            const noIncomingRequest = await init.pageWaitForSelector(page, 
+            const noIncomingRequest = await init.pageWaitForSelector(
+                page,
                 '#noIncomingRequest',
                 { visible: true, timeout: init.timeout }
             );

@@ -40,7 +40,8 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#more');
             await init.pageClick(page, '#webhooks');
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 '#enableInvestigationNoteNotificationWebhook',
                 { visible: true, timeout: init.timeout }
             );
@@ -54,7 +55,8 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(page, 
+            const spanElement = await init.pageWaitForSelector(
+                page,
                 '#enableInvestigationNoteNotificationWebhook',
                 { visible: true, timeout: init.timeout }
             );

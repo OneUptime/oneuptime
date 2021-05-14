@@ -62,7 +62,8 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(page, 
+            const spanElement = await init.pageWaitForSelector(
+                page,
                 '#resource-category-name',
                 { visible: true, timeout: init.timeout }
             );

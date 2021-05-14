@@ -53,10 +53,14 @@ describe('Project', () => {
                 elem[0].click();
             });
 
-            await init.pageWaitForSelector(page, 'input[name="planId"]#Enterprise', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                'input[name="planId"]#Enterprise',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
 
             await page.$eval('input[name="planId"]#Enterprise', elem =>
                 elem.click()
@@ -91,10 +95,14 @@ describe('Project', () => {
                 elem[0].click();
             });
 
-            await init.pageWaitForSelector(page, 'input[name="planId"]#Growth_annual', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                'input[name="planId"]#Growth_annual',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
 
             await page.$eval('input[name="planId"]#Growth_annual', elem =>
                 elem.click()

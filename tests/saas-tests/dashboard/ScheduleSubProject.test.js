@@ -95,13 +95,18 @@ describe('Schedule API With SubProjects', () => {
 
             await init.loginUser(user, page);
             await init.addScheduleToProject(scheduleName, subProjectName, page);
-            await init.pageWaitForSelector(page, `#schedule_count_${subProjectName}`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#schedule_count_${subProjectName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await page.reload({ waitUntil: 'networkidle2' });
 
-            const scheduleCountSelector = await init.pageWaitForSelector(page, 
+            const scheduleCountSelector = await init.pageWaitForSelector(
+                page,
                 `#schedule_count_${subProjectName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -181,7 +186,8 @@ describe('Schedule API With SubProjects', () => {
             await init.pageClick(page, '#onCallDuty');
             await init.pageWaitForSelector(page, 'tr.scheduleListItem');
             await init.pageClick(page, 'tr.scheduleListItem');
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `span[title="${subProjectMonitorName}"]`
             );
             await init.pageClick(
@@ -216,7 +222,9 @@ describe('Schedule API With SubProjects', () => {
             await init.pageClick(page, '#delete');
             await init.pageWaitForSelector(page, '#confirmDelete');
             await init.pageClick(page, '#confirmDelete');
-            await init.pageWaitForSelector(page, '#confirmDelete', { hidden: true });
+            await init.pageWaitForSelector(page, '#confirmDelete', {
+                hidden: true,
+            });
 
             await init.pageWaitForSelector(page, '#onCallDuty');
             await init.pageClick(page, '#onCallDuty');

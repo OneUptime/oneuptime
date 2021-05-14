@@ -87,8 +87,11 @@ describe('Fyipe Page Reload', () => {
             await page.keyboard.press('Enter'); // Enter Key
             await init.pageClick(page, '#addApplicationBtn');
 
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
-            const applicationSecurity = await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
+            const applicationSecurity = await init.pageWaitForSelector(
+                page,
                 `#applicationSecurityHeader_${applicationSecurityName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -104,12 +107,17 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageWaitForSelector(page, `#cb${applicationSecurityName}`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#cb${applicationSecurityName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
 
-            const spanElement = await init.pageWaitForSelector(page, 
+            const spanElement = await init.pageWaitForSelector(
+                page,
                 `#applicationSecurityTitle_${applicationSecurityName}`
             );
             expect(spanElement).toBeDefined();

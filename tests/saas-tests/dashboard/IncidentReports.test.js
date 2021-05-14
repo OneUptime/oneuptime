@@ -84,7 +84,8 @@ describe('Incident Reports API', () => {
                 visible: true,
                 timeout: 100000,
             });
-            let incidentReportElement = await init.pageWaitForSelector(page, 
+            let incidentReportElement = await init.pageWaitForSelector(
+                page,
                 `#${monitorName}_IncidentReport_0`,
                 { visible: true, timeout: operationTimeOut }
             );
@@ -128,7 +129,8 @@ describe('Incident Reports API', () => {
                 visible: true,
                 timeout: 100000,
             });
-            let incidentReportElement = await init.pageWaitForSelector(page, 
+            let incidentReportElement = await init.pageWaitForSelector(
+                page,
                 `#${monitorName}_IncidentReport_0`,
                 { visible: true, timeout: operationTimeOut }
             );

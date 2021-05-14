@@ -65,10 +65,14 @@ describe('Check status-page up', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#statusPages');
-            await init.pageWaitForSelector(page, `#btnCreateStatusPage_${projectName}`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#btnCreateStatusPage_${projectName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, `#btnCreateStatusPage_${projectName}`);
             await init.pageWaitForSelector(page, '#name', {
                 visible: true,
@@ -97,7 +101,8 @@ describe('Check status-page up', () => {
             });
 
             // To confirm the status-page name.
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#header-${statusPageName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -128,7 +133,8 @@ describe('Check status-page up', () => {
             const description = 'My Manual Monitor';
             await init.addMonitor(monitorName, description, page);
             // To confirm the manual monitor is created.
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -184,7 +190,8 @@ describe('Check status-page up', () => {
             await init.clickStatusPageUrl(page);
 
             // To confirm the monitor is present in the status-page
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-${monitorName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -219,20 +226,28 @@ describe('Check status-page up', () => {
             await init.pageClick(page, '#viewStatusPage');
             await init.themeNavigationAndConfirmation(page, 'Classic');
             let spanElement;
-            spanElement = await init.pageWaitForSelector(page, '#monitor-name', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            spanElement = await init.pageWaitForSelector(
+                page,
+                '#monitor-name',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             expect(spanElement).toMatch(`${componentName} / ${monitorName}`);
 
             // Changing it back to Clean theme as this is the team that other tests depend on.
             await init.themeNavigationAndConfirmation(page, 'Clean');
-            spanElement = await init.pageWaitForSelector(page, '#monitor-name', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            spanElement = await init.pageWaitForSelector(
+                page,
+                '#monitor-name',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             expect(spanElement).toMatch(`${componentName} / ${monitorName}`); // Another Confirmation
@@ -250,9 +265,13 @@ describe('Check status-page up', () => {
                 const monitorName = utils.generateRandomString();
                 const description = utils.generateRandomString();
                 await init.addMonitor(monitorName, description, page);
-                await init.pageWaitForSelector(page, `#monitor-title-${monitorName}`, {
-                    visible: true,
-                });
+                await init.pageWaitForSelector(
+                    page,
+                    `#monitor-title-${monitorName}`,
+                    {
+                        visible: true,
+                    }
+                );
 
                 await init.addMonitorToStatusPage(
                     componentName,
@@ -287,7 +306,8 @@ describe('Check status-page up', () => {
                 monitorName,
                 page
             );
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#monitorCreateIncident_${monitorName}`,
                 {
                     visible: true,
@@ -309,16 +329,22 @@ describe('Check status-page up', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#closeIncident_0');
-            await init.pageWaitForSelector(page, '#closeIncident_0', { hidden: true });
+            await init.pageWaitForSelector(page, '#closeIncident_0', {
+                hidden: true,
+            });
 
             await init.navigateToStatusPage(page);
             await page.reload({
                 waitUntil: 'networkidle2',
             });
-            let spanElement = await init.pageWaitForSelector(page, '#status-note', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                '#status-note',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             expect(spanElement).toMatch('Some resources are offline');
@@ -349,10 +375,14 @@ describe('Check status-page up', () => {
                 waitUntil: 'networkidle2',
             });
             await init.navigateToStatusPage(page);
-            let spanElement = await init.pageWaitForSelector(page, '#status-note', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                '#status-note',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             expect(spanElement).toMatch('All resources are operational');
@@ -373,7 +403,8 @@ describe('Check status-page up', () => {
                 monitorName,
                 page
             );
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#monitorCreateIncident_${monitorName}`,
                 {
                     visible: true,
@@ -396,16 +427,22 @@ describe('Check status-page up', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#closeIncident_0');
-            await init.pageWaitForSelector(page, '#closeIncident_0', { hidden: true });
+            await init.pageWaitForSelector(page, '#closeIncident_0', {
+                hidden: true,
+            });
 
             await init.navigateToStatusPage(page);
             await page.reload({
                 waitUntil: 'networkidle2',
             });
-            let spanElement = await init.pageWaitForSelector(page, '#status-note', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                '#status-note',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             expect(spanElement).toMatch('Some resources are degraded');
@@ -436,10 +473,14 @@ describe('Check status-page up', () => {
                 waitUntil: 'networkidle2',
             });
             await init.navigateToStatusPage(page);
-            let spanElement = await init.pageWaitForSelector(page, '#status-note', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                '#status-note',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             expect(spanElement).toMatch('All resources are operational');
@@ -460,7 +501,8 @@ describe('Check status-page up', () => {
                 monitorName,
                 page
             );
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#monitorCreateIncident_${monitorName}`,
                 {
                     visible: true,
@@ -487,7 +529,9 @@ describe('Check status-page up', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#closeIncident_0');
-            await init.pageWaitForSelector(page, '#closeIncident_0', { hidden: true });
+            await init.pageWaitForSelector(page, '#closeIncident_0', {
+                hidden: true,
+            });
 
             await init.navigateToStatusPage(page);
             await page.reload({

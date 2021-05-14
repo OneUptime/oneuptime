@@ -41,7 +41,8 @@ describe('Change Password API', () => {
             'unmatchingPassword'
         );
         await init.pageClick(page, 'button[type=submit]');
-        await init.pageWaitForSelector(page, 
+        await init.pageWaitForSelector(
+            page,
             '#confirmPasswordField > span > span:nth-child(2)'
         );
         const html = await page.$eval(
@@ -66,7 +67,10 @@ describe('Change Password API', () => {
         await init.pageClick(page, 'input[name=confirmPassword]');
         await init.pageType(page, 'input[name=confirmPassword]', '123456');
         await init.pageClick(page, 'button[type=submit]');
-        await init.pageWaitForSelector(page, '#passwordField > span > span:nth-child(1)');
+        await init.pageWaitForSelector(
+            page,
+            '#passwordField > span > span:nth-child(1)'
+        );
         const html = await page.$eval(
             '#passwordField > span > span:nth-child(2)',
             e => {
@@ -89,7 +93,10 @@ describe('Change Password API', () => {
         await init.pageClick(page, 'input[name=confirmPassword]');
         await init.pageType(page, 'input[name=confirmPassword]', '123456');
         await init.pageClick(page, 'button[type=submit]');
-        await init.pageWaitForSelector(page, '#passwordField > span > span:nth-child(1)');
+        await init.pageWaitForSelector(
+            page,
+            '#passwordField > span > span:nth-child(1)'
+        );
         const html = await page.$eval(
             '#passwordField > span > span:nth-child(2)',
             e => {

@@ -54,9 +54,13 @@ describe('Email Templates API', () => {
             );
             await init.pageWaitForSelector(page, '#name');
             defaultSubject = await page.$eval('#name', elem => elem.value);
-            const resetBtn = await init.pageWaitForSelector(page, '#templateReset', {
-                hidden: true,
-            });
+            const resetBtn = await init.pageWaitForSelector(
+                page,
+                '#templateReset',
+                {
+                    hidden: true,
+                }
+            );
             expect(resetBtn).toBeNull();
 
             done();
@@ -86,7 +90,9 @@ describe('Email Templates API', () => {
             await init.pageClick(page, '#name', { clickCount: 3 });
             await init.pageType(page, '#name', subject);
             await init.pageClick(page, '#saveTemplate');
-            await init.pageWaitForSelector(page, '#ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '#ball-beat', {
+                hidden: true,
+            });
 
             await page.reload();
             await init.selectByText(
@@ -121,10 +127,14 @@ describe('Email Templates API', () => {
                 'External Subscriber Incident Created',
                 page
             );
-            const resetBtn = await init.pageWaitForSelector(page, '#templateReset', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const resetBtn = await init.pageWaitForSelector(
+                page,
+                '#templateReset',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(resetBtn).toBeDefined();
 
             done();
@@ -154,7 +164,9 @@ describe('Email Templates API', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#templateReset');
-            await init.pageWaitForSelector(page, '#ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '#ball-beat', {
+                hidden: true,
+            });
 
             await page.reload();
             await init.selectByText(

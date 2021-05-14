@@ -38,7 +38,9 @@ describe('Log Containers', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await init.pageWaitForSelector(page, '#components', { timeout: 120000 });
+            await init.pageWaitForSelector(page, '#components', {
+                timeout: 120000,
+            });
             await init.pageClick(page, '#components');
 
             // Fill and submit New Component form
@@ -64,7 +66,8 @@ describe('Log Containers', () => {
             });
             await init.pageClick(page, '#components');
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `span#component-title-${componentName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -94,7 +97,8 @@ describe('Log Containers', () => {
             await init.pageType(page, 'input[id=name]', applicationLogName);
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `span#application-log-title-${applicationLogName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -102,7 +106,8 @@ describe('Log Containers', () => {
             spanElement.should.be.exactly(applicationLogName);
 
             // find the log api key button which appears only on the details page
-            const logKeyElement = await init.pageWaitForSelector(page, 
+            const logKeyElement = await init.pageWaitForSelector(
+                page,
                 `#key_${applicationLogName}`
             );
             expect(logKeyElement).toBeDefined();
@@ -168,7 +173,8 @@ describe('Log Containers', () => {
             await init.pageType(page, 'input[id=name]', '');
             await init.pageClick(page, 'button[type=submit]');
 
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 '#form-new-application-log span#field-error',
                 { visible: true, timeout: init.timeout }
             );
@@ -192,7 +198,8 @@ describe('Log Containers', () => {
                 page
             );
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#application-log-title-${applicationLogName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -214,7 +221,8 @@ describe('Log Containers', () => {
             );
 
             // get the error element, Expect it to be defined
-            const errorElement = await init.pageWaitForSelector(page, 
+            const errorElement = await init.pageWaitForSelector(
+                page,
                 `#${applicationLogName}-no-log-warning`
             );
             expect(errorElement).toBeDefined();
@@ -234,11 +242,15 @@ describe('Log Containers', () => {
             );
 
             // toggle the filter section
-            await init.pageWaitForSelector(page, `#filter_${applicationLogName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#filter_${applicationLogName}`
+            );
             await init.pageClick(page, `#filter_${applicationLogName}`);
 
             // select the drop down and confirm the current value as all
-            let logTypeElement = await init.pageWaitForSelector(page, 
+            let logTypeElement = await init.pageWaitForSelector(
+                page,
                 'input[name=log_type_selector]'
             );
             logTypeElement = await logTypeElement.getProperty('value');
@@ -247,11 +259,15 @@ describe('Log Containers', () => {
             logTypeElement.should.be.exactly('');
 
             // click on the warning tab
-            await init.pageWaitForSelector(page, `#${applicationLogName}-warning`);
+            await init.pageWaitForSelector(
+                page,
+                `#${applicationLogName}-warning`
+            );
             await init.pageClick(page, `#${applicationLogName}-warning`);
 
             // confim that thee drop down current value is warning
-            logTypeElement = await init.pageWaitForSelector(page, 
+            logTypeElement = await init.pageWaitForSelector(
+                page,
                 'input[name=log_type_selector]'
             );
             logTypeElement = await logTypeElement.getProperty('value');
@@ -264,7 +280,8 @@ describe('Log Containers', () => {
             await init.pageClick(page, `#${applicationLogName}-info`);
 
             // confim that thee drop down current value is info
-            logTypeElement = await init.pageWaitForSelector(page, 
+            logTypeElement = await init.pageWaitForSelector(
+                page,
                 'input[name=log_type_selector]'
             );
             logTypeElement = await logTypeElement.getProperty('value');
@@ -273,11 +290,15 @@ describe('Log Containers', () => {
             logTypeElement.should.be.exactly('info');
 
             // click on the error tab
-            await init.pageWaitForSelector(page, `#${applicationLogName}-error`);
+            await init.pageWaitForSelector(
+                page,
+                `#${applicationLogName}-error`
+            );
             await init.pageClick(page, `#${applicationLogName}-error`);
 
             // confim that thee drop down current value is error
-            logTypeElement = await init.pageWaitForSelector(page, 
+            logTypeElement = await init.pageWaitForSelector(
+                page,
                 'input[name=log_type_selector]'
             );
             logTypeElement = await logTypeElement.getProperty('value');
@@ -290,7 +311,8 @@ describe('Log Containers', () => {
             await init.pageClick(page, `#${applicationLogName}-all`);
 
             // confim that thee drop down current value is all
-            logTypeElement = await init.pageWaitForSelector(page, 
+            logTypeElement = await init.pageWaitForSelector(
+                page,
                 'input[name=log_type_selector]'
             );
             logTypeElement = await logTypeElement.getProperty('value');
@@ -313,7 +335,8 @@ describe('Log Containers', () => {
             await init.pageWaitForSelector(page, `#edit_${applicationLogName}`);
             await init.pageClick(page, `#edit_${applicationLogName}`);
 
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#application-log-edit-title-${applicationLogName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -339,7 +362,8 @@ describe('Log Containers', () => {
             await init.pageClick(page, `#key_${applicationLogName}`);
 
             // click show applicaion log key
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#show_application_log_key_${applicationLogName}`
             );
             await init.pageClick(
@@ -348,7 +372,8 @@ describe('Log Containers', () => {
             );
 
             // get log container key
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#application_log_key_${applicationLogName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -356,7 +381,8 @@ describe('Log Containers', () => {
             expect(spanElement).toBeDefined();
 
             // click cancel
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#cancel_application_log_key_${applicationLogName}`
             );
             await init.pageClick(
@@ -380,20 +406,23 @@ describe('Log Containers', () => {
             await init.pageClick(page, `#key_${applicationLogName}`);
 
             // click show applicaion log key
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#show_application_log_key_${applicationLogName}`
             );
             await init.pageClick(
                 page,
                 `#show_application_log_key_${applicationLogName}`
             );
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#application_log_key_${applicationLogName}`
             );
             expect(spanElement).toBeDefined();
 
             // find the eye icon to hide log container key
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#hide_application_log_key_${applicationLogName}`
             );
             await init.pageClick(
@@ -401,7 +430,8 @@ describe('Log Containers', () => {
                 `#hide_application_log_key_${applicationLogName}`
             );
 
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `#show_application_log_key_${applicationLogName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -426,7 +456,8 @@ describe('Log Containers', () => {
             await init.pageClick(page, `#key_${applicationLogName}`);
 
             // click show applicaion log key
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#show_application_log_key_${applicationLogName}`
             );
             await init.pageClick(
@@ -435,14 +466,16 @@ describe('Log Containers', () => {
             );
 
             // get log container key
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#application_log_key_${applicationLogName}`
             );
             spanElement = await spanElement.getProperty('innerText');
             applicationLogKey = await spanElement.jsonValue();
 
             // click reset key
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#reset_application_log_key_${applicationLogName}`
             );
             await init.pageClick(
@@ -451,14 +484,16 @@ describe('Log Containers', () => {
             );
 
             // click confirm reset key
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#confirm_reset_application_log_key_${applicationLogName}`
             );
             await init.pageClick(
                 page,
                 `#confirm_reset_application_log_key_${applicationLogName}`
             );
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#confirm_reset_application_log_key_${applicationLogName}`,
                 { hidden: true }
             );
@@ -468,7 +503,8 @@ describe('Log Containers', () => {
             await init.pageClick(page, `#key_${applicationLogName}`);
 
             // click show applicaion log key
-            await init.pageWaitForSelector(page, 
+            await init.pageWaitForSelector(
+                page,
                 `#show_application_log_key_${applicationLogName}`
             );
             await init.pageClick(
@@ -477,7 +513,8 @@ describe('Log Containers', () => {
             );
 
             // get log container key
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `#application_log_key_${applicationLogName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -511,7 +548,8 @@ describe('Log Containers', () => {
 
             await init.pageWaitForSelector(page, '#logs');
             await init.pageClick(page, '#logs');
-            let spanElement = await init.pageWaitForSelector(page, 
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#application-log-title-${applicationLogName}-new`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -534,7 +572,10 @@ describe('Log Containers', () => {
                 `${applicationLogName}-new`,
                 page
             );
-            await init.pageWaitForSelector(page, `#edit_${applicationLogName}-new`);
+            await init.pageWaitForSelector(
+                page,
+                `#edit_${applicationLogName}-new`
+            );
             await init.pageClick(page, `#edit_${applicationLogName}-new`);
             // Fill and submit edit Application  log form
             await init.pageWaitForSelector(page, '#form-new-application-log');
@@ -545,10 +586,14 @@ describe('Log Containers', () => {
                 hidden: true,
             });
 
-            await init.pageWaitForSelector(page, `#${applicationLogName}-new-badge`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#${applicationLogName}-new-badge`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             // confirm the new category shows in the details page.
             let spanElement = await page.$(`#${applicationLogName}-new-badge`);
             spanElement = await spanElement.getProperty('innerText');

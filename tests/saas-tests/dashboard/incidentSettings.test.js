@@ -97,7 +97,8 @@ describe('Incident Settings API', () => {
             );
             await init.pageWaitForSelector(page, '#priorityDelete_High_0');
             await init.pageClick(page, '#priorityDelete_High_0');
-            const unableToDeleteDefault = await init.pageWaitForSelector(page, 
+            const unableToDeleteDefault = await init.pageWaitForSelector(
+                page,
                 '#message-modal-message',
                 { visible: true, timeout: init.timeout }
             );
@@ -177,7 +178,10 @@ describe('Incident Settings API', () => {
             await page.reload({
                 waitUntil: 'networkidle0',
             });
-            await init.pageWaitForSelector(page, `#monitorCreateIncident_${monitorName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#monitorCreateIncident_${monitorName}`
+            );
             await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
             await init.pageWaitForSelector(page, '#title');
 
@@ -258,7 +262,8 @@ describe('Incident Settings API', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#RemoveIncidentPriority');
-            const deletedPriority = await init.pageWaitForSelector(page, 
+            const deletedPriority = await init.pageWaitForSelector(
+                page,
                 '#RemoveIncidentPriority',
                 { hidden: true }
             );
@@ -318,7 +323,8 @@ describe('Incident Settings API', () => {
                 elems[0].click()
             );
 
-            let newDefaultPriority = await init.pageWaitForSelector(page, 
+            let newDefaultPriority = await init.pageWaitForSelector(
+                page,
                 `span#priorityDefault_${customPriority}_1_default`,
                 { visible: true, timeout: init.timeout }
             );

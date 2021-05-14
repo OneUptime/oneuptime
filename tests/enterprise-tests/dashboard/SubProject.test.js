@@ -53,7 +53,8 @@ describe('Sub-Project API', () => {
 
             await init.pageClick(page, '#btnAddSubProjects');
 
-            const spanSelector = await init.pageWaitForSelector(page, 
+            const spanSelector = await init.pageWaitForSelector(
+                page,
                 '#subProjectCreateErrorMessage',
                 { visible: true, timeout: init.timeout }
             );
@@ -83,7 +84,8 @@ describe('Sub-Project API', () => {
             await init.pageType(page, '#title', subProjectName);
             await init.pageClick(page, '#btnAddSubProjects');
             await init.pageWaitForSelector(page, '#title', { hidden: true });
-            const subProjectSelector = await init.pageWaitForSelector(page, 
+            const subProjectSelector = await init.pageWaitForSelector(
+                page,
                 `#sub_project_name_${subProjectName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -114,7 +116,8 @@ describe('Sub-Project API', () => {
             await input.type(editSubProjectName);
             await init.pageClick(page, '#btnAddSubProjects');
             await init.pageWaitForSelector(page, '#title', { hidden: true });
-            const subProjectSelector = await init.pageWaitForSelector(page, 
+            const subProjectSelector = await init.pageWaitForSelector(
+                page,
                 `#sub_project_name_${editSubProjectName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -143,7 +146,8 @@ describe('Sub-Project API', () => {
             await input.click({ clickCount: 3 });
             await input.type(subProjectName);
             await init.pageClick(page, '#btnAddSubProjects');
-            const spanSelector = await init.pageWaitForSelector(page, 
+            const spanSelector = await init.pageWaitForSelector(
+                page,
                 '#subProjectCreateErrorMessage',
                 { visible: true, timeout: init.timeout }
             );
@@ -166,11 +170,15 @@ describe('Sub-Project API', () => {
             });
             await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await init.pageWaitForSelector(page, `#sub_project_delete_${subProjectName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#sub_project_delete_${subProjectName}`
+            );
             await init.pageClick(page, `#sub_project_delete_${subProjectName}`);
             await init.pageWaitForSelector(page, '#removeSubProject');
             await init.pageClick(page, '#removeSubProject');
-            const subProjectSelector = await init.pageWaitForSelector(page, 
+            const subProjectSelector = await init.pageWaitForSelector(
+                page,
                 `#sub_project_name_${subProjectName}`,
                 { hidden: true }
             );
@@ -231,7 +239,10 @@ describe('Sub-Project API', () => {
             await init.pageClick(page, 'button[id=confirmResetKey]');
             await init.pageWaitForSelector(page, 'button[title=apiKey]');
             await init.pageClick(page, 'button[title=apiKey]');
-            await init.pageWaitForSelector(page, 'button[id=sub_project_api_key_0]');
+            await init.pageWaitForSelector(
+                page,
+                'button[id=sub_project_api_key_0]'
+            );
             await init.pageClick(page, 'button[id=sub_project_api_key_0]');
             await init.pageWaitForSelector(page, 'span#apiKey');
             await init.pageClick(page, 'span#apiKey');

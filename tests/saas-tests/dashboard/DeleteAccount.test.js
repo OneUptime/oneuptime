@@ -83,7 +83,8 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageWaitForSelector(page, '#btn_confirm_delete');
             await init.pageClick(page, '#btn_confirm_delete');
 
-            const projectDeletion = await init.pageWaitForSelector(page, 
+            const projectDeletion = await init.pageWaitForSelector(
+                page,
                 '#projectDeletion'
             );
 
@@ -131,7 +132,8 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageWaitForSelector(page, '#btn_confirm_delete');
             await init.pageClick(page, '#btn_confirm_delete');
 
-            const projectDeletion = await init.pageWaitForSelector(page, 
+            const projectDeletion = await init.pageWaitForSelector(
+                page,
                 '#projectDeletion'
             );
 
@@ -189,7 +191,8 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageClick(page, '#btn_delete_account');
             await init.pageWaitForSelector(page, '#btn_confirm_delete');
             await init.pageClick(page, '#btn_confirm_delete');
-            const projectDeletion = await init.pageWaitForSelector(page, 
+            const projectDeletion = await init.pageWaitForSelector(
+                page,
                 '#projectDeletion'
             );
 

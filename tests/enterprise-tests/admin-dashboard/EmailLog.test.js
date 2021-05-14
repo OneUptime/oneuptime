@@ -41,7 +41,9 @@ describe('Email Logs', () => {
             await init.pageClick(page, '#deleteLog');
             await init.pageWaitForSelector(page, '#confirmDelete');
             await init.pageClick(page, '#confirmDelete');
-            await init.pageWaitForSelector(page, '#confirmDelete', { hidden: true });
+            await init.pageWaitForSelector(page, '#confirmDelete', {
+                hidden: true,
+            });
 
             const rowNum = await page.$$eval(
                 'tbody tr.Table-row',
@@ -169,7 +171,10 @@ describe('Email Logs', () => {
             await init.pageClick(page, '#emailLogs');
 
             // get the new log count
-            let newLogCount = await init.pageWaitForSelector(page, `#log-count`);
+            let newLogCount = await init.pageWaitForSelector(
+                page,
+                `#log-count`
+            );
             newLogCount = await newLogCount.getProperty('innerText');
             newLogCount = await newLogCount.jsonValue();
             newLogCount = Number(newLogCount.split(' ')[0]);
@@ -205,7 +210,8 @@ describe('Email Logs', () => {
             await init.pageClick(page, '#emailLogs');
 
             // look for the alert panel
-            const alertPanelElement = await init.pageWaitForSelector(page, 
+            const alertPanelElement = await init.pageWaitForSelector(
+                page,
                 `#emailLogDisabled`
             );
             expect(alertPanelElement).toBeDefined();
@@ -221,7 +227,8 @@ describe('Email Logs', () => {
             await init.pageClick(page, '#emailLogs');
 
             // look for the alert panel
-            const alertPanelElement = await init.pageWaitForSelector(page, 
+            const alertPanelElement = await init.pageWaitForSelector(
+                page,
                 `#emailLogDisabled`
             );
             expect(alertPanelElement).toBeDefined();
@@ -241,7 +248,10 @@ describe('Email Logs', () => {
             await init.pageClick(page, '#emailLogs');
 
             // validate that the number doesnt change
-            let newLogCount = await init.pageWaitForSelector(page, `#log-count`);
+            let newLogCount = await init.pageWaitForSelector(
+                page,
+                `#log-count`
+            );
             newLogCount = await newLogCount.getProperty('innerText');
             newLogCount = await newLogCount.jsonValue();
             newLogCount = Number(newLogCount.split(' ')[0]);
@@ -264,7 +274,8 @@ describe('Email Logs', () => {
             logCount = Number(logCount.split(' ')[0]);
 
             // look for the alert panel
-            const alertPanelElement = await init.pageWaitForSelector(page, 
+            const alertPanelElement = await init.pageWaitForSelector(
+                page,
                 `#emailLogDisabled`
             );
             expect(alertPanelElement).toBeDefined();
@@ -285,7 +296,10 @@ describe('Email Logs', () => {
             await init.pageClick(page, '#emailLogs');
 
             // count new number of logs
-            let newLogCount = await init.pageWaitForSelector(page, `#log-count`);
+            let newLogCount = await init.pageWaitForSelector(
+                page,
+                `#log-count`
+            );
             newLogCount = await newLogCount.getProperty('innerText');
             newLogCount = await newLogCount.jsonValue();
             newLogCount = Number(newLogCount.split(' ')[0]);

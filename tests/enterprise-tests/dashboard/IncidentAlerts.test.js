@@ -98,7 +98,10 @@ describe('Schedule', () => {
             const secondOncallAlertStatusSelector =
                 '#TeamAlertLogBox tbody tr:nth-last-of-type(2) td:last-of-type';
 
-            await init.pageWaitForSelector(page, firstOncallAlertStatusSelector);
+            await init.pageWaitForSelector(
+                page,
+                firstOncallAlertStatusSelector
+            );
 
             const firstOncallAlertStatus = await page.$eval(
                 firstOncallAlertStatusSelector,

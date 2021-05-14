@@ -138,7 +138,10 @@ describe('Subscribers Alert logs API', () => {
                 page
             );
 
-            await init.pageWaitForSelector(page, `#monitorCreateIncident_${monitorName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#monitorCreateIncident_${monitorName}`
+            );
             await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
             await init.pageWaitForSelector(page, '#incidentType');
             await init.selectByText('#incidentType', 'offline', page);
@@ -150,7 +153,10 @@ describe('Subscribers Alert logs API', () => {
 
             await page.reload({ waitUntil: 'networkidle0' });
             await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
-            await init.pageWaitForSelector(page, '#subscriberAlertTable tbody tr');
+            await init.pageWaitForSelector(
+                page,
+                '#subscriberAlertTable tbody tr'
+            );
             const rowsCount = (await page.$$('#subscriberAlertTable tbody tr'))
                 .length;
             expect(rowsCount).toEqual(2);
@@ -158,7 +164,10 @@ describe('Subscribers Alert logs API', () => {
             const firstRowIdentifier =
                 '#subscriberAlertTable tbody tr:nth-of-type(1)';
             await init.pageClick(page, firstRowIdentifier);
-            await init.pageWaitForSelector(page, '#backboneModals .bs-Modal-content');
+            await init.pageWaitForSelector(
+                page,
+                '#backboneModals .bs-Modal-content'
+            );
 
             const subscriber = await page.$eval(
                 '#backboneModals #subscriber',
@@ -186,14 +195,21 @@ describe('Subscribers Alert logs API', () => {
             expect(alertStatus).toEqual('Sent');
 
             await init.pageClick(page, '#backboneModals #closeBtn');
-            await init.pageWaitForSelector(page, '#backboneModals .bs-Modal-content', {
-                hidden: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                '#backboneModals .bs-Modal-content',
+                {
+                    hidden: true,
+                }
+            );
 
             const secondRowIdentifier =
                 '#subscriberAlertTable tbody tr:nth-of-type(2)';
             await init.pageClick(page, secondRowIdentifier);
-            await init.pageWaitForSelector(page, '#backboneModals .bs-Modal-content');
+            await init.pageWaitForSelector(
+                page,
+                '#backboneModals .bs-Modal-content'
+            );
 
             const subscriber1 = await page.$eval(
                 '#backboneModals #subscriber',

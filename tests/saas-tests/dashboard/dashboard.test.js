@@ -62,11 +62,16 @@ describe('Monitor API', () => {
         await init.pageWaitForSelector(page, `#advanced`);
         await init.pageClick(page, `#advanced`);
 
-        await init.pageWaitForSelector(page, `#delete-component-${componentName}`);
+        await init.pageWaitForSelector(
+            page,
+            `#delete-component-${componentName}`
+        );
         await init.pageClick(page, `#delete-component-${componentName}`);
         await init.pageWaitForSelector(page, '#deleteComponent');
         await init.pageClick(page, '#deleteComponent');
-        await init.pageWaitForSelector(page, '#deleteComponent', { hidden: true });
+        await init.pageWaitForSelector(page, '#deleteComponent', {
+            hidden: true,
+        });
 
         await browser.close();
         done();
@@ -108,7 +113,8 @@ describe('Monitor API', () => {
             await init.pageClick(page, '#components');
 
             let spanElement;
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `span#component-title-${componentName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -131,7 +137,10 @@ describe('Monitor API', () => {
             await init.pageClick(page, '#components');
 
             // Navigate to details page of component created in previous test
-            await init.pageWaitForSelector(page, `#more-details-${componentName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#more-details-${componentName}`
+            );
             await init.pageClick(page, `#more-details-${componentName}`);
             await init.pageWaitForSelector(page, '#form-new-monitor', {
                 visible: true,
@@ -155,7 +164,8 @@ describe('Monitor API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             let spanElement;
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }
             );
@@ -179,7 +189,10 @@ describe('Monitor API', () => {
             await init.pageClick(page, '#components');
 
             // Navigate to details page of component created in previous test
-            await init.pageWaitForSelector(page, `#more-details-${componentName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#more-details-${componentName}`
+            );
             await init.pageClick(page, `#more-details-${componentName}`);
             await init.pageWaitForSelector(page, '#form-new-monitor', {
                 visible: true,
@@ -202,7 +215,8 @@ describe('Monitor API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             let spanElement;
-            spanElement = await init.pageWaitForSelector(page, 
+            spanElement = await init.pageWaitForSelector(
+                page,
                 '#form-new-monitor span#field-error',
                 { visible: true, timeout: init.timeout }
             );

@@ -70,13 +70,19 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
             await init.pageClick(page, '#delete');
             await init.pageWaitForSelector(page, '#confirmDelete');
             await init.pageClick(page, '#confirmDelete');
-            await init.pageWaitForSelector(page, '#confirmDelete', { hidden: true });
+            await init.pageWaitForSelector(page, '#confirmDelete', {
+                hidden: true,
+            });
             await init.pageWaitForSelector(page, '#users');
             await init.pageClick(page, '#users');
-            const loginBtn = await init.pageWaitForSelector(page, '#login-button', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const loginBtn = await init.pageWaitForSelector(
+                page,
+                '#login-button',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(loginBtn).toBeDefined();
 
             done();

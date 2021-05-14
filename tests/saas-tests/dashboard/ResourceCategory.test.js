@@ -59,10 +59,14 @@ describe('Resource Category', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, 'li#resources a');
-            await init.pageWaitForSelector(page, '#createResourceCategoryButton', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                '#createResourceCategoryButton',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, '#createResourceCategoryButton');
             await init.pageType(
                 page,
@@ -74,10 +78,14 @@ describe('Resource Category', () => {
             const createdResourceCategorySelector =
                 '#resourceCategoryList #resource-category-name:nth-child(2)';
 
-            await init.pageWaitForSelector(page, createdResourceCategorySelector, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                createdResourceCategorySelector,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
 
             const createdResourceCategoryName = await page.$eval(
                 createdResourceCategorySelector,
@@ -284,15 +292,23 @@ describe('Member Restriction', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#resources');
-            await init.pageWaitForSelector(page, '#createResourceCategoryButton', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                '#createResourceCategoryButton',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, '#createResourceCategoryButton');
-            const modal = await init.pageWaitForSelector(page, '#unauthorisedModal', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const modal = await init.pageWaitForSelector(
+                page,
+                '#unauthorisedModal',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(modal).toBeDefined();
             done();
         },
@@ -327,10 +343,14 @@ describe('Member Restriction', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, editBtn);
-            const modal = await init.pageWaitForSelector(page, '#unauthorisedModal', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const modal = await init.pageWaitForSelector(
+                page,
+                '#unauthorisedModal',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(modal).toBeDefined();
             done();
         },
@@ -365,10 +385,14 @@ describe('Member Restriction', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, deleteBtn);
-            const modal = await init.pageWaitForSelector(page, '#unauthorisedModal', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const modal = await init.pageWaitForSelector(
+                page,
+                '#unauthorisedModal',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(modal).toBeDefined();
             done();
         },

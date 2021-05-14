@@ -84,7 +84,9 @@ describe('Custom Twilio Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
 
             await page.reload({
                 waitUntil: ['networkidle0', 'domcontentloaded'],
@@ -121,13 +123,18 @@ describe('Custom Twilio Settings', () => {
             });
 
             await init.gotoTab(utils.monitorTabIndexes.BASIC, page);
-            await init.pageWaitForSelector(page, `#monitorCreateIncident_${monitorName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#monitorCreateIncident_${monitorName}`
+            );
             await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
             await init.pageWaitForSelector(page, '#createIncident');
             await init.selectByText('#incidentType', 'Offline', page);
             await init.pageType(page, 'input[name=title]', incidentTitle);
             await init.pageClick(page, '#createIncident');
-            await init.pageWaitForSelector(page, '#createIncident', { hidden: true });
+            await init.pageWaitForSelector(page, '#createIncident', {
+                hidden: true,
+            });
 
             await init.pageWaitForSelector(page, '#closeIncident_0');
             await page.$eval('#closeIncident_0', elem => elem.click());
@@ -138,7 +145,10 @@ describe('Custom Twilio Settings', () => {
             await init.pageWaitForSelector(page, '#incident_0');
 
             await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
-            await init.pageWaitForSelector(page, '#subscriberAlertTable > tbody > tr');
+            await init.pageWaitForSelector(
+                page,
+                '#subscriberAlertTable > tbody > tr'
+            );
             await page.$eval('#subscriberAlertTable > tbody > tr', elem =>
                 elem.click()
             );
@@ -177,7 +187,10 @@ describe('Custom Twilio Settings', () => {
             await page.reload({ waitUntil: 'networkidle0' });
 
             await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
-            await init.pageWaitForSelector(page, '#subscriberAlertTable > tbody > tr');
+            await init.pageWaitForSelector(
+                page,
+                '#subscriberAlertTable > tbody > tr'
+            );
             // grab the last log
             await page.$eval('#subscriberAlertTable > tbody > tr', elem =>
                 elem.click()
@@ -217,7 +230,10 @@ describe('Custom Twilio Settings', () => {
             await page.reload({ waitUntil: 'networkidle0' });
 
             await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
-            await init.pageWaitForSelector(page, '#subscriberAlertTable > tbody > tr');
+            await init.pageWaitForSelector(
+                page,
+                '#subscriberAlertTable > tbody > tr'
+            );
             // grab the last log
             await page.$eval('#subscriberAlertTable > tbody > tr', elem =>
                 elem.click()

@@ -214,7 +214,9 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
             await page.reload();
 
             await init.pageWaitForSelector(page, 'input[name=account-sid]', {

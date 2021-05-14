@@ -110,7 +110,10 @@ describe('StatusPage API With SubProjects', () => {
                 subProjectName,
                 page
             );
-            await init.pageWaitForSelector(page, `#status_page_count_${subProjectName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#status_page_count_${subProjectName}`
+            );
 
             const statusPageCountSelector = await page.$(
                 `#status_page_count_${subProjectName}`
@@ -139,7 +142,8 @@ describe('StatusPage API With SubProjects', () => {
         await init.pageClick(page, '#viewStatusPage');
         await page.reload({ waitUntil: 'networkidle2' });
 
-        let statusPageNameOnStatusPage = await init.pageWaitForSelector(page, 
+        let statusPageNameOnStatusPage = await init.pageWaitForSelector(
+            page,
             `#cb${statuspageName}`,
             { visible: true, timeout: init.timeout }
         );
@@ -222,7 +226,9 @@ describe('StatusPage API With SubProjects', () => {
                 pageDescription
             );
             await init.pageClick(page, '#saveBranding');
-            await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
 
             await page.reload({ waitUntil: 'networkidle2' });
             await init.pageWaitForSelector(page, '#customTabList > li');
