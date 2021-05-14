@@ -88,12 +88,10 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, '#more');
             await page.waitForSelector('#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
-            await page.waitForSelector('ul#customTabList > li', {
+            await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[1].click()
-            );
+            await page.$$eval('.incident-priority-tab', elems => elems[0].click());
             await page.waitForSelector('#priorityDelete_High_0');
             await init.pageClick(page, '#priorityDelete_High_0');
             const unableToDeleteDefault = await page.waitForSelector(
@@ -243,12 +241,10 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, '#more');
             await page.waitForSelector('#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
-            await page.waitForSelector('ul#customTabList > li', {
+            await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[1].click()
-            );
+            await page.$$eval('.incident-priority-tab', elems => elems[0].click());
             await page.waitForSelector('#priorityDelete_High_0');
             await init.pageClick(page, '#priorityDelete_High_0');
             await page.waitForSelector('#RemoveIncidentPriority', {
@@ -278,12 +274,10 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, '#more');
             await page.waitForSelector('#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
-            await page.waitForSelector('ul#customTabList > li', {
+            await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[1].click()
-            );
+            await page.$$eval('.incident-priority-tab', elems => elems[0].click());
             // Add New Priority
             await page.waitForSelector('#addNewPriority');
             await init.pageClick(page, '#addNewPriority');
@@ -305,12 +299,10 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, '#SetDefaultIncidentPriority');
 
             await page.reload({ waitUntil: 'networkidle0' });
-            await page.waitForSelector('ul#customTabList > li', {
+            await page.waitForSelector('.incident-priority-tab', {
                 visible: true,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[1].click()
-            );
+            await page.$$eval('.incident-priority-tab', elems => elems[0].click());
 
             let newDefaultPriority = await page.waitForSelector(
                 `span#priorityDefault_${customPriority}_1_default`,
