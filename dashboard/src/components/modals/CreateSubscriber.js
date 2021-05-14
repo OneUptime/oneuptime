@@ -352,15 +352,7 @@ class CreateSubscriber extends Component {
                                                                 id="contactPhoneId"
                                                                 placeholder="6505551234"
                                                                 required="required"
-                                                                normalize={val =>
-                                                                    (
-                                                                        val ||
-                                                                        ''
-                                                                    ).replace(
-                                                                        /[^+\d]/g,
-                                                                        ''
-                                                                    )
-                                                                }
+                                                                normalize={ val => (val || "").replace(/[^\d]/g, "") }
                                                             />
                                                         </div>
                                                     </div>
