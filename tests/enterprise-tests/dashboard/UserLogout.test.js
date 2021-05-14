@@ -11,16 +11,14 @@ const user = {
 };
 
 describe('User logout', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // Register user
         await init.registerEnterpriseUser(user, page);
         done();
@@ -34,19 +32,17 @@ describe('User logout', () => {
     test(
         'Admin should be able to logout from dashboard (not admin-dashboard)',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForTimeout('#profile-menu');
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await page.waitForSelector('#profile-menu');
             await init.pageClick(page, '#profile-menu');
-            await page.waitForTimeout('#logout-button');
-            await Promise.all([
-                init.pageClick(page, '#logout-button'),
-                page.waitForNavigation({ waitUntil: 'networkidle2' }),
-            ]);
+            await page.waitForSelector('#logout-button');
+            await init.pageClick(page, '#logout-button');
+            await page.waitForNavigation({ waitUntil: 'networkidle2' });
+            await page.goto(utils.ADMIN_DASHBOARD_URL);
+            await page.waitForNavigation({ waitUntil: 'networkidle2' });
 
-            await Promise.all([
-                page.goto(utils.ADMIN_DASHBOARD_URL),
-                page.waitForNavigation({ waitUntil: 'networkidle2' }),
-            ]);
             expect(page.url()).toEqual(`${utils.ACCOUNTS_URL}/accounts/login`);
             done();
         },

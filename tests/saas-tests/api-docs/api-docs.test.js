@@ -1,16 +1,14 @@
 const utils = require('../../test-utils');
 const puppeteer = require('puppeteer');
-
+const init = require('../../test-init');
 let page, browser;
 
 describe('Check api-docs up', () => {
     beforeAll(async done => {
-        jest.setTimeout(15000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         done();
     });
 
@@ -19,14 +17,18 @@ describe('Check api-docs up', () => {
         done();
     });
 
-    test('should get title of api docs page', async done => {
-        await page.goto(utils.APIDOCS_URL, {
-            waitUntil: 'domcontentloaded',
-        });
-        const response = await page.$eval('head > title', e => {
-            return e.innerHTML;
-        });
-        expect(response).toBe('Fyipe API Documentation');
-        done();
-    }, 600000);
+    test(
+        'should get title of api docs page',
+        async done => {
+            await page.goto(utils.APIDOCS_URL, {
+                waitUntil: 'domcontentloaded',
+            });
+            const response = await page.$eval('head > title', e => {
+                return e.innerHTML;
+            });
+            expect(response).toBe('Fyipe API Documentation');
+            done();
+        },
+        init.timeout
+    );
 });

@@ -21,16 +21,14 @@ const user = {
 };
 
 describe('Monitor Custom Field', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(3600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // user
         await init.registerUser(user, page);
 
@@ -60,7 +58,9 @@ describe('Monitor Custom Field', () => {
     test(
         'should update a monitor custom field in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -70,7 +70,7 @@ describe('Monitor Custom Field', () => {
             await page.waitForSelector('#monitor', { visible: true });
             await init.pageClick(page, '#monitor');
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await init.gotoTab(2, page);
 
@@ -110,7 +110,9 @@ describe('Monitor Custom Field', () => {
     test(
         'should delete a monitor custom field in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -120,7 +122,7 @@ describe('Monitor Custom Field', () => {
             await page.waitForSelector('#monitor', { visible: true });
             await init.pageClick(page, '#monitor');
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await init.gotoTab(2, page);
 

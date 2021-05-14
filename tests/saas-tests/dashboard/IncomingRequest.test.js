@@ -20,16 +20,14 @@ const incidentRequest = {
 };
 
 describe('Incoming HTTP Request', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(3600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // user
         await init.registerUser(user, page);
 
@@ -44,7 +42,9 @@ describe('Incoming HTTP Request', () => {
     test(
         'should configure incoming http request to create incident in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -99,7 +99,9 @@ describe('Incoming HTTP Request', () => {
     test(
         'should update an incoming http request in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -133,7 +135,9 @@ describe('Incoming HTTP Request', () => {
     test(
         'should delete an incoming http request in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });

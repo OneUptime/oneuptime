@@ -20,15 +20,13 @@ const user = {
 };
 
 describe('Schedule API With SubProjects', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         // Register user
         await init.registerUser(user, page); // This auto log in the user.
@@ -39,7 +37,9 @@ describe('Schedule API With SubProjects', () => {
         await init.addSubProject(subProjectName, page);
         // Create Component
         await init.addComponent(componentName, page, subProjectName);
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         // add new user to sub-project
         await init.addUserToProject(
             {
@@ -98,7 +98,7 @@ describe('Schedule API With SubProjects', () => {
             await page.waitForSelector(`#schedule_count_${subProjectName}`, {
                 visible: true,
             });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
 
             const scheduleCountSelector = await page.waitForSelector(
                 `#schedule_count_${subProjectName}`,
@@ -115,53 +115,65 @@ describe('Schedule API With SubProjects', () => {
         operationTimeOut
     );
 
-    test('should get list schedules in sub-projects and paginate schedules in sub-project', async done => {
-        await page.goto(utils.DASHBOARD_URL);
-        // add 10 more schedules to sub-project to test for pagination
-        for (let i = 0; i < 10; i++) {
-            const scheduleName = utils.generateRandomString();
-            await init.addScheduleToProject(scheduleName, subProjectName, page);
-        }
+    test(
+        'should get list schedules in sub-projects and paginate schedules in sub-project',
+        async done => {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            // add 10 more schedules to sub-project to test for pagination
+            for (let i = 0; i < 10; i++) {
+                const scheduleName = utils.generateRandomString();
+                await init.addScheduleToProject(
+                    scheduleName,
+                    subProjectName,
+                    page
+                );
+            }
 
-        await page.waitForSelector('#onCallDuty');
-        await init.pageClick(page, '#onCallDuty');
-        await page.waitForSelector('tr.scheduleListItem');
+            await page.waitForSelector('#onCallDuty');
+            await init.pageClick(page, '#onCallDuty');
+            await page.waitForSelector('tr.scheduleListItem');
 
-        let scheduleRows = await page.$$('tr.scheduleListItem');
-        let countSchedules = scheduleRows.length;
+            let scheduleRows = await page.$$('tr.scheduleListItem');
+            let countSchedules = scheduleRows.length;
 
-        expect(countSchedules).toEqual(10);
+            expect(countSchedules).toEqual(10);
 
-        //const nextSelector =
-        await page.waitForSelector(`#btnNext-${subProjectName}`, {
-            visible: true,
-        });
+            //const nextSelector =
+            await page.waitForSelector(`#btnNext-${subProjectName}`, {
+                visible: true,
+            });
 
-        // await nextSelector.click();
-        await init.pageClick(page, `#btnNext-${subProjectName}`);
-        await page.waitForTimeout(5000);
-        scheduleRows = await page.$$('tr.scheduleListItem');
-        countSchedules = scheduleRows.length;
-        expect(countSchedules).toEqual(1);
+            // await nextSelector.click();
+            await init.pageClick(page, `#btnNext-${subProjectName}`);
 
-        // const prevSelector =
-        await page.waitForSelector(`#btnPrev-${subProjectName}`, {
-            visible: true,
-        });
-        await init.pageClick(page, `#btnPrev-${subProjectName}`);
-        //await prevSelector.click();
-        await page.waitForTimeout(5000);
-        scheduleRows = await page.$$('tr.scheduleListItem');
-        countSchedules = scheduleRows.length;
-        expect(countSchedules).toEqual(10);
+            scheduleRows = await page.$$('tr.scheduleListItem');
+            countSchedules = scheduleRows.length;
+            expect(countSchedules).toEqual(1);
 
-        done();
-    }, 600000);
+            // const prevSelector =
+            await page.waitForSelector(`#btnPrev-${subProjectName}`, {
+                visible: true,
+            });
+            await init.pageClick(page, `#btnPrev-${subProjectName}`);
+            //await prevSelector.click();
+
+            scheduleRows = await page.$$('tr.scheduleListItem');
+            countSchedules = scheduleRows.length;
+            expect(countSchedules).toEqual(10);
+
+            done();
+        },
+        init.timeout
+    );
 
     test(
         'should add monitor to sub-project schedule',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#onCallDuty');
             await init.pageClick(page, '#onCallDuty');
             await page.waitForSelector('tr.scheduleListItem');
@@ -175,7 +187,6 @@ describe('Schedule API With SubProjects', () => {
             );
             await page.waitForSelector('#btnSaveMonitors');
             await init.pageClick(page, '#btnSaveMonitors');
-            await page.waitForTimeout(5000);
 
             const monitorSelectValue = await page.$eval(
                 'input[type=checkbox]',
@@ -191,7 +202,9 @@ describe('Schedule API With SubProjects', () => {
     test(
         'should delete sub-project schedule',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#onCallDuty');
             await init.pageClick(page, '#onCallDuty');
             await page.waitForSelector('tr.scheduleListItem');

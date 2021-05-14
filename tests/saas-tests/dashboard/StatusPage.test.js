@@ -13,7 +13,9 @@ const monitorName1 = 'testFyipe';
 
 let browser, page;
 const gotoTheFirstStatusPage = async page => {
-    await page.goto(utils.DASHBOARD_URL);
+    await page.goto(utils.DASHBOARD_URL, {
+        waitUntil: ['networkidle2'],
+    });
     await page.waitForSelector('#statusPages');
     await page.$eval('#statusPages', e => e.click());
     const rowItem = await page.waitForSelector(
@@ -24,16 +26,14 @@ const gotoTheFirstStatusPage = async page => {
 };
 
 describe('Status Page', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(3600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         const user = {
             email,
             password,
@@ -94,7 +94,7 @@ describe('Status Page', () => {
             expect(textContent.includes('A monitor must be selected.')).toEqual(
                 true
             );
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             const monitor = await page.waitForSelector('#monitor-0', {
                 hidden: true,
             });
@@ -127,7 +127,7 @@ describe('Status Page', () => {
                 'You must select at least one chart type'
             );
             await init.pageClick(page, '#btnAddStatusPageMonitors');
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             const monitor = await page.waitForSelector('#monitor-0', {
                 hidden: true,
             });
@@ -165,7 +165,7 @@ describe('Status Page', () => {
             expect(
                 textContent.includes('This monitor is already selected.')
             ).toEqual(true);
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
 
             const monitor = await page.waitForSelector('#monitor-0', {
                 hidden: true,
@@ -196,7 +196,7 @@ describe('Status Page', () => {
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });
 
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             const elem = await page.waitForSelector('#monitor-0', {
                 visible: true,
             });
@@ -215,7 +215,7 @@ describe('Status Page', () => {
             await init.pageClick(page, '#btnAddStatusPageMonitors');
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             const elem = await page.waitForSelector('#app-loading', {
                 visible: true,
             });
@@ -253,7 +253,7 @@ describe('Status Page', () => {
             await init.pageClick(page, '#btnAddStatusPageMonitors');
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             const firstMonitorContainer = await page.waitForSelector(
                 '#monitor-0',
                 {
@@ -320,7 +320,7 @@ describe('Status Page', () => {
             await init.pageClick(page, '#btnAddStatusPageMonitors');
             await page.waitForSelector('.ball-beat', { visible: true });
             await page.waitForSelector('.ball-beat', { hidden: true });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             // We check if the monitors are added
             const firstMonitorContainer = await page.waitForSelector(
                 '#monitor-0',
@@ -405,7 +405,9 @@ describe('Status Page', () => {
     test.skip(
         'should indicate if domain(s) is set on a status page',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.$eval('#statusPages', elem => elem.click());
 
             const elem = await page.waitForSelector('#domainSet', {
@@ -441,7 +443,7 @@ describe('Status Page', () => {
             await page.waitForSelector('#editMoreDomainModal', {
                 hidden: true,
             });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
 
             await init.gotoTab(4, page);
             let finalInputValue;
@@ -503,7 +505,7 @@ describe('Status Page', () => {
             await page.waitForSelector('#addMoreDomainModal', {
                 hidden: true,
             });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
 
             await init.gotoTab(4, page);
             await page.waitForSelector('#btnDeleteDomain_0');
@@ -516,7 +518,7 @@ describe('Status Page', () => {
                 hidden: true,
             });
 
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             // get the final length of domains after deleting
             await init.gotoTab(4, page);
             await page.waitForSelector('fieldset[name="added-domain"]');
@@ -557,7 +559,7 @@ describe('Status Page', () => {
             await page.waitForSelector('#addMoreDomainModal', {
                 hidden: true,
             });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
 
             await init.gotoTab(4, page);
 
@@ -565,7 +567,7 @@ describe('Status Page', () => {
             await page.$eval('#btnDeleteDomain_0', elem => elem.click());
             await page.$eval('#cancelDomainDelete', elem => elem.click());
 
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await init.gotoTab(4, page);
             await page.waitForSelector('fieldset[name="added-domain"]');
             // get the final length of domains after cancelling
@@ -589,7 +591,7 @@ describe('Status Page', () => {
             await init.pageClick(page, '#react-tabs-6');
             await init.pageType(page, '#headerHTML textarea', '<div>My header'); // Ace editor completes the div tag
             await init.pageClick(page, '#btnAddCustomStyles');
-            await page.waitForTimeout(2000);
+
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.waitForSelector('#react-tabs-2');
@@ -627,7 +629,7 @@ describe('Status Page', () => {
                 `<script id='js'>${javascript}`
             );
             await init.pageClick(page, '#btnAddCustomStyles');
-            await page.waitForTimeout(2000);
+
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.waitForSelector('#react-tabs-2');
@@ -667,7 +669,7 @@ describe('Status Page', () => {
                 elem.click()
             );
             await init.pageClick(page, '#saveAdvancedOptions');
-            await page.waitForTimeout(2000);
+
             await page.waitForSelector('.ball-beat', { hidden: true });
 
             await page.waitForSelector('#statuspage_moveIncidentToTheTop', {
@@ -734,7 +736,7 @@ describe('Status Page', () => {
         'should add multiple domains',
         async done => {
             await gotoTheFirstStatusPage(page);
-            await page.waitForNavigation({ waitUntil: 'networkidle0' });
+            await page.waitForNavigation({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#react-tabs-2');
             await init.pageClick(page, '#react-tabs-2');
             await page.waitForSelector('#addMoreDomain');
@@ -747,7 +749,7 @@ describe('Status Page', () => {
             await init.pageType(page, '#domain_2', 'api.fyipeapp.com');
             await page.waitForSelector('#btnAddDomain');
             await init.pageClick(page, '#btnAddDomain');
-            await page.waitForTimeout(2000);
+
             await page.waitForSelector('.ball-beat', { hidden: true });
             const domains = await page.$$eval(
                 'fieldset[name="added-domain"]',

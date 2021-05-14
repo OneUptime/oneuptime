@@ -18,17 +18,15 @@ const webHookEndpoint = utils.generateRandomWebsite();
  */
 
 describe('Fyipe Page Reload', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(100000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setViewport({ width: 1024, height: 1600 });
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         await page.addStyleTag({
             content: '{scroll-behavior: auto !important;}',
         });
@@ -47,7 +45,9 @@ describe('Fyipe Page Reload', () => {
     test(
         'Should reload the incidents page and confirm there are no errors',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#integrations');
             await page.waitForSelector('#addSlackButton', { visible: true });
@@ -63,7 +63,7 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector('#createWebhook', { hidden: true });
             //To confirm no errors and stays on the same page on reload
             await page.waitForSelector('#webhook_name');
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbIntegrations', { visible: true });
             const spanElement = await page.waitForSelector('#addSlackButton', {
                 visible: true,

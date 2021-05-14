@@ -15,16 +15,14 @@ const newUser = {
 };
 
 describe('Enterprise Team SubProject API', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // Register users
         await init.registerEnterpriseUser(user, page);
         await init.createUserFromAdminDashboard(newUser, page);
@@ -45,7 +43,7 @@ describe('Enterprise Team SubProject API', () => {
             //SubProject is only available for 'Growth Plan and above'
             await init.growthPlanUpgrade(page);
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await init.addSubProject(subProjectName, page);
             const role = 'Member';

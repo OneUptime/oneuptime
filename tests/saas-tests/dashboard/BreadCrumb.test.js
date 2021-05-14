@@ -15,16 +15,14 @@ const user = {
 };
 
 describe('BreadCrumb Component test', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // user
         await init.registerUser(user, page);
         done();
@@ -41,7 +39,9 @@ describe('BreadCrumb Component test', () => {
             const componentName = utils.generateRandomString();
             const monitorName = utils.generateRandomString();
 
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await init.addMonitorToComponent(componentName, monitorName, page);
 
             const monitorBreadcrumb = await page.waitForSelector(
@@ -70,7 +70,9 @@ describe('BreadCrumb Component test', () => {
     test(
         'Should not go to the landing page when the project breadcrumb item is clicked',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#cbUnnamedProject', { visible: true });
             await init.pageClick(page, '#cbUnnamedProject');
             let currentPage = await page.waitForSelector('#cbUnnamedProject', {

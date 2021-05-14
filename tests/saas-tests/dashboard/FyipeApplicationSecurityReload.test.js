@@ -20,16 +20,14 @@ const gitRepositoryUrl = utils.gitCredential.gitRepositoryUrl;
  */
 
 describe('Fyipe Page Reload', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(100000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         await init.registerUser(user, page); // This automatically routes to dashboard page
         await init.addComponent(componentName, page);
@@ -89,7 +87,7 @@ describe('Fyipe Page Reload', () => {
             expect(applicationSecurity).toBeDefined();
 
             // To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });

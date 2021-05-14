@@ -1,11 +1,11 @@
 const utils = require('../../test-utils');
 const puppeteer = require('puppeteer');
-
+const init = require('../../test-init');
 let page, browser;
 
 describe('Check Backend', () => {
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         done();
@@ -18,7 +18,7 @@ describe('Check Backend', () => {
 
     test('should get status ok from backend', async done => {
         await page.goto(utils.BACKEND_URL, {
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         const response = await page.$eval('body > pre', e => {
             return e.innerHTML;

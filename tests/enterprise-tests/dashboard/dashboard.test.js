@@ -11,17 +11,15 @@ const user = {
 };
 
 describe('Enterprise Dashboard API', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
     const monitorName = utils.generateRandomString();
     const componentName = utils.generateRandomString();
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         await init.registerEnterpriseUser(user, page);
         await init.logout(page);
         await init.loginUser(user, page);
@@ -74,7 +72,7 @@ describe('Enterprise Dashboard API', () => {
         async done => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await page.$eval('#components', el => el.click());
@@ -87,7 +85,7 @@ describe('Enterprise Dashboard API', () => {
             await init.pageType(page, 'input[id=name]', componentName);
             await init.pageClick(page, 'button[type=submit]');
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.$eval('#components', el => el.click());
 
@@ -126,7 +124,7 @@ describe('Enterprise Dashboard API', () => {
         async done => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await page.$eval('#components', el => el.click());

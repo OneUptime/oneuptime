@@ -10,16 +10,14 @@ let subProjectName = utils.generateRandomString();
 const newSubProjectName = utils.generateRandomString();
 
 describe('Sub-Project API', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         // Register user
         const user = {
@@ -43,7 +41,7 @@ describe('Sub-Project API', () => {
         'should not create a sub-project with no name',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#projectSettings');
 
@@ -74,7 +72,7 @@ describe('Sub-Project API', () => {
         'should create a new sub-project',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await page.waitForSelector('#projectSettings');
@@ -104,7 +102,7 @@ describe('Sub-Project API', () => {
         'should rename a sub-project',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await page.waitForSelector('#projectSettings');
@@ -136,7 +134,7 @@ describe('Sub-Project API', () => {
         'should not create a sub-project with an existing sub-project name',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
@@ -164,7 +162,7 @@ describe('Sub-Project API', () => {
         'should delete a sub-project',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
@@ -187,7 +185,7 @@ describe('Sub-Project API', () => {
         'should display confirmation message before resetting the sub project API Key',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await page.waitForSelector('#projectSettings');
@@ -214,7 +212,7 @@ describe('Sub-Project API', () => {
         'should reset the sub project API Key',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             await page.waitForSelector('#projectSettings');

@@ -19,16 +19,14 @@ const user = {
 require('should');
 
 describe('Scheduled Event Note', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // Register user
 
         // user
@@ -61,7 +59,9 @@ describe('Scheduled Event Note', () => {
     test(
         'should create an internal note',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -105,7 +105,9 @@ describe('Scheduled Event Note', () => {
     test(
         'should edit an internal note',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -149,7 +151,9 @@ describe('Scheduled Event Note', () => {
     test(
         'should delete an internal note',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -182,16 +186,14 @@ describe('Scheduled Event Note', () => {
 });
 
 describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(6000000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         // Register user
         const user = {
@@ -232,7 +234,9 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
     test(
         'should load first 10 scheduled maintenance note => internal note',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -257,7 +261,9 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
     test(
         'should load the remaining 5 scheduled maintenance note => internal note',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -290,7 +296,9 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
     test(
         'should visit the advance section and delete the schedule maintenance',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });

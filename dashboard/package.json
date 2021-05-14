@@ -60,7 +60,7 @@
         "react-reveal": "^1.2.2",
         "react-router-dom": "^4.3.1",
         "react-router-redux": "^4.0.8",
-        "react-scripts": "^3.4.4",
+        "react-scripts": "^4.0.3",
         "react-select": "^3.0.8",
         "react-simple-code-editor": "^0.11.0",
         "react-slick": "^0.27.9",
@@ -137,6 +137,7 @@
         "flux": "4.0.0",
         "minimist": "1.2.5",
         "node-fetch": "2.6.1",
-        "axios": "0.21.1"
+        "axios": "0.21.1",
+        "react-scripts/eslint-webpack-plugin": "2.3.0"
     }
 }

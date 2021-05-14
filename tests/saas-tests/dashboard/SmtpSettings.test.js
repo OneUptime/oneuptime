@@ -16,16 +16,14 @@ const user = {
 const smtpData = { ...utils.smtpCredential };
 
 describe('Custom SMTP Settings', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(3600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // user
         await init.registerUser(user, page);
 
@@ -40,7 +38,9 @@ describe('Custom SMTP Settings', () => {
     test(
         'should create a custom smtp settings',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -66,7 +66,7 @@ describe('Custom SMTP Settings', () => {
             await init.pageType(page, '#name', name);
             await page.$eval('#secure', elem => (elem.checked = true));
             await init.pageClick(page, '#saveSmtp');
-            await page.waitForTimeout(2000);
+
             await page.waitForSelector('.ball-beat', { hidden: true });
             await page.reload();
             await page.waitForSelector('#host', { visible: true });
@@ -81,7 +81,9 @@ describe('Custom SMTP Settings', () => {
     test(
         'should update a custom smtp settings',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -110,7 +112,9 @@ describe('Custom SMTP Settings', () => {
     test(
         'should not save a custom smtp settings if one of the input fields is missing',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -143,7 +147,9 @@ describe('Custom SMTP Settings', () => {
     test(
         'should delete custom smtp settings',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -174,7 +180,9 @@ describe('Custom SMTP Settings', () => {
     test(
         'should not display any error message if custom smtp settings is already deleted and user clicks on save',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });

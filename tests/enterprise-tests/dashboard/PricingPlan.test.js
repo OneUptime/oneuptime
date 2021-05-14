@@ -14,16 +14,14 @@ const user = {
 };
 
 describe('Status Page', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(3600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // user
         await init.registerEnterpriseUser(user, page);
         await init.adminLogout(page);
@@ -41,10 +39,10 @@ describe('Status Page', () => {
             //Pricing Plan is selectable for a user under growth plane.
             await init.growthPlanUpgrade(page);
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.$eval('#statusPages', elem => elem.click());
             await page.waitForSelector(
@@ -65,12 +63,11 @@ describe('Status Page', () => {
                 { visible: true }
             );
             rowItem.click();
-            await page.waitForSelector('ul#customTabList > li', {
+            await page.waitForSelector('.advanced-options-tab', {
                 visible: true,
             });
-            await page.$$eval(
-                'ul#customTabList > li',
-                elems => elems[5].click() // 'isPrivate' is under 'Advanced options' which is the last tab
+            await page.$$eval('.advanced-options-tab', elems =>
+                elems[0].click()
             );
             await page.$eval('input[name="isPrivate"]', elem => elem.click());
 

@@ -10,16 +10,14 @@ const user = {
 };
 
 describe('Custom Tutorial With SubProjects', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         await init.registerUser(user, page);
         done();
@@ -36,7 +34,7 @@ describe('Custom Tutorial With SubProjects', () => {
             const customTutorialType = 'component';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             const componentBoxElement = await page.waitForSelector(
                 `#info-${customTutorialType}`
@@ -63,7 +61,7 @@ describe('Custom Tutorial With SubProjects', () => {
             const customTutorialType = 'component';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             const componentBoxElement = await page.waitForSelector(
@@ -98,7 +96,7 @@ describe('Custom Tutorial With SubProjects', () => {
             const customTutorialType = 'monitor';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             const componentBoxElement = await page.waitForSelector(
@@ -120,7 +118,7 @@ describe('Custom Tutorial With SubProjects', () => {
             const customTutorialType = 'teamMember';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
             const componentBoxElement = await page.waitForSelector(

@@ -17,16 +17,14 @@ const user = {
     password,
 };
 describe('Scheduled event', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         // Register user
         await init.registerUser(user, page);
@@ -48,7 +46,9 @@ describe('Scheduled event', () => {
     test(
         'should not create a new scheduled event for duplicate monitor selection',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -78,22 +78,19 @@ describe('Scheduled event', () => {
                 'This is an example description for a test'
             );
 
-            /**
-             * commented the code below because the current date is the default selection
-             * and to reduce the amount of time for a test
-             */
+            await page.waitForSelector('input[name=startDate]');
+            await init.pageClick(page, 'input[name=startDate]');
+            await init.pageClick(
+                page,
+                'div.MuiDialogActions-root button:nth-child(2)'
+            );
 
-            // await page.waitForSelector('input[name=startDate]');
-            // await init.pageClick(page,'input[name=startDate]');
-            // await init.pageClick(page,
-            //     'div.MuiDialogActions-root button:nth-child(2)'
-            // );
-            // await page.waitForTimeout(1000); // needed because of the date picker
-            // await init.pageClick(page,'input[name=endDate]');
-            // await init.pageClick(page,
-            //     'div.MuiDialogActions-root button:nth-child(2)'
-            // );
-            // await page.waitForTimeout(1000); // needed because of the date picker
+            await init.pageClick(page, 'input[name=endDate]');
+            await init.pageClick(
+                page,
+                'div.MuiDialogActions-root button:nth-child(2)'
+            );
+
             await init.pageClick(page, '#createScheduledEventButton');
             const monitorError = await page.waitForSelector('#monitorError', {
                 visible: true,
@@ -107,7 +104,9 @@ describe('Scheduled event', () => {
     test(
         'should create a new scheduled event for a monitor',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -134,22 +133,19 @@ describe('Scheduled event', () => {
                 'This is an example description for a test'
             );
 
-            /**
-             * commented the code below because the current date is the default selection
-             * and to reduce the amount of time for a test
-             */
+            await page.waitForSelector('input[name=startDate]');
+            await init.pageClick(page, 'input[name=startDate]');
+            await init.pageClick(
+                page,
+                'div.MuiDialogActions-root button:nth-child(2)'
+            );
 
-            // await page.waitForSelector('input[name=startDate]');
-            // await init.pageClick(page,'input[name=startDate]');
-            // await init.pageClick(page,
-            //     'div.MuiDialogActions-root button:nth-child(2)'
-            // );
-            // await page.waitForTimeout(1000); // needed because of the date picker
-            // await init.pageClick(page,'input[name=endDate]');
-            // await init.pageClick(page,
-            //     'div.MuiDialogActions-root button:nth-child(2)'
-            // );
-            // await page.waitForTimeout(1000); // needed because of the date picker
+            await init.pageClick(page, 'input[name=endDate]');
+            await init.pageClick(
+                page,
+                'div.MuiDialogActions-root button:nth-child(2)'
+            );
+
             await init.pageClick(page, '#createScheduledEventButton');
             await page.waitForSelector('#scheduledEventForm', {
                 hidden: true,
@@ -170,7 +166,9 @@ describe('Scheduled event', () => {
     test(
         'should update the created scheduled event for a monitor',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -202,7 +200,9 @@ describe('Scheduled event', () => {
                 hidden: true,
             });
 
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -226,7 +226,9 @@ describe('Scheduled event', () => {
     test(
         'should delete the created scheduled event for a monitor',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#scheduledMaintenance', {
                 visible: true,
             });
@@ -236,12 +238,11 @@ describe('Scheduled event', () => {
                 visible: true,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
-            await page.waitForSelector('ul#customTabList > li', {
+            await page.waitForSelector('.advanced-options-tab', {
                 visible: true,
             });
-            await page.$$eval(
-                'ul#customTabList > li',
-                elems => elems[2].click() // To navigate to advanced section of the scheduled maintenance
+            await page.$$eval('.advanced-options-tab', elems =>
+                elems[0].click()
             );
 
             await page.waitForSelector('#deleteScheduleEvent', {

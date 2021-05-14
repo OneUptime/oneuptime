@@ -9,20 +9,18 @@ const user = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-// Rewriting dashboard without puppeteer cluster.
+
 describe('Monitor API', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     const componentName = utils.generateRandomString();
     const monitorName = utils.generateRandomString();
 
     beforeAll(async done => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         await init.registerUser(user, page);
 
         done();

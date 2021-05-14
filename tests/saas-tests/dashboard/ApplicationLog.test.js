@@ -14,16 +14,14 @@ const applicationLogName = utils.generateRandomString();
 let applicationLogKey = '';
 
 describe('Log Containers', () => {
-    const operationTimeOut = 900000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         await init.registerUser(user, page);
     });
@@ -38,7 +36,7 @@ describe('Log Containers', () => {
         async done => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#components', { timeout: 120000 });
             await init.pageClick(page, '#components');
@@ -53,7 +51,9 @@ describe('Log Containers', () => {
             await page.waitForSelector('#form-new-monitor', {
                 visible: true,
             });
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#components', { visible: true });
             await init.pageClick(page, '#components');
 
@@ -83,7 +83,6 @@ describe('Log Containers', () => {
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', applicationLogName);
             await init.pageClick(page, 'button[type=submit]');
-            //await page.goto(utils.DASHBOARD_URL);
 
             let spanElement = await page.waitForSelector(
                 `span#application-log-title-${applicationLogName}`
@@ -234,7 +233,6 @@ describe('Log Containers', () => {
             await page.waitForSelector(`#${applicationLogName}-warning`);
             await init.pageClick(page, `#${applicationLogName}-warning`);
 
-            await page.waitForTimeout(1000);
             // confim that thee drop down current value is warning
             logTypeElement = await page.waitForSelector(
                 'input[name=log_type_selector]'
@@ -248,7 +246,6 @@ describe('Log Containers', () => {
             await page.waitForSelector(`#${applicationLogName}-info`);
             await init.pageClick(page, `#${applicationLogName}-info`);
 
-            await page.waitForTimeout(1000);
             // confim that thee drop down current value is info
             logTypeElement = await page.waitForSelector(
                 'input[name=log_type_selector]'
@@ -262,7 +259,6 @@ describe('Log Containers', () => {
             await page.waitForSelector(`#${applicationLogName}-error`);
             await init.pageClick(page, `#${applicationLogName}-error`);
 
-            await page.waitForTimeout(1000);
             // confim that thee drop down current value is error
             logTypeElement = await page.waitForSelector(
                 'input[name=log_type_selector]'
@@ -276,7 +272,6 @@ describe('Log Containers', () => {
             await page.waitForSelector(`#${applicationLogName}-all`);
             await init.pageClick(page, `#${applicationLogName}-all`);
 
-            await page.waitForTimeout(1000);
             // confim that thee drop down current value is all
             logTypeElement = await page.waitForSelector(
                 'input[name=log_type_selector]'
@@ -564,7 +559,9 @@ describe('Log Containers', () => {
             spanElement.should.be.exactly(categoryName.toUpperCase());
 
             // delete the category
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
@@ -577,7 +574,6 @@ describe('Log Containers', () => {
             await init.pageClick(page, `#delete_${categoryName}`);
             await page.waitForSelector('#deleteResourceCategory');
             await init.pageClick(page, '#deleteResourceCategory');
-            await page.waitForTimeout(5000);
 
             // go back to log details and confirm it is not there anymore
             const spanElementBadge = await page.$(

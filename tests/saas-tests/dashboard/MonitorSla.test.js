@@ -13,16 +13,14 @@ const component = 'sampleComponent';
 const monitor = 'sampleMonitor';
 
 describe('Monitor SLA', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(3600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         const user = {
             email,
@@ -42,7 +40,9 @@ describe('Monitor SLA', () => {
     test(
         'should not add a monitor SLA if no name was specified',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -79,7 +79,9 @@ describe('Monitor SLA', () => {
     test(
         'should not add a monitor SLA if monitor uptime was not specified',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -115,7 +117,9 @@ describe('Monitor SLA', () => {
     test(
         'should not add a monitor SLA if monitor uptime is not a numeric value',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -153,7 +157,9 @@ describe('Monitor SLA', () => {
     test(
         'should not add a monitor SLA if monitor uptime is greater than 100%',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -191,7 +197,9 @@ describe('Monitor SLA', () => {
     test(
         'should not add a monitor SLA if monitor uptime is less than 1%',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -229,7 +237,9 @@ describe('Monitor SLA', () => {
     test(
         'should not add a monitor SLA if frequency is not a numeric value',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -267,7 +277,9 @@ describe('Monitor SLA', () => {
     test(
         'should add a monitor SLA',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -308,7 +320,9 @@ describe('Monitor SLA', () => {
     test(
         'should update a monitor SLA',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -375,7 +389,9 @@ describe('Monitor SLA', () => {
     test(
         'should delete a monitor SLA',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });

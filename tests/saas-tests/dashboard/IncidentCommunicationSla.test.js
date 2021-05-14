@@ -18,16 +18,14 @@ const user = {
     password,
 };
 describe('Incident Communication SLA', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(3600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // user
         await init.registerUser(user, page);
 
@@ -42,7 +40,9 @@ describe('Incident Communication SLA', () => {
     test(
         'should not add incident communication SLA if no name was specified',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -56,11 +56,11 @@ describe('Incident Communication SLA', () => {
 
             // tab id for incident communication sla tab
 
-            await page.waitForSelector('ul#customTabList > li', {
+            await page.waitForSelector('.communication-sla-tab', {
                 visible: true,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[2].click()
+            await page.$$eval('.communication-sla-tab', elems =>
+                elems[0].click()
             );
 
             await page.waitForSelector('#addIncidentSlaBtn', {
@@ -91,7 +91,9 @@ describe('Incident Communication SLA', () => {
     test(
         'should not add incident communication SLA if alert time is greater or equal to duration',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -105,11 +107,11 @@ describe('Incident Communication SLA', () => {
 
             // tab id for incident communication sla tab
 
-            await page.waitForSelector('ul#customTabList > li', {
+            await page.waitForSelector('.communication-sla-tab', {
                 visible: true,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[2].click()
+            await page.$$eval('.communication-sla-tab', elems =>
+                elems[0].click()
             );
 
             await page.waitForSelector('#addIncidentSlaBtn', {
@@ -140,7 +142,9 @@ describe('Incident Communication SLA', () => {
     test(
         'should not add incident communication SLA if alert time is not a number',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -154,11 +158,11 @@ describe('Incident Communication SLA', () => {
 
             // tab id for incident communication sla tab
 
-            await page.waitForSelector('ul#customTabList > li', {
+            await page.waitForSelector('.communication-sla-tab', {
                 visible: true,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[2].click()
+            await page.$$eval('.communication-sla-tab', elems =>
+                elems[0].click()
             );
 
             await page.waitForSelector('#addIncidentSlaBtn', {
@@ -189,7 +193,9 @@ describe('Incident Communication SLA', () => {
     test(
         'should add incident communication SLA',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -203,11 +209,11 @@ describe('Incident Communication SLA', () => {
 
             // tab id for incident communication sla tab
 
-            await page.waitForSelector('ul#customTabList > li', {
+            await page.waitForSelector('.communication-sla-tab', {
                 visible: true,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[2].click()
+            await page.$$eval('.communication-sla-tab', elems =>
+                elems[0].click()
             );
 
             await page.waitForSelector('#addIncidentSlaBtn', {
@@ -241,7 +247,9 @@ describe('Incident Communication SLA', () => {
     test(
         'should not edit an incident communication SLA if there is no name',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -255,11 +263,11 @@ describe('Incident Communication SLA', () => {
 
             // tab id for incident communication sla tab
 
-            await page.waitForSelector('ul#customTabList > li', {
+            await page.waitForSelector('.communication-sla-tab', {
                 visible: true,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[2].click()
+            await page.$$eval('.communication-sla-tab', elems =>
+                elems[0].click()
             );
 
             await page.waitForSelector(`#editIncidentSlaBtn_${slaName}`, {
@@ -287,7 +295,9 @@ describe('Incident Communication SLA', () => {
     test(
         'should edit an incident communication SLA',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -301,11 +311,11 @@ describe('Incident Communication SLA', () => {
 
             // tab id for incident communication sla tab
 
-            await page.waitForSelector('ul#customTabList > li', {
+            await page.waitForSelector('.communication-sla-tab', {
                 visible: true,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[2].click()
+            await page.$$eval('.communication-sla-tab', elems =>
+                elems[0].click()
             );
 
             await page.waitForSelector(`#editIncidentSlaBtn_${slaName}`, {
@@ -401,7 +411,9 @@ describe('Incident Communication SLA', () => {
     test(
         'should delete an incident communication SLA',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
             });
@@ -415,11 +427,11 @@ describe('Incident Communication SLA', () => {
 
             // tab id for incident communication sla tab
 
-            await page.waitForSelector('ul#customTabList > li', {
+            await page.waitForSelector('.communication-sla-tab', {
                 visible: true,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[2].click()
+            await page.$$eval('.communication-sla-tab', elems =>
+                elems[0].click()
             );
 
             await page.waitForSelector(`#deleteIncidentSlaBtn_${slaName}`, {

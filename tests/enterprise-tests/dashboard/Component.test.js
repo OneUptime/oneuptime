@@ -12,16 +12,14 @@ const user = {
 };
 
 describe('Enterprise Component API', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // Register user
         await init.registerEnterpriseUser(user, page);
         await init.adminLogout(page);
@@ -40,7 +38,7 @@ describe('Enterprise Component API', () => {
             const componentName = utils.generateRandomString();
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#components', { timeout: 120000 });
             await init.pageClick(page, '#components');
@@ -53,7 +51,7 @@ describe('Enterprise Component API', () => {
             await init.pageType(page, 'input[id=name]', componentName);
             await init.pageClick(page, 'button[type=submit]');
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#components', { visible: true });
             await init.pageClick(page, '#components');

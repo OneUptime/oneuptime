@@ -13,16 +13,14 @@ const user = {
     password,
 };
 describe('Alert Warning', () => {
-    const operationTimeOut = 1000000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(6000000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         await init.registerUser(user, page);
         done();
@@ -36,7 +34,9 @@ describe('Alert Warning', () => {
     test(
         'Should show a warning alert if call and sms alerts are disabled',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', { visible: true });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#billing', { visible: true });
@@ -54,7 +54,9 @@ describe('Alert Warning', () => {
     test(
         'Should not show any warning alert if call and sms alerts are enabled',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings', { visible: true });
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#billing', { visible: true });

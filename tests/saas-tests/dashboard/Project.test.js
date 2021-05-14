@@ -24,22 +24,22 @@ const memberUser = {
 let browser, page;
 
 describe('Project Settings', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // user
         await init.registerUser(user, page);
 
         await init.renameProject(newProjectName, page);
         await init.growthPlanUpgrade(page); // Growth Plan is needed for subproject.
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         await init.addUserToProject(
             {
                 email: teamEmail,
@@ -138,35 +138,41 @@ describe('Project Settings', () => {
         operationTimeOut
     );
 
-    test('should show all projects not just a limit of 10 projects', async done => {
-        //register user
-        await init.registerUser(user2, page);
-        //adding project
-        await init.addProject(page, 'project1');
-        await init.addProject(page, 'project2');
-        await init.addProject(page, 'project3');
-        await init.addProject(page, 'project4');
-        await init.addProject(page, 'project5');
-        await init.addProject(page, 'project6');
-        await init.addProject(page, 'project7');
-        await init.addProject(page, 'project8');
-        await init.addProject(page, 'project9');
-        await init.addProject(page, 'project10');
-        await init.addProject(page, 'project11');
+    test(
+        'should show all projects not just a limit of 10 projects',
+        async done => {
+            //register user
+            await init.registerUser(user2, page);
+            //adding project
+            await init.addProject(page, 'project1');
+            await init.addProject(page, 'project2');
+            await init.addProject(page, 'project3');
+            await init.addProject(page, 'project4');
+            await init.addProject(page, 'project5');
+            await init.addProject(page, 'project6');
+            await init.addProject(page, 'project7');
+            await init.addProject(page, 'project8');
+            await init.addProject(page, 'project9');
+            await init.addProject(page, 'project10');
+            await init.addProject(page, 'project11');
 
-        await page.goto(utils.DASHBOARD_URL);
-        await page.waitForSelector('#AccountSwitcherId');
-        await init.pageClick(page, '#AccountSwitcherId');
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await page.waitForSelector('#AccountSwitcherId');
+            await init.pageClick(page, '#AccountSwitcherId');
 
-        const parentContainer = '#accountSwitcher';
-        await page.waitForSelector(parentContainer, {
-            visible: true,
-        });
-        const childCount = await page.$eval(
-            parentContainer,
-            el => el.childElementCount
-        );
-        expect(childCount).toEqual(13);
-        done();
-    }, 100000);
+            const parentContainer = '#accountSwitcher';
+            await page.waitForSelector(parentContainer, {
+                visible: true,
+            });
+            const childCount = await page.$eval(
+                parentContainer,
+                el => el.childElementCount
+            );
+            expect(childCount).toEqual(13);
+            done();
+        },
+        init.timeout
+    );
 });

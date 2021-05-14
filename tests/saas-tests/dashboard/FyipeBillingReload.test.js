@@ -14,16 +14,14 @@ const user = {
  */
 
 describe('Fyipe Page Reload', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(100000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         await init.registerUser(user, page); // This automatically routes to dashboard page
         done();
@@ -37,7 +35,9 @@ describe('Fyipe Page Reload', () => {
     test(
         'Should reload the incidents page and confirm there are no errors',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#billing');
             await page.waitForSelector('#Startup_month', { visible: true });
@@ -52,7 +52,7 @@ describe('Fyipe Page Reload', () => {
             });
 
             //To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbBilling', { visible: true });
             const spanElement = await page.waitForSelector('#Startup_month', {
                 visible: true,

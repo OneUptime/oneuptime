@@ -12,16 +12,14 @@ const newProjectName = 'Test';
 const subProjectName = 'Trial';
 
 describe('Sub-Project API', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         const user = {
             email,
             password,
@@ -42,7 +40,7 @@ describe('Sub-Project API', () => {
         'should show pricing plan modal for project not on Growth plan and above',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
@@ -62,20 +60,18 @@ describe('Sub-Project API', () => {
 });
 
 describe('Member Restriction', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // user
         await init.registerUser({ email: projectOwnerMail, password }, page);
         await init.renameProject(newProjectName, page);
         await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         await init.addUserToProject(
             {
@@ -105,7 +101,7 @@ describe('Member Restriction', () => {
             ); // The team member has to register first before logging in.
 
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await page.waitForSelector('#projectSettings', {
                 visible: true,
@@ -134,7 +130,7 @@ describe('Member Restriction', () => {
 
             await init.growthPlanUpgrade(page);
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             // adding a subProject is only allowed on growth plan and above
             await init.addSubProject(subProjectName, page);

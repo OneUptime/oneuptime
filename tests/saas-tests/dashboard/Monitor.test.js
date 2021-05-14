@@ -14,16 +14,14 @@ const monitorName = utils.generateRandomString();
 const testServerMonitorName = utils.generateRandomString();
 
 describe('Monitor API', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         const user = {
             email,
@@ -232,7 +230,7 @@ describe('Monitor API', () => {
                 monitorName,
                 page
             );
-            await page.waitForTimeout(25000); // This is needed for '-' to turn to '%' as '%' is a coming of the probe server else shouldRender could have been used to pass id.
+
             await page.waitForSelector(`#lighthouseLogs_${monitorName}_0`, {
                 visible: true,
                 timeout: operationTimeOut,
@@ -556,7 +554,7 @@ describe('Monitor API', () => {
     );
 
     test(
-        'should degrade (not timeout and return status code 408) monitor with response time longer than 600000ms and status code 200',
+        'should degrade (not timeout and return status code 408) monitor with response time longer than init.timeoutms and status code 200',
         async done => {
             const bodyText = utils.generateRandomString();
             // This navigates to hhtp-test server and create the settings for the test suite
@@ -575,7 +573,11 @@ describe('Monitor API', () => {
             );
             await page.waitForSelector('#responseTime');
             await init.pageClick(page, 'input[name=responseTime]');
-            await init.pageType(page, 'input[name=responseTime]', '600000');
+            await init.pageType(
+                page,
+                'input[name=responseTime]',
+                'init.timeout'
+            );
             await page.waitForSelector('#statusCode');
             await init.pageClick(page, 'input[name=statusCode]');
             await init.pageType(page, 'input[name=statusCode]', '200');
@@ -618,20 +620,18 @@ describe('Monitor API', () => {
 });
 
 describe('API Monitor API', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     const componentName = utils.generateRandomString();
     const monitorName = utils.generateRandomString();
     const testMonitorName = utils.generateRandomString();
 
     beforeAll(async () => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
         await page.evaluate(
@@ -935,7 +935,9 @@ describe('API Monitor API', () => {
             await page.waitForSelector('#save-btn');
             await page.waitForSelector('#save-btn', { visible: true });
 
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
 
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
@@ -989,7 +991,9 @@ describe('API Monitor API', () => {
             await page.waitForSelector('#save-btn', { visible: true });
 
             // Dashboard Page
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
 
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
@@ -1041,7 +1045,9 @@ describe('API Monitor API', () => {
         await page.waitForSelector('#save-btn');
         await page.waitForSelector('#save-btn', { visible: true });
 
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
 
         // Navigate to Monitor details
         await init.navigateToMonitorDetails(
@@ -1122,7 +1128,6 @@ describe('API Monitor API', () => {
     test(
         'should delete API monitors',
         async done => {
-            expect.assertions(1);
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,

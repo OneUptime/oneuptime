@@ -11,16 +11,14 @@ const user = {
 };
 
 describe('Profile -> Delete Account Component test', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         // Register user
         await init.registerUser(user, page);
@@ -35,7 +33,9 @@ describe('Profile -> Delete Account Component test', () => {
         'Should edit the user profile',
         async done => {
             const name = utils.generateRandomString(10);
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#profile-menu');
             await init.pageClick(page, '#profile-menu');
@@ -50,7 +50,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageType(page, 'input[name=name]', name);
             await page.waitForSelector('button[type=submit]');
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForTimeout(2000);
+
             await page.waitForSelector('.ball-beat', { hidden: true });
             let spanElement = await page.waitForSelector(
                 'span#userProfileName'
@@ -67,7 +67,9 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should change the user password',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#profile-menu');
             await init.pageClick(page, '#profile-menu');
@@ -108,7 +110,9 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should not change password if new password and password are the same',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
 
             await page.waitForSelector('#profile-menu');
             await init.pageClick(page, '#profile-menu');
@@ -146,7 +150,9 @@ describe('Profile -> Delete Account Component test', () => {
         'Should not activate google authenticator if the verification code is wrong',
         async done => {
             // visit the dashboard
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             // click on the profile page
             await page.waitForSelector('#profile-menu');
             await init.pageClick(page, '#profile-menu');
@@ -162,7 +168,7 @@ describe('Profile -> Delete Account Component test', () => {
             await page.waitForSelector('input[name=twoFactorAuthEnabled]', {
                 visible: true,
             });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.$eval('input[name=twoFactorAuthEnabled]', e =>
                 e.click()
             );

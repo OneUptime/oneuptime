@@ -15,16 +15,14 @@ const user = {
 };
 
 describe('Email Templates API', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         // Register user
         await init.registerUser(user, page);
@@ -40,7 +38,9 @@ describe('Email Templates API', () => {
     test(
         'should not show reset button when no template is saved',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
@@ -67,7 +67,9 @@ describe('Email Templates API', () => {
     test(
         'Should update default email template',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
@@ -105,7 +107,9 @@ describe('Email Templates API', () => {
     test(
         'should show reset button when a template is already saved',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
@@ -130,7 +134,9 @@ describe('Email Templates API', () => {
     test(
         'should reset template to default state',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.waitForSelector('#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await page.waitForSelector('#more');
