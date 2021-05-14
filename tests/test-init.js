@@ -153,7 +153,7 @@ const _this = {
             timeout: _this.timeout,
         });
     },
-    loginEnterpriseUser: async function(user, page) {
+    loginAdminUser: async function(user, page) {
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
@@ -212,7 +212,7 @@ const _this = {
                 }),
             ]);
         } else {
-            await _this.loginEnterpriseUser(masterAdmin, page);
+            await _this.loginAdminUser(masterAdmin, page);
         }
         // create the user from admin dashboard
         const { email } = user;

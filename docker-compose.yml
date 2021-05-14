@@ -150,6 +150,7 @@ services:
             - MONGO_URL=mongodb://mongo:27017/fyipedb
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - NODE_ENV=development
         depends_on:
             - mongo
             - redis
@@ -159,9 +160,6 @@ services:
     ## Setup private, tls_cert and tls_key keys before running this part
     haraka:
         ports:
-            # port 25 is usually blocked or only accessible by root user
-            # if access is granted to this port we can use it as default port
-            # - '25:25'
             - '2525:2525'
         build:
             context: ./haraka

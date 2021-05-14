@@ -19,18 +19,21 @@ describe('Project', () => {
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
 
-        const email = utils.generateRandomBusinessEmail();
-        const password = '1234567890';
-
-        const user = {
+        const adminUser = {
             email: email,
             password: password,
         };
-        await init.registerEnterpriseUser(user, page);
 
-        // creating a user automatically
-        // adds an unamed project to the user
-        await init.registerUser({ email, password }, page);
+        const user = {
+            email: utils.generateRandomBusinessEmail(),
+            password,
+        };
+
+        await init.registerUser(user, page);
+        await init.saasLogout(page)
+
+        // login admin user
+        await init.loginAdminUser(adminUser, page);
     });
 
     afterAll(async () => {
@@ -40,11 +43,8 @@ describe('Project', () => {
     test(
         'should upgrade a project to enterprise plan',
         async () => {
-            const user = {
-                email: email,
-                password: password,
-            };
-            await init.loginUser(user, page);
+
+            await init.pageClick(page, "#goToUserDashboard");
 
             await page.$eval('#projects > a', elem => elem.click());
             await page.evaluate(() => {

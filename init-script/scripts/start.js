@@ -1,11 +1,20 @@
 const PKG_VERSION = require('../package.json').version;
-const { find, save } = require('../util/db');
+const { find, save , removeMany} = require('../util/db');
+const bcrypt = require('bcrypt');
 
 async function run() {
     await updateVersion();
 
     if (process.env['NODE_ENV'] === 'development') {
         await setupTestProbes();
+
+        if(process.env['IS_SAAS_SERVICE'] === 'true' || process.env['IS_SAAS_SERVICE'] === true) {
+            // if SaaS Service create master admin user automatically.
+            await addMasterAdminUser();
+        }else{
+            await removeMasterAdminUser();
+        }
+        
     }
 }
 
@@ -21,6 +30,45 @@ async function updateVersion() {
         };
         await save(collection, [doc]);
     }
+}
+
+async function removeMasterAdminUser(){
+    const collection = 'users';
+
+    await removeMany(collection, {
+        email: 'masteradmin@hackerbay.io'
+    });
+}
+
+async function addMasterAdminUser(){
+    const collection = 'users';
+
+    await removeMany(collection, {
+        email: 'masteradmin@hackerbay.io'
+    });
+
+    const now = new Date().toISOString();
+
+
+    const masterAdminUser = {
+        name: "Master Admin",
+        email: 'masteradmin@hackerbay.io',
+        password: await bcrypt.hash(
+            "1234567890",
+            10 //salt rounds
+        ),
+        isVerified: true, 
+        role: 'master-admin',
+        twoFactorAuthEnabled: false, 
+        createdAt: now, 
+        lastActive: now, 
+        disabled: false, 
+        isBlocked: false, 
+        adminNotes: [],
+        deleted: false, 
+    }
+
+    await save(collection, [masterAdminUser]);
 }
 
 async function setupTestProbes() {

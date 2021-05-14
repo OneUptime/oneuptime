@@ -24,6 +24,7 @@ describe('SMTP Settings API', () => {
             email: email,
             password: password,
         };
+        
         // user
         await init.loginUser(user, page);
     });
