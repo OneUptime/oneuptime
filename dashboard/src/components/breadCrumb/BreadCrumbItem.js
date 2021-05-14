@@ -44,7 +44,7 @@ function BreadCrumbItem({
         titleIcon.setAttribute(
             'class',
             `page-title-icon db-SideNav-icon--${
-                icon ? icon : pages[pageTitle ?? name]
+                icon ? icon : pages[pageTitle || name]
             } db-SideNav-icon--selected`
         );
         if (!type && !status && !containerType) {

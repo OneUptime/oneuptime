@@ -2228,7 +2228,9 @@ export class IncidentStatus extends Component {
                                                                                 {member.user &&
                                                                                     (member
                                                                                         .user
-                                                                                        .name ??
+                                                                                        .name ? member
+                                                                                        .user
+                                                                                        .name : 
                                                                                         member
                                                                                             .user
                                                                                             .email)}

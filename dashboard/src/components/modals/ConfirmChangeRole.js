@@ -34,7 +34,7 @@ class ConfirmChangeRole extends Component {
         const {
             data: { updateTeamMemberRole, name, values, role, userId, newRole },
         } = this.props;
-        const authUserName = User.getName() ?? User.getEmail();
+        const authUserName = User.getName() || User.getEmail();
 
         return (
             <div
