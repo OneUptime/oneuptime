@@ -64,6 +64,44 @@ import ScheduleInput from '../schedule/ScheduleInput';
 const selector = formValueSelector('NewMonitor');
 const dJSON = require('dirty-json');
 
+const scriptEditor = ({ script, index, scriptTextChange }) => {
+    const defaultScript =
+        '// objects available - request, puppeteer, axios. We can add more later. \n\n' +
+        'async function (done) {\n' +
+        '   // write any javascript here \n' +
+        '   done();\n' +
+        '}\n';
+    return (
+        <AceEditor
+            placeholder="Enter script here"
+            mode="javascript"
+            theme="github"
+            value={script}
+            defaultValue={defaultScript}
+            style={{
+                backgroundColor: '#fff',
+                borderRadius: '4px',
+                boxShadow:
+                    '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
+            }}
+            name={`script_${index}`}
+            id="script"
+            editorProps={{
+                $blockScrolling: true,
+            }}
+            setOptions={{
+                enableBasicAutocompletion: true,
+                enableLiveAutocompletion: true,
+                enableSnippets: true,
+                showGutter: false,
+            }}
+            height="150px"
+            highlightActiveLine={true}
+            onChange={scriptTextChange}
+            fontSize="14px"
+        />
+    );
+};
 class NewMonitor extends Component {
     constructor(props) {
         super(props);
@@ -925,12 +963,6 @@ class NewMonitor extends Component {
             },
         ];
 
-        const defaultScript =
-            '// objects available - request, puppeteer, axios. We can add more later. \n\n' +
-            'async function (done) {\n' +
-            '   // write any javascript here \n' +
-            '   done();\n' +
-            '}\n';
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -978,10 +1010,7 @@ class NewMonitor extends Component {
                             </div>
                         </div>
 
-                        <form
-                            id="form-new-monitor"
-                            onSubmit={handleSubmit(this.submitForm)}
-                        >
+                        <form id="form-new-monitor">
                             <div
                                 className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
                                 style={{ boxShadow: 'none' }}
@@ -1965,46 +1994,24 @@ class NewMonitor extends Component {
                                                         <div className="bs-Fieldset-fields">
                                                             <span>
                                                                 <span>
-                                                                    <AceEditor
-                                                                        placeholder="Enter script here"
-                                                                        mode="javascript"
-                                                                        theme="github"
-                                                                        value={
+                                                                    <Field
+                                                                        component={
+                                                                            scriptEditor
+                                                                        }
+                                                                        script={
                                                                             this
                                                                                 .state
                                                                                 .script
                                                                         }
-                                                                        defaultValue={
-                                                                            defaultScript
-                                                                        }
-                                                                        style={{
-                                                                            backgroundColor:
-                                                                                '#fff',
-                                                                            borderRadius:
-                                                                                '4px',
-                                                                            boxShadow:
-                                                                                '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
-                                                                        }}
-                                                                        name={`script_${this.props.index}`}
-                                                                        id="script"
-                                                                        editorProps={{
-                                                                            $blockScrolling: true,
-                                                                        }}
-                                                                        setOptions={{
-                                                                            enableBasicAutocompletion: true,
-                                                                            enableLiveAutocompletion: true,
-                                                                            enableSnippets: true,
-                                                                            showGutter: false,
-                                                                        }}
-                                                                        height="150px"
-                                                                        highlightActiveLine={
-                                                                            true
-                                                                        }
-                                                                        onChange={
+                                                                        scriptTextChange={
                                                                             this
                                                                                 .scriptTextChange
                                                                         }
-                                                                        fontSize="14px"
+                                                                        index={
+                                                                            this
+                                                                                .props
+                                                                                .index
+                                                                        }
                                                                     />
                                                                 </span>
                                                             </span>
@@ -2805,7 +2812,10 @@ class NewMonitor extends Component {
                                         id="addMonitorButton"
                                         className="bs-Button bs-Button--blue"
                                         disabled={requesting}
-                                        type="submit"
+                                        onClick={() =>
+                                            handleSubmit(this.submitForm)
+                                        }
+                                        type="button"
                                     >
                                         <PricingPlan
                                             plan={this.getNextPlan(
