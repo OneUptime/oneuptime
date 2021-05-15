@@ -28,7 +28,7 @@ describe('SMTP Settings API', () => {
         };
         // user
         // await init.registerEnterpriseUser(user, page);
-        await init.loginUser(user, page);
+        await init.loginAdminUser(user, page);
     });
 
     afterAll(async () => {

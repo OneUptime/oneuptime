@@ -62,7 +62,7 @@ describe('SSO API', () => {
             password: password,
         };
 
-        await init.loginUser(user, page);
+        await init.loginAdminUser(user, page);
 
         done();
     });

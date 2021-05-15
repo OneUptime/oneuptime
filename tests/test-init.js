@@ -1062,7 +1062,7 @@ const _this = {
         );
         startupOption.click();
         if (checkCard) {
-            await page.waitFor(5000);
+            
             await _this.pageWaitForSelector(
                 page,
                 'iframe[name=__privateStripeFrame5]'
@@ -1309,7 +1309,7 @@ const _this = {
         await _this.pageType(page, '#phone', phoneNumber);
         await _this.pageType(page, '#alert-limit', alertLimit);
         await _this.pageClick(page, 'button[type=submit]');
-        await page.waitFor(5000);
+        
         await page.reload();
         await _this.pageWaitForSelector(page, '#account-sid');
     },
