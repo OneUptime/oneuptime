@@ -99,6 +99,12 @@ const scriptEditor = ({ script, index, scriptTextChange }) => {
             highlightActiveLine={true}
             onChange={scriptTextChange}
             fontSize="14px"
+            onLoad={editor => {
+                // give the inner text area a name
+                // so that we can reference it later
+                const elem = editor.textInput.getElement();
+                elem.name = `script_editor_${index}`;
+            }}
         />
     );
 };
@@ -173,6 +179,10 @@ class NewMonitor extends Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Enter':
+                // prevent form submission while using ace editor
+                if (e.target.name === `script_editor_${this.props.index}`) {
+                    return true;
+                }
                 if (document.getElementById('addMonitorButton'))
                     return document.getElementById('addMonitorButton').click();
                 else return false;
@@ -1010,7 +1020,10 @@ class NewMonitor extends Component {
                             </div>
                         </div>
 
-                        <form id="form-new-monitor">
+                        <form
+                            id="form-new-monitor"
+                            onSubmit={handleSubmit(this.submitForm)}
+                        >
                             <div
                                 className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
                                 style={{ boxShadow: 'none' }}
@@ -2812,10 +2825,7 @@ class NewMonitor extends Component {
                                         id="addMonitorButton"
                                         className="bs-Button bs-Button--blue"
                                         disabled={requesting}
-                                        onClick={() =>
-                                            handleSubmit(this.submitForm)
-                                        }
-                                        type="button"
+                                        type="submit"
                                     >
                                         <PricingPlan
                                             plan={this.getNextPlan(
