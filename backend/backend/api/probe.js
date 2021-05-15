@@ -328,27 +328,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     failedReasons: upFailedReasons,
                     matchedCriterion: matchedUpCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.up
-                    ? ProbeService.scriptConditions(
-                          res,
-                          resp,
-                          monitor.criteria.up
-                      )
-                    : { stat: false, reasons: [] });
-
-                const {
-                    stat: validDegraded,
-                    successReasons: degradedSuccessReasons,
-                    failedReasons: degradedFailedReasons,
-                    matchedUpCriterion: matchedDegradedCriterion,
-                } = await (monitor &&
-                monitor.criteria &&
-                monitor.criteria.degraded
-                    ? ProbeService.scriptConditions(
-                          res,
-                          resp,
-                          monitor.criteria.degraded
-                      )
-                    : { stat: false, reasons: [] });
+                    ? ProbeService.scriptConditions(resp, monitor.criteria.up)
+                    : { stat: false, successReasons: [], failedReasons: [] });
 
                 const {
                     stat: validDown,
@@ -356,48 +337,30 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     failedReasons: downFailedReasons,
                     matchedCriterion: matchedDownCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.down
-                    ? ProbeService.scriptConditions(res, resp, [
+                    ? ProbeService.scriptConditions(resp, [
                           ...monitor.criteria.down.filter(
                               criterion => criterion.default !== true
                           ),
                       ])
-                    : { stat: false, reasons: [] });
+                    : { stat: false, successReasons: [], failedReasons: [] });
 
                 if (validUp) {
-                    data.status = 'online';
-                    data.reason = upSuccessReasons;
+                    status = 'online';
+                    reason = upSuccessReasons;
                     matchedCriterion = matchedUpCriterion;
-                } else if (validDegraded) {
-                    data.status = 'degraded';
-                    data.reason = [
-                        ...degradedSuccessReasons,
-                        ...upFailedReasons,
-                    ];
-                    matchedCriterion = matchedDegradedCriterion;
                 } else if (validDown) {
-                    data.status = 'offline';
-                    data.reason = [
-                        ...downSuccessReasons,
-                        ...degradedFailedReasons,
-                        ...upFailedReasons,
-                    ];
+                    status = 'offline';
+                    reason = [...downSuccessReasons, ...upFailedReasons];
                     matchedCriterion = matchedDownCriterion;
                 } else {
-                    data.status = 'offline';
-                    data.reason = [
-                        ...downFailedReasons,
-                        ...degradedFailedReasons,
-                        ...upFailedReasons,
-                    ];
+                    status = 'offline';
+                    reason = [...downFailedReasons, ...upFailedReasons];
                     if (monitor.criteria.down) {
                         matchedCriterion = monitor.criteria.down.find(
                             criterion => criterion.default === true
                         );
                     }
                 }
-                resp.status = null;
-                data.status = status;
-                data.reason = reason;
             }
             if (type === 'server-monitor') {
                 data = serverData;

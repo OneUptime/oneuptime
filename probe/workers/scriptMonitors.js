@@ -25,7 +25,7 @@ module.exports = {
 
                     // normalize response
                     const resp = {
-                        status: success ? 'success' : 'failed',
+                        statusMessage: success ? 'success' : 'failed',
                         error: success
                             ? undefined
                             : message + ': ' + errorString,

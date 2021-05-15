@@ -641,15 +641,8 @@ module.exports = {
         }
     },
 
-    scriptConditions: (payload, resp, con) => {
-        const status = resp
-            ? resp.status
-                ? resp.status
-                : resp.statusCode
-                ? resp.statusCode
-                : null
-            : null;
-        const body = resp && resp.body ? resp.body : null;
+    scriptConditions: (resp, con) => {
+        const body = resp ?? null;
         const successReasons = [];
         const failedReasons = [];
 
@@ -665,9 +658,7 @@ module.exports = {
                     condition.criteria.condition === 'and'
                 ) {
                     stat = checkScriptAnd(
-                        payload,
                         condition.criteria,
-                        status,
                         body,
                         successReasons,
                         failedReasons
@@ -679,9 +670,7 @@ module.exports = {
                     condition.criteria.condition === 'or'
                 ) {
                     stat = checkScriptOr(
-                        payload,
                         condition.criteria,
-                        status,
                         body,
                         successReasons,
                         failedReasons
@@ -6362,7 +6351,7 @@ const checkScriptCondition = (condition, body) => {
      */
     const validity = {};
 
-    if (condition.responseType === 'error') {
+    if (condition.responseType === 'scriptExecution') {
         if (!condition.filter || !body) {
             return;
         }
@@ -6392,14 +6381,7 @@ const checkScriptCondition = (condition, body) => {
     return validity;
 };
 
-const checkScriptAnd = (
-    payload,
-    con,
-    statusCode,
-    body,
-    successReasons,
-    failedReasons
-) => {
+const checkScriptAnd = (con, body, successReasons, failedReasons) => {
     let valid = true;
     if (con && con.criteria && con.criteria.length > 0) {
         for (let i = 0; i < con.criteria.length; i++) {
@@ -6413,9 +6395,7 @@ const checkScriptAnd = (
                 ) {
                     // check script and
                     const subConditionValid = checkScriptAnd(
-                        payload,
                         con.criteria[i],
-                        statusCode,
                         body,
                         successReasons,
                         failedReasons
@@ -6429,9 +6409,7 @@ const checkScriptAnd = (
                 ) {
                     // check script or
                     const subConditionValid = checkScriptOr(
-                        payload,
                         con.criteria[i],
-                        statusCode,
                         body,
                         successReasons,
                         failedReasons
@@ -6441,11 +6419,7 @@ const checkScriptAnd = (
                     }
                 }
             } else {
-                const validity = checkScriptCondition(
-                    con.criteria[i],
-                    payload,
-                    body
-                );
+                const validity = checkScriptCondition(con.criteria[i], body);
                 if (validity) {
                     if (validity.valid) {
                         successReasons.push(validity.reason);
@@ -6461,14 +6435,7 @@ const checkScriptAnd = (
     return valid;
 };
 
-const checkScriptOr = (
-    payload,
-    con,
-    statusCode,
-    body,
-    successReasons,
-    failedReasons
-) => {
+const checkScriptOr = (con, body, successReasons, failedReasons) => {
     let valid = false;
     if (con && con.criteria && con.criteria.length > 0) {
         for (let i = 0; i < con.criteria.length; i++) {
@@ -6482,9 +6449,7 @@ const checkScriptOr = (
                 ) {
                     // check script or
                     const subConditionValid = checkScriptOr(
-                        payload,
                         con.criteria[i],
-                        statusCode,
                         body,
                         successReasons,
                         failedReasons
@@ -6498,9 +6463,7 @@ const checkScriptOr = (
                 ) {
                     // check script and
                     const subConditionValid = checkScriptAnd(
-                        payload,
                         con.criteria[i],
-                        statusCode,
                         body,
                         successReasons,
                         failedReasons
@@ -6510,11 +6473,7 @@ const checkScriptOr = (
                     }
                 }
             } else {
-                const validity = checkScriptCondition(
-                    con.criteria[i],
-                    payload,
-                    body
-                );
+                const validity = checkScriptCondition(con.criteria[i], body);
                 if (validity) {
                     if (validity.valid) {
                         valid = true;
