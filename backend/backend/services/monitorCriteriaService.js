@@ -146,7 +146,7 @@ const MonitorCriteriaService = {
                 up_1000: [
                     {
                         match: 'all',
-                        responseType: 'error',
+                        responseType: 'scriptExecution',
                         filter: 'doesNotThrowError',
                         field1: '',
                         field2: '',
@@ -159,7 +159,7 @@ const MonitorCriteriaService = {
                 down_1000: [
                     {
                         match: 'any',
-                        responseType: 'error',
+                        responseType: 'scriptExecution',
                         filter: 'throwsError',
                         field1: '',
                         field2: '',
@@ -169,7 +169,6 @@ const MonitorCriteriaService = {
                 down_1000_createAlert: true,
                 down_1000_autoAcknowledge: true,
                 down_1000_autoResolve: true,
-                degraded_1000: [],
                 type_1000: 'script',
             },
             'server-monitor': {
