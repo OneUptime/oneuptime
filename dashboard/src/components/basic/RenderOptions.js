@@ -251,8 +251,8 @@ export class RenderOption extends Component {
                                         type !== 'ip',
                                 },
                                 {
-                                    value: 'error',
-                                    label: 'Error',
+                                    value: 'scriptExecution',
+                                    label: 'Script Execution',
                                     show: type === 'script',
                                 },
                                 {
@@ -582,14 +582,16 @@ export class RenderOption extends Component {
                                         label: 'Throws error',
                                         show:
                                             bodyfield &&
-                                            bodyfield.responseType === 'error',
+                                            bodyfield.responseType ===
+                                                'scriptExecution',
                                     },
                                     {
                                         value: 'doesNotThrowError',
                                         label: 'Does not throw error',
                                         show:
                                             bodyfield &&
-                                            bodyfield.responseType === 'error',
+                                            bodyfield.responseType ===
+                                                'scriptExecution',
                                     },
                                     {
                                         value: 'isValid',
@@ -634,7 +636,7 @@ export class RenderOption extends Component {
 
                 {bodyfield &&
                 filterval !== '' &&
-                bodyfield.responseType === 'error' ? (
+                bodyfield.responseType === 'scriptExecution' ? (
                     ''
                 ) : (
                     <>
