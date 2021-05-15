@@ -90,6 +90,11 @@ class NewMonitor extends Component {
                             !props.edit
                         ) {
                             return false;
+                        } else if (
+                            props.type === 'script' &&
+                            cr.type === 'degraded'
+                        ) {
+                            return false;
                         }
                         return true;
                     })) ||
@@ -186,6 +191,11 @@ class NewMonitor extends Component {
                     criterion => {
                         if (
                             this.props.type === 'kubernetes' &&
+                            criterion.type === 'degraded'
+                        ) {
+                            // do nothing
+                        } else if (
+                            this.props.type === 'script' &&
                             criterion.type === 'degraded'
                         ) {
                             // do nothing
