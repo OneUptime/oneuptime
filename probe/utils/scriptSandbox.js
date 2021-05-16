@@ -108,6 +108,7 @@ const runScript = async (
                 }
                 resolve({ success: false, message: err.message });
                 clearInterval(checker);
+                worker.terminate();
             });
 
             let totalRuntime = 0,
@@ -153,8 +154,6 @@ const runScript = async (
         const scriptCompletedCallback = err => {
             if (err) {
                 throw new ScriptMonitorError(err);
-            } else {
-                process.exit();
             }
         };
 
@@ -166,6 +165,7 @@ const runScript = async (
         );
 
         await sandboxFunction(scriptCompletedCallback);
+        process.exit();
     }
 };
 
