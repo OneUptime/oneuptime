@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const { join } = require('path');
 
 // TODO - make this configurable from admin-dashboard
@@ -11,7 +12,12 @@ class ScriptMonitorError extends Error {
     constructor(errors, message = 'Script monitor resource error') {
         super();
         this.message = message;
-        this.errors = errors;
+        this.errors = Array.isArray(errors)
+            ? errors.reduce(
+                  (allErr, err) => [...allErr, err.message].join(','),
+                  []
+              )
+            : errors.message ?? errors;
     }
 }
 
@@ -101,6 +107,7 @@ const runScript = async (
                     return;
                 }
                 resolve({ success: false, message: err.message });
+                clearInterval(checker);
             });
 
             let totalRuntime = 0,
@@ -146,6 +153,8 @@ const runScript = async (
         const scriptCompletedCallback = err => {
             if (err) {
                 throw new ScriptMonitorError(err);
+            } else {
+                process.exit();
             }
         };
 
@@ -157,7 +166,6 @@ const runScript = async (
         );
 
         await sandboxFunction(scriptCompletedCallback);
-        process.exit();
     }
 };
 
