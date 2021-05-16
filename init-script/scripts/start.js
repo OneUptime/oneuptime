@@ -7,14 +7,13 @@ async function run() {
 
     if (process.env['NODE_ENV'] === 'development') {
         await setupTestProbes();
-
+        await removeGlobalConfigs(); // remove all global settings for test.
         if(process.env['IS_SAAS_SERVICE'] === 'true' || process.env['IS_SAAS_SERVICE'] === true) {
             // if SaaS Service create master admin user automatically.
             await addMasterAdminUser();
         }else{
             await removeMasterAdminUser();
         }
-        
     }
 }
 
@@ -38,6 +37,12 @@ async function removeMasterAdminUser(){
     await removeMany(collection, {
         email: 'masteradmin@hackerbay.io'
     });
+}
+
+async function removeGlobalConfigs(){
+    const collection = 'globalconfigs';
+
+    await removeMany(collection, {}); //remove all global configs.
 }
 
 async function addMasterAdminUser(){

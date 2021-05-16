@@ -1,6 +1,8 @@
 private
 public
 
+node_modules
+build
 # tls
 tls_cert.pem
 tls_key.pem

@@ -44,7 +44,12 @@ describe('SMTP Settings API', () => {
 
             await init.pageWaitForSelector(page, '#smtp');
             await init.pageClick(page, '#smtp a');
+
             await init.pageWaitForSelector(page, '#smtp-form');
+            await init.pageClick(page, '#email-enabled');
+            await init.pageClick(page, '#customSmtp');
+            
+
             const originalValues = await page.$$eval('input', e =>
                 e.map(field => field.value)
             );
@@ -87,6 +92,8 @@ describe('SMTP Settings API', () => {
             await init.pageWaitForSelector(page, '#smtp');
             await init.pageClick(page, '#smtp a');
             await init.pageWaitForSelector(page, '#smtp-form');
+            await init.pageClick(page, '#email-enabled');
+            await init.pageClick(page, '#customSmtp');
 
             await init.pageClick(page, 'input[name=email]');
             await init.pageType(
@@ -146,6 +153,7 @@ describe('SMTP Settings API', () => {
             await init.pageClick(page, '#testSmtpSettingsButton');
             await init.pageWaitForSelector(page, 'input[name=test-email]');
             await init.pageType(page, 'input[name=test-email]', email);
+            await init.pageClick(page, '#customSmtpBtn');
             await init.pageClick(page, '#confirmSmtpTest');
 
             await init.pageWaitForSelector(
@@ -178,6 +186,7 @@ describe('SMTP Settings API', () => {
             await init.pageClick(page, '#testSmtpSettingsButton');
             await init.pageWaitForSelector(page, 'input[name=test-email]');
             await init.pageType(page, 'input[name=test-email]', email);
+            await init.pageClick(page, '#customSmtpBtn');
             await init.pageClick(page, '#confirmSmtpTest');
 
             await init.pageWaitForSelector(
