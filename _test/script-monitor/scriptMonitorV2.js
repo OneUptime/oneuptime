@@ -11,7 +11,12 @@ class ScriptMonitorError extends Error {
     constructor(errors, message = "Script monitor resource error") {
         super();
         this.message = message;
-        this.errors = errors;
+        this.errors = Array.isArray(errors)
+        ? errors.reduce(
+              (allErr, err) => [...allErr, err.message].join(','),
+              []
+          )
+        : (errors.message ?? errors);
     }
 }
 
