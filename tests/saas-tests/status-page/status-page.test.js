@@ -513,7 +513,7 @@ describe('Check status-page up', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, '#description', { clickCount: 3 });
+            await init.pageClick(page, '#description');
             await page.keyboard.down('Control');
             await page.keyboard.press('A');
             await page.keyboard.up('Control');

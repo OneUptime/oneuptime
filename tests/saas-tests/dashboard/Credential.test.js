@@ -151,7 +151,7 @@ describe('Credential Page', () => {
             await init.pageClick(page, '#editCredentialBtn_0');
             await init.pageWaitForSelector(page, '#gitCredentialForm');
             const gitUsername = 'newusername';
-            await init.pageClick(page, '#gitUsername', { clickCount: 3 });
+            await init.pageClick(page, '#gitUsername');
             await init.pageType(page, '#gitUsername', gitUsername);
             await init.pageClick(page, '#updateCredentialModalBtn');
             await init.pageWaitForSelector(page, '#gitCredentialForm', {
@@ -363,9 +363,9 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '#dockerCredentialForm');
             const dockerUsername = 'username';
             const dockerPassword = 'hello1234567890';
-            await init.pageClick(page, '#dockerUsername', { clickCount: 3 });
+            await init.pageClick(page, '#dockerUsername');
             await init.pageType(page, '#dockerUsername', dockerUsername);
-            await init.pageClick(page, '#dockerPassword', { clickCount: 3 });
+            await init.pageClick(page, '#dockerPassword');
             await init.pageType(page, '#dockerPassword', dockerPassword);
             await init.pageClick(page, '#updateCredentialModalBtn');
             await init.pageWaitForSelector(page, '#dockerCredentialForm', {
@@ -406,9 +406,9 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '#dockerCredentialForm');
             const dockerUsername = 'invalidusername';
             const dockerPassword = 'hello1234567890';
-            await init.pageClick(page, '#dockerUsername', { clickCount: 3 });
+            await init.pageClick(page, '#dockerUsername');
             await init.pageType(page, '#dockerUsername', dockerUsername);
-            await init.pageClick(page, '#dockerPassword', { clickCount: 3 });
+            await init.pageClick(page, '#dockerPassword');
             await init.pageType(page, '#dockerPassword', dockerPassword);
             await init.pageClick(page, '#updateCredentialModalBtn');
 

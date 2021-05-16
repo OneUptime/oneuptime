@@ -122,7 +122,7 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, '#incidentSettings');
             await init.pageWaitForSelector(page, 'input[name=title]');
             await init.selectByText('#incidentPriority', 'low', page);
-            await init.pageClick(page, 'input[name=title]', { clickCount: 3 });
+            await init.pageClick(page, 'input[name=title]');
             await page.keyboard.press('Backspace');
             await init.pageType(
                 page,

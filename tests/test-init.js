@@ -1456,17 +1456,27 @@ const _this = {
         await page.focus(selector);
         return await page.type(selector, text, opts);
     },
-    pageClick: async function(page, selector) {
+    pageClick: async function(page, selector, opts) {
         await _this.pageWaitForSelector(page, selector, {
             visible: true,
             timeout: _this.timeout,
         });
-        return await page.click(selector);
+        return await page.click(selector, opts);
     },
     pageWaitForSelector: async function(page, selector, opts) {
+        if(!opts){
+            opts = {}
+        }
+
+        if(!opts.timeout){
+            opts.timeout = _this.timeout;
+        }
+
+        if(!opts.hidden){
+            opts.visible= true; 
+        }
+
         return await page.waitForSelector(selector, {
-            visible: true,
-            timeout: _this.timeout,
             ...opts,
         });
     },

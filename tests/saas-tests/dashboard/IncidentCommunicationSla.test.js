@@ -332,7 +332,7 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, '#name', { clickCount: 3 });
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', '    ');
             await init.pageClick(page, '#editSlaBtn');
 
@@ -395,7 +395,7 @@ describe('Incident Communication SLA', () => {
                 timeout: init.timeout,
             });
             slaName = 'newFxPro';
-            await init.pageClick(page, '#name', { clickCount: 3 });
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
             await init.pageClick(page, '#editSlaBtn');
             await init.pageWaitForSelector(page, '.ball-beat', {

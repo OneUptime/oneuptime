@@ -277,7 +277,7 @@ describe('Twilio Settings API', () => {
             await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
             await init.pageWaitForSelector(page, 'input[type=tel]');
-            await init.pageClick(page, 'input[type=tel]', { clickCount: 3 });
+            await init.pageClick(page, 'input[type=tel]');
             await init.pageType(page, 'input[type=tel]', phoneNumber);
             await init.pageWaitForSelector(page, '#sendVerificationSMS', {
                 visible: true,

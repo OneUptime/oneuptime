@@ -362,7 +362,7 @@ describe('Container Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, '#name', { clickCount: 3 });
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', newContainerSecurityName);
             await init.pageClick(page, '#editContainerBtn');
             await init.pageWaitForSelector(page, '#editContainerSecurityForm', {

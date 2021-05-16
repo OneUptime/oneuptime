@@ -15,7 +15,9 @@ describe('Project', () => {
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
 
-        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig, {
+            waitUntil: 'networkidle2',
+        });
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
 
@@ -43,10 +45,12 @@ describe('Project', () => {
     test(
         'should upgrade a project to enterprise plan',
         async () => {
-
-            await init.pageClick(page, "#goToUserDashboard");
-
+            await page.goto(utils.ADMIN_DASHBOARD_URL, {
+                waitUntil: 'networkidle2',
+            });
+            await init.pageClick(page ,"#projects");
             await page.$eval('#projects > a', elem => elem.click());
+            await init.pageWaitForSelector(page, '.Table > tbody tr');
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
                 elem = Array.from(elem);
@@ -88,7 +92,9 @@ describe('Project', () => {
         'should change to any other plan',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
+            await init.pageClick(page ,"#projects");
             await page.$eval('#projects > a', elem => elem.click());
+            await init.pageWaitForSelector(page, '.Table > tbody tr');
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
                 elem = Array.from(elem);

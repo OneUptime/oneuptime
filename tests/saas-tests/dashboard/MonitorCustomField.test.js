@@ -91,7 +91,7 @@ describe('Monitor Custom Field', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, '#fieldName', { clickCount: 3 });
+            await init.pageClick(page, '#fieldName');
             await init.pageType(
                 page,
                 '#fieldName',

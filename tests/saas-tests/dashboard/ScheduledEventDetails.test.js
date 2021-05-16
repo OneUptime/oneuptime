@@ -141,7 +141,7 @@ describe('Scheduled Event Note', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, '#update-internal', { clickCount: 3 });
+            await init.pageClick(page, '#update-internal');
             await init.pageType(
                 page,
                 '#update-internal',

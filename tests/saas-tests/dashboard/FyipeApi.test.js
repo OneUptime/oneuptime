@@ -178,9 +178,7 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, 'input[name=project_name]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=project_name]');
             await init.pageType(page, 'input[name=project_name]', projectName);
             await init.pageWaitForSelector(
                 page,

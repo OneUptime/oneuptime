@@ -20,7 +20,7 @@
             "type": "node-terminal"
         },
         {
-            "command": "export HEADLESS=false && jest  ./saas-tests/admin-dashboard/User.test.js",
+            "command": "export HEADLESS=false && jest  ./saas-tests/admin-dashboard/Project.test.js",
             "name": "Debug Single File: Local SaaS test",
             "request": "launch",
             "type": "node-terminal"

@@ -122,7 +122,7 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, '#from', { clickCount: 3 });
+            await init.pageClick(page, '#from');
             await init.pageType(page, '#from', from);
             await init.pageClick(page, '#saveSmtp');
             await init.pageWaitForSelector(page, '.ball-beat', {

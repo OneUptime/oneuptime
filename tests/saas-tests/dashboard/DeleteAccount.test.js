@@ -44,9 +44,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, 'input[name=project_name]');
-            await init.pageClick(page, 'input[name=project_name]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=project_name]');
             await init.pageType(page, 'input[name=project_name]', projectName);
             await init.pageWaitForSelector(page, 'button[id=btnCreateProject]');
             await init.pageClick(page, 'button[id=btnCreateProject]');

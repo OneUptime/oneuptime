@@ -87,7 +87,7 @@ describe('Email Templates API', () => {
             );
             const subject = 'Updated Subject';
             await init.pageWaitForSelector(page, '#name');
-            await init.pageClick(page, '#name', { clickCount: 3 });
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', subject);
             await init.pageClick(page, '#saveTemplate');
             await init.pageWaitForSelector(page, '#ball-beat', {

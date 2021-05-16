@@ -87,7 +87,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '#createIncident');
             await init.selectByText('#incidentType', 'Offline', page);
             await init.selectByText('#incidentPriority', priorityName, page);
-            await init.pageClick(page, '#title', { clickCount: 3 });
+            await init.pageClick(page, '#title');
             // await page.keyboard.press('Backspace');
             await init.pageType(page, '#title', incidentTitle);
             await page.$eval('#createIncident', e => e.click());
@@ -142,7 +142,7 @@ describe('Monitor Detail API', () => {
             expect(currentTitle).toEqual(incidentTitle);
             // The Edit Button has been removed and replaced with another functions
             await init.pageClick(page, '#incidentTitle');
-            await init.pageClick(page, '#title', { clickCount: 3 });
+            await init.pageClick(page, '#title');
             await page.keyboard.press('Backspace');
             await init.pageType(page, '#title', newIncidentTitle);
             await page.keyboard.press('Enter');
@@ -468,9 +468,9 @@ describe('Monitor Detail API', () => {
             await page.$eval(editWebhookButtonSelector, e => e.click());
 
             const newWebhookEndpoint = utils.generateRandomWebsite();
-            await init.pageClick(page, '#webHookName', { clickCount: 3 });
+            await init.pageClick(page, '#webHookName');
             await init.pageType(page, '#webHookName', newWebHookName);
-            await init.pageClick(page, '#endpoint', { clickCount: 3 });
+            await init.pageClick(page, '#endpoint');
             await init.pageType(page, '#endpoint', newWebhookEndpoint);
             await page.$eval('#msteamsUpdate', e => e.click());
             await init.pageWaitForSelector(page, '#msteamsUpdate', {
@@ -682,9 +682,9 @@ describe('Monitor Detail API', () => {
             await page.$eval(editWebhookButtonSelector, e => e.click());
 
             const newWebhookEndpoint = utils.generateRandomWebsite();
-            await init.pageClick(page, '#webHookName', { clickCount: 3 });
+            await init.pageClick(page, '#webHookName');
             await init.pageType(page, '#webHookName', newWebHookName);
-            await init.pageClick(page, '#endpoint', { clickCount: 3 });
+            await init.pageClick(page, '#endpoint');
             await init.pageType(page, '#endpoint', newWebhookEndpoint);
             await page.$eval('#slackUpdate', e => e.click());
             await init.pageWaitForSelector(page, '#slackUpdate', {
@@ -1264,7 +1264,7 @@ describe('Monitor Detail API', () => {
             await page.$eval(editButtonSelector, e => e.click());
 
             await init.pageWaitForSelector(page, '#form-new-monitor');
-            await init.pageClick(page, 'input[id=name]', { clickCount: 3 });
+            await init.pageClick(page, 'input[id=name]');
             await init.pageType(page, 'input[id=name]', newMonitorName);
             await page.$eval('button[type=submit]', e => e.click());
             await init.pageWaitForSelector(page, '#form-new-monitor', {

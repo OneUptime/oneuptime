@@ -48,25 +48,17 @@ describe('SMTP Settings API', () => {
             const originalValues = await page.$$eval('input', e =>
                 e.map(field => field.value)
             );
-            await init.pageClick(page, 'input[name=email]', { clickCount: 3 });
+            await init.pageClick(page, 'input[name=email]');
             await init.pageType(page, 'input[name=email]', ' ');
-            await init.pageClick(page, 'input[name=password]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=password]');
             await init.pageType(page, 'input[name=password]', ' ');
-            await init.pageClick(page, 'input[name=smtp-server]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=smtp-server]');
             await init.pageType(page, 'input[name=smtp-server]', ' ');
-            await init.pageClick(page, 'input[name=smtp-port]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=smtp-port]');
             await init.pageType(page, 'input[name=smtp-port]', ' ');
-            await init.pageClick(page, 'input[name=from]', { clickCount: 3 });
+            await init.pageClick(page, 'input[name=from]');
             await init.pageType(page, 'input[name=from]', ' ');
-            await init.pageClick(page, 'input[name=from-name]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=from-name]');
             await init.pageType(page, 'input[name=from-name]', ' ');
             await init.pageClick(page, 'button[type=submit]');
 
@@ -96,41 +88,33 @@ describe('SMTP Settings API', () => {
             await init.pageClick(page, '#smtp a');
             await init.pageWaitForSelector(page, '#smtp-form');
 
-            await init.pageClick(page, 'input[name=email]', { clickCount: 3 });
+            await init.pageClick(page, 'input[name=email]');
             await init.pageType(
                 page,
                 'input[name=email]',
                 utils.smtpCredential.user
             );
-            await init.pageClick(page, 'input[name=password]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=password]');
             await init.pageType(
                 page,
                 'input[name=password]',
                 utils.smtpCredential.pass
             );
-            await init.pageClick(page, 'input[name=smtp-server]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=smtp-server]');
             await init.pageType(
                 page,
                 'input[name=smtp-server]',
                 utils.smtpCredential.host
             );
-            await init.pageClick(page, 'input[name=smtp-port]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=smtp-port]');
             await init.pageType(
                 page,
                 'input[name=smtp-port]',
                 utils.smtpCredential.port
             );
-            await init.pageClick(page, 'input[name=from]', { clickCount: 3 });
+            await init.pageClick(page, 'input[name=from]');
             await init.pageType(page, 'input[name=from]', randomEmail);
-            await init.pageClick(page, 'input[name=from-name]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=from-name]');
             await init.pageType(
                 page,
                 'input[name=from-name]',
@@ -188,9 +172,7 @@ describe('SMTP Settings API', () => {
             await init.pageClick(page, '#smtp a');
             await init.pageWaitForSelector(page, '#smtp-form');
 
-            await init.pageClick(page, 'input[name=password]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=password]');
             await init.pageType(page, 'input[name=password]', wrongPassword);
 
             await init.pageClick(page, '#testSmtpSettingsButton');
