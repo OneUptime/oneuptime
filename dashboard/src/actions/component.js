@@ -461,9 +461,9 @@ export function fetchComponentFailure(error) {
     };
 }
 
-export function fetchComponent(slug) {
+export function fetchComponent(projectId, slug) {
     return function(dispatch) {
-        const promise = getApi(`component/slug/${slug}`);
+        const promise = getApi(`component/${projectId}/slug/${slug}`);
         dispatch(fetchComponentRequest());
 
         promise.then(
