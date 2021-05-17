@@ -67,7 +67,7 @@ module.exports = {
             const startTime = moment(scheduledEvent.startDate);
             if (startTime <= currentTime) {
                 await ScheduledEventNoteService.create({
-                    content: 'THIS SCHEDULED EVENT HAS STARTED',
+                    content: 'This scheduled event has started',
                     scheduledEventId: scheduledEvent._id,
                     type: 'investigation',
                     event_state: 'Started',
@@ -78,7 +78,7 @@ module.exports = {
             const endTime = moment(scheduledEvent.endDate);
             if (endTime <= currentTime) {
                 await ScheduledEventNoteService.create({
-                    content: 'THIS SCHEDULED EVENT HAS ENDED',
+                    content: 'This scheduled event has ended',
                     scheduledEventId: scheduledEvent._id,
                     type: 'investigation',
                     event_state: 'Ended',
