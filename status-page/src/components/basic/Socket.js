@@ -106,6 +106,10 @@ class SocketApp extends Component {
                 socket.removeListener(
                     `resolveScheduledEvent-${this.props.project._id}`
                 );
+
+                socket.removeListener(
+                    `fetchOngoingScheduledEvent-${this.props.project._id}`
+                );
             }
             return true;
         } else {
@@ -240,6 +244,15 @@ class SocketApp extends Component {
                 `resolveScheduledEvent-${this.props.project._id}`,
                 event => thisObj.props.resolvescheduledeventbysocket(event)
             );
+
+            socket.on(
+                `fetchOngoingScheduledEvent-${this.props.project._id}`,
+                value => {
+                    console.log('**************l', value);
+
+                    thisObj.props.fetchongoingscheduledeventbysocket(value);
+                }
+            );
         }
         return null;
     }
@@ -282,6 +295,7 @@ const mapDispatchToProps = dispatch =>
             deleteeventnotebysocket,
             updateeventnotebysocket,
             resolvescheduledeventbysocket,
+            fetchongoingscheduledeventbysocket,
         },
         dispatch
     );

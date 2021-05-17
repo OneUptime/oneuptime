@@ -169,11 +169,11 @@ export function resolvescheduledeventbysocket(event) {
     };
 }
 
-export function fetchongoingscheduledeventbysocket(event) {
+export function fetchongoingscheduledeventbysocket(value) {
     return function(dispatch) {
         dispatch({
-            type: 'ONGOING_SCHEDULED_EVENT',
-            payload: event,
+            type: 'ONGOING_SCHEDULED_EVENTS_SUCCESS',
+            payload: value,
         });
     };
 }

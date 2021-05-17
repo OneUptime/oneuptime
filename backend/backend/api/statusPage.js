@@ -991,7 +991,7 @@ router.get(
             let events = response.events;
             let ongoing = false;
             if ((theme && typeof theme === 'boolean') || theme === 'true') {
-                ongoing = await StatusPageService.getOngoingEventsCount(events);
+                ongoing = await StatusPageService.isOngoingEvent(events);
             }
 
             return sendListResponse(req, res, {

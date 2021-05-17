@@ -753,7 +753,7 @@ module.exports = {
             throw error;
         }
     },
-    getOngoingEventsCount: async function(events) {
+    isOngoingEvent: async function(events) {
         try {
             onGoingEventCount = 0;
             if (events.length > 0) {
