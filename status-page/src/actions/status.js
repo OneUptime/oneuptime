@@ -289,10 +289,10 @@ export const ongoingEventReset = () => {
 };
 
 // Calls the API to get events
-export const getOngoingScheduledEvent = (projectId, statusPageSlug, theme) => {
+export const getOngoingScheduledEvent = (projectId, statusPageSlug) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageSlug}/ongoingEvent?&theme=${theme}`
+            `statusPage/${projectId}/${statusPageSlug}/events`
         );
 
         dispatch(ongoingEventRequest());
@@ -301,6 +301,7 @@ export const getOngoingScheduledEvent = (projectId, statusPageSlug, theme) => {
             Data => {
                 dispatch(ongoingEventSuccess(Data.data));
             },
+
             error => {
                 if (error && error.response && error.response.data)
                     error = error.response.data;

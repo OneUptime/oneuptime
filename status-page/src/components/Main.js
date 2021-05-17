@@ -103,8 +103,7 @@ class Main extends Component {
 
             this.props.getOngoingScheduledEvent(
                 this.props.statusData.projectId._id,
-                this.props.statusData.slug,
-                this.props.statusData.theme === 'Clean Theme' ? true : false
+                this.props.statusData.slug
             );
         }
     }
@@ -552,13 +551,16 @@ class Main extends Component {
                                 <div
                                     className="sy-op"
                                     style={{
-                                        backgroundColor: this.props.ongoing
-                                            ? 'rgb(227, 159, 72)'
-                                            : newbg,
+                                        backgroundColor:
+                                            this.props.ongoing &&
+                                            this.props.ongoing.length > 0
+                                                ? 'rgb(227, 159, 72)'
+                                                : newbg,
                                     }}
                                     id="status-note"
                                 >
-                                    {this.props.ongoing
+                                    {this.props.ongoing &&
+                                    this.props.ongoing.length > 0
                                         ? 'Ongoing Scheduled Maintenance Event'
                                         : newStatusMessage}
                                 </div>
@@ -1355,7 +1357,7 @@ Main.propTypes = {
     requestingEvents: PropTypes.bool,
     statusPage: PropTypes.object,
     isSubscriberEnabled: PropTypes.bool.isRequired,
-    ongoing: PropTypes.bool,
+    ongoing: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

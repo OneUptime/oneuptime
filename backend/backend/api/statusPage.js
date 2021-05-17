@@ -971,39 +971,6 @@ router.get(
 );
 
 router.get(
-    '/:projectId/:statusPageSlug/ongoingEvent',
-    checkUser,
-    ipWhitelist,
-    async function(req, res) {
-        const statusPageSlug = req.params.statusPageSlug;
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 5;
-        const theme = req.query.theme;
-        try {
-            // Call the StatusPageService.
-            const response = await StatusPageService.getEvents(
-                { slug: statusPageSlug },
-                skip,
-                limit,
-                theme
-            );
-
-            let events = response.events;
-            let ongoing = false;
-            if ((theme && typeof theme === 'boolean') || theme === 'true') {
-                ongoing = await StatusPageService.isOngoingEvent(events);
-            }
-
-            return sendListResponse(req, res, {
-                ongoing,
-            });
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
-        }
-    }
-);
-
-router.get(
     '/:projectId/:statusPageSlug/futureEvents',
     checkUser,
     ipWhitelist,

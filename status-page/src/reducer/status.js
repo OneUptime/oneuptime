@@ -91,7 +91,7 @@ const INITIAL_STATE = {
     },
     ongoing: {
         error: null,
-        ongoing: false,
+        ongoing: [],
         requesting: false,
         success: false,
     },
@@ -630,14 +630,16 @@ export default (state = INITIAL_STATE, action) => {
 
         case ONGOING_SCHEDULED_EVENTS_SUCCESS:
             return Object.assign({}, state, {
-                error: null,
-                ongoing: action.payload.data,
-                requesting: false,
+                ongoing: {
+                    error: null,
+                    ongoing: action.payload.data,
+                    requesting: false,
+                },
             });
 
         case ONGOING_SCHEDULED_EVENTS_FAILURE:
             return Object.assign({}, state, {
-                events: {
+                ongoing: {
                     error: action.payload,
                     ongoing: state.ongoing.ongoing,
                     requesting: false,
@@ -648,8 +650,8 @@ export default (state = INITIAL_STATE, action) => {
             return Object.assign({}, state, {
                 ongoing: {
                     error: null,
-                    ongoing: false,
-                    requesting: true,
+                    ongoing: [],
+                    requesting: true, 
                 },
             });
 
@@ -657,7 +659,7 @@ export default (state = INITIAL_STATE, action) => {
             return Object.assign({}, state, {
                 ongoing: {
                     error: null,
-                    ongoing: false,
+                    ongoing: [],
                     requesting: false,
                 },
             });
