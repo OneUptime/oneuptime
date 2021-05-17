@@ -1323,7 +1323,6 @@ margin-left:10px;
 }
 
 .clean_ann {
-  width: 90%;
   max-width: 850px;
   margin: auto;
   font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
@@ -1337,6 +1336,7 @@ margin-left:10px;
   color: white;
   padding: 0.75rem 1.25rem;
   border-radius: 5px;
+  margin-bottom: 70px;
 }
 
 .announcement_icon {

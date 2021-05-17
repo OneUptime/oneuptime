@@ -11490,6 +11490,9 @@ table {
     position:relative;
     padding-left: 15px;
 }
+.movable-layout-box{
+    cursor: all-scroll!important;
+}
 .capabilitiestrue:before{
     content: '';
     position: absolute;
@@ -11540,7 +11543,7 @@ table {
         width: 100%!important;
     }
 }
-@media only screen and (max-width: 1159){
+@media only screen and (max-width: 1159px){
     .layoutContainer{
         width: 100%!important;
     }
