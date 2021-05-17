@@ -11606,6 +11606,13 @@ table {
     .Layout-box{
         padding: 27px 20px!important
     }
+    .draggable-content-description{
+        display: none!important;
+    }
+    .Drag-box-header{
+        font-size: 15px!important;
+        line-height: 15px!important;
+    }
 }
 .error-marker {
     background-color: rgb(109, 107, 107);

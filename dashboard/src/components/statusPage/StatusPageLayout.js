@@ -240,7 +240,7 @@ export class StatusPageLayout extends Component {
                                                                     Header
                                                                 </span>
                                                                 <br />
-                                                                <span>
+                                                                <span className="draggable-content-description">
                                                                     This section
                                                                     displays the
                                                                     header of
@@ -304,14 +304,14 @@ export class StatusPageLayout extends Component {
                                                                                         '10px',
                                                                                 }}
                                                                             >
-                                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28">
+                                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Drag-box-header">
                                                                                     {
                                                                                         item.name
                                                                                     }
                                                                                 </span>
                                                                                 <br />
 
-                                                                                <span>
+                                                                                <span className="draggable-content-description">
                                                                                     {this.getDescription(
                                                                                         item.key
                                                                                     )}
@@ -341,7 +341,7 @@ export class StatusPageLayout extends Component {
                                                                     Footer
                                                                 </span>
                                                                 <br />
-                                                                <span>
+                                                                <span className="draggable-content-description">
                                                                     This section
                                                                     displays the
                                                                     footer of
@@ -439,16 +439,16 @@ export class StatusPageLayout extends Component {
                                                                             <div
                                                                                 style={{
                                                                                     marginLeft:
-                                                                                        '5px',
+                                                                                        '10px',
                                                                                 }}
                                                                             >
-                                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28">
+                                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Drag-box-header">
                                                                                     {
                                                                                         item.name
                                                                                     }
                                                                                 </span>
                                                                                 <br />
-                                                                                <span>
+                                                                                <span className="draggable-content-description">
                                                                                     {this.getDescription(
                                                                                         item.key
                                                                                     )}
