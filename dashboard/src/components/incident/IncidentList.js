@@ -14,7 +14,7 @@ import ShouldRender from '../basic/ShouldRender';
 export class IncidentList extends Component {
     handleMonitorList = monitors => {
         if (monitors.length === 0) {
-            return 'No monitor in this event';
+            return 'No monitor in this incident';
         }
         if (monitors.length === 1) {
             return monitors[0].monitorId.name;
