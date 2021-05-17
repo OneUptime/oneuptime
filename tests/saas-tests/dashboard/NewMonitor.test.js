@@ -12,16 +12,14 @@ const user = {
     password,
 };
 describe('New Monitor API', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(3600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // user
         await init.registerUser(user, page);
         done();
@@ -48,31 +46,54 @@ describe('New Monitor API', () => {
                     componentName,
                     monitorName
                 );
-                await page.waitForSelector('.ball-beat', { hidden: true });
+                await init.pageWaitForSelector(page, '.ball-beat', {
+                    hidden: true,
+                });
             }
             // try to add more monitor
             const monitorName = utils.generateRandomString();
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', { visible: true });
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#components');
-            await page.waitForSelector('#component0', { visible: true });
+            await init.pageWaitForSelector(page, '#component0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, `#more-details-${componentName}`);
-            await page.waitForSelector('#form-new-monitor', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageWaitForSelector(page, '#form-new-monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             // Added new URL-Montior
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true });
+            await init.pageWaitForSelector(page, '#url', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await init.pageClick(page, 'button[type=submit]');
 
-            const pricingPlanModal = await page.waitForSelector(
+            const pricingPlanModal = await init.pageWaitForSelector(
+                page,
                 '#pricingPlanModal',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(pricingPlanModal).toBeTruthy();
             done();
@@ -98,31 +119,54 @@ describe('New Monitor API', () => {
                     componentName,
                     monitorName
                 );
-                await page.waitForSelector('.ball-beat', { hidden: true });
+                await init.pageWaitForSelector(page, '.ball-beat', {
+                    hidden: true,
+                });
             }
             // try to add more monitor
             const monitorName = utils.generateRandomString();
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', { visible: true });
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#components');
-            await page.waitForSelector('#component0', { visible: true });
+            await init.pageWaitForSelector(page, '#component0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, `#more-details-${componentName}`);
-            await page.waitForSelector('#form-new-monitor', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageWaitForSelector(page, '#form-new-monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             // Added new URL-Montior
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true });
+            await init.pageWaitForSelector(page, '#url', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await init.pageClick(page, 'button[type=submit]');
 
-            const pricingPlanModal = await page.waitForSelector(
+            const pricingPlanModal = await init.pageWaitForSelector(
+                page,
                 '#pricingPlanModal',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(pricingPlanModal).toBeTruthy();
             done();
@@ -148,30 +192,47 @@ describe('New Monitor API', () => {
                     componentName,
                     monitorName
                 );
-                await page.waitForSelector('.ball-beat', { hidden: true });
+                await init.pageWaitForSelector(page, '.ball-beat', {
+                    hidden: true,
+                });
             }
 
             // try to add more monitor
             const monitorName = utils.generateRandomString();
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', { visible: true });
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#components');
-            await page.waitForSelector('#component0', { visible: true });
+            await init.pageWaitForSelector(page, '#component0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, `#more-details-${componentName}`);
-            await page.waitForSelector('#form-new-monitor');
-            await page.waitForSelector('input[id=name]');
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageWaitForSelector(page, '#form-new-monitor');
+            await init.pageWaitForSelector(page, 'input[id=name]');
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             // Added new URL-Montior
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true });
+            await init.pageWaitForSelector(page, '#url', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await init.pageClick(page, 'button[type=submit]');
 
-            const pricingPlanModal = await page.waitForSelector(
+            const pricingPlanModal = await init.pageWaitForSelector(
+                page,
                 '#pricingPlanModal',
                 { hidden: true }
             );

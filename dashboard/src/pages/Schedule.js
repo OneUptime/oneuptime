@@ -10,7 +10,6 @@ import PropTypes from 'prop-types';
 import EscalationSummary from '../components/schedule/EscalationSummary';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { withRouter } from 'react-router';
 import { subProjectTeamLoading } from '../actions/team';
 import { getEscalation } from '../actions/schedule';
 import { teamLoading } from '../actions/team';
@@ -19,8 +18,30 @@ import getParentRoute from '../utils/getParentRoute';
 class Schedule extends Component {
     constructor(props) {
         super(props);
-        this.state = { editSchedule: false };
+        this.state = { editSchedule: false, error: false };
     }
+
+    async componentDidMount() {
+        const {
+            subProjectId,
+            scheduleId,
+            getEscalation,
+            subProjectTeamLoading,
+            teamLoading,
+        } = this.props;
+        if (scheduleId && subProjectId) {
+            try {
+                await Promise.all([
+                    getEscalation(subProjectId, scheduleId),
+                    subProjectTeamLoading(subProjectId),
+                    teamLoading(subProjectId),
+                ]);
+            } catch (e) {
+                this.handleError(e);
+            }
+        }
+    }
+
     async componentDidUpdate(prevProps) {
         if (
             prevProps.schedule !== this.props.schedule ||
@@ -41,11 +62,15 @@ class Schedule extends Component {
                         teamLoading(subProjectId),
                     ]);
                 } catch (e) {
-                    this.setState({ error: e });
+                    this.handleError(e);
                 }
             }
         }
     }
+
+    handleError = e => {
+        this.setState({ error: e });
+    };
 
     render() {
         const { editSchedule, error } = this.state;
@@ -190,6 +215,4 @@ Schedule.propTypes = {
     }),
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(Schedule)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(Schedule);

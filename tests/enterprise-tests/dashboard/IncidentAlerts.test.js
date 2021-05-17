@@ -17,15 +17,13 @@ const monitorName = utils.generateRandomString();
 const callScheduleName = utils.generateRandomString();
 
 describe('Schedule', () => {
-    const operationTimeOut = 1000000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(6000000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         await init.registerEnterpriseUser(user, page);
         const enableSms = true;
@@ -56,9 +54,9 @@ describe('Schedule', () => {
             }
         );
         await init.addSchedule(callScheduleName, page);
-        await page.waitForSelector('table tbody tr:first-child');
+        await init.pageWaitForSelector(page, 'table tbody tr:first-child');
         await init.pageClick(page, 'table tbody tr:first-child');
-        await page.waitForSelector('#btnSaveMonitors');
+        await init.pageWaitForSelector(page, '#btnSaveMonitors');
         await init.pageClick(page, '#scheduleMonitor_0');
         await init.pageClick(page, '#btnSaveMonitors');
         await page.$eval('input[name="OnCallAlertBox[0].email"]', element =>
@@ -89,18 +87,21 @@ describe('Schedule', () => {
         'should send on-call and external subscribers alerts when an incident is created.',
         async done => {
             await init.addIncident(monitorName, 'offline', page);
-            await page.waitForSelector('#viewIncident-0');
+            await init.pageWaitForSelector(page, '#viewIncident-0');
             await init.pageClick(page, '#viewIncident-0');
-            await page.waitForSelector('#react-tabs-4');
+            await init.pageWaitForSelector(page, '#react-tabs-4');
             await init.pageClick(page, '#react-tabs-4');
-            await page.waitForSelector('#TeamAlertLogBox');
+            await init.pageWaitForSelector(page, '#TeamAlertLogBox');
 
             const firstOncallAlertStatusSelector =
                 '#TeamAlertLogBox tbody tr:nth-last-of-type(1) td:last-of-type';
             const secondOncallAlertStatusSelector =
                 '#TeamAlertLogBox tbody tr:nth-last-of-type(2) td:last-of-type';
 
-            await page.waitForSelector(firstOncallAlertStatusSelector);
+            await init.pageWaitForSelector(
+                page,
+                firstOncallAlertStatusSelector
+            );
 
             const firstOncallAlertStatus = await page.$eval(
                 firstOncallAlertStatusSelector,
@@ -114,7 +115,7 @@ describe('Schedule', () => {
             expect(firstOncallAlertStatus).toEqual('Success');
             expect(secondOncallAlertStatus).toEqual('Success');
 
-            await page.waitForSelector('#subscriberAlertTable');
+            await init.pageWaitForSelector(page, '#subscriberAlertTable');
             const subscriberAlertStatusSelector =
                 '#subscriberAlertTable tbody tr:first-of-type td:nth-last-of-type(1)';
             const subscriberAlertTypeSelector =

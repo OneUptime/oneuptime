@@ -11,16 +11,14 @@ const user = {
 };
 
 describe('API test', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         // user
         await init.registerUser(user, page);
@@ -35,15 +33,18 @@ describe('API test', () => {
         'Should open the probes details modal if probe is offline',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#probe');
+            await init.pageWaitForSelector(page, '#probe');
             await init.pageClick(page, '#probe a');
-            await page.waitForSelector('#probe_0', { visible: true });
+            await init.pageWaitForSelector(page, '#probe_0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const elementHandle = await page.$('#offline_0 > span > span');
             if (elementHandle) {
                 // Probe is offline

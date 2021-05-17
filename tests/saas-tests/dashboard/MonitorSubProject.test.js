@@ -15,16 +15,14 @@ const newPassword = '1234567890';
 const subProjectName = utils.generateRandomString();
 
 describe('Monitor API With SubProjects', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         // Register user
         const user = {
@@ -43,7 +41,9 @@ describe('Monitor API With SubProjects', () => {
         // Create component
         await init.addComponent(componentName, page, subProjectName);
 
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
         // add new user to sub-project
         await init.addUserToProject(
             {
@@ -70,7 +70,10 @@ describe('Monitor API With SubProjects', () => {
             await init.logout(page);
             await init.registerAndLoggingTeamMember(user, page); // SubProject User registration and login
 
-            await page.waitForSelector('#components', { visible: true });
+            await init.pageWaitForSelector(page, '#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#components');
             const newComponentForm = await page.$('#form-new-component');
             expect(newComponentForm).toEqual(null);
@@ -93,20 +96,27 @@ describe('Monitor API With SubProjects', () => {
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
             // switch to invited project for new user
-            await page.waitForSelector('#monitors');
-            await page.waitForSelector('#form-new-monitor');
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageWaitForSelector(page, '#monitors');
+            await init.pageWaitForSelector(page, '#form-new-monitor');
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', subProjectMonitorName);
             await init.pageClick(page, '[data-testId=type_url]');
-            await page.waitForSelector('#url', { visible: true });
+            await init.pageWaitForSelector(page, '#url', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             await init.pageClick(page, 'button[type=submit]');
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${subProjectMonitorName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
 
             spanElement = await spanElement.getProperty('innerText');
@@ -122,18 +132,27 @@ describe('Monitor API With SubProjects', () => {
         'should create a monitor in parent project for valid `admin`',
         async done => {
             const monitorName = utils.generateRandomString();
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
 
-            await page.waitForSelector('#form-new-monitor', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageWaitForSelector(page, '#form-new-monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, '[data-testId=type_manual]');
             await init.pageClick(page, 'button[type=submit]');
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: operationTimeOut }
             );
@@ -151,9 +170,12 @@ describe('Monitor API With SubProjects', () => {
         // eslint-disable-next-line quotes
         "should get only sub-project's monitors for valid sub-project user",
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#components', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#components');
 
@@ -161,8 +183,9 @@ describe('Monitor API With SubProjects', () => {
 
             expect(projectBadgeSelector).toEqual(null);
 
-            await page.waitForSelector(`#badge_${subProjectName}`, {
+            await init.pageWaitForSelector(page, `#badge_${subProjectName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             const subProjectBadgeSelector = await page.$(
                 `#badge_${subProjectName}`
@@ -183,36 +206,51 @@ describe('Monitor API With SubProjects', () => {
         'should get both project and sub-project monitors for valid parent project user.',
         async done => {
             const monitorName = utils.generateRandomString();
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#form-new-monitor');
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageWaitForSelector(page, '#form-new-monitor');
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, '[data-testId=type_manual]');
             await init.pageClick(page, '#addMonitorButton');
-            await page.waitForSelector('.ball-beat', { hidden: true });
-            await page.waitForSelector('#cbMonitors', {
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
+            await init.pageWaitForSelector(page, '#cbMonitors', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#cbMonitors');
-            await page.waitForSelector('#form-new-monitor', {
+            await init.pageWaitForSelector(page, '#form-new-monitor', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', `${monitorName}1`);
             await init.pageClick(page, '[data-testId=type_manual]');
             await init.pageClick(page, '#addMonitorButton');
-            await page.waitForSelector('.ball-beat', { hidden: true });
-            await page.waitForSelector('#cbMonitors', {
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
+            await init.pageWaitForSelector(page, '#cbMonitors', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#cbMonitors');
-            await page.waitForSelector(`#badge_${subProjectName}`);
+            await init.pageWaitForSelector(page, `#badge_${subProjectName}`);
             const subProjectBadgeSelector = await page.$(
                 `#badge_${subProjectName}`
             );

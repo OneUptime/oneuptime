@@ -14,8 +14,14 @@
             "type": "node-terminal"
         },
         {
-            "command": "export SLOMO=20 && export HEADLESS=false && export HTTP_TEST_SERVER_URL=https://staging-test-server.fyipe.com && export HOME_URL=https://staging.fyipe.com && export ACCOUNTS_URL=https://staging.fyipe.com/accounts && export ADMIN_DASHBOARD_URL=https://staging.fyipe.com/admin && export DASHBOARD_URL=https://staging.fyipe.com/dashboard && export BACKEND_URL=https://staging.fyipe.com/api && export STATUSPAGE_URL=https://staging.fyipe.com/status-page && export APIDOCS_URL=https://staging.fyipe.com/docs && jest ./saas-tests/accounts/*.test.js",
+            "command": "export HEADLESS=false && export HTTP_TEST_SERVER_URL=https://staging-test-server.fyipe.com && export HOME_URL=https://staging.fyipe.com && export ACCOUNTS_URL=https://staging.fyipe.com/accounts && export ADMIN_DASHBOARD_URL=https://staging.fyipe.com/admin && export DASHBOARD_URL=https://staging.fyipe.com/dashboard && export BACKEND_URL=https://staging.fyipe.com/api && export STATUSPAGE_URL=https://staging.fyipe.com/status-page && export APIDOCS_URL=https://staging.fyipe.com/docs && jest ./saas-tests/accounts/*.test.js",
             "name": "Debug Single File: Staging test",
+            "request": "launch",
+            "type": "node-terminal"
+        },
+        {
+            "command": "export HEADLESS=false && jest  ./saas-tests/admin-dashboard/SMTPSettings.test.js",
+            "name": "Debug Single File: Local SaaS test",
             "request": "launch",
             "type": "node-terminal"
         }

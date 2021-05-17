@@ -13,16 +13,14 @@ const user = {
 };
 
 describe('Project API', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         // Register user
         await init.registerUser(user, page);
@@ -38,11 +36,22 @@ describe('Project API', () => {
     test(
         'Should create new project from dropdown after login',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#selector', { visible: true });
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#selector', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval('#create-project', e => e.click());
-            await page.waitForSelector('#name', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageWaitForSelector(page, '#name', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(
@@ -75,10 +84,18 @@ describe('Project API', () => {
     test(
         'Should switch project using project switcher',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#AccountSwitcherId', { visible: true });
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#AccountSwitcherId', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#AccountSwitcherId');
-            await page.waitForSelector('#accountSwitcher', { visible: true });
+            await init.pageWaitForSelector(page, '#accountSwitcher', {
+                visible: true,
+                timeout: init.timeout,
+            });
 
             const element = await page.$(
                 '#accountSwitcher > div[title="Unnamed Project"]'

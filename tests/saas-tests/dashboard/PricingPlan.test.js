@@ -13,15 +13,13 @@ const user = {
 };
 
 describe('Status Page -> Pricing Plan Component', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(3600000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // user
         await init.registerUser(user, page);
     });
@@ -36,29 +34,35 @@ describe('Status Page -> Pricing Plan Component', () => {
         async done => {
             await init.addProject(page, 'test');
             await page.$eval('#statusPages', elem => elem.click());
-            await page.waitForSelector('#btnCreateStatusPage_test');
+            await init.pageWaitForSelector(page, '#btnCreateStatusPage_test');
             await init.pageClick(page, '#btnCreateStatusPage_test');
-            await page.waitForSelector('#name');
+            await init.pageWaitForSelector(page, '#name');
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', 'test');
             await init.pageClick(page, '#btnCreateStatusPage');
             // select the first item from the table row
-            const rowItem = await page.waitForSelector(
+            const rowItem = await init.pageWaitForSelector(
+                page,
                 '#statusPagesListContainer > tr',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             rowItem.click();
-            await page.waitForSelector('ul#customTabList > li', {
+            await init.pageWaitForSelector(page, '.advanced-options-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.$$eval(
-                'ul#customTabList > li',
-                elems => elems[5].click() // Advanced Option is in tab 6
+            await page.$$eval('.advanced-options-tab', elems =>
+                elems[0].click()
             );
             await page.$eval('input[name="isPrivate"]', elem => elem.click());
-            const modal = await page.waitForSelector('#pricingPlanModal', {
-                visible: true,
-            });
+            const modal = await init.pageWaitForSelector(
+                page,
+                '#pricingPlanModal',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(modal).toBeDefined();
 
             done();
@@ -66,54 +70,64 @@ describe('Status Page -> Pricing Plan Component', () => {
         operationTimeOut
     );
 
-    /**
-     * Commented the code below because it was testing for enterprise plan, which is not available for now
-     * Will rewrite it once a component which needs an enterprise plan is created
-     */
+    test(
+        'should show upgrade modal if plan is Enterprise and Project is not on Enterprise plan',
+        async () => {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await page.$eval('#statusPages', elem => elem.click());
+            // select the first item from the table row
+            const rowItem = await init.pageWaitForSelector(
+                page,
+                '#statusPagesListContainer > tr',
+                { visible: true, timeout: init.timeout }
+            );
+            rowItem.click();
 
-    // test(
-    //     'should show upgrade modal if plan is Enterprise and Project is not on Enterprise plan',
-    //     async () => {
-    //         await cluster.execute(null, async ({ page }) => {
-    //             await page.goto(utils.DASHBOARD_URL);
-    //             await page.$eval('#statusPages', elem => elem.click());
-    //             // select the first item from the table row
-    //             const rowItem = await page.waitForSelector(
-    //                 '#statusPagesListContainer > tr',
-    //                 { visible: true }
-    //             );
-    //             rowItem.click();
-    //             await page.waitForSelector('ul#customTabList > li', {
-    //                 visible: true,
-    //             });
-    //             await page.$$eval('ul#customTabList > li', elems =>
-    //                 elems[3].click()
-    //             );
-    //             await page.$eval('input[name="isSubscriberEnabled"]', elem =>
-    //                 elem.click()
-    //             );
+            await init.pageWaitForSelector(page, '.advanced-options-tab', {
+                visible: true,
+                timeout: init.timeout,
+            });
 
-    //             const modal = await page.waitForSelector('#pricingPlanModal', {
-    //                 visible: true,
-    //             });
-    //             const emailBtn = await page.waitForSelector('#enterpriseMail');
+            await page.$$eval('.advanced-options-tab', elems =>
+                elems[0].click()
+            );
 
-    //             expect(modal).toBeDefined();
-    //             expect(emailBtn).toBeDefined();
-    //         });
-    //     },
-    //     operationTimeOut
-    // );
+            await page.$eval('input[name="isSubscriberEnabled"]', elem =>
+                elem.click()
+            );
+
+            const modal = await init.pageWaitForSelector(
+                page,
+                '#pricingPlanModal',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
+            const emailBtn = await init.pageWaitForSelector(
+                page,
+                '#enterpriseMail'
+            );
+
+            expect(modal).toBeDefined();
+            expect(emailBtn).toBeDefined();
+        },
+        operationTimeOut
+    );
 
     test(
         'should not show upgrade modal if project is subscribed to a particular plan',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings');
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#billing');
+            await init.pageWaitForSelector(page, '#billing');
             await init.pageClick(page, '#billing a');
-            await page.waitForSelector('#alertEnable');
+            await init.pageWaitForSelector(page, '#alertEnable');
 
             const rowLength = await page.$$eval(
                 '#alertOptionRow > div.bs-Fieldset-row',
@@ -130,9 +144,13 @@ describe('Status Page -> Pricing Plan Component', () => {
             await page.evaluate(() => {
                 document.querySelector('#billingRiskCountries').click();
             });
-            const elem = await page.waitForSelector('#pricingPlanModal', {
-                hidden: true,
-            });
+            const elem = await init.pageWaitForSelector(
+                page,
+                '#pricingPlanModal',
+                {
+                    hidden: true,
+                }
+            );
             expect(elem).toBeNull();
             done();
         },
@@ -142,35 +160,48 @@ describe('Status Page -> Pricing Plan Component', () => {
     test(
         'should not upgrade a project when cancel button is clicked',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.$eval('#statusPages', elem => elem.click());
             // select the first item from the table row
-            const rowItem = await page.waitForSelector(
+            const rowItem = await init.pageWaitForSelector(
+                page,
                 '#statusPagesListContainer > tr',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             rowItem.click();
-            await page.waitForSelector('ul#customTabList > li', {
+            await init.pageWaitForSelector(page, '.advanced-options-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[5].click()
+            await page.$$eval('.advanced-options-tab', elems =>
+                elems[0].click()
             );
             await page.$eval('input[name="isPrivate"]', elem => elem.click());
 
-            await page.waitForSelector('#pricingPlanModal', {
+            await init.pageWaitForSelector(page, '#pricingPlanModal', {
                 visible: true,
+                timeout: init.timeout,
             });
-            const growthOption = await page.waitForSelector(
+            const growthOption = await init.pageWaitForSelector(
+                page,
                 'label[for=Growth_month]',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             growthOption.click();
-            await page.waitForSelector('#cancelPlanUpgrade', { visible: true });
-            await init.pageClick(page, '#cancelPlanUpgrade');
-            const elem = await page.waitForSelector('#pricingPlanModal', {
-                hidden: true,
+            await init.pageWaitForSelector(page, '#cancelPlanUpgrade', {
+                visible: true,
+                timeout: init.timeout,
             });
+            await init.pageClick(page, '#cancelPlanUpgrade');
+            const elem = await init.pageWaitForSelector(
+                page,
+                '#pricingPlanModal',
+                {
+                    hidden: true,
+                }
+            );
             expect(elem).toBeNull();
 
             done();
@@ -181,41 +212,53 @@ describe('Status Page -> Pricing Plan Component', () => {
     test(
         'should upgrade a plan when upgrade is triggered from pricing plan component',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await page.$eval('#statusPages', elem => elem.click());
             // select the first item from the table row
-            const rowItem = await page.waitForSelector(
+            const rowItem = await init.pageWaitForSelector(
+                page,
                 '#statusPagesListContainer > tr',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             rowItem.click();
-            await page.waitForSelector('ul#customTabList > li', {
+            await init.pageWaitForSelector(page, '.advanced-options-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[5].click()
+            await page.$$eval('.advanced-options-tab', elems =>
+                elems[0].click()
             );
             await page.$eval('input[name="isPrivate"]', elem => elem.click());
 
-            await page.waitForSelector('#pricingPlanModal', {
+            await init.pageWaitForSelector(page, '#pricingPlanModal', {
                 visible: true,
+                timeout: init.timeout,
             });
-            const growthOption = await page.waitForSelector(
+            const growthOption = await init.pageWaitForSelector(
+                page,
                 'label[for=Growth_month]',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             growthOption.click();
-            await page.waitForSelector('#confirmPlanUpgrade', {
+            await init.pageWaitForSelector(page, '#confirmPlanUpgrade', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#confirmPlanUpgrade');
 
-            await page.waitForSelector('#pricingPlanModal', {
+            await init.pageWaitForSelector(page, '#pricingPlanModal', {
                 hidden: true,
             });
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.$$eval('ul#customTabList > li', elems =>
-                elems[5].click()
+
+            await init.pageWaitForSelector(page, '.advanced-options-tab', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await page.$$eval('.advanced-options-tab', elems =>
+                elems[0].click()
             );
 
             await page.$eval('input[name="isPrivate"]', elem => elem.click());

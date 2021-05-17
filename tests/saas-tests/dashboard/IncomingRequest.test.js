@@ -20,16 +20,14 @@ const incidentRequest = {
 };
 
 describe('Incoming HTTP Request', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(3600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // user
         await init.registerUser(user, page);
 
@@ -44,26 +42,42 @@ describe('Incoming HTTP Request', () => {
     test(
         'should configure incoming http request to create incident in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#integrations', { visible: true });
+            await init.pageWaitForSelector(page, '#integrations', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#integrations');
 
-            await page.waitForSelector('#addIncomingRequestBtn', {
+            await init.pageWaitForSelector(page, '#addIncomingRequestBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addIncomingRequestBtn');
-            await page.waitForSelector('#name', { visible: true });
+            await init.pageWaitForSelector(page, '#name', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', incidentRequest.name);
             await page.$eval('#createIncident', elem => elem.click());
-            await page.waitForSelector('#isDefault', { visible: true });
+            await init.pageWaitForSelector(page, '#isDefault', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval('#isDefault', elem => elem.click());
             await init.pageClick(page, '#advancedOptionsBtn');
-            await page.waitForSelector('#incidentTitle', { visible: true });
+            await init.pageWaitForSelector(page, '#incidentTitle', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#incidentTitle');
             await init.pageType(
                 page,
@@ -78,16 +92,22 @@ describe('Incoming HTTP Request', () => {
             );
 
             await init.pageClick(page, '#createIncomingRequest');
-            await page.waitForSelector('#createIncomingRequest', {
+            await init.pageWaitForSelector(page, '#createIncomingRequest', {
                 hidden: true,
             });
-            await page.waitForSelector('#requestOkBtn', { visible: true });
+            await init.pageWaitForSelector(page, '#requestOkBtn', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#requestOkBtn');
-            await page.waitForSelector('#requestOkBtn', { hidden: true });
+            await init.pageWaitForSelector(page, '#requestOkBtn', {
+                hidden: true,
+            });
 
-            const firstIncomingHttpRequest = await page.waitForSelector(
+            const firstIncomingHttpRequest = await init.pageWaitForSelector(
+                page,
                 '#copyIncomingRequestBtn_0',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(firstIncomingHttpRequest).toBeDefined();
 
@@ -99,30 +119,41 @@ describe('Incoming HTTP Request', () => {
     test(
         'should update an incoming http request in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#integrations', { visible: true });
+            await init.pageWaitForSelector(page, '#integrations', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#integrations');
 
-            await page.waitForSelector('#editIncomingRequestBtn_0', {
+            await init.pageWaitForSelector(page, '#editIncomingRequestBtn_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#editIncomingRequestBtn_0');
-            await page.waitForSelector('#name', { visible: true });
-            await init.pageClick(page, '#name', { clickCount: 3 });
+            await init.pageWaitForSelector(page, '#name', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#name');
             // change the name of the incoming http request
             await init.pageType(page, '#name', 'newName');
             await init.pageClick(page, '#editIncomingRequest');
-            await page.waitForSelector('#editIncomingRequest', {
+            await init.pageWaitForSelector(page, '#editIncomingRequest', {
                 hidden: true,
             });
 
-            const updatedRequest = await page.waitForSelector(
+            const updatedRequest = await init.pageWaitForSelector(
+                page,
                 '#incomingRequest_newName',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(updatedRequest).toBeDefined();
             done();
@@ -133,29 +164,42 @@ describe('Incoming HTTP Request', () => {
     test(
         'should delete an incoming http request in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#integrations', { visible: true });
+            await init.pageWaitForSelector(page, '#integrations', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#integrations');
 
-            await page.waitForSelector('#deleteIncomingRequestBtn_0', {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                '#deleteIncomingRequestBtn_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, '#deleteIncomingRequestBtn_0');
-            await page.waitForSelector('#deleteIncomingRequestBtn', {
+            await init.pageWaitForSelector(page, '#deleteIncomingRequestBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteIncomingRequestBtn');
-            await page.waitForSelector('#deleteIncomingRequestBtn', {
+            await init.pageWaitForSelector(page, '#deleteIncomingRequestBtn', {
                 hidden: true,
             });
 
-            const noIncomingRequest = await page.waitForSelector(
+            const noIncomingRequest = await init.pageWaitForSelector(
+                page,
                 '#noIncomingRequest',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(noIncomingRequest).toBeDefined();
             done();

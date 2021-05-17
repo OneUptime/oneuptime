@@ -15,16 +15,14 @@ const user1 = {
 };
 
 describe('Profile -> Delete Account Component test', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // Register user
         await init.registerUser(user, page);
     });
@@ -39,50 +37,52 @@ describe('Profile -> Delete Account Component test', () => {
         async done => {
             const projectName = 'Project1';
             const role = 'Member';
-            await page.goto(utils.DASHBOARD_URL);
-            // Rename project
-            await page.waitForSelector('#projectSettings');
-            await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('input[name=project_name]');
-            await init.pageClick(page, 'input[name=project_name]', {
-                clickCount: 3,
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
             });
+            // Rename project
+            await init.pageWaitForSelector(page, '#projectSettings');
+            await init.pageClick(page, '#projectSettings');
+            await init.pageWaitForSelector(page, 'input[name=project_name]');
+            await init.pageClick(page, 'input[name=project_name]');
             await init.pageType(page, 'input[name=project_name]', projectName);
-            await page.waitForSelector('button[id=btnCreateProject]');
+            await init.pageWaitForSelector(page, 'button[id=btnCreateProject]');
             await init.pageClick(page, 'button[id=btnCreateProject]');
-            await page.waitForSelector(`#cb${projectName}`, {
+            await init.pageWaitForSelector(page, `#cb${projectName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
 
             // Invite member on the project
-            await page.waitForSelector('#teamMembers');
+            await init.pageWaitForSelector(page, '#teamMembers');
             await init.pageClick(page, '#teamMembers');
-            await page.waitForSelector(`#btn_${projectName}`);
+            await init.pageWaitForSelector(page, `#btn_${projectName}`);
             await init.pageClick(page, `#btn_${projectName}`);
-            await page.waitForSelector('input[name=emails]');
+            await init.pageWaitForSelector(page, 'input[name=emails]');
             await init.pageClick(page, 'input[name=emails]');
             await init.pageType(page, 'input[name=emails]', user1.email);
-            await page.waitForSelector(`#${role}_${projectName}`);
+            await init.pageWaitForSelector(page, `#${role}_${projectName}`);
             await init.pageClick(page, `#${role}_${projectName}`);
-            await page.waitForSelector('button[type=submit]');
+            await init.pageWaitForSelector(page, 'button[type=submit]');
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector(`#btn_modal_${projectName}`, {
+            await init.pageWaitForSelector(page, `#btn_modal_${projectName}`, {
                 hidden: true,
             });
 
             // Navigate to profile page and delete account
-            await page.waitForSelector('#profile-menu');
+            await init.pageWaitForSelector(page, '#profile-menu');
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#userProfile');
+            await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
-            await page.waitForSelector('#advanced');
+            await init.pageWaitForSelector(page, '#advanced');
             await page.$eval('#advanced', elem => elem.click());
-            await page.waitForSelector('#btn_delete_account');
+            await init.pageWaitForSelector(page, '#btn_delete_account');
             await init.pageClick(page, '#btn_delete_account');
-            await page.waitForSelector('#btn_confirm_delete');
+            await init.pageWaitForSelector(page, '#btn_confirm_delete');
             await init.pageClick(page, '#btn_confirm_delete');
 
-            const projectDeletion = await page.waitForSelector(
+            const projectDeletion = await init.pageWaitForSelector(
+                page,
                 '#projectDeletion'
             );
 
@@ -97,38 +97,41 @@ describe('Profile -> Delete Account Component test', () => {
         async done => {
             const projectName = 'Project2';
             const role = 'Member';
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
             await init.addProject(page, projectName);
 
             // Invite member on the project
-            await page.waitForSelector('#teamMembers');
+            await init.pageWaitForSelector(page, '#teamMembers');
             await init.pageClick(page, '#teamMembers');
-            await page.waitForSelector(`#btn_${projectName}`);
+            await init.pageWaitForSelector(page, `#btn_${projectName}`);
             await init.pageClick(page, `#btn_${projectName}`);
-            await page.waitForSelector('input[name=emails]');
+            await init.pageWaitForSelector(page, 'input[name=emails]');
             await init.pageClick(page, 'input[name=emails]');
             await init.pageType(page, 'input[name=emails]', user1.email);
-            await page.waitForSelector(`#${role}_${projectName}`);
+            await init.pageWaitForSelector(page, `#${role}_${projectName}`);
             await init.pageClick(page, `#${role}_${projectName}`);
-            await page.waitForSelector('button[type=submit]');
+            await init.pageWaitForSelector(page, 'button[type=submit]');
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector(`#btn_modal_${projectName}`, {
+            await init.pageWaitForSelector(page, `#btn_modal_${projectName}`, {
                 hidden: true,
             });
 
             // Navigate to profile page and delete account
-            await page.waitForSelector('#profile-menu');
+            await init.pageWaitForSelector(page, '#profile-menu');
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#userProfile');
+            await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
-            await page.waitForSelector('#advanced');
+            await init.pageWaitForSelector(page, '#advanced');
             await page.$eval('#advanced', elem => elem.click());
-            await page.waitForSelector('#btn_delete_account');
+            await init.pageWaitForSelector(page, '#btn_delete_account');
             await init.pageClick(page, '#btn_delete_account');
-            await page.waitForSelector('#btn_confirm_delete');
+            await init.pageWaitForSelector(page, '#btn_confirm_delete');
             await init.pageClick(page, '#btn_confirm_delete');
 
-            const projectDeletion = await page.waitForSelector(
+            const projectDeletion = await init.pageWaitForSelector(
+                page,
                 '#projectDeletion'
             );
 
@@ -144,47 +147,50 @@ describe('Profile -> Delete Account Component test', () => {
         async done => {
             const role = 'Owner';
             const projectName = 'Project1';
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
 
             // Change member role -> Owner
-            await page.waitForSelector('#teamMembers');
+            await init.pageWaitForSelector(page, '#teamMembers');
             await init.pageClick(page, '#teamMembers');
-            await page.waitForSelector('button[title="Change Role"]');
+            await init.pageWaitForSelector(page, 'button[title="Change Role"]');
             await init.pageClick(page, 'button[title="Change Role"]');
-            await page.waitForSelector(`div[title="${role}"]`);
+            await init.pageWaitForSelector(page, `div[title="${role}"]`);
             await init.pageClick(page, `div[title="${role}"]`);
-            await page.waitForSelector('#confirmRoleChange');
+            await init.pageWaitForSelector(page, '#confirmRoleChange');
             await init.pageClick(page, '#confirmRoleChange');
-            await page.waitForSelector('#confirmRoleChange', {
+            await init.pageWaitForSelector(page, '#confirmRoleChange', {
                 hidden: true,
             });
 
             // Switch projects and change member role -> Owner
             await init.switchProject(projectName, page);
-            await page.waitForSelector('#teamMembers');
+            await init.pageWaitForSelector(page, '#teamMembers');
             await init.pageClick(page, '#teamMembers');
-            await page.waitForSelector('button[title="Change Role"]');
+            await init.pageWaitForSelector(page, 'button[title="Change Role"]');
             await init.pageClick(page, 'button[title="Change Role"]');
-            await page.waitForSelector(`div[title="${role}"]`);
+            await init.pageWaitForSelector(page, `div[title="${role}"]`);
             await init.pageClick(page, `div[title="${role}"]`);
-            await page.waitForSelector('#confirmRoleChange');
+            await init.pageWaitForSelector(page, '#confirmRoleChange');
             await init.pageClick(page, '#confirmRoleChange');
-            await page.waitForSelector('#confirmRoleChange', {
+            await init.pageWaitForSelector(page, '#confirmRoleChange', {
                 hidden: true,
             });
 
             // Navigate to profile page and delete account
-            await page.waitForSelector('#profile-menu');
+            await init.pageWaitForSelector(page, '#profile-menu');
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#userProfile');
+            await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
-            await page.waitForSelector('#advanced');
+            await init.pageWaitForSelector(page, '#advanced');
             await page.$eval('#advanced', elem => elem.click());
-            await page.waitForSelector('#btn_delete_account');
+            await init.pageWaitForSelector(page, '#btn_delete_account');
             await init.pageClick(page, '#btn_delete_account');
-            await page.waitForSelector('#btn_confirm_delete');
+            await init.pageWaitForSelector(page, '#btn_confirm_delete');
             await init.pageClick(page, '#btn_confirm_delete');
-            const projectDeletion = await page.waitForSelector(
+            const projectDeletion = await init.pageWaitForSelector(
+                page,
                 '#projectDeletion'
             );
 
@@ -197,20 +203,22 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should delete account with multiple projects -> multiple users -> multiple owners',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
 
             // Navigate to profile page and delete account
-            await page.waitForSelector('#profile-menu');
+            await init.pageWaitForSelector(page, '#profile-menu');
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#userProfile');
+            await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
-            await page.waitForSelector('#advanced');
+            await init.pageWaitForSelector(page, '#advanced');
             await page.$eval('#advanced', elem => elem.click());
-            await page.waitForSelector('#btn_delete_account');
+            await init.pageWaitForSelector(page, '#btn_delete_account');
             await init.pageClick(page, '#btn_delete_account');
-            await page.waitForSelector('#btn_confirm_delete');
+            await init.pageWaitForSelector(page, '#btn_confirm_delete');
             await init.pageClick(page, '#btn_confirm_delete');
-            await page.waitForSelector('#deleteMyAccount');
+            await init.pageWaitForSelector(page, '#deleteMyAccount');
             await init.pageType(page, '#deleteMyAccount', 'delete my account');
             await init.pageClick(page, '#btn_confirm_delete');
             await page.waitForNavigation();

@@ -14,16 +14,14 @@ const errorTrackerName = utils.generateRandomString();
 let errorTrackerKey = '';
 
 describe('Error Trackers', () => {
-    const operationTimeOut = 900000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         await init.registerUser(user, page);
     });
@@ -38,26 +36,38 @@ describe('Error Trackers', () => {
         async done => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
-            await page.waitForSelector('#components', { timeout: 120000 });
+            await init.pageWaitForSelector(page, '#components', {
+                timeout: 120000,
+            });
             await init.pageClick(page, '#components');
 
             // Fill and submit New Component form
-            await page.waitForSelector('#form-new-component');
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageWaitForSelector(page, '#form-new-component');
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', componentName);
             await init.pageClick(page, '#addComponentButton');
-            await page.waitForSelector('#form-new-monitor', {
+            await init.pageWaitForSelector(page, '#form-new-monitor', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#components', { visible: true });
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#components');
 
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `span#component-title-${componentName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -72,18 +82,22 @@ describe('Error Trackers', () => {
         async done => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#errorTracking');
+            await init.pageWaitForSelector(page, '#errorTracking');
             await init.pageClick(page, '#errorTracking');
 
             // Fill and submit New Error tracking form
-            await page.waitForSelector('#form-new-error-tracker');
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageWaitForSelector(page, '#form-new-error-tracker');
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', errorTrackerName);
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `span#error-tracker-title-${errorTrackerName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -104,12 +118,15 @@ describe('Error Trackers', () => {
             //navigate to component details
             await init.navigateToComponentDetails(componentName, page);
             // go to logs
-            await page.waitForSelector('#errorTracking');
+            await init.pageWaitForSelector(page, '#errorTracking');
             await init.pageClick(page, '#errorTracking');
             // create a new error tracker and select the category
             // Fill and submit New Error Tracker form
-            await page.waitForSelector('#form-new-error-tracker');
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageWaitForSelector(page, '#form-new-error-tracker');
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', newErrorTrackerName);
@@ -118,9 +135,14 @@ describe('Error Trackers', () => {
             // As soon as an error tracker with a resource category is created, it automatically navigates to the details page
 
             // confirm the category shows in the details page.
-            await page.waitForSelector(`#${newErrorTrackerName}-badge`, {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#${newErrorTrackerName}-badge`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             let spanElement = await page.$(`#${newErrorTrackerName}-badge`);
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
@@ -134,20 +156,24 @@ describe('Error Trackers', () => {
         async done => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector('#errorTracking');
+            await init.pageWaitForSelector(page, '#errorTracking');
             await init.pageClick(page, '#errorTracking');
 
             // Fill and submit New Error Tracker form
-            await page.waitForSelector('#form-new-error-tracker');
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageWaitForSelector(page, '#form-new-error-tracker');
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', '');
             await init.pageClick(page, 'button[type=submit]');
 
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 '#form-new-error-tracker span#field-error',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             let spanElement = await page.$(
                 '#form-new-error-tracker span#field-error'
@@ -168,7 +194,8 @@ describe('Error Trackers', () => {
                 page
             );
 
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#error-tracker-title-${errorTrackerName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -187,14 +214,16 @@ describe('Error Trackers', () => {
                 errorTrackerName,
                 page
             );
-            await page.waitForSelector(`#edit_${errorTrackerName}`);
+            await init.pageWaitForSelector(page, `#edit_${errorTrackerName}`);
             await init.pageClick(page, `#edit_${errorTrackerName}`);
 
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#error-tracker-edit-title-${errorTrackerName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#error-tracker-edit-title-${errorTrackerName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -213,11 +242,12 @@ describe('Error Trackers', () => {
                 page
             );
             // open modal
-            await page.waitForSelector(`#key_${errorTrackerName}`);
+            await init.pageWaitForSelector(page, `#key_${errorTrackerName}`);
             await init.pageClick(page, `#key_${errorTrackerName}`);
 
             // click show applicaion log key
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#show_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
@@ -226,7 +256,8 @@ describe('Error Trackers', () => {
             );
 
             // get error tracker key
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#error_tracker_key_${errorTrackerName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -234,7 +265,8 @@ describe('Error Trackers', () => {
             expect(spanElement).toBeDefined();
 
             // click cancel
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#cancel_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
@@ -253,24 +285,27 @@ describe('Error Trackers', () => {
                 errorTrackerName,
                 page
             );
-            await page.waitForSelector(`#key_${errorTrackerName}`);
+            await init.pageWaitForSelector(page, `#key_${errorTrackerName}`);
             await init.pageClick(page, `#key_${errorTrackerName}`);
 
             // click show error tracker  key
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#show_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
                 page,
                 `#show_error_tracker_key_${errorTrackerName}`
             );
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#error_tracker_key_${errorTrackerName}`
             );
             expect(spanElement).toBeDefined();
 
             // find the eye icon to hide error tracker key
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#hide_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
@@ -278,7 +313,8 @@ describe('Error Trackers', () => {
                 `#hide_error_tracker_key_${errorTrackerName}`
             );
 
-            spanElement = await page.waitForSelector(
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `#show_error_tracker_key_${errorTrackerName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -298,11 +334,12 @@ describe('Error Trackers', () => {
                 page
             );
             // open modal
-            await page.waitForSelector(`#key_${errorTrackerName}`);
+            await init.pageWaitForSelector(page, `#key_${errorTrackerName}`);
             await init.pageClick(page, `#key_${errorTrackerName}`);
 
             // click show error tracker key
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#show_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
@@ -311,14 +348,16 @@ describe('Error Trackers', () => {
             );
 
             // get error tracker key
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#error_tracker_key_${errorTrackerName}`
             );
             spanElement = await spanElement.getProperty('innerText');
             errorTrackerKey = await spanElement.jsonValue();
 
             // click reset key
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#reset_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
@@ -327,24 +366,27 @@ describe('Error Trackers', () => {
             );
 
             // click confirm reset key
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#confirm_reset_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
                 page,
                 `#confirm_reset_error_tracker_key_${errorTrackerName}`
             );
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#confirm_reset_error_tracker_key_${errorTrackerName}`,
                 { hidden: true }
             );
 
             // open modal
-            await page.waitForSelector(`#key_${errorTrackerName}`);
+            await init.pageWaitForSelector(page, `#key_${errorTrackerName}`);
             await init.pageClick(page, `#key_${errorTrackerName}`);
 
             // click show error tracker key
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#show_error_tracker_key_${errorTrackerName}`
             );
             await init.pageClick(
@@ -353,7 +395,8 @@ describe('Error Trackers', () => {
             );
 
             // get tracker container key
-            spanElement = await page.waitForSelector(
+            spanElement = await init.pageWaitForSelector(
+                page,
                 `#error_tracker_key_${errorTrackerName}`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -373,20 +416,21 @@ describe('Error Trackers', () => {
                 errorTrackerName,
                 page
             );
-            await page.waitForSelector(`#edit_${errorTrackerName}`);
+            await init.pageWaitForSelector(page, `#edit_${errorTrackerName}`);
             await init.pageClick(page, `#edit_${errorTrackerName}`);
             // Fill and submit edit Error tracker form
-            await page.waitForSelector('#form-new-error-tracker');
+            await init.pageWaitForSelector(page, '#form-new-error-tracker');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', '-new');
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector('#addErrorTrackerButton', {
+            await init.pageWaitForSelector(page, '#addErrorTrackerButton', {
                 hidden: true,
             });
 
-            await page.waitForSelector('#errorTracking');
+            await init.pageWaitForSelector(page, '#errorTracking');
             await init.pageClick(page, '#errorTracking');
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#error-tracker-title-${errorTrackerName}-new`
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -409,20 +453,28 @@ describe('Error Trackers', () => {
                 `${errorTrackerName}-new`,
                 page
             );
-            await page.waitForSelector(`#edit_${errorTrackerName}-new`);
+            await init.pageWaitForSelector(
+                page,
+                `#edit_${errorTrackerName}-new`
+            );
             await init.pageClick(page, `#edit_${errorTrackerName}-new`);
             // Fill and submit edit Error tracker form
-            await page.waitForSelector('#form-new-error-tracker');
+            await init.pageWaitForSelector(page, '#form-new-error-tracker');
             // change category here
             await init.selectByText('#resourceCategory', categoryName, page);
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector('#addErrorTrackerButton', {
+            await init.pageWaitForSelector(page, '#addErrorTrackerButton', {
                 hidden: true,
             });
 
-            await page.waitForSelector(`#${errorTrackerName}-new-badge`, {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#${errorTrackerName}-new-badge`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             // confirm the new category shows in the details page.
             let spanElement = await page.$(`#${errorTrackerName}-new-badge`);
             spanElement = await spanElement.getProperty('innerText');
@@ -450,21 +502,23 @@ describe('Error Trackers', () => {
             spanElement.should.be.exactly(categoryName.toUpperCase());
 
             // delete the category
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings');
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
 
-            await page.waitForSelector('li#resources a');
+            await init.pageWaitForSelector(page, 'li#resources a');
             await init.pageClick(page, 'li#resources a');
 
-            await page.waitForSelector(`#delete_${categoryName}`);
+            await init.pageWaitForSelector(page, `#delete_${categoryName}`);
             await init.pageClick(page, `#delete_${categoryName}`);
-            await page.waitForSelector('#deleteResourceCategory');
+            await init.pageWaitForSelector(page, '#deleteResourceCategory');
             await init.pageClick(page, '#deleteResourceCategory');
 
-            await page.waitForSelector('#deleteResourceCategory', {
+            await init.pageWaitForSelector(page, '#deleteResourceCategory', {
                 hidden: true,
             });
 

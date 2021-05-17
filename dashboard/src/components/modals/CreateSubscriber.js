@@ -97,7 +97,7 @@ class CreateSubscriber extends Component {
         const { monitorId, subProjectId, statusPage, limit } = data;
         createSubscriber(
             subProjectId,
-            monitorId ?? values.monitorId,
+            monitorId || values.monitorId,
             values
         ).then(
             function() {
@@ -346,10 +346,21 @@ class CreateSubscriber extends Component {
                                                                     RenderField
                                                                 }
                                                                 type="text"
+                                                                pattern="[0-9]*"
+                                                                inputMode="numeric"
                                                                 name="contactPhone"
                                                                 id="contactPhoneId"
                                                                 placeholder="6505551234"
                                                                 required="required"
+                                                                normalize={val =>
+                                                                    (
+                                                                        val ||
+                                                                        ''
+                                                                    ).replace(
+                                                                        /[^\d]/g,
+                                                                        ''
+                                                                    )
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
@@ -512,7 +523,7 @@ function mapStateToProps(state, ownProps) {
         .filter(monitor => String(monitor._id) === String(projectId))
         .map(monitor => monitor.monitors)
         .flat();
-    const statusPageMonitors = ownProps.data.monitorList;
+    const statusPageMonitors = ownProps.data.monitorList || [];
     const mergeMonitors = [];
     allMonitors.forEach(allMon => {
         statusPageMonitors.forEach(mon => {

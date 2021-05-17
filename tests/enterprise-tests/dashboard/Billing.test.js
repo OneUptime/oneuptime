@@ -14,16 +14,14 @@ const user = {
 };
 
 describe('Enterprise Disabled Billing API', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         await init.registerEnterpriseUser(user, page);
 
         done();
@@ -39,7 +37,10 @@ describe('Enterprise Disabled Billing API', () => {
         async done => {
             await init.adminLogout(page);
             await init.loginUser(user, page);
-            await page.waitForSelector('#projectSettings', { visible: true });
+            await init.pageWaitForSelector(page, '#projectSettings', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#projectSettings');
 
             const projectBilling = await page.$('#billingSetting');
@@ -52,8 +53,13 @@ describe('Enterprise Disabled Billing API', () => {
     test(
         'Should not display profile billing on profile menu',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#profile-menu', { visible: true });
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#profile-menu', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#profile-menu');
 
             const profileBilling = await page.$('#cbBilling');

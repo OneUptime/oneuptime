@@ -15,16 +15,14 @@ const newUser = {
 };
 
 describe('Enterprise Team SubProject API', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // Register users
         await init.registerEnterpriseUser(user, page);
         await init.createUserFromAdminDashboard(newUser, page);
@@ -45,19 +43,24 @@ describe('Enterprise Team SubProject API', () => {
             //SubProject is only available for 'Growth Plan and above'
             await init.growthPlanUpgrade(page);
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await init.addSubProject(subProjectName, page);
             const role = 'Member';
 
-            await page.waitForSelector('#teamMembers', { visible: true });
-            await init.pageClick(page, '#teamMembers');
-            await page.waitForSelector(`#btn_${subProjectName}`, {
+            await init.pageWaitForSelector(page, '#teamMembers', {
                 visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#teamMembers');
+            await init.pageWaitForSelector(page, `#btn_${subProjectName}`, {
+                visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#btn_${subProjectName}`);
-            await page.waitForSelector(`#frm_${subProjectName}`, {
+            await init.pageWaitForSelector(page, `#frm_${subProjectName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#emails_${subProjectName}`);
             await init.pageType(
@@ -67,9 +70,13 @@ describe('Enterprise Team SubProject API', () => {
             );
             await init.pageClick(page, `#${role}_${subProjectName}`);
             await init.pageClick(page, `#btn_modal_${subProjectName}`);
-            await page.waitForSelector(`#btn_modal_${subProjectName}`, {
-                hidden: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#btn_modal_${subProjectName}`,
+                {
+                    hidden: true,
+                }
+            );
             done();
         },
         operationTimeOut

@@ -16,15 +16,13 @@ const user = {
 };
 
 describe('Enterprise Project API', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // Register user
         await init.registerEnterpriseUser(user, page);
         done();
@@ -40,10 +38,13 @@ describe('Enterprise Project API', () => {
         async done => {
             await init.adminLogout(page);
             await init.loginUser(user, page);
-            await page.waitForSelector('#selector', { visble: true });
+            await init.pageWaitForSelector(page, '#selector', { visble: true });
             await page.$eval('#create-project', e => e.click());
-            await page.waitForSelector('#name', { visble: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageWaitForSelector(page, '#name', { visble: true });
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(

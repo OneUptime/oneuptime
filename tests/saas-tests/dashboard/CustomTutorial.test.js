@@ -10,16 +10,14 @@ const user = {
 };
 
 describe('Custom Tutorial With SubProjects', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         await init.registerUser(user, page);
         done();
@@ -36,19 +34,21 @@ describe('Custom Tutorial With SubProjects', () => {
             const customTutorialType = 'component';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
-            const componentBoxElement = await page.waitForSelector(
+            const componentBoxElement = await init.pageWaitForSelector(
+                page,
                 `#info-${customTutorialType}`
             );
             expect(componentBoxElement).toBeDefined();
 
             // click on component section
-            await page.waitForSelector('#components');
+            await init.pageWaitForSelector(page, '#components');
             await init.pageClick(page, '#components');
 
             // find that same tutorial box on component page
-            const newComponentBoxElement = await page.waitForSelector(
+            const newComponentBoxElement = await init.pageWaitForSelector(
+                page,
                 `#info-${customTutorialType}`
             );
             expect(newComponentBoxElement).toBeDefined();
@@ -63,28 +63,34 @@ describe('Custom Tutorial With SubProjects', () => {
             const customTutorialType = 'component';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
-            const componentBoxElement = await page.waitForSelector(
+            const componentBoxElement = await init.pageWaitForSelector(
+                page,
                 `#info-${customTutorialType}`
             );
             expect(componentBoxElement).toBeDefined();
 
             // click on component section
-            await page.waitForSelector('#components');
+            await init.pageWaitForSelector(page, '#components');
             await init.pageClick(page, '#components');
 
             // find that same tutorial box on component page
-            const newComponentBoxElement = await page.waitForSelector(
+            const newComponentBoxElement = await init.pageWaitForSelector(
+                page,
                 `#info-${customTutorialType}`
             );
             expect(newComponentBoxElement).toBeDefined();
             // click on the call to action button
-            await page.waitForSelector(`#close-${customTutorialType}`);
+            await init.pageWaitForSelector(
+                page,
+                `#close-${customTutorialType}`
+            );
             await init.pageClick(page, `#close-${customTutorialType}`);
             // find component quick tip and confirm it shows
-            const componentQuickTip = await page.waitForSelector(
+            const componentQuickTip = await init.pageWaitForSelector(
+                page,
                 `#quick-tip-${customTutorialType}`
             );
             expect(componentQuickTip).toBeDefined();
@@ -98,16 +104,20 @@ describe('Custom Tutorial With SubProjects', () => {
             const customTutorialType = 'monitor';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
-            const componentBoxElement = await page.waitForSelector(
+            const componentBoxElement = await init.pageWaitForSelector(
+                page,
                 `#info-${customTutorialType}`
             );
             expect(componentBoxElement).toBeDefined();
 
             // click on the call to action button
-            await page.waitForSelector(`#close-${customTutorialType}`);
+            await init.pageWaitForSelector(
+                page,
+                `#close-${customTutorialType}`
+            );
             await init.pageClick(page, `#close-${customTutorialType}`);
 
             done();
@@ -120,16 +130,20 @@ describe('Custom Tutorial With SubProjects', () => {
             const customTutorialType = 'teamMember';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
-            const componentBoxElement = await page.waitForSelector(
+            const componentBoxElement = await init.pageWaitForSelector(
+                page,
                 `#info-${customTutorialType}`
             );
             expect(componentBoxElement).toBeDefined();
 
             // click on the call to action button
-            await page.waitForSelector(`#close-${customTutorialType}`);
+            await init.pageWaitForSelector(
+                page,
+                `#close-${customTutorialType}`
+            );
             await init.pageClick(page, `#close-${customTutorialType}`);
 
             done();

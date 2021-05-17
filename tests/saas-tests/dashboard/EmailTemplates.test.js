@@ -15,16 +15,14 @@ const user = {
 };
 
 describe('Email Templates API', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         // Register user
         await init.registerUser(user, page);
@@ -40,23 +38,29 @@ describe('Email Templates API', () => {
     test(
         'should not show reset button when no template is saved',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings');
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#email');
+            await init.pageWaitForSelector(page, '#email');
             await init.pageClick(page, '#email');
             await init.selectByText(
                 '#type',
                 'External Subscriber Incident Created',
                 page
             );
-            await page.waitForSelector('#name');
+            await init.pageWaitForSelector(page, '#name');
             defaultSubject = await page.$eval('#name', elem => elem.value);
-            const resetBtn = await page.waitForSelector('#templateReset', {
-                hidden: true,
-            });
+            const resetBtn = await init.pageWaitForSelector(
+                page,
+                '#templateReset',
+                {
+                    hidden: true,
+                }
+            );
             expect(resetBtn).toBeNull();
 
             done();
@@ -67,12 +71,14 @@ describe('Email Templates API', () => {
     test(
         'Should update default email template',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings');
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#email');
+            await init.pageWaitForSelector(page, '#email');
             await init.pageClick(page, '#email');
             await init.selectByText(
                 '#type',
@@ -80,11 +86,13 @@ describe('Email Templates API', () => {
                 page
             );
             const subject = 'Updated Subject';
-            await page.waitForSelector('#name');
-            await init.pageClick(page, '#name', { clickCount: 3 });
+            await init.pageWaitForSelector(page, '#name');
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', subject);
             await init.pageClick(page, '#saveTemplate');
-            await page.waitForSelector('#ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '#ball-beat', {
+                hidden: true,
+            });
 
             await page.reload();
             await init.selectByText(
@@ -92,7 +100,7 @@ describe('Email Templates API', () => {
                 'External Subscriber Incident Created',
                 page
             );
-            await page.waitForSelector('#name');
+            await init.pageWaitForSelector(page, '#name');
             const finalSubject = await page.$eval('#name', elem => elem.value);
 
             expect(finalSubject).toEqual(subject);
@@ -105,21 +113,28 @@ describe('Email Templates API', () => {
     test(
         'should show reset button when a template is already saved',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings');
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#email');
+            await init.pageWaitForSelector(page, '#email');
             await init.pageClick(page, '#email');
             await init.selectByText(
                 '#type',
                 'External Subscriber Incident Created',
                 page
             );
-            const resetBtn = await page.waitForSelector('#templateReset', {
-                visible: true,
-            });
+            const resetBtn = await init.pageWaitForSelector(
+                page,
+                '#templateReset',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(resetBtn).toBeDefined();
 
             done();
@@ -130,23 +145,28 @@ describe('Email Templates API', () => {
     test(
         'should reset template to default state',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings');
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#email');
+            await init.pageWaitForSelector(page, '#email');
             await init.pageClick(page, '#email');
             await init.selectByText(
                 '#type',
                 'External Subscriber Incident Created',
                 page
             );
-            await page.waitForSelector('#templateReset', {
+            await init.pageWaitForSelector(page, '#templateReset', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#templateReset');
-            await page.waitForSelector('#ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '#ball-beat', {
+                hidden: true,
+            });
 
             await page.reload();
             await init.selectByText(
@@ -154,7 +174,7 @@ describe('Email Templates API', () => {
                 'External Subscriber Incident Created',
                 page
             );
-            await page.waitForSelector('#name');
+            await init.pageWaitForSelector(page, '#name');
             const finalSubject = await page.$eval('#name', elem => elem.value);
             expect(defaultSubject).toEqual(finalSubject);
 

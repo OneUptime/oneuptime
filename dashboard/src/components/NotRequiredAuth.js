@@ -29,7 +29,7 @@ export default function(ComposedComponent) {
         }
     }
 
-    function mapStateToProps(state_Ignored) {
+    function mapStateToProps() {
         return {};
     }
 

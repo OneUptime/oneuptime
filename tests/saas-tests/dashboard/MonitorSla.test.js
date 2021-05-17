@@ -13,16 +13,14 @@ const component = 'sampleComponent';
 const monitor = 'sampleMonitor';
 
 describe('Monitor SLA', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(3600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         const user = {
             email,
@@ -42,22 +40,30 @@ describe('Monitor SLA', () => {
     test(
         'should not add a monitor SLA if no name was specified',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await init.pageWaitForSelector(page, '#monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#monitor');
 
-            await page.waitForSelector('#addMonitorSlaBtn', {
+            await init.pageWaitForSelector(page, '#addMonitorSlaBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addMonitorSlaBtn');
-            await page.waitForSelector('#monitorSlaForm', {
+            await init.pageWaitForSelector(page, '#monitorSlaForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.selectByText(
                 '#monitorUptimeOption',
@@ -67,9 +73,14 @@ describe('Monitor SLA', () => {
             await page.$eval('#isDefault', elem => elem.click());
             await init.pageClick(page, '#createSlaBtn');
 
-            const monitorSla = await page.waitForSelector(`#field-error`, {
-                visible: true,
-            });
+            const monitorSla = await init.pageWaitForSelector(
+                page,
+                `#field-error`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(monitorSla).toBeDefined();
             done();
         },
@@ -79,32 +90,46 @@ describe('Monitor SLA', () => {
     test(
         'should not add a monitor SLA if monitor uptime was not specified',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await init.pageWaitForSelector(page, '#monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#monitor');
 
-            await page.waitForSelector('#addMonitorSlaBtn', {
+            await init.pageWaitForSelector(page, '#addMonitorSlaBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addMonitorSlaBtn');
-            await page.waitForSelector('#monitorSlaForm', {
+            await init.pageWaitForSelector(page, '#monitorSlaForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
             await page.$eval('#isDefault', elem => elem.click());
             await init.pageClick(page, '#createSlaBtn');
-            await page.waitForSelector('.ball-beat', { visible: true });
-            await page.waitForSelector('.ball-beat', { hidden: true });
-
-            const slaError = await page.waitForSelector(`#slaError`, {
+            await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
+
+            const slaError = await init.pageWaitForSelector(page, `#slaError`, {
+                visible: true,
+                timeout: init.timeout,
             });
             expect(slaError).toBeDefined();
             done();
@@ -115,35 +140,48 @@ describe('Monitor SLA', () => {
     test(
         'should not add a monitor SLA if monitor uptime is not a numeric value',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await init.pageWaitForSelector(page, '#monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#monitor');
 
-            await page.waitForSelector('#addMonitorSlaBtn', {
+            await init.pageWaitForSelector(page, '#addMonitorSlaBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addMonitorSlaBtn');
-            await page.waitForSelector('#monitorSlaForm', {
+            await init.pageWaitForSelector(page, '#monitorSlaForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
             await init.selectByText('#monitorUptimeOption', 'custom', page);
-            await page.waitForSelector('#customMonitorUptime');
+            await init.pageWaitForSelector(page, '#customMonitorUptime');
             await init.pageClick(page, '#customMonitorUptime');
             await init.pageType(page, '#customMonitorUptime', '12uptime');
             await page.$eval('#isDefault', elem => elem.click());
             await init.pageClick(page, '#createSlaBtn');
 
-            const uptimeError = await page.waitForSelector('#field-error', {
-                visible: true,
-            });
+            const uptimeError = await init.pageWaitForSelector(
+                page,
+                '#field-error',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(uptimeError).toBeDefined();
             done();
         },
@@ -153,35 +191,48 @@ describe('Monitor SLA', () => {
     test(
         'should not add a monitor SLA if monitor uptime is greater than 100%',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await init.pageWaitForSelector(page, '#monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#monitor');
 
-            await page.waitForSelector('#addMonitorSlaBtn', {
+            await init.pageWaitForSelector(page, '#addMonitorSlaBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addMonitorSlaBtn');
-            await page.waitForSelector('#monitorSlaForm', {
+            await init.pageWaitForSelector(page, '#monitorSlaForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
             await init.selectByText('#monitorUptimeOption', 'custom', page);
-            await page.waitForSelector('#customMonitorUptime');
+            await init.pageWaitForSelector(page, '#customMonitorUptime');
             await init.pageClick(page, '#customMonitorUptime');
             await init.pageType(page, '#customMonitorUptime', '120');
             await page.$eval('#isDefault', elem => elem.click());
             await init.pageClick(page, '#createSlaBtn');
 
-            const uptimeError = await page.waitForSelector('#field-error', {
-                visible: true,
-            });
+            const uptimeError = await init.pageWaitForSelector(
+                page,
+                '#field-error',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(uptimeError).toBeDefined();
             done();
         },
@@ -191,35 +242,48 @@ describe('Monitor SLA', () => {
     test(
         'should not add a monitor SLA if monitor uptime is less than 1%',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await init.pageWaitForSelector(page, '#monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#monitor');
 
-            await page.waitForSelector('#addMonitorSlaBtn', {
+            await init.pageWaitForSelector(page, '#addMonitorSlaBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addMonitorSlaBtn');
-            await page.waitForSelector('#monitorSlaForm', {
+            await init.pageWaitForSelector(page, '#monitorSlaForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
             await init.selectByText('#monitorUptimeOption', 'custom', page);
-            await page.waitForSelector('#customMonitorUptime');
+            await init.pageWaitForSelector(page, '#customMonitorUptime');
             await init.pageClick(page, '#customMonitorUptime');
             await init.pageType(page, '#customMonitorUptime', '0');
             await page.$eval('#isDefault', elem => elem.click());
             await init.pageClick(page, '#createSlaBtn');
 
-            const uptimeError = await page.waitForSelector('#field-error', {
-                visible: true,
-            });
+            const uptimeError = await init.pageWaitForSelector(
+                page,
+                '#field-error',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(uptimeError).toBeDefined();
             done();
         },
@@ -229,35 +293,48 @@ describe('Monitor SLA', () => {
     test(
         'should not add a monitor SLA if frequency is not a numeric value',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await init.pageWaitForSelector(page, '#monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#monitor');
 
-            await page.waitForSelector('#addMonitorSlaBtn', {
+            await init.pageWaitForSelector(page, '#addMonitorSlaBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addMonitorSlaBtn');
-            await page.waitForSelector('#monitorSlaForm', {
+            await init.pageWaitForSelector(page, '#monitorSlaForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
             await init.selectByText('#frequencyOption', 'custom', page);
-            await page.waitForSelector('#customFrequency');
+            await init.pageWaitForSelector(page, '#customFrequency');
             await init.pageClick(page, '#customFrequency');
             await init.pageType(page, '#customFrequency', '12days');
             await page.$eval('#isDefault', elem => elem.click());
             await init.pageClick(page, '#createSlaBtn');
 
-            const frequencyError = await page.waitForSelector('#field-error', {
-                visible: true,
-            });
+            const frequencyError = await init.pageWaitForSelector(
+                page,
+                '#field-error',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(frequencyError).toBeDefined();
             done();
         },
@@ -267,22 +344,30 @@ describe('Monitor SLA', () => {
     test(
         'should add a monitor SLA',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await init.pageWaitForSelector(page, '#monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#monitor');
 
-            await page.waitForSelector('#addMonitorSlaBtn', {
+            await init.pageWaitForSelector(page, '#addMonitorSlaBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addMonitorSlaBtn');
-            await page.waitForSelector('#monitorSlaForm', {
+            await init.pageWaitForSelector(page, '#monitorSlaForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
@@ -292,12 +377,18 @@ describe('Monitor SLA', () => {
                 page
             );
             await init.pageClick(page, '#createSlaBtn');
-            await page.waitForSelector('.ball-beat', { visible: true });
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
 
-            const monitorSla = await page.waitForSelector(
+            const monitorSla = await init.pageWaitForSelector(
+                page,
                 `#monitorSla_${slaName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(monitorSla).toBeDefined();
             done();
@@ -308,29 +399,43 @@ describe('Monitor SLA', () => {
     test(
         'should update a monitor SLA',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await init.pageWaitForSelector(page, '#monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#monitor');
 
-            await page.waitForSelector('#editMonitorSlaBtn_0', {
+            await init.pageWaitForSelector(page, '#editMonitorSlaBtn_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#editMonitorSlaBtn_0');
-            await page.waitForSelector('#monitorSlaForm', {
+            await init.pageWaitForSelector(page, '#monitorSlaForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#isDefault', elem => elem.click()); // set isDefault to false
             await init.pageClick(page, '#editSlaBtn');
-            await page.waitForSelector('.ball-beat', { visible: true });
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
 
-            const setDefaultBtn = await page.waitForSelector(
+            const setDefaultBtn = await init.pageWaitForSelector(
+                page,
                 `#defaultMonitorSlaBtn_0`,
                 { hidden: true }
             );
@@ -344,7 +449,8 @@ describe('Monitor SLA', () => {
         'should show monitor SLA indicator in a created monitor',
         async done => {
             await init.addMonitorToComponent(component, monitor, page);
-            const slaIndicator = await page.waitForSelector(
+            const slaIndicator = await init.pageWaitForSelector(
+                page,
                 `#noMonitorSlaBreached`,
                 {
                     visible: true,
@@ -362,9 +468,10 @@ describe('Monitor SLA', () => {
             await init.addIncident(monitor, 'offline', page);
             await init.navigateToMonitorDetails(component, monitor, page);
 
-            const breachedIndicator = await page.waitForSelector(
+            const breachedIndicator = await init.pageWaitForSelector(
+                page,
                 '#monitorSlaBreached',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(breachedIndicator).toBeDefined();
             done();
@@ -375,26 +482,39 @@ describe('Monitor SLA', () => {
     test(
         'should delete a monitor SLA',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await init.pageWaitForSelector(page, '#monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#monitor');
 
-            await page.waitForSelector('#deleteMonitorSlaBtn_0', {
+            await init.pageWaitForSelector(page, '#deleteMonitorSlaBtn_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteMonitorSlaBtn_0');
-            await page.waitForSelector('#DeleteMonitorSlaBtn');
+            await init.pageWaitForSelector(page, '#DeleteMonitorSlaBtn');
             await init.pageClick(page, '#DeleteMonitorSlaBtn');
-            await page.waitForSelector('.ball-beat', { visible: true });
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
 
-            const monitorSla = await page.waitForSelector(
+            const monitorSla = await init.pageWaitForSelector(
+                page,
                 `#monitorSla_${slaName}`,
                 { hidden: true }
             );

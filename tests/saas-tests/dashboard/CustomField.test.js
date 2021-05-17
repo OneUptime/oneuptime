@@ -21,16 +21,14 @@ const incidentFieldText = {
     };
 
 describe('Incident Custom Field', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(3600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // user
         await init.registerUser(user, page);
 
@@ -47,9 +45,10 @@ describe('Incident Custom Field', () => {
         async done => {
             await init.addCustomField(page, incidentFieldText, 'incident');
 
-            const firstCustomField = await page.waitForSelector(
+            const firstCustomField = await init.pageWaitForSelector(
+                page,
                 `#customfield_${incidentFieldText.fieldName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(firstCustomField).toBeDefined();
             done();
@@ -60,30 +59,36 @@ describe('Incident Custom Field', () => {
     test(
         'should update a incident custom field in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings', {
+            await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#incidentSettings');
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await init.gotoTab(6, page);
 
-            await page.waitForSelector('#editCustomField_0', {
+            await init.pageWaitForSelector(page, '#editCustomField_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#editCustomField_0');
-            await page.waitForSelector('#customFieldForm', {
+            await init.pageWaitForSelector(page, '#customFieldForm', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await init.pageClick(page, '#fieldName', { clickCount: 3 });
+            await init.pageClick(page, '#fieldName');
             await init.pageType(
                 page,
                 '#fieldName',
@@ -94,17 +99,19 @@ describe('Incident Custom Field', () => {
                 incidentFieldNumber.fieldType,
                 page
             );
-            await page.waitForSelector('#updateCustomField', {
+            await init.pageWaitForSelector(page, '#updateCustomField', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#updateCustomField');
-            await page.waitForSelector('#updateCustomField', {
+            await init.pageWaitForSelector(page, '#updateCustomField', {
                 hidden: true,
             });
 
-            const updatedField = await page.waitForSelector(
+            const updatedField = await init.pageWaitForSelector(
+                page,
                 `#customfield_${incidentFieldNumber.fieldName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(updatedField).toBeDefined();
             done();
@@ -115,37 +122,44 @@ describe('Incident Custom Field', () => {
     test(
         'should delete a incident custom field in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings', {
+            await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#incidentSettings');
             await page.reload({
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             await init.gotoTab(6, page);
 
-            await page.waitForSelector('#deleteCustomField_0', {
+            await init.pageWaitForSelector(page, '#deleteCustomField_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteCustomField_0');
-            await page.waitForSelector('#deleteCustomFieldModalBtn', {
+            await init.pageWaitForSelector(page, '#deleteCustomFieldModalBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteCustomFieldModalBtn');
-            await page.waitForSelector('#deleteCustomFieldModalBtn', {
+            await init.pageWaitForSelector(page, '#deleteCustomFieldModalBtn', {
                 hidden: true,
             });
 
-            const noCustomFields = await page.waitForSelector(
+            const noCustomFields = await init.pageWaitForSelector(
+                page,
                 '#noCustomFields',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(noCustomFields).toBeDefined();
 

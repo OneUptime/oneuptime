@@ -17,16 +17,14 @@ const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 
 describe('Schedule', () => {
-    const operationTimeOut = 1000000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(6000000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         await init.registerUser(user, page);
 
@@ -45,32 +43,39 @@ describe('Schedule', () => {
             const newScheduleName = 'test';
             await init.addProject(page, projectName);
 
-            await page.waitForSelector('#onCallDuty', {
+            await init.pageWaitForSelector(page, '#onCallDuty', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#onCallDuty', elem => elem.click());
             const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
-            await page.waitForSelector(createScheduleBtn, {
+            await init.pageWaitForSelector(page, createScheduleBtn, {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval(createScheduleBtn, elem => elem.click());
 
-            await page.waitForSelector('#name');
+            await init.pageWaitForSelector(page, '#name');
             await init.pageType(page, '#name', newScheduleName);
             await init.pageClick(page, '#btnCreateSchedule');
-            await page.waitForSelector('#name', { hidden: true });
+            await init.pageWaitForSelector(page, '#name', { hidden: true });
 
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
                 elem = Array.from(elem);
                 elem[0].click();
             });
-            await page.waitForSelector('#enableTeamRotation');
+            await init.pageWaitForSelector(page, '#enableTeamRotation');
             await init.pageClick(page, '#enableTeamRotation');
 
-            const modal = await page.waitForSelector('#pricingPlanModal', {
-                visible: true,
-            });
+            const modal = await init.pageWaitForSelector(
+                page,
+                '#pricingPlanModal',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(modal).toBeDefined();
             done();
         },
@@ -80,24 +85,32 @@ describe('Schedule', () => {
     test(
         'should show pricing plan modal when add on-call duty times is clicked',
         async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#onCallDuty', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#onCallDuty', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#onCallDuty', elem => elem.click());
 
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
                 elem = Array.from(elem);
                 elem[0].click();
             });
-            await page.waitForSelector('#addOnCallDutyTimes');
+            await init.pageWaitForSelector(page, '#addOnCallDutyTimes');
             await init.pageClick(page, '#addOnCallDutyTimes');
 
-            const modal = await page.waitForSelector('#pricingPlanModal', {
-                visible: true,
-            });
+            const modal = await init.pageWaitForSelector(
+                page,
+                '#pricingPlanModal',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(modal).toBeDefined();
 
             done();
@@ -115,13 +128,16 @@ describe('Schedule', () => {
                 page,
                 componentName
             );
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#onCallDuty', {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#onCallDuty', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#onCallDuty', elem => elem.click());
 
-            await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle2' });
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
                 elem = Array.from(elem);
@@ -146,25 +162,29 @@ describe('Schedule', () => {
             const newScheduleName = 'test';
             await init.addProject(page, projectName);
 
-            await page.waitForSelector('#onCallDuty', {
+            await init.pageWaitForSelector(page, '#onCallDuty', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#onCallDuty', elem => elem.click());
             const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
-            await page.waitForSelector(createScheduleBtn, {
+            await init.pageWaitForSelector(page, createScheduleBtn, {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval(createScheduleBtn, elem => elem.click());
 
-            await page.waitForSelector('#name');
+            await init.pageWaitForSelector(page, '#name');
             await init.pageType(page, '#name', newScheduleName);
             await init.pageClick(page, '#btnCreateSchedule');
-            await page.waitForSelector('#viewOnCallSchedule', {
+            await init.pageWaitForSelector(page, '#viewOnCallSchedule', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#viewOnCallSchedule');
-            await page.waitForSelector(`#cb${newScheduleName}`, {
+            await init.pageWaitForSelector(page, `#cb${newScheduleName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             const onCallScheduleName = await page.$eval(
                 `#cb${newScheduleName}`,

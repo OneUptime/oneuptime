@@ -3,7 +3,6 @@
     "version": "3.0.0",
     "private": true,
     "dependencies": {
-        "@beam-australia/react-env": "^2.1.2",
         "@date-io/date-fns": "^1.3.11",
         "@date-io/moment": "^1.3.13",
         "@material-ui/core": "^4.7.0",
@@ -11,7 +10,6 @@
         "@trendmicro/react-dropdown": "^1.3.0",
         "amplitude-js": "^5.8.0",
         "axios": "^0.21.1",
-        "browserslist": "^4.6.1",
         "card-validator": "^6.2.0",
         "clipboard": "^2.0.1",
         "clsx": "^1.0.4",
@@ -30,7 +28,6 @@
         "humanize-duration": "^3.15.3",
         "imrc-datetime-picker": "^2.1.1",
         "js-base64": "^3.6.0",
-        "js-uuid": "0.0.6",
         "loadable-components": "^2.2.3",
         "lodash": "^4.17.19",
         "markdown-to-jsx": "^6.11.4",
@@ -40,7 +37,8 @@
         "papaparse": "^5.2.0",
         "prismjs": "^1.20.0",
         "prop-types": "^15.6.1",
-        "puppeteer": "^9.0.0",
+        "puppeteer": "^5.5.0",
+        "puppeteer-cluster": "^0.22.0",
         "qrcode.react": "^1.0.0",
         "react": "^16.5.2",
         "react-ace": "^9.1.3",
@@ -62,7 +60,7 @@
         "react-reveal": "^1.2.2",
         "react-router-dom": "^4.3.1",
         "react-router-redux": "^4.0.8",
-        "react-scripts": "^3.4.4",
+        "react-scripts": "^4.0.3",
         "react-select": "^3.0.8",
         "react-simple-code-editor": "^0.11.0",
         "react-slick": "^0.27.9",
@@ -94,7 +92,7 @@
         "test": "jest --forceExit --testSequencer ./src/test/puppeteer/CustomSequencer.js --runInBand ./src/test/puppeteer/*.test.js",
         "enterprise-test": "jest --forceExit --runInBand ./src/test/puppeteer/*.test.enterprise.js",
         "start": "node index.js",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,browserslist,loadable-components,@beam-australia/react-env'",
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,loadable-components'",
         "audit": "npm audit --audit-level=low",
         "fix-lint": "eslint . --fix",
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'"
@@ -102,9 +100,6 @@
     "devDependencies": {
         "@jest/test-sequencer": "^26.0.1",
         "axios-mock-adapter": "^1.15.0",
-        "babel-preset-es2015": "^6.24.1",
-        "babel-preset-react": "^6.24.1",
-        "babel-runtime": "^6.26.0",
         "depcheck": "^1.3.1",
         "fyipe": "^3.0.10051",
         "jest-localstorage-mock": "^2.2.0",
@@ -142,6 +137,7 @@
         "flux": "4.0.0",
         "minimist": "1.2.5",
         "node-fetch": "2.6.1",
-        "axios": "0.21.1"
+        "axios": "0.21.1",
+        "react-scripts/eslint-webpack-plugin": "2.3.0"
     }
 }

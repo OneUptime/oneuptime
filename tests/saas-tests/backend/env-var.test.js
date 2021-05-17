@@ -17,7 +17,7 @@ describe('Check Server', () => {
 
     test('should get hosts mapping from server', async done => {
         await page.goto(`${utils.BACKEND_URL}/server/hosts`, {
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         const response = await page.$eval('body > pre', e => {
             return e.innerHTML;
@@ -47,7 +47,7 @@ describe('Check Server', () => {
 
     test('should get saas status true from server', async done => {
         await page.goto(`${utils.BACKEND_URL}/server/is-saas-service`, {
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         const response = await page.$eval('body > pre', e => {
             return e.innerHTML;

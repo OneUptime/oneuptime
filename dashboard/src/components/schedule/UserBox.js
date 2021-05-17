@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { withRouter } from 'react-router';
+import { withRouter } from 'react-router-dom';
 import UserInputs from './UserInputs';
 import { FormLoader, Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';

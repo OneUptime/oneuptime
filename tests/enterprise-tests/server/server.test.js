@@ -17,7 +17,7 @@ describe('Check Enterprise Server', () => {
 
     test('should get saas status false from server', async done => {
         await page.goto(`${utils.BACKEND_URL}/server/is-saas-service`, {
-            waitUntil: 'networkidle0',
+            waitUntil: 'networkidle2',
         });
         const response = await page.$eval('body > pre', e => {
             return e.innerHTML;

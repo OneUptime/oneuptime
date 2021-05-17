@@ -13,16 +13,14 @@ const user = {
 };
 
 describe('Project API', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // user
         await init.registerUser(user, page);
 
@@ -39,16 +37,28 @@ describe('Project API', () => {
         async done => {
             const projectName = utils.generateRandomString();
             //Login is no longer required as Dashboard page is loaded automatically.
-            await page.waitForSelector('#selector', { visible: true });
+            await init.pageWaitForSelector(page, '#selector', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval('#create-project', e => e.click());
-            await page.waitForSelector('#name', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageWaitForSelector(page, '#name', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', projectName);
             await init.pageClick(page, 'input[id=Startup_month]');
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector(`#cb${projectName}`, { visible: true });
+            await init.pageWaitForSelector(page, `#cb${projectName}`, {
+                visible: true,
+                timeout: init.timeout,
+            });
             // eslint-disable-next-line no-undef
             localStorageData = await page.evaluate(() => {
                 const json = {};

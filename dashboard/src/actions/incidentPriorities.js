@@ -25,7 +25,7 @@ function fetchIncidentPrioritiesFailure(error) {
 export function fetchIncidentPriorities(projectId, skip, limit) {
     return function(dispatch) {
         const promise = getApi(
-            `incidentPriorities/${projectId}?skip=${skip ?? 0}&limit=${limit ??
+            `incidentPriorities/${projectId}?skip=${skip || 0}&limit=${limit ||
                 10}`
         );
         dispatch(fetchIncidentPrioritiesRequest());

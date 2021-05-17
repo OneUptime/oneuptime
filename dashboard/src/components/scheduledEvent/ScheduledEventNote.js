@@ -160,6 +160,11 @@ export class ScheduledEventNote extends Component {
                                       this.props.scheduledEvent.startDate
                                           ? this.props.scheduledEvent.startDate
                                           : note.createdAt;
+                                  const eventEndDate =
+                                      this.props.scheduledEvent &&
+                                      this.props.scheduledEvent.endDate
+                                          ? this.props.scheduledEvent.endDate
+                                          : note.createdAt;
 
                                   return (
                                       <>
@@ -168,7 +173,8 @@ export class ScheduledEventNote extends Component {
                                           note.event_state !== 'Resolved' &&
                                           note.event_state !== 'Created' &&
                                           note.event_state !== 'Started' &&
-                                          note.event_state !== 'Cancelled' ? (
+                                          note.event_state !== 'Cancelled' &&
+                                          note.event_state !== 'Ended' ? (
                                               <div
                                                   key={i}
                                                   id={`${type}_incident_message_${i}`}
@@ -204,9 +210,7 @@ export class ScheduledEventNote extends Component {
                                                                       }}
                                                                   />
                                                                   <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                      {note
-                                                                          .createdById
-                                                                          .name
+                                                                      {note.createdById
                                                                           ? note
                                                                                 .createdById
                                                                                 .name
@@ -380,7 +384,9 @@ export class ScheduledEventNote extends Component {
                                                 note.event_state ===
                                                     'Resolved' ||
                                                 note.event_state ===
-                                                    'Cancelled') ? (
+                                                    'Cancelled' ||
+                                                note.event_state ===
+                                                    'Ended') ? (
                                               <>
                                                   <ShouldRender if={i !== 0}>
                                                       <div className="bs-thread-line-up bs-ex-up"></div>
@@ -392,7 +398,9 @@ export class ScheduledEventNote extends Component {
                                                                         note.event_state ===
                                                                             'Deleted' ||
                                                                         note.event_state ===
-                                                                            'Cancelled'
+                                                                            'Cancelled' ||
+                                                                        note.event_state ===
+                                                                            'Ended'
                                                                             ? 'bs-note-offline'
                                                                             : note.event_state ===
                                                                                   'Resolved' ||
@@ -454,7 +462,9 @@ export class ScheduledEventNote extends Component {
                                                                       }}
                                                                   >
                                                                       {note.event_state ===
-                                                                      'Started'
+                                                                          'Started' ||
+                                                                      note.event_state ===
+                                                                          'Ended'
                                                                           ? 'Fyipe'
                                                                           : note.createdById &&
                                                                             note
@@ -540,6 +550,23 @@ export class ScheduledEventNote extends Component {
                                                                                 )
                                                                           : moment(
                                                                                 eventStartDate
+                                                                            ).format(
+                                                                                'lll'
+                                                                            )
+                                                                      : note.event_state ===
+                                                                        'Ended'
+                                                                      ? currentTimeZone
+                                                                          ? momentTz(
+                                                                                eventEndDate
+                                                                            )
+                                                                                .tz(
+                                                                                    currentTimeZone
+                                                                                )
+                                                                                .format(
+                                                                                    'lll'
+                                                                                )
+                                                                          : moment(
+                                                                                eventEndDate
                                                                             ).format(
                                                                                 'lll'
                                                                             )

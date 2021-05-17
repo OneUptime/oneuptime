@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { reduxForm, FieldArray, arrayPush } from 'redux-form';
-import { withRouter } from 'react-router';
+import { withRouter } from 'react-router-dom';
 import { getEscalation, addEscalation } from '../../actions/schedule';
 import { getProjectGroups } from '../../actions/group';
 import { subProjectTeamLoading } from '../../actions/team';
@@ -110,6 +110,22 @@ function validate(values) {
 }
 
 export class OnCallAlertBox extends Component {
+    componentDidMount() {
+        const {
+            subProjectId,
+            getProjectGroups,
+            subProjectTeamLoading,
+            scheduleId,
+            getEscalation,
+        } = this.props;
+        if (subProjectId) {
+            subProjectTeamLoading(subProjectId);
+            getProjectGroups(subProjectId, 0, 0, true);
+            if (scheduleId) {
+                getEscalation(subProjectId, scheduleId);
+            }
+        }
+    }
     componentDidUpdate(prevProps) {
         if (
             prevProps.subProjectId !== this.props.subProjectId ||

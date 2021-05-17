@@ -5,8 +5,7 @@ const RealTimeService = require('./realTimeService');
 const ScheduledEventNoteService = require('./scheduledEventNoteService');
 const AlertService = require('./alertService');
 const moment = require('moment');
-const generate = require('nanoid/generate');
-const slugify = require('slugify');
+const getSlug = require('../utils/getSlug');
 
 module.exports = {
     create: async function({ projectId }, data, recurring) {
@@ -33,10 +32,7 @@ module.exports = {
 
             data.projectId = projectId;
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
+                data.slug = getSlug(data.name);
             }
 
             let scheduledEvent = await ScheduledEventModel.create({
@@ -67,12 +63,24 @@ module.exports = {
             const startTime = moment(scheduledEvent.startDate);
             if (startTime <= currentTime) {
                 await ScheduledEventNoteService.create({
-                    content: 'THIS SCHEDULED EVENT HAS STARTED',
+                    content: 'This scheduled event has started',
                     scheduledEventId: scheduledEvent._id,
                     type: 'investigation',
                     event_state: 'Started',
                 });
             }
+
+            //Create event end note immediately if end time equal to create time
+            const endTime = moment(scheduledEvent.endDate);
+            if (endTime <= currentTime) {
+                await ScheduledEventNoteService.create({
+                    content: 'This scheduled event has ended',
+                    scheduledEventId: scheduledEvent._id,
+                    type: 'investigation',
+                    event_state: 'Ended',
+                });
+            }
+
             if (scheduledEvent.alertSubscriber) {
                 // handle this asynchronous operation in the background
                 AlertService.sendCreatedScheduledEventToSubscribers(
@@ -119,10 +127,7 @@ module.exports = {
                 monitorId: monitor,
             }));
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
+                data.slug = getSlug(data.name);
             }
             let updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
                 { _id: query._id },
@@ -541,7 +546,7 @@ module.exports = {
                     scheduledEventNoteList.length === 0
                 ) {
                     await ScheduledEventNoteService.create({
-                        content: 'THIS SCHEDULED EVENT HAS STARTED',
+                        content: 'This scheduled event has started',
                         scheduledEventId,
                         type: 'investigation',
                         event_state: 'Started',
@@ -551,6 +556,54 @@ module.exports = {
         } catch (error) {
             ErrorService.log(
                 'scheduledEventService.createScheduledEventStartedNote',
+                error
+            );
+            throw error;
+        }
+    },
+
+    /**
+     * @description Create Ended note for all schedule events
+     */
+    createScheduledEventEndedNote: async function() {
+        try {
+            const currentTime = moment();
+
+            //fetch events that have ended
+            const scheduledEventList = await this.findBy(
+                {
+                    endDate: { $lte: currentTime },
+                    deleted: false,
+                    cancelled: false,
+                },
+                0,
+                0
+            );
+
+            //fetch event notes without started note and create
+            scheduledEventList.map(async scheduledEvent => {
+                const scheduledEventId = scheduledEvent._id;
+                const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
+                    {
+                        scheduledEventId,
+                        event_state: 'Ended',
+                    }
+                );
+                if (
+                    scheduledEventNoteList &&
+                    scheduledEventNoteList.length === 0
+                ) {
+                    await ScheduledEventNoteService.create({
+                        content: 'This scheduled event has ended',
+                        scheduledEventId,
+                        type: 'investigation',
+                        event_state: 'Ended',
+                    });
+                }
+            });
+        } catch (error) {
+            ErrorService.log(
+                'scheduledEventService.createScheduledEventEndedNote',
                 error
             );
             throw error;

@@ -8,16 +8,14 @@ const password = '1234567890';
 
 let browser, page;
 describe('User Feedback', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(600000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         // Register user
         const user = {
             email,
@@ -36,15 +34,16 @@ describe('User Feedback', () => {
     test(
         'should send feedback in project',
         async done => {
-            expect.assertions(1); // registerUser is the only assertion present
             const testFeedback = 'test feedback';
 
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#feedback-div');
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#feedback-div');
             await init.pageClick(page, '#feedback-div', { clickCount: 2 });
             await init.pageType(page, '#feedback-textarea', testFeedback);
             await init.pageClick(page, '#feedback-button');
-            await page.waitForTimeout(3000);
+            await init.pageWaitForSelector(page, '#feedback-div');
 
             const feedbackMessage = await page.$eval(
                 '#feedback-div',

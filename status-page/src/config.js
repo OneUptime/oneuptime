@@ -287,7 +287,7 @@ export const handleResources = (monitorState, announcement) => {
         announcement.monitors &&
         announcement.monitors.map(monitor => {
             announcementMonitors.push(
-                String(monitor.monitorId._id ?? monitor.monitorId)
+                String(monitor.monitorId._id || monitor.monitorId)
             );
             return monitor;
         });

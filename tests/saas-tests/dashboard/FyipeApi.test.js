@@ -15,16 +15,14 @@ const member = {
 };
 
 describe('API test', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(500000);
+        jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
 
         // Register user
         await init.registerUser(user, page);
@@ -45,15 +43,22 @@ describe('API test', () => {
         'Should render the API page',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#projectSettings', { visible: true });
+            await init.pageWaitForSelector(page, '#projectSettings', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#api', { visible: true });
+            await init.pageWaitForSelector(page, '#api', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#api a');
             let elementHandle = await page.$('#boxTitle', {
                 visible: true,
+                timeout: init.timeout,
             });
             elementHandle = await elementHandle.getProperty('innerText');
             elementHandle = await elementHandle.jsonValue();
@@ -68,19 +73,31 @@ describe('API test', () => {
         'Should display the API key when clicked',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#projectSettings', { visible: true });
+            await init.pageWaitForSelector(page, '#projectSettings', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#api', { visible: true });
+            await init.pageWaitForSelector(page, '#api', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#api a');
-            let label = await page.$('#apiKey', { visible: true });
+            let label = await page.$('#apiKey', {
+                visible: true,
+                timeout: init.timeout,
+            });
             label = await label.getProperty('innerText');
             label = await label.jsonValue();
 
             await init.pageClick(page, '#apiKey');
-            let newLabel = await page.$('#apiKey', { visible: true });
+            let newLabel = await page.$('#apiKey', {
+                visible: true,
+                timeout: init.timeout,
+            });
             newLabel = await newLabel.getProperty('innerText');
             newLabel = await newLabel.jsonValue();
             expect(label).not.toEqual(newLabel);
@@ -94,31 +111,44 @@ describe('API test', () => {
         'Should reset the API Key',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#projectSettings', { visible: true });
+            await init.pageWaitForSelector(page, '#projectSettings', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#api', { visible: true });
+            await init.pageWaitForSelector(page, '#api', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#api a');
 
             await init.pageClick(page, '#apiKey');
-            let oldApiKey = await page.$('#apiKey', { visible: true });
+            let oldApiKey = await page.$('#apiKey', {
+                visible: true,
+                timeout: init.timeout,
+            });
             oldApiKey = await oldApiKey.getProperty('innerText');
             oldApiKey = await oldApiKey.jsonValue();
 
             await init.pageClick(page, 'button[id=resetApiKey]', {
                 delay: 100,
             });
-            await page.waitForSelector('button[id=resetApiKeySave]', {
+            await init.pageWaitForSelector(page, 'button[id=resetApiKeySave]', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, 'button[id=resetApiKeySave]');
-            await page.waitForSelector('button[id=resetApiKeySave]', {
+            await init.pageWaitForSelector(page, 'button[id=resetApiKeySave]', {
                 hidden: true,
             });
 
-            let newApiKey = await page.$('#apiKey', { visible: true });
+            let newApiKey = await page.$('#apiKey', {
+                visible: true,
+                timeout: init.timeout,
+            });
             newApiKey = await newApiKey.getProperty('innerText');
             newApiKey = await newApiKey.jsonValue();
 
@@ -136,59 +166,87 @@ describe('API test', () => {
             const role = 'Member';
 
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'networkidle2',
             });
             // Rename project
-            await page.waitForSelector('#projectSettings', { visible: true });
+            await init.pageWaitForSelector(page, '#projectSettings', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('input[name=project_name]', {
+            await init.pageWaitForSelector(page, 'input[name=project_name]', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await init.pageClick(page, 'input[name=project_name]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=project_name]');
             await init.pageType(page, 'input[name=project_name]', projectName);
-            await page.waitForSelector('button[id=btnCreateProject]', {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                'button[id=btnCreateProject]',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, 'button[id=btnCreateProject]');
 
             // Invite member on the project
-            await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#teamMembers', { visible: true });
-            await init.pageClick(page, '#teamMembers');
-            await page.waitForSelector(`#btn_${projectName}`, {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#teamMembers', {
                 visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#teamMembers');
+            await init.pageWaitForSelector(page, `#btn_${projectName}`, {
+                visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#btn_${projectName}`);
-            await page.waitForSelector('input[name=emails]', { visible: true });
+            await init.pageWaitForSelector(page, 'input[name=emails]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[name=emails]');
             await init.pageType(page, 'input[name=emails]', member.email);
-            await page.waitForSelector(`#${role}_${projectName}`, {
+            await init.pageWaitForSelector(page, `#${role}_${projectName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#${role}_${projectName}`);
-            await page.waitForSelector('button[type=submit]', {
+            await init.pageWaitForSelector(page, 'button[type=submit]', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector('button[type=submit]', { hidden: true });
+            await init.pageWaitForSelector(page, 'button[type=submit]', {
+                hidden: true,
+            });
             await init.logout(page);
 
             // Login as member
             await init.loginUser(member, page);
             await init.switchProject(projectName, page);
-            await page.waitForSelector('#projectSettings', { visible: true });
+            await init.pageWaitForSelector(page, '#projectSettings', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#api', { visible: true });
+            await init.pageWaitForSelector(page, '#api', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#api a');
             let elementHandle = await page.$('#boxTitle', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(elementHandle).toEqual(null);
 
             elementHandle = await page.$('#errorMessage', {
                 visible: true,
+                timeout: init.timeout,
             });
             expect(elementHandle).not.toBe(null);
             done();

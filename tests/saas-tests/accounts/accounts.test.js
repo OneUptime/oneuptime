@@ -16,12 +16,10 @@ const user = {
 
 describe('Login API', () => {
     beforeAll(async done => {
-        jest.setTimeout(150000);
+        jest.setTimeout(init.timeout);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-        );
+        await page.setUserAgent(utils.agent);
         done();
     });
 
@@ -30,29 +28,33 @@ describe('Login API', () => {
         done();
     });
 
-    it('Should login valid User', async done => {
-        await init.registerUser(user, page); // This automatically routes to dashboard.
-        await init.saasLogout(page);
-        await init.loginUser(user, page); // Items required are only available when 'loginUser' is initiated.
+    it(
+        'Should login valid User',
+        async done => {
+            await init.registerUser(user, page); // This automatically routes to dashboard.
+            await init.saasLogout(page);
+            await init.loginUser(user, page); // Items required are only available when 'loginUser' is initiated.
 
-        const localStorageData = await page.evaluate(() => {
-            const json = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                json[key] = localStorage.getItem(key);
-            }
-            return json;
-        });
+            const localStorageData = await page.evaluate(() => {
+                const json = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    json[key] = localStorage.getItem(key);
+                }
+                return json;
+            });
 
-        localStorageData.should.have.property('access_token');
-        localStorageData.should.have.property(
-            'email',
-            utils.BACKEND_URL.includes('localhost') ||
-                utils.BACKEND_URL.includes('staging')
-                ? email
-                : 'user@fyipe.com'
-        );
-        page.url().should.containEql(utils.DASHBOARD_URL);
-        done();
-    }, 600000);
+            localStorageData.should.have.property('access_token');
+            localStorageData.should.have.property(
+                'email',
+                utils.BACKEND_URL.includes('localhost') ||
+                    utils.BACKEND_URL.includes('staging')
+                    ? email
+                    : 'user@fyipe.com'
+            );
+            page.url().should.containEql(utils.DASHBOARD_URL);
+            done();
+        },
+        init.timeout
+    );
 });
