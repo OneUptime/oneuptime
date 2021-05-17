@@ -960,11 +960,52 @@ class Main extends Component {
             ),
         };
 
-        const visibleLayout =
+        const defaultClassicLayout = {
+            visible: [
+                { name: 'Announcement', id: 11, key: 'anouncement' },
+                {
+                    name: 'Ongoing Schedule Events',
+                    id: 12,
+                    key: 'ongoingSchedule',
+                },
+                { name: 'Services Status', id: 13, key: 'services' },
+                {
+                    name: 'Incidents',
+                    id: 14,
+                    key: 'incidents',
+                },
+                {
+                    name: 'Future Schedule Events',
+                    id: 15,
+                    key: 'futureSchedule',
+                },
+            ],
+            invisible: [],
+        };
+        const defaultCleanThemeLayout = {
+            visible: [
+                { name: 'Announcement', id: 11, key: 'anouncement' },
+                { name: 'Resources Status', id: 12, key: 'resources' },
+                { name: 'Services Status', id: 13, key: 'services' },
+                { name: 'Past Incidents', id: 14, key: 'pastIncidents' },
+                { name: 'Scheduled Maintenance', id: 15, key: 'maintenance' },
+            ],
+            invisible: [],
+        };
+
+        let visibleLayout =
             this.props.statusData &&
             this.props.statusData.theme === 'Classic Theme'
                 ? this.props.statusData.classicThemeLayout
                 : this.props.statusData.cleanThemeLayout;
+        //check if the layout has been set if not fall back to the default layout
+        if (!visibleLayout) {
+            visibleLayout =
+                this.props.statusData &&
+                this.props.statusData.theme === 'Classic Theme'
+                    ? defaultClassicLayout
+                    : defaultCleanThemeLayout;
+        }
         return (
             <>
                 {theme === 'Clean Theme' ? (
