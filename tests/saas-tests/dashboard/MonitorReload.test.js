@@ -42,14 +42,19 @@ describe('Fyipe Monitor Reload', () => {
             await init.navigateToComponentDetails(componentName, page);
             // To confirm no error on page reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector(`#cb${componentName}`, {
+            await init.pageWaitForSelector(page, `#cb${componentName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#cbMonitors', { visible: true });
+            await init.pageWaitForSelector(page, '#cbMonitors', {
+                visible: true,
+                timeout: init.timeout,
+            });
 
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             spanElement = spanElement.getProperty('innerText');
             spanElement = spanElement.jsonValue();
@@ -70,15 +75,23 @@ describe('Fyipe Monitor Reload', () => {
             );
             // To confirm no error on page reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector(`#cb${componentName}`, {
+            await init.pageWaitForSelector(page, `#cb${componentName}`, {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#cbMonitors', { visible: true });
-            await page.waitForSelector(`#cb${monitorName}`, { visible: true });
+            await init.pageWaitForSelector(page, '#cbMonitors', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, `#cb${monitorName}`, {
+                visible: true,
+                timeout: init.timeout,
+            });
 
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             spanElement = spanElement.getProperty('innerText');
             spanElement = spanElement.jsonValue();

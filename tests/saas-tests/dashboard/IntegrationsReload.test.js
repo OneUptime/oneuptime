@@ -50,7 +50,10 @@ describe('Fyipe Page Reload', () => {
             });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#integrations');
-            await page.waitForSelector('#addSlackButton', { visible: true });
+            await init.pageWaitForSelector(page, '#addSlackButton', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#addWebhookButton');
             await init.pageType(page, '#endpoint', webHookEndpoint);
             await init.selectByText(
@@ -60,14 +63,24 @@ describe('Fyipe Page Reload', () => {
             );
             await init.selectByText('#endpointType', 'GET', page);
             await init.pageClick(page, '#createWebhook');
-            await page.waitForSelector('#createWebhook', { hidden: true });
-            //To confirm no errors and stays on the same page on reload
-            await page.waitForSelector('#webhook_name');
-            await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbIntegrations', { visible: true });
-            const spanElement = await page.waitForSelector('#addSlackButton', {
-                visible: true,
+            await init.pageWaitForSelector(page, '#createWebhook', {
+                hidden: true,
             });
+            //To confirm no errors and stays on the same page on reload
+            await init.pageWaitForSelector(page, '#webhook_name');
+            await page.reload({ waitUntil: 'networkidle2' });
+            await init.pageWaitForSelector(page, '#cbIntegrations', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
+                '#addSlackButton',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(spanElement).toBeDefined();
             done();
         },

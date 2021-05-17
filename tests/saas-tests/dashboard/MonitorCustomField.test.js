@@ -45,9 +45,10 @@ describe('Monitor Custom Field', () => {
         async done => {
             await init.addCustomField(page, monitorFieldText, 'monitor');
 
-            const firstCustomField = await page.waitForSelector(
+            const firstCustomField = await init.pageWaitForSelector(
+                page,
                 `#customfield_${monitorFieldText.fieldName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(firstCustomField).toBeDefined();
             done();
@@ -61,27 +62,36 @@ describe('Monitor Custom Field', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true });
+            await init.pageWaitForSelector(page, '#more', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await init.pageWaitForSelector(page, '#monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#monitor');
             await page.reload({
                 waitUntil: 'networkidle2',
             });
             await init.gotoTab(2, page);
 
-            await page.waitForSelector('#editCustomField_0', {
+            await init.pageWaitForSelector(page, '#editCustomField_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#editCustomField_0');
-            await page.waitForSelector('#customFieldForm', {
+            await init.pageWaitForSelector(page, '#customFieldForm', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await init.pageClick(page, '#fieldName', { clickCount: 3 });
+            await init.pageClick(page, '#fieldName');
             await init.pageType(
                 page,
                 '#fieldName',
@@ -93,13 +103,14 @@ describe('Monitor Custom Field', () => {
                 page
             );
             await init.pageClick(page, '#updateCustomField');
-            await page.waitForSelector('#updateCustomField', {
+            await init.pageWaitForSelector(page, '#updateCustomField', {
                 hidden: true,
             });
 
-            const updatedField = await page.waitForSelector(
+            const updatedField = await init.pageWaitForSelector(
+                page,
                 `#customfield_${monitorFieldNumber.fieldName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(updatedField).toBeDefined();
             done();
@@ -113,34 +124,44 @@ describe('Monitor Custom Field', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more', { visible: true });
+            await init.pageWaitForSelector(page, '#more', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#monitor', { visible: true });
+            await init.pageWaitForSelector(page, '#monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#monitor');
             await page.reload({
                 waitUntil: 'networkidle2',
             });
             await init.gotoTab(2, page);
 
-            await page.waitForSelector('#deleteCustomField_0', {
+            await init.pageWaitForSelector(page, '#deleteCustomField_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteCustomField_0');
-            await page.waitForSelector('#deleteCustomFieldModalBtn', {
+            await init.pageWaitForSelector(page, '#deleteCustomFieldModalBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteCustomFieldModalBtn');
-            await page.waitForSelector('#deleteCustomFieldModalBtn', {
+            await init.pageWaitForSelector(page, '#deleteCustomFieldModalBtn', {
                 hidden: true,
             });
 
-            const noCustomFields = await page.waitForSelector(
+            const noCustomFields = await init.pageWaitForSelector(
+                page,
                 '#noCustomFields',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(noCustomFields).toBeDefined();
             done();

@@ -7,7 +7,7 @@ const user = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-
+const groupName = utils.generateRandomString();
 /** This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
@@ -32,23 +32,30 @@ describe('Fyipe Page Reload', () => {
     });
 
     test(
-        'Should reload the email settings page and confirm there are no errors',
+        'Should reload the probe page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#more');
-            await init.pageClick(page, '#email');
-            await page.waitForSelector('#showsmtpForm', { visible: true });
+            await init.pageClick(page, '#teamGroups');
+            await init.pageClick(page, '#btn_Add_SubProjects');                        
+            await init.pageType(page, '#groupName', groupName);
+            await init.selectByText('#componentList', 'Test Name', page);
+            await init.pageClick(page, '#btnAddGroup');
+            const spanElement = await page.waitForSelector(
+                `#sub_project_name_${groupName}`
+            );
+            expect(spanElement).toBeDefined();
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbProjectSettings', { visible: true });
-            await page.waitForSelector('#cbEmail', { visible: true });
-            const spanElement = await page.waitForSelector('#showsmtpForm', {
-                visible: true,
-            });
-            expect(spanElement).toBeDefined();
+            await page.waitForSelector('#cbGroups', { visible: true });
+            const spanElement2 = await page.waitForSelector(
+                `#sub_project_name_${groupName}`
+            );
+            expect(spanElement2).toBeDefined();
             done();
         },
         operationTimeOut

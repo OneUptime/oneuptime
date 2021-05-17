@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const utils = require('../../../admin-dashboard/src/test/test-utils');
-const init = require('../../../admin-dashboard/src/test/test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 
 let browser, page;
 require('should');
@@ -15,22 +15,27 @@ describe('Project', () => {
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
 
-        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        browser = await puppeteer.launch(utils.puppeteerLaunchConfig, {
+            waitUntil: 'networkidle2',
+        });
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
 
-        const email = utils.generateRandomBusinessEmail();
-        const password = '1234567890';
-
-        const user = {
+        const adminUser = {
             email: email,
             password: password,
         };
-        await init.registerEnterpriseUser(user, page);
 
-        // creating a user automatically
-        // adds an unamed project to the user
-        await init.registerUser({ email, password }, page);
+        const user = {
+            email: utils.generateRandomBusinessEmail(),
+            password,
+        };
+
+        await init.registerUser(user, page);
+        await init.saasLogout(page)
+
+        // login admin user
+        await init.loginAdminUser(adminUser, page);
     });
 
     afterAll(async () => {
@@ -40,29 +45,33 @@ describe('Project', () => {
     test(
         'should upgrade a project to enterprise plan',
         async () => {
-            const user = {
-                email: email,
-                password: password,
-            };
-            await init.loginUser(user, page);
-
+            await page.goto(utils.ADMIN_DASHBOARD_URL, {
+                waitUntil: 'networkidle2',
+            });
+            await init.pageClick(page ,"#projects");
             await page.$eval('#projects > a', elem => elem.click());
+            await init.pageWaitForSelector(page, '.Table > tbody tr');
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
                 elem = Array.from(elem);
                 elem[0].click();
             });
 
-            await page.waitForSelector('input[name="planId"]#Enterprise', {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                'input[name="planId"]#Enterprise',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
 
             await page.$eval('input[name="planId"]#Enterprise', elem =>
                 elem.click()
             );
             await page.$eval('#submitChangePlan', elem => elem.click());
 
-            const loader = await page.waitForSelector('.ball-beat', {
+            const loader = await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
 
@@ -83,23 +92,30 @@ describe('Project', () => {
         'should change to any other plan',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
+            await init.pageClick(page ,"#projects");
             await page.$eval('#projects > a', elem => elem.click());
+            await init.pageWaitForSelector(page, '.Table > tbody tr');
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
                 elem = Array.from(elem);
                 elem[0].click();
             });
 
-            await page.waitForSelector('input[name="planId"]#Growth_annual', {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                'input[name="planId"]#Growth_annual',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
 
             await page.$eval('input[name="planId"]#Growth_annual', elem =>
                 elem.click()
             );
             await page.$eval('#submitChangePlan', elem => elem.click());
 
-            const loader = await page.waitForSelector('.ball-beat', {
+            const loader = await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
 

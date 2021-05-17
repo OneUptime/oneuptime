@@ -10,15 +10,15 @@ const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
 const moveToSsoPage = async page => {
-    await page.waitForSelector('#settings');
+    await init.pageWaitForSelector(page, '#settings');
     await init.pageClick(page, '#settings');
-    await page.waitForSelector('#sso');
+    await init.pageWaitForSelector(page, '#sso');
     await init.pageClick(page, '#sso');
 };
 
 const createSso = async (page, data) => {
     await init.pageClick(page, '#add-sso');
-    await page.waitForSelector('#save-button');
+    await init.pageWaitForSelector(page, '#save-button');
 
     await init.pageClick(page, '#domain');
     await init.pageType(page, '#domain', data.domain);
@@ -62,7 +62,7 @@ describe('SSO API', () => {
             password: password,
         };
 
-        await init.registerEnterpriseUser(user, page);
+        await init.loginAdminUser(user, page);
 
         done();
     });
@@ -88,7 +88,7 @@ describe('SSO API', () => {
 
             expect(ssoCount).toContain('0');
 
-            await page.waitForSelector('#no-sso-message');
+            await init.pageWaitForSelector(page, '#no-sso-message');
 
             await createSso(page, {
                 domain: 'test.hackerbay.io',
@@ -136,10 +136,10 @@ describe('SSO API', () => {
 
             expect(ssoCount).toContain('1');
 
-            await page.waitForSelector('.edit-button');
+            await init.pageWaitForSelector(page, '.edit-button');
             await init.pageClick(page, '.edit-button');
 
-            await page.waitForSelector('#save-button');
+            await init.pageWaitForSelector(page, '#save-button');
             await init.pageClick(page, '#domain');
             await page.keyboard.down('Control');
             await page.keyboard.press('A');
@@ -180,10 +180,10 @@ describe('SSO API', () => {
 
             expect(ssoCount).toContain('1');
 
-            await page.waitForSelector('.delete-button');
+            await init.pageWaitForSelector(page, '.delete-button');
             await init.pageClick(page, '.delete-button');
 
-            await page.waitForSelector('#confirmDelete');
+            await init.pageWaitForSelector(page, '#confirmDelete');
             await init.pageClick(page, '#confirmDelete');
 
             const ssoCountAfterDeletion = await page.$eval('#sso-count', e => {
@@ -191,7 +191,7 @@ describe('SSO API', () => {
             });
             expect(ssoCountAfterDeletion).toContain('0');
 
-            await page.waitForSelector('#no-sso-message');
+            await init.pageWaitForSelector(page, '#no-sso-message');
 
             await browser.close();
             done();
@@ -213,7 +213,7 @@ describe('SSO API', () => {
             await init.loginUser(user, page);
 
             await moveToSsoPage(page);
-            await page.waitForSelector('#no-sso-message');
+            await init.pageWaitForSelector(page, '#no-sso-message');
 
             for (let i = 0; i <= 11; i++) {
                 await createSso(page, {

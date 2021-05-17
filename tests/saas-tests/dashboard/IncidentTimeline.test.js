@@ -36,17 +36,27 @@ describe('Incident Timeline API', () => {
         await init.addComponent(componentName, page);
 
         // add new monitor to project
-        await page.waitForSelector('#form-new-monitor', { visible: true });
+        await init.pageWaitForSelector(page, '#form-new-monitor', {
+            visible: true,
+            timeout: init.timeout,
+        });
         await page.$eval('input[id=name]', e => e.click());
         await init.pageType(page, 'input[id=name]', projectMonitorName);
         await init.pageClick(page, '[data-testId=type_url]');
-        await page.waitForSelector('#url', { visible: true });
+        await init.pageWaitForSelector(page, '#url', {
+            visible: true,
+            timeout: init.timeout,
+        });
         await page.$eval('#url', e => e.click());
         await init.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
         await page.$eval('button[type=submit]', e => e.click());
-        await page.waitForSelector(`#monitor-title-${projectMonitorName}`, {
-            visible: true,
-        });
+        await init.pageWaitForSelector(
+            page,
+            `#monitor-title-${projectMonitorName}`,
+            {
+                visible: true,
+            }
+        );
     });
 
     afterAll(async done => {
@@ -61,49 +71,69 @@ describe('Incident Timeline API', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#create_incident_${projectMonitorName}`
             );
             await init.pageClick(
                 page,
                 `#create_incident_${projectMonitorName}`
             );
-            await page.waitForSelector('#createIncident');
+            await init.pageWaitForSelector(page, '#createIncident');
             await init.selectByText('#incidentType', 'Offline', page);
             await init.selectByText('#incidentPriority', 'High', page);
             await init.pageType(page, '#title', 'new incident');
-            await page.waitForSelector('#createIncident');
+            await init.pageWaitForSelector(page, '#createIncident');
             await init.pageClick(page, '#createIncident');
-            await page.waitForSelector('#createIncident', { hidden: true });
+            await init.pageWaitForSelector(page, '#createIncident', {
+                hidden: true,
+            });
 
             // navigate to monitor details
-            await page.waitForSelector(`#more-details-${projectMonitorName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#more-details-${projectMonitorName}`
+            );
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
-            await page.waitForSelector(`#incident_${projectMonitorName}_0`, {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#incident_${projectMonitorName}_0`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
             //Incident Notes Tab has been refactored. It functionality is now in 'Incident Timeline' which is below the BASIC tab.
 
             // fill investigation message thread form
-            await page.waitForSelector(`#add-${type}-message`, {
+            await init.pageWaitForSelector(page, `#add-${type}-message`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#add-${type}-message`);
-            await page.waitForSelector(`#form-new-incident-${type}-message`);
+            await init.pageWaitForSelector(
+                page,
+                `#form-new-incident-${type}-message`
+            );
             await init.pageType(page, `textarea[id=new-${type}]`, `${message}`);
             await init.selectByText('#incident_state', 'investigating', page);
             await init.pageClick(page, `#${type}-addButton`);
-            await page.waitForSelector(`#${type}-addButton`, {
+            await init.pageWaitForSelector(page, `#${type}-addButton`, {
                 hidden: true,
             });
 
-            await page.waitForSelector(`#content_${type}_incident_message_0`, {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#content_${type}_incident_message_0`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             const investigationMessage = await page.$(
                 `#content_${type}_incident_message_0`
             );
@@ -124,35 +154,51 @@ describe('Incident Timeline API', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
             // navigate to monitor details
-            await page.waitForSelector(`#more-details-${projectMonitorName}`, {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#more-details-${projectMonitorName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
-            await page.waitForSelector(`#incident_${projectMonitorName}_0`);
+            await init.pageWaitForSelector(
+                page,
+                `#incident_${projectMonitorName}_0`
+            );
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
 
             //Incident Notes Tab has been refactored. It functionality is now in 'Incident Timeline' which is below the BASIC tab.
 
-            await page.waitForSelector(`#edit_${type}_incident_message_0`);
+            await init.pageWaitForSelector(
+                page,
+                `#edit_${type}_incident_message_0`
+            );
             await init.pageClick(page, `#edit_${type}_incident_message_0`);
 
             // edit investigation message thread form
-            await page.waitForSelector(`#edit-${type}`);
+            await init.pageWaitForSelector(page, `#edit-${type}`);
             await init.pageClick(page, `textarea[id=edit-${type}]`);
             await init.pageType(page, `textarea[id=edit-${type}]`, '-updated');
             await init.selectByText('#incident_state', 'update', page);
             await init.pageClick(page, 'button[type=submit]');
-            await page.waitForSelector(`#${type}-editButton`, {
+            await init.pageWaitForSelector(page, `#${type}-editButton`, {
                 hidden: true,
             });
             await page.reload({ waitUntil: 'networkidle0' });
             //Incident Notes Tab has been refactored. It functionality is now in 'Incident Timeline' which is below the BASIC tab.
-            await page.waitForSelector(`#content_${type}_incident_message_0`, {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#content_${type}_incident_message_0`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             const investigationMessage = await page.$(
                 `#content_${type}_incident_message_0`
             );
@@ -174,19 +220,30 @@ describe('Incident Timeline API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             // navigate to monitor details
-            await page.waitForSelector(`#more-details-${projectMonitorName}`, {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#more-details-${projectMonitorName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
-            await page.waitForSelector(`#incident_${projectMonitorName}_0`);
+            await init.pageWaitForSelector(
+                page,
+                `#incident_${projectMonitorName}_0`
+            );
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
             // fill internal message thread form
-            await page.waitForSelector(`#add-${type}-message`);
+            await init.pageWaitForSelector(page, `#add-${type}-message`);
             await page.$eval(`#add-${type}-message`, e => e.click());
-            await page.waitForSelector(`#form-new-incident-${type}-message`);
+            await init.pageWaitForSelector(
+                page,
+                `#form-new-incident-${type}-message`
+            );
             await init.pageClick(page, `textarea[id=new-${type}]`);
             await init.pageType(page, `textarea[id=new-${type}]`, `${message}`);
             await init.selectByText('#incident_state', 'others', page);
@@ -198,13 +255,18 @@ describe('Incident Timeline API', () => {
             );
 
             await init.pageClick(page, `#${type}-addButton`);
-            await page.waitForSelector(`#${type}-addButton`, {
+            await init.pageWaitForSelector(page, `#${type}-addButton`, {
                 hidden: true,
             });
 
-            await page.waitForSelector(`#content_${type}_incident_message_0`, {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#content_${type}_incident_message_0`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             const incidentMessage = await page.$(
                 `#content_${type}_incident_message_0`
             );
@@ -225,35 +287,51 @@ describe('Incident Timeline API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             // navigate to monitor details
-            await page.waitForSelector(`#more-details-${projectMonitorName}`, {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#more-details-${projectMonitorName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
-            await page.waitForSelector(`#incident_${projectMonitorName}_0`);
+            await init.pageWaitForSelector(
+                page,
+                `#incident_${projectMonitorName}_0`
+            );
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
             // click on incident notes tab
             await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
 
-            await page.waitForSelector(`#edit_${type}_incident_message_0`);
+            await init.pageWaitForSelector(
+                page,
+                `#edit_${type}_incident_message_0`
+            );
             await init.pageClick(page, `#edit_${type}_incident_message_0`);
 
             // edit investigation message thread form
-            await page.waitForSelector(`#${type}-editButton`);
+            await init.pageWaitForSelector(page, `#${type}-editButton`);
             await init.pageClick(page, `textarea[id=edit-${type}]`);
             await init.pageType(page, `textarea[id=edit-${type}]`, '-updated');
             await init.selectByText('#incident_state', 'investigating', page);
             await init.pageClick(page, `#${type}-editButton`);
-            await page.waitForSelector(`#${type}-editButton`, {
+            await init.pageWaitForSelector(page, `#${type}-editButton`, {
                 hidden: true,
             });
             await page.reload({ waitUntil: 'networkidle0' });
 
-            await page.waitForSelector(`#content_${type}_incident_message_0`, {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#content_${type}_incident_message_0`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             const incidentMessage = await page.$(
                 `#content_${type}_incident_message_0`
             );
@@ -273,21 +351,30 @@ describe('Incident Timeline API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             // navigate to monitor details
-            await page.waitForSelector(`#more-details-${projectMonitorName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#more-details-${projectMonitorName}`
+            );
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
-            await page.waitForSelector(`#incident_${projectMonitorName}_0`);
+            await init.pageWaitForSelector(
+                page,
+                `#incident_${projectMonitorName}_0`
+            );
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
 
-            await page.waitForSelector(`#delete_${type}_incident_message_0`);
+            await init.pageWaitForSelector(
+                page,
+                `#delete_${type}_incident_message_0`
+            );
             await init.pageClick(page, `#delete_${type}_incident_message_0`);
 
             // click confirmation delete button
-            await page.waitForSelector('#deleteIncidentMessage');
+            await init.pageWaitForSelector(page, '#deleteIncidentMessage');
             await init.pageClick(page, '#deleteIncidentMessage');
-            await page.waitForSelector('#deleteIncidentMessage', {
+            await init.pageWaitForSelector(page, '#deleteIncidentMessage', {
                 hidden: true,
             });
 
@@ -311,20 +398,27 @@ describe('Incident Timeline API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             // navigate to monitor details
-            await page.waitForSelector(`#more-details-${projectMonitorName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#more-details-${projectMonitorName}`
+            );
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
-            await page.waitForSelector(`#incident_${projectMonitorName}_0`);
+            await init.pageWaitForSelector(
+                page,
+                `#incident_${projectMonitorName}_0`
+            );
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
             for (let i = 0; i < 10; i++) {
                 // add internal note
-                await page.waitForSelector(`#add-${type}-message`, {
+                await init.pageWaitForSelector(page, `#add-${type}-message`, {
                     visible: true,
                 });
                 await init.pageClick(page, `#add-${type}-message`);
-                await page.waitForSelector(
+                await init.pageWaitForSelector(
+                    page,
                     `#form-new-incident-${type}-message`
                 );
                 await init.pageClick(page, `textarea[id=new-${type}]`);
@@ -336,14 +430,14 @@ describe('Incident Timeline API', () => {
                 await init.selectByText('#incident_state', 'update', page);
 
                 await init.pageClick(page, `#${type}-addButton`);
-                await page.waitForSelector(`#${type}-addButton`, {
+                await init.pageWaitForSelector(page, `#${type}-addButton`, {
                     hidden: true,
                 });
             }
             await page.reload({ waitUntil: 'networkidle0' });
 
             //Incident Timeline is now directly below 'BASIC' tab and it does not have 'Prev' and 'Next' button.
-            await page.waitForSelector('.internal-list');
+            await init.pageWaitForSelector(page, '.internal-list');
             const incidentTimelineRow = await page.$$('.internal-list');
             const countIncidentTimelines = incidentTimelineRow.length;
             expect(countIncidentTimelines).toEqual(11); // An internal mesage has been exist in the previous test
@@ -358,21 +452,28 @@ describe('Incident Timeline API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             // navigate to monitor details
-            await page.waitForSelector(`#more-details-${projectMonitorName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#more-details-${projectMonitorName}`
+            );
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
-            await page.waitForSelector(`#incident_${projectMonitorName}_0`);
+            await init.pageWaitForSelector(
+                page,
+                `#incident_${projectMonitorName}_0`
+            );
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
-            await page.waitForSelector('#btnAcknowledge_0');
+            await init.pageWaitForSelector(page, '#btnAcknowledge_0');
             await page.$eval('#btnAcknowledge_0', e => e.click());
-            await page.waitForSelector('#AcknowledgeText_0', {
+            await init.pageWaitForSelector(page, '#AcknowledgeText_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.reload({ waitUntil: 'networkidle0' });
             // Incident Timeline Tab Does Not Exist Anymore
-            await page.waitForSelector('.internal-list');
+            await init.pageWaitForSelector(page, '.internal-list');
             const incidentTimelineRows = await page.$$('.internal-list');
             const countIncidentTimelines = incidentTimelineRows.length;
             expect(countIncidentTimelines).toEqual(11);
@@ -388,18 +489,24 @@ describe('Incident Timeline API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             // navigate to monitor details
-            await page.waitForSelector(`#more-details-${projectMonitorName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#more-details-${projectMonitorName}`
+            );
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
-            await page.waitForSelector(`#incident_${projectMonitorName}_0`);
+            await init.pageWaitForSelector(
+                page,
+                `#incident_${projectMonitorName}_0`
+            );
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
-            await page.waitForSelector('#btnResolve_0');
+            await init.pageWaitForSelector(page, '#btnResolve_0');
             await init.pageClick(page, '#btnResolve_0');
-            await page.waitForSelector('#ResolveText_0');
+            await init.pageWaitForSelector(page, '#ResolveText_0');
             // Incident Timeline Tab Does Not Exist Anymore
-            await page.waitForSelector('.internal-list');
+            await init.pageWaitForSelector(page, '.internal-list');
             const incidentTimelineRows = await page.$$('.internal-list');
             const countIncidentTimelines = incidentTimelineRows.length;
             expect(countIncidentTimelines).toEqual(11);

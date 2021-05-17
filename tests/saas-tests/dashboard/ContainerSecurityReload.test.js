@@ -8,11 +8,13 @@ const user = {
     password: '1234567890',
 };
 const componentName = utils.generateRandomString();
-const applicationSecurityName = utils.generateRandomString();
+const containerSecurityName = utils.generateRandomString();
 
-const gitUsername = utils.gitCredential.gitUsername;
-const gitPassword = utils.gitCredential.gitPassword;
-const gitRepositoryUrl = utils.gitCredential.gitRepositoryUrl;
+const dockerRegistryUrl = utils.dockerCredential.dockerRegistryUrl;
+const dockerUsername = utils.dockerCredential.dockerUsername;
+const dockerPassword = utils.dockerCredential.dockerPassword;
+const dockerImagePath = utils.dockerCredential.imagePath;
+const dockerImageTag = utils.dockerCredential.imageTags;
 
 /** This is a test to check:
  * No errors on page reload
@@ -50,56 +52,51 @@ describe('Fyipe Page Reload', () => {
 
             await page.waitForSelector('#security', { visible: true });
             await init.pageClick(page, '#security');
-            await page.waitForSelector('#application', { visible: true });
-            await init.pageClick(page, '#application');
+            await init.pageClick(page, '#container');
 
-            await page.waitForSelector('#applicationSecurityForm', {
+            await page.waitForSelector('#containerSecurityForm', {
                 visible: true,
             });
             await init.pageClick(page, '#addCredentialBtn');
-            await page.waitForSelector('#gitCredentialForm', {
+            await page.waitForSelector('#dockerCredentialForm', {
                 visible: true,
             });
-            await init.pageClick(page, '#gitUsername');
-            await init.pageType(page, '#gitUsername', gitUsername);
-            await init.pageClick(page, '#gitPassword');
-            await init.pageType(page, '#gitPassword', gitPassword);
+            await init.pageType(page, '#dockerRegistryUrl', dockerRegistryUrl);
+            await init.pageType(page, '#dockerUsername', dockerUsername);
+            await init.pageType(page, '#dockerPassword', dockerPassword);
             await init.pageClick(page, '#addCredentialModalBtn');
-            await page.waitForSelector('#gitCredentialForm', {
+            await page.waitForSelector('#dockerCredentialForm', {
                 hidden: true,
             });
 
             await init.pageClick(page, '#name');
-            await init.pageType(page, '#name', applicationSecurityName);
-            await init.selectByText('#resourceCategory', categoryName, page); // add category
-            await init.pageClick(page, '#gitRepositoryUrl');
-            await init.pageType(page, '#gitRepositoryUrl', gitRepositoryUrl);
-            await init.pageClick(page, '#gitCredential');
-            await init.pageType(page, '#gitCredential', gitUsername); // select the created credential
-            await page.keyboard.press('Enter'); // Enter Key
-            await init.pageClick(page, '#addApplicationBtn');
+            await init.pageType(page, '#name', containerSecurityName);
+            await init.selectByText('#resourceCategory', categoryName, page); // add category        
+            await init.selectByText('#dockerCredential', dockerUsername, page);
+            await init.pageType(page, '#imagePath', dockerImagePath); // select the created credential            
+            await init.pageType(page, '#imageTags', dockerImageTag);
+            await init.pageClick(page, '#addContainerBtn');
 
-            await page.waitForSelector('.ball-beat', { hidden: true });
-            const applicationSecurity = await page.waitForSelector(
-                `#applicationSecurityHeader_${applicationSecurityName}`,
+            const containerSecurity = await page.waitForSelector(
+                `#containerSecurityTitle_${containerSecurityName}`,
                 { visible: true }
             );
-            expect(applicationSecurity).toBeDefined();
+            expect(containerSecurity).toBeDefined();
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
-            await page.waitForSelector('#cbApplicationSecurity', {
+            await page.waitForSelector('#cbcontainerSecurity', {
                 visible: true,
             });
-            await page.waitForSelector(`#cb${applicationSecurityName}`, {
+            await page.waitForSelector(`#cb${containerSecurityName}`, {
                 visible: true,
             });
 
             const spanElement = await page.waitForSelector(
-                `#applicationSecurityTitle_${applicationSecurityName}`
+                `#containerSecurityTitle_${containerSecurityName}`
             );
             expect(spanElement).toBeDefined();
 

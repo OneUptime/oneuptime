@@ -11,10 +11,16 @@ user.message = 'Test message';
 const agent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36';
 
+let slomo = 20;
+ 
+if(process.env.SLOMO && parseInt(process.env.SLOMO) && parseInt(process.env.SLOMO) > 20){
+    slomo = parseInt(process.env.SLOMO);
+}
+
 const puppeteerLaunchConfig = {
     headless: process.env.HEADLESS === 'false' ? false : true,
     defaultViewport: null,
-    slowMo: process.env.SLOMO ? parseInt(process.env.SLOMO) : null,
+    slowMo: slomo,
     args: [
         '--start-maximized',
         '--disable-web-security',
@@ -133,11 +139,11 @@ const gitCredential = {
 };
 
 const smtpCredential = {
-    user: process.env.TEST_EMAIL,
-    pass: process.env.TEST_EMAIL_PASSWORD,
-    host: process.env.TEST_EMAIL_SMTP_SERVER,
-    port: process.env.TEST_EMAIL_SMTP_PORT,
-    from: process.env.TEST_EMAIL,
+    user: process.env.TEST_EMAIL || "fyipedevtest1@gmail.com",
+    pass: process.env.TEST_EMAIL_PASSWORD || "H2Q2ALqEpknLKsPdRgDmkQfpFsiG8KgEq",
+    host: process.env.TEST_EMAIL_SMTP_SERVER || "smtp.gmail.com",
+    port: process.env.TEST_EMAIL_SMTP_PORT || "465",
+    from: process.env.TEST_EMAIL || "fyipedevtest1@gmail.com",
     secure: true,
 };
 

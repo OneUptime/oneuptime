@@ -1,18 +1,18 @@
 const { find, update } = require('../util/db');
-const slugify = require('slugify');
-const generate = require('nanoid/generate');
+const getSlug = require('../util/getSlug');
 
 const scheduledCollection = 'scheduledevents';
 
 async function run() {
     const items = await find(scheduledCollection, {
-        slug: { $exists: false },
+        $or: [
+            { slug: { $exists: false } },
+            { slug: { $regex: /[*+~.()'"!:@]+/g } },
+        ],
     });
     for (let i = 0; i < items.length; i++) {
-        let { name } = items[i];
-        name = slugify(name || 'scheduledevents');
-        name = `${name}-${generate('1234567890', 8)}`;
-        items[i].slug = name.toLowerCase();
+        const { name } = items[i];
+        items[i].slug = getSlug(name);
         await update(
             scheduledCollection,
             { _id: items[i]._id },

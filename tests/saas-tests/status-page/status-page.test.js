@@ -36,7 +36,10 @@ describe('Check status-page up', () => {
             await page.goto(`${utils.STATUSPAGE_URL}/fakeStatusPageId`, {
                 waitUntil: 'domcontentloaded',
             });
-            await page.waitForSelector('#app-loading', { visible: true });
+            await init.pageWaitForSelector(page, '#app-loading', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const response = await page.$eval('#app-loading > div', e => {
                 return e.innerHTML;
             });
@@ -57,31 +60,51 @@ describe('Check status-page up', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#statusPages', { visible: true });
-            await init.pageClick(page, '#statusPages');
-            await page.waitForSelector(`#btnCreateStatusPage_${projectName}`, {
+            await init.pageWaitForSelector(page, '#statusPages', {
                 visible: true,
+                timeout: init.timeout,
             });
+            await init.pageClick(page, '#statusPages');
+            await init.pageWaitForSelector(
+                page,
+                `#btnCreateStatusPage_${projectName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, `#btnCreateStatusPage_${projectName}`);
-            await page.waitForSelector('#name', { visible: true });
-            await page.waitForSelector('input[id=name]', { visible: true });
+            await init.pageWaitForSelector(page, '#name', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', statusPageName);
             await init.pageClick(page, '#btnCreateStatusPage');
-            await page.waitForSelector('#statusPagesListContainer', {
+            await init.pageWaitForSelector(page, '#statusPagesListContainer', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#viewStatusPage', { visible: true });
-            await init.pageClick(page, '#viewStatusPage');
-            await page.waitForSelector(`#header-${statusPageName}`, {
+            await init.pageWaitForSelector(page, '#viewStatusPage', {
                 visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#viewStatusPage');
+            await init.pageWaitForSelector(page, `#header-${statusPageName}`, {
+                visible: true,
+                timeout: init.timeout,
             });
 
             // To confirm the status-page name.
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#header-${statusPageName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
@@ -99,7 +122,10 @@ describe('Check status-page up', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#components', { visible: true });
+            await init.pageWaitForSelector(page, '#components', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await page.$eval('#components', el => el.click());
             // Fill and submit New Component form
             await init.addComponent(componentName, page);
@@ -107,9 +133,10 @@ describe('Check status-page up', () => {
             const description = 'My Manual Monitor';
             await init.addMonitor(monitorName, description, page);
             // To confirm the manual monitor is created.
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
@@ -127,14 +154,24 @@ describe('Check status-page up', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#statusPages', { visible: true });
-            await init.pageClick(page, '#statusPages');
-            await page.waitForSelector('#statusPagesListContainer', {
+            await init.pageWaitForSelector(page, '#statusPages', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#viewStatusPage', { visible: true });
+            await init.pageClick(page, '#statusPages');
+            await init.pageWaitForSelector(page, '#statusPagesListContainer', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, '#viewStatusPage', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#viewStatusPage');
-            await page.waitForSelector('#addMoreMonitors', { visible: true });
+            await init.pageWaitForSelector(page, '#addMoreMonitors', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#addMoreMonitors');
             await init.selectByText(
                 '#monitor-name',
@@ -153,9 +190,10 @@ describe('Check status-page up', () => {
             await init.clickStatusPageUrl(page);
 
             // To confirm the monitor is present in the status-page
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-${monitorName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
@@ -172,27 +210,44 @@ describe('Check status-page up', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await page.waitForSelector('#statusPages', { visible: true });
-            await init.pageClick(page, '#statusPages');
-            await page.waitForSelector('#statusPagesListContainer', {
+            await init.pageWaitForSelector(page, '#statusPages', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#viewStatusPage', { visible: true });
+            await init.pageClick(page, '#statusPages');
+            await init.pageWaitForSelector(page, '#statusPagesListContainer', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, '#viewStatusPage', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#viewStatusPage');
             await init.themeNavigationAndConfirmation(page, 'Classic');
             let spanElement;
-            spanElement = await page.waitForSelector('#monitor-name', {
-                visible: true,
-            });
+            spanElement = await init.pageWaitForSelector(
+                page,
+                '#monitor-name',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             expect(spanElement).toMatch(`${componentName} / ${monitorName}`);
 
             // Changing it back to Clean theme as this is the team that other tests depend on.
             await init.themeNavigationAndConfirmation(page, 'Clean');
-            spanElement = await page.waitForSelector('#monitor-name', {
-                visible: true,
-            });
+            spanElement = await init.pageWaitForSelector(
+                page,
+                '#monitor-name',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             expect(spanElement).toMatch(`${componentName} / ${monitorName}`); // Another Confirmation
@@ -210,9 +265,13 @@ describe('Check status-page up', () => {
                 const monitorName = utils.generateRandomString();
                 const description = utils.generateRandomString();
                 await init.addMonitor(monitorName, description, page);
-                await page.waitForSelector(`#monitor-title-${monitorName}`, {
-                    visible: true,
-                });
+                await init.pageWaitForSelector(
+                    page,
+                    `#monitor-title-${monitorName}`,
+                    {
+                        visible: true,
+                    }
+                );
 
                 await init.addMonitorToStatusPage(
                     componentName,
@@ -223,7 +282,10 @@ describe('Check status-page up', () => {
             // To confirm the monitors on status-page
             await init.clickStatusPageUrl(page);
 
-            await page.waitForSelector('.monitor-list', { visible: true });
+            await init.pageWaitForSelector(page, '.monitor-list', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const monitor = await page.$$('.monitor-list');
             const monitorLength = monitor.length;
             expect(monitorLength).toEqual(3);
@@ -244,15 +306,17 @@ describe('Check status-page up', () => {
                 monitorName,
                 page
             );
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#monitorCreateIncident_${monitorName}`,
                 {
                     visible: true,
                 }
             );
             await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
-            await page.waitForSelector('#incidentTitleLabel', {
+            await init.pageWaitForSelector(page, '#incidentTitleLabel', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#createIncident');
 
@@ -260,17 +324,27 @@ describe('Check status-page up', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#viewIncident-0', { visible: true });
+            await init.pageWaitForSelector(page, '#viewIncident-0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#closeIncident_0');
-            await page.waitForSelector('#closeIncident_0', { hidden: true });
+            await init.pageWaitForSelector(page, '#closeIncident_0', {
+                hidden: true,
+            });
 
             await init.navigateToStatusPage(page);
             await page.reload({
                 waitUntil: 'networkidle2',
             });
-            let spanElement = await page.waitForSelector('#status-note', {
-                visible: true,
-            });
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                '#status-note',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             expect(spanElement).toMatch('Some resources are offline');
@@ -286,18 +360,29 @@ describe('Check status-page up', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await page.waitForSelector('#btnAcknowledge_0', { visible: true });
+            await init.pageWaitForSelector(page, '#btnAcknowledge_0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#btnAcknowledge_0');
-            await page.waitForSelector('#btnResolve_0', { visible: true });
+            await init.pageWaitForSelector(page, '#btnResolve_0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#btnResolve_0');
 
             await page.reload({
                 waitUntil: 'networkidle2',
             });
             await init.navigateToStatusPage(page);
-            let spanElement = await page.waitForSelector('#status-note', {
-                visible: true,
-            });
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                '#status-note',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             expect(spanElement).toMatch('All resources are operational');
@@ -318,15 +403,17 @@ describe('Check status-page up', () => {
                 monitorName,
                 page
             );
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#monitorCreateIncident_${monitorName}`,
                 {
                     visible: true,
                 }
             );
             await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
-            await page.waitForSelector('#incidentTitleLabel', {
+            await init.pageWaitForSelector(page, '#incidentTitleLabel', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.selectByText('#incidentType', 'Degraded', page);
             await init.pageClick(page, '#createIncident');
@@ -335,17 +422,27 @@ describe('Check status-page up', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#viewIncident-0', { visible: true });
+            await init.pageWaitForSelector(page, '#viewIncident-0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#closeIncident_0');
-            await page.waitForSelector('#closeIncident_0', { hidden: true });
+            await init.pageWaitForSelector(page, '#closeIncident_0', {
+                hidden: true,
+            });
 
             await init.navigateToStatusPage(page);
             await page.reload({
                 waitUntil: 'networkidle2',
             });
-            let spanElement = await page.waitForSelector('#status-note', {
-                visible: true,
-            });
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                '#status-note',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             expect(spanElement).toMatch('Some resources are degraded');
@@ -361,18 +458,29 @@ describe('Check status-page up', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await page.waitForSelector('#btnAcknowledge_0', { visible: true });
+            await init.pageWaitForSelector(page, '#btnAcknowledge_0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#btnAcknowledge_0');
-            await page.waitForSelector('#btnResolve_0', { visible: true });
+            await init.pageWaitForSelector(page, '#btnResolve_0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#btnResolve_0');
 
             await page.reload({
                 waitUntil: 'networkidle2',
             });
             await init.navigateToStatusPage(page);
-            let spanElement = await page.waitForSelector('#status-note', {
-                visible: true,
-            });
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                '#status-note',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             expect(spanElement).toMatch('All resources are operational');
@@ -393,17 +501,19 @@ describe('Check status-page up', () => {
                 monitorName,
                 page
             );
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#monitorCreateIncident_${monitorName}`,
                 {
                     visible: true,
                 }
             );
             await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
-            await page.waitForSelector('#incidentTitleLabel', {
+            await init.pageWaitForSelector(page, '#incidentTitleLabel', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await init.pageClick(page, '#description', { clickCount: 3 });
+            await init.pageClick(page, '#description');
             await page.keyboard.down('Control');
             await page.keyboard.press('A');
             await page.keyboard.up('Control');
@@ -414,16 +524,22 @@ describe('Check status-page up', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.waitForSelector('#viewIncident-0', { visible: true });
+            await init.pageWaitForSelector(page, '#viewIncident-0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#closeIncident_0');
-            await page.waitForSelector('#closeIncident_0', { hidden: true });
+            await init.pageWaitForSelector(page, '#closeIncident_0', {
+                hidden: true,
+            });
 
             await init.navigateToStatusPage(page);
             await page.reload({
                 waitUntil: 'networkidle2',
             });
-            let spanElement = await page.waitForSelector('#note', {
+            let spanElement = await init.pageWaitForSelector(page, '#note', {
                 visible: true,
+                timeout: init.timeout,
             });
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();

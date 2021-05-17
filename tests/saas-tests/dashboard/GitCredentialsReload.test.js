@@ -7,6 +7,8 @@ const user = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
+const gitUsername = utils.gitCredential.gitUsername;
+const gitPassword = utils.gitCredential.gitPassword;
 
 /** This is a test to check:
  * No errors on page reload
@@ -32,23 +34,38 @@ describe('Fyipe Page Reload', () => {
     });
 
     test(
-        'Should reload the call route page and confirm there are no errors',
+        'Should reload the probe page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#more');
-            await init.pageClick(page, '#callRouting');
-            await init.pageClick(page, '#addRoutingNumberButton');
-            await page.waitForSelector('#addNumber', { visible: true });
+            await init.pageClick(page, '#gitCredentials');
+            await init.pageClick(page, '#addCredentialBtn');
+            await init.pageType(page, '#gitUsername', gitUsername);
+            await init.pageType(page, '#gitPassword', gitPassword);
+            await init.pageClick(page, '#addCredentialModalBtn');
+            const spanElement = await init.pageWaitForSelector(
+                page,
+                `#gitUsername_${gitUsername}`
+            );
+            expect(spanElement).toBeDefined();
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbProjectSettings', { visible: true });
-            const spanElement = await page.waitForSelector('#cbCallRouting', {
+            await init.pageWaitForSelector(page, '#cbProjectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
-            expect(spanElement).toBeDefined();
+            await init.pageWaitForSelector(page, '#cbGitCredentials', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            const spanElement2 = await init.pageWaitForSelector(
+                page,
+                `#gitUsername_${gitUsername}`
+            );
+            expect(spanElement2).toBeDefined();
             done();
         },
         operationTimeOut

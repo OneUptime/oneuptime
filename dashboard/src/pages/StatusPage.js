@@ -233,7 +233,13 @@ class StatusPage extends Component {
                                                             <TabPanel>
                                                                 <Fade>
                                                                     <div className="Box-root Margin-bottom--12">
-                                                                        <Basic />
+                                                                        <Basic
+                                                                            currentProject={
+                                                                                this
+                                                                                    .props
+                                                                                    .currentProject
+                                                                            }
+                                                                        />
                                                                     </div>
                                                                     <RenderIfSubProjectAdmin
                                                                         subProjectId={
@@ -460,7 +466,8 @@ function mapStateToProps(state, props) {
             state.project.currentProject && state.project.currentProject._id,
         subProjectId: statusPage && statusPage.projectId._id,
         subProjects: state.subProject.subProjects.subProjects,
-        currentProject: state.project.currentProject,
+        currentProject:
+            state.project.currentProject && state.project.currentProject,
     };
 }
 

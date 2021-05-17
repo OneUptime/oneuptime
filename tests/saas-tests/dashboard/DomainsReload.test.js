@@ -8,7 +8,7 @@ const user = {
     password: '1234567890',
 };
 
-const resourceCategory = utils.generateRandomString();
+const customDomain = `${utils.generateRandomString()}.com`;
 
 /** This is a test to check:
  * No errors on page reload
@@ -34,33 +34,37 @@ describe('Fyipe Page Reload', () => {
     });
 
     test(
-        'Should reload the resource category page and confirm there are no errors',
+        'Should reload the domains page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#more');
-            await init.pageClick(page, '#resources');
-            await init.pageClick(page, '#createResourceCategoryButton');
-            await init.pageType(
-                page,
-                '#resourceCategoryName',
-                resourceCategory
-            );
-            await init.pageClick(page, '#addResourceCategoryButton');
-            await page.waitForSelector('#addResourceCategoryButton', {
+            await init.pageClick(page, '#domains');
+            await init.pageClick(page, '#addCustomField');
+            await init.pageType(page, '#domain', customDomain);
+            await init.pageClick(page, '#createDomainBtn');
+            await init.pageWaitForSelector(page, '#createDomainBtn', {
                 hidden: true,
             });
-            await page.waitForSelector('#resource-category-name', {
+            await init.pageWaitForSelector(page, '#projectdomain_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbResources', { visible: true });
-            const spanElement = await page.waitForSelector(
-                '#resource-category-name',
-                { visible: true }
+            await init.pageWaitForSelector(page, '#cbDomains', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
+                '#projectdomain_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
             );
             expect(spanElement).toBeDefined();
             done();

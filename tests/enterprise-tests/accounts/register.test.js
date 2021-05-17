@@ -44,7 +44,7 @@ describe('Enterprise Registration API', () => {
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property('email', email);
         page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
-    }, 160000);
+    }, init.timeout);
 
     it('Should redirect to Login Page and hide Sign Up Link for Subsequent Users', async () => {
         try {
@@ -59,7 +59,7 @@ describe('Enterprise Registration API', () => {
 
         const signUp = await otherPage.$('#signUpLink');
         should.not.exist(signUp);
-    }, 160000);
+    }, init.timeout);
 
     it('Should login Initial User to Admin Dashboard', async () => {
         await init.loginUser(user, otherPage);
@@ -77,5 +77,5 @@ describe('Enterprise Registration API', () => {
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property('email', email);
         otherPage.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
-    }, 160000);
+    }, init.timeout);
 });

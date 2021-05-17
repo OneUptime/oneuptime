@@ -7,8 +7,6 @@ const user = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const gitUsername = utils.gitCredential.gitUsername;
-const gitPassword = utils.gitCredential.gitPassword;
 
 /** This is a test to check:
  * No errors on page reload
@@ -34,30 +32,37 @@ describe('Fyipe Page Reload', () => {
     });
 
     test(
-        'Should reload the probe page and confirm there are no errors',
+        'Should reload the email settings page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#more');
-            await init.pageClick(page, '#gitCredentials');
-            await init.pageClick(page, '#addCredentialBtn');
-            await init.pageType(page, '#gitUsername', gitUsername);
-            await init.pageType(page, '#gitPassword', gitPassword);
-            await init.pageClick(page, '#addCredentialModalBtn');
-            const spanElement = await page.waitForSelector(
-                `#gitUsername_${gitUsername}`
-            );
-            expect(spanElement).toBeDefined();
+            await init.pageClick(page, '#email');
+            await init.pageWaitForSelector(page, '#showsmtpForm', {
+                visible: true,
+                timeout: init.timeout,
+            });
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbProjectSettings', { visible: true });
-            await page.waitForSelector('#cbGitCredentials', { visible: true });
-            const spanElement2 = await page.waitForSelector(
-                `#gitUsername_${gitUsername}`
+            await init.pageWaitForSelector(page, '#cbProjectSettings', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, '#cbEmail', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
+                '#showsmtpForm',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
             );
-            expect(spanElement2).toBeDefined();
+            expect(spanElement).toBeDefined();
             done();
         },
         operationTimeOut

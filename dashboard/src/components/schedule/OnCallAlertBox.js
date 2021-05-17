@@ -110,6 +110,22 @@ function validate(values) {
 }
 
 export class OnCallAlertBox extends Component {
+    componentDidMount() {
+        const {
+            subProjectId,
+            getProjectGroups,
+            subProjectTeamLoading,
+            scheduleId,
+            getEscalation,
+        } = this.props;
+        if (subProjectId) {
+            subProjectTeamLoading(subProjectId);
+            getProjectGroups(subProjectId, 0, 0, true);
+            if (scheduleId) {
+                getEscalation(subProjectId, scheduleId);
+            }
+        }
+    }
     componentDidUpdate(prevProps) {
         if (
             prevProps.subProjectId !== this.props.subProjectId ||

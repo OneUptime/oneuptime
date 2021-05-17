@@ -45,32 +45,45 @@ describe('Fyipe Page Reload', () => {
             });
             await init.pageClick(page, '#scheduledMaintenance');
             await init.pageClick(page, '#addScheduledEventButton');
-            await page.waitForSelector('#scheduledEventForm', {
+            await init.pageWaitForSelector(page, '#scheduledEventForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', scheduleMaintenanceName);
             await init.pageClick(page, '#createScheduledEventButton');
-            await page.waitForSelector('#scheduledEventForm', {
+            await init.pageWaitForSelector(page, '#scheduledEventForm', {
                 hidden: true,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#editScheduledEvent-${scheduleMaintenanceName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbScheduledMaintenanceEvent', {
-                visible: true,
-            });
-            await page.waitForSelector(`#cb${scheduleMaintenanceName}`, {
-                visible: true,
-            });
-            const spanElement = await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
+                '#cbScheduledMaintenanceEvent',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
+            await init.pageWaitForSelector(
+                page,
+                `#cb${scheduleMaintenanceName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
+            const spanElement = await init.pageWaitForSelector(
+                page,
                 `#editScheduledEvent-${scheduleMaintenanceName}`,
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(spanElement).toBeDefined();
             done();

@@ -32,21 +32,33 @@ describe('Fyipe Page Reload', () => {
     });
 
     test(
-        'Should reload the sms and call settings page and confirm there are no errors',
+        'Should reload the call route page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#more');
-            await init.pageClick(page, '#smsCalls');
-            await page.waitForSelector('#enableTwilio', { visible: true });
+            await init.pageClick(page, '#callRouting');
+            await init.pageClick(page, '#addRoutingNumberButton');
+            await init.pageWaitForSelector(page, '#addNumber', {
+                visible: true,
+                timeout: init.timeout,
+            });
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbProjectSettings', { visible: true });
-            const spanElement = await page.waitForSelector('#enableTwilio', {
+            await init.pageWaitForSelector(page, '#cbProjectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
+            const spanElement = await init.pageWaitForSelector(
+                page,
+                '#cbCallRouting',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(spanElement).toBeDefined();
             done();
         },

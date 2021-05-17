@@ -1039,6 +1039,9 @@ export function fetchStatusPage(statusPageSlug) {
             function(response) {
                 const statusPageData = response.data;
                 dispatch(duplicateStatusPageSuccess(statusPageData));
+                dispatch(
+                    fetchProjectStatusPage(statusPageData.projectId._id, true)
+                );
             },
             function(error) {
                 if (error && error.response && error.response.data)

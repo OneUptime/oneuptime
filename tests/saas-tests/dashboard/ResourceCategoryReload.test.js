@@ -8,9 +8,7 @@ const user = {
     password: '1234567890',
 };
 
-const monitorSlaName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
+const resourceCategory = utils.generateRandomString();
 
 /** This is a test to check:
  * No errors on page reload
@@ -25,10 +23,8 @@ describe('Fyipe Page Reload', () => {
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
-
+        await page.setUserAgent(utils.agent);
         await init.registerUser(user, page); // This automatically routes to dashboard page
-        await init.addComponent(componentName, page);
-        await init.addNewMonitorToComponent(page, componentName, monitorName);
         done();
     });
 
@@ -38,35 +34,38 @@ describe('Fyipe Page Reload', () => {
     });
 
     test(
-        'Should reload the monitor sla page and confirm there are no errors',
+        'Should reload the resource category page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#more');
-            await init.pageClick(page, '#monitor');
-            await init.pageClick(page, '#addMonitorSlaBtn');
-            await init.pageType(page, '#name', monitorSlaName);
-            await init.pageClick(page, '#addMoreMonitor');
-            await init.selectByText(
-                '#monitorfield_0',
-                `${componentName} / ${monitorName}`,
-                page
+            await init.pageClick(page, '#resources');
+            await init.pageClick(page, '#createResourceCategoryButton');
+            await init.pageType(
+                page,
+                '#resourceCategoryName',
+                resourceCategory
             );
-            await init.selectByText('#frequencyOption', 'Every 3 months', page);
-            await init.selectByText('#monitorUptimeOption', '99.90%', page);
-            await init.pageClick(page, '#createSlaBtn');
-            await page.waitForSelector('#createSlaBtn', { hidden: true });
-            await page.waitForSelector(`#monitorSla_${monitorSlaName}`, {
+            await init.pageClick(page, '#addResourceCategoryButton');
+            await init.pageWaitForSelector(page, '#addResourceCategoryButton', {
+                hidden: true,
+            });
+            await init.pageWaitForSelector(page, '#resource-category-name', {
                 visible: true,
+                timeout: init.timeout,
             });
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.waitForSelector('#cbMonitors', { visible: true });
-            const spanElement = await page.waitForSelector(
-                `#monitorSla_${monitorSlaName}`,
-                { visible: true }
+            await init.pageWaitForSelector(page, '#cbResources', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            const spanElement = await init.pageWaitForSelector(
+                page,
+                '#resource-category-name',
+                { visible: true, timeout: init.timeout }
             );
             expect(spanElement).toBeDefined();
             done();

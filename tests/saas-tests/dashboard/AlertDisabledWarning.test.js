@@ -37,14 +37,25 @@ describe('Alert Warning', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', { visible: true });
+            await init.pageWaitForSelector(page, '#projectSettings', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#billing', { visible: true });
+            await init.pageWaitForSelector(page, '#billing', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#billing');
 
-            const element = await page.waitForSelector('#alertWarning', {
-                visible: true,
-            });
+            const element = await init.pageWaitForSelector(
+                page,
+                '#alertWarning',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(element).toBeDefined();
             done();
         },
@@ -57,11 +68,20 @@ describe('Alert Warning', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', { visible: true });
+            await init.pageWaitForSelector(page, '#projectSettings', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#billing', { visible: true });
+            await init.pageWaitForSelector(page, '#billing', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#billing a');
-            await page.waitForSelector('#alertEnable', { visible: true });
+            await init.pageWaitForSelector(page, '#alertEnable', {
+                visible: true,
+                timeout: init.timeout,
+            });
 
             const rowLength = await page.$$eval(
                 '#alertOptionRow > div.bs-Fieldset-row',
@@ -76,9 +96,13 @@ describe('Alert Warning', () => {
                     document.querySelector('#alertOptionSave').click();
                 });
             }
-            const element = await page.waitForSelector('#alertWarning', {
-                hidden: true,
-            });
+            const element = await init.pageWaitForSelector(
+                page,
+                '#alertWarning',
+                {
+                    hidden: true,
+                }
+            );
             expect(element).toBeNull();
             done();
         },

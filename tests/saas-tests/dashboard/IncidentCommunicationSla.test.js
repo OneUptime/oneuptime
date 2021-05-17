@@ -43,33 +43,38 @@ describe('Incident Communication SLA', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings', {
+            await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
 
-            await page.waitForSelector('.communication-sla-tab', {
+            await init.pageWaitForSelector(page, '.communication-sla-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.communication-sla-tab', elems =>
                 elems[0].click()
             );
 
-            await page.waitForSelector('#addIncidentSlaBtn', {
+            await init.pageWaitForSelector(page, '#addIncidentSlaBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addIncidentSlaBtn');
 
-            await page.waitForSelector('#communicationSlaForm', {
+            await init.pageWaitForSelector(page, '#communicationSlaForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', '  ');
@@ -78,9 +83,14 @@ describe('Incident Communication SLA', () => {
             await init.pageType(page, '#alertTime', alertTime);
             await init.pageClick(page, '#createSlaBtn');
 
-            const slaError = await page.waitForSelector('#field-error', {
-                visible: true,
-            });
+            const slaError = await init.pageWaitForSelector(
+                page,
+                '#field-error',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(slaError).toBeDefined();
 
             done();
@@ -94,33 +104,38 @@ describe('Incident Communication SLA', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings', {
+            await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
 
-            await page.waitForSelector('.communication-sla-tab', {
+            await init.pageWaitForSelector(page, '.communication-sla-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.communication-sla-tab', elems =>
                 elems[0].click()
             );
 
-            await page.waitForSelector('#addIncidentSlaBtn', {
+            await init.pageWaitForSelector(page, '#addIncidentSlaBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addIncidentSlaBtn');
 
-            await page.waitForSelector('#communicationSlaForm', {
+            await init.pageWaitForSelector(page, '#communicationSlaForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
@@ -129,9 +144,14 @@ describe('Incident Communication SLA', () => {
             await init.pageType(page, '#alertTime', duration);
             await init.pageClick(page, '#createSlaBtn');
 
-            const slaError = await page.waitForSelector('#field-error', {
-                visible: true,
-            });
+            const slaError = await init.pageWaitForSelector(
+                page,
+                '#field-error',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(slaError).toBeDefined();
 
             done();
@@ -145,33 +165,38 @@ describe('Incident Communication SLA', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings', {
+            await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
 
-            await page.waitForSelector('.communication-sla-tab', {
+            await init.pageWaitForSelector(page, '.communication-sla-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.communication-sla-tab', elems =>
                 elems[0].click()
             );
 
-            await page.waitForSelector('#addIncidentSlaBtn', {
+            await init.pageWaitForSelector(page, '#addIncidentSlaBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addIncidentSlaBtn');
 
-            await page.waitForSelector('#communicationSlaForm', {
+            await init.pageWaitForSelector(page, '#communicationSlaForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
@@ -180,9 +205,14 @@ describe('Incident Communication SLA', () => {
             await init.pageType(page, '#alertTime', '12m');
             await init.pageClick(page, '#createSlaBtn');
 
-            const slaError = await page.waitForSelector('#field-error', {
-                visible: true,
-            });
+            const slaError = await init.pageWaitForSelector(
+                page,
+                '#field-error',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(slaError).toBeDefined();
 
             done();
@@ -196,33 +226,38 @@ describe('Incident Communication SLA', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings', {
+            await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
 
-            await page.waitForSelector('.communication-sla-tab', {
+            await init.pageWaitForSelector(page, '.communication-sla-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.communication-sla-tab', elems =>
                 elems[0].click()
             );
 
-            await page.waitForSelector('#addIncidentSlaBtn', {
+            await init.pageWaitForSelector(page, '#addIncidentSlaBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addIncidentSlaBtn');
 
-            await page.waitForSelector('#communicationSlaForm', {
+            await init.pageWaitForSelector(page, '#communicationSlaForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
@@ -231,12 +266,22 @@ describe('Incident Communication SLA', () => {
             await init.pageType(page, '#alertTime', alertTime);
             await page.$eval('#isDefault', elem => elem.click());
             await init.pageClick(page, '#createSlaBtn');
-            await page.waitForSelector('.ball-beat', { visible: true });
-            await page.waitForSelector('.ball-beat', { hidden: true });
-
-            const sla = await page.waitForSelector(`#incidentSla_${slaName}`, {
+            await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,
+                timeout: init.timeout,
             });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
+
+            const sla = await init.pageWaitForSelector(
+                page,
+                `#incidentSla_${slaName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(sla).toBeDefined();
 
             done();
@@ -250,41 +295,55 @@ describe('Incident Communication SLA', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings', {
+            await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
 
-            await page.waitForSelector('.communication-sla-tab', {
+            await init.pageWaitForSelector(page, '.communication-sla-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.communication-sla-tab', elems =>
                 elems[0].click()
             );
 
-            await page.waitForSelector(`#editIncidentSlaBtn_${slaName}`, {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#editIncidentSlaBtn_${slaName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, `#editIncidentSlaBtn_${slaName}`);
 
-            await page.waitForSelector('#communicationSlaForm', {
+            await init.pageWaitForSelector(page, '#communicationSlaForm', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await init.pageClick(page, '#name', { clickCount: 3 });
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', '    ');
             await init.pageClick(page, '#editSlaBtn');
 
-            const slaError = await page.waitForSelector(`#field-error`, {
-                visible: true,
-            });
+            const slaError = await init.pageWaitForSelector(
+                page,
+                `#field-error`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(slaError).toBeDefined();
 
             done();
@@ -298,44 +357,63 @@ describe('Incident Communication SLA', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings', {
+            await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
 
-            await page.waitForSelector('.communication-sla-tab', {
+            await init.pageWaitForSelector(page, '.communication-sla-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.communication-sla-tab', elems =>
                 elems[0].click()
             );
 
-            await page.waitForSelector(`#editIncidentSlaBtn_${slaName}`, {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#editIncidentSlaBtn_${slaName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, `#editIncidentSlaBtn_${slaName}`);
 
-            await page.waitForSelector('#communicationSlaForm', {
+            await init.pageWaitForSelector(page, '#communicationSlaForm', {
                 visible: true,
+                timeout: init.timeout,
             });
             slaName = 'newFxPro';
-            await init.pageClick(page, '#name', { clickCount: 3 });
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
             await init.pageClick(page, '#editSlaBtn');
-            await page.waitForSelector('.ball-beat', { visible: true });
-            await page.waitForSelector('.ball-beat', { hidden: true });
-
-            const sla = await page.waitForSelector(`#incidentSla_${slaName}`, {
+            await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,
+                timeout: init.timeout,
             });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
+
+            const sla = await init.pageWaitForSelector(
+                page,
+                `#incidentSla_${slaName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(sla).toBeDefined();
 
             done();
@@ -347,31 +425,43 @@ describe('Incident Communication SLA', () => {
         'should show incident communication SLA notification when an incident is created',
         async done => {
             await init.addMonitorToComponent(component, monitor, page);
-            await page.waitForSelector(`#createIncident_${monitor}`, {
+            await init.pageWaitForSelector(page, `#createIncident_${monitor}`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#createIncident_${monitor}`);
 
-            await page.waitForSelector('#createIncident');
+            await init.pageWaitForSelector(page, '#createIncident');
             await init.selectByText('#incidentType', 'offline', page);
             await init.pageClick(page, '#createIncident');
-            await page.waitForSelector('.ball-beat', { visible: true });
-            await page.waitForSelector('.ball-beat', { hidden: true });
-
-            await page.waitForSelector(`#incident_${monitor}_0`, {
+            await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
+
+            await init.pageWaitForSelector(page, `#incident_${monitor}_0`, {
+                visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#incident_${monitor}_0`);
-            const slaIndicator = await page.waitForSelector(
+            const slaIndicator = await init.pageWaitForSelector(
+                page,
                 '#slaIndicatorAlert',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
 
-            await page.waitForSelector('#btnAcknowledge_0', {
+            await init.pageWaitForSelector(page, '#btnAcknowledge_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#btnAcknowledge_0');
-            await page.waitForSelector('#btnResolve_0', { visible: true });
+            await init.pageWaitForSelector(page, '#btnResolve_0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#btnResolve_0');
 
             expect(slaIndicator).toBeDefined();
@@ -385,19 +475,25 @@ describe('Incident Communication SLA', () => {
         'should hide incident communication SLA notification when an incident is acknowledged',
         async done => {
             await init.addIncident(monitor, 'offline', page);
-            await page.waitForSelector(`#incident_${monitor}_0`, {
+            await init.pageWaitForSelector(page, `#incident_${monitor}_0`, {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, `#incident_${monitor}_0`);
 
-            await page.waitForSelector('#btnAcknowledge_0', {
+            await init.pageWaitForSelector(page, '#btnAcknowledge_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#btnAcknowledge_0');
-            await page.waitForSelector('#btnResolve_0', { visible: true });
+            await init.pageWaitForSelector(page, '#btnResolve_0', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#btnResolve_0');
 
-            const slaIndicator = await page.waitForSelector(
+            const slaIndicator = await init.pageWaitForSelector(
+                page,
                 '#slaIndicatorAlert',
                 { hidden: true }
             );
@@ -414,41 +510,59 @@ describe('Incident Communication SLA', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#incidentSettings', {
+            await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
 
-            await page.waitForSelector('.communication-sla-tab', {
+            await init.pageWaitForSelector(page, '.communication-sla-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.communication-sla-tab', elems =>
                 elems[0].click()
             );
 
-            await page.waitForSelector(`#deleteIncidentSlaBtn_${slaName}`, {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#deleteIncidentSlaBtn_${slaName}`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, `#deleteIncidentSlaBtn_${slaName}`);
 
-            await page.waitForSelector('#deleteIncidentSlaBtn', {
+            await init.pageWaitForSelector(page, '#deleteIncidentSlaBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteIncidentSlaBtn');
-            await page.waitForSelector('.ball-beat', { visible: true });
-            await page.waitForSelector('.ball-beat', { hidden: true });
-
-            const sla = await page.waitForSelector(`#incidentSla_${slaName}`, {
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
+
+            const sla = await init.pageWaitForSelector(
+                page,
+                `#incidentSla_${slaName}`,
+                {
+                    hidden: true,
+                }
+            );
             expect(sla).toBeNull();
 
             done();

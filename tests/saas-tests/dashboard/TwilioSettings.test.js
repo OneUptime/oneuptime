@@ -46,19 +46,24 @@ describe('Custom Twilio Settings', () => {
         'should create a custom twilio settings',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#projectSettings', {
+            await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#more');
+            await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
-            await page.waitForSelector('#smsCalls');
+            await init.pageWaitForSelector(page, '#smsCalls');
             await init.pageClick(page, '#smsCalls');
-            await page.waitForSelector('#enableTwilio', {
+            await init.pageWaitForSelector(page, '#enableTwilio', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#enableTwilio');
-            await page.waitForSelector('#accountSid', { visible: true });
+            await init.pageWaitForSelector(page, '#accountSid', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageType(
                 page,
                 '#accountSid',
@@ -75,13 +80,21 @@ describe('Custom Twilio Settings', () => {
                 twilioCredentials.phoneNumber
             );
             await init.pageClick(page, '#submitTwilioSettings');
-            await page.waitForSelector('.ball-beat', { visible: true });
-            await page.waitForSelector('.ball-beat', { hidden: true });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
 
             await page.reload({
                 waitUntil: ['networkidle0', 'domcontentloaded'],
             });
-            await page.waitForSelector('#accountSid', { visible: true });
+            await init.pageWaitForSelector(page, '#accountSid', {
+                visible: true,
+                timeout: init.timeout,
+            });
             const savedAccountSid = await page.$eval(
                 '#accountSid',
                 elem => elem.value
@@ -98,40 +111,48 @@ describe('Custom Twilio Settings', () => {
         async done => {
             await init.addMonitorToComponent(componentName, monitorName, page);
             await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
-            await page.waitForSelector('#addSubscriberButton');
+            await init.pageWaitForSelector(page, '#addSubscriberButton');
             await init.pageClick(page, '#addSubscriberButton');
             await init.selectByText('#alertViaId', 'SMS', page);
-            await page.waitForSelector('#countryCodeId');
+            await init.pageWaitForSelector(page, '#countryCodeId');
             await init.selectByText('#countryCodeId', countryCode, page);
             await init.pageType(page, '#contactPhoneId', phoneNumber);
             await init.pageClick(page, '#createSubscriber');
-            await page.waitForSelector('#createSubscriber', {
+            await init.pageWaitForSelector(page, '#createSubscriber', {
                 hidden: true,
             });
 
             await init.gotoTab(utils.monitorTabIndexes.BASIC, page);
-            await page.waitForSelector(`#monitorCreateIncident_${monitorName}`);
+            await init.pageWaitForSelector(
+                page,
+                `#monitorCreateIncident_${monitorName}`
+            );
             await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
-            await page.waitForSelector('#createIncident');
+            await init.pageWaitForSelector(page, '#createIncident');
             await init.selectByText('#incidentType', 'Offline', page);
             await init.pageType(page, 'input[name=title]', incidentTitle);
             await init.pageClick(page, '#createIncident');
-            await page.waitForSelector('#createIncident', { hidden: true });
+            await init.pageWaitForSelector(page, '#createIncident', {
+                hidden: true,
+            });
 
-            await page.waitForSelector('#closeIncident_0');
+            await init.pageWaitForSelector(page, '#closeIncident_0');
             await page.$eval('#closeIncident_0', elem => elem.click());
-            await page.waitForSelector(`#incident_${monitorName}_0`);
+            await init.pageWaitForSelector(page, `#incident_${monitorName}_0`);
             await page.$eval(`#incident_${monitorName}_0`, elem =>
                 elem.click()
             );
-            await page.waitForSelector('#incident_0');
+            await init.pageWaitForSelector(page, '#incident_0');
 
             await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
-            await page.waitForSelector('#subscriberAlertTable > tbody > tr');
+            await init.pageWaitForSelector(
+                page,
+                '#subscriberAlertTable > tbody > tr'
+            );
             await page.$eval('#subscriberAlertTable > tbody > tr', elem =>
                 elem.click()
             );
-            await page.waitForSelector('#subscriber');
+            await init.pageWaitForSelector(page, '#subscriber');
             const subscriber = await page.$eval(
                 '#subscriber',
                 elem => elem.textContent
@@ -153,24 +174,28 @@ describe('Custom Twilio Settings', () => {
                 page
             );
 
-            await page.waitForSelector(`#incident_${monitorName}_0`);
+            await init.pageWaitForSelector(page, `#incident_${monitorName}_0`);
             await page.$eval(`#incident_${monitorName}_0`, elem =>
                 elem.click()
             );
-            await page.waitForSelector('#btnAcknowledge_0');
+            await init.pageWaitForSelector(page, '#btnAcknowledge_0');
             await page.$eval('#btnAcknowledge_0', e => e.click());
-            await page.waitForSelector('#AcknowledgeText_0', {
+            await init.pageWaitForSelector(page, '#AcknowledgeText_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.reload({ waitUntil: 'networkidle0' });
 
             await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
-            await page.waitForSelector('#subscriberAlertTable > tbody > tr');
+            await init.pageWaitForSelector(
+                page,
+                '#subscriberAlertTable > tbody > tr'
+            );
             // grab the last log
             await page.$eval('#subscriberAlertTable > tbody > tr', elem =>
                 elem.click()
             );
-            await page.waitForSelector('#eventType');
+            await init.pageWaitForSelector(page, '#eventType');
             const eventType = await page.$eval(
                 '#eventType',
                 elem => elem.textContent
@@ -192,24 +217,28 @@ describe('Custom Twilio Settings', () => {
                 page
             );
 
-            await page.waitForSelector(`#incident_${monitorName}_0`);
+            await init.pageWaitForSelector(page, `#incident_${monitorName}_0`);
             await page.$eval(`#incident_${monitorName}_0`, elem =>
                 elem.click()
             );
-            await page.waitForSelector('#btnResolve_0');
+            await init.pageWaitForSelector(page, '#btnResolve_0');
             await page.$eval('#btnResolve_0', e => e.click());
-            await page.waitForSelector('#ResolveText_0', {
+            await init.pageWaitForSelector(page, '#ResolveText_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.reload({ waitUntil: 'networkidle0' });
 
             await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
-            await page.waitForSelector('#subscriberAlertTable > tbody > tr');
+            await init.pageWaitForSelector(
+                page,
+                '#subscriberAlertTable > tbody > tr'
+            );
             // grab the last log
             await page.$eval('#subscriberAlertTable > tbody > tr', elem =>
                 elem.click()
             );
-            await page.waitForSelector('#eventType');
+            await init.pageWaitForSelector(page, '#eventType');
             const eventType = await page.$eval(
                 '#eventType',
                 elem => elem.textContent
@@ -225,17 +254,17 @@ describe('Custom Twilio Settings', () => {
         'should render an error message if the user try to update his alert phone number without typing the right verification code.',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#profile-menu');
+            await init.pageWaitForSelector(page, '#profile-menu');
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#userProfile');
+            await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
-            await page.waitForSelector('input[type=tel]');
+            await init.pageWaitForSelector(page, 'input[type=tel]');
             await init.pageType(page, 'input[type=tel]', phoneNumber);
             await init.pageClick(page, '#sendVerificationSMS');
-            await page.waitForSelector('#otp');
+            await init.pageWaitForSelector(page, '#otp');
             await init.pageType(page, '#otp', '654321');
             await init.pageClick(page, '#verify');
-            await page.waitForSelector('#smsVerificationErrors');
+            await init.pageWaitForSelector(page, '#smsVerificationErrors');
             const message = await page.$eval(
                 '#smsVerificationErrors',
                 e => e.textContent
@@ -251,22 +280,24 @@ describe('Custom Twilio Settings', () => {
         'should set the alert phone number if the user types the right verification code.',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#profile-menu');
+            await init.pageWaitForSelector(page, '#profile-menu');
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#userProfile');
+            await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
-            await page.waitForSelector('input[type=tel]');
-            await init.pageClick(page, 'input[type=tel]', { clickCount: 3 });
+            await init.pageWaitForSelector(page, 'input[type=tel]');
+            await init.pageClick(page, 'input[type=tel]');
             await init.pageType(page, 'input[type=tel]', alertPhone);
-            await page.waitForSelector('#sendVerificationSMS', {
+            await init.pageWaitForSelector(page, '#sendVerificationSMS', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#sendVerificationSMS');
-            await page.waitForSelector('#otp');
+            await init.pageWaitForSelector(page, '#otp');
             await init.pageType(page, '#otp', '123456');
             await init.pageClick(page, '#verify');
-            await page.waitForSelector('#successMessage', {
+            await init.pageWaitForSelector(page, '#successMessage', {
                 visible: true,
+                timeout: init.timeout,
             });
             const message = await page.$eval(
                 '#successMessage',
@@ -285,27 +316,29 @@ describe('Custom Twilio Settings', () => {
         'should update alert phone number if user types the right verification code.',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
-            await page.waitForSelector('#profile-menu');
+            await init.pageWaitForSelector(page, '#profile-menu');
             await init.pageClick(page, '#profile-menu');
-            await page.waitForSelector('#userProfile');
+            await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
 
             await page.reload({ waitUntil: 'networkidle0' });
-            await page.waitForSelector('input[type=tel]');
+            await init.pageWaitForSelector(page, 'input[type=tel]');
             await init.pageClick(page, 'input[type=tel]');
             await page.keyboard.press('Backspace');
             await init.pageType(page, 'input[type=tel]', '1', {
                 delay: 150,
             });
-            await page.waitForSelector('#sendVerificationSMS', {
+            await init.pageWaitForSelector(page, '#sendVerificationSMS', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#sendVerificationSMS');
-            await page.waitForSelector('#otp');
+            await init.pageWaitForSelector(page, '#otp');
             await init.pageType(page, '#otp', '123456');
             await init.pageClick(page, '#verify');
-            await page.waitForSelector('#successMessage', {
+            await init.pageWaitForSelector(page, '#successMessage', {
                 visible: true,
+                timeout: init.timeout,
             });
             const message = await page.$eval(
                 '#successMessage',

@@ -28,7 +28,7 @@ describe('SMTP Settings API', () => {
         };
         // user
         // await init.registerEnterpriseUser(user, page);
-        await init.loginUser(user, page);
+        await init.loginAdminUser(user, page);
     });
 
     afterAll(async () => {
@@ -39,34 +39,31 @@ describe('SMTP Settings API', () => {
         'Should not submit empty fields',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#settings');
+            await init.pageWaitForSelector(page, '#settings');
             await init.pageClick(page, '#settings a');
 
-            await page.waitForSelector('#smtp');
+            await init.pageWaitForSelector(page, '#smtp');
             await init.pageClick(page, '#smtp a');
-            await page.waitForSelector('#smtp-form');
+
+            await init.pageWaitForSelector(page, '#smtp-form');
+            await init.pageClick(page, '#email-enabled');
+            await init.pageClick(page, '#customSmtp');
+            
+
             const originalValues = await page.$$eval('input', e =>
                 e.map(field => field.value)
             );
-            await init.pageClick(page, 'input[name=email]', { clickCount: 3 });
+            await init.pageClick(page, 'input[name=email]');
             await init.pageType(page, 'input[name=email]', ' ');
-            await init.pageClick(page, 'input[name=password]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=password]');
             await init.pageType(page, 'input[name=password]', ' ');
-            await init.pageClick(page, 'input[name=smtp-server]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=smtp-server]');
             await init.pageType(page, 'input[name=smtp-server]', ' ');
-            await init.pageClick(page, 'input[name=smtp-port]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=smtp-port]');
             await init.pageType(page, 'input[name=smtp-port]', ' ');
-            await init.pageClick(page, 'input[name=from]', { clickCount: 3 });
+            await init.pageClick(page, 'input[name=from]');
             await init.pageType(page, 'input[name=from]', ' ');
-            await init.pageClick(page, 'input[name=from-name]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=from-name]');
             await init.pageType(page, 'input[name=from-name]', ' ');
             await init.pageClick(page, 'button[type=submit]');
 
@@ -89,48 +86,42 @@ describe('SMTP Settings API', () => {
         'Should save valid form data',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#settings');
+            await init.pageWaitForSelector(page, '#settings');
             await init.pageClick(page, '#settings');
 
-            await page.waitForSelector('#smtp');
+            await init.pageWaitForSelector(page, '#smtp');
             await init.pageClick(page, '#smtp a');
-            await page.waitForSelector('#smtp-form');
+            await init.pageWaitForSelector(page, '#smtp-form');
+            await init.pageClick(page, '#email-enabled');
+            await init.pageClick(page, '#customSmtp');
 
-            await init.pageClick(page, 'input[name=email]', { clickCount: 3 });
+            await init.pageClick(page, 'input[name=email]');
             await init.pageType(
                 page,
                 'input[name=email]',
                 utils.smtpCredential.user
             );
-            await init.pageClick(page, 'input[name=password]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=password]');
             await init.pageType(
                 page,
                 'input[name=password]',
                 utils.smtpCredential.pass
             );
-            await init.pageClick(page, 'input[name=smtp-server]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=smtp-server]');
             await init.pageType(
                 page,
                 'input[name=smtp-server]',
                 utils.smtpCredential.host
             );
-            await init.pageClick(page, 'input[name=smtp-port]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=smtp-port]');
             await init.pageType(
                 page,
                 'input[name=smtp-port]',
                 utils.smtpCredential.port
             );
-            await init.pageClick(page, 'input[name=from]', { clickCount: 3 });
+            await init.pageClick(page, 'input[name=from]');
             await init.pageType(page, 'input[name=from]', randomEmail);
-            await init.pageClick(page, 'input[name=from-name]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=from-name]');
             await init.pageType(
                 page,
                 'input[name=from-name]',
@@ -152,19 +143,23 @@ describe('SMTP Settings API', () => {
         'Should open a test success modal with valid smtp settings',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#settings');
+            await init.pageWaitForSelector(page, '#settings');
             await init.pageClick(page, '#settings');
 
-            await page.waitForSelector('#smtp');
+            await init.pageWaitForSelector(page, '#smtp');
             await init.pageClick(page, '#smtp a');
-            await page.waitForSelector('#smtp-form');
+            await init.pageWaitForSelector(page, '#smtp-form');
 
             await init.pageClick(page, '#testSmtpSettingsButton');
-            await page.waitForSelector('input[name=test-email]');
+            await init.pageWaitForSelector(page, 'input[name=test-email]');
             await init.pageType(page, 'input[name=test-email]', email);
+            await init.pageClick(page, '#customSmtpBtn');
             await init.pageClick(page, '#confirmSmtpTest');
 
-            await page.waitForSelector('.bs-Modal-header > div > span > span');
+            await init.pageWaitForSelector(
+                page,
+                '.bs-Modal-header > div > span > span'
+            );
             let elem = await page.$('.bs-Modal-header > div > span > span');
             elem = await elem.getProperty('innerText');
             elem = await elem.jsonValue();
@@ -178,24 +173,26 @@ describe('SMTP Settings API', () => {
         'Should open a test failed modal with invalid smtp settings',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForSelector('#settings');
+            await init.pageWaitForSelector(page, '#settings');
             await init.pageClick(page, '#settings');
 
-            await page.waitForSelector('#smtp');
+            await init.pageWaitForSelector(page, '#smtp');
             await init.pageClick(page, '#smtp a');
-            await page.waitForSelector('#smtp-form');
+            await init.pageWaitForSelector(page, '#smtp-form');
 
-            await init.pageClick(page, 'input[name=password]', {
-                clickCount: 3,
-            });
+            await init.pageClick(page, 'input[name=password]');
             await init.pageType(page, 'input[name=password]', wrongPassword);
 
             await init.pageClick(page, '#testSmtpSettingsButton');
-            await page.waitForSelector('input[name=test-email]');
+            await init.pageWaitForSelector(page, 'input[name=test-email]');
             await init.pageType(page, 'input[name=test-email]', email);
+            await init.pageClick(page, '#customSmtpBtn');
             await init.pageClick(page, '#confirmSmtpTest');
 
-            await page.waitForSelector('.bs-Modal-header > div > span > span');
+            await init.pageWaitForSelector(
+                page,
+                '.bs-Modal-header > div > span > span'
+            );
             let elem = await page.$('.bs-Modal-header > div > span > span');
             elem = await elem.getProperty('innerText');
             elem = await elem.jsonValue();

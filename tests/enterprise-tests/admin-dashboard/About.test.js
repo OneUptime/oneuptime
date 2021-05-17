@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 
-const utils = require('../../../admin-dashboard/src/test/test-utils');
-const init = require('../../../admin-dashboard/src/test/test-init');
+const utils = require('../../test-utils');
+const init = require('../../test-init');
 let browser, page;
 require('should');
 
@@ -40,13 +40,19 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
             });
 
             // if element does not exist it will timeout and throw
-            await page.waitForSelector('#profile-menu', {
+            await init.pageWaitForSelector(page, '#profile-menu', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#profile-menu', elem => elem.click());
-            const about = await page.waitForSelector('#about-button', {
-                visible: true,
-            });
+            const about = await init.pageWaitForSelector(
+                page,
+                '#about-button',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(about).toBeDefined();
         },
         operationTimeOut
@@ -58,19 +64,23 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#profile-menu', {
+            await init.pageWaitForSelector(page, '#profile-menu', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#profile-menu', elem => elem.click());
-            await page.waitForSelector('#about-button', {
+            await init.pageWaitForSelector(page, '#about-button', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#about-button', elem => elem.click());
-            await page.waitForSelector('.bs-Modal', {
+            await init.pageWaitForSelector(page, '.bs-Modal', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#server-version', {
+            await init.pageWaitForSelector(page, '#server-version', {
                 visible: true,
+                timeout: init.timeout,
             });
             const serverVersion = await page.$eval(
                 '#server-version',
@@ -114,16 +124,19 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await page.waitForSelector('#profile-menu', {
+            await init.pageWaitForSelector(page, '#profile-menu', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#profile-menu', elem => elem.click());
-            await page.waitForSelector('#about-button', {
+            await init.pageWaitForSelector(page, '#about-button', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$eval('#about-button', elem => elem.click());
-            await page.waitForSelector('.bs-Button', {
+            await init.pageWaitForSelector(page, '.bs-Button', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '.bs-Button');
         },

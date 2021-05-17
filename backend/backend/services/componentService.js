@@ -84,10 +84,7 @@ module.exports = {
                     component.visibleOnStatusPage = data.visibleOnStatusPage;
                     component.projectId = data.projectId;
                     if (data && data.name) {
-                        let name = data.name;
-                        name = slugify(name);
-                        name = `${name}-${generate('1234567890', 8)}`;
-                        component.slug = name.toLowerCase();
+                        component.slug = getSlug(data.name);
                     }
                     const savedComponent = await component.save();
                     component = await _this.findOneBy({
@@ -117,10 +114,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
+                data.slug = getSlug(data.name);
             }
             let component = await ComponentModel.findOneAndUpdate(
                 query,
@@ -465,5 +459,4 @@ const ErrorService = require('./errorService');
 // const moment = require('moment');
 // const _ = require('lodash');
 const { IS_SAAS_SERVICE } = require('../config/server');
-const generate = require('nanoid/generate');
-const slugify = require('slugify');
+const getSlug = require('../utils/getSlug');

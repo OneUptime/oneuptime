@@ -8,6 +8,11 @@ const user = {
     password: '1234567890',
 };
 
+const dockerRegistryUrl = utils.dockerCredential.dockerRegistryUrl;
+const dockerUsername = utils.dockerCredential.dockerUsername;
+const dockerPassword = utils.dockerCredential.dockerPassword;
+
+
 /** This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
@@ -32,29 +37,31 @@ describe('Fyipe Page Reload', () => {
     });
 
     test(
-        'Should reload the webhook page and confirm there are no errors',
+        'Should reload the probe page and confirm there are no errors',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#more');
-            await init.pageClick(page, '#webhooks');
-            await page.waitForSelector(
-                '#enableInvestigationNoteNotificationWebhook',
-                { visible: true }
+            await init.pageClick(page, '#dockerCredentials');
+            await init.pageClick(page, '#addCredentialBtn');
+            await init.pageType(page, '#dockerRegistryUrl', dockerRegistryUrl);
+            await init.pageType(page, '#dockerUsername', dockerUsername);
+            await init.pageType(page, '#dockerPassword', dockerPassword);
+            await init.pageClick(page, '#addCredentialModalBtn');
+            const spanElement = await page.waitForSelector(
+                `#dockerUsername_${dockerUsername}`
             );
+            expect(spanElement).toBeDefined();
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbProjectSettings', { visible: true });
-            await page.waitForSelector('#cbWebhooksSettings', {
-                visible: true,
-            });
-            const spanElement = await page.waitForSelector(
-                '#enableInvestigationNoteNotificationWebhook',
-                { visible: true }
+            await page.waitForSelector('#cbDockerCredentials', { visible: true });
+            const spanElement2 = await page.waitForSelector(
+                `#dockerUsername_${dockerUsername}`
             );
-            expect(spanElement).toBeDefined();
+            expect(spanElement2).toBeDefined();
             done();
         },
         operationTimeOut

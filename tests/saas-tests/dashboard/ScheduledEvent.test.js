@@ -49,27 +49,30 @@ describe('Scheduled event', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#scheduledMaintenance', {
+            await init.pageWaitForSelector(page, '#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
-            await page.waitForSelector('#addScheduledEventButton', {
+            await init.pageWaitForSelector(page, '#addScheduledEventButton', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addScheduledEventButton');
 
-            await page.waitForSelector('#scheduledEventForm', {
+            await init.pageWaitForSelector(page, '#scheduledEventForm', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#name');
+            await init.pageWaitForSelector(page, '#name');
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', scheduleMaintenanceName);
             await init.pageClick(page, 'label[for=selectAllMonitorsBox]');
             await init.pageClick(page, '#addMoreMonitor');
-            await page.waitForSelector('#monitorfield_0');
+            await init.pageWaitForSelector(page, '#monitorfield_0');
             await init.selectByText('#monitorfield_0', componentName, page); // "ComponentName / MonitorName" is in the dropdown. Using only ComponentName selects both
             await init.pageClick(page, '#addMoreMonitor');
-            await page.waitForSelector('#monitorfield_1');
+            await init.pageWaitForSelector(page, '#monitorfield_1');
             await init.selectByText('#monitorfield_1', componentName, page);
             await init.pageClick(page, '#description');
             await init.pageType(
@@ -78,7 +81,7 @@ describe('Scheduled event', () => {
                 'This is an example description for a test'
             );
 
-            await page.waitForSelector('input[name=startDate]');
+            await init.pageWaitForSelector(page, 'input[name=startDate]');
             await init.pageClick(page, 'input[name=startDate]');
             await init.pageClick(
                 page,
@@ -92,9 +95,14 @@ describe('Scheduled event', () => {
             );
 
             await init.pageClick(page, '#createScheduledEventButton');
-            const monitorError = await page.waitForSelector('#monitorError', {
-                visible: true,
-            });
+            const monitorError = await init.pageWaitForSelector(
+                page,
+                '#monitorError',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(monitorError).toBeDefined();
             done();
         },
@@ -107,24 +115,27 @@ describe('Scheduled event', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#scheduledMaintenance', {
+            await init.pageWaitForSelector(page, '#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
-            await page.waitForSelector('#addScheduledEventButton', {
+            await init.pageWaitForSelector(page, '#addScheduledEventButton', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#addScheduledEventButton');
 
-            await page.waitForSelector('#scheduledEventForm', {
+            await init.pageWaitForSelector(page, '#scheduledEventForm', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#name');
+            await init.pageWaitForSelector(page, '#name');
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', scheduleMaintenanceName);
             await init.pageClick(page, 'label[for=selectAllMonitorsBox]');
             await init.pageClick(page, '#addMoreMonitor');
-            await page.waitForSelector('#monitorfield_0');
+            await init.pageWaitForSelector(page, '#monitorfield_0');
             await init.selectByText('#monitorfield_0', componentName, page);
             await init.pageClick(page, '#description');
             await init.pageType(
@@ -133,7 +144,7 @@ describe('Scheduled event', () => {
                 'This is an example description for a test'
             );
 
-            await page.waitForSelector('input[name=startDate]');
+            await init.pageWaitForSelector(page, 'input[name=startDate]');
             await init.pageClick(page, 'input[name=startDate]');
             await init.pageClick(
                 page,
@@ -147,11 +158,12 @@ describe('Scheduled event', () => {
             );
 
             await init.pageClick(page, '#createScheduledEventButton');
-            await page.waitForSelector('#scheduledEventForm', {
+            await init.pageWaitForSelector(page, '#scheduledEventForm', {
                 hidden: true,
             });
-            await page.waitForSelector('.scheduled-event-list-item', {
+            await init.pageWaitForSelector(page, '.scheduled-event-list-item', {
                 visible: true,
+                timeout: init.timeout,
             });
             const scheduledMaintenanceList = await page.$$(
                 '.scheduled-event-list-item'
@@ -169,16 +181,19 @@ describe('Scheduled event', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#scheduledMaintenance', {
+            await init.pageWaitForSelector(page, '#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
             //Refactored UI
-            await page.waitForSelector('#viewScheduledEvent_0', {
+            await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 `#editScheduledEvent-${scheduleMaintenanceName}`,
                 {
                     visible: true,
@@ -189,27 +204,30 @@ describe('Scheduled event', () => {
                 `#editScheduledEvent-${scheduleMaintenanceName}`
             );
 
-            await page.waitForSelector('#editScheduledEventForm', {
+            await init.pageWaitForSelector(page, '#editScheduledEventForm', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await page.waitForSelector('#name');
-            await init.pageClick(page, '#name', { clickCount: 3 });
+            await init.pageWaitForSelector(page, '#name');
+            await init.pageClick(page, '#name');
             await init.pageType(page, '#name', newScheduledMaintenanceName);
             await init.pageClick(page, '#updateScheduledEventButton');
-            await page.waitForSelector('#editScheduledEventForm', {
+            await init.pageWaitForSelector(page, '#editScheduledEventForm', {
                 hidden: true,
             });
 
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#scheduledMaintenance', {
+            await init.pageWaitForSelector(page, '#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
 
-            await page.waitForSelector('.scheduled-event-name', {
+            await init.pageWaitForSelector(page, '.scheduled-event-name', {
                 visible: true,
+                timeout: init.timeout,
             });
             const eventName = await page.evaluate(
                 () =>
@@ -229,34 +247,40 @@ describe('Scheduled event', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#scheduledMaintenance', {
+            await init.pageWaitForSelector(page, '#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
             //Refactored UI
-            await page.waitForSelector('#viewScheduledEvent_0', {
+            await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
-            await page.waitForSelector('.advanced-options-tab', {
+            await init.pageWaitForSelector(page, '.advanced-options-tab', {
                 visible: true,
+                timeout: init.timeout,
             });
             await page.$$eval('.advanced-options-tab', elems =>
                 elems[0].click()
             );
 
-            await page.waitForSelector('#deleteScheduleEvent', {
+            await init.pageWaitForSelector(page, '#deleteScheduleEvent', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteScheduleEvent');
-            await page.waitForSelector('#deleteScheduleModalBtn', {
+            await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteScheduleModalBtn');
-            await page.waitForSelector('#deleteScheduleModalBtn', {
+            await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {
                 hidden: true,
             });
-            const scheduledEventList = await page.waitForSelector(
+            const scheduledEventList = await init.pageWaitForSelector(
+                page,
                 '.scheduled-event-list-item',
                 {
                     hidden: true,

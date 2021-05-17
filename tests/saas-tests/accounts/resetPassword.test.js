@@ -29,15 +29,15 @@ describe('Reset Password API', () => {
 
     it('Should reset password successfully', async () => {
         await init.registerUser(user, page);
-        await init.logoutUser(page);
+        await init.logout(page);
         await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
             waitUntil: 'networkidle2',
         });
-        await page.waitForSelector('#email');
+        await init.pageWaitForSelector(page, '#email');
         await init.pageClick(page, 'input[name=email]');
         await init.pageType(page, 'input[name=email]', email);
         await init.pageClick(page, 'button[type=submit]');
-        await page.waitForSelector('#reset-password-success');
+        await init.pageWaitForSelector(page, '#reset-password-success');
         const html = await page.$eval('#reset-password-success', e => {
             return e.innerHTML;
         });
@@ -45,13 +45,13 @@ describe('Reset Password API', () => {
         html.should.containEql(
             " An email is on its way to you. Follow the instructions to reset your password. Please don't forget to check spam. "
         );
-    }, 160000);
+    }, init.timeout);
 
     it('User cannot reset password with non-existing email', async () => {
         await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
             waitUntil: 'networkidle2',
         });
-        await page.waitForSelector('#email');
+        await init.pageWaitForSelector(page, '#email');
         await init.pageClick(page, 'input[name=email]');
         await init.pageType(
             page,
@@ -59,11 +59,11 @@ describe('Reset Password API', () => {
             utils.generateWrongEmail()
         );
         await init.pageClick(page, 'button[type=submit]');
-        await page.waitForSelector('#error-msg');
+        await init.pageWaitForSelector(page, '#error-msg');
         const html = await page.$eval('#error-msg', e => {
             return e.innerHTML;
         });
         should.exist(html);
         html.should.containEql('User does not exist.');
-    }, 160000);
+    }, init.timeout);
 });

@@ -346,10 +346,13 @@ class CreateSubscriber extends Component {
                                                                     RenderField
                                                                 }
                                                                 type="text"
+                                                                pattern="[0-9]*"
+                                                                inputMode="numeric"
                                                                 name="contactPhone"
                                                                 id="contactPhoneId"
                                                                 placeholder="6505551234"
                                                                 required="required"
+                                                                normalize={ val => (val || "").replace(/[^\d]/g, "") }
                                                             />
                                                         </div>
                                                     </div>

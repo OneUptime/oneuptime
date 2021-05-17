@@ -52,21 +52,23 @@ describe('Server Monitor API', () => {
             // Redirects automatically component to details page
             await init.addComponent(componentName, page);
 
-            await page.waitForSelector('#form-new-monitor');
+            await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageClick(page, 'input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.selectByText('#type', 'server-monitor', page);
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await page.waitForSelector(
+            let spanElement = await init.pageWaitForSelector(
+                page,
                 `#monitor-title-${monitorName}`
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(monitorName);
 
-            await page.waitForSelector('span#activeIncidentsText', {
+            await init.pageWaitForSelector(page, 'span#activeIncidentsText', {
                 visible: true,
+                timeout: init.timeout,
             });
             let activeIncidents = await page.$('span#activeIncidentsText');
             activeIncidents = await activeIncidents.getProperty('innerText');
@@ -83,21 +85,30 @@ describe('Server Monitor API', () => {
                 waitUntil: 'networkidle0',
             });
 
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#api');
+            await init.pageWaitForSelector(page, '#api');
             await init.pageClick(page, '#api a');
 
-            let projectId = await page.$('#projectId', { visible: true });
+            let projectId = await page.$('#projectId', {
+                visible: true,
+                timeout: init.timeout,
+            });
             projectId = await projectId.getProperty('innerText');
             projectId = await projectId.jsonValue();
 
-            let apiUrl = await page.$('#apiUrl', { visible: true });
+            let apiUrl = await page.$('#apiUrl', {
+                visible: true,
+                timeout: init.timeout,
+            });
             apiUrl = await apiUrl.getProperty('innerText');
             apiUrl = await apiUrl.jsonValue();
 
             await init.pageClick(page, '#apiKey');
-            let apiKey = await page.$('#apiKey', { visible: true });
+            let apiKey = await page.$('#apiKey', {
+                visible: true,
+                timeout: init.timeout,
+            });
             apiKey = await apiKey.getProperty('innerText');
             apiKey = await apiKey.jsonValue();
 
@@ -108,7 +119,7 @@ describe('Server Monitor API', () => {
                 page
             );
 
-            let monitorId = await page.waitForSelector('#monitorId', {
+            let monitorId = await init.pageWaitForSelector(page, '#monitorId', {
                 visible: true,
                 timeout: operationTimeOut,
             });
@@ -125,8 +136,9 @@ describe('Server Monitor API', () => {
 
             monitor.start();
 
-            await page.waitForSelector('span#activeIncidentsText', {
+            await init.pageWaitForSelector(page, 'span#activeIncidentsText', {
                 visible: true,
+                timeout: init.timeout,
             });
             let activeIncidents = await page.$('span#activeIncidentsText');
             activeIncidents = await activeIncidents.getProperty('innerText');
@@ -145,21 +157,30 @@ describe('Server Monitor API', () => {
                 waitUntil: 'networkidle0',
             });
 
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#api');
+            await init.pageWaitForSelector(page, '#api');
             await init.pageClick(page, '#api a');
 
-            let projectId = await page.$('#projectId', { visible: true });
+            let projectId = await page.$('#projectId', {
+                visible: true,
+                timeout: init.timeout,
+            });
             projectId = await projectId.getProperty('innerText');
             projectId = await projectId.jsonValue();
 
-            let apiUrl = await page.$('#apiUrl', { visible: true });
+            let apiUrl = await page.$('#apiUrl', {
+                visible: true,
+                timeout: init.timeout,
+            });
             apiUrl = await apiUrl.getProperty('innerText');
             apiUrl = await apiUrl.jsonValue();
 
             await init.pageClick(page, '#apiKey');
-            let apiKey = await page.$('#apiKey', { visible: true });
+            let apiKey = await page.$('#apiKey', {
+                visible: true,
+                timeout: init.timeout,
+            });
             apiKey = await apiKey.getProperty('innerText');
             apiKey = await apiKey.jsonValue();
 
@@ -170,7 +191,7 @@ describe('Server Monitor API', () => {
                 page
             );
 
-            let monitorId = await page.waitForSelector('#monitorId', {
+            let monitorId = await init.pageWaitForSelector(page, '#monitorId', {
                 visible: true,
                 timeout: operationTimeOut,
             });
@@ -188,7 +209,8 @@ describe('Server Monitor API', () => {
             monitor.start();
 
             // check status
-            const element = await page.waitForSelector(
+            const element = await init.pageWaitForSelector(
+                page,
                 `#${monitorName}-degraded`
             );
             expect(element).toBeDefined();
@@ -205,21 +227,30 @@ describe('Server Monitor API', () => {
                 waitUntil: 'networkidle0',
             });
 
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#api');
+            await init.pageWaitForSelector(page, '#api');
             await init.pageClick(page, '#api a');
 
-            let projectId = await page.$('#projectId', { visible: true });
+            let projectId = await page.$('#projectId', {
+                visible: true,
+                timeout: init.timeout,
+            });
             projectId = await projectId.getProperty('innerText');
             projectId = await projectId.jsonValue();
 
-            let apiUrl = await page.$('#apiUrl', { visible: true });
+            let apiUrl = await page.$('#apiUrl', {
+                visible: true,
+                timeout: init.timeout,
+            });
             apiUrl = await apiUrl.getProperty('innerText');
             apiUrl = await apiUrl.jsonValue();
 
             await init.pageClick(page, '#apiKey');
-            let apiKey = await page.$('#apiKey', { visible: true });
+            let apiKey = await page.$('#apiKey', {
+                visible: true,
+                timeout: init.timeout,
+            });
             apiKey = await apiKey.getProperty('innerText');
             apiKey = await apiKey.jsonValue();
 
@@ -230,7 +261,7 @@ describe('Server Monitor API', () => {
                 page
             );
 
-            let monitorId = await page.waitForSelector('#monitorId', {
+            let monitorId = await init.pageWaitForSelector(page, '#monitorId', {
                 visible: true,
                 timeout: operationTimeOut,
             });
@@ -248,7 +279,8 @@ describe('Server Monitor API', () => {
             monitor.start();
 
             // check status
-            const element = await page.waitForSelector(
+            const element = await init.pageWaitForSelector(
+                page,
                 `#${monitorName}-offline`
             );
             expect(element).toBeDefined();
@@ -265,21 +297,30 @@ describe('Server Monitor API', () => {
                 waitUntil: 'networkidle0',
             });
 
-            await page.waitForSelector('#projectSettings');
+            await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
-            await page.waitForSelector('#api');
+            await init.pageWaitForSelector(page, '#api');
             await init.pageClick(page, '#api a');
 
-            let projectId = await page.$('#projectId', { visible: true });
+            let projectId = await page.$('#projectId', {
+                visible: true,
+                timeout: init.timeout,
+            });
             projectId = await projectId.getProperty('innerText');
             projectId = await projectId.jsonValue();
 
-            let apiUrl = await page.$('#apiUrl', { visible: true });
+            let apiUrl = await page.$('#apiUrl', {
+                visible: true,
+                timeout: init.timeout,
+            });
             apiUrl = await apiUrl.getProperty('innerText');
             apiUrl = await apiUrl.jsonValue();
 
             await init.pageClick(page, '#apiKey');
-            let apiKey = await page.$('#apiKey', { visible: true });
+            let apiKey = await page.$('#apiKey', {
+                visible: true,
+                timeout: init.timeout,
+            });
             apiKey = await apiKey.getProperty('innerText');
             apiKey = await apiKey.jsonValue();
 
@@ -290,7 +331,7 @@ describe('Server Monitor API', () => {
                 page
             );
 
-            let monitorId = await page.waitForSelector('#monitorId', {
+            let monitorId = await init.pageWaitForSelector(page, '#monitorId', {
                 visible: true,
                 timeout: operationTimeOut,
             });
@@ -309,8 +350,9 @@ describe('Server Monitor API', () => {
 
             monitor.stop();
 
-            await page.waitForSelector('span#activeIncidentsText', {
+            await init.pageWaitForSelector(page, 'span#activeIncidentsText', {
                 visible: true,
+                timeout: init.timeout,
             });
             let activeIncidents = await page.$('span#activeIncidentsText');
             activeIncidents = await activeIncidents.getProperty('innerText');
@@ -326,7 +368,10 @@ describe('Server Monitor API', () => {
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
 
-            await page.waitForSelector(`#${monitorName}_EditIncidentDetails_0`);
+            await init.pageWaitForSelector(
+                page,
+                `#${monitorName}_EditIncidentDetails_0`
+            );
             await page.$eval(`#${monitorName}_EditIncidentDetails_0`, e =>
                 e.click()
             );
@@ -335,16 +380,18 @@ describe('Server Monitor API', () => {
                 e.click()
             );
 
-            await page.waitForSelector('span#activeIncidentsText', {
+            await init.pageWaitForSelector(page, 'span#activeIncidentsText', {
                 visible: true,
+                timeout: init.timeout,
             });
             let activeIncidents = await page.$('span#activeIncidentsText');
             activeIncidents = await activeIncidents.getProperty('innerText');
             activeIncidents = await activeIncidents.jsonValue();
             expect(activeIncidents).toEqual('No incidents currently active.');
 
-            await page.waitForSelector('span#activeIncidentsText', {
+            await init.pageWaitForSelector(page, 'span#activeIncidentsText', {
                 visible: true,
+                timeout: init.timeout,
             });
             activeIncidents = await page.$('span#activeIncidentsText');
             activeIncidents = await activeIncidents.getProperty('innerText');

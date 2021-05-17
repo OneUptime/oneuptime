@@ -62,23 +62,27 @@ describe('Scheduled Event Note', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#scheduledMaintenance', {
+            await init.pageWaitForSelector(page, '#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
 
-            await page.waitForSelector('#viewScheduledEvent_0', {
+            await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
-            await page.waitForSelector('#add-internal-message', {
+            await init.pageWaitForSelector(page, '#add-internal-message', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#add-internal-message');
-            await page.waitForSelector('#event_state', {
+            await init.pageWaitForSelector(page, '#event_state', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.selectByText('#event_state', 'investigating', page);
             await init.pageClick(page, '#new-internal');
@@ -88,13 +92,15 @@ describe('Scheduled Event Note', () => {
                 'Some random description'
             );
             await init.pageClick(page, '#internal-addButton');
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 '#form-new-schedule-investigation-message',
                 { hidden: true }
             );
-            const note = await page.waitForSelector(
+            const note = await init.pageWaitForSelector(
+                page,
                 '#Internal_incident_message_0',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(note).toBeDefined();
             done();
@@ -108,39 +114,49 @@ describe('Scheduled Event Note', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#scheduledMaintenance', {
+            await init.pageWaitForSelector(page, '#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
 
-            await page.waitForSelector('#viewScheduledEvent_0', {
+            await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
 
-            await page.waitForSelector('#edit_Internal_incident_message_0', {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                '#edit_Internal_incident_message_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, '#edit_Internal_incident_message_0');
-            await page.waitForSelector('#update-internal', {
+            await init.pageWaitForSelector(page, '#update-internal', {
                 visible: true,
+                timeout: init.timeout,
             });
-            await init.pageClick(page, '#update-internal', { clickCount: 3 });
+            await init.pageClick(page, '#update-internal');
             await init.pageType(
                 page,
                 '#update-internal',
                 'An updated description'
             );
             await init.pageClick(page, '#internal-updateButton');
-            await page.waitForSelector(
+            await init.pageWaitForSelector(
+                page,
                 '#form-update-schedule-internal-message',
                 { hidden: true }
             );
-            const edited = await page.waitForSelector(
+            const edited = await init.pageWaitForSelector(
+                page,
                 '#edited_Internal_incident_message_0',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(edited).toBeDefined();
             done();
@@ -154,26 +170,39 @@ describe('Scheduled Event Note', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#scheduledMaintenance', {
+            await init.pageWaitForSelector(page, '#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
 
-            await page.waitForSelector('#viewScheduledEvent_0', {
+            await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
-            await page.waitForSelector('#delete_Internal_incident_message_0', {
-                visible: true,
-            });
+            await init.pageWaitForSelector(
+                page,
+                '#delete_Internal_incident_message_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             await init.pageClick(page, '#delete_Internal_incident_message_0');
-            await page.waitForSelector('#deleteNote', { visible: true });
+            await init.pageWaitForSelector(page, '#deleteNote', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#deleteNote');
-            await page.waitForSelector('#deleteNote', { hidden: true });
+            await init.pageWaitForSelector(page, '#deleteNote', {
+                hidden: true,
+            });
 
-            const note = await page.waitForSelector(
+            const note = await init.pageWaitForSelector(
+                page,
                 '#delete_Internal_incident_message_0',
                 { hidden: true }
             );
@@ -237,20 +266,23 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#scheduledMaintenance', {
+            await init.pageWaitForSelector(page, '#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
 
-            await page.waitForSelector('#viewScheduledEvent_0', {
+            await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
-            const tenthItem = await page.waitForSelector(
+            const tenthItem = await init.pageWaitForSelector(
+                page,
                 '#Internal_incident_message_9',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
             expect(tenthItem).toBeDefined();
             done();
@@ -264,25 +296,32 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#scheduledMaintenance', {
+            await init.pageWaitForSelector(page, '#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
 
-            await page.waitForSelector('#viewScheduledEvent_0', {
+            await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
-            await page.waitForSelector('#nextBtn', { visible: true });
+            await init.pageWaitForSelector(page, '#nextBtn', {
+                visible: true,
+                timeout: init.timeout,
+            });
             await init.pageClick(page, '#nextBtn');
 
-            const fifthItem = await page.waitForSelector(
+            const fifthItem = await init.pageWaitForSelector(
+                page,
                 '#Internal_incident_message_4',
-                { visible: true }
+                { visible: true, timeout: init.timeout }
             );
-            const sixthItem = await page.waitForSelector(
+            const sixthItem = await init.pageWaitForSelector(
+                page,
                 '#Internal_incident_message_5',
                 { hidden: true }
             );
@@ -299,34 +338,39 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.waitForSelector('#scheduledMaintenance', {
+            await init.pageWaitForSelector(page, '#scheduledMaintenance', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#scheduledMaintenance');
 
-            await page.waitForSelector('#viewScheduledEvent_0', {
+            await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the advance tab section
             await init.gotoTab(utils.scheduleEventTabIndexes.ADVANCE, page);
 
             // look for the delete button and click on it
-            await page.waitForSelector('#deleteScheduleEvent', {
+            await init.pageWaitForSelector(page, '#deleteScheduleEvent', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteScheduleEvent');
 
             // find the confirm delete button in the pop up and click on it
-            await page.waitForSelector('#deleteScheduleModalBtn', {
+            await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {
                 visible: true,
+                timeout: init.timeout,
             });
             await init.pageClick(page, '#deleteScheduleModalBtn');
             // confirm that the element is deleted and redirected to the list of all schedule event page
-            await page.waitForSelector('#deleteScheduleModalBtn', {
+            await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {
                 hidden: true,
             });
-            const scheduledEventList = await page.waitForSelector(
+            const scheduledEventList = await init.pageWaitForSelector(
+                page,
                 '.scheduled-event-list-item',
                 {
                     hidden: true,
