@@ -12,6 +12,25 @@ import { API_URL } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 
 export class IncidentList extends Component {
+    handleMonitorList = monitors => {
+        if (monitors.length === 0) {
+            return 'No monitor in this event';
+        }
+        if (monitors.length === 1) {
+            return monitors[0].monitorId.name;
+        }
+        if (monitors.length === 2) {
+            return `${monitors[0].monitorId.name} and ${monitors[1].monitorId.name}`;
+        }
+        if (monitors.length === 3) {
+            return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
+        }
+
+        return `${monitors[0].monitorId.name}, ${
+            monitors[1].monitorId.name
+        } and ${monitors.length - 2} others`;
+    };
+
     render() {
         if (
             this.props.incidents &&
@@ -93,7 +112,7 @@ export class IncidentList extends Component {
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Monitor</span>
+                                            <span>Monitor(s)</span>
                                         </span>
                                     </div>
                                 </td>
@@ -214,7 +233,8 @@ export class IncidentList extends Component {
                                                                 .currentProject
                                                                 .slug +
                                                             '/component/' +
-                                                            incident.monitorId
+                                                            incident.monitors[0]
+                                                                .monitorId
                                                                 .componentId
                                                                 .slug +
                                                             '/incidents/' +
@@ -249,7 +269,10 @@ export class IncidentList extends Component {
                                                 }}
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    {`${incident.monitorId.name}/${incident.monitorId.componentId.name} `}
+                                                    {incident.monitors &&
+                                                        this.handleMonitorList(
+                                                            incident.monitors
+                                                        )}
                                                 </div>
                                             </td>
                                             <td
