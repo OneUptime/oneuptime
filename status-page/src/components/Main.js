@@ -551,7 +551,11 @@ class Main extends Component {
                             <div className="new-main-container">
                                 <div
                                     className="sy-op"
-                                    style={{ backgroundColor: newbg }}
+                                    style={{
+                                        backgroundColor: this.props.ongoing
+                                            ? 'rgb(227, 159, 72)'
+                                            : newbg,
+                                    }}
                                     id="status-note"
                                 >
                                     {this.props.ongoing
