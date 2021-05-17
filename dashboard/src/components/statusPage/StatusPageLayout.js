@@ -11,10 +11,14 @@ const grid = 8;
 
 const getItemStyle = (isDragging, draggableStyle) => ({
     userSelect: 'none',
-    padding: grid * 5,
+    padding: grid * 2,
+    display: 'flex',
+    alignItems: 'center',
     margin: `0 0 ${grid}px 0`,
     borderRadius: '5px',
-    background: isDragging ? 'lightgreen' : 'black',
+    boxShadow:
+        'rgb(50 50 93 / 10%) 0px 7px 14px 0px, rgb(0 0 0 / 7%) 0px 3px 6px 0px',
+    background: isDragging ? 'lightgreen' : '#f7f7f7',
     ...draggableStyle,
     ...(isDragging && { pointerEvents: 'auto' }),
 });
@@ -23,121 +27,56 @@ const getListStyle = isDraggingOver => ({
     background: isDraggingOver ? 'lightblue' : 'transparent',
     padding: grid,
     width: '30rem',
-    color: '#fff',
     height: '90%',
 });
 export class StatusPageLayout extends Component {
     state = {
         visible: [
-            { name: 'Announcement', id: 11, key: 'anouncement' },
-            { name: 'Resources Status', id: 12, key: 'resources' },
-            { name: 'Services Status', id: 13, key: 'services' },
-            { name: 'Past Incidents', id: 14, key: 'pastIncidents' },
-            { name: 'Scheduled Maintenance', id: 15, key: 'maintenance' },
+            {
+                name: 'Active Announcement',
+                key: 'anouncement',
+            },
+            {
+                name: 'Ongoing Schedule Events',
+                key: 'ongoingSchedule',
+            },
+            { name: 'Overall Status', key: 'resources' },
+            { name: 'Resource List', key: 'services' },
+            { name: 'Incidents', key: 'incidents' },
+            {
+                name: 'Scheduled Maintenance Events',
+                key: 'maintenance',
+            },
         ],
         invisible: [],
     };
 
     componentDidMount() {
         const { statusPage } = this.props;
-        const {
-            classicThemeLayout,
-            cleanThemeLayout,
-            theme,
-        } = statusPage.status;
+        const { layout } = statusPage.status;
 
-        if (theme === 'Classic Theme') {
-            const visible =
-                (classicThemeLayout && classicThemeLayout.visible) || [];
-            const invisible =
-                (classicThemeLayout && classicThemeLayout.invisible) || [];
+        const visible = (layout && layout.visible) || [];
+        const invisible = (layout && layout.invisible) || [];
 
-            if (visible.length === 0 && invisible.length === 0) {
-                this.setState({
-                    visible: [
-                        { name: 'Announcement', id: 11, key: 'anouncement' },
-                        {
-                            name: 'Ongoing Schedule Events',
-                            id: 12,
-                            key: 'ongoingSchedule',
-                        },
-                        { name: 'Services Status', id: 13, key: 'services' },
-                        {
-                            name: 'Incidents',
-                            id: 14,
-                            key: 'incidents',
-                        },
-                        {
-                            name: 'Future Schedule Events',
-                            id: 15,
-                            key: 'futureSchedule',
-                        },
-                    ],
-                    invisible: [],
-                });
-            } else {
-                this.setState({
-                    visible,
-                    invisible,
-                });
-            }
-        } else {
-            const visible =
-                (cleanThemeLayout && cleanThemeLayout.visible) || [];
-            const invisible =
-                (cleanThemeLayout && cleanThemeLayout.invisible) || [];
-
-            if (visible.length === 0 && invisible.length === 0) {
-                this.setState({
-                    visible: [
-                        { name: 'Announcement', id: 11, key: 'anouncement' },
-                        { name: 'Resources Status', id: 12, key: 'resources' },
-                        { name: 'Services Status', id: 13, key: 'services' },
-                        {
-                            name: 'Past Incidents',
-                            id: 14,
-                            key: 'pastIncidents',
-                        },
-                        {
-                            name: 'Scheduled Maintenance',
-                            id: 15,
-                            key: 'maintenance',
-                        },
-                    ],
-                    invisible: [],
-                });
-            } else {
-                this.setState({
-                    visible,
-                    invisible,
-                });
-            }
+        if (visible.length > 0 || invisible.length > 0) {
+            this.setState({
+                visible,
+                invisible,
+            });
         }
     }
     handleSubmit = () => {
         const { statusPage } = this.props;
-        const { _id, projectId, theme } = statusPage.status;
-        if (theme === 'Classic Theme') {
-            const classicThemeLayout = {
-                visible: this.state.visible,
-                invisible: this.state.invisible,
-            };
-            this.props.updateStatusPageLayout(projectId._id, {
-                _id,
-                projectId,
-                classicThemeLayout,
-            });
-        } else {
-            const cleanThemeLayout = {
-                visible: this.state.visible,
-                invisible: this.state.invisible,
-            };
-            this.props.updateStatusPageLayout(projectId._id, {
-                _id,
-                projectId,
-                cleanThemeLayout,
-            });
-        }
+        const { _id, projectId } = statusPage.status;
+        const layout = {
+            visible: this.state.visible,
+            invisible: this.state.invisible,
+        };
+        this.props.updateStatusPageLayout(projectId._id, {
+            _id,
+            projectId,
+            layout,
+        });
     };
 
     onDragEnd = result => {
@@ -181,6 +120,28 @@ export class StatusPageLayout extends Component {
             [finish]: finishTask,
         });
     };
+
+    getDescription(type) {
+        switch (type) {
+            case 'anouncement':
+                return 'This is the announment section of the status page';
+            case 'resources':
+                return 'This section contains information of the resources status';
+            case 'services':
+                return 'This section displays the resources that are on the status page';
+            case 'pastIncidents':
+            case 'incidents':
+                return 'This section displays the incidents belonging to the resources on the status page';
+            case 'maintenance':
+                return 'This section displays the scheduled maintenance of the resources on the status page';
+            case 'futureSchedule':
+                return 'This section contains the schedule events that are yet to start';
+            case 'ongoingSchedule':
+                return 'This section contains the schedule events that are on going';
+            default:
+                return '';
+        }
+    }
 
     render() {
         const { statusPage } = this.props;
@@ -233,6 +194,7 @@ export class StatusPageLayout extends Component {
                                                 marginBottom: '20px',
                                                 marginTop: '20px',
                                             }}
+                                            className="Draggable-section"
                                         >
                                             <div
                                                 style={{
@@ -268,18 +230,35 @@ export class StatusPageLayout extends Component {
                                                             )}
                                                             className="Layout-box"
                                                         >
-                                                            Header
+                                                            <div
+                                                                style={{
+                                                                    paddingLeft:
+                                                                        '18px',
+                                                                }}
+                                                            >
+                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28">
+                                                                    Header
+                                                                </span>
+                                                                <br />
+                                                                <span>
+                                                                    This section
+                                                                    displays the
+                                                                    header of
+                                                                    the status
+                                                                    page and can
+                                                                    not be
+                                                                    hidden
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                         {this.state.visible.map(
                                                             (item, index) => (
                                                                 <Draggable
                                                                     key={
-                                                                        item.name +
-                                                                        item.id
+                                                                        item.key
                                                                     }
                                                                     draggableId={
-                                                                        item.name +
-                                                                        item.id
+                                                                        item.key
                                                                     }
                                                                     index={
                                                                         index
@@ -305,9 +284,39 @@ export class StatusPageLayout extends Component {
                                                                             )}
                                                                             className="Layout-box movable-layout-box"
                                                                         >
-                                                                            {
-                                                                                item.name
-                                                                            }
+                                                                            <div>
+                                                                                <img
+                                                                                    src="/dashboard/assets/icons/draggable-icon.svg"
+                                                                                    alt="draggable icon"
+                                                                                    style={{
+                                                                                        height:
+                                                                                            '28px',
+                                                                                        width:
+                                                                                            '11px',
+                                                                                        opacity:
+                                                                                            '0.5',
+                                                                                    }}
+                                                                                />
+                                                                            </div>
+                                                                            <div
+                                                                                style={{
+                                                                                    marginLeft:
+                                                                                        '10px',
+                                                                                }}
+                                                                            >
+                                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28">
+                                                                                    {
+                                                                                        item.name
+                                                                                    }
+                                                                                </span>
+                                                                                <br />
+
+                                                                                <span>
+                                                                                    {this.getDescription(
+                                                                                        item.key
+                                                                                    )}
+                                                                                </span>
+                                                                            </div>
                                                                         </div>
                                                                     )}
                                                                 </Draggable>
@@ -322,7 +331,26 @@ export class StatusPageLayout extends Component {
                                                             )}
                                                             className="Layout-box"
                                                         >
-                                                            Footer
+                                                            <div
+                                                                style={{
+                                                                    paddingLeft:
+                                                                        '18px',
+                                                                }}
+                                                            >
+                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28">
+                                                                    Footer
+                                                                </span>
+                                                                <br />
+                                                                <span>
+                                                                    This section
+                                                                    displays the
+                                                                    footer of
+                                                                    the status
+                                                                    page and can
+                                                                    not be
+                                                                    hidden
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 )}
@@ -366,12 +394,10 @@ export class StatusPageLayout extends Component {
                                                             (item, index) => (
                                                                 <Draggable
                                                                     key={
-                                                                        item.name +
-                                                                        item.id
+                                                                        item.key
                                                                     }
                                                                     draggableId={
-                                                                        item.name +
-                                                                        item.id
+                                                                        item.key
                                                                     }
                                                                     index={
                                                                         index
@@ -396,9 +422,38 @@ export class StatusPageLayout extends Component {
                                                                             )}
                                                                             className="Layout-box movable-layout-box"
                                                                         >
-                                                                            {
-                                                                                item.name
-                                                                            }
+                                                                            <div>
+                                                                                <img
+                                                                                    src="/dashboard/assets/icons/draggable-icon.svg"
+                                                                                    alt="draggable icon"
+                                                                                    style={{
+                                                                                        height:
+                                                                                            '28px',
+                                                                                        width:
+                                                                                            '11px',
+                                                                                        opacity:
+                                                                                            '0.5',
+                                                                                    }}
+                                                                                />
+                                                                            </div>
+                                                                            <div
+                                                                                style={{
+                                                                                    marginLeft:
+                                                                                        '5px',
+                                                                                }}
+                                                                            >
+                                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28">
+                                                                                    {
+                                                                                        item.name
+                                                                                    }
+                                                                                </span>
+                                                                                <br />
+                                                                                <span>
+                                                                                    {this.getDescription(
+                                                                                        item.key
+                                                                                    )}
+                                                                                </span>
+                                                                            </div>
                                                                         </div>
                                                                     )}
                                                                 </Draggable>

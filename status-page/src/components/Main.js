@@ -568,7 +568,7 @@ class Main extends Component {
                     </ShouldRender>
                 </>
             ),
-            pastIncidents: (
+            incidents: (
                 <div
                     className="new-theme-incident matop-40"
                     style={{
@@ -852,7 +852,7 @@ class Main extends Component {
                     />
                 </>
             ),
-            maintenance:
+            ongoingSchedule:
                 this.props.events &&
                 this.props.events.length > 0 &&
                 this.props.statusData &&
@@ -941,7 +941,7 @@ class Main extends Component {
                             </div>
                         )
                 ),
-            futureSchedule: (
+            maintenance: (
                 <ShouldRender
                     if={
                         this.props.statusData &&
@@ -966,51 +966,29 @@ class Main extends Component {
             ),
         };
 
-        const defaultClassicLayout = {
+        const defaultLayout = {
             visible: [
-                { name: 'Announcement', id: 11, key: 'anouncement' },
+                {
+                    name: 'Active Announcement',
+                    key: 'anouncement',
+                },
                 {
                     name: 'Ongoing Schedule Events',
-                    id: 12,
                     key: 'ongoingSchedule',
                 },
-                { name: 'Services Status', id: 13, key: 'services' },
-                {
-                    name: 'Incidents',
-                    id: 14,
-                    key: 'incidents',
-                },
-                {
-                    name: 'Future Schedule Events',
-                    id: 15,
-                    key: 'futureSchedule',
-                },
-            ],
-            invisible: [],
-        };
-        const defaultCleanThemeLayout = {
-            visible: [
-                { name: 'Announcement', id: 11, key: 'anouncement' },
-                { name: 'Resources Status', id: 12, key: 'resources' },
-                { name: 'Services Status', id: 13, key: 'services' },
-                { name: 'Past Incidents', id: 14, key: 'pastIncidents' },
-                { name: 'Scheduled Maintenance', id: 15, key: 'maintenance' },
+                { name: 'Overall Status', key: 'resources' },
+                { name: 'Resource List', key: 'services' },
+                { name: 'Incidents', key: 'incidents' },
+                { name: 'Scheduled Maintenance Events', key: 'maintenance' },
             ],
             invisible: [],
         };
 
         let visibleLayout =
-            this.props.statusData &&
-            this.props.statusData.theme === 'Classic Theme'
-                ? this.props.statusData.classicThemeLayout
-                : this.props.statusData.cleanThemeLayout;
+            this.props.statusData && this.props.statusData.layout;
         //check if the layout has been set if not fall back to the default layout
         if (!visibleLayout) {
-            visibleLayout =
-                this.props.statusData &&
-                this.props.statusData.theme === 'Classic Theme'
-                    ? defaultClassicLayout
-                    : defaultCleanThemeLayout;
+            visibleLayout = defaultLayout;
         }
         return (
             <>

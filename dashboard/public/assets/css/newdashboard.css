@@ -11082,6 +11082,12 @@ table {
     }
 }
 
+@media screen and (max-width: 366px){
+    .Draggable-section{
+        margin-right: 5px!important;
+    }
+}
+
 @media screen and (max-width: 500px) {
     .monitor-type-grid{
         grid-template-columns: auto;
