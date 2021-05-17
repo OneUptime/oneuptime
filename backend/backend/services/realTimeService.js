@@ -457,34 +457,6 @@ module.exports = {
             throw error;
         }
     },
-    fetchOngoingSchedule: async event => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            console.log(event);
-
-            const project = await ProjectService.findOneBy({
-                _id: event.projectId._id,
-            });
-            projectId = project
-                ? project.parentProjectId
-                    ? project.parentProjectId._id
-                    : project._id
-                : projectId;
-
-            if (moment() <= moment(event.endDate)) {
-                global.io.emit(`fetchOngoingScheduledEvent-${projectId}`, {
-                    data: { ongoing: false },
-                });
-            }
-        } catch (error) {
-            ErrorService.log('realTimeService.fetchOngoingSchedule', error);
-            throw error;
-        }
-    },
-
 
     sendComponentCreated: async component => {
         try {
@@ -1138,4 +1110,3 @@ const ErrorService = require('./errorService');
 const ProjectService = require('./projectService');
 const MonitorService = require('./monitorService');
 const IncidentService = require('./incidentService');
-const moment = require('moment');

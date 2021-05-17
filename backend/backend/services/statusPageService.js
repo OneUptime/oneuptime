@@ -753,6 +753,7 @@ module.exports = {
             throw error;
         }
     },
+
     isOngoingEvent: async function(events) {
         try {
             onGoingEventCount = 0;
