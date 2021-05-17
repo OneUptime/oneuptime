@@ -32,7 +32,7 @@ describe('Project', () => {
         };
 
         await init.registerUser(user, page);
-        await init.saasLogout(page)
+        await init.saasLogout(page);
 
         // login admin user
         await init.loginAdminUser(adminUser, page);
@@ -48,7 +48,7 @@ describe('Project', () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await init.pageClick(page ,"#projects");
+            await init.pageClick(page, '#projects');
             await page.$eval('#projects > a', elem => elem.click());
             await init.pageWaitForSelector(page, '.Table > tbody tr');
             await page.evaluate(() => {
@@ -92,7 +92,7 @@ describe('Project', () => {
         'should change to any other plan',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await init.pageClick(page ,"#projects");
+            await init.pageClick(page, '#projects');
             await page.$eval('#projects > a', elem => elem.click());
             await init.pageWaitForSelector(page, '.Table > tbody tr');
             await page.evaluate(() => {

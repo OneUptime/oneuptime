@@ -29,53 +29,65 @@ describe('Enterprise Registration API', () => {
         await otherBrowser.close();
     });
 
-    it('Should register Initial User with valid details', async () => {
-        await init.registerEnterpriseUser(user, page);
+    it(
+        'Should register Initial User with valid details',
+        async () => {
+            await init.registerEnterpriseUser(user, page);
 
-        const localStorageData = await page.evaluate(() => {
-            const json = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                json[key] = localStorage.getItem(key);
-            }
-            return json;
-        });
-
-        localStorageData.should.have.property('access_token');
-        localStorageData.should.have.property('email', email);
-        page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
-    }, init.timeout);
-
-    it('Should redirect to Login Page and hide Sign Up Link for Subsequent Users', async () => {
-        try {
-            await otherPage.goto(utils.ACCOUNTS_URL + '/register', {
-                waitUntil: 'networkidle2',
+            const localStorageData = await page.evaluate(() => {
+                const json = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    json[key] = localStorage.getItem(key);
+                }
+                return json;
             });
-        } catch (e) {
-            //
-        }
-        await otherPage.waitForTimeout(5000);
-        otherPage.url().should.containEql(utils.ACCOUNTS_URL + '/login');
 
-        const signUp = await otherPage.$('#signUpLink');
-        should.not.exist(signUp);
-    }, init.timeout);
+            localStorageData.should.have.property('access_token');
+            localStorageData.should.have.property('email', email);
+            page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
+        },
+        init.timeout
+    );
 
-    it('Should login Initial User to Admin Dashboard', async () => {
-        await init.loginUser(user, otherPage);
-
-        const localStorageData = await otherPage.evaluate(() => {
-            const json = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                json[key] = localStorage.getItem(key);
+    it(
+        'Should redirect to Login Page and hide Sign Up Link for Subsequent Users',
+        async () => {
+            try {
+                await otherPage.goto(utils.ACCOUNTS_URL + '/register', {
+                    waitUntil: 'networkidle2',
+                });
+            } catch (e) {
+                //
             }
-            return json;
-        });
+            await otherPage.waitForTimeout(5000);
+            otherPage.url().should.containEql(utils.ACCOUNTS_URL + '/login');
 
-        await otherPage.waitForTimeout(10000);
-        localStorageData.should.have.property('access_token');
-        localStorageData.should.have.property('email', email);
-        otherPage.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
-    }, init.timeout);
+            const signUp = await otherPage.$('#signUpLink');
+            should.not.exist(signUp);
+        },
+        init.timeout
+    );
+
+    it(
+        'Should login Initial User to Admin Dashboard',
+        async () => {
+            await init.loginUser(user, otherPage);
+
+            const localStorageData = await otherPage.evaluate(() => {
+                const json = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    json[key] = localStorage.getItem(key);
+                }
+                return json;
+            });
+
+            await otherPage.waitForTimeout(10000);
+            localStorageData.should.have.property('access_token');
+            localStorageData.should.have.property('email', email);
+            otherPage.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
+        },
+        init.timeout
+    );
 });

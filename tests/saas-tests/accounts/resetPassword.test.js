@@ -27,43 +27,51 @@ describe('Reset Password API', () => {
         await browser.close();
     });
 
-    it('Should reset password successfully', async () => {
-        await init.registerUser(user, page);
-        await init.logout(page);
-        await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
-            waitUntil: 'networkidle2',
-        });
-        await init.pageWaitForSelector(page, '#email');
-        await init.pageClick(page, 'input[name=email]');
-        await init.pageType(page, 'input[name=email]', email);
-        await init.pageClick(page, 'button[type=submit]');
-        await init.pageWaitForSelector(page, '#reset-password-success');
-        const html = await page.$eval('#reset-password-success', e => {
-            return e.innerHTML;
-        });
-        should.exist(html);
-        html.should.containEql(
-            " An email is on its way to you. Follow the instructions to reset your password. Please don't forget to check spam. "
-        );
-    }, init.timeout);
+    it(
+        'Should reset password successfully',
+        async () => {
+            await init.registerUser(user, page);
+            await init.logout(page);
+            await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
+                waitUntil: 'networkidle2',
+            });
+            await init.pageWaitForSelector(page, '#email');
+            await init.pageClick(page, 'input[name=email]');
+            await init.pageType(page, 'input[name=email]', email);
+            await init.pageClick(page, 'button[type=submit]');
+            await init.pageWaitForSelector(page, '#reset-password-success');
+            const html = await page.$eval('#reset-password-success', e => {
+                return e.innerHTML;
+            });
+            should.exist(html);
+            html.should.containEql(
+                " An email is on its way to you. Follow the instructions to reset your password. Please don't forget to check spam. "
+            );
+        },
+        init.timeout
+    );
 
-    it('User cannot reset password with non-existing email', async () => {
-        await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
-            waitUntil: 'networkidle2',
-        });
-        await init.pageWaitForSelector(page, '#email');
-        await init.pageClick(page, 'input[name=email]');
-        await init.pageType(
-            page,
-            'input[name=email]',
-            utils.generateWrongEmail()
-        );
-        await init.pageClick(page, 'button[type=submit]');
-        await init.pageWaitForSelector(page, '#error-msg');
-        const html = await page.$eval('#error-msg', e => {
-            return e.innerHTML;
-        });
-        should.exist(html);
-        html.should.containEql('User does not exist.');
-    }, init.timeout);
+    it(
+        'User cannot reset password with non-existing email',
+        async () => {
+            await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
+                waitUntil: 'networkidle2',
+            });
+            await init.pageWaitForSelector(page, '#email');
+            await init.pageClick(page, 'input[name=email]');
+            await init.pageType(
+                page,
+                'input[name=email]',
+                utils.generateWrongEmail()
+            );
+            await init.pageClick(page, 'button[type=submit]');
+            await init.pageWaitForSelector(page, '#error-msg');
+            const html = await page.$eval('#error-msg', e => {
+                return e.innerHTML;
+            });
+            should.exist(html);
+            html.should.containEql('User does not exist.');
+        },
+        init.timeout
+    );
 });

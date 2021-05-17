@@ -1062,7 +1062,6 @@ const _this = {
         );
         startupOption.click();
         if (checkCard) {
-            
             await _this.pageWaitForSelector(
                 page,
                 'iframe[name=__privateStripeFrame5]'
@@ -1309,7 +1308,7 @@ const _this = {
         await _this.pageType(page, '#phone', phoneNumber);
         await _this.pageType(page, '#alert-limit', alertLimit);
         await _this.pageClick(page, 'button[type=submit]');
-        
+
         await page.reload();
         await _this.pageWaitForSelector(page, '#account-sid');
     },
@@ -1464,16 +1463,16 @@ const _this = {
         return await page.click(selector, opts);
     },
     pageWaitForSelector: async function(page, selector, opts) {
-        if(!opts){
-            opts = {}
+        if (!opts) {
+            opts = {};
         }
 
-        if(!opts.timeout){
+        if (!opts.timeout) {
             opts.timeout = _this.timeout;
         }
 
-        if(!opts.hidden){
-            opts.visible= true; 
+        if (!opts.hidden) {
+            opts.visible = true;
         }
 
         return await page.waitForSelector(selector, {
