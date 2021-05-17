@@ -503,7 +503,6 @@ module.exports = {
 
             // realtime update
 
-            //get statuspage ID
             await RealTimeService.resolveScheduledEvent(resolvedScheduledEvent);
 
             return resolvedScheduledEvent;
@@ -561,11 +560,11 @@ module.exports = {
             );
             throw error;
         }
-    }
+    },
+
     /**
      * @description Create Ended note for all schedule events
-     */,
-    createScheduledEventEndedNote: async function() {
+     */ createScheduledEventEndedNote: async function() {
         try {
             const currentTime = moment();
 
