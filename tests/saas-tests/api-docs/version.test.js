@@ -1,11 +1,8 @@
-
 const utils = require('../../test-utils');
 const axios = require('axios');
 const init = require('../../test-init');
 
-
 describe('Version API', function() {
-
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
         done();
@@ -16,8 +13,8 @@ describe('Version API', function() {
     });
 
     test('should get status ok from backend', async done => {
-        const response = await axios(utils.APIDOCS_URL+'/docs/version');
-        expect(response.data.docsVersion).toBeDefined()
+        const response = await axios(utils.APIDOCS_URL + '/docs/version');
+        expect(response.data.docsVersion).toBeDefined();
         done();
     });
 });

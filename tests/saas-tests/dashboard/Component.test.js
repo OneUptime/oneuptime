@@ -24,14 +24,13 @@ describe('Components', () => {
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
 
-        
         browser = await puppeteer.launch({
             ...utils.puppeteerLaunchConfig,
         });
         page = await browser.newPage();
 
         await page.setUserAgent(utils.agent);
-        
+
         await init.registerUser(user, page);
     });
 

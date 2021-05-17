@@ -71,9 +71,9 @@ describe('Fyipe Page Reload', () => {
 
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', containerSecurityName);
-            await init.selectByText('#resourceCategory', categoryName, page); // add category        
+            await init.selectByText('#resourceCategory', categoryName, page); // add category
             await init.selectByText('#dockerCredential', dockerUsername, page);
-            await init.pageType(page, '#imagePath', dockerImagePath); // select the created credential            
+            await init.pageType(page, '#imagePath', dockerImagePath); // select the created credential
             await init.pageType(page, '#imageTags', dockerImageTag);
             await init.pageClick(page, '#addContainerBtn');
 

@@ -27,9 +27,7 @@ async function updateMany(collection, query, value) {
 }
 
 async function removeMany(collection, query) {
-    return global.db
-        .collection(collection)
-        .remove(query, { multi: true });
+    return global.db.collection(collection).remove(query, { multi: true });
 }
 
 async function removeField(collection, query, field) {
@@ -73,5 +71,5 @@ module.exports = {
     removeField,
     rename,
     updateMany,
-    removeMany
+    removeMany,
 };

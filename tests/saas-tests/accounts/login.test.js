@@ -26,50 +26,58 @@ describe('Login API', () => {
         await browser.close();
     });
 
-    test('login form should be cleaned if the user moves to the signup form and returns back.', async () => {
-        await page.goto(utils.ACCOUNTS_URL + '/login', {
-            waitUntil: 'networkidle2',
-        });
-        await init.pageWaitForSelector(page, '#login-button');
-        await init.pageClick(page, 'input[name=email]');
-        await init.pageType(page, 'input[name=email]', user.email);
-        await init.pageClick(page, 'input[name=password]');
-        await init.pageType(page, 'input[name=password]', user.password);
-        await init.pageClick(page, '#signUpLink a');
-        await init.pageWaitForSelector(page, '#loginLink');
-        await init.pageClick(page, '#loginLink a');
-        await init.pageWaitForSelector(page, 'input[name=email]', {
-            visible: true,
-            timeout: init.timeout,
-        });
-        const email = await page.$eval(
-            'input[name=email]',
-            element => element.value
-        );
-        expect(email).toEqual('');
-        const password = await page.$eval(
-            'input[name=password]',
-            element => element.value
-        );
-        expect(password).toEqual('');
-    }, init.timeout);
+    test(
+        'login form should be cleaned if the user moves to the signup form and returns back.',
+        async () => {
+            await page.goto(utils.ACCOUNTS_URL + '/login', {
+                waitUntil: 'networkidle2',
+            });
+            await init.pageWaitForSelector(page, '#login-button');
+            await init.pageClick(page, 'input[name=email]');
+            await init.pageType(page, 'input[name=email]', user.email);
+            await init.pageClick(page, 'input[name=password]');
+            await init.pageType(page, 'input[name=password]', user.password);
+            await init.pageClick(page, '#signUpLink a');
+            await init.pageWaitForSelector(page, '#loginLink');
+            await init.pageClick(page, '#loginLink a');
+            await init.pageWaitForSelector(page, 'input[name=email]', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            const email = await page.$eval(
+                'input[name=email]',
+                element => element.value
+            );
+            expect(email).toEqual('');
+            const password = await page.$eval(
+                'input[name=password]',
+                element => element.value
+            );
+            expect(password).toEqual('');
+        },
+        init.timeout
+    );
 
-    it('Users cannot login with incorrect credentials', async () => {
-        await page.goto(utils.ACCOUNTS_URL + '/login', {
-            waitUntil: 'networkidle2',
-        });
-        await init.pageWaitForSelector(page, '#login-button');
-        await init.pageClick(page, 'input[name=email]');
-        await init.pageType(page, 'input[name=email]', user.email);
-        await init.pageClick(page, 'input[name=password]');
-        await init.pageType(page, 'input[name=password]', user.password);
-        await init.pageClick(page, 'button[type=submit]');
+    it(
+        'Users cannot login with incorrect credentials',
+        async () => {
+            await page.goto(utils.ACCOUNTS_URL + '/login', {
+                waitUntil: 'networkidle2',
+            });
+            await init.pageWaitForSelector(page, '#login-button');
+            await init.pageClick(page, 'input[name=email]');
+            await init.pageType(page, 'input[name=email]', user.email);
+            await init.pageClick(page, 'input[name=password]');
+            await init.pageType(page, 'input[name=password]', user.password);
+            await init.pageClick(page, 'button[type=submit]');
 
-        const html = await page.$eval('#main-body', e => {
-            return e.innerHTML;
-        });
-        html.should.containEql('User does not exist.');
-    }, init.timeout);
+            const html = await page.$eval('#main-body', e => {
+                return e.innerHTML;
+            });
+            html.should.containEql('User does not exist.');
+        },
+        init.timeout
+    );
 
     it(
         'Should login valid User',
