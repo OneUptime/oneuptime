@@ -46,6 +46,7 @@ class CreateManualIncident extends Component {
             createIncidentReset,
         } = this.props;
         const { projectId, monitorId } = this.props.data;
+        const monitor = [monitorId];
         this.setState({ incidentType: values.incidentType });
 
         const customFields = this.props.customFields.map(field => ({
@@ -60,7 +61,7 @@ class CreateManualIncident extends Component {
 
         createNewIncident(
             projectId,
-            monitorId,
+            monitor,
             values.incidentType,
             values.title,
             values.description,
