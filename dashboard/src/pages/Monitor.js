@@ -45,7 +45,16 @@ class DashboardView extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR LIST'
             );
         }
-        this.props.fetchComponent(this.props.componentSlug);
+        if (
+            this.props.currentProject &&
+            this.props.currentProject._id &&
+            this.props.componentSlug
+        ) {
+            this.props.fetchComponent(
+                this.props.currentProject._id,
+                this.props.componentSlug
+            );
+        }
     }
 
     componentDidUpdate(prevProps) {
@@ -99,6 +108,9 @@ class DashboardView extends Component {
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
+        if (projectId && this.props.componentSlug) {
+            this.props.fetchComponent(projectId, this.props.componentSlug);
+        }
         this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
         this.props.fetchBasicIncidentSettings(this.props.currentProject._id);

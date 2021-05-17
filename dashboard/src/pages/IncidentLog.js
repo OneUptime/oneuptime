@@ -49,10 +49,15 @@ class IncidentLog extends React.Component {
             fetchComponent,
             componentSlug,
             component,
+            currentProject,
         } = this.props;
-        fetchComponent(componentSlug);
-        if (componentSlug) {
-            const projectId = component.projectId._id;
+
+        if (currentProject && currentProject._id && componentSlug) {
+            fetchComponent(currentProject._id, componentSlug);
+        }
+
+        if (component && componentId) {
+            const projectId = component.projectId._id || component.projectId;
             this.props.getComponentIncidents(projectId, componentId);
         } else {
             this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
@@ -66,12 +71,23 @@ class IncidentLog extends React.Component {
         if (
             String(prevProps.componentSlug) !== String(this.props.componentSlug)
         ) {
-            this.props.fetchComponent(this.props.componentSlug);
+            if (
+                this.props.currentProject &&
+                this.props.currentProject._id &&
+                this.props.componentSlug
+            ) {
+                this.props.fetchComponent(
+                    this.props.currentProject._id,
+                    this.props.componentSlug
+                );
+            }
         }
 
         if (String(prevProps.componentId) !== String(this.props.componentId)) {
             if (this.props.component && this.props.component.projectId) {
-                const projectId = this.props.component.projectId._id;
+                const projectId =
+                    this.props.component.projectId._id ||
+                    this.props.component.projectId;
                 this.props.getComponentIncidents(
                     projectId,
                     this.props.componentId

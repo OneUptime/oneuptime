@@ -54,10 +54,21 @@ class Incident extends React.Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT');
         }
-        this.props.fetchComponent(this.props.componentSlug);
+        if (this.props.projectId && this.props.componentSlug) {
+            this.props.fetchComponent(
+                this.props.projectId,
+                this.props.componentSlug
+            );
+        }
     }
     componentDidUpdate(prevProps) {
         if (prevProps.projectId !== this.props.projectId) {
+            if (this.props.projectId && this.props.componentSlug) {
+                this.props.fetchComponent(
+                    this.props.projectId,
+                    this.props.componentSlug
+                );
+            }
             this.props.getIncidentByIdNumber(
                 this.props.projectId,
                 this.props.incidentId
