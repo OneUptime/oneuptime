@@ -97,7 +97,7 @@ class CreateIncident extends Component {
             return;
         }
 
-        if (monitors && monitors.length === 0 && !values.selectAllMonitors) {
+        if (monitors && monitors.length === 0 && !selectAllMonitors) {
             this.setState({
                 monitorError: 'No monitor was selected',
             });
@@ -130,8 +130,7 @@ class CreateIncident extends Component {
             title,
             description,
             incidentPriority === '' ? null : incidentPriority,
-            customFields,
-            selectAllMonitors
+            customFields
         ).then(
             function() {
                 closeThisDialog();
