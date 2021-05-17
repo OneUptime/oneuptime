@@ -1,0 +1,24 @@
+require File.expand_path('version', __dir__)
+
+Gem::Specification.new do |spec|
+
+    spec.name                  = 'fyipe'
+    spec.version               = Fyipe::VERSION
+    spec.authors               = ['HackerBay, Inc.']
+    spec.email                 = ['hello@hackerbay.io']
+    spec.summary               = 'Fyipe for Logging and Tracking'
+    spec.description           = 'Fyipe is a ruby package that tracks error event and send logs from your applications to your fyipe dashboard.'
+    spec.homepage              = 'https://github.com/Fyipe/ruby-sdk'
+    spec.license               = 'MIT'
+    spec.platform              = Gem::Platform::RUBY
+    spec.required_ruby_version = '>= 2.5.0'
+    spec.files = Dir['README.md', 'LICENSE',
+                 'CHANGELOG.md', 'ruby-sdk/**/*.rb',
+                 'ruby-sdk/**/*.rake',
+                 'fyipe.gemspec', '.github/*.md',
+                 'Gemfile', 'Rakefile']
+    spec.extra_rdoc_files = ['README.md']
+    spec.add_development_dependency 'rubocop', '~> 0.60'
+    spec.add_development_dependency 'rubocop-performance', '~> 1.5'
+    spec.add_development_dependency 'rubocop-rspec', '~> 1.37'
+end
