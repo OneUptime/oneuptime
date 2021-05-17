@@ -23,8 +23,12 @@ const createSso = async (page, data) => {
     await init.pageClick(page, '#domain');
     await init.pageType(page, '#domain', data.domain);
 
-    await init.pageClick(page, '#samlSsoUrl');
-    await init.pageType(page, '#samlSsoUrl', data.samlSsoUrl);
+    await init.pageClick(page, '#entityId');
+    await init.pageType(page,  '#entityId', data.entityId);
+
+    await init.pageClick(page, '#remoteLoginUrl');
+    await init.pageType(page, '#remoteLoginUrl', data.remoteLoginUrl);
+
 
     await init.pageClick(page, '#certificateFingerprint');
     await init.pageType(
@@ -45,7 +49,7 @@ const createSso = async (page, data) => {
 describe('SSO API', () => {
     const operationTimeOut = init.timeout;
 
-    afterAll(async done => {
+    afterAll(async done => { /**This takes care of the closing the browser when the test is complete */
         await browser.close();
         done();
     });
@@ -70,16 +74,7 @@ describe('SSO API', () => {
     test(
         'should add new SSO',
         async done => {
-            browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-            page = await browser.newPage();
-            await page.setUserAgent(utils.agent);
-
-            const user = {
-                email: email,
-                password: password,
-            };
-            await init.loginUser(user, page);
-
+           /** Upon login, admin-dashboard is loaded */
             await moveToSsoPage(page);
 
             const ssoCount = await page.$eval('#sso-count', e => {
@@ -92,11 +87,14 @@ describe('SSO API', () => {
 
             await createSso(page, {
                 domain: 'test.hackerbay.io',
-                samlSsoUrl: 'test.hackerbay.io/login',
+                entityId: 'hackerbay.io', //Updated UI
+                remoteLoginUrl: 'test.hackerbay.io/login',
                 certificateFingerprint: 'AZERTYUIOP',
                 remoteLogoutUrl: 'test.hackerbay.io/logout',
                 ipRanges: '127.0.0.1',
             });
+
+            await init.pageWaitForSelector(page, '#sso-domain');
 
             const ssoCountAfterCreation = await page.$eval('#sso-count', e => {
                 return e.innerHTML;
@@ -108,8 +106,7 @@ describe('SSO API', () => {
                 return e.innerHTML;
             });
             expect(tbody).toContain('test.hackerbay.io');
-
-            await browser.close();
+            
             done();
         },
         operationTimeOut
@@ -118,16 +115,9 @@ describe('SSO API', () => {
     test(
         'should update existing SSO',
         async done => {
-            browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-            page = await browser.newPage();
-            await page.setUserAgent(utils.agent);
-
-            const user = {
-                email: email,
-                password: password,
-            };
-            await init.loginUser(user, page);
-
+             /** No need for additional logout and login as it slows down testing
+             * Testing is done in the same admin UI */   
+              await page.goto(utils.ADMIN_DASHBOARD_URL);
             await moveToSsoPage(page);
 
             const ssoCount = await page.$eval('#sso-count', e => {
@@ -136,8 +126,8 @@ describe('SSO API', () => {
 
             expect(ssoCount).toContain('1');
 
-            await init.pageWaitForSelector(page, '.edit-button');
-            await init.pageClick(page, '.edit-button');
+            await init.pageWaitForSelector(page, '#edit-button');
+            await init.pageClick(page, '#edit-button');
 
             await init.pageWaitForSelector(page, '#save-button');
             await init.pageClick(page, '#domain');
@@ -148,12 +138,13 @@ describe('SSO API', () => {
             await init.pageType(page, '#domain', 'updated.test.hackerbay.io');
             await init.pageClick(page, '#save-button');
 
+            await init.pageWaitForSelector(page, '#sso-domain');
+
             const tbody = await page.$eval('tbody', e => {
                 return e.innerHTML;
             });
             expect(tbody).toContain('updated.test.hackerbay.io');
-
-            await browser.close();
+            
             done();
         },
         operationTimeOut
@@ -162,16 +153,7 @@ describe('SSO API', () => {
     test(
         'should delete existing SSO',
         async done => {
-            browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-            page = await browser.newPage();
-            await page.setUserAgent(utils.agent);
-
-            const user = {
-                email: email,
-                password: password,
-            };
-            await init.loginUser(user, page);
-
+            await page.goto(utils.ADMIN_DASHBOARD_URL);
             await moveToSsoPage(page);
 
             const ssoCount = await page.$eval('#sso-count', e => {
@@ -180,20 +162,19 @@ describe('SSO API', () => {
 
             expect(ssoCount).toContain('1');
 
-            await init.pageWaitForSelector(page, '.delete-button');
-            await init.pageClick(page, '.delete-button');
+            await init.pageWaitForSelector(page, '#delete-button');
+            await init.pageClick(page, '#delete-button');
 
             await init.pageWaitForSelector(page, '#confirmDelete');
             await init.pageClick(page, '#confirmDelete');
 
+            await init.pageWaitForSelector(page, '#no-sso-message'); // This helps component to update before the expect function
+
             const ssoCountAfterDeletion = await page.$eval('#sso-count', e => {
                 return e.innerHTML;
             });
-            expect(ssoCountAfterDeletion).toContain('0');
-
-            await init.pageWaitForSelector(page, '#no-sso-message');
-
-            await browser.close();
+            expect(ssoCountAfterDeletion).toContain('0');            
+            
             done();
         },
         operationTimeOut
@@ -201,29 +182,23 @@ describe('SSO API', () => {
 
     it(
         'should enable Next/Previous buttons when there are more than 10 SSOs',
-        async done => {
-            browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-            page = await browser.newPage();
-            await page.setUserAgent(utils.agent);
-
-            const user = {
-                email: email,
-                password: password,
-            };
-            await init.loginUser(user, page);
-
+        async done => {            
+            await page.goto(utils.ADMIN_DASHBOARD_URL);
             await moveToSsoPage(page);
             await init.pageWaitForSelector(page, '#no-sso-message');
 
             for (let i = 0; i <= 11; i++) {
                 await createSso(page, {
                     domain: `subdomain.${i}.test.hackerbay.io`,
-                    samlSsoUrl: 'test.hackerbay.io/login',
+                    entityId: 'hackerbay.io', //Updated UI
+                    remoteLoginUrl: 'test.hackerbay.io/login',
                     certificateFingerprint: 'AZERTYUIOP',
                     remoteLogoutUrl: 'test.hackerbay.io/logout',
                     ipRanges: '127.0.0.1',
                 });
             }
+
+            await init.pageWaitForSelector(page, '#sso-domain');
 
             const ssoCount = await page.$eval('#sso-count', e => {
                 return e.innerHTML;
@@ -253,8 +228,7 @@ describe('SSO API', () => {
 
             expect(initalPageTbody).toContain('subdomain.11.test.hackerbay.io');
             expect(initalPageTbody).toContain('subdomain.2.test.hackerbay.io');
-
-            await browser.close();
+        
             done();
         },
         operationTimeOut
