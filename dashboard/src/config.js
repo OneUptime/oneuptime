@@ -1633,7 +1633,7 @@ pip install fyipe-sdk
         `,
                     },
                     usage: `                        
-from fyipe_sdk import FyipeTracker
+from fyipe_sdk import tracker
 
 # set up tracking configurations    
 options = {
@@ -1642,7 +1642,7 @@ options = {
 }               
 
 # constructor                        
-tracker = FyipeTracker(                        
+fyipeTracker = tracker.FyipeTracker(                        
     "${apiUrl ? apiUrl : 'API_URL'}",
     '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
     '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
@@ -1654,7 +1654,7 @@ try:
     # your code logic
     result = 5/0 # Should throw a division by zero error
 catch Exception as error:
-    tracker.captureException(error)
+    fyipeTracker.captureException(error)
 `,
                 },
                 logs: {
@@ -1666,10 +1666,10 @@ pip install fyipe-sdk
         `,
                     },
                     usage: `                        
-from fyipe_sdk import FyipeLogger
+from fyipe_sdk import logger 
                                                 
 // constructor                        
-logger = FyipeLogger(                        
+fyipeLogger = logger.FyipeLogger(                        
     "${apiUrl ? apiUrl : 'API_URL'}",
     "${
         applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
@@ -1682,7 +1682,7 @@ logger = FyipeLogger(
 # Sending a string log to the server
 item = 'This is a simple log'
 
-response = logger.log(item)
+response = fyipeLogger.log(item)
 
 # response after logging a request
 print(response)`,

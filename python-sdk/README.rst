@@ -16,10 +16,10 @@ Overview
 
 The usual way to use `fyipe_sdk` application log is something like below::
 
-   from fyipe_sdk import FyipeLogger
+   from fyipe_sdk import logger
 
     # constructor
-    logger = FyipeLogger(
+    fyipeLogger = logger.FyipeLogger(
         'API_URL', # https://fyipe.com/api
         'APPLICATION_LOG_ID',
         'APPLICATION_LOG_KEY'
@@ -28,7 +28,7 @@ The usual way to use `fyipe_sdk` application log is something like below::
    # Sending a string log to the server
 
     item = 'This is a simple log'
-    response = logger.log(item)
+    response = fyipeLogger.log(item)
     print(response)
 
    # Sending an object log to the server
@@ -38,13 +38,13 @@ The usual way to use `fyipe_sdk` application log is something like below::
         'page': 'Landing Page'
     }
 
-    response = logger.log(item)
+    response = fyipeLogger.log(item)
     print(response)
 
 
 The usual way to use `fyipe_sdk` error tracker is something like below::
 
-   from fyipe_sdk import FyipeTracker
+   from fyipe_sdk import tracker
 
     # set up tracking configurations    
     options = {
@@ -53,7 +53,7 @@ The usual way to use `fyipe_sdk` error tracker is something like below::
     }   
 
     # constructor
-    tracker = FyipeTracker(
+    fyipeTracker = tracker.FyipeTracker(
         'API_URL', # https://fyipe.com/api
         'ERROR_TRACKER_ID',
         'ERROR_TRACKER_KEY',
@@ -65,7 +65,7 @@ The usual way to use `fyipe_sdk` error tracker is something like below::
         # your code logic
         result = 5/0 # Should throw a division by zero error
     catch Exception as error:
-        tracker.captureException(error)
+        fyipeTracker.captureException(error)
 
    
 
