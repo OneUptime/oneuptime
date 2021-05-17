@@ -553,7 +553,7 @@ module.exports = {
                     scheduledEventNoteList.length === 0
                 ) {
                     await ScheduledEventNoteService.create({
-                        content: 'THIS SCHEDULED EVENT HAS STARTED',
+                        content: 'This scheduled event has started',
                         scheduledEventId,
                         type: 'investigation',
                         event_state: 'Started',
@@ -601,7 +601,7 @@ module.exports = {
                     scheduledEventNoteList.length === 0
                 ) {
                     await ScheduledEventNoteService.create({
-                        content: 'THIS SCHEDULED EVENT HAS ENDED',
+                        content: 'This scheduled event has ended',
                         scheduledEventId,
                         type: 'investigation',
                         event_state: 'Ended',
