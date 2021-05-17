@@ -37,7 +37,7 @@ describe('SMTP Settings API', () => {
 
     test(
         'Admin should not turn on 2FA for a user',
-        async () => {
+        async (done) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.pageWaitForSelector(page, '.bs-ObjectList-rows > a');
             const users = await page.$$('.bs-ObjectList-rows > a');
@@ -52,13 +52,14 @@ describe('SMTP Settings API', () => {
             info = await info.getProperty('innerText');
             info = await info.jsonValue();
             expect(info).toEqual('Only the user can turn on 2FA not the admin');
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Admin should not turn on or off his 2fa',
-        async () => {
+        async (done) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.pageWaitForSelector(page, '.bs-ObjectList-rows > a');
             const users = await page.$$('.bs-ObjectList-rows > a');
@@ -66,6 +67,7 @@ describe('SMTP Settings API', () => {
 
             const elem = await page.$('#disableUser2fa');
             expect(elem).toEqual(null);
+            done();
         },
         operationTimeOut
     );

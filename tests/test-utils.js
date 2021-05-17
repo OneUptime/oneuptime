@@ -143,12 +143,12 @@ const gitCredential = {
 };
 
 const smtpCredential = {
-    user: process.env.TEST_EMAIL || 'fyipedevtest1@gmail.com',
+    user: process.env.TEST_EMAIL || 'noreply@fyipe.com',
     pass:
-        process.env.TEST_EMAIL_PASSWORD || 'H2Q2ALqEpknLKsPdRgDmkQfpFsiG8KgEq',
+        process.env.TEST_EMAIL_PASSWORD || 'qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD',
     host: process.env.TEST_EMAIL_SMTP_SERVER || 'smtp.gmail.com',
     port: process.env.TEST_EMAIL_SMTP_PORT || '465',
-    from: process.env.TEST_EMAIL || 'fyipedevtest1@gmail.com',
+    from: process.env.TEST_EMAIL || 'noreply@fyipe.com',
     secure: true,
 };
 
