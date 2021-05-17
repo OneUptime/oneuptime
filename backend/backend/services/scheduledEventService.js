@@ -80,7 +80,6 @@ module.exports = {
                     event_state: 'Ended',
                 });
             }
-
             if (scheduledEvent.alertSubscriber) {
                 // handle this asynchronous operation in the background
                 AlertService.sendCreatedScheduledEventToSubscribers(
@@ -503,6 +502,7 @@ module.exports = {
             }
 
             // realtime update
+
             await RealTimeService.resolveScheduledEvent(resolvedScheduledEvent);
 
             return resolvedScheduledEvent;
@@ -564,8 +564,7 @@ module.exports = {
 
     /**
      * @description Create Ended note for all schedule events
-     */
-    createScheduledEventEndedNote: async function() {
+     */ createScheduledEventEndedNote: async function() {
         try {
             const currentTime = moment();
 

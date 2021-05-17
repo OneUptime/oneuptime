@@ -940,6 +940,7 @@ router.get(
                 limit,
                 theme
             );
+
             let events = response.events;
             const count = response.count;
             if ((theme && typeof theme === 'boolean') || theme === 'true') {
@@ -957,6 +958,7 @@ router.get(
                             notes: statusPageEvent.notes,
                         });
                     }
+
                     events = formatNotes(updatedEvents, days);
                     events = checkDuplicateDates(events);
                 }
