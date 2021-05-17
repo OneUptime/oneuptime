@@ -77,14 +77,16 @@ class CreateManualIncident extends Component {
 
     handleKeyBoard = e => {
         const { createIncidentReset } = this.props;
-        switch (e.key) {
-            case 'Escape':
+
+        if (e.key) {
+            if (e.key === 'Escape') {
                 createIncidentReset();
-                return this.handleCloseModal();
-            case 'Enter':
-                return document.getElementById('createIncident').click();
-            default:
-                return false;
+                this.handleCloseModal();
+            }
+            if (e.key === 'Enter' && e.target.localName !== 'textarea') {
+                document.getElementById('createIncident') &&
+                    document.getElementById('createIncident').click();
+            }
         }
     };
 
