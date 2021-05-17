@@ -907,7 +907,7 @@ module.exports = {
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const ack_url = `${global.apiHost}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
         const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -1070,7 +1070,7 @@ module.exports = {
                 const reason = incident.reason;
                 const componentSlug = incident.monitorId.componentId.slug;
                 const componentName = incident.monitorId.componentId.name;
-                const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/${componentSlug}/incidents/${incident.idNumber}`;
+                const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.idNumber}`;
                 let incidentSlaTimeline =
                     incidentCommunicationSla.duration * 60;
                 incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
@@ -1622,6 +1622,7 @@ module.exports = {
                         {
                             note: data.content,
                             incidentState: data.incident_state,
+                            noteType: data.incident_state,
                             statusNoteStatus,
                         },
                         subscribers.length,
@@ -1855,7 +1856,7 @@ module.exports = {
 
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -2162,7 +2163,7 @@ module.exports = {
         });
 
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -2421,7 +2422,7 @@ module.exports = {
         incident,
         templateType = 'Subscriber Incident Created',
         statusPage,
-        { note, incidentState, statusNoteStatus } = {},
+        { note, incidentState, noteType, statusNoteStatus } = {},
         totalSubscribers,
         id
     ) {
@@ -2448,7 +2449,7 @@ module.exports = {
                         ? monitor.componentId._id
                         : monitor.componentId,
             });
-            const statusUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/${component.slug}/incidents/${incident.idNumber}`;
+            const statusUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${component.slug}/incidents/${incident.idNumber}`;
 
             let statusPageUrl;
             if (statusPage) {
@@ -2645,6 +2646,7 @@ module.exports = {
                     projectId: incident.projectId,
                     emailType: templateType,
                 });
+
                 if (isStatusPageNoteAlert) {
                     eventType = statusPageNoteAlertEventType;
                 } else if (
@@ -2781,6 +2783,7 @@ module.exports = {
                             emailTemplate,
                             component.name,
                             note,
+                            noteType,
                             statusUrl,
                             statusNoteStatus,
                             customFields,
@@ -3456,7 +3459,7 @@ module.exports = {
                         await _this.sendSubscriberScheduledEventAlert(
                             subscriber,
                             schedule,
-                            'Subscriber Scheduled Maintenance',
+                            'Subscriber Scheduled Maintenance Created',
                             component,
                             subscribers.length,
                             uuid
@@ -3506,10 +3509,57 @@ module.exports = {
             throw error;
         }
     },
+
+    sendCancelledScheduledEventToSubscribers: async function(schedule) {
+        try {
+            const _this = this;
+            const uuid = new Date().getTime();
+            if (schedule) {
+                for (const monitor of schedule.monitors) {
+                    const subscribers = await SubscriberService.subscribersForAlert(
+                        {
+                            monitorId: monitor.monitorId._id,
+                            subscribed: true,
+                        }
+                    );
+
+                    for (const subscriber of subscribers) {
+                        await _this.sendSubscriberScheduledEventAlert(
+                            subscriber,
+                            schedule,
+                            'Subscriber Scheduled Maintenance Cancelled',
+                            null,
+                            subscribers.length,
+                            uuid
+                        );
+                    }
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendCancelledScheduledEventToSubscribers',
+                error
+            );
+            throw error;
+        }
+    },
+
     sendScheduledEventInvestigationNoteToSubscribers: async function(message) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+
+            const monitorIds =
+                message.scheduledEventId &&
+                message.scheduledEventId.monitors.map(
+                    monitor => monitor.monitorId
+                );
+
+            const monitorsAffected = await MonitorService.findBy({
+                _id: { $in: monitorIds },
+                deleted: false,
+            });
+
             if (message) {
                 for (const monitor of message.scheduledEventId.monitors) {
                     const subscribers = await SubscriberService.subscribersForAlert(
@@ -3537,7 +3587,7 @@ module.exports = {
                                 }
                             );
 
-                            const investigationNoteNotificationEmailDisabled = !project.enableInvestigationNoteNotificationEmail;
+                            const NotificationEmailDisabled = !project.sendNewScheduledEventInvestigationNoteNotificationEmail;
 
                             const areEmailAlertsEnabledInGlobalSettings =
                                 hasGlobalSmtpSettings &&
@@ -3561,7 +3611,7 @@ module.exports = {
                             if (
                                 (!areEmailAlertsEnabledInGlobalSettings &&
                                     !hasCustomSmtpSettings) ||
-                                investigationNoteNotificationEmailDisabled
+                                NotificationEmailDisabled
                             ) {
                                 if (
                                     !hasGlobalSmtpSettings &&
@@ -3575,11 +3625,9 @@ module.exports = {
                                 ) {
                                     errorMessageText =
                                         'Alert Disabled on Admin Dashboard';
-                                } else if (
-                                    investigationNoteNotificationEmailDisabled
-                                ) {
+                                } else if (NotificationEmailDisabled) {
                                     errorMessageText =
-                                        'Investigation Note Email Notification Disabled';
+                                        'Scheduled Maintenance Event Note Email Notification Disabled';
                                 }
                                 return await SubscriberAlertService.create({
                                     projectId,
@@ -3633,7 +3681,8 @@ module.exports = {
                                     project.name,
                                     monitor.name,
                                     projectId,
-                                    unsubscribeUrl
+                                    unsubscribeUrl,
+                                    monitorsAffected
                                 );
                                 alertStatus = 'Sent';
                                 await SubscriberAlertService.updateOneBy(
@@ -3666,7 +3715,7 @@ module.exports = {
                                     projectId
                                 );
 
-                                const investigationNoteNotificationSMSDisabled = !project.enableInvestigationNoteNotificationSMS;
+                                const notificationSMSDisabled = !project.sendNewScheduledEventInvestigationNoteNotificationSms;
 
                                 const eventType =
                                     'Scheduled maintenance note created';
@@ -3680,7 +3729,7 @@ module.exports = {
                                                 !areAlertsEnabledGlobally)) ||
                                             (!IS_SAAS_SERVICE &&
                                                 !areAlertsEnabledGlobally))) ||
-                                    investigationNoteNotificationSMSDisabled
+                                    notificationSMSDisabled
                                 ) {
                                     let errorMessageText;
                                     if (!hasGlobalTwilioSettings) {
@@ -3695,11 +3744,8 @@ module.exports = {
                                     ) {
                                         errorMessageText =
                                             'Alert Disabled for this project';
-                                    } else if (
-                                        investigationNoteNotificationSMSDisabled
-                                    ) {
-                                        errorMessageText =
-                                            'Investigation Note SMS Notification Disabled';
+                                    } else if (notificationSMSDisabled) {
+                                        errorMessageText = `${templateType} SMS Notification Disabled`;
                                     } else {
                                         errorMessageText = 'Error';
                                     }
@@ -3815,7 +3861,7 @@ module.exports = {
                                 let alertStatus = null;
                                 try {
                                     if (
-                                        project.sendAcknowledgedIncidentNotificationSms
+                                        project.sendNewScheduledEventInvestigationNoteNotificationSms
                                     ) {
                                         sendResult = await TwilioService.sendScheduledMaintenanceNoteCreatedToSubscriber(
                                             contactPhone,
@@ -3915,7 +3961,7 @@ module.exports = {
     sendSubscriberScheduledEventAlert: async function(
         subscriber,
         schedule,
-        templateType = 'Subscriber Scheduled Maintenance',
+        templateType = 'Subscriber Scheduled Maintenance Created',
         componentName,
         totalSubscribers,
         id
@@ -3928,6 +3974,14 @@ module.exports = {
             const project = await ProjectService.findOneBy({
                 _id: projectId,
             });
+
+            const eventType =
+                templateType === 'Subscriber Scheduled Maintenance Created'
+                    ? 'Scheduled maintenance created'
+                    : templateType ===
+                      'Subscriber Scheduled Maintenance Resolved'
+                    ? 'Scheduled maintenance resolved'
+                    : 'Scheduled maintenance cancelled';
 
             if (subscriber.alertVia === AlertType.Email) {
                 const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
@@ -3945,22 +3999,24 @@ module.exports = {
                     projectId
                 );
 
-                const investigationNoteNotificationEmailDisabled = !project.enableInvestigationNoteNotificationEmail;
+                const notificationEmailDisabled =
+                    templateType === 'Subscriber Scheduled Maintenance Created'
+                        ? !project.sendCreatedScheduledEventNotificationEmail
+                        : templateType ===
+                          'Subscriber Scheduled Maintenance Resolved'
+                        ? !project.sendScheduledEventResolvedNotificationEmail
+                        : !project.sendScheduledEventCancelledNotificationEmail;
 
                 const emailTemplate = await EmailTemplateService.findOneBy({
                     projectId,
                     emailType: templateType,
                 });
 
-                const eventType =
-                    templateType === 'Subscriber Scheduled Maintenance'
-                        ? 'Scheduled maintenance created'
-                        : 'Scheduled maintenance resolved';
                 let errorMessageText;
                 if (
                     (!areEmailAlertsEnabledInGlobalSettings &&
                         !hasCustomSmtpSettings) ||
-                    investigationNoteNotificationEmailDisabled
+                    notificationEmailDisabled
                 ) {
                     if (!hasGlobalSmtpSettings && !hasCustomSmtpSettings) {
                         errorMessageText =
@@ -3970,15 +4026,14 @@ module.exports = {
                         !areEmailAlertsEnabledInGlobalSettings
                     ) {
                         errorMessageText = 'Alert Disabled on Admin Dashboard';
-                    } else if (investigationNoteNotificationEmailDisabled) {
-                        errorMessageText =
-                            'Investigation Note Email Notification Disabled';
+                    } else if (notificationEmailDisabled) {
+                        errorMessageText = `${templateType} Email Notification Disabled`;
                     }
                     return await SubscriberAlertService.create({
                         projectId,
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Email,
-                        eventType: eventType,
+                        eventType,
                         alertStatus: null,
                         error: true,
                         errorMessage: errorMessageText,
@@ -4001,7 +4056,10 @@ module.exports = {
 
                 let alertStatus = null;
                 try {
-                    if (templateType === 'Subscriber Scheduled Maintenance') {
+                    if (
+                        templateType ===
+                        'Subscriber Scheduled Maintenance Created'
+                    ) {
                         await MailService.sendScheduledEventMailToSubscriber(
                             date,
                             subscriber.monitorName,
@@ -4022,6 +4080,25 @@ module.exports = {
                         'Subscriber Scheduled Maintenance Resolved'
                     ) {
                         await MailService.sendResolvedScheduledEventMailToSubscriber(
+                            date,
+                            subscriber.monitorName,
+                            subscriber.contactEmail,
+                            subscriber._id,
+                            subscriber.contactEmail,
+                            schedule,
+                            projectName,
+                            emailTemplate,
+                            componentName,
+                            project.replyAddress,
+                            unsubscribeUrl
+                        );
+
+                        alertStatus = 'Sent';
+                    } else if (
+                        templateType ===
+                        'Subscriber Scheduled Maintenance Cancelled'
+                    ) {
+                        await MailService.sendCancelledScheduledEventMailToSubscriber(
                             date,
                             subscriber.monitorName,
                             subscriber.contactEmail,
@@ -4068,12 +4145,15 @@ module.exports = {
                         projectId
                     );
 
-                    const investigationNoteNotificationSMSDisabled = !project.enableInvestigationNoteNotificationSMS;
+                    const notificationSmsDisabled =
+                        templateType ===
+                        'Subscriber Scheduled Maintenance Created'
+                            ? !project.sendCreatedScheduledEventNotificationSms
+                            : templateType ===
+                              'Subscriber Scheduled Maintenance Resolved'
+                            ? !project.sendScheduledEventResolvedNotificationSms
+                            : !project.sendScheduledEventCancelledNotificationSms;
 
-                    const eventType =
-                        templateType === 'Subscriber Scheduled Maintenance'
-                            ? 'Scheduled maintenance created'
-                            : 'Scheduled maintenance resolved';
                     if (
                         (!hasCustomTwilioSettings &&
                             ((IS_SAAS_SERVICE &&
@@ -4081,7 +4161,7 @@ module.exports = {
                                     !areAlertsEnabledGlobally)) ||
                                 (!IS_SAAS_SERVICE &&
                                     !areAlertsEnabledGlobally))) ||
-                        investigationNoteNotificationSMSDisabled
+                        notificationSmsDisabled
                     ) {
                         let errorMessageText;
                         if (!hasGlobalTwilioSettings) {
@@ -4093,9 +4173,8 @@ module.exports = {
                         } else if (IS_SAAS_SERVICE && !project.alertEnable) {
                             errorMessageText =
                                 'Alert Disabled for this project';
-                        } else if (investigationNoteNotificationSMSDisabled) {
-                            errorMessageText =
-                                'Investigation Note SMS Notification Disabled';
+                        } else if (notificationSmsDisabled) {
+                            errorMessageText = `${templateType} Investigation Note SMS Notification Disabled`;
                         } else {
                             errorMessageText = 'Error';
                         }
@@ -4187,7 +4266,7 @@ module.exports = {
                             subscriberId: subscriber._id,
                             alertVia: AlertType.SMS,
                             alertStatus: 'Pending',
-                            eventType: eventType,
+                            eventType,
                             totalSubscribers,
                             id,
                         }
@@ -4197,10 +4276,11 @@ module.exports = {
                     let alertStatus = null;
                     try {
                         if (
-                            templateType === 'Subscriber Scheduled Maintenance'
+                            templateType ===
+                            'Subscriber Scheduled Maintenance Created'
                         ) {
                             if (
-                                project.sendAcknowledgedIncidentNotificationSms
+                                project.sendCreatedScheduledEventNotificationSms
                             ) {
                                 sendResult = await TwilioService.sendScheduledMaintenanceCreatedToSubscriber(
                                     date,
@@ -4218,9 +4298,10 @@ module.exports = {
                             templateType ===
                             'Subscriber Scheduled Maintenance Resolved'
                         ) {
-                            if (project.sendResolvedIncidentNotificationSms) {
+                            if (
+                                project.sendScheduledEventResolvedNotificationSms
+                            ) {
                                 sendResult = await TwilioService.sendScheduledMaintenanceResolvedToSubscriber(
-                                    date,
                                     contactPhone,
                                     smsTemplate,
                                     schedule,
@@ -4232,22 +4313,24 @@ module.exports = {
                                 alertStatus = 'Disabled';
                             }
                         } else if (
-                            templateType == 'Investigation note is created'
+                            templateType ===
+                            'Subscriber Scheduled Maintenance Cancelled'
                         ) {
-                            sendResult = await TwilioService.sendInvestigationNoteToSubscribers(
-                                date,
-                                subscriber.monitorName,
-                                contactPhone,
-                                smsTemplate,
-                                null,
-                                project.name,
-                                null,
-                                null,
-                                null,
-                                null,
-                                null
-                            );
-                            alertStatus = 'Success';
+                            if (
+                                project.sendScheduledEventCancelledNotificationSms
+                            ) {
+                                sendResult = await TwilioService.sendScheduledMaintenanceCancelledToSubscriber(
+                                    contactPhone,
+                                    smsTemplate,
+                                    schedule,
+                                    project.name,
+                                    projectId
+                                );
+
+                                alertStatus = 'Success';
+                            } else {
+                                alertStatus = 'Disabled';
+                            }
                         }
 
                         if (

@@ -16,10 +16,7 @@ const ContainerSecurity = ({
     containerSecurityLogs.length > 0 &&
         containerSecurityLogs.map(containerSecurityLog => {
             if (
-                String(
-                    containerSecurityLog.securityId._id ||
-                        containerSecurityLog.securityId
-                ) === String(containerSecurityId)
+                containerSecurityLog.securityId.slug === containerSecuritySlug
             ) {
                 securityLog = containerSecurityLog;
             }

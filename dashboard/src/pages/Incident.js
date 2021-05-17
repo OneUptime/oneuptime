@@ -57,7 +57,11 @@ class Incident extends React.Component {
         this.props.fetchComponent(this.props.componentSlug);
     }
     componentDidUpdate(prevProps) {
-        if (prevProps.projectId !== this.props.projectId) {
+        if (
+            prevProps.projectId !== this.props.projectId ||
+            (prevProps.incident && prevProps.incident._id) !==
+                (this.props.incident && this.props.incident._id)
+        ) {
             this.props.getIncidentByIdNumber(
                 this.props.projectId,
                 this.props.incidentId

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { reduxForm, FieldArray, arrayPush } from 'redux-form';
-import { withRouter } from 'react-router';
+import { withRouter } from 'react-router-dom';
 import { getEscalation, addEscalation } from '../../actions/schedule';
 import { getProjectGroups } from '../../actions/group';
 import { subProjectTeamLoading } from '../../actions/team';
@@ -111,10 +111,41 @@ function validate(values) {
 
 export class OnCallAlertBox extends Component {
     componentDidMount() {
-        const { subProjectId, scheduleId, getProjectGroups } = this.props;
-        this.props.getEscalation(subProjectId, scheduleId);
-        this.props.subProjectTeamLoading(subProjectId);
-        getProjectGroups(subProjectId, 0, 0, true);
+        const {
+            subProjectId,
+            getProjectGroups,
+            subProjectTeamLoading,
+            scheduleId,
+            getEscalation,
+        } = this.props;
+        if (subProjectId) {
+            subProjectTeamLoading(subProjectId);
+            getProjectGroups(subProjectId, 0, 0, true);
+            if (scheduleId) {
+                getEscalation(subProjectId, scheduleId);
+            }
+        }
+    }
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps.subProjectId !== this.props.subProjectId ||
+            prevProps.schedule !== this.props.schedule
+        ) {
+            const {
+                subProjectId,
+                getProjectGroups,
+                subProjectTeamLoading,
+                scheduleId,
+                getEscalation,
+            } = this.props;
+            if (subProjectId) {
+                subProjectTeamLoading(subProjectId);
+                getProjectGroups(subProjectId, 0, 0, true);
+                if (scheduleId) {
+                    getEscalation(subProjectId, scheduleId);
+                }
+            }
+        }
     }
     submitForm = async values => {
         const { subProjectId, scheduleId } = this.props;
@@ -269,6 +300,7 @@ OnCallAlertBox.propTypes = {
     addEscalation: PropTypes.func.isRequired,
     escalationPolicy: PropTypes.object.isRequired,
     scheduleId: PropTypes.string.isRequired,
+    schedule: PropTypes.string.isRequired,
     subProjectId: PropTypes.string.isRequired,
     subProjectTeamLoading: PropTypes.func.isRequired,
     getProjectGroups: PropTypes.func,
@@ -294,8 +326,7 @@ const mapStateToProps = (state, props) => {
      }) : */
     const { escalations } = state.schedule;
 
-    const { scheduleId } = props.match.params;
-    const { subProjectId } = props.match.params;
+    const { scheduleSlug } = props.match.params;
 
     const OnCallAlertBox =
         escalations && escalations.length > 0
@@ -324,14 +355,25 @@ const mapStateToProps = (state, props) => {
                       ],
                   },
               ];
+    let schedule = state.schedule.subProjectSchedules.map(
+        subProjectSchedule => {
+            return subProjectSchedule.schedules.find(
+                schedule => schedule.slug === scheduleSlug
+            );
+        }
+    );
 
+    schedule = schedule.find(
+        schedule => schedule && schedule.slug === scheduleSlug
+    );
     return {
         initialValues: { OnCallAlertBox },
         escalationPolicy: state.schedule.escalation,
+        schedule,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
-        scheduleId,
-        subProjectId,
+        scheduleId: schedule && schedule._id,
+        subProjectId: schedule && schedule.projectId._id,
     };
 };
 

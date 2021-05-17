@@ -13,6 +13,7 @@ import {
 import { User } from './config';
 import queryString from 'query-string';
 import { removeQuery } from './store/store';
+import SingleAnnouncement from './components/SingleAnnouncement';
 
 const userId = queryString.parse(window.location.search).userId;
 const accessToken = queryString.parse(window.location.search).accessToken;
@@ -32,18 +33,23 @@ const App = () => (
                 <Route exact path="/status-page" component={Main} />
                 <Route
                     exact
-                    path="/status-page/:statusPageId"
+                    path="/status-page/:statusPageSlug"
                     component={Main}
                 />
                 <Route
                     exact
-                    path="/status-page/:statusPageId/scheduledEvent/:eventId"
+                    path="/status-page/:statusPageSlug/scheduledEvent/:eventId"
                     component={ScheduledEvent}
                 />
                 <Route
                     exact
-                    path="/status-page/:statusPageId/incident/:incidentId"
+                    path="/status-page/:statusPageSlug/incident/:incidentId"
                     component={Incident}
+                />
+                <Route
+                    exact
+                    path="/status-page/:statusPageSlug/announcement/:announcementSlug"
+                    component={SingleAnnouncement}
                 />
                 <Redirect to="/" />
             </Switch>

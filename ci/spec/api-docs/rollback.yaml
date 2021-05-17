@@ -1,5 +1,5 @@
 staging_rollback_api-docs:
-    stage: RollbackIfSmokeTestFail
+    stage: RollbackIfTestsFail
     script:
         - chmod +x ./ci/scripts/deployment-setup.sh
         - ./ci/scripts/deployment-setup.sh
@@ -19,7 +19,7 @@ staging_rollback_api-docs:
         - $STAGING_SMOKE_TEST_STATUS
 
 production_rollback_api-docs:
-    stage: RollbackIfSmokeTestFail
+    stage: RollbackIfTestsFail
     script:
         - chmod +x ./ci/scripts/deployment-setup.sh
         - ./ci/scripts/deployment-setup.sh

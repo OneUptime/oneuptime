@@ -70,6 +70,15 @@ import {
     VERIFY_PROJECT_DOMAIN_SUCCESS,
     VERIFY_PROJECT_DOMAIN_FAILURE,
     RESET_VERIFY_PROJECT_DOMAIN,
+    UNVERIFY_PROJECT_DOMAIN_REQUEST,
+    UNVERIFY_PROJECT_DOMAIN_SUCCESS,
+    UNVERIFY_PROJECT_DOMAIN_FAILURE,
+    RESET_UNVERIFY_PROJECT_DOMAIN,
+    RESET_PROJECT_DOMAIN_REQUEST,
+    RESET_PROJECT_DOMAIN_SUCCESS,
+    RESET_PROJECT_DOMAIN_FAILURE,
+    RESET_PROJECT_DOMAIN_ON_MOUNT,
+    RESET_DELETE_PROJECT_DOMAIN,
 } from '../constants/project';
 
 const INITIAL_STATE = {
@@ -176,6 +185,16 @@ const INITIAL_STATE = {
         error: null,
     },
     verifyDomain: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    unverifyDomain: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    resetDomain: {
         requesting: false,
         success: false,
         error: null,
@@ -458,6 +477,15 @@ export default function project(state = INITIAL_STATE, action) {
                     error: null,
                 },
             };
+        case RESET_DELETE_PROJECT_DOMAIN:
+            return {
+                ...state,
+                deleteDomain: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                },
+            };
         //verify project domain
         case VERIFY_PROJECT_DOMAIN_REQUEST:
             return {
@@ -495,6 +523,82 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
+                },
+            };
+        //unverify project domain
+        case UNVERIFY_PROJECT_DOMAIN_REQUEST:
+            return {
+                ...state,
+                unverifyDomain: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case UNVERIFY_PROJECT_DOMAIN_SUCCESS:
+            return {
+                ...state,
+                unverifyDomain: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            };
+
+        case UNVERIFY_PROJECT_DOMAIN_FAILURE:
+            return {
+                ...state,
+                unverifyDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+        case RESET_UNVERIFY_PROJECT_DOMAIN:
+            return {
+                ...state,
+                unverifyDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+        //reset project domain
+        case RESET_PROJECT_DOMAIN_REQUEST:
+            return {
+                ...state,
+                resetDomain: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+        case RESET_PROJECT_DOMAIN_SUCCESS:
+            return {
+                ...state,
+                resetDomain: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            };
+        case RESET_PROJECT_DOMAIN_FAILURE:
+            return {
+                ...state,
+                resetDomain: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+        case RESET_PROJECT_DOMAIN_ON_MOUNT:
+            return {
+                ...state,
+                resetDomain: {
+                    requesting: false,
+                    success: false,
+                    error: null,
                 },
             };
         //users pagination
@@ -830,6 +934,17 @@ export default function project(state = INITIAL_STATE, action) {
 
         case ADD_PROJECT_NOTE_SUCCESS:
             return Object.assign({}, state, {
+                projects: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    projects: state.projects.projects.map(project => {
+                        if (project._id === action.payload._id) {
+                            project = action.payload;
+                        }
+                        return project;
+                    }),
+                },
                 project: {
                     requesting: false,
                     error: null,

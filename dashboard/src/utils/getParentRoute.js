@@ -29,6 +29,11 @@ function getParentRoute(childRoute, projectId = null, type) {
         );
         return urlParts.join('/');
     }
+    if (type === 'announcement') {
+        const urlParts = childRoute.split('/');
+        urlParts.splice(urlParts.length - 1, 1);
+        return urlParts.join('/');
+    }
     if (type === 'application-log') {
         const urlParts = childRoute.split('/');
         urlParts.splice(
@@ -65,7 +70,7 @@ function getParentRoute(childRoute, projectId = null, type) {
         );
         return urlParts.join('/');
     }
-    if (childRoute.includes('sub-project') && childRoute.includes('schedule')) {
+    if (childRoute.includes('schedule')) {
         const urlParts = childRoute.split('/').slice(0, 4);
         return urlParts.join('/').concat('/on-call');
     }
@@ -75,10 +80,7 @@ function getParentRoute(childRoute, projectId = null, type) {
         urlParts.pop();
         return urlParts.join('/');
     }
-    if (
-        childRoute.includes('sub-project') &&
-        childRoute.includes('status-page')
-    ) {
+    if (childRoute.includes('status-page')) {
         const urlParts = childRoute.split('/').slice(0, 4);
         return urlParts.join('/').concat('/status-pages');
     }
@@ -134,6 +136,20 @@ function getParentRoute(childRoute, projectId = null, type) {
         const urlParts = childRoute.split('/');
         urlParts.splice(
             urlParts.indexOf('settings'),
+            urlParts.length,
+            'monitoring'
+        );
+        return urlParts.join('/');
+    }
+    if (type === 'performance-tracker') {
+        const urlParts = childRoute.split('/');
+        urlParts.pop();
+        return urlParts.join('/');
+    }
+    if (type === 'component-tracker') {
+        const urlParts = childRoute.split('/');
+        urlParts.splice(
+            urlParts.indexOf('performance-tracker'),
             urlParts.length,
             'monitoring'
         );

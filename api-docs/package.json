@@ -29,7 +29,7 @@
         "dev": "nodemon server.js",
         "test": "cross-env NODE_ENV=development mocha --exit test/index.js",
         "audit": "npm audit --audit-level=low",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,ejs,path,loadable-components,js-uuid,acorn,@beam-australia/react-env'"
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,ejs,path'"
     },
     "resolutions": {},
     "devDependencies": {

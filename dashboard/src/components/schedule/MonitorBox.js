@@ -16,7 +16,8 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import Tooltip from '../basic/Tooltip';
 
 function submitMonitorForm(values, dispatch, props) {
-    const { subProjectId, scheduleId } = props.match.params;
+    const subProjectId = props && props.subProjectId;
+    const scheduleId = props && props.scheduleId;
     const monitors = [];
     /* eslint-disable no-unused-vars */
     for (const id in values) {
@@ -48,16 +49,14 @@ export function MonitorBox(props) {
     const { currentProject, subProjects, subProjectId, schedule } = props;
     const currentProjectId = currentProject ? currentProject._id : null;
     const slug = currentProject ? currentProject.slug : null;
-    let subProject =
-        currentProjectId === subProjectId || currentProjectId === subProjectId
-            ? currentProject
-            : false;
-    if (!subProject)
+    let subProject = currentProjectId === subProjectId ? currentProject : false;
+    if (!subProject && subProjectId) {
         subProject = subProjects.find(
             subProject =>
                 subProject._id === subProjectId ||
                 subProject._id === subProjectId._id
         );
+    }
     return (
         <div className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -340,20 +339,20 @@ const AddMonitorsForm = new reduxForm({
 })(MonitorBox);
 
 const mapStateToProps = (state, props) => {
-    const { subProjectId, scheduleId } = props.match.params;
+    const { scheduleSlug } = props.match.params;
     const initialValues = {};
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {
             return subProjectSchedule.schedules.find(
-                schedule => schedule._id === scheduleId
+                schedule => schedule.slug === scheduleSlug
             );
         }
     );
 
     schedule = schedule.find(
-        schedule => schedule && schedule._id === scheduleId
+        schedule => schedule && schedule.slug === scheduleSlug
     );
-
+    const subProjectId = schedule && schedule.projectId._id;
     const monitors = state.monitor.monitorsList.monitors
         .map(monitor => monitor.monitors)
         .flat();
@@ -383,6 +382,7 @@ const mapStateToProps = (state, props) => {
         subProjectId,
         currentProject,
         subProjects,
+        scheduleId: schedule && schedule._id,
     };
 };
 

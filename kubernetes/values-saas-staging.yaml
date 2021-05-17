@@ -6,6 +6,8 @@
 
 saas:
     isSaasService: true
+    isMongoPrimaryBackupServiceEnabled: true
+    isMongoSecondaryBackupServiceEnabled: true
     slackErrorLog:
         webhook: https://hooks.slack.com/services/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
         channel: fyipe-logs

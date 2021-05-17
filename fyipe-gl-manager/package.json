@@ -1,0 +1,28 @@
+{
+    "name": "fyipe-gl-manager",
+    "version": "3.0.0",
+    "description": "FileSytem-based Manager with optional encrypted Cloud backup for Greenlock SSL",
+    "main": "manager.js",
+    "files": [
+        "*.js"
+    ],
+    "scripts": {
+        "test": "node tests"
+    },
+    "keywords": [
+        "greenlock",
+        "manager",
+        "cloud",
+        "fs",
+        "ssl",
+        "fyipe"
+    ],
+    "author": "Jude Ojini <judoc96@gmail.com>",
+    "contributors": [
+        "Jude Ojini <judoc96@gmail.com>"
+    ],
+    "license": "MIT",
+    "dependencies": {
+        "greenlock-manager-fs": "^3.1.0"
+    }
+}

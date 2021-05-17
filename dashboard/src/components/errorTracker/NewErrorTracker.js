@@ -82,8 +82,8 @@ class NewErrorTracker extends Component {
                 postObj
             ).then(
                 data => {
-                    history.push(
-                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/error-trackers/${data.data.slug}`
+                    history.replace(
+                        `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/error-trackers/${data.data.slug}`
                     );
                     thisObj.props.reset();
                     if (SHOULD_LOG_ANALYTICS) {

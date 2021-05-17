@@ -10,7 +10,6 @@ import PropTypes from 'prop-types';
 import EscalationSummary from '../components/schedule/EscalationSummary';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { withRouter } from 'react-router';
 import { subProjectTeamLoading } from '../actions/team';
 import { getEscalation } from '../actions/schedule';
 import { teamLoading } from '../actions/team';
@@ -19,21 +18,59 @@ import getParentRoute from '../utils/getParentRoute';
 class Schedule extends Component {
     constructor(props) {
         super(props);
-        this.state = { editSchedule: false };
+        this.state = { editSchedule: false, error: false };
     }
 
     async componentDidMount() {
-        const { subProjectId, scheduleId } = this.props;
-        try {
-            await Promise.all([
-                this.props.getEscalation(subProjectId, scheduleId),
-                this.props.subProjectTeamLoading(subProjectId),
-                this.props.teamLoading(subProjectId),
-            ]);
-        } catch (e) {
-            this.setState({ error: e });
+        const {
+            subProjectId,
+            scheduleId,
+            getEscalation,
+            subProjectTeamLoading,
+            teamLoading,
+        } = this.props;
+        if (scheduleId && subProjectId) {
+            try {
+                await Promise.all([
+                    getEscalation(subProjectId, scheduleId),
+                    subProjectTeamLoading(subProjectId),
+                    teamLoading(subProjectId),
+                ]);
+            } catch (e) {
+                this.handleError(e);
+            }
         }
     }
+
+    async componentDidUpdate(prevProps) {
+        if (
+            prevProps.schedule !== this.props.schedule ||
+            prevProps.subProjectId !== this.props.subProjectId
+        ) {
+            const {
+                subProjectId,
+                scheduleId,
+                getEscalation,
+                subProjectTeamLoading,
+                teamLoading,
+            } = this.props;
+            if (scheduleId && subProjectId) {
+                try {
+                    await Promise.all([
+                        getEscalation(subProjectId, scheduleId),
+                        subProjectTeamLoading(subProjectId),
+                        teamLoading(subProjectId),
+                    ]);
+                } catch (e) {
+                    this.handleError(e);
+                }
+            }
+        }
+    }
+
+    handleError = e => {
+        this.setState({ error: e });
+    };
 
     render() {
         const { editSchedule, error } = this.state;
@@ -135,29 +172,27 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, props) => {
-    const { scheduleId } = props.match.params;
+    const { scheduleSlug } = props.match.params;
 
-    let schedule = state.schedule.subProjectSchedules.map(
-        subProjectSchedule => {
+    let schedule =
+        state.schedule.subProjectSchedules &&
+        state.schedule.subProjectSchedules.map(subProjectSchedule => {
             return subProjectSchedule.schedules.find(
-                schedule => schedule._id === scheduleId
+                schedule => schedule.slug === scheduleSlug
             );
-        }
-    );
+        });
 
     schedule = schedule.find(
-        schedule => schedule && schedule._id === scheduleId
+        schedule => schedule && schedule.slug === scheduleSlug
     );
     const escalations = state.schedule.scheduleEscalations;
-
-    const { subProjectId } = props.match.params;
     return {
         schedule,
         escalations,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
-        subProjectId,
-        scheduleId,
+        subProjectId: schedule && schedule.projectId._id,
+        scheduleId: schedule && schedule._id,
         teamMembers: state.team.teamMembers,
     };
 };
@@ -180,6 +215,4 @@ Schedule.propTypes = {
     }),
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(Schedule)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(Schedule);

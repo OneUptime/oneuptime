@@ -561,7 +561,7 @@ export class MonitorDetail extends Component {
                                     history.push(
                                         '/dashboard/project/' +
                                             currentProject.slug +
-                                            '/' +
+                                            '/component/' +
                                             componentSlug +
                                             '/monitoring/' +
                                             monitor.slug

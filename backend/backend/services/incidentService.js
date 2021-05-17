@@ -21,6 +21,7 @@ module.exports = {
                 .populate('monitorId', 'name')
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
+                .populate('projectId', 'name')
                 .populate('probes.probeId')
                 .populate('incidentPriority', 'name color')
                 .populate({

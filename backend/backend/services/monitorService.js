@@ -150,10 +150,7 @@ module.exports = {
                         monitor.siteUrls = [monitor.data.url];
                     }
                     if (data && data.name) {
-                        let name = data.name;
-                        name = slugify(name);
-                        name = `${name}-${generate('1234567890', 8)}`;
-                        monitor.slug = name.toLowerCase();
+                        monitor.slug = getSlug(data.name);
                     }
                     const savedMonitor = await monitor.save();
                     monitor = await _this.findOneBy({ _id: savedMonitor._id });
@@ -225,10 +222,7 @@ module.exports = {
 
             if (data) {
                 if (data.name) {
-                    let name = data.name;
-                    name = slugify(name);
-                    name = `${name}-${generate('1234567890', 8)}`;
-                    data.slug = name.toLowerCase();
+                    data.slug = getSlug(data.name);
                 }
                 await MonitorModel.findOneAndUpdate(
                     query,
@@ -305,7 +299,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name')
-                .populate('componentId', 'name')
+                .populate('componentId', 'name slug')
                 .populate('resourceCategory', 'name')
                 .populate('incidentCommunicationSla')
                 .populate('monitorSla');
@@ -1429,8 +1423,6 @@ const NotificationService = require('./notificationService');
 const ProjectService = require('./projectService');
 const PaymentService = require('./paymentService');
 const IncidentService = require('./incidentService');
-const generate = require('nanoid/generate');
-const slugify = require('slugify');
 const AlertService = require('./alertService');
 const StatusPageService = require('./statusPageService');
 const ScheduleService = require('./scheduleService');
@@ -1444,3 +1436,4 @@ const ScheduledEventService = require('./scheduledEventService');
 const MonitorSlaService = require('./monitorSlaService');
 const IncomingRequestService = require('./incomingRequestService');
 const componentService = require('./componentService');
+const getSlug = require('../utils/getSlug');

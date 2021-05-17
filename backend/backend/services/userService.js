@@ -279,11 +279,14 @@ module.exports = {
             const verificationToken = await verificationTokenModel.save();
             if (verificationToken) {
                 const verificationTokenURL = `${global.apiHost}/user/confirmation/${verificationToken.token}`;
-                MailService.sendVerifyEmail(
-                    verificationTokenURL,
-                    user.name,
-                    email
-                );
+                // Checking for already verified user so that he/she will not recieve another email verification
+                if (!user.isVerified) {
+                    MailService.sendVerifyEmail(
+                        verificationTokenURL,
+                        user.name,
+                        email
+                    );
+                }
                 if (email !== user.email) {
                     _this.updateOneBy({ _id: user._id }, { tempEmail: email });
                 }
@@ -885,17 +888,15 @@ module.exports = {
 
     addNotes: async function(userId, notes) {
         const _this = this;
-        const adminNotes = (
-            await _this.updateOneBy(
-                {
-                    _id: userId,
-                },
-                {
-                    adminNotes: notes,
-                }
-            )
-        ).adminNotes;
-        return adminNotes;
+        const user = await _this.updateOneBy(
+            {
+                _id: userId,
+            },
+            {
+                adminNotes: notes,
+            }
+        );
+        return user;
     },
 
     searchUsers: async function(query, skip, limit) {

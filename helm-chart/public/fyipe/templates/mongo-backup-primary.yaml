@@ -1,0 +1,21 @@
+{{- if .Values.saas.isMongoPrimaryBackupServiceEnabled }}
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "mongo-primary-backup"  }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: Helm
+    name: {{ printf "%s-%s" .Release.Name "mongo-primary-backup"  }}
+    namespace: {{ .Release.Namespace }}
+spec:
+    ports:
+        - port: 80
+          protocol: TCP
+          targetPort: 27017
+    selector:
+         app: mongodb
+         component: primary
+    type: LoadBalancer
+---
+{{- end }}

@@ -1,0 +1,21 @@
+{{- if .Values.saas.isMongoSecondaryBackupServiceEnabled }}
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "mongo-secondary-backup"  }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: Helm
+    name: {{ printf "%s-%s" .Release.Name "mongo-secondary-backup"  }}
+    namespace: {{ .Release.Namespace }}
+spec:
+    ports:
+        - port: 80
+          protocol: TCP
+          targetPort: 27017
+    selector:
+         app: mongodb
+         component: secondary
+    type: LoadBalancer
+---
+{{- end }}

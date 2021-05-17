@@ -158,7 +158,7 @@ export class AlertChargesList extends Component {
                                                                 '/dashboard/project/' +
                                                                     this.props
                                                                         .slug +
-                                                                    '/' +
+                                                                    '/component/' +
                                                                     alertCharge
                                                                         .monitorId
                                                                         .componentSlug +
@@ -196,7 +196,7 @@ export class AlertChargesList extends Component {
                                                                 '/dashboard/project/' +
                                                                     this.props
                                                                         .slug +
-                                                                    '/' +
+                                                                    '/component/' +
                                                                     alertCharge
                                                                         .monitorId
                                                                         .componentSlug +

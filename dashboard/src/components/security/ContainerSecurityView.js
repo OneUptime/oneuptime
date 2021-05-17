@@ -3,9 +3,9 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { scanContainerSecurity } from '../../actions/security';
 import { openModal } from '../../actions/modal';
 import DeleteContainerSecurity from '../modals/DeleteContainerSecurity';
+import ConfirmScanModal from '../modals/ConfirmScanModal';
 import SecurityDetail from './SecurityDetail';
 import Badge from '../common/Badge';
 import IssueIndicator from './IssueIndicator';
@@ -22,7 +22,6 @@ const ContainerSecurityView = ({
     componentId,
     componentSlug,
     openModal,
-    scanContainerSecurity,
     securityLog,
     scanning,
     containerSecurity,
@@ -45,6 +44,20 @@ const ContainerSecurityView = ({
                     containerSecurityId,
                     containerSecuritySlug,
                     componentSlug,
+                },
+            ],
+        });
+    };
+
+    const handleSubmit = ({ projectId, containerSecurityId }) => {
+        openModal({
+            id: containerSecurityId,
+            content: ConfirmScanModal,
+            propArr: [
+                {
+                    projectId,
+                    containerSecurityId,
+                    name: ' Container Security',
                 },
             ],
         });
@@ -217,7 +230,7 @@ const ContainerSecurityView = ({
                                         className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--security-scan"
                                         type="button"
                                         onClick={() =>
-                                            scanContainerSecurity({
+                                            handleSubmit({
                                                 projectId,
                                                 containerSecurityId,
                                             })
@@ -318,7 +331,6 @@ ContainerSecurityView.propTypes = {
     componentId: PropTypes.string,
     componentSlug: PropTypes.string,
     openModal: PropTypes.func,
-    scanContainerSecurity: PropTypes.func,
     scanning: PropTypes.bool,
     securityLog: PropTypes.object,
     containerSecurity: PropTypes.object,
@@ -333,7 +345,6 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             openModal,
-            scanContainerSecurity,
         },
         dispatch
     );

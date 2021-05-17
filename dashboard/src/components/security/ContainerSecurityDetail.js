@@ -6,16 +6,16 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { LargeSpinner } from '../basic/Loader';
 import {
-    getContainerSecurity,
     getContainerSecurityBySlug,
-    getContainerSecurityLogBySlug,
     scanContainerSecuritySuccess,
     getContainerSecuritySuccess,
+    getContainerSecurityLog,
 } from '../../actions/security';
 import ContainerSecurityView from './ContainerSecurityView';
 import ContainerSecurityDeleteBox from './ContainerSecurityDeleteBox';
 import SecurityLog from './SecurityLog';
 import { getDockerCredentials } from '../../actions/credential';
+import { fetchComponent } from '../../actions/component';
 import BreadCrumbItem from '../breadCrumb/BreadCrumbItem';
 import getParentRoute from '../../utils/getParentRoute';
 import { API_URL } from '../../config';
@@ -30,57 +30,75 @@ const socket = io.connect(API_URL.replace('/api', ''), {
 class ContainerSecurityDetail extends Component {
     componentDidUpdate(prevProps) {
         if (prevProps.projectId !== this.props.projectId) {
+            const { getDockerCredentials, projectId } = this.props;
+            if (projectId) {
+                getDockerCredentials({ projectId });
+            }
+        }
+        if (prevProps.componentId !== this.props.componentId) {
             const {
                 projectId,
                 componentId,
                 containerSecuritySlug,
                 getContainerSecurityBySlug,
-                getContainerSecurityLogBySlug,
-                getDockerCredentials,
             } = this.props;
-
+            if (projectId && componentId) {
+                // get a particular container security
+                getContainerSecurityBySlug({
+                    projectId,
+                    componentId,
+                    containerSecuritySlug,
+                });
+            }
+        }
+        if (prevProps.containerSecurityId !== this.props.containerSecurityId) {
+            const {
+                projectId,
+                componentId,
+                containerSecurityId,
+                getContainerSecurityLog,
+            } = this.props;
+            if (containerSecurityId) {
+                // get a container security log
+                getContainerSecurityLog({
+                    projectId,
+                    componentId,
+                    containerSecurityId,
+                });
+            }
+        }
+    }
+    componentDidMount() {
+        const {
+            fetchComponent,
+            componentSlug,
+            projectId,
+            componentId,
+            containerSecuritySlug,
+            getContainerSecurityBySlug,
+            containerSecurityId,
+            getContainerSecurityLog,
+        } = this.props;
+        fetchComponent(componentSlug);
+        if (projectId && componentId) {
             // get a particular container security
             getContainerSecurityBySlug({
                 projectId,
                 componentId,
                 containerSecuritySlug,
             });
-
-            // get a container security log
-            getContainerSecurityLogBySlug({
-                projectId,
-                componentId,
-                containerSecuritySlug,
-            });
-
+        }
+        if (projectId) {
             getDockerCredentials({ projectId });
         }
-    }
-    componentDidMount() {
-        const {
-            projectId,
-            componentId,
-            containerSecuritySlug,
-            getContainerSecurityBySlug,
-            getContainerSecurityLogBySlug,
-            getDockerCredentials,
-        } = this.props;
-
-        // get a particular container security
-        getContainerSecurityBySlug({
-            projectId,
-            componentId,
-            containerSecuritySlug,
-        });
-
-        // get a container security log
-        getContainerSecurityLogBySlug({
-            projectId,
-            componentId,
-            containerSecuritySlug,
-        });
-
-        getDockerCredentials({ projectId });
+        if (containerSecurityId) {
+            // get a container security log
+            getContainerSecurityLog({
+                projectId,
+                componentId,
+                containerSecurityId,
+            });
+        }
     }
 
     render() {
@@ -212,8 +230,8 @@ ContainerSecurityDetail.propTypes = {
     componentId: PropTypes.string,
     componentSlug: PropTypes.string,
     containerSecurityId: PropTypes.string,
-    getContainerSecurityLogBySlug: PropTypes.func,
-    getContainerSecurityBySlug: PropTypes.func,
+    fetchComponent: PropTypes.func,
+    getContainerSecurityLog: PropTypes.func,
     containerSecuritySlug: PropTypes.string,
     containerSecurity: PropTypes.object,
     isRequesting: PropTypes.bool,
@@ -224,6 +242,7 @@ ContainerSecurityDetail.propTypes = {
     containerSecurityLog: PropTypes.object,
     gettingSecurityLog: PropTypes.bool,
     getDockerCredentials: PropTypes.func,
+    getContainerSecurityBySlug: PropTypes.func,
     gettingCredentials: PropTypes.bool,
     fetchLogError: PropTypes.oneOfType([
         PropTypes.string,
@@ -248,12 +267,12 @@ ContainerSecurityDetail.propTypes = {
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            getContainerSecurity,
-            getContainerSecurityLogBySlug,
-            getContainerSecurityBySlug,
             getDockerCredentials,
             scanContainerSecuritySuccess,
             getContainerSecuritySuccess,
+            getContainerSecurityLog,
+            fetchComponent,
+            getContainerSecurityBySlug,
         },
         dispatch
     );
@@ -276,9 +295,7 @@ const mapStateToProps = (state, ownProps) => {
         componentId:
             state.component.currentComponent.component &&
             state.component.currentComponent.component._id,
-        componentSlug:
-            state.component.currentComponent.component &&
-            state.component.currentComponent.component.slug,
+        componentSlug,
         containerSecuritySlug,
         containerSecurity: state.security.containerSecurity,
         containerSecurityId: state.security.containerSecurity._id,

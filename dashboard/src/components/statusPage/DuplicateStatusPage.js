@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
+import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -63,8 +63,9 @@ export class DuplicateStatusPageBox extends Component {
                                                 content: DataPathHoC(
                                                     DuplicateStatusPageForm,
                                                     {
-                                                        statusPageId: this.props
-                                                            .statusPageId,
+                                                        statusPageSlug: this
+                                                            .props.match.params
+                                                            .statusPageSlug,
                                                         subProjectId: this.props
                                                             .subProjectId,
                                                         projectId: this.props
@@ -115,8 +116,9 @@ DuplicateStatusPageBox.propTypes = {
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-    statusPageId: PropTypes.object,
+    statusPageSlug: PropTypes.object,
     subProjectId: PropTypes.object,
+    match: PropTypes.object.isRequired,
     projectId: PropTypes.object,
 };
 

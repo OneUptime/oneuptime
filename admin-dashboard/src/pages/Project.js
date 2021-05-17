@@ -24,16 +24,26 @@ class Project extends Component {
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Project page Loaded');
         }
-        this.props.fetchProjectTeam(
-            this.props.currentProject && this.props.currentProject._id
-        );
+        this.props.fetchProject(this.props.slug);
+        if (this.props.project._id) {
+            this.props.fetchProjectTeam(this.props.project._id);
+        }
+    }
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.project._id !== this.props.project._id) {
+            if (this.props.project._id) {
+                this.props.fetchProjectTeam(this.props.project._id);
+            }
+        }
     }
 
     ready = async () => {
-        const { fetchProject } = this.props;
-        await fetchProject(
-            this.props.currentProject && this.props.currentProject._id
-        );
+        const { fetchProject, slug, fetchProjectTeam, project } = this.props;
+        fetchProject(slug);
+        if (project._id) {
+            fetchProjectTeam(project._id);
+        }
     };
 
     render() {
@@ -52,10 +62,8 @@ class Project extends Component {
                                             <div className="Box-root Margin-bottom--12">
                                                 <AdminNotes
                                                     id={
-                                                        this.props.project
-                                                            ? this.props.project
-                                                                  ._id
-                                                            : ''
+                                                        this.props.project &&
+                                                        this.props.project._id
                                                     }
                                                     addNote={
                                                         this.props
@@ -82,10 +90,8 @@ class Project extends Component {
                                                             .team
                                                     }
                                                     projectId={
-                                                        this.props
-                                                            .currentProject &&
-                                                        this.props
-                                                            .currentProject._id
+                                                        this.props.project &&
+                                                        this.props.project._id
                                                     }
                                                     pages={
                                                         this.props
@@ -135,10 +141,8 @@ class Project extends Component {
                                             <div className="Box-root Margin-bottom--12">
                                                 <ProjectDomain
                                                     projectId={
-                                                        this.props
-                                                            .currentProject &&
-                                                        this.props
-                                                            .currentProject._id
+                                                        this.props.project &&
+                                                        this.props.project._id
                                                     }
                                                 />
                                             </div>
@@ -150,10 +154,8 @@ class Project extends Component {
                                                             .balance
                                                     }
                                                     projectId={
-                                                        this.props
-                                                            .currentProject &&
-                                                        this.props
-                                                            .currentProject._id
+                                                        this.props.project &&
+                                                        this.props.project._id
                                                     }
                                                 />
                                             </div>
@@ -241,7 +243,12 @@ class Project extends Component {
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { addProjectNote, fetchProject, fetchProjectTeam, paginate },
+        {
+            addProjectNote,
+            fetchProject,
+            fetchProjectTeam,
+            paginate,
+        },
         dispatch
     );
 };
@@ -249,12 +256,10 @@ const mapDispatchToProps = dispatch => {
 const mapStateToProps = (state, props) => {
     const project = state.project.project.project || {};
     const projectUsers = state.project.projectTeam;
-    const currentProject = state.project.projects.projects.find(el => {
-        return el.slug === props.match.params.slug;
-    });
+    const { slug } = props.match.params;
     return {
         project,
-        currentProject,
+        slug,
         projectUsers,
         adminNote: state.adminNote,
         initialValues: { adminNotes: project.adminNotes || [] },
@@ -268,12 +273,12 @@ Project.contextTypes = {
 Project.propTypes = {
     addProjectNote: PropTypes.func.isRequired,
     initialValues: PropTypes.object,
-    currentProject: PropTypes.object.isRequired,
     fetchProject: PropTypes.func.isRequired,
     project: PropTypes.object.isRequired,
     fetchProjectTeam: PropTypes.func.isRequired,
     projectUsers: PropTypes.object.isRequired,
     paginate: PropTypes.func.isRequired,
+    slug: PropTypes.string,
 };
 
 Project.displayName = 'Project';

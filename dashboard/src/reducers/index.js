@@ -46,6 +46,9 @@ import customField from './customField';
 import monitorCustomField from './monitorCustomField';
 import callRouting from './callRouting';
 import groups from './groups';
+import search from './search';
+import performanceTracker from './performanceTracker';
+import performanceTrackerMetric from './performanceTrackerMetric';
 const appReducer = combineReducers({
     routing: routerReducer,
     form: formReducer,
@@ -61,6 +64,7 @@ const appReducer = combineReducers({
     statusPage,
     incident,
     invoice,
+    search,
     profileSettings,
     feedback,
     groups,
@@ -94,6 +98,8 @@ const appReducer = combineReducers({
     customField,
     monitorCustomField,
     callRouting,
+    performanceTracker,
+    performanceTrackerMetric,
 });
 
 export default (state, action) => {

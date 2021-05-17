@@ -31,6 +31,7 @@ import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import Themes from '../components/statusPage/Themes';
 import StatusPageSubscriber from '../components/statusPage/StatusPageSubscriber';
+import Announcements from '../components/statusPage/Announcements';
 
 class StatusPage extends Component {
     state = {
@@ -50,12 +51,13 @@ class StatusPage extends Component {
     async componentDidMount() {
         if (!this.props.statusPage.status._id) {
             const projectId = this.props.projectId && this.props.projectId;
-            const statusPageId = history.location.pathname
+            const statusPageSlug = history.location.pathname
                 .split('status-page/')[1]
                 .split('/')[0];
-            await this.props.fetchProjectStatusPage(projectId);
-            await this.props.fetchSubProjectStatusPages(projectId);
-
+            if (projectId) {
+                await this.props.fetchProjectStatusPage(projectId);
+                await this.props.fetchSubProjectStatusPages(projectId);
+            }
             if (
                 this.props.statusPage.subProjectStatusPages &&
                 this.props.statusPage.subProjectStatusPages.length > 0
@@ -64,7 +66,7 @@ class StatusPage extends Component {
                 subProjectStatusPages.forEach(subProject => {
                     const statusPages = subProject.statusPages;
                     const statusPage = statusPages.find(
-                        page => page._id === statusPageId
+                        page => page.slug === statusPageSlug
                     );
                     if (statusPage) {
                         this.props.switchStatusPage(statusPage);
@@ -92,12 +94,13 @@ class StatusPage extends Component {
         if (prevProps.projectId !== this.props.projectId) {
             if (!this.props.statusPage.status._id) {
                 const projectId = this.props.projectId && this.props.projectId;
-                const statusPageId = history.location.pathname
+                const statusPageSlug = history.location.pathname
                     .split('status-page/')[1]
                     .split('/')[0];
-                await this.props.fetchProjectStatusPage(projectId);
-                await this.props.fetchSubProjectStatusPages(projectId);
-
+                if (projectId) {
+                    await this.props.fetchProjectStatusPage(projectId);
+                    await this.props.fetchSubProjectStatusPages(projectId);
+                }
                 if (
                     this.props.statusPage.subProjectStatusPages &&
                     this.props.statusPage.subProjectStatusPages.length > 0
@@ -106,7 +109,7 @@ class StatusPage extends Component {
                     subProjectStatusPages.forEach(subProject => {
                         const statusPages = subProject.statusPages;
                         const statusPage = statusPages.find(
-                            page => page._id === statusPageId
+                            page => page.slug === statusPageSlug
                         );
                         if (statusPage) {
                             this.props.switchStatusPage(statusPage);
@@ -123,10 +126,10 @@ class StatusPage extends Component {
             statusPage: { status },
         } = this.props;
         const pageName = status ? status.name : null;
-        const projectId = this.props.projectId;
         const data = {
             statusPageId: status._id,
-            projectId,
+            projectId:
+                status.projectId && (status.projectId._id || status.projectId),
             theme: status.theme,
         };
 
@@ -156,22 +159,53 @@ class StatusPage extends Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 basic-tab'
+                                    }
+                                >
                                     Basic
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 subscribers-tab'
+                                    }
+                                >
                                     Subscribers
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 announcements-tab'
+                                    }
+                                >
+                                    Announcements
+                                </Tab>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 custom-domains-tab'
+                                    }
+                                >
                                     Custom Domains
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 branding-tab'
+                                    }
+                                >
                                     Branding
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 embedded-tab'
+                                    }
+                                >
                                     Embedded
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 advanced-options-tab'
+                                    }
+                                >
                                     Advanced Options
                                 </Tab>
                                 <div
@@ -199,14 +233,18 @@ class StatusPage extends Component {
                                                             <TabPanel>
                                                                 <Fade>
                                                                     <div className="Box-root Margin-bottom--12">
-                                                                        <Basic />
+                                                                        <Basic
+                                                                            currentProject={
+                                                                                this
+                                                                                    .props
+                                                                                    .currentProject
+                                                                            }
+                                                                        />
                                                                     </div>
                                                                     <RenderIfSubProjectAdmin
                                                                         subProjectId={
                                                                             this
                                                                                 .props
-                                                                                .match
-                                                                                .params
                                                                                 .subProjectId
                                                                         }
                                                                     >
@@ -215,8 +253,6 @@ class StatusPage extends Component {
                                                                                 subProjectId={
                                                                                     this
                                                                                         .props
-                                                                                        .match
-                                                                                        .params
                                                                                         .subProjectId
                                                                                 }
                                                                             />
@@ -228,7 +264,7 @@ class StatusPage extends Component {
                                                                 <div className="Box-root Margin-bottom--12 bs-ContentSection Card-root Card-shadow--medium>">
                                                                     <StatusPageSubscriber
                                                                         projectId={
-                                                                            projectId
+                                                                            data.projectId
                                                                         }
                                                                         statusPage={
                                                                             status
@@ -247,6 +283,23 @@ class StatusPage extends Component {
                                                                 </div>
                                                             </TabPanel>
                                                             <TabPanel>
+                                                                <div className="Box-root Margin-bottom--12 bs-ContentSection Card-root Card-shadow--medium>">
+                                                                    <Announcements
+                                                                        projectId={
+                                                                            data.projectId
+                                                                        }
+                                                                        statusPage={
+                                                                            status
+                                                                        }
+                                                                        currentProject={
+                                                                            this
+                                                                                .props
+                                                                                .currentProject
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </TabPanel>
+                                                            <TabPanel>
                                                                 <Fade>
                                                                     <div className="Box-root Margin-bottom--12">
                                                                         <Setting />
@@ -259,8 +312,6 @@ class StatusPage extends Component {
                                                                         subProjectId={
                                                                             this
                                                                                 .props
-                                                                                .match
-                                                                                .params
                                                                                 .subProjectId
                                                                         }
                                                                     >
@@ -296,8 +347,6 @@ class StatusPage extends Component {
                                                                         subProjectId={
                                                                             this
                                                                                 .props
-                                                                                .match
-                                                                                .params
                                                                                 .subProjectId
                                                                         }
                                                                     >
@@ -319,8 +368,6 @@ class StatusPage extends Component {
                                                                                     subProjectId={
                                                                                         this
                                                                                             .props
-                                                                                            .match
-                                                                                            .params
                                                                                             .subProjectId
                                                                                     }
                                                                                     projectId={
@@ -340,8 +387,6 @@ class StatusPage extends Component {
                                                                         subProjectId={
                                                                             this
                                                                                 .props
-                                                                                .match
-                                                                                .params
                                                                                 .subProjectId
                                                                         }
                                                                     >
@@ -350,6 +395,11 @@ class StatusPage extends Component {
                                                                                 this
                                                                                     .props
                                                                                     .match
+                                                                            }
+                                                                            subProjectId={
+                                                                                this
+                                                                                    .props
+                                                                                    .subProjectId
                                                                             }
                                                                         />
                                                                     </RenderIfSubProjectAdmin>
@@ -391,14 +441,33 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state, props) {
+    const { statusPageSlug } = props.match.params;
+    const statusPageObject = state.statusPage;
+    let statusPage;
+    if (
+        statusPageObject.subProjectStatusPages &&
+        statusPageObject.subProjectStatusPages.length > 0
+    ) {
+        const { subProjectStatusPages } = statusPageObject;
+        subProjectStatusPages.forEach(subProject => {
+            const statusPages = subProject.statusPages;
+            if (!statusPage) {
+                statusPage = statusPages.find(
+                    page => page.slug === statusPageSlug
+                );
+            }
+        });
+    }
     return {
-        statusPage: state.statusPage,
+        statusPage: statusPageObject,
         showDuplicateStatusPage: state.statusPage.showDuplicateStatusPage,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
+        subProjectId: statusPage && statusPage.projectId._id,
         subProjects: state.subProject.subProjects.subProjects,
-        currentProject: state.project.currentProject,
+        currentProject:
+            state.project.currentProject && state.project.currentProject,
     };
 }
 
@@ -413,6 +482,7 @@ StatusPage.propTypes = {
         pathname: PropTypes.string,
     }),
     projectId: PropTypes.string,
+    subProjectId: PropTypes.string,
     currentProject: PropTypes.object,
     subProjects: PropTypes.array,
 };

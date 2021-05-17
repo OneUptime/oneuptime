@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
@@ -91,7 +90,7 @@ export class OnCall extends Component {
 
         createSchedule(subProjectId, { name: 'Unnamed' }).then(({ data }) => {
             history.push(
-                `/dashboard/project/${this.props.currentProject.slug}/sub-project/${subProjectId}/schedule/${data[0]._id}`
+                `/dashboard/project/${this.props.currentProject.slug}/schedule/${data[0].slug}`
             );
         });
 
@@ -335,7 +334,6 @@ const mapDispatchToProps = dispatch =>
 
 const mapStateToProps = state => {
     let subProjects = state.subProject.subProjects.subProjects;
-
     // sort subprojects names for display in alphabetical order
     const subProjectNames =
         subProjects && subProjects.map(subProject => subProject.name);
@@ -436,4 +434,4 @@ OnCall.propTypes = {
 
 OnCall.displayName = 'OnCall';
 
-export default withRouter(connect(mapStateToProps, mapDispatchToProps)(OnCall));
+export default connect(mapStateToProps, mapDispatchToProps)(OnCall);

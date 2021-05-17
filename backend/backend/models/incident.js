@@ -4,6 +4,7 @@ const Schema = mongoose.Schema;
 const monitorSchema = new Schema({
     idNumber: {
         type: Schema.Types.Number,
+        index: true,
     },
     projectId: {
         type: Schema.Types.ObjectId,

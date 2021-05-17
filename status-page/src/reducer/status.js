@@ -14,10 +14,14 @@ import {
     SCHEDULED_EVENTS_REQUEST,
     SCHEDULED_EVENTS_SUCCESS,
     SCHEDULED_EVENTS_FAILURE,
+    ONGOING_SCHEDULED_EVENTS_REQUEST,
+    ONGOING_SCHEDULED_EVENTS_SUCCESS,
+    ONGOING_SCHEDULED_EVENTS_FAILURE,
     MORE_EVENTS_REQUEST,
     MORE_EVENTS_SUCCESS,
     MORE_EVENTS_FAILURE,
     SCHEDULED_EVENTS_RESET,
+    ONGOING_SCHEDULED_EVENTS_RESET,
     SELECT_PROBE,
     FETCH_MONITOR_STATUSES_REQUEST,
     FETCH_MONITOR_STATUSES_SUCCESS,
@@ -61,6 +65,10 @@ import {
     SHOW_EVENT_CARD,
     SHOW_INCIDENT_CARD,
     NEW_THEME_NOTES_SUCCESS,
+    FETCH_ANNOUNCEMENTS_REQUEST,
+    FETCH_ANNOUNCEMENTS_SUCCESS,
+    FETCH_ANNOUNCEMENTS_FAILURE,
+    FETCH_SINGLE_ANNOUNCEMENTS_SUCCESS,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -80,6 +88,12 @@ const INITIAL_STATE = {
         requesting: false,
         skip: 0,
         count: 0,
+    },
+    ongoing: {
+        error: null,
+        ongoing: [],
+        requesting: false,
+        success: false,
     },
     futureEvents: {
         requesting: false,
@@ -163,10 +177,55 @@ const INITIAL_STATE = {
         error: null,
         success: false,
     },
+    announcements: {
+        list: [],
+        singleAnnouncement: null,
+        requesting: false,
+        error: null,
+        success: false,
+    },
 };
 
 export default (state = INITIAL_STATE, action) => {
     switch (action.type) {
+        case FETCH_SINGLE_ANNOUNCEMENTS_SUCCESS:
+            return Object.assign({}, state, {
+                announcements: {
+                    ...state.announcements,
+                    singleAnnouncement: action.payload,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+            });
+        case FETCH_ANNOUNCEMENTS_SUCCESS:
+            return Object.assign({}, state, {
+                announcements: {
+                    ...state.announcements,
+                    list: action.payload,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+            });
+        case FETCH_ANNOUNCEMENTS_REQUEST:
+            return Object.assign({}, state, {
+                announcements: {
+                    ...state.announcements,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case FETCH_ANNOUNCEMENTS_FAILURE:
+            return Object.assign({}, state, {
+                announcements: {
+                    ...state.announcements,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
         case STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
                 error: null,
@@ -566,6 +625,42 @@ export default (state = INITIAL_STATE, action) => {
                     requesting: false,
                     skip: 0,
                     count: 0,
+                },
+            });
+
+        case ONGOING_SCHEDULED_EVENTS_SUCCESS:
+            return Object.assign({}, state, {
+                ongoing: {
+                    error: null,
+                    ongoing: action.payload.data,
+                    requesting: false,
+                },
+            });
+
+        case ONGOING_SCHEDULED_EVENTS_FAILURE:
+            return Object.assign({}, state, {
+                ongoing: {
+                    error: action.payload,
+                    ongoing: state.ongoing.ongoing,
+                    requesting: false,
+                },
+            });
+
+        case ONGOING_SCHEDULED_EVENTS_REQUEST:
+            return Object.assign({}, state, {
+                ongoing: {
+                    error: null,
+                    ongoing: [],
+                    requesting: true, 
+                },
+            });
+
+        case ONGOING_SCHEDULED_EVENTS_RESET:
+            return Object.assign({}, state, {
+                ongoing: {
+                    error: null,
+                    ongoing: [],
+                    requesting: false,
                 },
             });
 

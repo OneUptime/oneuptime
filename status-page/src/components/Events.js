@@ -6,14 +6,16 @@ import ShouldRender from './ShouldRender';
 import AffectedResources from './basic/AffectedResources';
 
 class Events extends Component {
-    handleNavigation = (statusPageId, eventId) => {
+    handleNavigation = (statusPageSlug, eventSlug) => {
         const { history } = this.props;
 
-        history.push(`/status-page/${statusPageId}/scheduledEvent/${eventId}`);
+        history.push(
+            `/status-page/${statusPageSlug}/scheduledEvent/${eventSlug}`
+        );
     };
 
     render() {
-        const { statusPageId } = this.props;
+        const { statusPageSlug } = this.props;
         return (
             <ShouldRender if={this.props.events}>
                 {this.props.events.map((event, i) => {
@@ -23,7 +25,10 @@ class Events extends Component {
                             className="scheduledEvent feed-item clearfix"
                             key={i}
                             onClick={() =>
-                                this.handleNavigation(statusPageId, event._id)
+                                this.handleNavigation(
+                                    statusPageSlug,
+                                    event.slug
+                                )
                             }
                         >
                             <div
@@ -123,7 +128,7 @@ Events.propTypes = {
     secondaryTextColor: PropTypes.object,
     primaryTextColor: PropTypes.object,
     noteBackgroundColor: PropTypes.object,
-    statusPageId: PropTypes.string,
+    statusPageSlug: PropTypes.string,
     monitorState: PropTypes.array,
     history: PropTypes.object,
 };

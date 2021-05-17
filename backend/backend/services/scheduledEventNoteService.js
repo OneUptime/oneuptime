@@ -13,7 +13,7 @@ module.exports = {
                 .populate('scheduledEventId', 'name')
                 .populate({
                     path: 'scheduledEventId',
-                    select: 'name monitors',
+                    select: 'name monitors alertSubscriber',
                     populate: {
                         path: 'projectId',
                         select: 'name replyAddress',
@@ -21,13 +21,15 @@ module.exports = {
                 })
                 .populate('createdById', 'name')
                 .execPopulate();
-
             if (
+                scheduledEventMessage.scheduledEventId.alertSubscriber &&
                 scheduledEventMessage.type === 'investigation' &&
                 !(
                     scheduledEventMessage.event_state === 'Resolved' ||
                     scheduledEventMessage.event_state === 'Created' ||
-                    scheduledEventMessage.event_state === 'Started'
+                    scheduledEventMessage.event_state === 'Started' ||
+                    scheduledEventMessage.event_state === 'Ended' ||
+                    scheduledEventMessage.event_state === 'Cancelled'
                 )
             ) {
                 AlertService.sendScheduledEventInvestigationNoteToSubscribers(

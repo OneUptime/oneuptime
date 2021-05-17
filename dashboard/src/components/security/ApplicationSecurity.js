@@ -16,10 +16,8 @@ const ApplicationSecurity = ({
     applicationSecurityLogs.length > 0 &&
         applicationSecurityLogs.map(applicationSecurityLog => {
             if (
-                String(
-                    applicationSecurityLog.securityId._id ||
-                        applicationSecurityLog.securityId
-                ) === String(applicationSecurityId)
+                applicationSecurityLog.securityId.slug ===
+                applicationSecuritySlug
             ) {
                 securityLog = applicationSecurityLog;
             }

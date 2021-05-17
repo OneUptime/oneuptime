@@ -29,7 +29,7 @@ function viewMore(
     return history.push(
         '/dashboard/project/' +
             slug +
-            '/' +
+            '/component/' +
             componentSlug +
             '/error-trackers/' +
             errorTrackerSlug +

@@ -71,8 +71,15 @@ module.exports = {
                 : [];
             statusPageModel.statusBubbleId = data.statusBubbleId || uuid.v4();
 
+            if (data && data.name) {
+                statusPageModel.slug = getSlug(data.name);
+            }
+
             const statusPage = await statusPageModel.save();
-            return statusPage;
+            const newStatusPage = await this.findOneBy({
+                _id: statusPage._id,
+            });
+            return newStatusPage;
         } catch (error) {
             ErrorService.log('statusPageService.create', error);
             throw error;
@@ -321,7 +328,7 @@ module.exports = {
                 .populate('domains.domainVerificationToken')
                 .execPopulate();
         } catch (error) {
-            ErrorService.log('statusPageService.deleteDomain', error);
+            ErrorService.log('statusPageService.updateDomain', error);
             throw error;
         }
     },
@@ -416,6 +423,21 @@ module.exports = {
                         );
                     })
                 );
+
+                // delete all certificate pipeline for the custom domains
+                // handle this for autoprovisioned custom domains
+                const customDomains = [...statusPage.domains];
+                for (const eachDomain of customDomains) {
+                    if (eachDomain.enableHttps && eachDomain.autoProvisioning) {
+                        greenlock
+                            .remove({ subject: eachDomain.domain })
+                            .finally(() => {
+                                CertificateStoreService.deleteBy({
+                                    subject: eachDomain.domain,
+                                });
+                            });
+                    }
+                }
             }
             return statusPage;
         } catch (error) {
@@ -487,6 +509,10 @@ module.exports = {
                 error.code = 400;
                 ErrorService.log('statusPageService.updateOneBy', error);
                 throw error;
+            }
+
+            if (data && data.name) {
+                existingStatusPage.slug = getSlug(data.name);
             }
 
             if (!query) {
@@ -679,7 +705,6 @@ module.exports = {
                                 {
                                     'monitors.monitorId': monitorId,
                                     showEventOnStatusPage: true,
-                                    resolved: false,
                                 }
                             );
                         } else {
@@ -727,7 +752,7 @@ module.exports = {
             ErrorService.log('statusPageService.getEvents', error);
             throw error;
         }
-    },
+    }, 
 
     getFutureEvents: async function(query, skip, limit) {
         try {
@@ -1166,6 +1191,170 @@ module.exports = {
             throw error;
         }
     },
+
+    createAnnouncement: async function(data) {
+        try {
+            // reassign data.monitors with a restructured monitor data
+            data.monitors = data.monitors.map(monitor => ({
+                monitorId: monitor,
+            }));
+            // slugify announcement name
+            if (data && data.name) {
+                data.slug = getSlug(data.name);
+            }
+
+            const announcement = new AnnouncementModel();
+            announcement.name = data.name || null;
+            announcement.projectId = data.projectId || null;
+            announcement.statusPageId = data.statusPageId || null;
+            announcement.description = data.description || null;
+            announcement.monitors = data.monitors || null;
+            announcement.createdById = data.createdById || null;
+            announcement.slug = data.slug || null;
+            const newAnnouncement = await announcement.save();
+
+            return newAnnouncement;
+        } catch (error) {
+            ErrorService.log('statusPageService.createAnnouncement', error);
+            throw error;
+        }
+    },
+
+    getAnnouncements: async function(query, skip, limit) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof skip === 'string') {
+                skip = Number(skip);
+            }
+
+            if (typeof limit === 'string') {
+                limit = Number(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const allAnnouncements = await AnnouncementModel.find(query)
+                .sort([['createdAt', -1]])
+                .limit(limit)
+                .skip(skip)
+                .populate('createdById', 'name')
+                .populate('monitors.monitorId', 'name');
+            return allAnnouncements;
+        } catch (error) {
+            ErrorService.log('statusPageService.getAnnouncements', error);
+            throw error;
+        }
+    },
+
+    countAnnouncements: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const count = await AnnouncementModel.countDocuments(query);
+            return count;
+        } catch (error) {
+            ErrorService.log('statusPageService.countAnnouncements', error);
+            throw error;
+        }
+    },
+
+    getSingleAnnouncement: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const response = await AnnouncementModel.findOne(query);
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.getSingleAnnouncement', error);
+            throw error;
+        }
+    },
+
+    updateAnnouncement: async function(query, data) {
+        try {
+            const _this = this;
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            if (!data.hideAnnouncement) {
+                await _this.updateManyAnnouncement({
+                    statusPageId: query.statusPageId,
+                });
+            }
+            const response = await AnnouncementModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.getSingleAnnouncement', error);
+            throw error;
+        }
+    },
+
+    updateManyAnnouncement: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const response = await AnnouncementModel.updateMany(
+                query,
+                {
+                    $set: { hideAnnouncement: true },
+                },
+                {
+                    new: true,
+                }
+            );
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.updateManyAnnouncement', error);
+            throw error;
+        }
+    },
+
+    deleteAnnouncement: async function(query, userId) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const response = await AnnouncementModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
+                }
+            );
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.deleteAnnouncement', error);
+            throw error;
+        }
+    },
 };
 
 // handle the unique pagination for scheduled events on status page
@@ -1254,3 +1443,5 @@ const moment = require('moment');
 const uuid = require('uuid');
 const greenlock = require('../../greenlock');
 const CertificateStoreService = require('./certificateStoreService');
+const AnnouncementModel = require('../models/announcements');
+const getSlug = require('../utils/getSlug');

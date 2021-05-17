@@ -113,6 +113,24 @@ module.exports = {
             throw error;
         }
     },
+    resetDomain: async function(domain) {
+        try {
+            const _this = this;
+            const updateObj = {
+                verificationToken: 'fyipe=' + randomChar(),
+                verified: false,
+                updatedAt: new Date(),
+            };
+            const updatedDomain = await _this.updateOneBy(
+                { _id: domain },
+                updateObj
+            );
+            return updatedDomain;
+        } catch (error) {
+            ErrorService.log('domainVerificationService.resetDomain', error);
+            throw error;
+        }
+    },
     doesTxtRecordExist: async function(subDomain, verificationToken) {
         const parsed = psl.parse(subDomain);
         const host = 'fyipe';
@@ -241,6 +259,26 @@ module.exports = {
             throw error;
         }
     },
+    findDomain: async function(domainId, projectArr = []) {
+        try {
+            const _this = this;
+            let projectId;
+            for (const pId of projectArr) {
+                const check = await _this.findOneBy({
+                    _id: domainId,
+                    projectId: pId,
+                });
+                if (check) {
+                    projectId = check.projectId._id;
+                }
+            }
+            return projectId;
+        } catch (error) {
+            ErrorService.log('domainVerificationService.findDomain', error);
+            throw error;
+        }
+    },
+
     countBy: async function(query) {
         try {
             if (!query) {
@@ -248,6 +286,18 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
+
+            // fetch subproject
+            if (query.projectId) {
+                let subProjects = await ProjectService.findBy({
+                    parentProjectId: query.projectId,
+                });
+                subProjects = subProjects.map(project => project._id); // grab just the project ids
+                const totalProjects = [query.projectId, ...subProjects];
+
+                query = { ...query, projectId: { $in: totalProjects } };
+            }
+
             const count = await DomainVerificationTokenModel.countDocuments(
                 query
             );

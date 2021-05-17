@@ -17,29 +17,27 @@ class Notes extends Component {
         });
 
         if (incidentTimeline) {
-            if (
-                !incidentTimeline.incident_state &&
-                incidentTimeline.status !== 'resolved' &&
-                incidentTimeline.status !== 'acknowledged'
-            ) {
+            if (incident.resolved) {
+                timelineStatus = <span className="note_status">Resolved</span>;
+            }
+
+            if (incident.acknowledged && !incident.resolved) {
+                timelineStatus = (
+                    <span className="note_status">Acknowledged</span>
+                );
+            }
+            if (!incident.resolved && !incident.acknowledged) {
                 timelineStatus = (
                     <span className="note_status">Identified</span>
                 );
             }
+
             if (
                 !incidentTimeline.incident_state &&
                 incidentTimeline.status === 'investigation notes deleted'
             ) {
                 timelineStatus = (
                     <span className="note_status">Deleted a note</span>
-                );
-            }
-            if (incidentTimeline.status === 'resolved') {
-                timelineStatus = <span className="note_status">Resolved</span>;
-            }
-            if (incidentTimeline.status === 'acknowledged') {
-                timelineStatus = (
-                    <span className="note_status">Acknowledged</span>
                 );
             }
             if (incidentTimeline.incident_state) {
@@ -53,15 +51,15 @@ class Notes extends Component {
 
         return timelineStatus;
     };
-    handleNavigation = (statusPageId, noteIdNumber) => {
+    handleNavigation = (statusPageSlug, noteIdNumber) => {
         const { history } = this.props;
 
-        history.push(`/status-page/${statusPageId}/incident/${noteIdNumber}`);
+        history.push(`/status-page/${statusPageSlug}/incident/${noteIdNumber}`);
     };
 
     render() {
         const {
-            statusPageId,
+            statusPageSlug,
             uptimeColor,
             downtimeColor,
             degradedColor,
@@ -79,7 +77,7 @@ class Notes extends Component {
                             key={i}
                             onClick={() =>
                                 this.handleNavigation(
-                                    statusPageId,
+                                    statusPageSlug,
                                     note.idNumber
                                 )
                             }
@@ -219,7 +217,7 @@ Notes.propTypes = {
     secondaryTextColor: PropTypes.object,
     primaryTextColor: PropTypes.object,
     noteBackgroundColor: PropTypes.object,
-    statusPageId: PropTypes.string,
+    statusPageSlug: PropTypes.string,
     degradedColor: PropTypes.object,
     uptimeColor: PropTypes.object,
     downtimeColor: PropTypes.object,

@@ -1,11 +1,12 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { Validate } from '../../config';
-import { withRouter } from 'react-router';
+import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderField } from '../basic/RenderField';
+import { history } from '../../store';
 import { reduxForm, Field, reset } from 'redux-form';
 import { renameSchedule } from '../../actions/schedule';
 import PropTypes from 'prop-types';
@@ -39,7 +40,13 @@ export class RenameScheduleBox extends Component {
         const scheduleName = values.schedule_name;
 
         if (scheduleName) {
-            renameSchedule(subProjectId, scheduleId, scheduleName);
+            renameSchedule(subProjectId, scheduleId, scheduleName).then(
+                data => {
+                    history.replace(
+                        `/dashboard/project/${this.props.currentProjectSlug}/schedule/${data.data[0].slug}`
+                    );
+                }
+            );
             if (SHOULD_LOG_ANALYTICS) {
                 logEvent(
                     'EVENT: DASHBOARD > PROJECT > SCHEDULE LIST > SCHEUDLE > RENAME SCHEDULE',
@@ -171,26 +178,29 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators({ renameSchedule }, dispatch);
 
 const mapStateToProps = (state, props) => {
-    const { scheduleId, subProjectId } = props.match.params;
+    const { scheduleSlug } = props.match.params;
 
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {
             return subProjectSchedule.schedules.find(
-                schedule => schedule._id === scheduleId
+                schedule => schedule.slug === scheduleSlug
             );
         }
     );
 
     schedule = schedule.find(
-        schedule => schedule && schedule._id === scheduleId
+        schedule => schedule && schedule.slug === scheduleSlug
     );
 
     const schedule_name = schedule && schedule.name;
-
+    const currentProjectSlug =
+        state.project.currentProject && state.project.currentProject.slug;
     return {
         initialValues: { schedule_name },
-        subProjectId,
-        scheduleId,
+        schedule,
+        subProjectId: schedule && schedule.projectId._id,
+        scheduleId: schedule && schedule._id,
+        currentProjectSlug,
         isRequesting: state.schedule.renameSchedule.requesting,
     };
 };
@@ -198,6 +208,7 @@ const mapStateToProps = (state, props) => {
 RenameScheduleBox.propTypes = {
     scheduleId: PropTypes.string,
     subProjectId: PropTypes.string,
+    currentProjectSlug: PropTypes.string,
     handleSubmit: PropTypes.func.isRequired,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     renameSchedule: PropTypes.func.isRequired,

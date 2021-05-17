@@ -16,12 +16,14 @@ import {
     getStatusPage,
     selectedProbe,
     getScheduledEvent,
+    getOngoingScheduledEvent,
 } from '../actions/status';
 import { getProbes } from '../actions/probe';
 import LineChartsContainer from './LineChartsContainer';
 import AffectedResources from './basic/AffectedResources';
 import NewThemeEvent from './NewThemeEvent';
 import NewThemeSubscriber from './NewThemeSubscriber';
+import Announcement from './Announcement';
 
 const greenBackground = {
     display: 'inline-block',
@@ -74,6 +76,11 @@ class Main extends Component {
 
             this.setLastAlive();
         }
+        if (prevProps.statusData !== this.props.statusData) {
+            this.props.getProbes(this.props.statusData._id, 0, 10).then(() => {
+                this.selectbutton(this.props.activeProbe);
+            });
+        }
         if (
             prevProps.statusData.customJS !== this.props.statusData.customJS &&
             this.props.statusData.customJS
@@ -88,9 +95,15 @@ class Main extends Component {
         ) {
             this.props.getScheduledEvent(
                 this.props.statusData.projectId._id,
-                this.props.statusData._id,
+                this.props.statusData.slug,
                 0,
-                this.props.statusData.theme === 'Clean Theme' ? true : false
+                this.props.statusData.theme === 'Clean Theme' ? true : false,
+                this.props.scheduleHistoryDays || 14
+            );
+
+            this.props.getOngoingScheduledEvent(
+                this.props.statusData.projectId._id,
+                this.props.statusData.slug
             );
         }
     }
@@ -114,30 +127,31 @@ class Main extends Component {
                 'none transparent';
         }
 
-        let statusPageId, url;
+        let statusPageSlug, url;
 
         if (
             window.location.pathname.includes('/status-page/') &&
             window.location.pathname.split('/').length >= 3
         ) {
-            statusPageId = window.location.pathname.split('/')[2];
+            statusPageSlug = window.location.pathname.split('/')[2];
             url = 'null';
         } else if (
             window.location.href.indexOf('localhost') > -1 ||
             window.location.href.indexOf('fyipeapp.com') > 0
         ) {
-            statusPageId = window.location.host.split('.')[0];
+            statusPageSlug = window.location.host.split('.')[0];
             url = 'null';
         } else {
-            statusPageId = 'null';
+            statusPageSlug = 'null';
             url = window.location.host;
         }
+        if (this.props.statusData._id) {
+            this.props.getProbes(this.props.statusData._id, 0, 10).then(() => {
+                this.selectbutton(this.props.activeProbe);
+            });
+        }
 
-        this.props.getProbes(statusPageId, 0, 10).then(() => {
-            this.selectbutton(this.props.activeProbe);
-        });
-
-        this.props.getStatusPage(statusPageId, url).catch(err => {
+        this.props.getStatusPage(statusPageSlug, url).catch(err => {
             if (err.message === 'Request failed with status code 401') {
                 const { loginRequired } = this.props.login;
                 if (loginRequired) {
@@ -527,13 +541,28 @@ class Main extends Component {
                                     </ShouldRender>
                                 </div>
                             </ShouldRender>
+                            <Announcement
+                                monitorState={this.props.monitorState}
+                                theme={theme}
+                                heading={heading}
+                                {...this.props}
+                            />
                             <div className="new-main-container">
                                 <div
                                     className="sy-op"
-                                    style={{ backgroundColor: newbg }}
+                                    style={{
+                                        backgroundColor:
+                                            this.props.ongoing &&
+                                            this.props.ongoing.length > 0
+                                                ? 'rgb(227, 159, 72)'
+                                                : newbg,
+                                    }}
                                     id="status-note"
                                 >
-                                    {newStatusMessage}
+                                    {this.props.ongoing &&
+                                    this.props.ongoing.length > 0
+                                        ? 'Ongoing Scheduled Maintenance Event'
+                                        : newStatusMessage}
                                 </div>
                                 <ShouldRender
                                     if={
@@ -566,6 +595,9 @@ class Main extends Component {
                                                 this.props.statusData._id
                                             }
                                             theme={theme}
+                                            statusPageSlug={
+                                                this.props.statusData.slug
+                                            }
                                         />
                                     </div>
                                 </ShouldRender>
@@ -727,6 +759,9 @@ class Main extends Component {
                                         }
                                         statusPageId={this.props.statusData._id}
                                         theme={theme}
+                                        statusPageSlug={
+                                            this.props.statusData.slug
+                                        }
                                     />
                                 </div>
                             </ShouldRender>
@@ -784,74 +819,120 @@ class Main extends Component {
                         )}
                         {view ? (
                             <div className="innernew">
+                                <Announcement
+                                    monitorState={this.props.monitorState}
+                                    {...this.props}
+                                />
                                 {this.props.events &&
                                     this.props.events.length > 0 &&
                                     this.props.statusData &&
                                     this.props.statusData._id &&
-                                    this.props.events.map(event => (
-                                        <div
-                                            className="content box box__yellow--dark"
-                                            style={{
-                                                margin: '40px 0px',
-                                                cursor: 'pointer',
-                                            }}
-                                            key={event._id}
-                                            onClick={() => {
-                                                this.props.history.push(
-                                                    `/status-page/${this.props.statusData._id}/scheduledEvent/${event._id}`
-                                                );
-                                            }}
-                                        >
-                                            <div className="box-inner ongoing__schedulebox">
+                                    this.props.events.map(
+                                        event =>
+                                            !event.cancelled && (
                                                 <div
+                                                    className="content"
                                                     style={{
-                                                        textTransform:
-                                                            'uppercase',
-                                                        fontSize: 11,
-                                                        fontWeight: 900,
+                                                        margin: '40px 0px',
+                                                        cursor: 'pointer',
+                                                    }}
+                                                    key={event._id}
+                                                    onClick={() => {
+                                                        this.props.history.push(
+                                                            `/status-page/${this.props.statusData.slug}/scheduledEvent/${event.slug}`
+                                                        );
                                                     }}
                                                 >
-                                                    Ongoing Scheduled Event
-                                                </div>
-                                                <div className="ongoing__scheduleitem">
-                                                    <span>{event.name}</span>
-                                                    <span>
-                                                        {event.description}
-                                                    </span>
-                                                </div>
-                                                <div className="ongoing__affectedmonitor">
-                                                    <AffectedResources
-                                                        event={event}
-                                                        monitorState={
-                                                            this.props
-                                                                .monitorState
-                                                        }
-                                                    />
-                                                </div>
+                                                    <div
+                                                        className="ongoing__schedulebox"
+                                                        style={{ padding: 0 }}
+                                                    >
+                                                        <div
+                                                            className="content box"
+                                                            style={{
+                                                                cursor:
+                                                                    'pointer',
+                                                            }}
+                                                            key={event._id}
+                                                            onClick={() => {
+                                                                this.props.history.push(
+                                                                    `/status-page/${this.props.statusData._id}/scheduledEvent/${event._id}`
+                                                                );
+                                                            }}
+                                                        >
+                                                            <div
+                                                                className="ongoing__schedulebox content box box__yellow--dark"
+                                                                style={{
+                                                                    padding:
+                                                                        '30px',
+                                                                    boxShadow:
+                                                                        '0 7px 14px 0 rgb(50 50 93 / 10%)',
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    style={{
+                                                                        textTransform:
+                                                                            'uppercase',
+                                                                        fontSize: 11,
+                                                                        fontWeight: 900,
+                                                                    }}
+                                                                >
+                                                                    Ongoing
+                                                                    Scheduled
+                                                                    Event
+                                                                </div>
+                                                                <div className="ongoing__scheduleitem">
+                                                                    <span>
+                                                                        {
+                                                                            event.name
+                                                                        }
+                                                                    </span>
+                                                                    <span>
+                                                                        {
+                                                                            event.description
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                                <div className="ongoing__affectedmonitor">
+                                                                    <AffectedResources
+                                                                        event={
+                                                                            event
+                                                                        }
+                                                                        monitorState={
+                                                                            this
+                                                                                .props
+                                                                                .monitorState
+                                                                        }
+                                                                    />
+                                                                </div>
 
-                                                <span
-                                                    style={{
-                                                        display: 'inline-block',
-                                                        fontSize: 12,
-                                                        marginTop: 5,
-                                                    }}
-                                                >
-                                                    {moment(
-                                                        event.startDate
-                                                    ).format(
-                                                        'MMMM Do YYYY, h:mm a'
-                                                    )}
-                                                    &nbsp;&nbsp;-&nbsp;&nbsp;
-                                                    {moment(
-                                                        event.endDate
-                                                    ).format(
-                                                        'MMMM Do YYYY, h:mm a'
-                                                    )}
-                                                </span>
-                                                <span className="sp__icon sp__icon--more"></span>
-                                            </div>
-                                        </div>
-                                    ))}
+                                                                <span
+                                                                    style={{
+                                                                        display:
+                                                                            'inline-block',
+                                                                        fontSize: 12,
+                                                                        marginTop: 5,
+                                                                    }}
+                                                                >
+                                                                    {moment(
+                                                                        event.startDate
+                                                                    ).format(
+                                                                        'MMMM Do YYYY, h:mm a'
+                                                                    )}
+                                                                    &nbsp;&nbsp;-&nbsp;&nbsp;
+                                                                    {moment(
+                                                                        event.endDate
+                                                                    ).format(
+                                                                        'MMMM Do YYYY, h:mm a'
+                                                                    )}
+                                                                </span>
+                                                                <span className="sp__icon sp__icon--more"></span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )
+                                    )}
                                 <ShouldRender
                                     if={
                                         this.props.statusData &&
@@ -866,13 +947,16 @@ class Main extends Component {
                                             this.props.statusData.projectId._id
                                         }
                                         statusPageId={this.props.statusData._id}
+                                        statusPageSlug={
+                                            this.props.statusData.slug
+                                        }
                                     />
                                 </ShouldRender>
                                 <div
                                     className="content"
                                     style={{
                                         position: 'relative',
-                                        marginTop: 75,
+                                        marginTop: 50,
                                     }}
                                 >
                                     <ShouldRender if={headerHTML}>
@@ -1127,6 +1211,9 @@ class Main extends Component {
                                             this.props.statusData.projectId._id
                                         }
                                         statusPageId={this.props.statusData._id}
+                                        statusPageSlug={
+                                            this.props.statusData.slug
+                                        }
                                     />
                                 </ShouldRender>
                                 <ShouldRender
@@ -1149,6 +1236,9 @@ class Main extends Component {
                                             }
                                             statusPageId={
                                                 this.props.statusData._id
+                                            }
+                                            statusPageSlug={
+                                                this.props.statusData.slug
                                             }
                                         />
                                     </ShouldRender>
@@ -1232,15 +1322,18 @@ const mapStateToProps = state => ({
     requestingEvents: state.status.events.requesting,
     statusPage: state.status.statusPage,
     isSubscriberEnabled: state.status.statusPage.isSubscriberEnabled,
+    scheduleHistoryDays: state.status.statusPage.scheduleHistoryDays,
+    ongoing: state.status.ongoing.ongoing,
 });
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             getStatusPage,
-            getProbes,
             selectedProbe,
             getScheduledEvent,
+            getProbes,
+            getOngoingScheduledEvent,
         },
         dispatch
     );
@@ -1250,6 +1343,7 @@ Main.propTypes = {
     status: PropTypes.object,
     getStatusPage: PropTypes.func,
     getProbes: PropTypes.func,
+    getOngoingScheduledEvent: PropTypes.func,
     login: PropTypes.object.isRequired,
     monitorState: PropTypes.array,
     monitors: PropTypes.array,
@@ -1259,9 +1353,11 @@ Main.propTypes = {
     events: PropTypes.array,
     history: PropTypes.object,
     getScheduledEvent: PropTypes.func,
+    scheduleHistoryDays: PropTypes.number,
     requestingEvents: PropTypes.bool,
     statusPage: PropTypes.object,
     isSubscriberEnabled: PropTypes.bool.isRequired,
+    ongoing: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

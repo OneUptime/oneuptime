@@ -38,7 +38,6 @@ const TeamMemberSelector = ({
         projectGroups.groups && projectGroups.groups,
         form[policyIndex].teams[teamIndex].teamMembers
     );
-    //console.log(allowedGroups, groups, 'consoling groups and allowed groups')
 
     const allowedOptionsForDropdown =
         renderType === 'team'

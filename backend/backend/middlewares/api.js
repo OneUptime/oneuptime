@@ -131,6 +131,16 @@ module.exports = {
         return statusPageId;
     },
 
+    getStatusPageSlug: function(req) {
+        const statusPageSlug =
+            req.params.statusPageSlug ||
+            req.query.statusPageSlug ||
+            req.headers['statusPageSlug'] ||
+            req.body.statusPageSlug;
+
+        return statusPageSlug;
+    },
+
     getStatusPageUrl: function(req) {
         const statusPageUrl =
             req.params.url ||

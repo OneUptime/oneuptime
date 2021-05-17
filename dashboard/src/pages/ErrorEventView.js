@@ -90,7 +90,7 @@ class ErrorEventView extends Component {
         history.push(
             '/dashboard/project/' +
                 currentProject.slug +
-                '/' +
+                '/component/' +
                 componentSlug +
                 '/error-trackers/' +
                 errorTracker[0].slug +

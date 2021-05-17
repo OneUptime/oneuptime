@@ -76,7 +76,7 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch_Ignored => {
+const mapDispatchToProps = () => {
     return null;
 };
 

@@ -22,7 +22,7 @@ class EventsMain extends Component {
     componentDidMount() {
         this.props.fetchFutureEvents(
             this.props.projectId,
-            this.props.statusPageId,
+            this.props.statusPageSlug,
             0
         );
     }
@@ -31,7 +31,7 @@ class EventsMain extends Component {
         this.props.showEventCard(true);
         this.props.fetchFutureEvents(
             this.props.projectId,
-            this.props.statusPageId,
+            this.props.statusPageSlug,
             0
         );
     };
@@ -39,7 +39,7 @@ class EventsMain extends Component {
     more = () => {
         this.props.fetchMoreFutureEvents(
             this.props.projectId,
-            this.props.statusPageId,
+            this.props.statusPageSlug,
             this.props.skip + 1
         );
     };
@@ -75,6 +75,7 @@ class EventsMain extends Component {
                     primaryTextColor={primaryTextColor}
                     noteBackgroundColor={noteBackgroundColor}
                     statusPageId={this.props.statusPageId}
+                    statusPageSlug={this.props.statusPageSlug}
                     monitorState={this.props.monitorState}
                 />
             );
@@ -91,6 +92,7 @@ class EventsMain extends Component {
                     primaryTextColor={primaryTextColor}
                     noteBackgroundColor={noteBackgroundColor}
                     statusPageId={this.props.statusPageId}
+                    statusPageSlug={this.props.statusPageSlug}
                     monitorState={this.props.monitorState}
                 />
             );
@@ -350,6 +352,7 @@ EventsMain.propTypes = {
     skip: PropTypes.number,
     count: PropTypes.number,
     statusPageId: PropTypes.string,
+    statusPageSlug: PropTypes.string,
     statusPage: PropTypes.object,
     fetchFutureEvents: PropTypes.func,
     futureEvents: PropTypes.object,

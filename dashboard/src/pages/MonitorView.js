@@ -63,6 +63,7 @@ class MonitorView extends React.Component {
 
         const { currentProject, componentSlug, fetchComponent } = this.props;
         fetchComponent(componentSlug);
+
         if (currentProject) {
             const userId = User.getUserId();
             const projectMember = currentProject.users.find(
@@ -275,16 +276,32 @@ class MonitorView extends React.Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab custom-tab-4'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-4 basic-tab'
+                                    }
+                                >
                                     Basic
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-4'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-4 subscribers-tab'
+                                    }
+                                >
                                     Subscribers
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-4'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-4 integrations-tab'
+                                    }
+                                >
                                     Integrations
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-4'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-4 advanced-options-tab'
+                                    }
+                                >
                                     Advanced Options
                                 </Tab>
                                 <div

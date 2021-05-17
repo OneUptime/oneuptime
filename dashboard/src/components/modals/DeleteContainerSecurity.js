@@ -47,7 +47,7 @@ class DeleteContainerSecurity extends Component {
 
         deleteContainerSecurity(data).then(() => {
             history.push(
-                `/dashboard/project/${this.props.slug}/${componentSlug}/security/container`
+                `/dashboard/project/${this.props.slug}/component/${componentSlug}/security/container`
             );
 
             if (!deleteContainerError) {

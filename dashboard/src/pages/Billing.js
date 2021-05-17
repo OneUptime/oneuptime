@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import CustomerBalance from '../components/paymentCard/CustomerBalance';
@@ -16,6 +15,8 @@ import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import ShouldRender from '../components/basic/ShouldRender';
 import { getSmtpConfig } from '../actions/smsTemplates';
 import { bindActionCreators } from 'redux';
+import DeleteProject from '../components/settings/DeleteProject';
+import RenderIfOwner from '../components/basic/RenderIfOwner';
 
 class Billing extends Component {
     constructor(props) {
@@ -57,6 +58,9 @@ class Billing extends Component {
                         <ShouldRender if={currentProject}>
                             <ChangePlan />
                         </ShouldRender>
+                        <RenderIfOwner>
+                            <DeleteProject />
+                        </RenderIfOwner>
                     </div>
                 </Fade>
             </Dashboard>
@@ -97,6 +101,4 @@ Billing.propTypes = {
     getSmtpConfig: PropTypes.func.isRequired,
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(Billing)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(Billing);

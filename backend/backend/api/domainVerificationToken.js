@@ -1,12 +1,13 @@
 const express = require('express');
 const psl = require('psl');
-const { getUser } = require('../middlewares/user');
+const { getUser, isUserMasterAdmin } = require('../middlewares/user');
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const DomainVerificationService = require('../services/domainVerificationService');
 const { sendListResponse } = require('../middlewares/response');
 const StatusPageService = require('../services/statusPageService');
+const ProjectService = require('../services/projectService');
 
 const router = express.Router();
 
@@ -39,6 +40,45 @@ router.put(
                 { _id: domainId },
                 { verified: true, verifiedAt: Date.now() },
                 subDomain
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.put(
+    '/:projectId/forceVerify/:domainId',
+    getUser,
+    isUserMasterAdmin,
+    async (req, res) => {
+        // id of the base domain
+        const { domainId } = req.params;
+        try {
+            const response = await DomainVerificationService.updateOneBy(
+                { _id: domainId },
+                { verified: true, verifiedAt: Date.now() }
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.put(
+    '/:projectId/unverify/:domainId',
+    getUser,
+    isUserMasterAdmin,
+    async (req, res) => {
+        try {
+            const { domainId } = req.params;
+            const response = await DomainVerificationService.updateOneBy(
+                {
+                    _id: domainId,
+                },
+                { verified: false }
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -111,6 +151,26 @@ router.post('/:projectId/domain', getUser, isAuthorized, async (req, res) => {
         return sendErrorResponse(req, res, error);
     }
 });
+
+//  resets a domain.
+//  req.params-> {projectId, domainId}
+//  Returns: response domain, error message
+router.put(
+    '/:projectId/resetDomain/:domainId',
+    getUser,
+    isUserMasterAdmin,
+    async (req, res) => {
+        try {
+            const { domainId } = req.params;
+            const domain = await DomainVerificationService.resetDomain(
+                domainId
+            );
+            return sendItemResponse(req, res, domain);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 router.put(
     '/:projectId/domain/:domainId',
@@ -186,10 +246,14 @@ router.delete(
     async (req, res) => {
         try {
             const { projectId, domainId } = req.params;
-
+            const projectArr = await ProjectService.findSubprojectId(projectId);
+            const projectIdInArr = await DomainVerificationService.findDomain(
+                domainId,
+                projectArr
+            );
             const response = await DomainVerificationService.deleteBy({
                 _id: domainId,
-                projectId,
+                projectId: projectIdInArr,
             });
             return sendItemResponse(req, res, response);
         } catch (error) {

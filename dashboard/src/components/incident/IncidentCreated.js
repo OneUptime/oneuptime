@@ -26,7 +26,7 @@ class IncidentCreated extends Component {
             logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});
         }
         history.push(
-            `/dashboard/project/${this.props.slug}/${slug}/incidents/${idNumber}`
+            `/dashboard/project/${this.props.slug}/component/${slug}/incidents/${idNumber}`
         );
     };
 
