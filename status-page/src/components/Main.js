@@ -1040,7 +1040,6 @@ class Main extends Component {
                             this.props.statusData.bannerPath ? (
                                 <div className="banner-container">
                                     <div className="page-main-wrapper">
-                                        {/* Banner */}
                                         <span>
                                             <img
                                                 src={`${API_URL}/file/${this.props.statusData.bannerPath}`}
@@ -1093,8 +1092,6 @@ class Main extends Component {
                                     </ShouldRender>
                                 </div>
                             </ShouldRender>
-
-                            {/* from here na i wan begin do my work now */}
                             <div className="new-main-container">
                                 {visibleLayout &&
                                     visibleLayout.visible.map(layout => (
