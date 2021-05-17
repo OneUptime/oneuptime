@@ -443,10 +443,17 @@ class Main extends Component {
             resources: (
                 <div
                     className="sy-op"
-                    style={{ backgroundColor: newbg }}
+                    style={{
+                        backgroundColor:
+                            this.props.ongoing && this.props.ongoing.length > 0
+                                ? 'rgb(227, 159, 72)'
+                                : newbg,
+                    }}
                     id="status-note"
                 >
-                    {newStatusMessage}
+                    {this.props.ongoing && this.props.ongoing.length > 0
+                        ? 'Ongoing Scheduled Maintenance Event'
+                        : newStatusMessage}
                 </div>
             ),
             services: (
