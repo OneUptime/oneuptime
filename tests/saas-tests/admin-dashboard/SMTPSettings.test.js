@@ -48,7 +48,6 @@ describe('SMTP Settings API', () => {
             await init.pageWaitForSelector(page, '#smtp-form');
             await init.pageClick(page, '#email-enabled');
             await init.pageClick(page, '#customSmtp');
-            
 
             const originalValues = await page.$$eval('input', e =>
                 e.map(field => field.value)

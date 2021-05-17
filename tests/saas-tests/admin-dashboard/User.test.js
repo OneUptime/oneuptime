@@ -11,7 +11,7 @@ const password = '1234567890';
 describe('SMTP Settings API', () => {
     const operationTimeOut = init.timeout;
 
-    beforeAll(async (done) => {
+    beforeAll(async done => {
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -24,13 +24,13 @@ describe('SMTP Settings API', () => {
             email: email,
             password: password,
         };
-        
+
         // user
         await init.loginAdminUser(user, page);
         done();
     });
 
-    afterAll(async (done) => {
+    afterAll(async done => {
         await browser.close();
         done();
     });
@@ -42,7 +42,7 @@ describe('SMTP Settings API', () => {
             await init.pageWaitForSelector(page, '.bs-ObjectList-rows > a');
             const users = await page.$$('.bs-ObjectList-rows > a');
             await users[1].click();
-            
+
             await init.pageWaitForSelector(page, '#disableUser2fa');
             await init.pageClick(page, '#disableUser2fa');
 
@@ -63,7 +63,7 @@ describe('SMTP Settings API', () => {
             await init.pageWaitForSelector(page, '.bs-ObjectList-rows > a');
             const users = await page.$$('.bs-ObjectList-rows > a');
             await users[0].click();
-            
+
             const elem = await page.$('#disableUser2fa');
             expect(elem).toEqual(null);
         },

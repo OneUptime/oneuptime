@@ -12,7 +12,6 @@ const dockerRegistryUrl = utils.dockerCredential.dockerRegistryUrl;
 const dockerUsername = utils.dockerCredential.dockerUsername;
 const dockerPassword = utils.dockerCredential.dockerPassword;
 
-
 /** This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
@@ -57,7 +56,9 @@ describe('Fyipe Page Reload', () => {
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbProjectSettings', { visible: true });
-            await page.waitForSelector('#cbDockerCredentials', { visible: true });
+            await page.waitForSelector('#cbDockerCredentials', {
+                visible: true,
+            });
             const spanElement2 = await page.waitForSelector(
                 `#dockerUsername_${dockerUsername}`
             );

@@ -40,7 +40,7 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#more');
             await init.pageClick(page, '#teamGroups');
-            await init.pageClick(page, '#btn_Add_SubProjects');                        
+            await init.pageClick(page, '#btn_Add_SubProjects');
             await init.pageType(page, '#groupName', groupName);
             await init.selectByText('#componentList', 'Test Name', page);
             await init.pageClick(page, '#btnAddGroup');
