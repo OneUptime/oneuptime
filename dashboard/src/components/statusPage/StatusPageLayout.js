@@ -16,6 +16,7 @@ const getItemStyle = (isDragging, draggableStyle) => ({
     borderRadius: '5px',
     background: isDragging ? 'lightgreen' : 'black',
     ...draggableStyle,
+    ...(isDragging && { pointerEvents: 'auto' }),
 });
 
 const getListStyle = isDraggingOver => ({
@@ -28,6 +29,7 @@ const getListStyle = isDraggingOver => ({
 export class StatusPageLayout extends Component {
     state = {
         visible: [
+            { name: 'Announcement', id: 11, key: 'anouncement' },
             { name: 'Resources Status', id: 12, key: 'resources' },
             { name: 'Services Status', id: 13, key: 'services' },
             { name: 'Past Incidents', id: 14, key: 'pastIncidents' },
@@ -38,29 +40,104 @@ export class StatusPageLayout extends Component {
 
     componentDidMount() {
         const { statusPage } = this.props;
-        const { layout } = statusPage.status;
-        const visible = (layout && layout.visible) || [];
-        const invisible = (layout && layout.invisible) || [];
+        const {
+            classicThemeLayout,
+            cleanThemeLayout,
+            theme,
+        } = statusPage.status;
 
-        if (visible.length > 0 || invisible.length > 0) {
-            this.setState({
-                visible,
-                invisible,
-            });
+        if (theme === 'Classic Theme') {
+            const visible =
+                (classicThemeLayout && classicThemeLayout.visible) || [];
+            const invisible =
+                (classicThemeLayout && classicThemeLayout.invisible) || [];
+
+            if (visible.length === 0 && invisible.length === 0) {
+                this.setState({
+                    visible: [
+                        { name: 'Announcement', id: 11, key: 'anouncement' },
+                        {
+                            name: 'Ongoing Schedule Events',
+                            id: 12,
+                            key: 'ongoingSchedule',
+                        },
+                        { name: 'Services Status', id: 13, key: 'services' },
+                        {
+                            name: 'Incidents',
+                            id: 14,
+                            key: 'incidents',
+                        },
+                        {
+                            name: 'Future Schedule Events',
+                            id: 15,
+                            key: 'futureSchedule',
+                        },
+                    ],
+                    invisible: [],
+                });
+            } else {
+                this.setState({
+                    visible,
+                    invisible,
+                });
+            }
+        } else {
+            const visible =
+                (cleanThemeLayout && cleanThemeLayout.visible) || [];
+            const invisible =
+                (cleanThemeLayout && cleanThemeLayout.invisible) || [];
+
+            if (visible.length === 0 && invisible.length === 0) {
+                this.setState({
+                    visible: [
+                        { name: 'Announcement', id: 11, key: 'anouncement' },
+                        { name: 'Resources Status', id: 12, key: 'resources' },
+                        { name: 'Services Status', id: 13, key: 'services' },
+                        {
+                            name: 'Past Incidents',
+                            id: 14,
+                            key: 'pastIncidents',
+                        },
+                        {
+                            name: 'Scheduled Maintenance',
+                            id: 15,
+                            key: 'maintenance',
+                        },
+                    ],
+                    invisible: [],
+                });
+            } else {
+                this.setState({
+                    visible,
+                    invisible,
+                });
+            }
         }
     }
     handleSubmit = () => {
-        const layout = {
-            visible: this.state.visible,
-            invisible: this.state.invisible,
-        };
         const { statusPage } = this.props;
-        const { _id, projectId } = statusPage.status;
-        this.props.updateStatusPageLayout(projectId._id, {
-            _id,
-            projectId,
-            layout,
-        });
+        const { _id, projectId, theme } = statusPage.status;
+        if (theme === 'Classic Theme') {
+            const classicThemeLayout = {
+                visible: this.state.visible,
+                invisible: this.state.invisible,
+            };
+            this.props.updateStatusPageLayout(projectId._id, {
+                _id,
+                projectId,
+                classicThemeLayout,
+            });
+        } else {
+            const cleanThemeLayout = {
+                visible: this.state.visible,
+                invisible: this.state.invisible,
+            };
+            this.props.updateStatusPageLayout(projectId._id, {
+                _id,
+                projectId,
+                cleanThemeLayout,
+            });
+        }
     };
 
     onDragEnd = result => {
@@ -165,10 +242,11 @@ export class StatusPageLayout extends Component {
                                                 }}
                                                 className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                             >
-                                                Visible{' '}
+                                                Visible on the Status Page{' '}
+                                                <br />
                                                 <span className="ContentHeader-description Text-color--inherit Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Layout-content-header">
-                                                    (Items in this column will
-                                                    be visible on status page)
+                                                    Items in this column will be
+                                                    visible on status page
                                                 </span>
                                             </div>
 
@@ -185,9 +263,10 @@ export class StatusPageLayout extends Component {
                                                         <div
                                                             style={getItemStyle(
                                                                 false,
+                                                                false,
                                                                 false
                                                             )}
-                                                            className='Layout-box'
+                                                            className="Layout-box"
                                                         >
                                                             Header
                                                         </div>
@@ -221,9 +300,10 @@ export class StatusPageLayout extends Component {
                                                                                 provided
                                                                                     .draggableProps
                                                                                     .style,
-                                                                                item.color
+
+                                                                                true
                                                                             )}
-                                                                             className='Layout-box'
+                                                                            className="Layout-box movable-layout-box"
                                                                         >
                                                                             {
                                                                                 item.name
@@ -237,9 +317,10 @@ export class StatusPageLayout extends Component {
                                                         <div
                                                             style={getItemStyle(
                                                                 false,
+                                                                false,
                                                                 false
                                                             )}
-                                                            className='Layout-box'
+                                                            className="Layout-box"
                                                         >
                                                             Footer
                                                         </div>
@@ -263,10 +344,11 @@ export class StatusPageLayout extends Component {
                                                 }}
                                                 className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                             >
-                                                Invisible{' '}
+                                                Hidden on the Status Page
+                                                <br />
                                                 <span className="ContentHeader-description Text-color--inherit Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Layout-content-header">
-                                                    (Items in this column will
-                                                    be hidden on status page)
+                                                    Items in this column will be
+                                                    hidden on status page
                                                 </span>
                                             </div>
                                             <Droppable droppableId="invisible">
@@ -310,9 +392,9 @@ export class StatusPageLayout extends Component {
                                                                                 provided
                                                                                     .draggableProps
                                                                                     .style,
-                                                                                item.color
+                                                                                true
                                                                             )}
-                                                                            className='Layout-box'
+                                                                            className="Layout-box movable-layout-box"
                                                                         >
                                                                             {
                                                                                 item.name
