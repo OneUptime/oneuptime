@@ -79,14 +79,13 @@ const SmtpTestModal = ({
                                                         <div className="bs-Fieldset-field">
                                                             <label
                                                                 className="bs-Radio"
-                                                                htmlFor="internalSmtpBtn"
+                                                                id="internalSmtpBtn" //setting id at label removes intermittent result
                                                             >
                                                                 <Field
                                                                     component="input"
                                                                     type="radio"
                                                                     name="smtpToUse"
-                                                                    className="bs-Radio-source"
-                                                                    id="internalSmtpBtn"
+                                                                    className="bs-Radio-source"                                                                    
                                                                     value="internalSmtp"
                                                                     style={{
                                                                         width: 0,
@@ -131,14 +130,13 @@ const SmtpTestModal = ({
                                                         <div className="bs-Fieldset-field">
                                                             <label
                                                                 className="bs-Radio"
-                                                                htmlFor="customSmtpBtn"
+                                                                id="customSmtpBtn"
                                                             >
                                                                 <Field
                                                                     component="input"
                                                                     type="radio"
                                                                     name="smtpToUse"
-                                                                    className="bs-Radio-source"
-                                                                    id="customSmtpBtn"
+                                                                    className="bs-Radio-source"                                                                    
                                                                     value="customSmtp"
                                                                     style={{
                                                                         width: 0,

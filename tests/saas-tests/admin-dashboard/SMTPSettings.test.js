@@ -9,7 +9,7 @@ require('should');
 const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
-const randomEmail = utils.generateRandomBusinessEmail();
+const smtpName = 'Hackerbay'
 const wrongPassword = utils.generateRandomString();
 
 describe('SMTP Settings API', () => {
@@ -37,7 +37,7 @@ describe('SMTP Settings API', () => {
 
     test(
         'Should not submit empty fields',
-        async () => {
+        async (done) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#settings');
             await init.pageClick(page, '#settings a');
@@ -53,37 +53,38 @@ describe('SMTP Settings API', () => {
                 e.map(field => field.value)
             );
             await init.pageClick(page, 'input[name=email]');
-            await init.pageType(page, 'input[name=email]', ' ');
+            await init.pageType(page, 'input[name=email]', '');
             await init.pageClick(page, 'input[name=password]');
-            await init.pageType(page, 'input[name=password]', ' ');
+            await init.pageType(page, 'input[name=password]', '');
             await init.pageClick(page, 'input[name=smtp-server]');
-            await init.pageType(page, 'input[name=smtp-server]', ' ');
+            await init.pageType(page, 'input[name=smtp-server]', '');
             await init.pageClick(page, 'input[name=smtp-port]');
-            await init.pageType(page, 'input[name=smtp-port]', ' ');
+            await init.pageType(page, 'input[name=smtp-port]', '');
             await init.pageClick(page, 'input[name=from]');
-            await init.pageType(page, 'input[name=from]', ' ');
+            await init.pageType(page, 'input[name=from]', '');
             await init.pageClick(page, 'input[name=from-name]');
-            await init.pageType(page, 'input[name=from-name]', ' ');
+            await init.pageType(page, 'input[name=from-name]', '');
             await init.pageClick(page, 'button[type=submit]');
 
             // All fields should validate false
             expect((await page.$$('span.field-error')).length).toEqual(
-                (await page.$$('input')).length - 2
+                (await page.$$('input')).length - 4 /** There 10 input values and 6 span-errors */
             );
 
-            await page.reload();
+            //Since we did not save the settings, reloading the page automatically removes the input values
 
             // All fields should remain as were
             expect(
                 await page.$$eval('input', e => e.map(field => field.value))
             ).toEqual(originalValues);
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should save valid form data',
-        async () => {
+        async (done) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#settings');
             await init.pageClick(page, '#settings');
@@ -119,12 +120,12 @@ describe('SMTP Settings API', () => {
                 utils.smtpCredential.port
             );
             await init.pageClick(page, 'input[name=from]');
-            await init.pageType(page, 'input[name=from]', randomEmail);
+            await init.pageType(page, 'input[name=from]', utils.smtpCredential.from);
             await init.pageClick(page, 'input[name=from-name]');
             await init.pageType(
                 page,
                 'input[name=from-name]',
-                utils.smtpCredential.name
+                smtpName
             );
             await page.$eval('#smtp-secure', element => element.click());
             await init.pageClick(page, 'button[type=submit]');
@@ -134,13 +135,14 @@ describe('SMTP Settings API', () => {
             const value = await page.$eval('input[name=email]', e => e.value);
 
             expect(value).toEqual(utils.smtpCredential.user);
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should open a test success modal with valid smtp settings',
-        async () => {
+        async (done) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#settings');
             await init.pageClick(page, '#settings');
@@ -157,20 +159,21 @@ describe('SMTP Settings API', () => {
 
             await init.pageWaitForSelector(
                 page,
-                '.bs-Modal-header > div > span > span'
+                '#test-result'
             );
-            let elem = await page.$('.bs-Modal-header > div > span > span');
+            let elem = await page.$('#test-result');
             elem = await elem.getProperty('innerText');
             elem = await elem.jsonValue();
 
             expect(elem).toEqual('Test Email Sent');
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should open a test failed modal with invalid smtp settings',
-        async () => {
+        async (done) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#settings');
             await init.pageClick(page, '#settings');
@@ -190,13 +193,14 @@ describe('SMTP Settings API', () => {
 
             await init.pageWaitForSelector(
                 page,
-                '.bs-Modal-header > div > span > span'
+                '#test-result'
             );
-            let elem = await page.$('.bs-Modal-header > div > span > span');
+            let elem = await page.$('#test-result');
             elem = await elem.getProperty('innerText');
             elem = await elem.jsonValue();
 
             expect(elem).toEqual('Test Failed');
+            done();
         },
         operationTimeOut
     );
