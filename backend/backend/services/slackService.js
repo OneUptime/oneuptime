@@ -196,7 +196,12 @@ module.exports = {
         }
     },
 
-    sendIncidentNoteNotification: async function(projectId, incident, data) {
+    sendIncidentNoteNotification: async function(
+        projectId,
+        incident,
+        data,
+        monitor
+    ) {
         try {
             const self = this;
             let response;
@@ -204,10 +209,11 @@ module.exports = {
             if (project && project.parentProjectId) {
                 projectId = project.parentProjectId._id;
             }
+
             const query = {
                 projectId: projectId,
                 integrationType: 'slack',
-                monitorId: incident.monitorId._id,
+                monitorId: monitor._id,
                 'notificationOptions.incidentNoteAdded': true,
             };
 
@@ -218,7 +224,8 @@ module.exports = {
                     project,
                     incident,
                     integration,
-                    data
+                    data,
+                    monitor
                 );
             }
             return response;
@@ -232,7 +239,7 @@ module.exports = {
     },
 
     // send notification to slack workspace channels when note is created
-    async noteNotify(project, incident, integration, data) {
+    async noteNotify(project, incident, integration, data, monitor) {
         try {
             const uri = `${global.dashboardHost}/project/${project.slug}/${integration.monitorId.componentId._id}/incidents/${incident._id}`;
 
@@ -242,7 +249,7 @@ module.exports = {
                         color: '#fedc56',
                         title: `Incident Note Created`,
                         title_link: uri,
-                        text: `State:             ${data.incident_state}\nCreated By:   ${data.created_by}\nMonitor:        *${incident.monitorId.componentId.name} / ${incident.monitorId.name}*\nText:               ${data.content}`,
+                        text: `State:             ${data.incident_state}\nCreated By:   ${data.created_by}\nMonitor:        *${monitor.componentId.name} / ${monitor.name}*\nText:               ${data.content}`,
                     },
                 ],
             };

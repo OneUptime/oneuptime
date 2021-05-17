@@ -25,8 +25,10 @@ module.exports = {
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitors.monitorId',
-                    select: '_id name type slug',
-                    populate: { path: 'componentId', select: '_id name slug' },
+                    populate: [
+                        { path: 'componentId', select: '_id name slug' },
+                        { path: 'projectId', select: '_id name slug' },
+                    ],
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
@@ -311,11 +313,13 @@ module.exports = {
                 .populate('createdByIncomingHttpRequest', 'name')
                 .populate({
                     path: 'monitors.monitorId',
-                    select: 'name slug',
-                    populate: {
-                        path: 'componentId',
-                        select: 'name slug',
-                    },
+                    populate: [
+                        {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                        { path: 'projectId', select: '_id name slug' },
+                    ],
                 });
             return incident;
         } catch (error) {
@@ -370,8 +374,10 @@ module.exports = {
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitors.monitorId',
-                    select: '_id name slug',
-                    populate: { path: 'componentId', select: '_id name slug' },
+                    populate: [
+                        { path: 'componentId', select: '_id name slug' },
+                        { path: 'projectId', select: '_id name slug' },
+                    ],
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
@@ -576,57 +582,69 @@ module.exports = {
                         'acknowledge'
                     );
                 }
-                // Ping webhook
-                const monitor = await MonitorService.findOneBy({
-                    _id: incident.monitorId,
-                });
-                const component = await ComponentService.findOneBy({
-                    _id:
-                        monitor.componentId && monitor.componentId._id
-                            ? monitor.componentId._id
-                            : monitor.componentId,
-                });
+
                 incident = await _this.findOneBy({ _id: incident._id });
 
-                await IncidentTimelineService.create({
-                    incidentId: incidentId,
-                    createdById: userId,
-                    probeId: probeId,
-                    createdByZapier: zapier,
-                    status: 'acknowledged',
+                // Ping webhook
+                const monitors = incident.monitors.map(
+                    monitor => monitor.monitorId
+                );
+
+                // assuming all the monitors in the incident is from the same component
+                // which makes sense, since having multiple component will make things more complicated
+                const component = await ComponentService.findOneBy({
+                    _id:
+                        monitors[0] &&
+                        monitors[0].componentId &&
+                        monitors[0].componentId._id
+                            ? monitors[0].componentId._id
+                            : monitors[0].componentId,
                 });
+                for (const monitor of monitors) {
+                    await IncidentTimelineService.create({
+                        incidentId: incidentId,
+                        createdById: userId,
+                        probeId: probeId,
+                        createdByZapier: zapier,
+                        status: 'acknowledged',
+                    });
 
-                await AlertService.sendAcknowledgedIncidentToSubscribers(
-                    incident
-                );
-                await AlertService.sendAcknowledgedIncidentMail(incident);
+                    WebHookService.sendIntegrationNotification(
+                        incident.projectId,
+                        incident,
+                        monitor,
+                        INCIDENT_ACKNOWLEDGED,
+                        component,
+                        downtimestring
+                    );
 
-                WebHookService.sendIntegrationNotification(
-                    incident.projectId,
-                    incident,
-                    monitor,
-                    INCIDENT_ACKNOWLEDGED,
-                    component,
-                    downtimestring
-                );
+                    SlackService.sendNotification(
+                        incident.projectId,
+                        incident,
+                        monitor,
+                        INCIDENT_ACKNOWLEDGED,
+                        component,
+                        downtimestring
+                    );
 
-                SlackService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    INCIDENT_ACKNOWLEDGED,
-                    component,
-                    downtimestring
-                );
+                    MsTeamsService.sendNotification(
+                        incident.projectId,
+                        incident,
+                        monitor,
+                        INCIDENT_ACKNOWLEDGED,
+                        component,
+                        downtimestring
+                    );
 
-                MsTeamsService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    INCIDENT_ACKNOWLEDGED,
-                    component,
-                    downtimestring
-                );
+                    await AlertService.sendAcknowledgedIncidentToSubscribers(
+                        incident,
+                        monitor
+                    );
+                    await AlertService.sendAcknowledgedIncidentMail(
+                        incident,
+                        monitor
+                    );
+                }
 
                 RealTimeService.incidentAcknowledged(incident);
                 ZapierService.pushToZapier('incident_acknowledge', incident);
@@ -692,22 +710,33 @@ module.exports = {
 
             incident = await _this.findOneBy({ _id: incident._id });
 
-            if (incident.probes && incident.probes.length > 0) {
-                incident.probes.forEach(async probe => {
+            const monitors = incident.monitors.map(
+                monitor => monitor.monitorId
+            );
+            for (const monitor of monitors) {
+                if (incident.probes && incident.probes.length > 0) {
+                    for (const probe of incident.probes) {
+                        await MonitorStatusService.create({
+                            monitorId: monitor._id,
+                            probeId: probe.probeId ? probe.probeId._id : null,
+                            manuallyCreated: userId ? true : false,
+                            status: 'online',
+                        });
+                    }
+                } else {
                     await MonitorStatusService.create({
-                        monitorId: incident.monitorId._id,
-                        probeId: probe.probeId ? probe.probeId._id : null,
+                        monitorId: monitor._id,
+                        probeId,
                         manuallyCreated: userId ? true : false,
                         status: 'online',
                     });
-                });
-            } else {
-                MonitorStatusService.create({
-                    monitorId: incident.monitorId._id,
-                    probeId,
-                    manuallyCreated: userId ? true : false,
-                    status: 'online',
-                });
+                }
+
+                await _this.sendIncidentResolvedNotification(
+                    incident,
+                    name,
+                    monitor
+                );
             }
 
             // automatically create resolved incident note
@@ -728,7 +757,6 @@ module.exports = {
                 status: 'resolved',
             });
 
-            await _this.sendIncidentResolvedNotification(incident, name);
             RealTimeService.incidentResolved(incident);
             ZapierService.pushToZapier('incident_resolve', incident);
 
@@ -834,12 +862,9 @@ module.exports = {
         const count = await _this.countBy(query);
         return { incidents, count, _id: projectId };
     },
-    sendIncidentResolvedNotification: async function(incident, name) {
+    sendIncidentResolvedNotification: async function(incident, name, monitor) {
         try {
             const _this = this;
-            const monitor = await MonitorService.findOneBy({
-                _id: incident.monitorId,
-            });
             const component = await ComponentService.findOneBy({
                 _id:
                     monitor.componentId && monitor.componentId._id
@@ -857,7 +882,7 @@ module.exports = {
             SlackService.sendNotification(
                 incident.projectId,
                 incident,
-                incident.monitorId,
+                monitor,
                 INCIDENT_RESOLVED,
                 component,
                 downtimestring
@@ -866,7 +891,7 @@ module.exports = {
             WebHookService.sendIntegrationNotification(
                 incident.projectId,
                 incident,
-                resolvedincident.monitorId,
+                monitor,
                 INCIDENT_RESOLVED,
                 component,
                 downtimestring
@@ -875,18 +900,21 @@ module.exports = {
             MsTeamsService.sendNotification(
                 incident.projectId,
                 incident,
-                incident.monitorId,
+                monitor,
                 INCIDENT_RESOLVED,
                 component,
                 downtimestring
             );
 
             // send notificaton to subscribers
-            await AlertService.sendResolvedIncidentToSubscribers(incident);
-            await AlertService.sendResolveIncidentMail(incident);
+            await AlertService.sendResolvedIncidentToSubscribers(
+                incident,
+                monitor
+            );
+            await AlertService.sendResolveIncidentMail(incident, monitor);
 
             const msg = `${
-                resolvedincident.monitorId.name
+                monitor.name
             } monitor was down for ${downtimestring} and is now resolved by ${name ||
                 (resolvedincident.resolvedBy &&
                     resolvedincident.resolvedBy.name) ||
@@ -911,17 +939,24 @@ module.exports = {
 
     sendIncidentNoteAdded: async function(projectId, incident, data) {
         try {
-            await SlackService.sendIncidentNoteNotification(
-                projectId,
-                incident,
-                data
+            const monitors = incident.monitors.map(
+                monitor => monitor.monitorId
             );
+            for (const monitor of monitors) {
+                await SlackService.sendIncidentNoteNotification(
+                    projectId,
+                    incident,
+                    data,
+                    monitor
+                );
 
-            await MsTeamsService.sendIncidentNoteNotification(
-                projectId,
-                incident,
-                data
-            );
+                await MsTeamsService.sendIncidentNoteNotification(
+                    projectId,
+                    incident,
+                    data,
+                    monitor
+                );
+            }
 
             await ZapierService.pushToZapier('incident_note', incident, data);
         } catch (error) {
@@ -989,24 +1024,75 @@ module.exports = {
      */
     removeMonitor: async function(monitorId, userId) {
         try {
-            const incidents = await this.findBy({ monitorId: monitorId });
+            const incidents = await this.findBy({
+                'monitors.monitorId': monitorId,
+            });
 
             await Promise.all(
                 incidents.map(async incident => {
                     // only delete the incident, since the monitor can be restored
-                    const deletedIncident = await IncidentModel.findOneAndUpdate(
-                        { _id: incident._id },
-                        {
-                            $set: {
-                                deleted: true,
-                                deletedAt: Date.now(),
-                                deletedById: userId,
-                            },
-                        },
-                        { new: true }
-                    );
+                    const monitors = incident.monitors
+                        .map(
+                            monitor =>
+                                monitor.monitorId._id || monitor.monitorId
+                        )
+                        .filter(id => String(id) !== String(monitorId));
 
-                    await RealTimeService.deleteIncident(deletedIncident);
+                    let updatedIncident = null;
+                    if (monitors.length === 0) {
+                        // no more monitor in monitors array
+                        // delete incident
+                        updatedIncident = await IncidentModel.findOneAndUpdate(
+                            {
+                                _id: incident._id,
+                            },
+                            {
+                                $set: {
+                                    deleted: true,
+                                    deletedAt: Date.now(),
+                                    deletedById: userId,
+                                    monitors,
+                                },
+                            },
+                            { new: true }
+                        );
+                    } else {
+                        updatedIncident = await IncidentModel.findOneAndUpdate(
+                            {
+                                _id: incident._id,
+                            },
+                            {
+                                $set: {
+                                    monitors,
+                                },
+                            },
+                            { new: true }
+                        );
+                    }
+
+                    updatedIncident = await updatedIncident
+                        .populate('acknowledgedBy', 'name')
+                        .populate('monitorId', 'name')
+                        .populate('resolvedBy', 'name')
+                        .populate('createdById', 'name')
+                        .populate('probes.probeId')
+                        .populate('incidentPriority', 'name color')
+                        .populate({
+                            path: 'monitors.monitorId',
+                            populate: [
+                                {
+                                    path: 'componentId',
+                                    select: '_id name slug',
+                                },
+                                { path: 'projectId', select: '_id name slug' },
+                            ],
+                        })
+                        .populate('acknowledgedByIncomingHttpRequest', 'name')
+                        .populate('resolvedByIncomingHttpRequest', 'name')
+                        .populate('createdByIncomingHttpRequest', 'name')
+                        .execPopulate();
+
+                    await RealTimeService.deleteIncident(updatedIncident);
                 })
             );
         } catch (error) {

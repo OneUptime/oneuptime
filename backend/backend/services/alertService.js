@@ -12,7 +12,6 @@ module.exports = {
      */
     getSchedulesForAlerts: async function(incident) {
         try {
-            // const monitorId = incident.monitorId._id || incident.monitorId;
             const projectId = incident.projectId._id || incident.projectId;
 
             const monitors = await MonitorService.findBy({
@@ -916,7 +915,7 @@ module.exports = {
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const ack_url = `${global.apiHost}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
         const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${monitor.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -1077,8 +1076,8 @@ module.exports = {
                 const monitorName = monitor.name;
                 const incidentId = `#${incident.idNumber}`;
                 const reason = incident.reason;
-                const componentSlug = incident.monitorId.componentId.slug;
-                const componentName = incident.monitorId.componentId.name;
+                const componentSlug = monitor.componentId.slug;
+                const componentName = monitor.componentId.name;
                 const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.idNumber}`;
                 let incidentSlaTimeline =
                     incidentCommunicationSla.duration * 60;
@@ -1548,43 +1547,45 @@ module.exports = {
         statusPageNoteData
     ) {
         try {
-            const monitor = await MonitorService.findOneBy({
-                _id: incident.monitorId,
-            });
-            const component = await componentService.findOneBy({
-                _id: monitor.componentId,
-            });
-
-            let incidentStatus;
-            if (incident.resolved) {
-                incidentStatus = INCIDENT_RESOLVED;
-            } else if (incident.acknowledged) {
-                incidentStatus = INCIDENT_ACKNOWLEDGED;
-            } else {
-                incidentStatus = INCIDENT_CREATED;
-            }
-            const downTimeString = calculateHumanReadableDownTime(
-                incident.createdAt
+            const monitors = incident.monitors.map(
+                monitor => monitor.monitorId
             );
+            for (const monitor of monitors) {
+                const component = await componentService.findOneBy({
+                    _id: monitor.componentId,
+                });
 
-            WebHookService.sendIntegrationNotification(
-                projectId,
-                incident,
-                monitor,
-                incidentStatus,
-                component,
-                downTimeString,
-                {
-                    note: statusPageNoteData.content,
-                    incidentState: statusPageNoteData.incident_state,
-                    statusNoteStatus: statusPageNoteData.statusNoteStatus,
+                let incidentStatus;
+                if (incident.resolved) {
+                    incidentStatus = INCIDENT_RESOLVED;
+                } else if (incident.acknowledged) {
+                    incidentStatus = INCIDENT_ACKNOWLEDGED;
+                } else {
+                    incidentStatus = INCIDENT_CREATED;
                 }
-            ).catch(error => {
-                ErrorService.log(
-                    'AlertService.sendInvestigationNoteToProjectWebhooks',
-                    error
+                const downTimeString = calculateHumanReadableDownTime(
+                    incident.createdAt
                 );
-            });
+
+                WebHookService.sendIntegrationNotification(
+                    projectId,
+                    incident,
+                    monitor,
+                    incidentStatus,
+                    component,
+                    downTimeString,
+                    {
+                        note: statusPageNoteData.content,
+                        incidentState: statusPageNoteData.incident_state,
+                        statusNoteStatus: statusPageNoteData.statusNoteStatus,
+                    }
+                ).catch(error => {
+                    ErrorService.log(
+                        'AlertService.sendInvestigationNoteToProjectWebhooks',
+                        error
+                    );
+                });
+            }
         } catch (error) {
             ErrorService.log(
                 'AlertService.sendStatusPageNoteNotificationToProjectWebhooks',
@@ -1602,41 +1603,35 @@ module.exports = {
         try {
             const _this = this;
             const uuid = new Date().getTime();
-            const monitor = await MonitorService.findOneBy({
-                _id: incident.monitorId._id,
-            });
-            // eslint-disable-next-line no-unused-vars
-            const component = await ComponentService.findOneBy({
-                _id:
-                    monitor.componentId && monitor.componentId._id
-                        ? monitor.componentId._id
-                        : monitor.componentId,
-            });
-            if (incident) {
-                const monitorId = incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId;
-                const subscribers = await SubscriberService.subscribersForAlert(
-                    {
-                        monitorId: monitorId,
-                        subscribed: true,
-                    }
-                );
-                for (const subscriber of subscribers) {
-                    await _this.sendSubscriberAlert(
-                        subscriber,
-                        incident,
-                        'Investigation note is created',
-                        null,
+
+            const monitors = incident.monitors.map(
+                monitor => monitor.monitorId
+            );
+            for (const monitor of monitors) {
+                if (incident) {
+                    const monitorId = monitor._id;
+                    const subscribers = await SubscriberService.subscribersForAlert(
                         {
-                            note: data.content,
-                            incidentState: data.incident_state,
-                            noteType: data.incident_state,
-                            statusNoteStatus,
-                        },
-                        subscribers.length,
-                        uuid
+                            monitorId: monitorId,
+                            subscribed: true,
+                        }
                     );
+                    for (const subscriber of subscribers) {
+                        await _this.sendSubscriberAlert(
+                            subscriber,
+                            incident,
+                            'Investigation note is created',
+                            null,
+                            {
+                                note: data.content,
+                                incidentState: data.incident_state,
+                                noteType: data.incident_state,
+                                statusNoteStatus,
+                            },
+                            subscribers.length,
+                            uuid
+                        );
+                    }
                 }
             }
         } catch (error) {
@@ -1705,22 +1700,18 @@ module.exports = {
         }
     },
 
-    sendAcknowledgedIncidentMail: async function(incident) {
+    sendAcknowledgedIncidentMail: async function(incident, monitor) {
         try {
             const _this = this;
             if (incident) {
-                const monitorId = incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId;
-
                 const projectId = incident.projectId._id
                     ? incident.projectId._id
                     : incident.projectId;
 
                 const schedules = await this.getSchedulesForAlerts(incident);
 
-                const monitor = await MonitorService.findOneBy({
-                    _id: monitorId,
+                monitor = await MonitorService.findOneBy({
+                    _id: monitor._id,
                 });
                 const project = await ProjectService.findOneBy({
                     _id: projectId,
@@ -1812,7 +1803,7 @@ module.exports = {
                             if (escalation.email) {
                                 await _this.create({
                                     projectId: incident.projectId,
-                                    monitorId,
+                                    monitorId: monitor._id,
                                     alertVia: AlertType.Email,
                                     userId: user._id,
                                     incidentId: incident._id,
@@ -1869,7 +1860,7 @@ module.exports = {
 
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${monitor.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -2016,22 +2007,18 @@ module.exports = {
         }
     },
 
-    sendResolveIncidentMail: async function(incident) {
+    sendResolveIncidentMail: async function(incident, monitor) {
         try {
             const _this = this;
             if (incident) {
-                const monitorId = incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId;
-
                 const projectId = incident.projectId._id
                     ? incident.projectId._id
                     : incident.projectId;
 
                 const schedules = await this.getSchedulesForAlerts(incident);
 
-                const monitor = await MonitorService.findOneBy({
-                    _id: monitorId,
+                monitor = await MonitorService.findOneBy({
+                    _id: monitor._id,
                 });
                 const project = await ProjectService.findOneBy({
                     _id: projectId,
@@ -2123,7 +2110,7 @@ module.exports = {
                             if (escalation.email) {
                                 await _this.create({
                                     projectId: incident.projectId,
-                                    monitorId,
+                                    monitorId: monitor._id,
                                     alertVia: AlertType.Email,
                                     userId: user._id,
                                     incidentId: incident._id,
@@ -2176,7 +2163,7 @@ module.exports = {
         });
 
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${monitor.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -2320,17 +2307,14 @@ module.exports = {
         }
     },
 
-    sendAcknowledgedIncidentToSubscribers: async function(incident) {
+    sendAcknowledgedIncidentToSubscribers: async function(incident, monitor) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
             if (incident) {
-                const monitorId = incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId;
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
-                        monitorId: monitorId,
+                        monitorId: monitor._id,
                         subscribed: true,
                     }
                 );
@@ -2375,17 +2359,14 @@ module.exports = {
         }
     },
 
-    sendResolvedIncidentToSubscribers: async function(incident) {
+    sendResolvedIncidentToSubscribers: async function(incident, monitor) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
             if (incident) {
-                const monitorId = incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId;
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
-                        monitorId: monitorId,
+                        monitorId: monitor._id,
                         subscribed: true,
                     }
                 );
