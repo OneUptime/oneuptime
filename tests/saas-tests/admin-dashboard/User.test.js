@@ -7,6 +7,7 @@ let browser, page;
 // user credentials
 const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
+const createUserMail = utils.generateRandomBusinessEmail();
 
 describe('SMTP Settings API', () => {
     const operationTimeOut = init.timeout;
@@ -39,6 +40,8 @@ describe('SMTP Settings API', () => {
         'Admin should not turn on 2FA for a user',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
+            await init.createUserFromAdminDashboard( {email: createUserMail}, page);
+            await page.reload({waitUntil : 'networkidle2'});
             await init.pageWaitForSelector(page, '.bs-ObjectList-rows > a');
             const users = await page.$$('.bs-ObjectList-rows > a');
             await users[1].click();
