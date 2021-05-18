@@ -1,4 +1,4 @@
-require File.expand_path('version', __dir__)
+require File.expand_path('lib/fyipe/version', __dir__)
 
 Gem::Specification.new do |spec|
 
