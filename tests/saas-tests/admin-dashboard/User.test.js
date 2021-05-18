@@ -37,7 +37,7 @@ describe('SMTP Settings API', () => {
 
     test(
         'Admin should not turn on 2FA for a user',
-        async (done) => {
+        async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.pageWaitForSelector(page, '.bs-ObjectList-rows > a');
             const users = await page.$$('.bs-ObjectList-rows > a');
@@ -59,7 +59,7 @@ describe('SMTP Settings API', () => {
 
     test(
         'Admin should not turn on or off his 2fa',
-        async (done) => {
+        async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.pageWaitForSelector(page, '.bs-ObjectList-rows > a');
             const users = await page.$$('.bs-ObjectList-rows > a');
