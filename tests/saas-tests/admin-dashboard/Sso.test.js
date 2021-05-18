@@ -24,11 +24,10 @@ const createSso = async (page, data) => {
     await init.pageType(page, '#domain', data.domain);
 
     await init.pageClick(page, '#entityId');
-    await init.pageType(page,  '#entityId', data.entityId);
+    await init.pageType(page, '#entityId', data.entityId);
 
     await init.pageClick(page, '#remoteLoginUrl');
     await init.pageType(page, '#remoteLoginUrl', data.remoteLoginUrl);
-
 
     await init.pageClick(page, '#certificateFingerprint');
     await init.pageType(
@@ -49,7 +48,8 @@ const createSso = async (page, data) => {
 describe('SSO API', () => {
     const operationTimeOut = init.timeout;
 
-    afterAll(async done => { /**This takes care of the closing the browser when the test is complete */
+    afterAll(async done => {
+        /**This takes care of the closing the browser when the test is complete */
         await browser.close();
         done();
     });
@@ -74,7 +74,7 @@ describe('SSO API', () => {
     test(
         'should add new SSO',
         async done => {
-           /** Upon login, admin-dashboard is loaded */
+            /** Upon login, admin-dashboard is loaded */
             await moveToSsoPage(page);
 
             const ssoCount = await page.$eval('#sso-count', e => {
@@ -106,7 +106,7 @@ describe('SSO API', () => {
                 return e.innerHTML;
             });
             expect(tbody).toContain('test.hackerbay.io');
-            
+
             done();
         },
         operationTimeOut
@@ -115,9 +115,10 @@ describe('SSO API', () => {
     test(
         'should update existing SSO',
         async done => {
-             /** No need for additional logout and login as it slows down testing
-             * Testing is done in the same admin UI */   
-              await page.goto(utils.ADMIN_DASHBOARD_URL);
+            /** No need for additional logout and login as it slows down testing
+             * Testing is done in the same admin UI */
+
+            await page.goto(utils.ADMIN_DASHBOARD_URL);
             await moveToSsoPage(page);
 
             const ssoCount = await page.$eval('#sso-count', e => {
@@ -144,7 +145,7 @@ describe('SSO API', () => {
                 return e.innerHTML;
             });
             expect(tbody).toContain('updated.test.hackerbay.io');
-            
+
             done();
         },
         operationTimeOut
@@ -173,8 +174,8 @@ describe('SSO API', () => {
             const ssoCountAfterDeletion = await page.$eval('#sso-count', e => {
                 return e.innerHTML;
             });
-            expect(ssoCountAfterDeletion).toContain('0');            
-            
+            expect(ssoCountAfterDeletion).toContain('0');
+
             done();
         },
         operationTimeOut
@@ -182,7 +183,7 @@ describe('SSO API', () => {
 
     it(
         'should enable Next/Previous buttons when there are more than 10 SSOs',
-        async done => {            
+        async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await moveToSsoPage(page);
             await init.pageWaitForSelector(page, '#no-sso-message');
@@ -228,7 +229,7 @@ describe('SSO API', () => {
 
             expect(initalPageTbody).toContain('subdomain.11.test.hackerbay.io');
             expect(initalPageTbody).toContain('subdomain.2.test.hackerbay.io');
-        
+
             done();
         },
         operationTimeOut

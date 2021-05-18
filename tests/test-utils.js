@@ -129,17 +129,23 @@ const updatedScheduledEventDescription = 'event description updated';
 const updatedScheduledEventName = 'event name updated';
 
 const dockerCredential = {
-    dockerUsername: process.env.DOCKER_UNMASKED_USERNAME || "fyipetest",
-    dockerPassword: process.env.DOCKER_UNMASKED_PASSWORD || "4G76c2aavPHa",
-    dockerRegistryUrl: process.env.DOCKER_SECURITY_SCAN_REGISTRY_URL || "https://registry.hub.docker.com",
-    imagePath: process.env.DOCKER_SECURITY_SCAN_IMAGE_PATH || "fyipeproject/home",
-    imageTags: process.env.DOCKER_SECURITY_SCAN_IMAGE_TAGS || "latest",
+    dockerUsername: process.env.DOCKER_UNMASKED_USERNAME || 'fyipetest',
+    dockerPassword: process.env.DOCKER_UNMASKED_PASSWORD || '4G76c2aavPHa',
+    dockerRegistryUrl:
+        process.env.DOCKER_SECURITY_SCAN_REGISTRY_URL ||
+        'https://registry.hub.docker.com',
+    imagePath:
+        process.env.DOCKER_SECURITY_SCAN_IMAGE_PATH || 'fyipeproject/home',
+    imageTags: process.env.DOCKER_SECURITY_SCAN_IMAGE_TAGS || 'latest',
 };
 
 const gitCredential = {
-    gitUsername: process.env.GITHUB_UNMASKED_USERNAME || "fyipetest",
-    gitPassword: process.env.GITHUB_UNMASKED_PASSWORD || "FzUHPgxBGrqCuf68aaHjPqaFZH",
-    gitRepositoryUrl: process.env.GITHUB_SECURITY_SCAN_REPOSITORY_URL || "https://github.com/twbs/bootstrap",
+    gitUsername: process.env.GITHUB_UNMASKED_USERNAME || 'fyipetest',
+    gitPassword:
+        process.env.GITHUB_UNMASKED_PASSWORD || 'FzUHPgxBGrqCuf68aaHjPqaFZH',
+    gitRepositoryUrl:
+        process.env.GITHUB_SECURITY_SCAN_REPOSITORY_URL ||
+        'https://github.com/twbs/bootstrap',
 };
 
 const smtpCredential = {
@@ -153,9 +159,13 @@ const smtpCredential = {
 };
 
 const twilioCredentials = {
-    accountSid: process.env.TEST_TWILIO_ACCOUNT_SID || "AC4b957669470069d68cd5a09d7f91d7c6",
-    authToken: process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN || "79a35156d9967f0f6d8cc0761ef7d48d",
-    phoneNumber: process.env.TEST_TWILIO_PHONE || "+15005550006",
+    accountSid:
+        process.env.TEST_TWILIO_ACCOUNT_SID ||
+        'AC4b957669470069d68cd5a09d7f91d7c6',
+    authToken:
+        process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN ||
+        '79a35156d9967f0f6d8cc0761ef7d48d',
+    phoneNumber: process.env.TEST_TWILIO_PHONE || '+15005550006',
 };
 
 const monitorTabIndexes = {

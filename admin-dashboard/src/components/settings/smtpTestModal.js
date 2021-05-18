@@ -85,7 +85,7 @@ const SmtpTestModal = ({
                                                                     component="input"
                                                                     type="radio"
                                                                     name="smtpToUse"
-                                                                    className="bs-Radio-source"                                                                    
+                                                                    className="bs-Radio-source"
                                                                     value="internalSmtp"
                                                                     style={{
                                                                         width: 0,
@@ -136,7 +136,7 @@ const SmtpTestModal = ({
                                                                     component="input"
                                                                     type="radio"
                                                                     name="smtpToUse"
-                                                                    className="bs-Radio-source"                                                                    
+                                                                    className="bs-Radio-source"
                                                                     value="customSmtp"
                                                                     style={{
                                                                         width: 0,

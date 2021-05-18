@@ -136,13 +136,15 @@ const smtpOptions = [
         label: 'Enable internal SMTP server',
         // eslint-disable-next-line react/display-name, react/prop-types
         component: ({ input: { value, onChange } }) => (
-            <label className="Toggler-wrap" id="internalSmtp"> {/**setting id at label removes intermittent result*/}
+            <label className="Toggler-wrap" id="internalSmtp">
+                {' '}
+                {/**setting id at label removes intermittent result*/}
                 <input
                     className="btn-toggler"
                     checked={value}
                     onChange={onChange}
                     type="checkbox"
-                    name="internalSmtp"                    
+                    name="internalSmtp"
                 />
                 <span className="TogglerBtn-slider round"></span>
             </label>
@@ -160,7 +162,7 @@ const smtpOptions = [
                     checked={value}
                     onChange={onChange}
                     type="checkbox"
-                    name="customSmtp"                    
+                    name="customSmtp"
                 />
                 <span className="TogglerBtn-slider round"></span>
             </label>
