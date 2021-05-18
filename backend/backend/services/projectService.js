@@ -383,10 +383,12 @@ module.exports = {
     upgradeToEnterprise: async function(projectId) {
         const data = { stripePlanId: 'enterprise', stripeSubscriptionId: null };
         try {
-            const project = await this.findOneBy({ _id: projectId });
-            await PaymentService.removeSubscription(
-                project.stripeSubscriptionId
-            );
+            const project = await this.findOneBy({ _id: projectId });            
+            if (data.stripeSubscriptionId !== null){
+                await PaymentService.removeSubscription(
+                    project.stripeSubscriptionId
+                );
+            }
             const updatedProject = await this.updateOneBy(
                 { _id: projectId },
                 data
