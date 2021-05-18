@@ -26,7 +26,10 @@ class ComponentSettings extends Component {
         });
     };
     componentDidMount() {
-        this.props.fetchComponent(this.props.componentSlug);
+        const { projectId, componentSlug, fetchComponent } = this.props;
+        if (projectId && componentSlug) {
+            fetchComponent(projectId, componentSlug);
+        }
     }
     render() {
         const {
