@@ -40,7 +40,7 @@ describe('SMTP Settings API', () => {
         'Admin should not turn on 2FA for a user',
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await init.createUserFromAdminDashboard(page, createUserMail);
+            await init.createUserFromAdminDashboard( {email: createUserMail}, page);
             await page.reload({waitUntil : 'networkidle2'});
             await init.pageWaitForSelector(page, '.bs-ObjectList-rows > a');
             const users = await page.$$('.bs-ObjectList-rows > a');
