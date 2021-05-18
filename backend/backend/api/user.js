@@ -221,7 +221,7 @@ router.post('/signup', async function(req, res) {
                     message: 'Company phone number  is not in string format.',
                 });
             }
-            // Call the UserService.            
+            // Call the UserService.
             user = await UserService.signup(data);
             // Call the MailService.
             MailService.sendSignupMail(user.email, user.name);
