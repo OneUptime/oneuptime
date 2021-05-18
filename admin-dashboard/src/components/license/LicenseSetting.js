@@ -43,7 +43,11 @@ export class LicenseSetting extends Component {
     };
 
     render() {
-        const { handleSubmit, license: { data }, confirm: { requesting, error } } = this.props;
+        const {
+            handleSubmit,
+            license: { data },
+            confirm: { requesting, error },
+        } = this.props;
         const isLicensed = data && data.license;
 
         return (
@@ -55,15 +59,28 @@ export class LicenseSetting extends Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>License Details</span>
                                 </span>
-                                <div className={`Badge Badge--color--${isLicensed ? 'green' : 'red'} Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}>
-                                    <span className={`Badge-text Text-color--${isLicensed ? 'green' : 'red'} Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}>
-                                        <span>{isLicensed ? 'Valid License' : 'Evaluation License'}</span>
+                                <div
+                                    className={`Badge Badge--color--${
+                                        isLicensed ? 'green' : 'red'
+                                    } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                >
+                                    <span
+                                        className={`Badge-text Text-color--${
+                                            isLicensed ? 'green' : 'red'
+                                        } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                    >
+                                        <span>
+                                            {isLicensed
+                                                ? 'Valid License'
+                                                : 'Evaluation License'}
+                                        </span>
                                     </span>
                                 </div>
                             </div>
                             <p>
                                 <span>
-                                    Update your License Key and Email. To buy a license, please email sales@fyipe.com
+                                    Update your License Key and Email. To buy a
+                                    license, please email sales@fyipe.com
                                 </span>
                             </p>
                         </div>
@@ -124,7 +141,10 @@ export class LicenseSetting extends Component {
                                             <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
                                         </div>
                                         <div className="Box-root">
-                                            <span id="licenseError" style={{ color: 'red' }}>
+                                            <span
+                                                id="licenseError"
+                                                style={{ color: 'red' }}
+                                            >
                                                 {error}
                                             </span>
                                         </div>
@@ -140,9 +160,7 @@ export class LicenseSetting extends Component {
                                     {!requesting && (
                                         <span>Confirm License</span>
                                     )}
-                                    {requesting && (
-                                        <FormLoader />
-                                    )}
+                                    {requesting && <FormLoader />}
                                 </button>
                             </div>
                         </div>

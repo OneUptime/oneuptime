@@ -50,10 +50,10 @@ async function rename(oldCollectionName, newCollectionName) {
 }
 
 /**
- * 
+ *
  * You should NEVER use this function. This is just used for tests.
  */
-async function deleteDatabase(){
+async function deleteDatabase() {
     if (process.env['NODE_ENV'] === 'development') {
         await global.db.dropDatabase();
     }
@@ -82,5 +82,5 @@ module.exports = {
     rename,
     updateMany,
     removeMany,
-    deleteDatabase
+    deleteDatabase,
 };
