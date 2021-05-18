@@ -21,6 +21,8 @@ sudo kubectl get pv
 
 # Pods are evicted
 
+You might have to scale the cluster and add more nodes to it.
+
 This usually happens when one of the nodes is out ot memory or disk.
 
 Run this to delete evicted pods:
