@@ -322,8 +322,7 @@ module.exports = {
                         // Check here is the payment intent is successfully paid. If yes then create the customer else not.
                         const processedPaymentIntent = await PaymentService.checkPaymentIntent(
                             paymentIntent
-                        );
-                        console.log("Process Intent", processedPaymentIntent);
+                        );                        
                         if (processedPaymentIntent.status !== 'succeeded') {
                             const error = new Error(
                                 'Unsuccessful attempt to charge card'
