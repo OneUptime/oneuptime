@@ -16,6 +16,8 @@ const helpers = {
     year: DateTime.getCurrentYear,
 };
 
+const UppercaseFirstLetter = require('../utils/UppercaseFirstLetter');
+
 const options = {
     viewEngine: {
         extname: '.hbs',
@@ -2951,15 +2953,15 @@ const _this = {
             );
             const data = {
                 incidentTime,
-                monitorName,
+                monitorName: UppercaseFirstLetter(monitorName),
                 userName,
                 userId,
-                projectName,
+                projectName: UppercaseFirstLetter(projectName),
                 trackEmailAsViewedUrl,
                 projectId: incident.projectId,
-                incidentType: incident.incidentType,
+                incidentType: UppercaseFirstLetter(incident.incidentType),
                 incidentDescription: incident.description,
-                componentName,
+                componentName: UppercaseFirstLetter(componentName),
                 statusPageUrl,
                 unsubscribeUrl,
                 year: DateTime.getCurrentYear,
@@ -3518,14 +3520,14 @@ const _this = {
             );
             const data = {
                 incidentTime,
-                monitorName,
+                monitorName: UppercaseFirstLetter(monitorName),
                 userName,
                 userId,
-                projectName,
+                projectName: UppercaseFirstLetter(projectName),
                 trackEmailAsViewedUrl,
                 projectId: incident.projectId,
-                incidentType: incident.incidentType,
-                componentName,
+                incidentType: UppercaseFirstLetter(incident.incidentType),
+                componentName: UppercaseFirstLetter(componentName),
                 statusPageUrl,
                 unsubscribeUrl,
                 year: DateTime.getCurrentYear,
@@ -3731,16 +3733,16 @@ const _this = {
 
             const data = {
                 incidentTime,
-                monitorName,
+                monitorName: UppercaseFirstLetter(monitorName),
                 userName,
                 userId,
-                projectName,
+                projectName: UppercaseFirstLetter(projectName),
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
                 incidentId: incident.idNumber,
-                componentName,
+                componentName: UppercaseFirstLetter(componentName),
                 incidentNote,
-                noteType,
+                noteType: UppercaseFirstLetter(noteType),
                 statusPageUrl,
                 statusNoteStatus,
                 unsubscribeUrl,
@@ -3889,13 +3891,13 @@ const _this = {
 
             const data = {
                 scheduledTime,
-                monitorName,
+                monitorName:UppercaseFirstLetter(monitorName),
                 userName,
                 userId,
-                projectName,
+                projectName:UppercaseFirstLetter(projectName),
                 projectId: schedule.projectId,
-                componentName,
-                eventName: schedule.name,
+                componentName:UppercaseFirstLetter(componentName),
+                eventName:UppercaseFirstLetter(schedule.name),
                 eventDescription: schedule.description,
                 eventCreateTime: schedule.createdAt,
                 eventStartTime: schedule.startDate,
@@ -4105,13 +4107,13 @@ const _this = {
             //project name
             const data = {
                 scheduledTime,
-                monitorName,
+                monitorName:UppercaseFirstLetter(monitorName),
                 userName,
                 userId,
-                projectName,
+                projectName:UppercaseFirstLetter(projectName),
                 projectId: schedule.projectId,
-                componentName,
-                eventName: schedule.name,
+                componentName:UppercaseFirstLetter(componentName),
+                eventName: UppercaseFirstLetter(schedule.name), 
                 eventResolveTime: schedule.resolvedAt,
                 unsubscribeUrl,
                 resourcesAffected: resourcesAffected.toString(),
@@ -4319,13 +4321,13 @@ const _this = {
             //project name
             const data = {
                 scheduledTime,
-                monitorName,
+                monitorName:UppercaseFirstLetter(monitorName),
                 userName,
                 userId,
-                projectName,
+                projectName:UppercaseFirstLetter(projectName),
                 projectId: schedule.projectId,
-                componentName,
-                eventName: schedule.name,
+                componentName:UppercaseFirstLetter(componentName),
+                eventName: UppercaseFirstLetter(schedule.name),
                 eventCancelTime: schedule.cancelledAt,
                 unsubscribeUrl,
                 resourcesAffected: resourcesAffected.toString(),
@@ -4526,9 +4528,6 @@ const _this = {
             return resourcesAffected.push(monitor.name);
         });
 
-        const capitalizeStatus =
-            status.charAt(0).toUpperCase() + status.slice(1);
-
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
@@ -4538,12 +4537,12 @@ const _this = {
             //project name
             const data = {
                 userName,
-                eventName,
-                status: capitalizeStatus,
+                eventName: UppercaseFirstLetter(eventName),
+                status: UppercaseFirstLetter(status),
                 createdBy,
                 content,
-                projectName,
-                monitorName,
+                projectName: UppercaseFirstLetter(projectName),
+                monitorName: UppercaseFirstLetter(monitorName),
                 unsubscribeUrl,
                 resourcesAffected: resourcesAffected.toString(),
                 year: DateTime.getCurrentYear,
@@ -4743,14 +4742,14 @@ const _this = {
             );
             const data = {
                 incidentTime,
-                monitorName,
+                monitorName: UppercaseFirstLetter(monitorName),
                 userName,
                 userId,
-                projectName,
+                projectName: UppercaseFirstLetter(projectName),
                 trackEmailAsViewedUrl,
                 projectId: incident.projectId,
-                incidentType: incident.incidentType,
-                componentName,
+                incidentType: UppercaseFirstLetter(incident.incidentType),
+                componentName: UppercaseFirstLetter(componentName),
                 statusPageUrl,
                 unsubscribeUrl,
                 year: DateTime.getCurrentYear,
