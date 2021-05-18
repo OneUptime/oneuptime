@@ -56,6 +56,7 @@ export class PrivateStatusPage extends Component {
                 hideResolvedIncident: values.hideResolvedIncident,
                 scheduleHistoryDays: values.scheduleHistoryDays,
                 incidentHistoryDays: values.incidentHistoryDays,
+                announcementLogsHistory: values.announcementLogsHistory,
             })
             .then(() => {
                 this.props.fetchProjectStatusPage(
@@ -1032,6 +1033,90 @@ export class PrivateStatusPage extends Component {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            paddingTop: '0',
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label"
+                                                            style={{
+                                                                flex: '25% 0 0',
+                                                            }}
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    height:
+                                                                        '5px',
+                                                                }}
+                                                            ></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            paddingLeft:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <span>
+                                                                            Show
+                                                                            announcement
+                                                                            log
+                                                                            history
+                                                                            for{' '}
+                                                                            <Field
+                                                                                component="input"
+                                                                                type="number"
+                                                                                min="1"
+                                                                                placeholder="limit"
+                                                                                className="db-BusinessSettings-input-60 TextInput bs-TextInput"
+                                                                                name={
+                                                                                    'announcementLogsHistory'
+                                                                                }
+                                                                                id="statuspage.announcementLogsHistory"
+                                                                                normalize={
+                                                                                    historyLimit
+                                                                                }
+                                                                            />{' '}
+                                                                            limit
+                                                                        </span>
+                                                                        <label className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                The
+                                                                                amount
+                                                                                of
+                                                                                days
+                                                                                entered
+                                                                                in
+                                                                                the
+                                                                                text
+                                                                                box
+                                                                                will
+                                                                                be
+                                                                                the
+                                                                                amount
+                                                                                of
+                                                                                announcement
+                                                                                log
+                                                                                history
+                                                                                displayed
+                                                                                on
+                                                                                the
+                                                                                status
+                                                                                page
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </>
                                             )}
                                         </div>
@@ -1143,6 +1228,7 @@ const mapStateToProps = state => {
         initialValues.hideResolvedIncident = status.hideResolvedIncident;
         initialValues.incidentHistoryDays = status.incidentHistoryDays;
         initialValues.scheduleHistoryDays = status.scheduleHistoryDays;
+        initialValues.announcementLogsHistory = status.announcementLogsHistory;
     }
     initialValues.showIpWhitelistInput = true;
 
