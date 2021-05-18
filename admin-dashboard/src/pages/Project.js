@@ -46,8 +46,7 @@ class Project extends Component {
         }
     };
 
-    render() {
-        //console.log('Is Saas: ', IS_SAAS_SERVICE);
+    render() {        
         return (
             <Dashboard ready={this.ready}>
                 <div className="Box-root Margin-vertical--12">
