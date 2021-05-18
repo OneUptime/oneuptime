@@ -1516,7 +1516,6 @@ margin-left:10px;
 
 .new-theme-incident {
   margin-top: 70px;
-  width: 90%;
   max-width: 850px;
   margin: auto;
   margin-bottom: 70px;
@@ -1945,6 +1944,61 @@ margin-left:10px;
 
 .bs-mar-left {
   margin-left: 0px;
+}
+
+.ann_list {
+  margin: 0;
+  margin-bottom: 10px;
+  cursor: default;
+  display: flex;
+  justify-content: space-between;
+}
+
+.ann_list div:first-child {
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+  font-weight: bold;
+  color: rgba(76, 76, 76, 0.8);
+}
+
+.ann_list div:nth-child(2) {
+  display: flex;
+  justify-content: flex-end;
+  flex: 1;
+}
+
+.nt-ann-block {
+  margin: 0;
+  padding-left: 0;
+}
+
+.nt-ann-block li {
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  border-style: solid;
+  border-top-width: 0;
+  border-right-width: 0;
+  border-left-width: 0;
+  border-bottom-width: 1px;
+  border-color: #dfe1df;
+}
+
+.nt-topic {
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+  font-weight: bold;
+}
+
+.nt_list {
+  border: 1px solid #dfe1df !important;
+  display: block !important;
+  text-align: center !important;
+}
+
+.cl_nolist {
+  text-align: center;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+  font-size: 14px;
+  color: rgba(76, 76, 76, 0.8);
 }
 
 @media screen and (max-width: 650px) {
