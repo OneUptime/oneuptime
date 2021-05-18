@@ -360,7 +360,7 @@ module.exports = {
         }
     },
 
-    removeSubscription: async function(stripeSubscriptionId) {        
+    removeSubscription: async function(stripeSubscriptionId) {
         try {
             const confirmations = [];
             confirmations[0] = await stripe.subscriptions.del(
