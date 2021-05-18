@@ -12,6 +12,20 @@ module.exports = {
     create: async function({ domain, projectId }) {
         const parsed = psl.parse(domain);
         const token = 'fyipe=' + randomChar();
+
+        // all domain should be tied to parentProject only
+        const project = await ProjectService.findOneBy({
+            _id: projectId,
+        });
+        if (!project) {
+            const error = new Error('Project not found or does not exist');
+            error.code = 400;
+            throw error;
+        }
+        if (project.parentProjectId) {
+            projectId = project.parentProjectId._id || project.parentProjectId;
+        }
+
         const creationData = {
             domain: parsed.domain,
             verificationToken: token,
