@@ -106,6 +106,9 @@ import {
     UPDATE_STATUS_PAGE_LAYOUT_FAILURE,
     UPDATE_STATUS_PAGE_LAYOUT_SUCCESS,
     UPDATE_STATUS_PAGE_LAYOUT_REQUEST,
+    FETCH_ANNOUNCEMEMTLOGS_REQUEST,
+    FETCH_ANNOUNCEMEMTLOGS_SUCCESS,
+    FETCH_ANNOUNCEMEMTLOGS_FAILURE,
 } from '../constants/statusPage';
 
 import {
@@ -305,6 +308,12 @@ const INITIAL_STATE = {
         success: false,
         error: null,
     },
+    announcementLogs: {
+        logsList: [],
+        requesting: false,
+        success: false,
+        error: null,
+    },
 };
 
 export default function statusPage(state = INITIAL_STATE, action) {
@@ -318,6 +327,37 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     requesting: true,
                     error: null,
                     success: false,
+                },
+            });
+
+        case FETCH_ANNOUNCEMEMTLOGS_REQUEST:
+            return Object.assign({}, state, {
+                announcementLogs: {
+                    ...state.announcementLogs,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case FETCH_ANNOUNCEMEMTLOGS_FAILURE:
+            return Object.assign({}, state, {
+                announcementLogs: {
+                    ...state.announcementLogs,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case FETCH_ANNOUNCEMEMTLOGS_SUCCESS:
+            return Object.assign({}, state, {
+                announcementLogs: {
+                    ...state.announcementLogs,
+                    logsList: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
                 },
             });
 
