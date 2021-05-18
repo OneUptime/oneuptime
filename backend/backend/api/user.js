@@ -222,6 +222,7 @@ router.post('/signup', async function(req, res) {
                 });
             }
             // Call the UserService.
+            console.log("Sent Data: ",data);
             user = await UserService.signup(data);
             // Call the MailService.
             MailService.sendSignupMail(user.email, user.name);

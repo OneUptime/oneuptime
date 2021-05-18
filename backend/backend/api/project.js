@@ -543,6 +543,7 @@ router.put(
     getUser,
     isUserMasterAdmin,
     async function(req, res) {
+        console.log("Req body: ", req.body);
         try {
             const projectId = req.params.projectId;
             const projectName = req.body.projectName;

@@ -361,6 +361,7 @@ module.exports = {
     },
 
     removeSubscription: async function(stripeSubscriptionId) {
+        console.log("Stripe: ",stripeSubscriptionId)
         try {
             const confirmations = [];
             confirmations[0] = await stripe.subscriptions.del(

@@ -8,6 +8,10 @@ require('should');
 // user credentials
 const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
+const user = {
+    email: utils.generateRandomBusinessEmail(),
+    password,
+};
 
 describe('Project', () => {
     const operationTimeOut = init.timeout;
@@ -26,28 +30,28 @@ describe('Project', () => {
             password: password,
         };
 
-        const user = {
-            email: utils.generateRandomBusinessEmail(),
-            password,
-        };
+        
 
-        await init.registerUser(user, page);
-        await init.saasLogout(page);
+        // await init.registerUser(user, page);
+        // await init.saasLogout(page);
 
         // login admin user
         await init.loginAdminUser(adminUser, page);
     });
 
-    afterAll(async () => {
+    afterAll(async (done) => {
         await browser.close();
+        done();
     });
 
     test(
         'should upgrade a project to enterprise plan',
-        async () => {
+        async (done) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
+            await init.createUserFromAdminDashboard(user, page);
+            await page.reload({waitUntil: 'networkidle2'});
             await init.pageClick(page, '#projects');
             await page.$eval('#projects > a', elem => elem.click());
             await init.pageWaitForSelector(page, '.Table > tbody tr');
@@ -84,13 +88,14 @@ describe('Project', () => {
 
             expect(loader).toBeNull();
             expect(checked).toEqual(true);
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should change to any other plan',
-        async () => {
+        async (done) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.pageClick(page, '#projects');
             await page.$eval('#projects > a', elem => elem.click());
@@ -128,6 +133,7 @@ describe('Project', () => {
 
             expect(loader).toBeNull();
             expect(checked).toEqual(true);
+            done();
         },
         operationTimeOut
     );
