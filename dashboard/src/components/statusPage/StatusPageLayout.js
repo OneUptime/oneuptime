@@ -161,7 +161,9 @@ export class StatusPageLayout extends Component {
                                 </span>
                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     <span>
-                                        Order your status page layout by dragging and dropping components. You can even hide or show components.
+                                        Order your status page layout by
+                                        dragging and dropping components. You
+                                        can even hide or show components.
                                     </span>
                                 </span>
                             </div>
