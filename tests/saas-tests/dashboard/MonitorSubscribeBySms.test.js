@@ -1,9 +1,6 @@
 const puppeteer = require('puppeteer');
 const utils = require('../../test-utils');
 const init = require('../../test-init');
-// const csvFile = `${__dirname}/MOCKS/subscribers.csv`;
-// const emptyFile = `${__dirname}/MOCKS/emptyTemplateFile.csv`;
-// const existingSubscribers = `${__dirname}/MOCKS/existing.csv`;
 
 require('should');
 let browser, page;
@@ -56,16 +53,6 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, addNewSubscriber);
             await init.pageClick(page, addNewSubscriber);
 
-            // await init.pageWaitForSelector(page, '#fileInput', {
-            //     visible: true,
-            //     timeout: init.timeout,
-            // });
-            // const input = await page.$('#fileInput');
-            // await input.uploadFile(csvFile);
-            // await input.evaluate(upload =>
-            //     upload.dispatchEvent(new Event('change', { bubbles: true }))
-            // );
-            // await init.pageClick(page, '#addSubscriberButton');
             await init.addAnExternalSubscriber(
                 componentName,
                 monitorName,
@@ -99,16 +86,6 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, addNewSubscriber);
             await init.pageClick(page, addNewSubscriber);
 
-            // await init.pageWaitForSelector(page, '#fileInput', {
-            //     visible: true,
-            //     timeout: init.timeout,
-            // });
-            // const input = await page.$('#fileInput');
-            // await input.uploadFile(csvFile);
-            // await input.evaluate(upload =>
-            //     upload.dispatchEvent(new Event('change', { bubbles: true }))
-            // );
-            // await init.pageClick(page, '#addSubscriberButton');
             await init.addAnExternalSubscriber(
                 componentName,
                 monitorName,
