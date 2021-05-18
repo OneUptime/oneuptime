@@ -15,6 +15,12 @@ async function run() {
         { scheduleHistoryDays: 14 }
     );
 
+    await updateMany(
+        statusPageCollection,
+        { announcementLogsHistory: { $exists: false } },
+        { announcementLogsHistory: 14 }
+    );
+
     return `Script completed`;
 }
 
