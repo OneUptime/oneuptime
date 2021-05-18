@@ -31,8 +31,8 @@ describe('Project', () => {
             password,
         };
 
-        await init.registerUser(user, page);
-        await init.saasLogout(page);
+        // await init.registerUser(user, page);
+        // await init.saasLogout(page);
 
         // login admin user
         await init.loginAdminUser(adminUser, page);
@@ -44,7 +44,7 @@ describe('Project', () => {
 
     test(
         'should upgrade a project to enterprise plan',
-        async () => {
+        async (done) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
@@ -84,51 +84,53 @@ describe('Project', () => {
 
             expect(loader).toBeNull();
             expect(checked).toEqual(true);
+            done();
         },
         operationTimeOut
     );
 
-    test(
-        'should change to any other plan',
-        async () => {
-            await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await init.pageClick(page, '#projects');
-            await page.$eval('#projects > a', elem => elem.click());
-            await init.pageWaitForSelector(page, '.Table > tbody tr');
-            await page.evaluate(() => {
-                let elem = document.querySelectorAll('.Table > tbody tr');
-                elem = Array.from(elem);
-                elem[0].click();
-            });
+    // test(
+    //     'should change to any other plan',
+    //     async (done) => {
+    //         await page.goto(utils.ADMIN_DASHBOARD_URL);
+    //         await init.pageClick(page, '#projects');
+    //         await page.$eval('#projects > a', elem => elem.click());
+    //         await init.pageWaitForSelector(page, '.Table > tbody tr');
+    //         await page.evaluate(() => {
+    //             let elem = document.querySelectorAll('.Table > tbody tr');
+    //             elem = Array.from(elem);
+    //             elem[0].click();
+    //         });
 
-            await init.pageWaitForSelector(
-                page,
-                'input[name="planId"]#Growth_annual',
-                {
-                    visible: true,
-                    timeout: init.timeout,
-                }
-            );
+    //         await init.pageWaitForSelector(
+    //             page,
+    //             'input[name="planId"]#Growth_annual',
+    //             {
+    //                 visible: true,
+    //                 timeout: init.timeout,
+    //             }
+    //         );
 
-            await page.$eval('input[name="planId"]#Growth_annual', elem =>
-                elem.click()
-            );
-            await page.$eval('#submitChangePlan', elem => elem.click());
+    //         await page.$eval('input[name="planId"]#Growth_annual', elem =>
+    //             elem.click()
+    //         );
+    //         await page.$eval('#submitChangePlan', elem => elem.click());
 
-            const loader = await init.pageWaitForSelector(page, '.ball-beat', {
-                hidden: true,
-            });
+    //         const loader = await init.pageWaitForSelector(page, '.ball-beat', {
+    //             hidden: true,
+    //         });
 
-            await page.reload({ waitUntil: 'networkidle0' });
+    //         await page.reload({ waitUntil: 'networkidle0' });
 
-            const checked = await page.$eval(
-                'input[name="planId"]#Growth_annual',
-                elem => elem.checked
-            );
+    //         const checked = await page.$eval(
+    //             'input[name="planId"]#Growth_annual',
+    //             elem => elem.checked
+    //         );
 
-            expect(loader).toBeNull();
-            expect(checked).toEqual(true);
-        },
-        operationTimeOut
-    );
+    //         expect(loader).toBeNull();
+    //         expect(checked).toEqual(true);
+    //         done();
+    //     },
+    //     operationTimeOut
+    // );
 });

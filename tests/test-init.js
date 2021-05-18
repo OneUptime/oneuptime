@@ -257,6 +257,29 @@ const _this = {
             //catch
         }
     },
+    createUserFromAdminDashboard: async function(page, email){
+        // create the user from admin dashboard        
+        await _this.pageWaitForSelector(page, '#add_user');
+        await _this.pageClick(page, '#add_user');
+        await _this.pageWaitForSelector(page, '#email');
+        await _this.pageClick(page, 'input[name=email]');
+        await _this.pageType(page, 'input[name=email]', email);
+        await _this.pageClick(page, 'input[name=name]');
+        await _this.pageType(page, 'input[name=name]', 'Test Name');
+        await _this.pageClick(page, 'input[name=companyName]');
+        await _this.pageType(page, 'input[name=companyName]', 'Test Name');
+        await _this.pageClick(page, 'input[name=companyPhoneNumber]');
+        await _this.pageType(
+            page,
+            'input[name=companyPhoneNumber]',
+            '99105688'
+        );
+        await _this.pageClick(page, 'input[name=password]');
+        await _this.pageType(page, 'input[name=password]', '1234567890');
+        await _this.pageClick(page, 'input[name=confirmPassword]');
+        await _this.pageType(page, 'input[name=confirmPassword]', '1234567890');
+        await _this.pageClick(page, 'button[type=submit]');
+    },
     logout: async function(page) {
         await page.goto(utils.ADMIN_DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
@@ -568,9 +591,8 @@ const _this = {
         );
     },
 
-    createUserFromAdminDashboard: async function(user, page) {
-        // create the user from admin dashboard
-        const { email } = user;
+    createUserFromAdminDashboard: async function(page, email) {
+        // create the user from admin dashboard        
         await _this.pageWaitForSelector(page, '#add_user');
         await _this.pageClick(page, '#add_user');
         await _this.pageWaitForSelector(page, '#email');
