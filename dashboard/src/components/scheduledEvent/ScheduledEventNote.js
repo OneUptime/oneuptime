@@ -398,16 +398,16 @@ export class ScheduledEventNote extends Component {
                                                                         note.event_state ===
                                                                             'Deleted' ||
                                                                         note.event_state ===
-                                                                            'Cancelled' ||
-                                                                        note.event_state ===
-                                                                            'Ended'
+                                                                            'Cancelled'
                                                                             ? 'bs-note-offline'
                                                                             : note.event_state ===
                                                                                   'Resolved' ||
                                                                               note.event_state ===
                                                                                   'Created' ||
                                                                               note.event_state ===
-                                                                                  'Started'
+                                                                                  'Started' ||
+                                                                              note.event_state ===
+                                                                                  'Ended'
                                                                             ? 'bs-note-resolved'
                                                                             : null
                                                                     }`}
@@ -507,7 +507,9 @@ export class ScheduledEventNote extends Component {
                                                                                         note.event_state ===
                                                                                             'Created' ||
                                                                                         note.event_state ===
-                                                                                            'Started' ? (
+                                                                                            'Started' ||
+                                                                                        note.event_state ===
+                                                                                            'Ended' ? (
                                                                                           <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                               <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                                   <span>
