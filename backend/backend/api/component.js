@@ -137,7 +137,10 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     }
 });
 
-router.get('/slug/:slug', getUser, isAuthorized, async function(req, res) {
+router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function(
+    req,
+    res
+) {
     try {
         const { slug } = req.params;
         const component = await ComponentService.findOneBy({

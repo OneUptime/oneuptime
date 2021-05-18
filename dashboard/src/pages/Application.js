@@ -39,13 +39,17 @@ class Application extends Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('Application Security page Loaded');
         }
-        this.props.fetchComponent(this.props.componentSlug);
         const {
             projectId,
             componentId,
             getApplicationSecurities,
             getApplicationSecurityLogs,
+            componentSlug,
+            fetchComponent,
         } = this.props;
+        if (projectId && componentSlug) {
+            fetchComponent(projectId, componentSlug);
+        }
         if (projectId && componentId) {
             // load container security logs
             getApplicationSecurityLogs({ projectId, componentId });
@@ -92,8 +96,8 @@ class Application extends Component {
             // load all the application securities
             getApplicationSecurities({ projectId, componentId });
         }
-        if (componentSlug) {
-            fetchComponent(componentSlug);
+        if (componentSlug && projectId) {
+            fetchComponent(projectId, componentSlug);
         }
     };
 

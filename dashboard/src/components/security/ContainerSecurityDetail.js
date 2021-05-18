@@ -79,7 +79,9 @@ class ContainerSecurityDetail extends Component {
             containerSecurityId,
             getContainerSecurityLog,
         } = this.props;
-        fetchComponent(componentSlug);
+        if (projectId && componentSlug) {
+            fetchComponent(projectId, componentSlug);
+        }
         if (projectId && componentId) {
             // get a particular container security
             getContainerSecurityBySlug({

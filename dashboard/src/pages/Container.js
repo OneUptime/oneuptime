@@ -38,13 +38,17 @@ class Container extends Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('Container Security page Loaded');
         }
-        this.props.fetchComponent(this.props.componentSlug);
         const {
             projectId,
             componentId,
             getContainerSecurities,
             getContainerSecurityLogs,
+            componentSlug,
+            fetchComponent,
         } = this.props;
+        if (projectId && componentSlug) {
+            fetchComponent(projectId, componentSlug);
+        }
         if (projectId && componentId) {
             // load container security logs
             getContainerSecurityLogs({ projectId, componentId });
@@ -91,8 +95,8 @@ class Container extends Component {
             // load container security
             getContainerSecurities({ projectId, componentId });
         }
-        if (componentSlug) {
-            fetchComponent(componentSlug);
+        if (componentSlug && projectId) {
+            fetchComponent(projectId, componentSlug);
         }
     };
 

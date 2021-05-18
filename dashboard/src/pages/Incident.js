@@ -54,9 +54,30 @@ class Incident extends React.Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT');
         }
-        this.props.fetchComponent(this.props.componentSlug);
+        if (
+            this.props.currentProject &&
+            this.props.currentProject._id &&
+            this.props.componentSlug
+        ) {
+            this.props.fetchComponent(
+                this.props.currentProject._id,
+                this.props.componentSlug
+            );
+        }
     }
     componentDidUpdate(prevProps) {
+        if (prevProps.projectId !== this.props.projectId) {
+            if (
+                this.props.currentProject &&
+                this.props.currentProject._id &&
+                this.props.componentSlug
+            ) {
+                this.props.fetchComponent(
+                    this.props.currentProject._id,
+                    this.props.componentSlug
+                );
+            }
+        }
         if (
             prevProps.projectId !== this.props.projectId ||
             (prevProps.incident && prevProps.incident._id) !==
@@ -270,7 +291,15 @@ class Incident extends React.Component {
 
     ready = () => {
         const incidentId = this.props.incidentId;
-        const { projectId } = this.props;
+        const {
+            projectId,
+            currentProject,
+            componentSlug,
+            fetchComponent,
+        } = this.props;
+        if (currentProject && currentProject._id && componentSlug) {
+            fetchComponent(currentProject._id, componentSlug);
+        }
         if (projectId) {
             this.fetchAllIncidentData();
             this.props.fetchIncidentStatusPages(projectId, incidentId);
