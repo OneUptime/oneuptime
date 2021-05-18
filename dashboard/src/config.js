@@ -1621,13 +1621,72 @@ public void logACustomClassInformation(CustomClass customClass) throws IOExcepti
                 id: 'python',
                 language: 'Python',
                 height: {
-                    install: '25px',
-                    usage: '500px',
+                    install: '50px',
+                    usage: '350px',
                 },
-                errorTracking:
-                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
-                logs:
-                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                errorTracking: {
+                    installation: {
+                        package: `
+    Pip Install`,
+                        command: `                        
+pip install fyipe-sdk
+        `,
+                    },
+                    usage: `                        
+from fyipe_sdk import tracker
+
+# set up tracking configurations    
+options = {
+    "maxTimeline": 50,
+    "captureCodeSnippet": True
+}               
+
+# constructor                        
+fyipeTracker = tracker.FyipeTracker(                        
+    "${apiUrl ? apiUrl : 'API_URL'}",
+    '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
+    '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
+    options # Optional Field               
+);
+                            
+# capturing error exception manually and sent to your fyipe dashboard
+try:
+    # your code logic
+    result = 5/0 # Should throw a division by zero error
+catch Exception as error:
+    fyipeTracker.captureException(error)
+`,
+                },
+                logs: {
+                    installation: {
+                        package: `
+    Pip Install`,
+                        command: `                        
+pip install fyipe-sdk
+        `,
+                    },
+                    usage: `                        
+from fyipe_sdk import logger 
+                                                
+// constructor                        
+fyipeLogger = logger.FyipeLogger(                        
+    "${apiUrl ? apiUrl : 'API_URL'}",
+    "${
+        applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
+    }",                    
+    "${
+        applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'
+    }"                 
+);
+                            
+# Sending a string log to the server
+item = 'This is a simple log'
+
+response = fyipeLogger.log(item)
+
+# response after logging a request
+print(response)`,
+                },
             },
             {
                 id: 'dotnet',

@@ -1,21 +1,24 @@
 const PKG_VERSION = require('../package.json').version;
-const { find, save, removeMany } = require('../util/db');
+const { find, save, removeMany, deleteDatabase } = require('../util/db');
 const bcrypt = require('bcrypt');
 
 async function run() {
     await updateVersion();
 
     if (process.env['NODE_ENV'] === 'development') {
+        console.log('App running in development env');
+        console.log('Droppping Database');
+        await deleteDatabase();
+        console.log('Setting up probes');
         await setupTestProbes();
-        await removeGlobalConfigs(); // remove all global settings for test.
+
         if (
             process.env['IS_SAAS_SERVICE'] === 'true' ||
             process.env['IS_SAAS_SERVICE'] === true
         ) {
             // if SaaS Service create master admin user automatically.
+            console.log('Setting admin User');
             await addMasterAdminUser();
-        } else {
-            await removeMasterAdminUser();
         }
     }
 }
@@ -50,10 +53,6 @@ async function removeGlobalConfigs() {
 
 async function addMasterAdminUser() {
     const collection = 'users';
-
-    await removeMany(collection, {
-        email: 'masteradmin@hackerbay.io',
-    });
 
     const now = new Date().toISOString();
 

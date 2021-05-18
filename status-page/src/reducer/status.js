@@ -651,7 +651,7 @@ export default (state = INITIAL_STATE, action) => {
                 ongoing: {
                     error: null,
                     ongoing: [],
-                    requesting: true, 
+                    requesting: true,
                 },
             });
 

@@ -752,7 +752,7 @@ module.exports = {
             ErrorService.log('statusPageService.getEvents', error);
             throw error;
         }
-    }, 
+    },
 
     getFutureEvents: async function(query, skip, limit) {
         try {

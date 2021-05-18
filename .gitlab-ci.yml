@@ -110,6 +110,11 @@ include:
   - '/ci/spec/java-sdk/build-n-test.yaml'
   - '/ci/spec/java-sdk/deploy.yaml'
 
+  # PYTHON-SDK
+  - '/ci/spec/python-sdk/audit.yaml'
+  - '/ci/spec/python-sdk/build-n-test.yaml'
+  - '/ci/spec/python-sdk/deploy.yaml'
+
   # HARAKA
   - '/ci/spec/haraka/deploy.yaml'
 
