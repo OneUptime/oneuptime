@@ -30,11 +30,6 @@ describe('Project', () => {
             password: password,
         };
 
-        
-
-        // await init.registerUser(user, page);
-        // await init.saasLogout(page);
-
         // login admin user
         await init.loginAdminUser(adminUser, page);
     });
