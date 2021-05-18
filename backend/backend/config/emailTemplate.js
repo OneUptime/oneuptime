@@ -17,8 +17,7 @@ module.exports = [
             '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
         emailType: 'Subscriber Incident Created',
-        subject:
-            '{{projectName}} - {{componentName}}/{{monitorName}}: Incident Created',
+        subject: '{{projectName}} - {{monitorName}}: Incident Created',
         body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
@@ -263,7 +262,7 @@ span.st-Delink.st-Delink--footer a {
       </td>
       <td class="st-Font st-Font--body" style="color: #000000 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
 
-      <h3>{{projectName}} - {{componentName}}/{{monitorName}}: Incident Created!</h3>
+      <h3>{{projectName}} - {{monitorName}}: Incident Created!</h3>
 
       </td>
       <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -553,10 +552,10 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
     {
         allowedVariables: [
             '{{userName}} : User display name.',
-            '{{monitorName}} : Name of the monitor on which incident has occured.',
+            '{{monitorName}} : Name of the monitor on which incident has occurred.',
             '{{componentName}} : Name of the component the monitor belongs to',
-            '{{projectName}} : Name of the project on which the incident has occured.',
-            '{{incidentTime}} : Time at which this incident occured.',
+            '{{projectName}} : Name of the project on which the incident has occurred.',
+            '{{incidentTime}} : Time at which this incident occurred.',
             '{{incidentType}} : Type of incident.',
             '{{userId}} : Unique identifier for user account.',
             '{{projectId}} : Unique identifier for the current project.',
@@ -568,8 +567,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
             '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
         emailType: 'Subscriber Incident Acknowldeged',
-        subject:
-            '{{projectName}} - {{componentName}}/{{monitorName}}: Incident Acknowledged',
+        subject: '{{projectName}} - {{monitorName}}: Incident Acknowledged',
         body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
@@ -813,7 +811,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td class="st-Font st-Font--body" style="color: #000000 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
 
-    <h3>{{projectName}} - {{componentName}}/{{monitorName}}: Incident Acknowledged!</h3>
+    <h3>{{projectName}} - {{monitorName}}: Incident Acknowledged!</h3>
 
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -1105,8 +1103,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
             '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
         emailType: 'Subscriber Incident Resolved',
-        subject:
-            '{{projectName}} - {{componentName}}/{{monitorName}}: Incident Resolved',
+        subject: '{{projectName}} - {{monitorName}}: Incident Resolved',
         body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
@@ -1350,7 +1347,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td class="st-Font st-Font--body" style="color: #000000 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
 
-     <h3>{{projectName}} - {{componentName}}/{{monitorName}}: Incident Resolved!</h3>
+     <h3>{{projectName}} - {{monitorName}}: Incident Resolved!</h3>
 
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
