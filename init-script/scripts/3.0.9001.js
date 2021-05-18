@@ -5,15 +5,14 @@ const domainVerificationTokenCollection = 'domainverificationtokens';
 
 async function run() {
     const domains = await find(domainVerificationTokenCollection, {
-        deleted: false,
+       
     });
 
     for (const domain of domains) {
         const oldProjectId = domain.projectId;
 
         let project = await find(projectCollection, {
-            _id: oldProjectId,
-            deleted: false,
+            _id: oldProjectId
         });
         project = project[0];
 
