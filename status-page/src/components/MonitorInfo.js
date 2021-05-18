@@ -384,7 +384,6 @@ class MonitorInfo extends Component {
             uptimePercent !== 100 && !isNaN(uptimePercent)
                 ? uptimePercent.toFixed(3)
                 : '100';
-        const upDays = timeBlock.length;
 
         const block = [];
         if (selectedCharts && selectedCharts.uptime)
@@ -507,7 +506,10 @@ class MonitorInfo extends Component {
                                     textTransform: 'capitalize',
                                 }}
                             >
-                                {monitorStatus === 'online'
+                                {this.props.ongoing &&
+                                this.props.ongoing.length > 0
+                                    ? 'Ongoing Scheduled Event'
+                                    : monitorStatus === 'online'
                                     ? 'operational'
                                     : monitorStatus}
                             </div>
@@ -668,11 +670,9 @@ class MonitorInfo extends Component {
                                     style={primaryText}
                                 >
                                     <ShouldRender if={!this.props.checkUptime}>
-                                        <em>{uptime}%</em>{' '}
+                                        <em>{uptime}%</em>
+                                        {' Uptime'}
                                     </ShouldRender>
-                                    Uptime for the last{' '}
-                                    {upDays > range ? range : upDays} day
-                                    {upDays > 1 ? 's' : ''}
                                 </span>
                             </div>
                         </div>
@@ -710,6 +710,7 @@ function mapStateToProps(state) {
         activeProbe: state.status.activeProbe,
         probes: state.probe.probes,
         colors: state.status.statusPage.colors,
+        ongoing: state.status.ongoing.ongoing,
     };
 }
 
@@ -737,6 +738,7 @@ MonitorInfo.propTypes = {
     isGroupedByMonitorCategory: PropTypes.bool,
     theme: PropTypes.string,
     checkUptime: PropTypes.bool,
+    ongoing: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInfo);

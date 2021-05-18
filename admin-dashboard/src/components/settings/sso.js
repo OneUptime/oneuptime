@@ -266,7 +266,7 @@ export class Component extends React.Component {
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                 <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root Margin-right--16">
-                                                        <span>
+                                                        <span id="sso-domain">
                                                             {sso.domain}
                                                         </span>
                                                     </div>
@@ -333,6 +333,7 @@ export class Component extends React.Component {
                                             >
                                                 <button
                                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                                                    id="edit-button"
                                                     onClick={() =>
                                                         this.editSso(sso._id)
                                                     }
@@ -341,6 +342,7 @@ export class Component extends React.Component {
                                                 </button>
                                                 <button
                                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
+                                                    id="delete-button"
                                                     onClick={() =>
                                                         this.deleteSso(sso._id)
                                                     }
@@ -355,8 +357,8 @@ export class Component extends React.Component {
                         </table>
 
                         <div className="bs-Tail bs-Tail--separated bs-Tail--short">
-                            <div id="sso-count" className="bs-Tail-copy">
-                                <span>
+                            <div className="bs-Tail-copy">
+                                <span id="sso-count">
                                     {numberOfPages > 0
                                         ? `Page ${
                                               this.state.page
