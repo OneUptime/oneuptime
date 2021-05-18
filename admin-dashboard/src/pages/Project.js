@@ -46,7 +46,7 @@ class Project extends Component {
         }
     };
 
-    render() {        
+    render() {
         return (
             <Dashboard ready={this.ready}>
                 <div className="Box-root Margin-vertical--12">

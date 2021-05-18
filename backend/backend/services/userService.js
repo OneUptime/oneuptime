@@ -317,8 +317,7 @@ module.exports = {
                     ErrorService.log('userService.signup', error);
                     throw error;
                 } else {
-                    let customerId, subscription;
-                    console.log("Payment Intent: ",paymentIntent);
+                    let customerId, subscription;                    
                     if (IS_SAAS_SERVICE && paymentIntent !== null) {                        
                         // Check here is the payment intent is successfully paid. If yes then create the customer else not.
                         const processedPaymentIntent = await PaymentService.checkPaymentIntent(
