@@ -170,17 +170,29 @@ module.exports = {
     },
     doesDomainBelongToProject: async function(projectId, subDomain) {
         // ensure that a particular domain is available to all project and subProject
+        // domain added to a project should be available for both project and subProjects
+        // domain added to a subProject should be available to other subProjects and project
         const project = await ProjectService.findOneBy({ _id: projectId });
-        const projectList = [project._id];
+        let projectList = [project._id];
+        let subProjects = [];
         if (project.parentProjectId) {
             projectList.push(project.parentProjectId._id);
+
+            // find all the subProjects attached to this parent project
+            subProjects = await ProjectService.findBy({
+                parentProjectId: project.parentProjectId._id,
+            });
         } else {
-            let subProjects = await ProjectService.findBy({
+            subProjects = await ProjectService.findBy({
                 parentProjectId: project._id,
             });
-            subProjects = subProjects.map(project => project._id); // grab just the project ids
-            projectList.push(...subProjects);
         }
+        subProjects = subProjects.map(project => project._id); // grab just the project ids
+        projectList.push(...subProjects);
+
+        projectList = projectList.filter(
+            (projectId, index) => projectList.indexOf(projectId) === index
+        );
 
         const parsed = psl.parse(subDomain);
         const domain = parsed.domain;
