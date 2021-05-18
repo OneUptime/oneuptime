@@ -42,6 +42,7 @@
         "qrcode.react": "^1.0.0",
         "react": "^16.5.2",
         "react-ace": "^9.1.3",
+        "react-beautiful-dnd": "^13.1.0",
         "react-breadcrumbs-dynamic": "^1.2.1",
         "react-click-outside": "github:tj/react-click-outside",
         "react-color": "^2.18.0",

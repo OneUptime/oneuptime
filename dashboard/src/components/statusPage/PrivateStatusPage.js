@@ -49,7 +49,6 @@ export class PrivateStatusPage extends Component {
                 isSubscriberEnabled: values.isSubscriberEnabled,
                 isGroupedByMonitorCategory: values.isGroupedByMonitorCategory,
                 showScheduledEvents: values.showScheduledEvents,
-                moveIncidentToTheTop: values.moveIncidentToTheTop,
                 ipWhitelist: values.ipWhitelist,
                 enableIpWhitelist: values.enableIpWhitelist,
                 hideProbeBar: values.hideProbeBar,
@@ -534,84 +533,6 @@ export class PrivateStatusPage extends Component {
                                                                         Options
                                                                     </span>
                                                                 </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="bs-Fieldset-row">
-                                                        <label
-                                                            className="bs-Fieldset-label"
-                                                            style={{
-                                                                flex: '25% 0 0',
-                                                            }}
-                                                        >
-                                                            <span></span>
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    height:
-                                                                        '5px',
-                                                                }}
-                                                            ></div>
-                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                                <label className="Checkbox">
-                                                                    <Field
-                                                                        component="input"
-                                                                        type="checkbox"
-                                                                        name={
-                                                                            'moveIncidentToTheTop'
-                                                                        }
-                                                                        data-test="RetrySettings-failedPaymentsCheckbox"
-                                                                        className="Checkbox-source"
-                                                                        id="statuspage_moveIncidentToTheTop"
-                                                                    />
-                                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                                        <div className="Checkbox-target Box-root">
-                                                                            <div className="Checkbox-color Box-root"></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        className="Box-root"
-                                                                        style={{
-                                                                            paddingLeft:
-                                                                                '5px',
-                                                                        }}
-                                                                    >
-                                                                        <span>
-                                                                            Show
-                                                                            incidents
-                                                                            to
-                                                                            the
-                                                                            top
-                                                                            of
-                                                                            the
-                                                                            status
-                                                                            page
-                                                                        </span>
-                                                                        <label className="bs-Fieldset-explanation">
-                                                                            <span>
-                                                                                Move
-                                                                                the
-                                                                                list
-                                                                                of
-                                                                                incidents
-                                                                                to
-                                                                                the
-                                                                                top
-                                                                                of
-                                                                                the
-                                                                                status
-                                                                                page
-                                                                                instead
-                                                                                of
-                                                                                at
-                                                                                the
-                                                                                bottom.
-                                                                            </span>
-                                                                        </label>
-                                                                    </div>
-                                                                </label>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1215,7 +1136,6 @@ const mapStateToProps = state => {
         initialValues.isGroupedByMonitorCategory =
             status.isGroupedByMonitorCategory;
         initialValues.showScheduledEvents = status.showScheduledEvents;
-        initialValues.moveIncidentToTheTop = status.moveIncidentToTheTop;
         initialValues.enableIpWhitelist = status.enableIpWhitelist;
         initialValues.ipWhitelist = status.ipWhitelist;
         initialValues.hideProbeBar = status.hideProbeBar;
