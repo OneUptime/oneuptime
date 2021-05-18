@@ -82,7 +82,9 @@ class ApplicationSecurityDetail extends Component {
             applicationSecurityId,
             getApplicationSecurityLog,
         } = this.props;
-        fetchComponent(componentSlug);
+        if (projectId && componentSlug) {
+            fetchComponent(projectId, componentSlug);
+        }
         if (projectId && componentId) {
             // get a particular container security
             getApplicationSecurityBySlug({
