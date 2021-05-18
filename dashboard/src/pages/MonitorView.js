@@ -124,7 +124,15 @@ class MonitorView extends React.Component {
         });
     };
     ready = () => {
-        const { monitor } = this.props;
+        const {
+            monitor,
+            componentSlug,
+            fetchComponent,
+            currentProject,
+        } = this.props;
+        if (currentProject && currentProject._id && componentSlug) {
+            fetchComponent(currentProject._id, componentSlug);
+        }
         if (monitor && monitor._id && this.props.currentProject._id) {
             this.props.fetchIncidentPriorities(
                 this.props.currentProject._id,
@@ -879,7 +887,7 @@ const mapStateToProps = (state, props) => {
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     const monitorCollection = state.monitor.monitorsList.monitors.find(el => {
-        return component.projectId._id === el._id;
+        return component && component.projectId._id === el._id;
     });
     const currentMonitor =
         monitorCollection &&
