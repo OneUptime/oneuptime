@@ -10,6 +10,7 @@ import {
     updateAnnouncement,
     resetDeleteAnnouncement,
     fetchAnnouncements,
+    fetchAnnouncementLogs,
 } from '../../actions/statusPage';
 
 class HideAnnouncement extends Component {
@@ -40,6 +41,7 @@ class HideAnnouncement extends Component {
             modalId,
             statusPage,
             fetchAnnouncements,
+            fetchAnnouncementLogs,
         } = this.props;
         this.props.resetDeleteAnnouncement();
         closeModal({ id: modalId });
@@ -58,6 +60,7 @@ class HideAnnouncement extends Component {
                     this.props.closeThisDialog();
                     closeModal({ id: modalId });
                     fetchAnnouncements(projectId, statusPage._id, 0, 10);
+                    fetchAnnouncementLogs(projectId, statusPage._id, 0, 10);
                 }
             })
             .catch(err => {
@@ -202,6 +205,7 @@ HideAnnouncement.propTypes = {
     statusPage: PropTypes.object,
     resetDeleteAnnouncement: PropTypes.func,
     fetchAnnouncements: PropTypes.func,
+    fetchAnnouncementLogs: PropTypes.func,
 };
 
 const mapStateToProps = state => {
@@ -220,6 +224,7 @@ const mapDispatchToProps = dispatch =>
             updateAnnouncement,
             resetDeleteAnnouncement,
             fetchAnnouncements,
+            fetchAnnouncementLogs,
         },
         dispatch
     );
