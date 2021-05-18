@@ -1358,7 +1358,59 @@ router.put(
                 data
             );
 
+            if (response && data.announcementToggle) {
+                const date = new Date();
+                const log = {};
+                log.statusPageId = statusPageId;
+                if (data.hideAnnouncement) {
+                    log.endDate = date;
+                    log.updatedById = data.createdById;
+                    log.active = false;
+                    await StatusPageService.updateAnnouncementLog(
+                        { active: true },
+                        log
+                    );
+                } else {
+                    log.announcementId = announcementId;
+                    log.createdById = data.createdById;
+                    log.startDate = date;
+                    log.active = true;
+                    await StatusPageService.createAnnouncementLog(log);
+                }
+            }
+
             return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.get(
+    '/:projectId/announcementLogs/:statusPageId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { statusPageId } = req.params;
+            const { skip, limit } = req.query;
+            const announcementLogs = await StatusPageService.getAnnouncementLogs(
+                {
+                    statusPageId,
+                },
+                skip,
+                limit
+            );
+
+            const count = await StatusPageService.countAnnouncementLogs({
+                statusPageId,
+            });
+
+            return sendItemResponse(req, res, {
+                announcementLogs,
+                skip,
+                limit,
+                count,
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -1426,6 +1478,26 @@ router.delete(
                 {
                     projectId,
                     _id: announcementId,
+                },
+                userId
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.delete(
+    `/:projectId/announcementLog/:announcementLogId/delete`,
+    checkUser,
+    async function(req, res) {
+        try {
+            const { announcementLogId } = req.params;
+            const userId = req.user ? req.user.id : null;
+            const response = await StatusPageService.deleteAnnouncementLog(
+                {
+                    _id: announcementLogId,
                 },
                 userId
             );
