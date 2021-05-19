@@ -47,6 +47,7 @@ describe('Incident Reports API', () => {
                 await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
                 await init.pageWaitForSelector(page, '#incidentType');
                 await init.pageClick(page, '#createIncident');
+                await init.pageWaitForSelector(page, '#createIncident', { hidden: true });
                 await init.pageClick(page, '#viewIncident-0');
                 await init.pageWaitForSelector(page, '#btnAcknowledge_0');
                 await init.pageClick(page, '#btnAcknowledge_0');
@@ -62,10 +63,17 @@ describe('Incident Reports API', () => {
 
     test(
         'should resolved all incidents at once',
-        async done =>{
-            await page.goto(utils.DASHBOARD_URL,{
+        async done => {
+            await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2'
             })
+            await init.pageWaitForSelector(page, '#incidents-close-all-btn');
+            await init.pageClick(page, '#incidents-close-all-btn');
+            await init.pageWaitForSelector(page, '#closeIncidentButton_0', { hidden: true });
+            await page.reload({ waitUntil: 'networkidle2' });
+
+            const closedResolvedIncidents = await init.pageWaitForSelector(page, '#incidents-close-all-btn');
+            expect(closedResolvedIncidents).toBeUndefined();
             done();
         },
         operationTimeOut
