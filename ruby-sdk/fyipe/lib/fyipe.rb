@@ -19,20 +19,24 @@ class Fyipe
         @apiUrl = apiUrl + '/application-log/' + @applicationLogId + '/log';
     end
 
-    def log(content, tags = nil)
-        # get the class of the content and convert to string for comparison
-        contentType = content.class.to_s
-        tagType = tags != nil ? tags.class.to_s : nil
-        
-        # check if content type is not a string or hash object
-        if(!((contentType.eql? "String") || (contentType.eql? "Hash")))
-            raise "Invalid Content to be logged"
-        end
+    def validateItems(content, tags)
+         # get the class of the content and convert to string for comparison
+         contentType = content.class.to_s
+         tagType = tags != nil ? tags.class.to_s : nil
+         
+         # check if content type is not a string or hash object
+         if(!((contentType.eql? "String") || (contentType.eql? "Hash")))
+             raise "Invalid Content to be logged"
+         end
+ 
+         # check if tag type is avialable and its not a string or hash object
+         if(tagType != nil && (!((tagType.eql? "String") || (tagType.eql? "Hash"))))
+             raise "Invalid Content Tags to be logged"
+         end
+    end
 
-        # check if tag type is avialable and its not a string or hash object
-        if(tagType != nil && (!((tagType.eql? "String") || (tagType.eql? "Hash"))))
-            raise "Invalid Content Tags to be logged"
-        end
+    def log(content, tags = nil)
+        validateItems(content, tags)
 
         #set log type
         logType = "info";
