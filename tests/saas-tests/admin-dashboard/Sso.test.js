@@ -119,6 +119,8 @@ describe('SSO API', () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await moveToSsoPage(page);
 
+            await init.pageWaitForSelector(page, '#sso-count');
+
             const ssoCount = await page.$eval('#sso-count', e => {
                 return e.innerHTML;
             });
@@ -154,6 +156,8 @@ describe('SSO API', () => {
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await moveToSsoPage(page);
+
+            await init.pageWaitForSelector(page, '#sso-count');
 
             const ssoCount = await page.$eval('#sso-count', e => {
                 return e.innerHTML;
