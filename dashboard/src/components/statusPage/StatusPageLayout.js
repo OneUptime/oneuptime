@@ -558,6 +558,7 @@ StatusPageLayout.displayName = 'StatusPageLayout';
 StatusPageLayout.propTypes = {
     statusPage: PropTypes.object.isRequired,
     updateStatusPageLayout: PropTypes.func,
+    openModal: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
