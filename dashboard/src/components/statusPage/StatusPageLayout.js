@@ -176,6 +176,7 @@ export class StatusPageLayout extends Component {
                 { name: 'Overall Status', key: 'resources' },
                 { name: 'Resource List', key: 'services' },
                 { name: 'Incidents', key: 'incidents' },
+                { name: 'Announcement Logs', key: 'AnnouncementLogs' },
                 {
                     name: 'Scheduled Maintenance Events',
                     key: 'maintenance',
