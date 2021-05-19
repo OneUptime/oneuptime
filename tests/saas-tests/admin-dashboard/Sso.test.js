@@ -212,7 +212,7 @@ describe('SSO API', () => {
             await init.pageWaitForSelector(page, '#sso-domain');
 
             await page.waitForFunction(
-                'document.querySelector("#sso-count").innerText.includes("Page 1 of 2 (12 SOS)")'
+                'document.querySelector("#sso-count").innerText.includes("Page 1 of 2 (12 SOSs)")'
             );
 
             const ssoCount = await page.$eval('#sso-count', e => {
@@ -230,7 +230,7 @@ describe('SSO API', () => {
             await init.pageClick(page, '#next-button');
 
             await page.waitForFunction(
-                'document.querySelector("#sso-count").innerText.includes("Page 2 of 2 (12 SOS)")'
+                'document.querySelector("#sso-count").innerText.includes("Page 2 of 2 (12 SOSs)")'
             );
             const secondPageTbody = await page.$eval('tbody', e => {
                 return e.innerHTML;
@@ -241,7 +241,7 @@ describe('SSO API', () => {
             await init.pageClick(page, '#previous-button');
 
             await page.waitForFunction(
-                'document.querySelector("#sso-count").innerText.includes("Page 1 of 2 (12 SOS)")'
+                'document.querySelector("#sso-count").innerText.includes("Page 1 of 2 (12 SOSs)")'
             );
 
             const initalPageTbody = await page.$eval('tbody', e => {
