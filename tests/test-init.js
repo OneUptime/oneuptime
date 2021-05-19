@@ -281,7 +281,7 @@ const _this = {
         await _this.pageClick(page, 'button#logout-button');
         await page.reload({ waitUntil: 'networkidle2' });
     },
-    selectByText: async function(selector, text, page) {
+    selectDropdownValue: async function(selector, text, page) {
         await _this.pageClick(page, selector, { delay: 100 });
         await page.keyboard.type(text);
         const noOption = await page.$('div.css-1gl4k7y');
