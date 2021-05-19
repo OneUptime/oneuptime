@@ -302,26 +302,27 @@ module.exports = {
                     monitor
                 );
 
-                for (const schedules of scheduleList) {
-                    if (schedules.length > 0) {
-                        for (const schedule of schedules) {
-                            _this.sendAlertsToTeamMembersInSchedule({
-                                schedule,
-                                incident,
-                                monitorId: monitor._id,
-                            });
-                        }
-                    } else {
-                        OnCallScheduleStatusService.create({
-                            project: incident.projectId,
-                            incident: incident._id,
-                            activeEscalation: null,
-                            schedule: null,
-                            incidentAcknowledged: false,
-                            escalations: [],
-                            isOnDuty: false,
+                // for (const schedules of scheduleList) {
+                //     console.log('***** each schedle *******', schedules);
+                // }
+                if (scheduleList.length > 0) {
+                    for (const schedule of scheduleList) {
+                        _this.sendAlertsToTeamMembersInSchedule({
+                            schedule,
+                            incident,
+                            monitorId: monitor._id,
                         });
                     }
+                } else {
+                    OnCallScheduleStatusService.create({
+                        project: incident.projectId,
+                        incident: incident._id,
+                        activeEscalation: null,
+                        schedule: null,
+                        incidentAcknowledged: false,
+                        escalations: [],
+                        isOnDuty: false,
+                    });
                 }
             }
         } catch (error) {
