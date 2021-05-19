@@ -351,7 +351,7 @@ class CreateSubscriber extends Component {
                                                                 name="contactPhone"
                                                                 id="contactPhoneId"
                                                                 placeholder="6505551234"
-                                                                required="required"
+                                                                // required="required"
                                                                 normalize={val =>
                                                                     (
                                                                         val ||
