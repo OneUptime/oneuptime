@@ -34,19 +34,19 @@ describe('Project', () => {
         await init.loginAdminUser(adminUser, page);
     });
 
-    afterAll(async (done) => {
+    afterAll(async done => {
         await browser.close();
         done();
     });
 
     test(
         'should upgrade a project to enterprise plan',
-        async (done) => {
+        async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
             await init.createUserFromAdminDashboard(user, page);
-            await page.reload({waitUntil: 'networkidle2'});
+            await page.reload({ waitUntil: 'networkidle2' });
             await init.pageClick(page, '#projects');
             await page.$eval('#projects > a', elem => elem.click());
             await init.pageWaitForSelector(page, '.Table > tbody tr');
@@ -90,7 +90,7 @@ describe('Project', () => {
 
     test(
         'should change to any other plan',
-        async (done) => {
+        async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.pageClick(page, '#projects');
             await page.$eval('#projects > a', elem => elem.click());
