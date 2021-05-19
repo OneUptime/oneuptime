@@ -364,7 +364,7 @@ export class Component extends React.Component {
                                     <ShouldRender if={numberOfPages > 0}>
                                         Page {this.state.page} of{' '}
                                         {numberOfPages} (
-                                        <span id="sso-count">{count} </span>SOS
+                                        <span id="sso-count">{count} </span>SSO
                                         <ShouldRender if={count > 1}>
                                             s
                                         </ShouldRender>
