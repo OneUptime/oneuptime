@@ -25,6 +25,7 @@ import NewThemeEvent from './NewThemeEvent';
 import NewThemeSubscriber from './NewThemeSubscriber';
 import Announcement from './Announcement';
 import { Fragment } from 'react';
+import AnnouncementLogs from './AnnouncementLogs';
 
 const greenBackground = {
     display: 'inline-block',
@@ -629,6 +630,19 @@ class Main extends Component {
                     {...this.props}
                 />
             ),
+            AnnouncementLogs: (
+                <div>
+                    <AnnouncementLogs
+                        projectId={
+                            this.props.statusData &&
+                            this.props.statusData.projectId &&
+                            this.props.statusData.projectId._id
+                        }
+                        statusPageId={this.props.statusData}
+                        theme={theme}
+                    />
+                </div>
+            ),
         };
 
         const theme2Obj = {
@@ -971,6 +985,19 @@ class Main extends Component {
                     </ShouldRender>
                 </ShouldRender>
             ),
+
+            AnnouncementLogs: (
+                <div>
+                    <AnnouncementLogs
+                        projectId={
+                            this.props.statusData &&
+                            this.props.statusData.projectId &&
+                            this.props.statusData.projectId._id
+                        }
+                        statusPageId={this.props.statusData}
+                    />
+                </div>
+            ),
         };
 
         const defaultLayout = {
@@ -986,6 +1013,7 @@ class Main extends Component {
                 { name: 'Overall Status', key: 'resources' },
                 { name: 'Resource List', key: 'services' },
                 { name: 'Incidents', key: 'incidents' },
+                { name: 'Announcement Logs', key: 'AnnouncementLogs' },
                 { name: 'Scheduled Maintenance Events', key: 'maintenance' },
             ],
             invisible: [],

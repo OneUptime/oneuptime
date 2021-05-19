@@ -284,7 +284,7 @@ class StatusPage extends Component {
                                                                 </div>
                                                             </TabPanel>
                                                             <TabPanel>
-                                                                <div className="Box-root Margin-bottom--12 bs-ContentSection Card-root Card-shadow--medium>">
+                                                                <div>
                                                                     <Announcements
                                                                         projectId={
                                                                             data.projectId

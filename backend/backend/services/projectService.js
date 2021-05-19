@@ -384,9 +384,11 @@ module.exports = {
         const data = { stripePlanId: 'enterprise', stripeSubscriptionId: null };
         try {
             const project = await this.findOneBy({ _id: projectId });
-            await PaymentService.removeSubscription(
-                project.stripeSubscriptionId
-            );
+            if (data.stripeSubscriptionId !== null) {
+                await PaymentService.removeSubscription(
+                    project.stripeSubscriptionId
+                );
+            }
             const updatedProject = await this.updateOneBy(
                 { _id: projectId },
                 data

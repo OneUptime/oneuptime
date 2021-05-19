@@ -1301,6 +1301,12 @@ module.exports = {
                     new: true,
                 }
             );
+            const log = {
+                active: false,
+                endDate: new Date(),
+                updatedById: data.createdById,
+            };
+            await _this.updateAnnouncementLog({ active: true }, log);
             return response;
         } catch (error) {
             ErrorService.log('statusPageService.getSingleAnnouncement', error);
@@ -1352,6 +1358,120 @@ module.exports = {
             return response;
         } catch (error) {
             ErrorService.log('statusPageService.deleteAnnouncement', error);
+            throw error;
+        }
+    },
+
+    createAnnouncementLog: async function(data) {
+        try {
+            const announcementLog = new AnnouncementLogModel();
+            announcementLog.announcementId = data.announcementId || null;
+            announcementLog.createdById = data.createdById || null;
+            announcementLog.statusPageId = data.statusPageId || null;
+            announcementLog.startDate = data.startDate || null;
+            announcementLog.endDate = data.endDate || null;
+            announcementLog.active = data.active || null;
+            const newAnnouncementLog = await announcementLog.save();
+            return newAnnouncementLog;
+        } catch (error) {
+            ErrorService.log('statusPageService.createAnnouncementLog', error);
+            throw error;
+        }
+    },
+
+    updateAnnouncementLog: async function(query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const response = await AnnouncementLogModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.createAnnouncementLog', error);
+            throw error;
+        }
+    },
+
+    getAnnouncementLogs: async function(query, skip, limit) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof skip === 'string') {
+                skip = Number(skip);
+            }
+
+            if (typeof limit === 'string') {
+                limit = Number(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const announcementLogs = await AnnouncementLogModel.find(query)
+                .sort([['createdAt', -1]])
+                .limit(limit)
+                .skip(skip)
+                .populate({
+                    path: 'announcementId',
+                    select: 'name',
+                    populate: { path: 'monitors.monitorId', select: 'name' },
+                });
+            return announcementLogs;
+        } catch (error) {
+            ErrorService.log('statusPageService.getAnnouncementLogs', error);
+            throw error;
+        }
+    },
+
+    deleteAnnouncementLog: async function(query, userId) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const response = await AnnouncementLogModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
+                }
+            );
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.deleteAnnouncementLog', error);
+            throw error;
+        }
+    },
+
+    countAnnouncementLogs: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const count = await AnnouncementLogModel.countDocuments(query);
+            return count;
+        } catch (error) {
+            ErrorService.log('statusPageService.countAnnouncementLogs', error);
             throw error;
         }
     },
@@ -1445,3 +1565,4 @@ const greenlock = require('../../greenlock');
 const CertificateStoreService = require('./certificateStoreService');
 const AnnouncementModel = require('../models/announcements');
 const getSlug = require('../utils/getSlug');
+const AnnouncementLogModel = require('../models/announcementLogs');
