@@ -289,7 +289,7 @@ const getIncidents = async (projectIds, val, parentProjectId) => {
                             parentProjectId === String(incident.projectId._id),
                         projectName: incident.projectId.name,
                         componentId: incident.monitorId.componentId.slug,
-                        notificationId: incident.notificationId,
+                        notifications: incident.notifications,
                         incident: incident,
                     };
                 }),
