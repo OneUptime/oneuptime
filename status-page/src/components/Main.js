@@ -440,7 +440,130 @@ class Main extends Component {
 
         const availableMonitors = this.props.statusData.monitors;
 
+        const defaultLayout = {
+            visible: [
+                { name: 'Header', key: 'header' },
+                {
+                    name: 'Active Announcement',
+                    key: 'anouncement',
+                },
+                {
+                    name: 'Ongoing Schedule Events',
+                    key: 'ongoingSchedule',
+                },
+                { name: 'Overall Status', key: 'resources' },
+                { name: 'Resource List', key: 'services' },
+                { name: 'Incidents', key: 'incidents' },
+                { name: 'Announcement Logs', key: 'AnnouncementLogs' },
+                { name: 'Scheduled Maintenance Events', key: 'maintenance' },
+                { name: 'Footer', key: 'footer' },
+            ],
+            invisible: [],
+        };
+
+        let visibleLayout =
+            this.props.statusData && this.props.statusData.layout;
+        //check if the layout has been set if not fall back to the default layout
+        if (!visibleLayout) {
+            visibleLayout = defaultLayout;
+        }
+        let resourcesServiceOverlap = false;
+        visibleLayout.visible.forEach((item, i) => {
+            if (
+                item.key === 'services' &&
+                visibleLayout.visible[i - 1].key === 'resources'
+            ) {
+                resourcesServiceOverlap = true;
+            }
+        });
         const layoutObj = {
+            header: (
+                <>
+                    <HelemtCard
+                        statusData={this.props.statusData}
+                        faviconurl={faviconurl}
+                    />
+                    <ShouldRender
+                        if={
+                            this.props.statusData &&
+                            this.props.statusData.logoPath
+                        }
+                    >
+                        <div className="logo_section pad-left">
+                            <span>
+                                <img
+                                    src={`${API_URL}/file/${this.props.statusData.logoPath}`}
+                                    alt=""
+                                    className="logo"
+                                />
+                            </span>
+                        </div>
+                    </ShouldRender>
+                    <ShouldRender if={headerHTML}>
+                        <React.Fragment>
+                            <style>{sanitizedCSS}</style>
+                            <div className="logo_section">
+                                <div
+                                    id="customHeaderHTML"
+                                    dangerouslySetInnerHTML={{
+                                        __html: headerHTML,
+                                    }}
+                                />
+                            </div>
+                        </React.Fragment>
+                    </ShouldRender>
+                    {this.props.statusData &&
+                    this.props.statusData.bannerPath ? (
+                        <div className="banner-container">
+                            <div className="page-main-wrapper">
+                                <span>
+                                    <img
+                                        src={`${API_URL}/file/${this.props.statusData.bannerPath}`}
+                                        alt=""
+                                        className="banner"
+                                    />
+                                </span>
+                            </div>
+                        </div>
+                    ) : (
+                        ''
+                    )}
+                    <ShouldRender
+                        if={
+                            this.props.statusData.title ||
+                            (this.props.isSubscriberEnabled === true &&
+                                showSubscriberOption)
+                        }
+                    >
+                        <div className="subscribe_box">
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 'bold',
+                                    }}
+                                >
+                                    {this.props.statusData.title}
+                                </span>
+                                <ShouldRender
+                                    if={this.props.statusData.description}
+                                >
+                                    <div className="bs-page_desc">
+                                        {this.props.statusData.description}
+                                    </div>
+                                </ShouldRender>
+                            </div>
+                            <ShouldRender
+                                if={
+                                    this.props.isSubscriberEnabled === true &&
+                                    showSubscriberOption
+                                }
+                            >
+                                <NewThemeSubscriber />
+                            </ShouldRender>
+                        </div>
+                    </ShouldRender>
+                </>
+            ),
             resources: (
                 <div
                     className="sy-op"
@@ -643,6 +766,16 @@ class Main extends Component {
                     />
                 </div>
             ),
+            footer: (
+                <div className="powered">
+                    <FooterCard
+                        footerHTML={footerHTML}
+                        statusData={this.props.statusData}
+                        primaryText={primaryText}
+                        secondaryText={secondaryText}
+                    />
+                </div>
+            ),
         };
 
         const theme2Obj = {
@@ -665,82 +798,84 @@ class Main extends Component {
                     statusPageSlug={this.props.statusData.slug}
                 />
             ),
+            resources: (
+                <>
+                    <ShouldRender if={headerHTML}>
+                        <React.Fragment>
+                            <div
+                                style={{
+                                    top: -25,
+                                    position: 'relative',
+                                }}
+                            >
+                                <style>{sanitizedCSS}</style>
+                                <div
+                                    id="customHeaderHTML"
+                                    dangerouslySetInnerHTML={{
+                                        __html: headerHTML,
+                                    }}
+                                />
+                            </div>
+                        </React.Fragment>
+                    </ShouldRender>
+
+                    <div
+                        className="white box"
+                        style={{
+                            ...contentBackground,
+                            borderBottomLeftRadius:
+                                resourcesServiceOverlap && 0,
+                            borderBottomRightRadius:
+                                resourcesServiceOverlap && 0,
+                            marginTop: resourcesServiceOverlap ? 0 : '50px',
+                        }}
+                    >
+                        <div className="largestatus">
+                            <span
+                                className={status}
+                                style={{
+                                    ...statusBackground,
+                                    width: '30px',
+                                    height: '30px',
+                                }}
+                            ></span>
+                            <div className="title-wrapper">
+                                <span className="title" style={heading}>
+                                    {statusMessage}
+                                </span>
+                                <label
+                                    className="status-time"
+                                    style={secondaryText}
+                                >
+                                    As of{' '}
+                                    <span className="current-time">
+                                        {moment(new Date()).format('LLLL')}
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            ),
             services: (
                 <>
                     <div
                         className="content"
                         style={{
                             position: 'relative',
-                            marginTop: 50,
+                            marginTop: resourcesServiceOverlap ? 0 : '50px',
                         }}
                     >
-                        <ShouldRender if={headerHTML}>
-                            <React.Fragment>
-                                <div
-                                    style={{
-                                        top: -25,
-                                        position: 'relative',
-                                    }}
-                                >
-                                    <style>{sanitizedCSS}</style>
-                                    <div
-                                        id="customHeaderHTML"
-                                        dangerouslySetInnerHTML={{
-                                            __html: headerHTML,
-                                        }}
-                                    />
-                                </div>
-                            </React.Fragment>
-                        </ShouldRender>
-                        <ShouldRender
-                            if={
-                                this.props.statusData &&
-                                this.props.statusData.logoPath
-                            }
+                        <div
+                            className="white box"
+                            style={{
+                                ...contentBackground,
+                                borderTopLeftRadius:
+                                    resourcesServiceOverlap && 0,
+                                borderTopRightRadius:
+                                    resourcesServiceOverlap && 0,
+                            }}
                         >
-                            <div
-                                style={{
-                                    position: 'relative',
-                                    left: 30,
-                                    bottom: '-25px',
-                                }}
-                            >
-                                <div>
-                                    <span>
-                                        <img
-                                            src={`${API_URL}/file/${this.props.statusData.logoPath}`}
-                                            alt=""
-                                            className="logo"
-                                        />
-                                    </span>
-                                </div>
-                            </div>
-                        </ShouldRender>
-                        <div className="white box" style={contentBackground}>
-                            <div className="largestatus">
-                                <span
-                                    className={status}
-                                    style={{
-                                        ...statusBackground,
-                                        width: '30px',
-                                        height: '30px',
-                                    }}
-                                ></span>
-                                <div className="title-wrapper">
-                                    <span className="title" style={heading}>
-                                        {statusMessage}
-                                    </span>
-                                    <label
-                                        className="status-time"
-                                        style={secondaryText}
-                                    >
-                                        As of{' '}
-                                        <span className="current-time">
-                                            {moment(new Date()).format('LLLL')}
-                                        </span>
-                                    </label>
-                                </div>
-                            </div>
                             <ShouldRender
                                 if={!this.props.statusData.hideProbeBar}
                             >
@@ -985,7 +1120,6 @@ class Main extends Component {
                     </ShouldRender>
                 </ShouldRender>
             ),
-
             AnnouncementLogs: (
                 <div>
                     <AnnouncementLogs
@@ -998,33 +1132,48 @@ class Main extends Component {
                     />
                 </div>
             ),
+            header:
+                this.props.statusData && this.props.statusData.bannerPath ? (
+                    <div>
+                        <span>
+                            <img
+                                src={`${API_URL}/file/${this.props.statusData.bannerPath}`}
+                                alt=""
+                                className="banner"
+                            />
+                        </span>
+                        <ShouldRender
+                            if={
+                                this.props.statusData &&
+                                this.props.statusData.logoPath
+                            }
+                        >
+                            <div className="log-container">
+                                <div>
+                                    <span>
+                                        <img
+                                            src={`${API_URL}/file/${this.props.statusData.logoPath}`}
+                                            alt=""
+                                            className="logo"
+                                        />
+                                    </span>
+                                </div>
+                            </div>
+                        </ShouldRender>
+                    </div>
+                ) : (
+                    ''
+                ),
+            footer: (
+                <FooterCard
+                    footerHTML={footerHTML}
+                    statusData={this.props.statusData}
+                    primaryText={primaryText}
+                    secondaryText={secondaryText}
+                />
+            ),
         };
 
-        const defaultLayout = {
-            visible: [
-                {
-                    name: 'Active Announcement',
-                    key: 'anouncement',
-                },
-                {
-                    name: 'Ongoing Schedule Events',
-                    key: 'ongoingSchedule',
-                },
-                { name: 'Overall Status', key: 'resources' },
-                { name: 'Resource List', key: 'services' },
-                { name: 'Incidents', key: 'incidents' },
-                { name: 'Announcement Logs', key: 'AnnouncementLogs' },
-                { name: 'Scheduled Maintenance Events', key: 'maintenance' },
-            ],
-            invisible: [],
-        };
-
-        let visibleLayout =
-            this.props.statusData && this.props.statusData.layout;
-        //check if the layout has been set if not fall back to the default layout
-        if (!visibleLayout) {
-            visibleLayout = defaultLayout;
-        }
         return (
             <>
                 {theme === 'Clean Theme' ? (
@@ -1038,143 +1187,47 @@ class Main extends Component {
                                     : backgroundMain
                             }
                         >
-                            <HelemtCard
-                                statusData={this.props.statusData}
-                                faviconurl={faviconurl}
-                            />
-                            <ShouldRender
-                                if={
-                                    this.props.statusData &&
-                                    this.props.statusData.logoPath
-                                }
-                            >
-                                <div className="logo_section pad-left">
-                                    <span>
-                                        <img
-                                            src={`${API_URL}/file/${this.props.statusData.logoPath}`}
-                                            alt=""
-                                            className="logo"
-                                        />
-                                    </span>
-                                </div>
-                            </ShouldRender>
-                            <ShouldRender if={headerHTML}>
-                                <React.Fragment>
-                                    <style>{sanitizedCSS}</style>
-                                    <div className="logo_section">
-                                        <div
-                                            id="customHeaderHTML"
-                                            dangerouslySetInnerHTML={{
-                                                __html: headerHTML,
-                                            }}
-                                        />
-                                    </div>
-                                </React.Fragment>
-                            </ShouldRender>
-                            {this.props.statusData &&
-                            this.props.statusData.bannerPath ? (
-                                <div className="banner-container">
-                                    <div className="page-main-wrapper">
-                                        <span>
-                                            <img
-                                                src={`${API_URL}/file/${this.props.statusData.bannerPath}`}
-                                                alt=""
-                                                className="banner"
-                                            />
-                                        </span>
-                                    </div>
-                                </div>
-                            ) : (
-                                ''
-                            )}
-                            <ShouldRender
-                                if={
-                                    this.props.statusData.title ||
-                                    (this.props.isSubscriberEnabled === true &&
-                                        showSubscriberOption)
-                                }
-                            >
-                                <div className="subscribe_box">
-                                    <div>
-                                        <span
-                                            style={{
-                                                fontWeight: 'bold',
-                                            }}
-                                        >
-                                            {this.props.statusData.title}
-                                        </span>
-                                        <ShouldRender
-                                            if={
-                                                this.props.statusData
-                                                    .description
-                                            }
-                                        >
-                                            <div className="bs-page_desc">
-                                                {
-                                                    this.props.statusData
-                                                        .description
-                                                }
+                            {visibleLayout &&
+                                visibleLayout.visible.map(layout => {
+                                    if (layout.key === 'header') {
+                                        return (
+                                            <div key={layout.key}>
+                                                {layoutObj[layout.key]}
                                             </div>
-                                        </ShouldRender>
-                                    </div>
-                                    <ShouldRender
-                                        if={
-                                            this.props.isSubscriberEnabled ===
-                                                true && showSubscriberOption
-                                        }
-                                    >
-                                        <NewThemeSubscriber />
-                                    </ShouldRender>
-                                </div>
-                            </ShouldRender>
-                            <div className="new-main-container">
-                                {visibleLayout &&
-                                    visibleLayout.visible.map(layout => (
-                                        <Fragment key={layout.key}>
-                                            {layoutObj[layout.key]}
-                                        </Fragment>
-                                    ))}
-                            </div>
-
-                            <div className="powered">
-                                <FooterCard
-                                    footerHTML={footerHTML}
-                                    statusData={this.props.statusData}
-                                    primaryText={primaryText}
-                                    secondaryText={secondaryText}
-                                />
-                            </div>
+                                        );
+                                    } else {
+                                        return (
+                                            <div
+                                                key={layout.key}
+                                                className="new-main-container"
+                                            >
+                                                {layoutObj[layout.key]}
+                                            </div>
+                                        );
+                                    }
+                                })}
                         </div>
                     </>
                 ) : (
                     <div className="page-main-wrapper" style={backgroundMain}>
-                        {this.props.statusData &&
-                        this.props.statusData.bannerPath ? (
-                            <span>
-                                <img
-                                    src={`${API_URL}/file/${this.props.statusData.bannerPath}`}
-                                    alt=""
-                                    className="banner"
-                                />
-                            </span>
-                        ) : (
-                            ''
-                        )}
                         {view ? (
-                            <div className="innernew">
+                            <>
                                 {visibleLayout &&
-                                    visibleLayout.visible.map(layout => (
-                                        <Fragment key={layout.key}>
-                                            {theme2Obj[layout.key]}
-                                        </Fragment>
-                                    ))}
-                                <FooterCard
-                                    footerHTML={footerHTML}
-                                    statusData={this.props.statusData}
-                                    primaryText={primaryText}
-                                    secondaryText={secondaryText}
-                                />
-                            </div>
+                                    visibleLayout.visible.map(layout => {
+                                        if (layout.key === 'header') {
+                                            return <>{theme2Obj[layout.key]}</>;
+                                        } else {
+                                            return (
+                                                <div
+                                                    key={layout.key}
+                                                    className="innernew"
+                                                >
+                                                    {theme2Obj[layout.key]}
+                                                </div>
+                                            );
+                                        }
+                                    })}
+                            </>
                         ) : (
                             ''
                         )}

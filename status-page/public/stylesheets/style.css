@@ -1322,6 +1322,11 @@ margin-left:10px;
   cursor: default !important;
 }
 
+.log-container{
+  margin: auto;
+  width: 600px;
+  margin-top: -30px;
+}
 .clean_ann {
   max-width: 850px;
   margin: auto;
@@ -2005,6 +2010,9 @@ margin-left:10px;
   .innernew {
     width: 90%;
     margin-top: 20px;
+  }
+  .log-container{
+    width: 88%;
   }
 
   .scheduledEvent,
