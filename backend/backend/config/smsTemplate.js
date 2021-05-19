@@ -1,9 +1,9 @@
 module.exports = [
     {
         allowedVariables: [
-            '{{incidentTime}} : Time at which this incident occured.',
-            '{{monitorName}} : Name of the monitor on which incident has occured.',
-            '{{projectName}} : Name of the project on which the incident has occured.',
+            '{{incidentTime}} : Time at which this incident occurred.',
+            '{{monitorName}} : Name of the monitor on which incident has occurred.',
+            '{{projectName}} : Name of the project on which the incident has occurred.',
             '{{incidentType}} : Type of incident. Online, offline or degraded.',
             '{{componentName}} : Name of the component the monitor belongs to',
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
@@ -12,13 +12,13 @@ module.exports = [
         ],
         smsType: 'Subscriber Incident Created',
         body:
-            '{{projectName}} - {{componentName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
+            '{{projectName}} - {{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
     },
     {
         allowedVariables: [
-            '{{incidentTime}} : Time at which this incident occured.',
-            '{{monitorName}} : Name of the monitor on which incident has occured.',
-            '{{projectName}} : Name of the project on which the incident has occured.',
+            '{{incidentTime}} : Time at which this incident occurred.',
+            '{{monitorName}} : Name of the monitor on which incident has occurred.',
+            '{{projectName}} : Name of the project on which the incident has occurred.',
             '{{incidentType}} : Type of incident. Online, offline or degraded.',
             '{{componentName}} : Name of the component the monitor belongs to',
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
@@ -28,13 +28,13 @@ module.exports = [
         ],
         smsType: 'Subscriber Incident Acknowldeged',
         body:
-            '{{projectName}} - {{incidentType}} incident on {{componentName}}/{{monitorName}} is acknowledged at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
+            '{{projectName}} - {{incidentType}} incident on {{monitorName}} is acknowledged at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
     },
     {
         allowedVariables: [
-            '{{incidentTime}} : Time at which this incident occured.',
-            '{{monitorName}} : Name of the monitor on which incident has occured.',
-            '{{projectName}} : Name of the project on which the incident has occured.',
+            '{{incidentTime}} : Time at which this incident occurred.',
+            '{{monitorName}} : Name of the monitor on which incident has occurred.',
+            '{{projectName}} : Name of the project on which the incident has occurred.',
             '{{incidentType}} : Type of incident. Online, offline or degraded.',
             '{{componentName}} : Name of the component the monitor belongs to',
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
@@ -44,13 +44,13 @@ module.exports = [
         ],
         smsType: 'Subscriber Incident Resolved',
         body:
-            '{{projectName}} - {{incidentType}} incident on {{componentName}}/{{monitorName}} is resolved at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
+            '{{projectName}} - {{incidentType}} incident on {{monitorName}} is resolved at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
     },
     {
         allowedVariables: [
-            '{{incidentTime}} : Time at which this incident occured.',
-            '{{monitorName}} : Name of the monitor on which incident has occured.',
-            '{{projectName}} : Name of the project on which the incident has occured.',
+            '{{incidentTime}} : Time at which this incident occurred.',
+            '{{monitorName}} : Name of the monitor on which incident has occurred.',
+            '{{projectName}} : Name of the project on which the incident has occurred.',
             '{{incidentType}} : Type of incident. Online, offline or degraded.',
             '{{componentName}} : Name of the component the monitor belongs to',
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
