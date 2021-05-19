@@ -161,7 +161,9 @@ export class StatusPageLayout extends Component {
 
     resetLayoutToDefault = async () => {
         const { statusPage } = this.props;
-        const { _id, projectId } = statusPage.status;
+        const { _id } = statusPage.status;
+        let { projectId } = statusPage.status;
+        projectId = projectId._id ?? projectId;
         const layout = {
             visible: [
                 { name: 'Header', key: 'header' },
@@ -186,7 +188,7 @@ export class StatusPageLayout extends Component {
             invisible: [],
         };
         await this.props
-            .updateStatusPageLayout(projectId._id, {
+            .updateStatusPageLayout(projectId, {
                 _id,
                 projectId,
                 layout,
