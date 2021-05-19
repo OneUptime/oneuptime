@@ -317,12 +317,12 @@ module.exports = {
                     ErrorService.log('userService.signup', error);
                     throw error;
                 } else {
-                    let customerId, subscription;                    
-                    if (IS_SAAS_SERVICE && paymentIntent !== null) {                        
+                    let customerId, subscription;
+                    if (IS_SAAS_SERVICE && paymentIntent !== null) {
                         // Check here is the payment intent is successfully paid. If yes then create the customer else not.
                         const processedPaymentIntent = await PaymentService.checkPaymentIntent(
                             paymentIntent
-                        );                        
+                        );
                         if (processedPaymentIntent.status !== 'succeeded') {
                             const error = new Error(
                                 'Unsuccessful attempt to charge card'

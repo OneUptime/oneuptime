@@ -6,10 +6,7 @@ async function run() {
     await updateVersion();
 
     if (process.env['NODE_ENV'] === 'development') {
-        console.log('App running in development env');
-        console.log('Droppping Database');
         await deleteDatabase();
-        console.log('Setting up probes');
         await setupTestProbes();
 
         if (
@@ -17,7 +14,6 @@ async function run() {
             process.env['IS_SAAS_SERVICE'] === true
         ) {
             // if SaaS Service create master admin user automatically.
-            console.log('Setting admin User');
             await addMasterAdminUser();
         }
     }
