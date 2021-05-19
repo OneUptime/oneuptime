@@ -244,7 +244,7 @@ export class Component extends React.Component {
                                                         className="Box-root Margin-right--16"
                                                     >
                                                         <span>
-                                                            No SOOs created yet
+                                                            No SSOs created yet
                                                         </span>
                                                     </div>
                                                 </span>
@@ -359,11 +359,12 @@ export class Component extends React.Component {
 
                         <div className="bs-Tail bs-Tail--separated bs-Tail--short">
                             <div className="bs-Tail-copy">
-                                {/* Code Refactor to remove undefined */}
+                                {/* Code Refactor to remove undefined*/}
                                 <span>
                                     <ShouldRender if={numberOfPages > 0}>
                                         Page {this.state.page} of{' '}
-                                        {numberOfPages} ({count} SOS
+                                        {numberOfPages} (
+                                        <span id="sso-count">{count} </span>SOS
                                         <ShouldRender if={count > 1}>
                                             s
                                         </ShouldRender>
