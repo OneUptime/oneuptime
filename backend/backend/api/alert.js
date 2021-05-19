@@ -87,17 +87,22 @@ router.get(
                 projectId,
                 idNumber,
             });
-            incidentId = incidentId._id;
             const skip = req.query.skip || 0;
             const limit = req.query.limit || 10;
-            const alerts = await alertService.findBy({
-                query: { incidentId: incidentId },
-                skip,
-                limit,
-            });
-            const count = await alertService.countBy({
-                incidentId: incidentId,
-            });
+
+            let alerts = [],
+                count = 0;
+            if (incidentId) {
+                incidentId = incidentId._id;
+                alerts = await alertService.findBy({
+                    query: { incidentId: incidentId },
+                    skip,
+                    limit,
+                });
+                count = await alertService.countBy({
+                    incidentId: incidentId,
+                });
+            }
             return sendListResponse(req, res, alerts, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);

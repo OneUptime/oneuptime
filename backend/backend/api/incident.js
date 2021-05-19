@@ -315,14 +315,14 @@ router.get(
     isAuthorized,
     async function(req, res) {
         try {
-            const { projectId, incidentId } = req.params;
+            const { incidentId } = req.params;
 
-            const incident = await IncidentService.findOneBy({
-                projectId,
-                idNumber: incidentId,
-            });
+            // const incident = await IncidentService.findOneBy({
+            //     projectId,
+            //     idNumber: incidentId,
+            // });
             const timeline = await IncidentTimelineService.findBy(
-                { incidentId: incident._id },
+                { incidentId },
                 req.query.skip || 0,
                 req.query.limit || 10
             );
@@ -809,15 +809,19 @@ router.get(
                 projectId,
                 idNumber: incidentId,
             });
-            const {
-                statusPages,
-                count,
-            } = await StatusPageService.getStatusPagesForIncident(
-                incident._id,
-                parseInt(req.query.skip) || 0,
-                parseInt(req.query.limit) || 10
-            );
-            return sendListResponse(req, res, statusPages, count);
+            if (incident) {
+                const {
+                    statusPages,
+                    count,
+                } = await StatusPageService.getStatusPagesForIncident(
+                    incident._id,
+                    parseInt(req.query.skip) || 0,
+                    parseInt(req.query.limit) || 10
+                );
+                return sendListResponse(req, res, statusPages, count);
+            } else {
+                return sendListResponse(req, res, [], 0);
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -933,75 +937,82 @@ router.get(
             type = 'internal';
         }
         try {
-            let incidentMessages, result;
+            let incidentMessages,
+                result = [],
+                count = 0;
             const idNumber = req.params.incidentId;
             const projectId = req.params.projectId;
             let incidentId = await IncidentService.findOneBy({
                 projectId,
                 idNumber,
             });
-            incidentId = incidentId._id;
-            if (type === 'investigation') {
-                incidentMessages = await IncidentMessageService.findBy(
-                    { incidentId, type },
-                    req.query.skip || 0,
-                    req.query.limit || 10
-                );
-            } else {
-                incidentMessages = await IncidentMessageService.findBy({
+            if (incidentId) {
+                incidentId = incidentId._id;
+                if (type === 'investigation') {
+                    incidentMessages = await IncidentMessageService.findBy(
+                        { incidentId, type },
+                        req.query.skip || 0,
+                        req.query.limit || 10
+                    );
+                } else {
+                    incidentMessages = await IncidentMessageService.findBy({
+                        incidentId,
+                        type,
+                    });
+                }
+                const timeline = await IncidentTimelineService.findBy({
+                    incidentId,
+                });
+                const alerts = await AlertService.findBy({
+                    query: { incidentId: incidentId },
+                });
+                const subscriberAlerts = await subscriberAlertService.findBy({
+                    incidentId: incidentId,
+                    projectId,
+                });
+                count = await IncidentMessageService.countBy({
                     incidentId,
                     type,
                 });
-            }
-            const timeline = await IncidentTimelineService.findBy({
-                incidentId,
-            });
-            const alerts = await AlertService.findBy({
-                query: { incidentId: incidentId },
-            });
-            const subscriberAlerts = await subscriberAlertService.findBy({
-                incidentId: incidentId,
-                projectId,
-            });
-            const count = await IncidentMessageService.countBy({
-                incidentId,
-                type,
-            });
-            if (type === 'investigation') {
-                result = incidentMessages;
-            } else {
-                const subAlerts = await Services.deduplicate(subscriberAlerts);
-                let callScheduleStatus = await onCallScheduleStatusService.findBy(
-                    {
-                        query: { incident: incidentId },
-                    }
-                );
-                callScheduleStatus = await Services.checkCallSchedule(
-                    callScheduleStatus
-                );
-                const timelineAlerts = [
-                    ...timeline,
-                    ...alerts,
-                    ...incidentMessages,
-                ].sort((a, b) => {
-                    return b.createdAt - a.createdAt;
-                });
-                incidentMessages = [
-                    ...timelineAlerts,
-                    ...subAlerts,
-                    ...callScheduleStatus,
-                ];
-                incidentMessages.sort(
-                    (a, b) =>
-                        typeof a.schedule !== 'object' &&
-                        b.createdAt - a.createdAt
-                );
-                const filteredMsg = incidentMessages.filter(
-                    a =>
-                        a.status !== 'internal notes added' &&
-                        a.status !== 'internal notes updated'
-                );
-                result = await Services.rearrangeDuty(filteredMsg);
+                if (type === 'investigation') {
+                    result = incidentMessages;
+                } else {
+                    const subAlerts = await Services.deduplicate(
+                        subscriberAlerts
+                    );
+                    let callScheduleStatus = await onCallScheduleStatusService.findBy(
+                        {
+                            query: { incident: incidentId },
+                        }
+                    );
+                    callScheduleStatus = await Services.checkCallSchedule(
+                        callScheduleStatus
+                    );
+                    const timelineAlerts = [
+                        ...timeline,
+                        ...alerts,
+                        ...incidentMessages,
+                    ].sort((a, b) => {
+                        return b.createdAt - a.createdAt;
+                    });
+                    incidentMessages = [
+                        ...timelineAlerts,
+                        ...subAlerts,
+                        ...callScheduleStatus,
+                    ];
+                    incidentMessages.sort(
+                        (a, b) =>
+                            typeof a.schedule !== 'object' &&
+                            b.createdAt - a.createdAt
+                    );
+                    const filteredMsg = incidentMessages.filter(
+                        a =>
+                            a.status !== 'internal notes added' &&
+                            a.status !== 'internal notes updated'
+                    );
+
+                    result = await Services.rearrangeDuty(filteredMsg);
+                }
             }
             return sendListResponse(req, res, result, count);
         } catch (error) {
