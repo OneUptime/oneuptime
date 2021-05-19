@@ -3,17 +3,15 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
-import { closeModal } from '../../actions/modal';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 import {
-    updateAnnouncement,
-    resetDeleteAnnouncement,
-    fetchAnnouncements,
+    deleteAnnouncementLog,
     fetchAnnouncementLogs,
+    resetDeleteAnnouncement,
 } from '../../actions/statusPage';
 
-class HideAnnouncement extends Component {
+class DeleteAnnouncementLog extends Component {
     componentDidMount() {
         this.props.resetDeleteAnnouncement();
         window.addEventListener('keydown', this.handleKeyBoard);
@@ -36,48 +34,20 @@ class HideAnnouncement extends Component {
 
     handleDelete = () => {
         const {
-            data: { projectId, announcement },
-            updateAnnouncement,
-            modalId,
-            statusPage,
-            fetchAnnouncements,
+            data: { announcementLogId, projectId, statusPage },
+            deleteAnnouncementLog,
             fetchAnnouncementLogs,
+            deleteError,
         } = this.props;
-        this.props.resetDeleteAnnouncement();
-        closeModal({ id: modalId });
-        const data = {
-            hideAnnouncement: announcement.hideAnnouncement ? false : true,
-            announcementToggle: true,
-        };
-        updateAnnouncement(
-            projectId,
-            announcement.statusPageId,
-            announcement._id,
-            { data }
-        )
-            .then(res => {
-                if (res) {
-                    this.props.closeThisDialog();
-                    closeModal({ id: modalId });
-                    fetchAnnouncements(projectId, statusPage._id, 0, 10);
-                    fetchAnnouncementLogs(projectId, statusPage._id, 0, 10);
-                }
-            })
-            .catch(err => {
-                if (!err) {
-                    this.props.closeThisDialog();
-                    closeModal({ id: modalId });
-                }
-            });
+        deleteAnnouncementLog(projectId, announcementLogId).then(() => {
+            if (!deleteError) {
+                this.props.closeThisDialog();
+                fetchAnnouncementLogs(projectId, statusPage._id, 0, 10);
+            }
+        });
     };
-
     render() {
-        const {
-            closeThisDialog,
-            requesting,
-            updateError,
-            data: { announcement },
-        } = this.props;
+        const { closeThisDialog, isRequesting, deleteError } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -91,22 +61,14 @@ class HideAnnouncement extends Component {
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            <span>
-                                                {' '}
-                                                {announcement.hideAnnouncement
-                                                    ? 'Show Announcement'
-                                                    : 'Hide Announcement'}
-                                            </span>
+                                            <span>Confirm Deletion</span>
                                         </span>
                                     </div>
                                 </div>
                                 <div className="bs-Modal-content">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        Are you sure you want to{' '}
-                                        {announcement.hideAnnouncement
-                                            ? 'show'
-                                            : 'hide'}{' '}
-                                        this announcement ?
+                                        Are you sure you want to delete this
+                                        announcement log ?
                                     </span>
                                 </div>
                                 <div className="bs-Modal-footer">
@@ -115,10 +77,10 @@ class HideAnnouncement extends Component {
                                         style={{ width: 280 }}
                                     >
                                         <ShouldRender
-                                            if={!requesting && updateError}
+                                            if={!isRequesting && deleteError}
                                         >
                                             <div
-                                                id="updateError"
+                                                id="deleteError"
                                                 className="bs-Tail-copy"
                                             >
                                                 <div
@@ -139,7 +101,7 @@ class HideAnnouncement extends Component {
                                                                 color: 'red',
                                                             }}
                                                         >
-                                                            {updateError}
+                                                            {deleteError}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -163,21 +125,18 @@ class HideAnnouncement extends Component {
                                             className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                             type="button"
                                             onClick={this.handleDelete}
-                                            disabled={requesting}
+                                            disabled={isRequesting}
                                             autoFocus={true}
-                                            style={{
-                                                backgroundColor: '#000000',
-                                            }}
                                         >
-                                            {!requesting && (
+                                            {!isRequesting && (
                                                 <>
-                                                    <span>Update</span>
-                                                    <span className="create-btn__keycode">
+                                                    <span>Delete</span>
+                                                    <span className="delete-btn__keycode">
                                                         <span className="keycode__icon keycode__icon--enter" />
                                                     </span>
                                                 </>
                                             )}
-                                            {requesting && <FormLoader />}
+                                            {isRequesting && <FormLoader />}
                                         </button>
                                     </div>
                                 </div>
@@ -190,43 +149,38 @@ class HideAnnouncement extends Component {
     }
 }
 
-HideAnnouncement.displayName = 'HideAnnouncement';
+DeleteAnnouncementLog.displayName = 'DeleteAnnouncementLog';
 
-HideAnnouncement.propTypes = {
+DeleteAnnouncementLog.propTypes = {
     closeThisDialog: PropTypes.func,
-    data: PropTypes.object,
-    updateAnnouncement: PropTypes.func,
-    requesting: PropTypes.bool,
-    updateError: PropTypes.oneOfType([
+    deleteAnnouncementLog: PropTypes.func,
+    isRequesting: PropTypes.bool,
+    deleteError: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
-    modalId: PropTypes.string,
-    statusPage: PropTypes.object,
-    resetDeleteAnnouncement: PropTypes.func,
-    fetchAnnouncements: PropTypes.func,
     fetchAnnouncementLogs: PropTypes.func,
+    data: PropTypes.object,
+    resetDeleteAnnouncement: PropTypes.func,
 };
 
-const mapStateToProps = state => {
-    return {
-        modalId: state.modal.modals[0].id,
-        requesting: state.statusPage.createAnnouncement.requesting,
-        updateError: state.statusPage.createAnnouncement.error,
-        statusPage: state.statusPage.status,
-    };
-};
+const mapStateToProps = state => ({
+    modalId: state.modal.modals[0].id,
+    isRequesting: state.statusPage.updateAnnouncement.requesting,
+    deleteError: state.statusPage.updateAnnouncement.error,
+});
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            closeModal,
-            updateAnnouncement,
-            resetDeleteAnnouncement,
-            fetchAnnouncements,
+            deleteAnnouncementLog,
             fetchAnnouncementLogs,
+            resetDeleteAnnouncement,
         },
         dispatch
     );
 
-export default connect(mapStateToProps, mapDispatchToProps)(HideAnnouncement);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(DeleteAnnouncementLog);
