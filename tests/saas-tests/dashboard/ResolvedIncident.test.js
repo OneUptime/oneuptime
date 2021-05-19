@@ -62,7 +62,7 @@ describe('Incident Reports API', () => {
     );
 
     test(
-        'should resolved all incidents at once',
+        'should close all resolved incidents at once',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2'
@@ -72,8 +72,8 @@ describe('Incident Reports API', () => {
             await init.pageWaitForSelector(page, '#closeIncidentButton_0', { hidden: true });
             await page.reload({ waitUntil: 'networkidle2' });
 
-            const closedResolvedIncidents = await init.pageWaitForSelector(page, '#incidents-close-all-btn');
-            expect(closedResolvedIncidents).toBeUndefined();
+            const closedResolvedIncidents = await init.pageWaitForSelector(page, '#incidents-close-all-btn', { hidden: true });
+            expect(closedResolvedIncidents).toBeNull();
             done();
         },
         operationTimeOut
