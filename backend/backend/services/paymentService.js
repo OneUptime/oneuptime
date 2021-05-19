@@ -282,6 +282,8 @@ module.exports = {
     //Returns : promise
     changeSeats: async function(subscriptionId, seats) {
         try {
+            if (subscriptionId === null) return;
+
             let subscription = await stripe.subscriptions.retrieve(
                 subscriptionId
             );
