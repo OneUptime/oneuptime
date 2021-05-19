@@ -9,6 +9,7 @@ import moment from 'moment';
 import { openModal } from '../../actions/modal';
 import SsoDeleteModal from './sso/SsoDeleteModal';
 import { SsoAddModal, SsoUpdateModal } from './sso/SsoModal';
+import ShouldRender from '../basic/ShouldRender';
 
 export class Component extends React.Component {
     state = {
@@ -358,16 +359,16 @@ export class Component extends React.Component {
 
                         <div className="bs-Tail bs-Tail--separated bs-Tail--short">
                             <div className="bs-Tail-copy">
-                                <span id="sso-count">
-                                    {numberOfPages > 0
-                                        ? `Page ${
-                                              this.state.page
-                                          } of ${numberOfPages} (${count} SOS${
-                                              count === 1 ? '' : 's'
-                                          })`
-                                        : `${count} SOS${
-                                              count === 1 ? '' : 's'
-                                          }`}
+                                {/* Code Refactor to remove undefined */}
+                                <span>
+                                    <ShouldRender if={numberOfPages > 0}>
+                                        Page {this.state.page} of{' '}
+                                        {numberOfPages} ({count} SOS
+                                        <ShouldRender if={count > 1}>
+                                            s
+                                        </ShouldRender>
+                                        )
+                                    </ShouldRender>
                                 </span>
                             </div>
                             <div className="bs-Tail-actions">
