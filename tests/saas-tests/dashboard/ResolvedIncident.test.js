@@ -40,51 +40,6 @@ describe('Incident Reports API', () => {
     });
 
     test(
-        'should display why degraded incident was created',
-        async () => {
-            await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
-            await page.evaluate(
-                () => (document.getElementById('responseTime').value = '')
-            );
-            await page.evaluate(
-                () => (document.getElementById('statusCode').value = '')
-            );
-            await init.pageWaitForSelector(page, '#responseTime');
-            await init.pageClick(page, 'input[name=responseTime]');
-            await init.pageType(page, 'input[name=responseTime]', '5000');
-            await init.pageWaitForSelector(page, '#statusCode');
-            await init.pageClick(page, 'input[name=statusCode]');
-            await init.pageType(page, 'input[name=statusCode]', '200');
-            await init.pageClick(page, 'button[type=submit]');
-            await init.pageWaitForSelector(page, '#save-btn');
-            await init.pageWaitForSelector(page, '#save-btn', {
-                visible: true,
-                timeout: init.timeout,
-            });
-
-            // Navigate to Component details
-            await init.navigateToComponentDetails(componentName, page);
-            await init.pageWaitForSelector(page, '#closeIncident_0', {
-                visible: true,
-                timeout: 100000,
-            });
-            let incidentReportElement = await init.pageWaitForSelector(
-                page,
-                `#${monitorName}_IncidentReport_0`,
-                { visible: true, timeout: operationTimeOut }
-            );
-            incidentReportElement = await incidentReportElement.getProperty(
-                'innerText'
-            );
-            incidentReportElement = await incidentReportElement.jsonValue();
-            expect(
-                incidentReportElement.startsWith('Response Time is') // 'was' has been changed to 'is'
-            ).toEqual(true);
-        },
-        operationTimeOut
-    );
-
-    test(
         'should display why offline incident was created',
         async () => {
             await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
