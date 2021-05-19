@@ -201,7 +201,6 @@ module.exports = {
 
             // ********* TODO ************
             // notification is an array of notifications
-            // need to figure out what to do here
             // ***************************
             const notifications = await _this._sendIncidentCreatedAlert(
                 incident
@@ -427,8 +426,6 @@ module.exports = {
                   })
                 : {};
 
-            // handle this asynchronous operation in the background
-            // AlertService.sendCreatedIncidentToSubscribers(incident, component);
             const meta = {
                 type: 'Incident',
                 componentId: selectedComponentId,
@@ -553,16 +550,6 @@ module.exports = {
 
                 _this.refreshInterval(incidentId);
 
-                // automatically create acknowledgement incident note
-                IncidentMessageService.create({
-                    content: 'This incident has been acknowledged',
-                    incidentId,
-                    createdById: userId,
-                    type: 'investigation',
-                    incident_state: 'Acknowledged',
-                    post_statuspage: true,
-                });
-
                 const downtimestring = IncidentUtilitiy.calculateHumanReadableDownTime(
                     incident.createdAt
                 );
@@ -600,6 +587,17 @@ module.exports = {
                             ? monitors[0].componentId._id
                             : monitors[0].componentId,
                 });
+
+                // automatically create acknowledgement incident note
+                IncidentMessageService.create({
+                    content: 'This incident has been acknowledged',
+                    incidentId,
+                    createdById: userId,
+                    type: 'investigation',
+                    incident_state: 'Acknowledged',
+                    post_statuspage: true,
+                });
+
                 await IncidentTimelineService.create({
                     incidentId: incidentId,
                     createdById: userId,
@@ -713,6 +711,25 @@ module.exports = {
             const monitors = incident.monitors.map(
                 monitor => monitor.monitorId
             );
+
+            // automatically create resolved incident note
+            IncidentMessageService.create({
+                content: 'This incident has been resolved',
+                incidentId,
+                createdById: userId,
+                type: 'investigation',
+                incident_state: 'Resolved',
+                post_statuspage: true,
+            });
+
+            await IncidentTimelineService.create({
+                incidentId: incidentId,
+                createdById: userId,
+                probeId: probeId,
+                createdByZapier: zapier,
+                status: 'resolved',
+            });
+
             for (const monitor of monitors) {
                 if (incident.probes && incident.probes.length > 0) {
                     for (const probe of incident.probes) {
@@ -738,24 +755,6 @@ module.exports = {
                     monitor
                 );
             }
-
-            // automatically create resolved incident note
-            IncidentMessageService.create({
-                content: 'This incident has been resolved',
-                incidentId,
-                createdById: userId,
-                type: 'investigation',
-                incident_state: 'Resolved',
-                post_statuspage: true,
-            });
-
-            await IncidentTimelineService.create({
-                incidentId: incidentId,
-                createdById: userId,
-                probeId: probeId,
-                createdByZapier: zapier,
-                status: 'resolved',
-            });
 
             RealTimeService.incidentResolved(incident);
             ZapierService.pushToZapier('incident_resolve', incident);
