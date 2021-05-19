@@ -160,9 +160,10 @@ export class IncidentStatus extends Component {
             )
             .then(() => {
                 this.setState({ resolveLoad: false });
-                this.props.incident.notifications.forEach(notification => {
-                    this.props.markAsRead(projectId, notification);
-                });
+                this.props.markAsRead(
+                    projectId,
+                    this.props.incident.notifications
+                );
                 if (setLoading) {
                     setLoading(false);
                 }
@@ -201,9 +202,10 @@ export class IncidentStatus extends Component {
                 if (setLoading) {
                     setLoading(false);
                 }
-                this.props.incident.notifications.forEach(notification => {
-                    this.props.markAsRead(projectId, notification);
-                });
+                this.props.markAsRead(
+                    projectId,
+                    this.props.incident.notifications
+                );
                 this.props.getIncidentTimeline(
                     this.props.currentProject._id,
                     this.props.incident._id,
@@ -2314,7 +2316,7 @@ export class IncidentStatus extends Component {
                                             this.props.markAsRead(
                                                 projectId,
                                                 this.props.incident
-                                                    .notificationId
+                                                    .notifications
                                             );
                                             this.props.animateSidebar(true);
                                         }}

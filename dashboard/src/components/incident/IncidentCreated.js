@@ -21,7 +21,9 @@ class IncidentCreated extends Component {
         } = notification;
         const project_Id =
             typeof projectId === 'object' ? projectId._id : projectId;
-        this.props.markAsRead(project_Id, notificationId);
+
+        const notifications = [{ notificationId }];
+        this.props.markAsRead(project_Id, notifications);
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});
         }

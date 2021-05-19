@@ -97,7 +97,7 @@ export default (state = initialState, action) => {
                         notification => {
                             if (
                                 notification._id ===
-                                action.payload.notificationId._id
+                                action.payload.notificationId
                             ) {
                                 return {
                                     ...notification,

@@ -247,7 +247,7 @@ export class IncidentList extends Component {
                                                 this.props.markAsRead(
                                                     this.props.currentProject
                                                         ._id,
-                                                    incident.notificationId
+                                                    incident.notifications
                                                 );
                                                 this.props.animateSidebar(true);
                                             }}
