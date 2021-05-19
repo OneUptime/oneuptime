@@ -43,6 +43,7 @@ export class StatusPageLayout extends Component {
             { name: 'Overall Status', key: 'resources' },
             { name: 'Resource List', key: 'services' },
             { name: 'Incidents', key: 'incidents' },
+            { name: 'Announcement Logs', key: 'AnnouncementLogs' },
             {
                 name: 'Scheduled Maintenance Events',
                 key: 'maintenance',
@@ -67,12 +68,14 @@ export class StatusPageLayout extends Component {
     }
     handleSubmit = () => {
         const { statusPage } = this.props;
-        const { _id, projectId } = statusPage.status;
+        const { _id } = statusPage.status;
+        let { projectId } = statusPage.status;
+        projectId = projectId._id ?? projectId;
         const layout = {
             visible: this.state.visible,
             invisible: this.state.invisible,
         };
-        this.props.updateStatusPageLayout(projectId._id, {
+        this.props.updateStatusPageLayout(projectId, {
             _id,
             projectId,
             layout,
@@ -136,6 +139,8 @@ export class StatusPageLayout extends Component {
                 return 'This section displays the scheduled maintenance of the resources on the status page';
             case 'futureSchedule':
                 return 'This section contains the schedule events that are yet to start';
+            case 'AnnouncementLogs':
+                return 'This section displays the announcement logs in the status page';
             case 'ongoingSchedule':
                 return 'This section contains the schedule events that are on going';
             default:
