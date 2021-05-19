@@ -1,11 +1,11 @@
-const { updateMany } = require('../util/db');
+const { updateMany, removeFieldsFromMany } = require('../util/db');
 
 const statusPageCollection = 'statuspages';
 
 async function run() {
     await updateMany(
         statusPageCollection,
-        { layout: { $exists: false } },
+        { moveIncidentToTheTop: true },
         {
             layout: {
                 visible: [
@@ -18,9 +18,9 @@ async function run() {
                         name: 'Ongoing Schedule Events',
                         key: 'ongoingSchedule',
                     },
+                    { name: 'Incidents', key: 'incidents' },
                     { name: 'Overall Status', key: 'resources' },
                     { name: 'Resource List', key: 'services' },
-                    { name: 'Incidents', key: 'incidents' },
                     {
                         name: 'Scheduled Maintenance Events',
                         key: 'maintenance',
@@ -31,6 +31,13 @@ async function run() {
             },
         }
     );
+
+    await removeFieldsFromMany(
+        statusPageCollection,
+        { moveIncidentToTheTop: { $exists: true } },
+        { moveIncidentToTheTop: '' }
+    );
+
     return `Script completed`;
 }
 

@@ -6,6 +6,10 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import ConfirmResetLayout from '../modals/ConfirmResetLayout';
+import { openModal } from '../../actions/modal';
+import DataPathHoC from '../DataPathHoC';
+import { v4 as uuidv4 } from 'uuid';
 
 const grid = 8;
 
@@ -32,6 +36,7 @@ const getListStyle = isDraggingOver => ({
 export class StatusPageLayout extends Component {
     state = {
         visible: [
+            { name: 'Header', key: 'header' },
             {
                 name: 'Active Announcement',
                 key: 'anouncement',
@@ -48,8 +53,10 @@ export class StatusPageLayout extends Component {
                 name: 'Scheduled Maintenance Events',
                 key: 'maintenance',
             },
+            { name: 'Footer', key: 'footer' },
         ],
         invisible: [],
+        confirmResetModalId: uuidv4(),
     };
 
     componentDidMount() {
@@ -143,11 +150,54 @@ export class StatusPageLayout extends Component {
                 return 'This section displays the announcement logs in the status page';
             case 'ongoingSchedule':
                 return 'This section contains the schedule events that are on going';
+            case 'footer':
+                return 'This section displays the footer of the status page and can not be hidden';
+            case 'header':
+                return 'This section displays the header of the status page and can not be hidden';
             default:
                 return '';
         }
     }
 
+    resetLayoutToDefault = async () => {
+        const { statusPage } = this.props;
+        const { _id, projectId } = statusPage.status;
+        const layout = {
+            visible: [
+                { name: 'Header', key: 'header' },
+                {
+                    name: 'Active Announcement',
+                    key: 'anouncement',
+                },
+                {
+                    name: 'Ongoing Schedule Events',
+                    key: 'ongoingSchedule',
+                },
+                { name: 'Overall Status', key: 'resources' },
+                { name: 'Resource List', key: 'services' },
+                { name: 'Incidents', key: 'incidents' },
+                {
+                    name: 'Scheduled Maintenance Events',
+                    key: 'maintenance',
+                },
+                { name: 'Footer', key: 'footer' },
+            ],
+            invisible: [],
+        };
+        await this.props
+            .updateStatusPageLayout(projectId._id, {
+                _id,
+                projectId,
+                layout,
+            })
+            .then(() => {
+                this.setState({
+                    visible: layout.visible,
+                    invisible: layout.invisible,
+                });
+                return true;
+            });
+    };
     render() {
         const { statusPage } = this.props;
         const pageLayout = statusPage && statusPage.updateLayout;
@@ -229,35 +279,6 @@ export class StatusPageLayout extends Component {
                                                         )}
                                                         className="layoutContainer"
                                                     >
-                                                        <div
-                                                            style={getItemStyle(
-                                                                false,
-                                                                false,
-                                                                false
-                                                            )}
-                                                            className="Layout-box"
-                                                        >
-                                                            <div
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '18px',
-                                                                }}
-                                                            >
-                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28">
-                                                                    Header
-                                                                </span>
-                                                                <br />
-                                                                <span className="draggable-content-description">
-                                                                    This section
-                                                                    displays the
-                                                                    header of
-                                                                    the status
-                                                                    page and can
-                                                                    not be
-                                                                    hidden
-                                                                </span>
-                                                            </div>
-                                                        </div>
                                                         {this.state.visible.map(
                                                             (item, index) => (
                                                                 <Draggable
@@ -330,35 +351,6 @@ export class StatusPageLayout extends Component {
                                                             )
                                                         )}
                                                         {provided.placeholder}
-                                                        <div
-                                                            style={getItemStyle(
-                                                                false,
-                                                                false,
-                                                                false
-                                                            )}
-                                                            className="Layout-box"
-                                                        >
-                                                            <div
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '18px',
-                                                                }}
-                                                            >
-                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28">
-                                                                    Footer
-                                                                </span>
-                                                                <br />
-                                                                <span className="draggable-content-description">
-                                                                    This section
-                                                                    displays the
-                                                                    footer of
-                                                                    the status
-                                                                    page and can
-                                                                    not be
-                                                                    hidden
-                                                                </span>
-                                                            </div>
-                                                        </div>
                                                     </div>
                                                 )}
                                             </Droppable>
@@ -501,6 +493,36 @@ export class StatusPageLayout extends Component {
                                     </span>
                                     <div>
                                         <button
+                                            id="resetBranding"
+                                            className="bs-Button bs-FileUploadButton bs-Button--new"
+                                            disabled={
+                                                this.props.statusPage
+                                                    .resetBrandingColors
+                                                    .requesting
+                                            }
+                                            type="button"
+                                            onClick={e => {
+                                                e.preventDefault();
+                                                return this.props.openModal({
+                                                    id: this.state
+                                                        .confirmResetModalId,
+
+                                                    content: DataPathHoC(
+                                                        ConfirmResetLayout,
+                                                        {
+                                                            confirmResetModalId: this
+                                                                .state
+                                                                .confirmResetModalId,
+                                                            resetLayoutToDefault: this
+                                                                .resetLayoutToDefault,
+                                                        }
+                                                    ),
+                                                });
+                                            }}
+                                        >
+                                            <span>Reset Layout to Default</span>
+                                        </button>
+                                        <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                             disabled={
                                                 this.props.statusPage.customHTML
@@ -542,6 +564,7 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             updateStatusPageLayout,
+            openModal,
         },
         dispatch
     );
