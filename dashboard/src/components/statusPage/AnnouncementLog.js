@@ -288,7 +288,7 @@ class AnnouncementLog extends Component {
                                         announcementLogs.length === 0) &&
                                     !requesting &&
                                     !error
-                                        ? 'You have no announcement logs at this time'
+                                        ? 'You have no announcement log at this time'
                                         : null}
                                     {error ? error : null}
                                 </span>
