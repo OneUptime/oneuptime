@@ -121,7 +121,7 @@ describe('Incident Settings API', () => {
             await init.pageWaitForSelector(page, '#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
             await init.pageWaitForSelector(page, 'input[name=title]');
-            await init.selectByText('#incidentPriority', 'low', page);
+            await init.selectDropdownValue('#incidentPriority', 'low', page);
             await init.pageClick(page, 'input[name=title]');
             await page.keyboard.press('Backspace');
             await init.pageType(
@@ -199,7 +199,7 @@ describe('Incident Settings API', () => {
             expect(descriptionFieldValue).toEqual(
                 inctidentDescriptionAfterSubstitution
             );
-            await init.selectByText('#incidentType', incidentType, page);
+            await init.selectDropdownValue('#incidentType', incidentType, page);
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#closeIncident_0');
             await init.pageClick(page, '#closeIncident_0');

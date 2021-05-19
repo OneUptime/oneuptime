@@ -112,7 +112,7 @@ describe('Resource Category', () => {
 
             let resourceCategoryCheck = false;
 
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#resourceCategory',
                 utils.resourceCategoryName,
                 page
@@ -146,7 +146,7 @@ describe('Resource Category', () => {
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', utils.monitorName);
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#resourceCategory',
                 utils.resourceCategoryName,
                 page

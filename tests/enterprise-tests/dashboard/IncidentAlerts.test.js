@@ -68,7 +68,7 @@ describe('Schedule', () => {
         await page.$eval('input[name="OnCallAlertBox[0].call"]', element =>
             element.click()
         );
-        await init.selectByText(
+        await init.selectDropdownValue(
             'div[id="OnCallAlertBox[0].teams[0].teamMembers[0].userId"]',
             'Test Name',
             page

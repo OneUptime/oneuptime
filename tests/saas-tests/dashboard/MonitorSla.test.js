@@ -65,7 +65,7 @@ describe('Monitor SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#monitorUptimeOption',
                 monitorUptime,
                 page
@@ -167,7 +167,7 @@ describe('Monitor SLA', () => {
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
-            await init.selectByText('#monitorUptimeOption', 'custom', page);
+            await init.selectDropdownValue('#monitorUptimeOption', 'custom', page);
             await init.pageWaitForSelector(page, '#customMonitorUptime');
             await init.pageClick(page, '#customMonitorUptime');
             await init.pageType(page, '#customMonitorUptime', '12uptime');
@@ -218,7 +218,7 @@ describe('Monitor SLA', () => {
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
-            await init.selectByText('#monitorUptimeOption', 'custom', page);
+            await init.selectDropdownValue('#monitorUptimeOption', 'custom', page);
             await init.pageWaitForSelector(page, '#customMonitorUptime');
             await init.pageClick(page, '#customMonitorUptime');
             await init.pageType(page, '#customMonitorUptime', '120');
@@ -269,7 +269,7 @@ describe('Monitor SLA', () => {
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
-            await init.selectByText('#monitorUptimeOption', 'custom', page);
+            await init.selectDropdownValue('#monitorUptimeOption', 'custom', page);
             await init.pageWaitForSelector(page, '#customMonitorUptime');
             await init.pageClick(page, '#customMonitorUptime');
             await init.pageType(page, '#customMonitorUptime', '0');
@@ -320,7 +320,7 @@ describe('Monitor SLA', () => {
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
-            await init.selectByText('#frequencyOption', 'custom', page);
+            await init.selectDropdownValue('#frequencyOption', 'custom', page);
             await init.pageWaitForSelector(page, '#customFrequency');
             await init.pageClick(page, '#customFrequency');
             await init.pageType(page, '#customFrequency', '12days');
@@ -371,7 +371,7 @@ describe('Monitor SLA', () => {
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#monitorUptimeOption',
                 monitorUptime,
                 page

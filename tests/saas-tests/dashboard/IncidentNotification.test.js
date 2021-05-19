@@ -522,10 +522,10 @@ describe('Incident Created test', () => {
                 e.click()
             );
             await init.pageWaitForSelector(page, '#frmIncident');
-            await init.selectByText('#componentList', 'NewComponent', page);
-            await init.selectByText('#monitorList', monitorName2, page);
-            await init.selectByText('#incidentTypeId', 'Degraded', page);
-            await init.selectByText('#incidentPriority', 'Low', page);
+            await init.selectDropdownValue('#componentList', 'NewComponent', page);
+            await init.selectDropdownValue('#monitorList', monitorName2, page);
+            await init.selectDropdownValue('#incidentTypeId', 'Degraded', page);
+            await init.selectDropdownValue('#incidentPriority', 'Low', page);
             await page.$eval('#createIncident', e => e.click());
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,
@@ -573,10 +573,10 @@ describe('Incident Created test', () => {
                 e.click()
             );
             await init.pageWaitForSelector(page, '#frmIncident');
-            await init.selectByText('#componentList', 'NewComponent', page);
-            await init.selectByText('#monitorList', monitorName2, page);
-            await init.selectByText('#incidentTypeId', 'Online', page);
-            await init.selectByText('#incidentPriority', 'Low', page);
+            await init.selectDropdownValue('#componentList', 'NewComponent', page);
+            await init.selectDropdownValue('#monitorList', monitorName2, page);
+            await init.selectDropdownValue('#incidentTypeId', 'Online', page);
+            await init.selectDropdownValue('#incidentPriority', 'Low', page);
             await page.$eval('#createIncident', e => e.click());
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,

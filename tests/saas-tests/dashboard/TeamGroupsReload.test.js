@@ -42,7 +42,7 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#teamGroups');
             await init.pageClick(page, '#btn_Add_SubProjects');
             await init.pageType(page, '#groupName', groupName);
-            await init.selectByText('#componentList', 'Test Name', page);
+            await init.selectDropdownValue('#componentList', 'Test Name', page);
             await init.pageClick(page, '#btnAddGroup');
             const spanElement = await page.waitForSelector(
                 `#sub_project_name_${groupName}`

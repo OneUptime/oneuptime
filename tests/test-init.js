@@ -353,7 +353,7 @@ const _this = {
             timeout: _this.timeout,
         });
         await _this.pageClick(page, '#addMoreMonitors');
-        await _this.selectByText(
+        await _this.selectDropdownValue(
             'ul > li:last-of-type #monitor-name',
             `${componentName} / ${monitorName}`,
             page
@@ -505,7 +505,7 @@ const _this = {
         await _this.pageType(page, 'input[id=name]', component);
 
         if (projectName) {
-            await _this.selectByText('#subProjectId', projectName, page);
+            await _this.selectDropdownValue('#subProjectId', projectName, page);
         }
 
         await Promise.all([
@@ -724,7 +724,7 @@ const _this = {
         await page.focus('input[id=name]');
         await _this.pageType(page, 'input[id=name]', monitorName);
         await _this.pageClick(page, 'input[data-testId=type_api]');
-        await _this.selectByText('#method', 'get', page);
+        await _this.selectDropdownValue('#method', 'get', page);
         await _this.pageWaitForSelector(page, '#url', {
             visible: true,
             timeout: _this.timeout,
@@ -748,7 +748,7 @@ const _this = {
             page,
             'ul[data-testId=up_criteria_list]> div:last-of-type #responseType'
         );
-        await _this.selectByText(
+        await _this.selectDropdownValue(
             'ul[data-testId=up_criteria_list]> div:last-of-type #responseType',
             'responseBody',
             page
@@ -757,7 +757,7 @@ const _this = {
             page,
             'ul[data-testId=up_criteria_list]> div:last-of-type #filter'
         );
-        await _this.selectByText(
+        await _this.selectDropdownValue(
             'ul[data-testId=up_criteria_list]> div:last-of-type #filter',
             'evaluateResponse',
             page
@@ -808,7 +808,7 @@ const _this = {
             page,
             'ul[data-testId=degraded_criteria_list] > div:last-of-type #responseType'
         );
-        await _this.selectByText(
+        await _this.selectDropdownValue(
             'ul[data-testId=degraded_criteria_list] > div:last-of-type #responseType',
             'responseBody',
             page
@@ -817,7 +817,7 @@ const _this = {
             page,
             'ul[data-testId=degraded_criteria_list] > div:last-of-type #filter'
         );
-        await _this.selectByText(
+        await _this.selectDropdownValue(
             'ul[data-testId=degraded_criteria_list] > div:last-of-type #filter',
             'evaluateResponse',
             page
@@ -875,7 +875,7 @@ const _this = {
                 e.click()
             );
             await _this.pageWaitForSelector(page, '#frmIncident');
-            await _this.selectByText('#monitorList', monitorName, page);
+            await _this.selectDropdownValue('#monitorList', monitorName, page);
             await page.$eval('#createIncident', e => e.click());
         } else {
             await _this.pageWaitForSelector(page, '#incidentLog');
@@ -888,7 +888,7 @@ const _this = {
                 e.click()
             );
             await _this.pageWaitForSelector(page, '#frmIncident');
-            await _this.selectByText('#monitorList', monitorName, page);
+            await _this.selectDropdownValue('#monitorList', monitorName, page);
             await page.$eval('#createIncident', e => e.click());
         }
         await _this.pageWaitForSelector(page, '#createIncident', {
@@ -999,7 +999,7 @@ const _this = {
             await _this.pageClick(page, 'label[for=selectAllMonitorsBox]');
             await _this.pageClick(page, '#addMoreMonitor');
             await _this.pageWaitForSelector(page, '#monitorfield_0');
-            await _this.selectByText('#monitorfield_0', componentName, page); // 'Component_Name/Monitor_Name' appears in the dropdown. Using 'componentName' selects the monitor.
+            await _this.selectDropdownValue('#monitorfield_0', componentName, page); // 'Component_Name/Monitor_Name' appears in the dropdown. Using 'componentName' selects the monitor.
         }
         await _this.pageClick(page, '#description');
         await _this.pageType(
@@ -1198,7 +1198,7 @@ const _this = {
         await _this.pageWaitForSelector(page, '#event_state', {
             visible: true,
         });
-        await _this.selectByText('#event_state', eventState, page);
+        await _this.selectDropdownValue('#event_state', eventState, page);
         await _this.pageClick(page, '#new-internal');
         await _this.pageType(page, '#new-internal', noteDescription);
         await _this.pageClick(page, '#internal-addButton');
@@ -1235,9 +1235,9 @@ const _this = {
         );
         await _this.pageClick(page, `#monitorCreateIncident_${monitorName}`);
         await _this.pageWaitForSelector(page, '#createIncident');
-        await _this.selectByText('#incidentType', incidentType, page);
+        await _this.selectDropdownValue('#incidentType', incidentType, page);
         if (incidentPriority) {
-            await _this.selectByText(
+            await _this.selectDropdownValue(
                 '#incidentPriority',
                 incidentPriority,
                 page
@@ -1385,11 +1385,11 @@ const _this = {
         await _this.pageWaitForSelector(page, '#addSubscriberButton');
         await _this.pageClick(page, '#addSubscriberButton');
         await _this.pageWaitForSelector(page, '#alertViaId');
-        await _this.selectByText('#alertViaId', alertType, page);
+        await _this.selectDropdownValue('#alertViaId', alertType, page);
         if (alertType === 'SMS') {
             const { countryCode, phoneNumber } = data;
             await _this.pageWaitForSelector(page, '#countryCodeId');
-            await _this.selectByText('#countryCodeId', countryCode, page);
+            await _this.selectDropdownValue('#countryCodeId', countryCode, page);
             await _this.pageType(page, '#contactPhoneId', phoneNumber);
         }
         await _this.pageClick(page, '#createSubscriber');
@@ -1440,7 +1440,7 @@ const _this = {
         });
         await _this.pageClick(page, '#fieldName');
         await _this.pageType(page, '#fieldName', data.fieldName);
-        await _this.selectByText('#fieldType', data.fieldType, page);
+        await _this.selectDropdownValue('#fieldType', data.fieldType, page);
 
         await _this.pageClick(page, '#createCustomFieldButton');
         await _this.pageWaitForSelector(page, '#customFieldForm', {

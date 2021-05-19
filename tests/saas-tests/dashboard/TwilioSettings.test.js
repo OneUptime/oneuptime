@@ -113,9 +113,9 @@ describe('Custom Twilio Settings', () => {
             await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
             await init.pageWaitForSelector(page, '#addSubscriberButton');
             await init.pageClick(page, '#addSubscriberButton');
-            await init.selectByText('#alertViaId', 'SMS', page);
+            await init.selectDropdownValue('#alertViaId', 'SMS', page);
             await init.pageWaitForSelector(page, '#countryCodeId');
-            await init.selectByText('#countryCodeId', countryCode, page);
+            await init.selectDropdownValue('#countryCodeId', countryCode, page);
             await init.pageType(page, '#contactPhoneId', phoneNumber);
             await init.pageClick(page, '#createSubscriber');
             await init.pageWaitForSelector(page, '#createSubscriber', {
@@ -129,7 +129,7 @@ describe('Custom Twilio Settings', () => {
             );
             await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
             await init.pageWaitForSelector(page, '#createIncident');
-            await init.selectByText('#incidentType', 'Offline', page);
+            await init.selectDropdownValue('#incidentType', 'Offline', page);
             await init.pageType(page, 'input[name=title]', incidentTitle);
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#createIncident', {

@@ -97,7 +97,7 @@ describe('Monitor Custom Field', () => {
                 '#fieldName',
                 monitorFieldNumber.fieldName
             );
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#fieldType',
                 monitorFieldNumber.fieldType,
                 page

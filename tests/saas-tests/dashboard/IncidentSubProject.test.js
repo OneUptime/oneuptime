@@ -89,7 +89,7 @@ describe('Incident API With SubProjects', () => {
                 `#create_incident_${projectMonitorName}`
             );
             await init.pageWaitForSelector(page, '#createIncident');
-            await init.selectByText('#incidentType', 'Offline', page);
+            await init.selectDropdownValue('#incidentType', 'Offline', page);
             await init.pageType(page, '#title', 'new incident');
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#createIncident', {
@@ -168,7 +168,7 @@ describe('Incident API With SubProjects', () => {
                 `#create_incident_${projectMonitorName1}`
             );
             await init.pageWaitForSelector(page, '#createIncident');
-            await init.selectByText('#incidentType', 'Offline', page);
+            await init.selectDropdownValue('#incidentType', 'Offline', page);
             await init.pageType(page, '#title', 'new incident');
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#createIncident', {
@@ -292,7 +292,7 @@ describe('Incident API With SubProjects', () => {
             );
             await init.pageClick(page, `textarea[id=new-${type}]`);
             await init.pageType(page, `textarea[id=new-${type}]`, internalNote);
-            await init.selectByText('#incident_state', 'investigating', page);
+            await init.selectDropdownValue('#incident_state', 'investigating', page);
             await init.pageClick(page, `#${type}-addButton`);
             await init.pageWaitForSelector(page, `#${type}-addButton`, {
                 hidden: true,
@@ -326,7 +326,7 @@ describe('Incident API With SubProjects', () => {
                 `textarea[id=new-${type}]`,
                 investigationNote
             );
-            await init.selectByText('#incident_state', 'investigating', page);
+            await init.selectDropdownValue('#incident_state', 'investigating', page);
             await init.pageClick(page, `#${type}-addButton`);
             await init.pageWaitForSelector(page, `#${type}-addButton`, {
                 hidden: true,
@@ -391,7 +391,7 @@ describe('Incident API With SubProjects', () => {
                     `textarea[id=new-${type}]`,
                     `${internalNote}`
                 );
-                await init.selectByText('#incident_state', 'update', page);
+                await init.selectDropdownValue('#incident_state', 'update', page);
                 await init.pageClick(page, `#${type}-addButton`);
                 await init.pageWaitForSelector(page, `#${type}-addButton`, {
                     hidden: true,
