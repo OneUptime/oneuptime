@@ -43,6 +43,22 @@ class Fyipe
         return makeApiRequest(content, logType, tags)
     end
 
+    def warning(content, tags = nil)
+        validateItems(content, tags)
+
+        #set log type
+        logType = "warning";
+        return makeApiRequest(content, logType, tags)
+    end
+
+    def error(content, tags = nil)
+        validateItems(content, tags)
+
+        #set log type
+        logType = "error";
+        return makeApiRequest(content, logType, tags)
+    end
+
     def makeApiRequest(data, type, tags = nil)
         # make api request and return response 
         
