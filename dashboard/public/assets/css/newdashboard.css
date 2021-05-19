@@ -11082,6 +11082,12 @@ table {
     }
 }
 
+@media screen and (max-width: 366px){
+    .Draggable-section{
+        margin-right: 5px!important;
+    }
+}
+
 @media screen and (max-width: 500px) {
     .monitor-type-grid{
         grid-template-columns: auto;
@@ -11490,6 +11496,9 @@ table {
     position:relative;
     padding-left: 15px;
 }
+.movable-layout-box{
+    cursor: all-scroll!important;
+}
 .capabilitiestrue:before{
     content: '';
     position: absolute;
@@ -11536,6 +11545,14 @@ table {
     {
         display:none;
     }
+    .layoutContainer{
+        width: 100%!important;
+    }
+}
+@media only screen and (max-width: 1159px){
+    .layoutContainer{
+        width: 100%!important;
+    }
 }
 
 @media (max-width: 1136px)
@@ -11579,6 +11596,22 @@ table {
     }
     .db-Topnav-wrap{
         display: block!important
+    }
+      .layoutContainer{
+        width: 100%!important;
+    }
+    .Layout-content-header{
+        font-size: 13px!important
+    }
+    .Layout-box{
+        padding: 27px 20px!important
+    }
+    .draggable-content-description{
+        display: none!important;
+    }
+    .Drag-box-header{
+        font-size: 15px!important;
+        line-height: 15px!important;
     }
 }
 .error-marker {

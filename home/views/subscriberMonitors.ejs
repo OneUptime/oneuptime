@@ -31,7 +31,7 @@
       padding: 15px;
       margin: 0;
       font-size: 3.1em;
-      font-weight: bold;
+      font-weight: 500;
       color: #000;
     }
 
@@ -57,15 +57,30 @@
 
     .card_btn {
       margin-top: 20px;
-      padding: 1em 1em;
-      font-size: 16px;
-      color: white;
+      white-space: nowrap;
+      display: inline-block;
+      height: 40px;
+      line-height: 40px;
+      padding: 0 14px;
+      box-shadow: 0 4px 6px rgb(50 50 93 / 11%), 0 1px 3px rgb(0 0 0 / 8%);
+      background: #000;
       border-radius: 4px;
-      background-color: #000;
+      font-size: 15px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .025em;
+      color: #fff;
+      text-decoration: none;
       border: none;
-      font-family: 'Source Sans Pro', sans-serif;
+      transition: all .15s ease;
     }
-    .monitor_wrapper{
+
+    .card_btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 7px 14px rgb(50 50 93 / 10%), 0 3px 6px rgb(0 0 0 / 8%);
+    }
+
+    .monitor_wrapper {
       display: flex;
       align-items: center;
       justify-content: space-around;
@@ -73,7 +88,7 @@
       flex-wrap: wrap;
     }
   </style>
-  <title>Fyipe | Help and Support</title>
+  <title>Unsubscribe</title>
 
   <meta name="description"
     content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">

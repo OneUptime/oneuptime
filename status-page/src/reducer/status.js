@@ -69,6 +69,9 @@ import {
     FETCH_ANNOUNCEMENTS_SUCCESS,
     FETCH_ANNOUNCEMENTS_FAILURE,
     FETCH_SINGLE_ANNOUNCEMENTS_SUCCESS,
+    FETCH_ANNOUNCEMEMTLOGS_REQUEST,
+    FETCH_ANNOUNCEMEMTLOGS_SUCCESS,
+    FETCH_ANNOUNCEMEMTLOGS_FAILURE,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -184,10 +187,44 @@ const INITIAL_STATE = {
         error: null,
         success: false,
     },
+    announcementLogs: {
+        logsList: [],
+        requesting: false,
+        success: false,
+        error: null,
+    },
 };
 
 export default (state = INITIAL_STATE, action) => {
     switch (action.type) {
+        case FETCH_ANNOUNCEMEMTLOGS_REQUEST:
+            return Object.assign({}, state, {
+                announcementLogs: {
+                    ...state.announcementLogs,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+        case FETCH_ANNOUNCEMEMTLOGS_FAILURE:
+            return Object.assign({}, state, {
+                announcementLogs: {
+                    ...state.announcementLogs,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+        case FETCH_ANNOUNCEMEMTLOGS_SUCCESS:
+            return Object.assign({}, state, {
+                announcementLogs: {
+                    ...state.announcementLogs,
+                    logsList: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
         case FETCH_SINGLE_ANNOUNCEMENTS_SUCCESS:
             return Object.assign({}, state, {
                 announcements: {

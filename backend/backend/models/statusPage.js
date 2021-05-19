@@ -85,6 +85,7 @@ const statusSchema = new Schema({
     logoPath: String,
     bannerPath: String,
     colors: Object,
+    layout: Object,
     headerHTML: String,
     footerHTML: String,
     customCSS: String,
@@ -120,6 +121,7 @@ const statusSchema = new Schema({
     deleted: { type: Boolean, default: false },
     incidentHistoryDays: { type: Number, default: 14 },
     scheduleHistoryDays: { type: Number, default: 14 },
+    announcementLogsHistory: { type: Number, default: 14 },
 
     deletedAt: {
         type: Date,

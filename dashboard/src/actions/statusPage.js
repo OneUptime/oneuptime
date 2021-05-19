@@ -1222,7 +1222,55 @@ export function resetStatusPageEmbeddedCss(projectId, data) {
         return promise;
     };
 }
+//status page layout
+export function updateStatusPageLayoutRequest() {
+    return {
+        type: types.UPDATE_STATUS_PAGE_LAYOUT_REQUEST,
+    };
+}
 
+export function updateStatusPageLayoutSuccess(statusPage) {
+    return {
+        type: types.UPDATE_STATUS_PAGE_LAYOUT_SUCCESS,
+        payload: statusPage,
+    };
+}
+
+export function updateStatusPageLayoutError(error) {
+    return {
+        type: types.UPDATE_STATUS_PAGE_LAYOUT_FAILURE,
+        payload: error,
+    };
+}
+
+export function updateStatusPageLayout(projectId, data) {
+    return function(dispatch) {
+        const promise = putApi(`statusPage/${projectId}`, data);
+        dispatch(updateStatusPageLayoutRequest());
+        promise.then(
+            function(response) {
+                const statusPage = response.data;
+                dispatch(updateStatusPageLayoutSuccess(statusPage));
+                dispatch(fetchProjectStatusPage(projectId, true));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateStatusPageLayoutError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
 // fetch subscribers by monitors in statuspage
 export function fetchSubscriberRequest() {
     return {
@@ -1414,6 +1462,59 @@ export function fetchAnnouncements(projectId, statusPageId, skip = 0, limit) {
     };
 }
 
+export function fetchAnnouncementLogsRequest() {
+    return {
+        type: types.FETCH_ANNOUNCEMEMTLOGS_REQUEST,
+    };
+}
+
+export function fetchAnnouncementLogsSuccess(data) {
+    return {
+        type: types.FETCH_ANNOUNCEMEMTLOGS_SUCCESS,
+        payload: data,
+    };
+}
+
+export function fetchAnnouncementLogsFailure(error) {
+    return {
+        type: types.FETCH_ANNOUNCEMEMTLOGS_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchAnnouncementLogs(
+    projectId,
+    statusPageId,
+    skip = 0,
+    limit
+) {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/announcementLogs/${statusPageId}?skip=${skip}&limit=${limit}`
+        );
+        dispatch(fetchAnnouncementLogsRequest());
+        promise.then(
+            function(response) {
+                dispatch(fetchAnnouncementLogsSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchAnnouncementLogsFailure(error));
+            }
+        );
+        return promise;
+    };
+}
+
 export function fetchSingleAnnouncementSuccess(data) {
     return {
         type: types.FETCH_SINCLE_ANNOUNCEMENT_SUCCESS,
@@ -1479,34 +1580,6 @@ export function resetHandleAnnouncement() {
     };
 }
 
-// export function handleAnnouncementFunc(projectId, announcementId, data) {
-//     return function(dispatch) {
-//         const promise = putApi(
-//             `statusPage/${projectId}/announcement/${announcementId}/update`,
-//             data
-//         );
-//         promise.then(
-//             function(response) {
-//                 dispatch(handleAnnouncementSuccess(response.data));
-//             },
-//             function(error) {
-//                 if (error && error.response && error.response.data)
-//                     error = error.response.data;
-//                 if (error && error.data) {
-//                     error = error.data;
-//                 }
-//                 if (error && error.message) {
-//                     error = error.message;
-//                 } else {
-//                     error = 'Network Error';
-//                 }
-//                 dispatch(handleAnnouncementFailure(error));
-//             }
-//         );
-//         return promise;
-//     };
-// }
-
 export function resetDeleteAnnouncement() {
     return {
         type: types.RESET_DELETE_ANNOUNCEMENT,
@@ -1537,6 +1610,34 @@ export function deleteAnnouncement(projectId, announcementId) {
     return function(dispatch) {
         const promise = deleteApi(
             `statusPage/${projectId}/announcement/${announcementId}/delete`
+        );
+        dispatch(deleteAnnouncementRequest());
+        promise.then(
+            function(response) {
+                dispatch(deleteAnnouncementSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(deleteAnnouncementFailure(error));
+            }
+        );
+        return promise;
+    };
+}
+
+export function deleteAnnouncementLog(projectId, announcementLogId) {
+    return function(dispatch) {
+        const promise = deleteApi(
+            `statusPage/${projectId}/announcementLog/${announcementLogId}/delete`
         );
         dispatch(deleteAnnouncementRequest());
         promise.then(

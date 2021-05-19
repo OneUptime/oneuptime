@@ -66,18 +66,6 @@ class Incident extends React.Component {
         }
     }
     componentDidUpdate(prevProps) {
-        if (prevProps.projectId !== this.props.projectId) {
-            if (
-                this.props.currentProject &&
-                this.props.currentProject._id &&
-                this.props.componentSlug
-            ) {
-                this.props.fetchComponent(
-                    this.props.currentProject._id,
-                    this.props.componentSlug
-                );
-            }
-        }
         if (
             prevProps.projectId !== this.props.projectId ||
             (prevProps.incident && prevProps.incident._id) !==
@@ -290,6 +278,8 @@ class Incident extends React.Component {
     }
 
     ready = () => {
+        // eslint-disable-next-line no-console
+        console.log('***** current project *****', this.props.currentProject);
         const incidentId = this.props.incidentId;
         const {
             projectId,

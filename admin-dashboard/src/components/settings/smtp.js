@@ -115,14 +115,13 @@ const emailEnableField = [
         label: 'Enable Emails',
         // eslint-disable-next-line react/display-name, react/prop-types
         component: ({ input: { value, onChange } }) => (
-            <label className="Toggler-wrap">
+            <label className="Toggler-wrap" id="email-enabled">
                 <input
                     className="btn-toggler"
                     checked={value}
                     onChange={onChange}
                     type="checkbox"
                     name="email-enabled"
-                    id="email-enabled"
                 />
                 <span className="TogglerBtn-slider round"></span>
             </label>

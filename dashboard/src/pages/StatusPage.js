@@ -9,6 +9,7 @@ import Basic from '../components/statusPage/Basic';
 import Header from '../components/statusPage/Header';
 import Monitors from '../components/statusPage/Monitors';
 import Branding from '../components/statusPage/Branding';
+import StatusPageLayout from '../components/statusPage/StatusPageLayout';
 import Links from '../components/statusPage/Links';
 import DeleteBox from '../components/statusPage/DeleteBox';
 import DuplicateStatusBox from '../components/statusPage/DuplicateStatusPage';
@@ -283,7 +284,7 @@ class StatusPage extends Component {
                                                                 </div>
                                                             </TabPanel>
                                                             <TabPanel>
-                                                                <div className="Box-root Margin-bottom--12 bs-ContentSection Card-root Card-shadow--medium>">
+                                                                <div>
                                                                     <Announcements
                                                                         projectId={
                                                                             data.projectId
@@ -330,6 +331,9 @@ class StatusPage extends Component {
                                                                         </div>
                                                                         <div className="Box-root Margin-bottom--12">
                                                                             <CustomStyles />
+                                                                        </div>
+                                                                        <div className="Box-root Margin-bottom--12">
+                                                                            <StatusPageLayout />
                                                                         </div>
                                                                     </RenderIfSubProjectAdmin>
                                                                 </Fade>
