@@ -1,12 +1,14 @@
+require 'httparty'
+
 class Fyipe
     
-    
+    include HTTParty
     # FyipeLogger constructor.
     # @param string apiUrl
     # @param string applicationLogId
     # @param string applicationLogKey
     
-    def initialize(applicationLogId, applicationLogKey, apiUrl)
+    def initialize(apiUrl, applicationLogId, applicationLogKey)
         # instance variable intialzation
         @applicationLogId = applicationLogId
         setApiUrl(apiUrl)
@@ -15,6 +17,40 @@ class Fyipe
 
     def setApiUrl(apiUrl)
         @apiUrl = apiUrl + '/application-log/' + @applicationLogId + '/log';
+    end
+
+    def log(content, tags = nil)
+        # get the class of the content and convert to string for comparison
+        contentType = content.class.to_s
+        tagType = tags != nil ? tags.class.to_s : nil
+        
+        # check if content type is not a string or hash object
+        if(!((contentType.eql? "String") || (contentType.eql? "Hash")))
+            raise "Invalid Content to be logged"
+        end
+
+        # check if tag type is avialable and its not a string or hash object
+        if(tagType != nil && (!((tagType.eql? "String") || (tagType.eql? "Hash"))))
+            raise "Invalid Content Tags to be logged"
+        end
+
+        #set log type
+        logType = "info";
+        return makeApiRequest(content, logType, tags)
+    end
+
+    def makeApiRequest(data, type, tags = nil)
+        # make api request and return response 
+        
+        body = { content: data, type: type, applicationLogKey: @applicationLogKey }
+        if (tags != nil)    
+            body['tags'] = tags;
+        end 
+        params = { body: body }
+
+        response = self.class.post(@apiUrl, params).parsed_response
+        return response
+    
     end
 
     def display
