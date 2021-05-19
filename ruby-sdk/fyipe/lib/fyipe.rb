@@ -1,6 +1,6 @@
 require 'httparty'
 
-class Fyipe
+class FyipeLogger
     
     include HTTParty
     # FyipeLogger constructor.
@@ -73,9 +73,4 @@ class Fyipe
     
     end
 
-    def display
-        puts "Value of APPLICATION LOG ID is: #{@applicationLogId}"
-        puts "Value of APPLICATION LOG KEY is: #{@applicationLogKey}"
-        puts "Value of APPLICATION LOG URL is: #{@apiUrl}"
-    end 
 end
