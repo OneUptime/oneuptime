@@ -66,9 +66,11 @@ class Incident extends React.Component {
         }
     }
     componentDidUpdate(prevProps) {
-        if (prevProps.projectId !== this.props.projectId ||
+        if (
+            prevProps.projectId !== this.props.projectId ||
             (prevProps.incident && prevProps.incident._id) !==
-                (this.props.incident && this.props.incident._id)) {
+                (this.props.incident && this.props.incident._id)
+        ) {
             if (
                 this.props.currentProject &&
                 this.props.currentProject._id &&
