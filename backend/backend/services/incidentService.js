@@ -413,7 +413,6 @@ module.exports = {
 
     async _sendIncidentCreatedAlert(incident) {
         try {
-            await AlertService.sendCreatedIncident(incident);
             await ZapierService.pushToZapier('incident_created', incident);
             // await RealTimeService.sendCreatedIncident(incident);
 
@@ -441,6 +440,7 @@ module.exports = {
                 monitor => monitor.monitorId
             );
             for (const monitor of monitors) {
+                await AlertService.sendCreatedIncident(incident, monitor);
                 // handle this asynchronous operation in the background
                 AlertService.sendCreatedIncidentToSubscribers(
                     incident,
@@ -600,15 +600,15 @@ module.exports = {
                             ? monitors[0].componentId._id
                             : monitors[0].componentId,
                 });
-                for (const monitor of monitors) {
-                    await IncidentTimelineService.create({
-                        incidentId: incidentId,
-                        createdById: userId,
-                        probeId: probeId,
-                        createdByZapier: zapier,
-                        status: 'acknowledged',
-                    });
+                await IncidentTimelineService.create({
+                    incidentId: incidentId,
+                    createdById: userId,
+                    probeId: probeId,
+                    createdByZapier: zapier,
+                    status: 'acknowledged',
+                });
 
+                for (const monitor of monitors) {
                     WebHookService.sendIntegrationNotification(
                         incident.projectId,
                         incident,
