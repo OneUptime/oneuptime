@@ -94,6 +94,10 @@ describe('SSO API', () => {
                 ipRanges: '127.0.0.1',
             });
 
+            await page.waitForFunction(
+                'document.querySelector("#sso-count").innerText.includes("Page 1 of 1 (1 SOS)")'
+            );
+
             await init.pageWaitForSelector(page, '#sso-domain');
 
             const ssoCountAfterCreation = await page.$eval('#sso-count', e => {
@@ -139,6 +143,9 @@ describe('SSO API', () => {
             await init.pageType(page, '#domain', 'updated.test.hackerbay.io');
             await init.pageClick(page, '#save-button');
 
+            await page.waitForFunction(
+                'document.querySelector("#sso-count").innerText.includes("Page 1 of 1 (1 SOS)")'
+            );
             await init.pageWaitForSelector(page, '#sso-domain');
 
             const tbody = await page.$eval('tbody', e => {
@@ -169,6 +176,9 @@ describe('SSO API', () => {
             await init.pageWaitForSelector(page, '#confirmDelete');
             await init.pageClick(page, '#confirmDelete');
 
+            await page.waitForFunction(
+                'document.querySelector("#sso-count").innerText.includes("0 SOSs")'
+            );
             await init.pageWaitForSelector(page, '#no-sso-message'); // This helps component to update before the expect function
 
             const ssoCountAfterDeletion = await page.$eval('#sso-count', e => {
@@ -201,6 +211,10 @@ describe('SSO API', () => {
 
             await init.pageWaitForSelector(page, '#sso-domain');
 
+            await page.waitForFunction(
+                'document.querySelector("#sso-count").innerText.includes("Page 1 of 2 (12 SOS)")'
+            );
+
             const ssoCount = await page.$eval('#sso-count', e => {
                 return e.innerHTML;
             });
@@ -215,6 +229,9 @@ describe('SSO API', () => {
 
             await init.pageClick(page, '#next-button');
 
+            await page.waitForFunction(
+                'document.querySelector("#sso-count").innerText.includes("Page 2 of 2 (12 SOS)")'
+            );
             const secondPageTbody = await page.$eval('tbody', e => {
                 return e.innerHTML;
             });
@@ -222,6 +239,10 @@ describe('SSO API', () => {
             expect(secondPageTbody).toContain('subdomain.0.test.hackerbay.io');
 
             await init.pageClick(page, '#previous-button');
+
+            await page.waitForFunction(
+                'document.querySelector("#sso-count").innerText.includes("Page 1 of 2 (12 SOS)")'
+            );
 
             const initalPageTbody = await page.$eval('tbody', e => {
                 return e.innerHTML;
