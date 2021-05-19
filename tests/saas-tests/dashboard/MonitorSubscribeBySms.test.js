@@ -46,8 +46,8 @@ describe('Monitor Detail API', () => {
             );
 
             // click on subscribers tab
-            await init.pageWaitForSelector(page, '#react-tabs-2');
-            await init.pageClick(page, '#react-tabs-2');
+            await init.pageWaitForSelector(page, '.subscribers-tab');
+            await init.pageClick(page, '.subscribers-tab');
 
             const addNewSubscriber = '#addSubscriberButton';
             await init.pageWaitForSelector(page, addNewSubscriber);
@@ -69,6 +69,30 @@ describe('Monitor Detail API', () => {
     );
 
     test(
+        'Check for when an sms subscriber is created',
+        async done => {
+            // Navigate to Monitor details
+            await init.navigateToMonitorDetails(
+                componentName,
+                monitorName,
+                page
+            );
+
+            // click on subscribers tab
+            await init.pageWaitForSelector(page, '.subscribers-tab');
+            await init.pageClick(page, '.subscribers-tab');
+
+            const textContent = await page.$eval(
+                '#subscriber_contact',
+                e => e.textContent
+            );
+            expect(textContent.includes('+19173976123')).toEqual(true);
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
         'When the Contact Number is not a Numeric characters',
         async done => {
             // Navigate to Monitor details
@@ -79,8 +103,8 @@ describe('Monitor Detail API', () => {
             );
 
             // click on subscribers tab
-            await init.pageWaitForSelector(page, '#react-tabs-2');
-            await init.pageClick(page, '#react-tabs-2');
+            await init.pageWaitForSelector(page, '.subscribers-tab');
+            await init.pageClick(page, '.subscribers-tab');
 
             const addNewSubscriber = '#addSubscriberButton';
             await init.pageWaitForSelector(page, addNewSubscriber);
@@ -96,6 +120,18 @@ describe('Monitor Detail API', () => {
                     phoneNumber: 'sndvjdnsfvnskdfjn',
                 }
             );
+
+            // click on create subscribers
+            await init.pageWaitForSelector(page, '#createSubscriber');
+            await init.pageClick(page, '#createSubscriber');
+
+            const textContent = await page.$eval(
+                '#field-error',
+                e => e.textContent
+            );
+            expect(
+                textContent.includes('Please enter a contact number.')
+            ).toEqual(true);
             done();
         },
         operationTimeOut
