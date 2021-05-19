@@ -25,15 +25,18 @@ module.exports = {
                 closeStringId = i - 1;
             }
         }
-        main.push(main[closeStringId]);
-        main.splice(closeStringId, 1);
+
+        if (typeof closeStringId === 'number') {
+            main.push(main[closeStringId]);
+            main.splice(closeStringId, 1);
+        }
         return main;
     },
 
     checkCallSchedule: async arr => {
         const isAllFalse = arr.every(a => !a.isOnDuty);
 
-        if (isAllFalse) return [arr[0]];
+        if (isAllFalse) return arr[0] ? [arr[0]] : [];
 
         return arr.filter(a => a.isOnDuty);
     },
