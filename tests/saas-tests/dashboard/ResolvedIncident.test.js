@@ -40,44 +40,33 @@ describe('Incident Reports API', () => {
     });
 
     test(
-        'should display why offline incident was created',
-        async () => {
-            await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
-            await page.evaluate(
-                () => (document.getElementById('responseTime').value = '')
-            );
-            await page.evaluate(
-                () => (document.getElementById('statusCode').value = '')
-            );
-            await init.pageWaitForSelector(page, '#responseTime');
-            await init.pageClick(page, 'input[name=responseTime]');
-            await init.pageType(page, 'input[name=responseTime]', '0');
-            await init.pageWaitForSelector(page, '#statusCode');
-            await init.pageClick(page, 'input[name=statusCode]');
-            await init.pageType(page, 'input[name=statusCode]', '400');
-            await init.pageClick(page, 'button[type=submit]');
-            await init.pageWaitForSelector(page, '#save-btn');
-            await init.pageWaitForSelector(page, '#save-btn', {
-                visible: true,
-                timeout: init.timeout,
-            });
+        'should create 5 incidents and resolved them',
+        async (done) => {
+            for (let i = 0; i < 4; i++) {
+                await init.navigateToMonitorDetails(componentName, monitorName, page);
+                await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
+                await init.pageWaitForSelector(page, '#incidentType');
+                await init.pageClick(page, '#createIncident');
+                await init.pageClick(page, '#viewIncident-0');
+                await init.pageWaitForSelector(page, '#btnAcknowledge_0');
+                await init.pageClick(page, '#btnAcknowledge_0');
+                await init.pageClick(page, '#btnResolve_0');
 
-            // Navigate to Component details
-            await init.navigateToComponentDetails(componentName, page);
-            await init.pageWaitForSelector(page, '#closeIncident_1', {
-                visible: true,
-                timeout: 100000,
-            });
-            let incidentReportElement = await init.pageWaitForSelector(
-                page,
-                `#${monitorName}_IncidentReport_0`,
-                { visible: true, timeout: operationTimeOut }
-            );
-            incidentReportElement = await incidentReportElement.getProperty(
-                'innerText'
-            );
-            incidentReportElement = await incidentReportElement.jsonValue();
-            expect(incidentReportElement).toMatch(/Status Code is 400./); // 'was' has been changed to 'is'. 'Response Time is' has been added to rendered page
+                const resolvedConfirmation = await init.pageWaitForSelector(page, '.bs-resolved-green');
+                expect(resolvedConfirmation).toBeDefined();
+            }
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should resolved all incidents at once',
+        async done =>{
+            await page.goto(utils.DASHBOARD_URL,{
+                waitUntil: 'networkidle2'
+            })
+            done();
         },
         operationTimeOut
     );
