@@ -80,8 +80,8 @@ describe('Incident Timeline API', () => {
                 `#create_incident_${projectMonitorName}`
             );
             await init.pageWaitForSelector(page, '#createIncident');
-            await init.selectByText('#incidentType', 'Offline', page);
-            await init.selectByText('#incidentPriority', 'High', page);
+            await init.selectDropdownValue('#incidentType', 'Offline', page);
+            await init.selectDropdownValue('#incidentPriority', 'High', page);
             await init.pageType(page, '#title', 'new incident');
             await init.pageWaitForSelector(page, '#createIncident');
             await init.pageClick(page, '#createIncident');
@@ -120,7 +120,7 @@ describe('Incident Timeline API', () => {
                 `#form-new-incident-${type}-message`
             );
             await init.pageType(page, `textarea[id=new-${type}]`, `${message}`);
-            await init.selectByText('#incident_state', 'investigating', page);
+            await init.selectDropdownValue('#incident_state', 'investigating', page);
             await init.pageClick(page, `#${type}-addButton`);
             await init.pageWaitForSelector(page, `#${type}-addButton`, {
                 hidden: true,
@@ -184,7 +184,7 @@ describe('Incident Timeline API', () => {
             await init.pageWaitForSelector(page, `#edit-${type}`);
             await init.pageClick(page, `textarea[id=edit-${type}]`);
             await init.pageType(page, `textarea[id=edit-${type}]`, '-updated');
-            await init.selectByText('#incident_state', 'update', page);
+            await init.selectDropdownValue('#incident_state', 'update', page);
             await init.pageClick(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, `#${type}-editButton`, {
                 hidden: true,
@@ -246,7 +246,7 @@ describe('Incident Timeline API', () => {
             );
             await init.pageClick(page, `textarea[id=new-${type}]`);
             await init.pageType(page, `textarea[id=new-${type}]`, `${message}`);
-            await init.selectByText('#incident_state', 'others', page);
+            await init.selectDropdownValue('#incident_state', 'others', page);
             await init.pageClick(page, 'input[name=custom_incident_state]');
             await init.pageType(
                 page,
@@ -317,7 +317,7 @@ describe('Incident Timeline API', () => {
             await init.pageWaitForSelector(page, `#${type}-editButton`);
             await init.pageClick(page, `textarea[id=edit-${type}]`);
             await init.pageType(page, `textarea[id=edit-${type}]`, '-updated');
-            await init.selectByText('#incident_state', 'investigating', page);
+            await init.selectDropdownValue('#incident_state', 'investigating', page);
             await init.pageClick(page, `#${type}-editButton`);
             await init.pageWaitForSelector(page, `#${type}-editButton`, {
                 hidden: true,
@@ -427,7 +427,7 @@ describe('Incident Timeline API', () => {
                     `textarea[id=new-${type}]`,
                     `${internalNote}`
                 );
-                await init.selectByText('#incident_state', 'update', page);
+                await init.selectDropdownValue('#incident_state', 'update', page);
 
                 await init.pageClick(page, `#${type}-addButton`);
                 await init.pageWaitForSelector(page, `#${type}-addButton`, {

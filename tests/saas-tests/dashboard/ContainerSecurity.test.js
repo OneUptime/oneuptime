@@ -85,7 +85,7 @@ describe('Container Security Page', () => {
 
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', containerSecurityName);
-            await init.selectByText('#resourceCategory', categoryName, page); // add category
+            await init.selectDropdownValue('#resourceCategory', categoryName, page); // add category
             await init.pageClick(page, '#dockerCredential');
             await init.pageType(page, '#dockerCredential', dockerUsername);
             await page.keyboard.press('Enter');

@@ -81,7 +81,7 @@ describe('Fyipe Page Reload', () => {
             });
             await init.pageClick(page, '#btnSaveMonitors');
 
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '.css-1uccc91-singleValue',
                 'Test Name',
                 page

@@ -80,7 +80,7 @@ describe('Application Security Page', () => {
 
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', applicationSecurityName);
-            await init.selectByText('#resourceCategory', categoryName, page); // add category
+            await init.selectDropdownValue('#resourceCategory', categoryName, page); // add category
             await init.pageClick(page, '#gitRepositoryUrl');
             await init.pageType(page, '#gitRepositoryUrl', gitRepositoryUrl);
             await init.pageClick(page, '#gitCredential');

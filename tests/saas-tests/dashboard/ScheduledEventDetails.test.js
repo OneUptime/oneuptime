@@ -84,7 +84,7 @@ describe('Scheduled Event Note', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.selectByText('#event_state', 'investigating', page);
+            await init.selectDropdownValue('#event_state', 'investigating', page);
             await init.pageClick(page, '#new-internal');
             await init.pageType(
                 page,

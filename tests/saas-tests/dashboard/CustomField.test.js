@@ -94,7 +94,7 @@ describe('Incident Custom Field', () => {
                 '#fieldName',
                 incidentFieldNumber.fieldName
             );
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#fieldType',
                 incidentFieldNumber.fieldType,
                 page

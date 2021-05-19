@@ -47,7 +47,7 @@ describe('Email Templates API', () => {
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email');
             await init.pageClick(page, '#email');
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#type',
                 'External Subscriber Incident Created',
                 page
@@ -80,7 +80,7 @@ describe('Email Templates API', () => {
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email');
             await init.pageClick(page, '#email');
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#type',
                 'External Subscriber Incident Created',
                 page
@@ -95,7 +95,7 @@ describe('Email Templates API', () => {
             });
 
             await page.reload();
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#type',
                 'External Subscriber Incident Created',
                 page
@@ -122,7 +122,7 @@ describe('Email Templates API', () => {
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email');
             await init.pageClick(page, '#email');
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#type',
                 'External Subscriber Incident Created',
                 page
@@ -154,7 +154,7 @@ describe('Email Templates API', () => {
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email');
             await init.pageClick(page, '#email');
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#type',
                 'External Subscriber Incident Created',
                 page
@@ -169,7 +169,7 @@ describe('Email Templates API', () => {
             });
 
             await page.reload();
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#type',
                 'External Subscriber Incident Created',
                 page

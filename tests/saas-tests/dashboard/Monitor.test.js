@@ -542,7 +542,7 @@ describe('Monitor API', () => {
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', selfSignedMonitorName);
-            await init.selectByText('#type', 'url', page);
+            await init.selectDropdownValue('#type', 'url', page);
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
@@ -806,7 +806,7 @@ describe('API Monitor API', () => {
             });
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
-            await init.selectByText('#method', 'get', page);
+            await init.selectDropdownValue('#method', 'get', page);
 
             await init.pageClick(page, 'button[type=submit]');
 
@@ -853,7 +853,7 @@ describe('API Monitor API', () => {
                 '#url',
                 'https://fyipe.com/api/monitor/valid-project-id'
             );
-            await init.selectByText('#method', 'post', page);
+            await init.selectDropdownValue('#method', 'post', page);
 
             await init.pageClick(page, 'button[type=submit]');
 
@@ -886,7 +886,7 @@ describe('API Monitor API', () => {
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, 'input[data-testId=type_api]');
-            await init.selectByText('#method', 'post', page);
+            await init.selectDropdownValue('#method', 'post', page);
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
@@ -918,7 +918,7 @@ describe('API Monitor API', () => {
                 'input[id=headers_1000_0_value]',
                 'Basic valid-token'
             );
-            await init.selectByText('#bodyType', 'text/plain', page);
+            await init.selectDropdownValue('#bodyType', 'text/plain', page);
             await init.pageClick(page, '#feedback-textarea');
             await init.pageType(page, '#feedback-textarea', 'BAD');
             await init.pageClick(page, 'button[type=submit]');
@@ -952,7 +952,7 @@ describe('API Monitor API', () => {
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.pageClick(page, 'input[data-testId=type_api]');
-            await init.selectByText('#method', 'get', page);
+            await init.selectDropdownValue('#method', 'get', page);
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,

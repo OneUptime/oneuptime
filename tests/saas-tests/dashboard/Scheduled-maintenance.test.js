@@ -183,7 +183,7 @@ describe('Check scheduled maintenace', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#addMoreMonitors');
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#monitor-name',
                 `${componentName} / ${monitorName}`,
                 page

@@ -130,7 +130,7 @@ describe('Error Trackers', () => {
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', newErrorTrackerName);
-            await init.selectByText('#resourceCategory', categoryName, page);
+            await init.selectDropdownValue('#resourceCategory', categoryName, page);
             await init.pageClick(page, 'button[type=submit]');
             // As soon as an error tracker with a resource category is created, it automatically navigates to the details page
 
@@ -461,7 +461,7 @@ describe('Error Trackers', () => {
             // Fill and submit edit Error tracker form
             await init.pageWaitForSelector(page, '#form-new-error-tracker');
             // change category here
-            await init.selectByText('#resourceCategory', categoryName, page);
+            await init.selectDropdownValue('#resourceCategory', categoryName, page);
             await init.pageClick(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, '#addErrorTrackerButton', {
                 hidden: true,

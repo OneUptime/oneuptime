@@ -67,7 +67,7 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#monitor-0 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
