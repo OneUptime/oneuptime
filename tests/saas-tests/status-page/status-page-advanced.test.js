@@ -148,7 +148,7 @@ describe('Status-Page Advanced Options', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#addMoreMonitors');
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#monitor-name',
                 `${componentName} / ${monitorName}`,
                 page
@@ -202,7 +202,7 @@ describe('Status-Page Advanced Options', () => {
             await init.pageWaitForSelector(page, '#addSubscriberButton');
             await init.pageClick(page, '#addSubscriberButton');
             await init.pageWaitForSelector(page, '#alertViaId');
-            await init.selectByText('#alertViaId', 'Email', page);
+            await init.selectDropdownValue('#alertViaId', 'Email', page);
             await init.pageWaitForSelector(page, '#emailId');
             await init.pageClick(page, '#emailId');
             await init.pageType(page, '#emailId', subscriberEmail);

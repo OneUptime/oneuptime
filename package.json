@@ -30,13 +30,14 @@
         "lint": "eslint '**/*.js' -c .eslintrc.json --ignore-path .eslintignore",
         "fix-lint": "eslint '**/*.js' -c .eslintrc.json --ignore-path .eslintignore --fix",
         "staging-test": "cd tests && npm run-script staging-test",
+        "remove-all-containers": "docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q) || echo 'No running containers'",
         "debug-staging-test": "cd tests && npm run-script debug-staging-test",
-        "docker-enterprise-test": "docker-compose build && docker-compose --env-file=./docker-compose-enterprise-ci.env up && cd tests && npm run-script enterprise-test",
-        "docker-saas-test": "docker-compose build && docker-compose --env-file=./docker-compose-saas-ci.env up && cd tests && npm run-script saas-test",
-        "docker-enterprise": "docker-compose build && docker-compose --env-file=./docker-compose-enterprise-ci.env up",
-        "docker-saas": "docker-compose build && docker compose --env-file=./docker-compose-saas-ci.env up",
-        "docker-saas-init-script": "docker-compose build init-script && docker compose --env-file=./docker-compose-saas-ci.env up init-script",
-        "docker-enterprise-init-script": "docker-compose build init-script && docker compose --env-file=./docker-compose-enterprise-ci.env up init-script"
+        "docker-enterprise-test": "npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-enterprise-ci.env up && cd tests && npm run-script enterprise-test",
+        "docker-saas-test": "npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-saas-ci.env up && cd tests && npm run-script saas-test",
+        "docker-enterprise": "npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-enterprise-ci.env up",
+        "docker-saas": "npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-saas-ci.env up",
+        "docker-saas-init-script": "npm run remove-all-containers && docker-compose build init-script && docker compose --env-file=./docker-compose-saas-ci.env up init-script",
+        "docker-enterprise-init-script": "npm run remove-all-containers && docker-compose build init-script && docker compose --env-file=./docker-compose-enterprise-ci.env up init-script"
     },
     "repository": {
         "type": "git",

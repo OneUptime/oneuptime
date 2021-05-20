@@ -55,7 +55,7 @@ describe('Server Monitor API', () => {
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageClick(page, 'input[id=name]');
             await init.pageType(page, 'input[id=name]', monitorName);
-            await init.selectByText('#type', 'server-monitor', page);
+            await init.selectDropdownValue('#type', 'server-monitor', page);
             await init.pageClick(page, 'button[type=submit]');
 
             let spanElement = await init.pageWaitForSelector(

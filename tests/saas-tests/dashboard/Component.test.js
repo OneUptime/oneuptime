@@ -519,8 +519,8 @@ describe('Components', () => {
                 e => e.click()
             );
             await monitorPage.waitForSelector('#createIncident');
-            await init.selectByText('#incidentType', 'Offline', monitorPage);
-            await init.selectByText('#incidentPriority', 'Low', monitorPage);
+            await init.selectDropdownValue('#incidentType', 'Offline', monitorPage);
+            await init.selectDropdownValue('#incidentPriority', 'Low', monitorPage);
             await init.pageClick(monitorPage, '#createIncident');
             await monitorPage.waitForSelector('#createIncident', {
                 hidden: true,
@@ -764,8 +764,8 @@ describe('Components', () => {
                 e.click()
             );
             await init.pageWaitForSelector(page, '#createIncident');
-            await init.selectByText('#incidentType', 'Offline', page);
-            await init.selectByText('#incidentPriority', 'Low', page);
+            await init.selectDropdownValue('#incidentType', 'Offline', page);
+            await init.selectDropdownValue('#incidentPriority', 'Low', page);
             await page.$eval('#createIncident', e => e.click());
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,

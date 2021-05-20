@@ -49,13 +49,13 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#addMonitorSlaBtn');
             await init.pageType(page, '#name', monitorSlaName);
             await init.pageClick(page, '#addMoreMonitor');
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#monitorfield_0',
                 `${componentName} / ${monitorName}`,
                 page
             );
-            await init.selectByText('#frequencyOption', 'Every 3 months', page);
-            await init.selectByText('#monitorUptimeOption', '99.90%', page);
+            await init.selectDropdownValue('#frequencyOption', 'Every 3 months', page);
+            await init.selectDropdownValue('#monitorUptimeOption', '99.90%', page);
             await init.pageClick(page, '#createSlaBtn');
             await init.pageWaitForSelector(page, '#createSlaBtn', {
                 hidden: true,

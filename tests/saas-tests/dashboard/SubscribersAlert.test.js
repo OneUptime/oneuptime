@@ -69,9 +69,9 @@ describe('Subscribers Alert logs API', () => {
             await init.pageWaitForSelector(page, '#addSubscriberButton');
             await init.pageClick(page, '#addSubscriberButton');
             await init.pageWaitForSelector(page, '#alertViaId');
-            await init.selectByText('#alertViaId', 'sms', page);
+            await init.selectDropdownValue('#alertViaId', 'sms', page);
             await init.pageWaitForSelector(page, '#countryCodeId');
-            await init.selectByText('#countryCodeId', countryCode, page);
+            await init.selectDropdownValue('#countryCodeId', countryCode, page);
             await init.pageType(page, '#contactPhoneId', phoneNumber);
             await init.pageClick(page, '#createSubscriber');
             await init.pageWaitForSelector(page, '#createSubscriber', {
@@ -107,7 +107,7 @@ describe('Subscribers Alert logs API', () => {
             await init.pageWaitForSelector(page, '#addSubscriberButton');
             await init.pageClick(page, '#addSubscriberButton');
             await init.pageWaitForSelector(page, '#alertViaId');
-            await init.selectByText('#alertViaId', 'email', page);
+            await init.selectDropdownValue('#alertViaId', 'email', page);
             await init.pageWaitForSelector(page, '#emailId');
             await init.pageType(page, '#emailId', subscriberEmail);
             await init.pageClick(page, '#createSubscriber');
@@ -144,7 +144,7 @@ describe('Subscribers Alert logs API', () => {
             );
             await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
             await init.pageWaitForSelector(page, '#incidentType');
-            await init.selectByText('#incidentType', 'offline', page);
+            await init.selectDropdownValue('#incidentType', 'offline', page);
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, `#incident_${monitorName}_0`);
             await init.pageWaitForSelector(page, '#notificationscroll');

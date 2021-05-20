@@ -85,8 +85,8 @@ describe('Monitor Detail API', () => {
             );
             await page.$eval(`#createIncident_${monitorName}`, e => e.click());
             await init.pageWaitForSelector(page, '#createIncident');
-            await init.selectByText('#incidentType', 'Offline', page);
-            await init.selectByText('#incidentPriority', priorityName, page);
+            await init.selectDropdownValue('#incidentType', 'Offline', page);
+            await init.selectDropdownValue('#incidentPriority', priorityName, page);
             await init.pageClick(page, '#title');
             // await page.keyboard.press('Backspace');
             await init.pageType(page, '#title', incidentTitle);
@@ -297,7 +297,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, '#alertViaId');
 
-            await init.selectByText('#alertViaId', 'email', page);
+            await init.selectDropdownValue('#alertViaId', 'email', page);
             await init.pageType(page, 'input[name=email]', subscriberEmail);
             await page.$eval('#createSubscriber', e => e.click());
             await init.pageWaitForSelector(page, '#createSubscriber', {
@@ -337,7 +337,7 @@ describe('Monitor Detail API', () => {
             for (let i = 0; i < 5; i++) {
                 await page.$eval(addButtonSelector, e => e.click());
                 await init.pageWaitForSelector(page, '#alertViaId');
-                await init.selectByText('#alertViaId', 'email', page);
+                await init.selectDropdownValue('#alertViaId', 'email', page);
                 await init.pageType(
                     page,
                     'input[name=email]',
@@ -852,7 +852,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, '#endpoint');
             await init.pageType(page, '#endpoint', webhookEndpoint);
-            await init.selectByText('#endpointType', 'GET', page);
+            await init.selectDropdownValue('#endpointType', 'GET', page);
 
             await page.evaluate(() => {
                 document.querySelector('input[name=incidentCreated]').click();
@@ -901,7 +901,7 @@ describe('Monitor Detail API', () => {
                     '#endpoint',
                     utils.generateRandomWebsite()
                 );
-                await init.selectByText('#endpointType', 'GET', page);
+                await init.selectDropdownValue('#endpointType', 'GET', page);
                 await page.evaluate(() => {
                     document
                         .querySelector('input[name=incidentCreated]')

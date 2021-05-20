@@ -122,7 +122,7 @@ describe('Status Page', () => {
             });
             await init.pageClick(page, '#addMoreMonitors');
             await init.pageWaitForSelector(page, '#monitor-0');
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#monitor-0 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
@@ -159,14 +159,14 @@ describe('Status Page', () => {
             });
             await init.pageClick(page, '#addMoreMonitors');
             await init.pageWaitForSelector(page, '#monitor-0');
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#monitor-0 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
             );
             await init.pageClick(page, '#addMoreMonitors');
             await init.pageWaitForSelector(page, '#monitor-1');
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#monitor-1 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
@@ -212,7 +212,7 @@ describe('Status Page', () => {
             });
             await init.pageClick(page, '#addMoreMonitors');
             await init.pageWaitForSelector(page, '#monitor-0');
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#monitor-0 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
@@ -278,14 +278,14 @@ describe('Status Page', () => {
             });
             await init.pageClick(page, '#addMoreMonitors');
             await init.pageWaitForSelector(page, '#monitor-0');
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#monitor-0 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
             );
             await init.pageClick(page, '#addMoreMonitors');
             await init.pageWaitForSelector(page, '#monitor-1');
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#monitor-1 .db-select-nw',
                 `${componentName} / ${monitorName1}`,
                 page
@@ -362,7 +362,7 @@ describe('Status Page', () => {
             await init.pageClick(page, '#delete-monitor-0');
             await init.pageClick(page, '#addMoreMonitors');
             await init.pageWaitForSelector(page, '#monitor-1');
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#monitor-1 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page

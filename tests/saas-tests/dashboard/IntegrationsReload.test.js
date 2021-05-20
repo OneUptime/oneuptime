@@ -56,12 +56,12 @@ describe('Fyipe Page Reload', () => {
             });
             await init.pageClick(page, '#addWebhookButton');
             await init.pageType(page, '#endpoint', webHookEndpoint);
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#monitorId',
                 `${componentName} / ${monitorName}`,
                 page
             );
-            await init.selectByText('#endpointType', 'GET', page);
+            await init.selectDropdownValue('#endpointType', 'GET', page);
             await init.pageClick(page, '#createWebhook');
             await init.pageWaitForSelector(page, '#createWebhook', {
                 hidden: true,

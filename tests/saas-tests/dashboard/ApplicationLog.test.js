@@ -138,7 +138,7 @@ describe('Log Containers', () => {
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', appLogName);
-            await init.selectByText('#resourceCategory', categoryName, page);
+            await init.selectDropdownValue('#resourceCategory', categoryName, page);
             await init.pageClick(page, 'button[type=submit]');
             // confirm the category shows in the details page.
             await init.pageWaitForSelector(page, `#${appLogName}-badge`, {
@@ -580,7 +580,7 @@ describe('Log Containers', () => {
             // Fill and submit edit Application  log form
             await init.pageWaitForSelector(page, '#form-new-application-log');
             // change category here
-            await init.selectByText('#resourceCategory', categoryName, page);
+            await init.selectDropdownValue('#resourceCategory', categoryName, page);
             await init.pageClick(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, '#addApplicationLogButton', {
                 hidden: true,

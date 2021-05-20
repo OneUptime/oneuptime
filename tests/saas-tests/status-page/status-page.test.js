@@ -173,7 +173,7 @@ describe('Check status-page up', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#addMoreMonitors');
-            await init.selectByText(
+            await init.selectDropdownValue(
                 '#monitor-name',
                 `${componentName} / ${monitorName}`,
                 page
@@ -415,7 +415,7 @@ describe('Check status-page up', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.selectByText('#incidentType', 'Degraded', page);
+            await init.selectDropdownValue('#incidentType', 'Degraded', page);
             await init.pageClick(page, '#createIncident');
 
             await page.goto(utils.DASHBOARD_URL, {

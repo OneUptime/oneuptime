@@ -77,11 +77,9 @@ describe('SSO API', () => {
             /** Upon login, admin-dashboard is loaded */
             await moveToSsoPage(page);
 
-            const ssoCount = await page.$eval('#sso-count', e => {
-                return e.innerHTML;
-            });
-
-            expect(ssoCount).toContain('0');
+            /**  With respect to admin-dashboard code refactoring,
+             *  removal of UNDEFINED
+             *  sso-count is only visible after an sso has been created*/
 
             await init.pageWaitForSelector(page, '#no-sso-message');
 
@@ -121,6 +119,8 @@ describe('SSO API', () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await moveToSsoPage(page);
 
+            await init.pageWaitForSelector(page, '#sso-count');
+
             const ssoCount = await page.$eval('#sso-count', e => {
                 return e.innerHTML;
             });
@@ -157,6 +157,8 @@ describe('SSO API', () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await moveToSsoPage(page);
 
+            await init.pageWaitForSelector(page, '#sso-count');
+
             const ssoCount = await page.$eval('#sso-count', e => {
                 return e.innerHTML;
             });
@@ -169,12 +171,11 @@ describe('SSO API', () => {
             await init.pageWaitForSelector(page, '#confirmDelete');
             await init.pageClick(page, '#confirmDelete');
 
-            await init.pageWaitForSelector(page, '#no-sso-message'); // This helps component to update before the expect function
+            const ssoMessage = await init.pageWaitForSelector(page, '#no-sso-message'); // 'No SSO created yet' is rendered when none is available
+            expect(ssoMessage).toBeDefined();
 
-            const ssoCountAfterDeletion = await page.$eval('#sso-count', e => {
-                return e.innerHTML;
-            });
-            expect(ssoCountAfterDeletion).toContain('0');
+            const ssoCountAfterDeletion = await init.pageWaitForSelector(page, '#sso-count', { hidden : true});
+            expect(ssoCountAfterDeletion).toBeNull();
 
             done();
         },

@@ -78,7 +78,7 @@ describe('Incident Communication SLA', () => {
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', '  ');
-            await init.selectByText('#durationOption', duration, page);
+            await init.selectDropdownValue('#durationOption', duration, page);
             await init.pageClick(page, '#alertTime');
             await init.pageType(page, '#alertTime', alertTime);
             await init.pageClick(page, '#createSlaBtn');
@@ -139,7 +139,7 @@ describe('Incident Communication SLA', () => {
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
-            await init.selectByText('#durationOption', duration, page);
+            await init.selectDropdownValue('#durationOption', duration, page);
             await init.pageClick(page, '#alertTime');
             await init.pageType(page, '#alertTime', duration);
             await init.pageClick(page, '#createSlaBtn');
@@ -200,7 +200,7 @@ describe('Incident Communication SLA', () => {
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
-            await init.selectByText('#durationOption', duration, page);
+            await init.selectDropdownValue('#durationOption', duration, page);
             await init.pageClick(page, '#alertTime');
             await init.pageType(page, '#alertTime', '12m');
             await init.pageClick(page, '#createSlaBtn');
@@ -261,7 +261,7 @@ describe('Incident Communication SLA', () => {
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
-            await init.selectByText('#durationOption', duration, page);
+            await init.selectDropdownValue('#durationOption', duration, page);
             await init.pageClick(page, '#alertTime');
             await init.pageType(page, '#alertTime', alertTime);
             await page.$eval('#isDefault', elem => elem.click());
@@ -432,7 +432,7 @@ describe('Incident Communication SLA', () => {
             await init.pageClick(page, `#createIncident_${monitor}`);
 
             await init.pageWaitForSelector(page, '#createIncident');
-            await init.selectByText('#incidentType', 'offline', page);
+            await init.selectDropdownValue('#incidentType', 'offline', page);
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,
