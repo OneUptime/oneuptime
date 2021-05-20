@@ -62,14 +62,20 @@ class Application extends Component {
     componentDidUpdate(prevProps) {
         if (
             prevProps.projectId !== this.props.projectId ||
-            prevProps.componentId !== this.props.componentId
+            prevProps.componentId !== this.props.componentId ||
+            prevProps.componentSlug !== this.props.componentSlug
         ) {
             const {
                 projectId,
                 componentId,
+                componentSlug,
+                fetchComponent,
                 getApplicationSecurities,
                 getApplicationSecurityLogs,
             } = this.props;
+            if (projectId) {
+                fetchComponent(projectId, componentSlug);
+            }
             if (projectId && componentId) {
                 // load container security logs
                 getApplicationSecurityLogs({ projectId, componentId });
@@ -248,7 +254,8 @@ Application.propTypes = {
     getApplicationSecuritySuccess: PropTypes.func,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
+    const { componentSlug } = props.match.params;
     return {
         componentId:
             state.component.currentComponent.component &&
@@ -262,9 +269,7 @@ const mapStateToProps = state => {
         gettingApplicationSecurities: state.security.getApplication.requesting,
         component:
             state.component && state.component.currentComponent.component,
-        componentSlug:
-            state.component.currentComponent.component &&
-            state.component.currentComponent.component.slug,
+        componentSlug,
     };
 };
 
