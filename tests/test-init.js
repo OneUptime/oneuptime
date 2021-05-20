@@ -284,10 +284,10 @@ const _this = {
     selectDropdownValue: async function(selector, text, page) {
         await _this.pageClick(page, selector, { delay: 100 });
         await page.keyboard.type(text);
-        const noOption = await page.$('div.css-1gl4k7y');
-        if (!noOption) {
-            await page.keyboard.type(String.fromCharCode(9)); //press tab
-        }
+        // const noOption = await page.$('div.css-1gl4k7y');
+        // if (!noOption) {
+        //     await page.keyboard.type(String.fromCharCode(9)); //press tab
+        // }
     },
     clear: async function(selector, page) {
         const input = await page.$(selector);
