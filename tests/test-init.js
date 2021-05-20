@@ -59,7 +59,8 @@ const _this = {
                     timeout: _this.timeout,
                 }
             );
-            const stripeIframeElements = await page.$$(
+            const stripeIframeElements = await _this.page$$(
+                page,
                 '.__PrivateStripeElement > iframe'
             );
 
@@ -178,7 +179,7 @@ const _this = {
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
         });
-        const signUp = await page.$('#signUpLink');
+        const signUp = await _this.page$(page, '#signUpLink');
         if (signUp) {
             await page.goto(utils.ACCOUNTS_URL + '/register', {
                 waitUntil: 'networkidle2',
@@ -284,13 +285,13 @@ const _this = {
     selectDropdownValue: async function(selector, text, page) {
         await _this.pageClick(page, selector, { delay: 100 });
         await page.keyboard.type(text);
-        const noOption = await page.$('div.css-1gl4k7y');
+        const noOption = await _this.page$(page, 'div.css-1gl4k7y');
         if (!noOption) {
             await page.keyboard.press('Tab'); //String.fromCharCode(9) could not press tab
         }
     },
     clear: async function(selector, page) {
-        const input = await page.$(selector);
+        const input = await _this.page$(page, selector);
         await input.click({ clickCount: 3 });
         await input.type('');
     },
@@ -338,7 +339,9 @@ const _this = {
 
         // Navigate to details page of component assumed created
         await _this.pageWaitForSelector(page, `#more-details-${component}`);
-        await page.$eval(`#more-details-${component}`, e => e.click());
+        await _this.page$Eval(page, `#more-details-${component}`, e =>
+            e.click()
+        );
     },
     addMonitorToStatusPage: async function(componentName, monitorName, page) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
@@ -375,7 +378,7 @@ const _this = {
     },
     clickStatusPageUrl: async function(page) {
         await _this.pageWaitForSelector(page, '#publicStatusPageUrl');
-        let link = await page.$('#publicStatusPageUrl > span > a');
+        let link = await _this.page$(page, '#publicStatusPageUrl > span > a');
         link = await link.getProperty('href');
         link = await link.jsonValue();
         await page.goto(link, { waitUntil: ['networkidle2'] });
@@ -409,13 +412,15 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await page.$eval(`#react-tabs-${tabId}`, e => e.click());
+        await _this.page$Eval(page, `#react-tabs-${tabId}`, e => e.click());
     },
     themeNavigationAndConfirmation: async function(page, theme) {
         await _this.pageWaitForSelector(page, '.branding-tab', {
             visible: true,
         });
-        await page.$$eval('.branding-tab', elems => elems[0].click());
+        await _this.page$$Eval(page, '.branding-tab', elems =>
+            elems[0].click()
+        );
         await _this.pageWaitForSelector(page, `#${theme}`, {
             visible: true,
             timeout: _this.timeout,
@@ -613,7 +618,10 @@ const _this = {
         });
     },
     addSubProject: async function(subProjectName, page) {
-        const subProjectNameSelector = await page.$('#btn_Add_SubProjects');
+        const subProjectNameSelector = await _this.page$(
+            page,
+            '#btn_Add_SubProjects'
+        );
         if (subProjectNameSelector) {
             await _this.pageWaitForSelector(page, '#btn_Add_SubProjects');
             await _this.pageClick(page, '#btn_Add_SubProjects');
@@ -736,7 +744,8 @@ const _this = {
 
         // online criteria
         await _this.pageWaitForSelector(page, '[data-testId=add_criterion_up]');
-        await page.$$eval(
+        await _this.page$$Eval(
+            page,
             '[data-testId=add_criterion_up]',
             addCriterionButtons => {
                 const lastAddCriterionButton =
@@ -790,13 +799,16 @@ const _this = {
                     timeout: _this.timeout,
                 }
             );
-            await page.$eval('input[name^=createAlert_up]', element =>
-                element.click()
+            await _this.page$Eval(
+                page,
+                'input[name^=createAlert_up]',
+                element => element.click()
             );
         }
 
         // degraded criteria
-        await page.$$eval(
+        await _this.page$$Eval(
+            page,
             '[data-testId=add_criterion_degraded]',
             addCriterionButtons => {
                 const lastAddCriterionButton =
@@ -862,7 +874,8 @@ const _this = {
         });
     },
     addIncidentToProject: async function(monitorName, projectName, page) {
-        const createIncidentSelector = await page.$(
+        const createIncidentSelector = await _this.page$(
+            page,
             `#btnCreateIncident_${projectName}`,
             { visible: true, timeout: _this.timeout }
         );
@@ -871,25 +884,29 @@ const _this = {
                 page,
                 `#btnCreateIncident_${projectName}`
             );
-            await page.$eval(`#btnCreateIncident_${projectName}`, e =>
-                e.click()
+            await _this.page$Eval(
+                page,
+                `#btnCreateIncident_${projectName}`,
+                e => e.click()
             );
             await _this.pageWaitForSelector(page, '#frmIncident');
             await _this.selectDropdownValue('#monitorList', monitorName, page);
-            await page.$eval('#createIncident', e => e.click());
+            await _this.page$Eval(page, '#createIncident', e => e.click());
         } else {
             await _this.pageWaitForSelector(page, '#incidentLog');
-            await page.$eval('#incidentLog', e => e.click());
+            await _this.page$Eval(page, '#incidentLog', e => e.click());
             await _this.pageWaitForSelector(
                 page,
                 `#btnCreateIncident_${projectName}`
             );
-            await page.$eval(`#btnCreateIncident_${projectName}`, e =>
-                e.click()
+            await _this.page$Eval(
+                page,
+                `#btnCreateIncident_${projectName}`,
+                e => e.click()
             );
             await _this.pageWaitForSelector(page, '#frmIncident');
             await _this.selectDropdownValue('#monitorList', monitorName, page);
-            await page.$eval('#createIncident', e => e.click());
+            await _this.page$Eval(page, '#createIncident', e => e.click());
         }
         await _this.pageWaitForSelector(page, '#createIncident', {
             hidden: true,
@@ -909,7 +926,9 @@ const _this = {
         await _this.pageWaitForSelector(page, '.incident-priority-tab', {
             visible: true,
         });
-        await page.$$eval('.incident-priority-tab', elems => elems[0].click());
+        await _this.page$$Eval(page, '.incident-priority-tab', elems =>
+            elems[0].click()
+        );
 
         await _this.pageWaitForSelector(page, '#addNewPriority');
         await _this.pageClick(page, '#addNewPriority');
@@ -921,7 +940,8 @@ const _this = {
         });
     },
     addStatusPageToProject: async function(statusPageName, projectName, page) {
-        const createStatusPageSelector = await page.$(
+        const createStatusPageSelector = await _this.page$(
+            page,
             `#btnCreateStatusPage_${projectName}`
         );
         if (createStatusPageSelector) {
@@ -946,7 +966,8 @@ const _this = {
         });
     },
     addScheduleToProject: async function(scheduleName, projectName, page) {
-        const createStatusPageSelector = await page.$(
+        const createStatusPageSelector = await _this.page$(
+            page,
             `#btnCreateStatusPage_${projectName}`
         );
         if (createStatusPageSelector) {
@@ -999,7 +1020,11 @@ const _this = {
             await _this.pageClick(page, 'label[for=selectAllMonitorsBox]');
             await _this.pageClick(page, '#addMoreMonitor');
             await _this.pageWaitForSelector(page, '#monitorfield_0');
-            await _this.selectDropdownValue('#monitorfield_0', componentName, page); // 'Component_Name/Monitor_Name' appears in the dropdown. Using 'componentName' selects the monitor.
+            await _this.selectDropdownValue(
+                '#monitorfield_0',
+                componentName,
+                page
+            ); // 'Component_Name/Monitor_Name' appears in the dropdown. Using 'componentName' selects the monitor.
         }
         await _this.pageClick(page, '#description');
         await _this.pageType(
@@ -1067,7 +1092,8 @@ const _this = {
                 'iframe[name=__privateStripeFrame5]'
             );
 
-            const elementHandle = await page.$(
+            const elementHandle = await _this.page$(
+                page,
                 'iframe[name=__privateStripeFrame5]'
             );
             const frame = await elementHandle.contentFrame();
@@ -1298,10 +1324,14 @@ const _this = {
         await _this.pageClick(page, '#twilio');
         await _this.pageWaitForSelector(page, '#call-enabled');
         if (enableCalls) {
-            await page.$eval('#call-enabled', element => element.click());
+            await _this.page$Eval(page, '#call-enabled', element =>
+                element.click()
+            );
         }
         if (enableSms) {
-            await page.$eval('#sms-enabled', element => element.click());
+            await _this.page$Eval(page, '#sms-enabled', element =>
+                element.click()
+            );
         }
         await _this.pageType(page, '#account-sid', accountSid);
         await _this.pageType(page, '#authentication-token', authToken);
@@ -1332,7 +1362,8 @@ const _this = {
         await _this.pageWaitForSelector(page, '#email');
         await _this.pageClick(page, '#email');
         await _this.pageWaitForSelector(page, '#smtpswitch');
-        if (enable) await page.$eval('#smtpswitch', elem => elem.click());
+        if (enable)
+            await _this.page$Eval(page, '#smtpswitch', elem => elem.click());
         await _this.pageWaitForSelector(page, '#user');
         await _this.pageType(page, '#user', user);
         await _this.pageType(page, '#pass', pass);
@@ -1340,7 +1371,7 @@ const _this = {
         await _this.pageType(page, '#port', port);
         await _this.pageType(page, '#from', from);
         await _this.pageType(page, '#name', 'Admin');
-        await page.$eval('#secure', e => {
+        await _this.page$Eval(page, '#secure', e => {
             e.checked = secure;
         });
         await _this.pageClick(page, '#saveSmtp');
@@ -1389,7 +1420,11 @@ const _this = {
         if (alertType === 'SMS') {
             const { countryCode, phoneNumber } = data;
             await _this.pageWaitForSelector(page, '#countryCodeId');
-            await _this.selectDropdownValue('#countryCodeId', countryCode, page);
+            await _this.selectDropdownValue(
+                '#countryCodeId',
+                countryCode,
+                page
+            );
             await _this.pageType(page, '#contactPhoneId', phoneNumber);
         }
         await _this.pageClick(page, '#createSubscriber');
@@ -1462,6 +1497,22 @@ const _this = {
         });
         return await page.click(selector, opts);
     },
+    page$Eval: async function(page, selector, evalFunction, opts) {
+        await _this.pageWaitForSelector(page, selector);
+        return await page.$eval(selector, evalFunction);
+    },
+    page$$Eval: async function(page, selector, evalFunction) {
+        await _this.pageWaitForSelector(page, selector);
+        return await page.$$eval(selector, evalFunction);
+    },
+    page$: async function(page, selector, opts) {
+        await _this.pageWaitForSelector(page, selector);
+        return await page.$(selector, opts);
+    },
+    page$$: async function(page, selector, opts) {
+        await _this.pageWaitForSelector(page, selector);
+        return await page.$$(selector, opts);
+    },
     pageWaitForSelector: async function(page, selector, opts) {
         if (!opts) {
             opts = {};
@@ -1478,6 +1529,13 @@ const _this = {
         return await page.waitForSelector(selector, {
             ...opts,
         });
+    },
+    isElementOnPage: async function(page, selector) {
+        if (await page.$(selector)) {
+            return true;
+        } else {
+            return false;
+        }
     },
 };
 

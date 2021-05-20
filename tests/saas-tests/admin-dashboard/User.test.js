@@ -14,6 +14,7 @@ describe('SMTP Settings API', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -46,14 +47,14 @@ describe('SMTP Settings API', () => {
             );
             await page.reload({ waitUntil: 'networkidle2' });
             await init.pageWaitForSelector(page, '.bs-ObjectList-rows > a');
-            const users = await page.$$('.bs-ObjectList-rows > a');
+            const users = await init.page$$(page, '.bs-ObjectList-rows > a');
             await users[1].click();
 
             await init.pageWaitForSelector(page, '#disableUser2fa');
             await init.pageClick(page, '#disableUser2fa');
 
             await init.pageWaitForSelector(page, '.bs-Modal-content > span');
-            let info = await page.$('.bs-Modal-content > span');
+            let info = await init.page$(page, '.bs-Modal-content > span');
             expect(info).toBeDefined();
             info = await info.getProperty('innerText');
             info = await info.jsonValue();
@@ -68,10 +69,10 @@ describe('SMTP Settings API', () => {
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.pageWaitForSelector(page, '.bs-ObjectList-rows > a');
-            const users = await page.$$('.bs-ObjectList-rows > a');
+            const users = await init.page$$(page, '.bs-ObjectList-rows > a');
             await users[0].click();
 
-            const elem = await page.$('#disableUser2fa');
+            const elem = await init.page$(page, '#disableUser2fa');
             expect(elem).toEqual(null);
             done();
         },

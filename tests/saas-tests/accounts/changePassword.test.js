@@ -47,7 +47,8 @@ describe('Change Password API', () => {
                 page,
                 '#confirmPasswordField > span > span:nth-child(2)'
             );
-            const html = await page.$eval(
+            const html = await init.page$Eval(
+                page,
                 '#confirmPasswordField > span > span:nth-child(2)',
                 e => {
                     return e.innerHTML;
@@ -79,7 +80,8 @@ describe('Change Password API', () => {
                 page,
                 '#passwordField > span > span:nth-child(1)'
             );
-            const html = await page.$eval(
+            const html = await init.page$Eval(
+                page,
                 '#passwordField > span > span:nth-child(2)',
                 e => {
                     return e.innerHTML;
@@ -111,7 +113,8 @@ describe('Change Password API', () => {
                 page,
                 '#passwordField > span > span:nth-child(1)'
             );
-            const html = await page.$eval(
+            const html = await init.page$Eval(
+                page,
                 '#passwordField > span > span:nth-child(2)',
                 e => {
                     return e.innerHTML;

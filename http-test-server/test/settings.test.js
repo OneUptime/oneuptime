@@ -44,9 +44,13 @@ describe('HTTP Settings page', () => {
         await page.waitForSelector('#save-btn');
 
         await page.waitForSelector('#errorMsg > label > span');
-        const html = await page.$eval('#errorMsg > label > span', e => {
-            return e.innerHTML;
-        });
+        const html = await init.page$Eval(
+            page,
+            '#errorMsg > label > span',
+            e => {
+                return e.innerHTML;
+            }
+        );
         should.exist(html);
         html.should.containEql('Please provide a valid status code');
     }, 160000);
@@ -76,9 +80,13 @@ describe('HTTP Settings page', () => {
         await page.waitForSelector('#save-btn');
 
         await page.waitForSelector('#errorMsg > label > span');
-        const html = await page.$eval('#errorMsg > label > span', e => {
-            return e.innerHTML;
-        });
+        const html = await init.page$Eval(
+            page,
+            '#errorMsg > label > span',
+            e => {
+                return e.innerHTML;
+            }
+        );
         should.exist(html);
         html.should.containEql('Response Time should be a number');
     }, 160000);
@@ -108,9 +116,13 @@ describe('HTTP Settings page', () => {
         await page.waitForSelector('#save-btn');
 
         await page.waitForSelector('#errorMsg > label > span');
-        const html = await page.$eval('#errorMsg > label > span', e => {
-            return e.innerHTML;
-        });
+        const html = await init.page$Eval(
+            page,
+            '#errorMsg > label > span',
+            e => {
+                return e.innerHTML;
+            }
+        );
         should.exist(html);
         html.should.containEql('Status code should be a number');
     }, 160000);
@@ -146,7 +158,7 @@ describe('HTTP Settings page', () => {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#html > span');
-        const html = await page.$eval('#html > span', e => {
+        const html = await init.page$Eval(page, '#html > span', e => {
             return e.innerHTML;
         });
         should.exist(html);

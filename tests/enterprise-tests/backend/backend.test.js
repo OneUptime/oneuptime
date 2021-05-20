@@ -7,6 +7,7 @@ let page, browser;
 describe('Enterprise Backend API', () => {
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         done();
@@ -21,7 +22,7 @@ describe('Enterprise Backend API', () => {
         await page.goto(`${utils.BACKEND_URL}/server/is-saas-service`, {
             waitUntil: 'networkidle2',
         });
-        const response = await page.$eval('body > pre', e => {
+        const response = await init.page$Eval(page, 'body > pre', e => {
             return e.innerHTML;
         });
         expect(response).toBe('{"result":false}');
@@ -32,7 +33,7 @@ describe('Enterprise Backend API', () => {
         await page.goto(utils.BACKEND_URL, {
             waitUntil: 'networkidle2',
         });
-        const response = await page.$eval('body > pre', e => {
+        const response = await init.page$Eval(page, 'body > pre', e => {
             return e.innerHTML;
         });
         expect(response).toBe(

@@ -18,6 +18,7 @@ describe('StatusPage API With SubProjects', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -80,7 +81,8 @@ describe('StatusPage API With SubProjects', () => {
             await init.pageWaitForSelector(page, '#statusPages');
             await init.pageClick(page, '#statusPages');
 
-            const createButton = await page.$(
+            const createButton = await init.page$(
+                page,
                 `#btnCreateStatusPage_${subProjectName}`
             );
 
@@ -115,7 +117,8 @@ describe('StatusPage API With SubProjects', () => {
                 `#status_page_count_${subProjectName}`
             );
 
-            const statusPageCountSelector = await page.$(
+            const statusPageCountSelector = await init.page$(
+                page,
                 `#status_page_count_${subProjectName}`
             );
             let textContent = await statusPageCountSelector.getProperty(
@@ -137,7 +140,7 @@ describe('StatusPage API With SubProjects', () => {
         const statuspageName = utils.generateRandomString();
         await init.addStatusPageToProject(statuspageName, subProjectName, page);
         await init.pageWaitForSelector(page, 'tr.statusPageListItem');
-        await page.$$('tr.statusPageListItem');
+        await init.page$$(page, 'tr.statusPageListItem');
         await init.pageWaitForSelector(page, '#viewStatusPage');
         await init.pageClick(page, '#viewStatusPage');
         await page.reload({ waitUntil: 'networkidle2' });
@@ -174,7 +177,10 @@ describe('StatusPage API With SubProjects', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await init.pageWaitForSelector(page, 'tr.statusPageListItem');
 
-            let statusPageRows = await page.$$('tr.statusPageListItem');
+            let statusPageRows = await init.page$$(
+                page,
+                'tr.statusPageListItem'
+            );
             let countStatusPages = statusPageRows.length;
 
             expect(countStatusPages).toEqual(10);
@@ -182,14 +188,14 @@ describe('StatusPage API With SubProjects', () => {
             await init.pageWaitForSelector(page, `#btnNext-${subProjectName}`);
             await init.pageClick(page, `#btnNext-${subProjectName}`);
 
-            statusPageRows = await page.$$('tr.statusPageListItem');
+            statusPageRows = await init.page$$(page, 'tr.statusPageListItem');
             countStatusPages = statusPageRows.length;
             expect(countStatusPages).toEqual(2);
 
             await init.pageWaitForSelector(page, `#btnPrev-${subProjectName}`);
             await init.pageClick(page, `#btnPrev-${subProjectName}`);
 
-            statusPageRows = await page.$$('tr.statusPageListItem');
+            statusPageRows = await init.page$$(page, 'tr.statusPageListItem');
             countStatusPages = statusPageRows.length;
 
             expect(countStatusPages).toEqual(10);
@@ -212,7 +218,8 @@ describe('StatusPage API With SubProjects', () => {
 
             await init.pageWaitForSelector(page, '#customTabList > li');
             // navigate to branding tab
-            await page.$$eval(
+            await init.page$$Eval(
+                page,
                 '#customTabList > li',
                 elem => elem[3].click() //Branding is in fourth tab
             );
@@ -233,9 +240,15 @@ describe('StatusPage API With SubProjects', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await init.pageWaitForSelector(page, '#customTabList > li');
             // navigate to branding tab
-            await page.$$eval('#customTabList > li', elem => elem[3].click());
+            await init.page$$Eval(page, '#customTabList > li', elem =>
+                elem[3].click()
+            );
             await init.pageWaitForSelector(page, '#title');
-            const title = await page.$eval('#title', elem => elem.value);
+            const title = await init.page$Eval(
+                page,
+                '#title',
+                elem => elem.value
+            );
 
             expect(title).toMatch(pageTitle);
 
@@ -256,7 +269,8 @@ describe('StatusPage API With SubProjects', () => {
             await init.pageClick(page, 'tr.statusPageListItem');
             await init.pageWaitForSelector(page, '#customTabList > li');
             // navigate to advanced options
-            await page.$$eval(
+            await init.page$$Eval(
+                page,
                 '#customTabList > li',
                 elem => elem[5].click() // Advanced is in sixth tab
             );
@@ -271,7 +285,10 @@ describe('StatusPage API With SubProjects', () => {
             await init.pageClick(page, '#statusPages');
 
             await init.pageWaitForSelector(page, 'tr.statusPageListItem');
-            const statusPageRows = await page.$$('tr.statusPageListItem');
+            const statusPageRows = await init.page$$(
+                page,
+                'tr.statusPageListItem'
+            );
             const countStatusPages = statusPageRows.length;
 
             expect(countStatusPages).toEqual(10);

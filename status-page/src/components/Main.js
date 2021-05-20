@@ -24,7 +24,6 @@ import AffectedResources from './basic/AffectedResources';
 import NewThemeEvent from './NewThemeEvent';
 import NewThemeSubscriber from './NewThemeSubscriber';
 import Announcement from './Announcement';
-import { Fragment } from 'react';
 import AnnouncementLogs from './AnnouncementLogs';
 
 const greenBackground = {
@@ -405,7 +404,9 @@ class Main extends Component {
                         : degradedColor.backgroundColor;
             }
 
-            if (serviceStatus === 'all') {
+            if (this.props.ongoing && this.props.ongoing.length > 0) {
+                statusBackground = degradedColor;
+            } else if (serviceStatus === 'all') {
                 statusBackground = uptimeColor;
             } else if (serviceStatus === 'some' || serviceStatus === 'none') {
                 statusBackground = downtimeColor;
@@ -564,6 +565,86 @@ class Main extends Component {
                     </ShouldRender>
                 </>
             ),
+
+            ongoingSchedule:
+                this.props.ongoing &&
+                this.props.ongoing.length > 0 &&
+                this.props.statusData &&
+                this.props.statusData._id &&
+                this.props.ongoing.map(
+                    event =>
+                        !event.cancelled && (
+                            <div
+                                className="content"
+                                style={{
+                                    margin: '40px 0px',
+                                    cursor: 'pointer',
+                                }}
+                                key={event._id}
+                            >
+                                <div
+                                    className="ongoing__schedulebox"
+                                    style={{ padding: 0 }}
+                                >
+                                    <div
+                                        className="content box"
+                                        style={{
+                                            cursor: 'pointer',
+                                        }}
+                                        key={event._id}
+                                    >
+                                        <div
+                                            className="ongoing__schedulebox content box box__yellow--dark"
+                                            style={{
+                                                padding: '30px',
+                                                boxShadow:
+                                                    '0 7px 14px 0 rgb(50 50 93 / 10%)',
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    textTransform: 'uppercase',
+                                                    fontSize: 11,
+                                                    fontWeight: 900,
+                                                }}
+                                            >
+                                                Ongoing Scheduled Event
+                                            </div>
+                                            <div className="ongoing__scheduleitem">
+                                                <span>{event.name}</span>
+                                                <span>{event.description}</span>
+                                            </div>
+                                            <div className="ongoing__affectedmonitor">
+                                                <AffectedResources
+                                                    event={event}
+                                                    monitorState={
+                                                        this.props.monitorState
+                                                    }
+                                                />
+                                            </div>
+
+                                            <span
+                                                style={{
+                                                    display: 'inline-block',
+                                                    fontSize: 12,
+                                                    marginTop: 5,
+                                                }}
+                                            >
+                                                {moment(event.startDate).format(
+                                                    'MMMM Do YYYY, h:mm a'
+                                                )}
+                                                &nbsp;&nbsp;-&nbsp;&nbsp;
+                                                {moment(event.endDate).format(
+                                                    'MMMM Do YYYY, h:mm a'
+                                                )}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                ),
+
             resources: (
                 <div
                     className="sy-op"
@@ -762,6 +843,7 @@ class Main extends Component {
                             this.props.statusData.projectId._id
                         }
                         statusPageId={this.props.statusData}
+                        monitorState={this.props.monitorState}
                         theme={theme}
                     />
                 </div>
@@ -841,7 +923,10 @@ class Main extends Component {
                             ></span>
                             <div className="title-wrapper">
                                 <span className="title" style={heading}>
-                                    {statusMessage}
+                                    {this.props.ongoing &&
+                                    this.props.ongoing.length > 0
+                                        ? 'Ongoing Scheduled Maintenance Event'
+                                        : statusMessage}
                                 </span>
                                 <label
                                     className="status-time"
@@ -1129,6 +1214,7 @@ class Main extends Component {
                             this.props.statusData.projectId._id
                         }
                         statusPageId={this.props.statusData}
+                        monitorState={this.props.monitorState}
                     />
                 </div>
             ),
@@ -1229,7 +1315,37 @@ class Main extends Component {
                                     })}
                             </>
                         ) : (
-                            ''
+                            <div
+                                id="app-loading"
+                                style={{
+                                    position: 'fixed',
+                                    top: '0',
+                                    bottom: '0',
+                                    left: '0',
+                                    right: '0',
+                                    backgroundColor: '#fdfdfd',
+                                    zIndex: '999',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <div style={{ transform: 'scale(2)' }}>
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="bs-Spinner-svg"
+                                    >
+                                        <ellipse
+                                            cx="12"
+                                            cy="12"
+                                            rx="10"
+                                            ry="10"
+                                            className="bs-Spinner-ellipse"
+                                        ></ellipse>
+                                    </svg>
+                                </div>
+                            </div>
                         )}
 
                         <ShouldRender
@@ -1288,21 +1404,30 @@ class Main extends Component {
 
 Main.displayName = 'Main';
 
-const mapStateToProps = state => ({
-    status: state.status,
-    statusData: state.status.statusPage,
-    login: state.login,
-    activeProbe: state.status.activeProbe,
-    monitorState: state.status.statusPage.monitorsData,
-    monitors: state.status.statusPage.monitors,
-    probes: state.probe.probes,
-    events: state.status.events.events,
-    requestingEvents: state.status.events.requesting,
-    statusPage: state.status.statusPage,
-    isSubscriberEnabled: state.status.statusPage.isSubscriberEnabled,
-    scheduleHistoryDays: state.status.statusPage.scheduleHistoryDays,
-    ongoing: state.status.ongoing.ongoing,
-});
+const mapStateToProps = state => {
+    const ongoing =
+        state.status &&
+        state.status.ongoing &&
+        state.status.ongoing.ongoing &&
+        state.status.ongoing.ongoing.filter(
+            ongoingSchedule => !ongoingSchedule.cancelled
+        );
+    return {
+        status: state.status,
+        statusData: state.status.statusPage,
+        login: state.login,
+        activeProbe: state.status.activeProbe,
+        monitorState: state.status.statusPage.monitorsData,
+        monitors: state.status.statusPage.monitors,
+        probes: state.probe.probes,
+        events: state.status.events.events,
+        requestingEvents: state.status.events.requesting,
+        statusPage: state.status.statusPage,
+        isSubscriberEnabled: state.status.statusPage.isSubscriberEnabled,
+        scheduleHistoryDays: state.status.statusPage.scheduleHistoryDays,
+        ongoing,
+    };
+};
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(

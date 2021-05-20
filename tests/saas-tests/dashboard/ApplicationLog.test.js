@@ -17,6 +17,7 @@ describe('Log Containers', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -137,7 +138,11 @@ describe('Log Containers', () => {
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', appLogName);
-            await init.selectDropdownValue('#resourceCategory', categoryName, page);
+            await init.selectDropdownValue(
+                '#resourceCategory',
+                categoryName,
+                page
+            );
             await init.pageClick(page, 'button[type=submit]');
             // confirm the category shows in the details page.
             await init.pageWaitForSelector(page, `#${appLogName}-badge`, {
@@ -177,7 +182,8 @@ describe('Log Containers', () => {
                 '#form-new-application-log span#field-error',
                 { visible: true, timeout: init.timeout }
             );
-            let spanElement = await page.$(
+            let spanElement = await init.page$(
+                page,
                 '#form-new-application-log span#field-error'
             );
             spanElement = await spanElement.getProperty('innerText');

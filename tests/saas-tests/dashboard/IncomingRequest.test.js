@@ -24,6 +24,7 @@ describe('Incoming HTTP Request', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -67,12 +68,12 @@ describe('Incoming HTTP Request', () => {
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', incidentRequest.name);
-            await page.$eval('#createIncident', elem => elem.click());
+            await init.page$Eval(page, '#createIncident', elem => elem.click());
             await init.pageWaitForSelector(page, '#isDefault', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#isDefault', elem => elem.click());
+            await init.page$Eval(page, '#isDefault', elem => elem.click());
             await init.pageClick(page, '#advancedOptionsBtn');
             await init.pageWaitForSelector(page, '#incidentTitle', {
                 visible: true,

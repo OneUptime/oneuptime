@@ -26,6 +26,7 @@ describe('Fyipe Page Reload', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -71,8 +72,16 @@ describe('Fyipe Page Reload', () => {
 
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', containerSecurityName);
-            await init.selectDropdownValue('#resourceCategory', categoryName, page); // add category
-            await init.selectDropdownValue('#dockerCredential', dockerUsername, page);
+            await init.selectDropdownValue(
+                '#resourceCategory',
+                categoryName,
+                page
+            ); // add category
+            await init.selectDropdownValue(
+                '#dockerCredential',
+                dockerUsername,
+                page
+            );
             await init.pageType(page, '#imagePath', dockerImagePath); // select the created credential
             await init.pageType(page, '#imageTags', dockerImageTag);
             await init.pageClick(page, '#addContainerBtn');

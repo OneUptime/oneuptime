@@ -5,6 +5,7 @@
 saas:
   isMongoPrimaryBackupServiceEnabled: false
   isMongoSecondaryBackupServiceEnabled: false
+  exposeInitScriptContainer: false
   isSaasService: false
   stripe: 
     publicKey: #Stripe public and private key
@@ -212,6 +213,7 @@ host:
   accountsPort: 3003
   helmChartPort: 3423
   apiDocsPort: 1445
+  initScriptPort: 1447
   # if port 25 is avaialble and accessible
   # then we can use it as default port
   harakaPort: 2525
@@ -233,6 +235,7 @@ host:
   licensingServicePort: 80
   helmChartServicePort: 80
   httpTestServerServicePort: 80
+  initScriptServicePort: 80
   harakaServicePort: 2525
 
 isThirdPartyBilling: false

@@ -18,6 +18,7 @@ describe('Monitor Detail API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -60,7 +61,7 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const input = await page.$('#fileInput');
+            const input = await init.page$(page, '#fileInput');
             await input.uploadFile(csvFile);
             await input.evaluate(upload =>
                 upload.dispatchEvent(new Event('change', { bubbles: true }))
@@ -73,7 +74,10 @@ describe('Monitor Detail API', () => {
             const createdSubscriberSelector = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
-            const subscriberRows = await page.$$(createdSubscriberSelector);
+            const subscriberRows = await init.page$$(
+                page,
+                createdSubscriberSelector
+            );
             const countSubscribers = subscriberRows.length;
             expect(countSubscribers).toEqual(3);
             done();
@@ -101,7 +105,7 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const input = await page.$('#fileInput');
+            const input = await init.page$(page, '#fileInput');
             await input.uploadFile(emptyFile);
             await input.evaluate(upload =>
                 upload.dispatchEvent(new Event('change', { bubbles: true }))
@@ -140,7 +144,7 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const input = await page.$('#fileInput');
+            const input = await init.page$(page, '#fileInput');
             await input.uploadFile(csvFile);
             await input.evaluate(upload =>
                 upload.dispatchEvent(new Event('change', { bubbles: true }))
@@ -152,7 +156,10 @@ describe('Monitor Detail API', () => {
             const createdSubscriberSelector = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
-            const subscriberRows = await page.$$(createdSubscriberSelector);
+            const subscriberRows = await init.page$$(
+                page,
+                createdSubscriberSelector
+            );
             const countSubscribers = subscriberRows.length;
             expect(countSubscribers).toEqual(3);
             done();
@@ -180,7 +187,7 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const input = await page.$('#fileInput');
+            const input = await init.page$(page, '#fileInput');
             await input.uploadFile(existingSubscribers);
             await input.evaluate(upload =>
                 upload.dispatchEvent(new Event('change', { bubbles: true }))
@@ -192,7 +199,10 @@ describe('Monitor Detail API', () => {
             const createdSubscriberSelector = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
-            const subscriberRows = await page.$$(createdSubscriberSelector);
+            const subscriberRows = await init.page$$(
+                page,
+                createdSubscriberSelector
+            );
             const countSubscribers = subscriberRows.length;
             expect(countSubscribers).toEqual(4);
             done();
@@ -216,7 +226,7 @@ describe('Monitor Detail API', () => {
             let initialSubscribers = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, initialSubscribers);
-            initialSubscribers = await page.$$(initialSubscribers);
+            initialSubscribers = await init.page$$(page, initialSubscribers);
             const initialCount = initialSubscribers.length;
 
             await init.pageWaitForSelector(
@@ -234,7 +244,7 @@ describe('Monitor Detail API', () => {
             let finalSubscribers = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, finalSubscribers);
-            finalSubscribers = await page.$$(finalSubscribers);
+            finalSubscribers = await init.page$$(page, finalSubscribers);
             const finalCount = finalSubscribers.length;
 
             expect(finalCount).toEqual(3);
@@ -260,7 +270,7 @@ describe('Monitor Detail API', () => {
             let initialSubscribers = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, initialSubscribers);
-            initialSubscribers = await page.$$(initialSubscribers);
+            initialSubscribers = await init.page$$(page, initialSubscribers);
             const initialCount = initialSubscribers.length;
 
             await init.pageWaitForSelector(
@@ -275,7 +285,7 @@ describe('Monitor Detail API', () => {
             let finalSubscribers = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, finalSubscribers);
-            finalSubscribers = await page.$$(finalSubscribers);
+            finalSubscribers = await init.page$$(page, finalSubscribers);
             const finalCount = finalSubscribers.length;
 
             expect(finalCount).toEqual(3);

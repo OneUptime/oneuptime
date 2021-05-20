@@ -61,7 +61,8 @@ describe('Registration API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             await init.pageWaitForSelector(page, '#email_error');
-            const errorMsg = await page.$eval(
+            const errorMsg = await init.page$Eval(
+                page,
                 '#email_error',
                 elem => elem.textContent
             );
@@ -105,7 +106,8 @@ describe('Registration API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             await init.pageWaitForSelector(page, '#email_error');
-            const errorMsg = await page.$eval(
+            const errorMsg = await init.page$Eval(
+                page,
                 '#email_error',
                 elem => elem.textContent
             );
@@ -151,7 +153,8 @@ describe('Registration API', () => {
             await init.pageClick(page, '#signUpLink a');
 
             await init.pageWaitForSelector(page, 'input[name=email]');
-            const email = await page.$eval(
+            const email = await init.page$Eval(
+                page,
                 'input[name=email]',
                 element => element.value
             );
@@ -202,7 +205,8 @@ describe('Registration API', () => {
             await init.pageClick(page, '#signUpLink a');
 
             await init.pageWaitForSelector(page, 'input[name=email]');
-            const email = await page.$eval(
+            const email = await init.page$Eval(
+                page,
                 'input[name=email]',
                 element => element.value
             );
@@ -217,7 +221,8 @@ describe('Registration API', () => {
             await init.registerUser(user, page);
 
             await init.pageWaitForSelector(page, '#titleText');
-            const innerText = await page.$eval(
+            const innerText = await init.page$Eval(
+                page,
                 '#titleText',
                 elem => elem.innerText
             );
