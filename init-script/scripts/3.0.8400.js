@@ -6,7 +6,7 @@ async function run() {
     const monitors = await find(monitorCollection, {
         $or: [
             { slug: { $exists: false } },
-            { slug: { $regex: /[*+~.()'"!:@]+/g } },
+            { slug: { $regex: /[&*+~.,\\/()|'"!:@]+/g } },
         ],
     });
     for (let i = 0; i < monitors.length; i++) {

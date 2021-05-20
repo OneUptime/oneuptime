@@ -6,7 +6,7 @@ async function run() {
     const containerSecurities = await find(containerSecurityCollection, {
         $or: [
             { slug: { $exists: false } },
-            { slug: { $regex: /[*+~.()'"!:@]+/g } },
+            { slug: { $regex: /[&*+~.,\\/()|'"!:@]+/g } },
         ],
     });
     for (let i = 0; i < containerSecurities.length; i++) {
