@@ -59,7 +59,7 @@ const _this = {
                     timeout: _this.timeout,
                 }
             );
-            const stripeIframeElements = await page.$$(
+            const stripeIframeElements = await _this.page$$(page, 
                 '.__PrivateStripeElement > iframe'
             );
 
@@ -178,7 +178,7 @@ const _this = {
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
         });
-        const signUp = await page.$('#signUpLink');
+        const signUp = await _this.page$(page, '#signUpLink');
         if (signUp) {
             await page.goto(utils.ACCOUNTS_URL + '/register', {
                 waitUntil: 'networkidle2',
@@ -284,13 +284,13 @@ const _this = {
     selectDropdownValue: async function(selector, text, page) {
         await _this.pageClick(page, selector, { delay: 100 });
         await page.keyboard.type(text);
-        const noOption = await page.$('div.css-1gl4k7y');
+        const noOption = await _this.page$(page, 'div.css-1gl4k7y');
         if (!noOption) {
             await page.keyboard.type(String.fromCharCode(9)); //press tab
         }
     },
     clear: async function(selector, page) {
-        const input = await page.$(selector);
+        const input = await _this.page$(page, selector);
         await input.click({ clickCount: 3 });
         await input.type('');
     },
@@ -377,7 +377,7 @@ const _this = {
     },
     clickStatusPageUrl: async function(page) {
         await _this.pageWaitForSelector(page, '#publicStatusPageUrl');
-        let link = await page.$('#publicStatusPageUrl > span > a');
+        let link = await _this.page$(page, '#publicStatusPageUrl > span > a');
         link = await link.getProperty('href');
         link = await link.jsonValue();
         await page.goto(link, { waitUntil: ['networkidle2'] });
@@ -617,7 +617,7 @@ const _this = {
         });
     },
     addSubProject: async function(subProjectName, page) {
-        const subProjectNameSelector = await page.$('#btn_Add_SubProjects');
+        const subProjectNameSelector = await _this.page$(page, '#btn_Add_SubProjects');
         if (subProjectNameSelector) {
             await _this.pageWaitForSelector(page, '#btn_Add_SubProjects');
             await _this.pageClick(page, '#btn_Add_SubProjects');
@@ -870,7 +870,7 @@ const _this = {
         });
     },
     addIncidentToProject: async function(monitorName, projectName, page) {
-        const createIncidentSelector = await page.$(
+        const createIncidentSelector = await _this.page$(page, 
             `#btnCreateIncident_${projectName}`,
             { visible: true, timeout: _this.timeout }
         );
@@ -935,7 +935,7 @@ const _this = {
         });
     },
     addStatusPageToProject: async function(statusPageName, projectName, page) {
-        const createStatusPageSelector = await page.$(
+        const createStatusPageSelector = await _this.page$(page, 
             `#btnCreateStatusPage_${projectName}`
         );
         if (createStatusPageSelector) {
@@ -960,7 +960,7 @@ const _this = {
         });
     },
     addScheduleToProject: async function(scheduleName, projectName, page) {
-        const createStatusPageSelector = await page.$(
+        const createStatusPageSelector = await _this.page$(page, 
             `#btnCreateStatusPage_${projectName}`
         );
         if (createStatusPageSelector) {
@@ -1085,7 +1085,7 @@ const _this = {
                 'iframe[name=__privateStripeFrame5]'
             );
 
-            const elementHandle = await page.$(
+            const elementHandle = await _this.page$(page, 
                 'iframe[name=__privateStripeFrame5]'
             );
             const frame = await elementHandle.contentFrame();
@@ -1496,6 +1496,14 @@ const _this = {
     page$$Eval: async function(page, selector, evalFunction) {
         await _this.pageWaitForSelector(page, selector);
         return await page.$$eval(selector, evalFunction);
+    },
+    page$: async function(page, selector, opts) {
+        await _this.pageWaitForSelector(page, selector);
+        return await page.$(selector, opts);
+    },
+    page$$: async function(page, selector, opts) {
+        await _this.pageWaitForSelector(page, selector);
+        return await page.$$(selector, opts);
     },
     pageWaitForSelector: async function(page, selector, opts) {
         if (!opts) {

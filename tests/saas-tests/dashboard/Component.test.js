@@ -241,7 +241,7 @@ describe('Components', () => {
             await init.pageWaitForSelector(page, '#name');
             await init.page$Eval(page, 'button[type=submit]', e => e.click());
 
-            let spanElement = await page.$(
+            let spanElement = await init.page$(page, 
                 '#form-new-component span#field-error'
             );
             spanElement = await spanElement.getProperty('innerText');

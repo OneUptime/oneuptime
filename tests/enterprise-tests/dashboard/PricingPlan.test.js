@@ -80,7 +80,7 @@ describe('Status Page', () => {
                 elem.click()
             );
 
-            const modal = await page.$('#pricingPlanModal');
+            const modal = await init.page$(page, '#pricingPlanModal');
 
             expect(modal).toBeNull();
             done();

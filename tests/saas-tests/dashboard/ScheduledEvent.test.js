@@ -178,7 +178,7 @@ describe('Scheduled event', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const scheduledMaintenanceList = await page.$$(
+            const scheduledMaintenanceList = await init.page$$(page, 
                 '.scheduled-event-list-item'
             );
 

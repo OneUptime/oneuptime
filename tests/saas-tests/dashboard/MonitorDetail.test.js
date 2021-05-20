@@ -385,7 +385,7 @@ describe('Monitor Detail API', () => {
             // Total number of subscribers is rendered and not first 5.
             expect(countSubscribers).toEqual('6');
 
-            const nextSelector = await page.$('#btnNextSubscriber');
+            const nextSelector = await init.page$(page, '#btnNextSubscriber');
             await nextSelector.click();
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
@@ -400,7 +400,7 @@ describe('Monitor Detail API', () => {
             // Navigating to the next page did not affect the subscriber count.
             expect(countSubscribers).toEqual('6');
 
-            const prevSelector = await page.$('#btnPrevSubscriber');
+            const prevSelector = await init.page$(page, '#btnPrevSubscriber');
             await prevSelector.click();
             await init.pageWaitForSelector(page, createdSubscriberSelector);
 
@@ -533,7 +533,7 @@ describe('Monitor Detail API', () => {
             const createdWebhookSelector = '.msteam-length';
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            let webhookRows = await page.$$(createdWebhookSelector);
+            let webhookRows = await init.page$$(page, createdWebhookSelector);
             let countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(1);
@@ -549,7 +549,7 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            webhookRows = await page.$$(createdWebhookSelector);
+            webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(0);
@@ -606,7 +606,7 @@ describe('Monitor Detail API', () => {
             const createdWebhookSelector = '.msteam-length';
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            let webhookRows = await page.$$(createdWebhookSelector);
+            let webhookRows = await init.page$$(page, createdWebhookSelector);
             let countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(10);
@@ -621,7 +621,7 @@ describe('Monitor Detail API', () => {
             });
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            webhookRows = await page.$$(createdWebhookSelector);
+            webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
             expect(countWebhooks).toEqual(1);
 
@@ -635,7 +635,7 @@ describe('Monitor Detail API', () => {
             });
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            webhookRows = await page.$$(createdWebhookSelector);
+            webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(10);
@@ -756,7 +756,7 @@ describe('Monitor Detail API', () => {
             const createdWebhookSelector = '.slack-list';
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            let webhookRows = await page.$$(createdWebhookSelector);
+            let webhookRows = await init.page$$(page, createdWebhookSelector);
             let countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(1);
@@ -772,7 +772,7 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            webhookRows = await page.$$(createdWebhookSelector);
+            webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(0);
@@ -830,12 +830,12 @@ describe('Monitor Detail API', () => {
             const createdWebhookSelector = '.slack-list';
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            let webhookRows = await page.$$(createdWebhookSelector);
+            let webhookRows = await init.page$$(page, createdWebhookSelector);
             let countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(10);
 
-            const nextSelector = await page.$('#btnNextSlack');
+            const nextSelector = await init.page$(page, '#btnNextSlack');
 
             await nextSelector.click();
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -848,12 +848,12 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            webhookRows = await page.$$(createdWebhookSelector);
+            webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(1);
 
-            const prevSelector = await page.$('#btnPrevSlack');
+            const prevSelector = await init.page$(page, '#btnPrevSlack');
 
             await prevSelector.click();
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -866,7 +866,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            webhookRows = await page.$$(createdWebhookSelector);
+            webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(10);
@@ -966,7 +966,7 @@ describe('Monitor Detail API', () => {
             const createdWebhookSelector = '.webhook-list';
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            let webhookRows = await page.$$(createdWebhookSelector);
+            let webhookRows = await init.page$$(page, createdWebhookSelector);
             let countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(10);
@@ -985,7 +985,7 @@ describe('Monitor Detail API', () => {
             });
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
-            webhookRows = await page.$$(createdWebhookSelector);
+            webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
             expect(countWebhooks).toEqual(1);
 
@@ -999,7 +999,7 @@ describe('Monitor Detail API', () => {
             });
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            webhookRows = await page.$$(createdWebhookSelector);
+            webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(10);
@@ -1049,7 +1049,7 @@ describe('Monitor Detail API', () => {
                 }
             );
 
-            const lighthouseLogsRows = await page.$$(
+            const lighthouseLogsRows = await init.page$$(page, 
                 createdLighthouseLogsSelector
             );
             const countLighthouseLogs = lighthouseLogsRows.length;
@@ -1089,7 +1089,7 @@ describe('Monitor Detail API', () => {
             const createdLighthouseLogsSelector = '.lighthouseLogsListItem';
             await init.pageWaitForSelector(page, createdLighthouseLogsSelector);
 
-            const lighthouseLogsRows = await page.$$(
+            const lighthouseLogsRows = await init.page$$(page, 
                 createdLighthouseLogsSelector
             );
             const countLighthouseLogs = lighthouseLogsRows.length;
@@ -1129,7 +1129,7 @@ describe('Monitor Detail API', () => {
             const createdLighthouseLogsSelector = '.lighthouseLogsListItem';
             await init.pageWaitForSelector(page, createdLighthouseLogsSelector);
 
-            const lighthouseLogsRows = await page.$$(
+            const lighthouseLogsRows = await init.page$$(page, 
                 createdLighthouseLogsSelector
             );
             const countLighthouseLogs = lighthouseLogsRows.length;
@@ -1286,7 +1286,7 @@ describe('Monitor Detail API', () => {
                 '#performance #websiteIssuesList > tbody >tr.websiteIssuesListItem';
             await init.pageWaitForSelector(page, websiteIssuesSelector);
 
-            const websiteIssuesRows = await page.$$(websiteIssuesSelector);
+            const websiteIssuesRows = await init.page$$(page, websiteIssuesSelector);
             const countWebsiteIssues = websiteIssuesRows.length;
 
             expect(countWebsiteIssues).toBeGreaterThanOrEqual(1);
@@ -1358,7 +1358,7 @@ describe('Monitor Detail API', () => {
 
             const selector = `span#monitor-title-${newMonitorName}`;
 
-            const spanElement = await page.$(selector);
+            const spanElement = await init.page$(page, selector);
             expect(spanElement).toEqual(null);
             done();
         },

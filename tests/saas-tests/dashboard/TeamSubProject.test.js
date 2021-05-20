@@ -100,7 +100,7 @@ describe('Team API With SubProjects', () => {
             await init.pageWaitForSelector(page, `#btn_${projectName}`);
             await init.pageClick(page, `#btn_${projectName}`);
             await init.pageWaitForSelector(page, `#frm_${projectName}`);
-            const elementHandle = await page.$(`#${role}_${projectName}`);
+            const elementHandle = await init.page$(page, `#${role}_${projectName}`);
             expect(elementHandle).toEqual(null);
             done();
         },
@@ -120,7 +120,7 @@ describe('Team API With SubProjects', () => {
             await init.pageWaitForSelector(page, `#btn_${projectName}`);
             await init.pageClick(page, `#btn_${projectName}`);
             await init.pageWaitForSelector(page, `#frm_${projectName}`);
-            const elementHandle = await page.$(`#${role}_${projectName}`);
+            const elementHandle = await init.page$(page, `#${role}_${projectName}`);
             expect(elementHandle).toEqual(null);
 
             done();

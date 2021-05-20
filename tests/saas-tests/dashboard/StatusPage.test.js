@@ -329,7 +329,7 @@ describe('Status Page', () => {
     test('Should change status-page theme to Classic theme', async done => {
         await gotoTheFirstStatusPage(page);
         await init.themeNavigationAndConfirmation(page, 'Classic');
-        let link = await page.$('#publicStatusPageUrl > span > a');
+        let link = await init.page$(page, '#publicStatusPageUrl > span > a');
         link = await link.getProperty('href');
         link = await link.jsonValue();
         await page.goto(link);
@@ -347,7 +347,7 @@ describe('Status Page', () => {
             await gotoTheFirstStatusPage(page);
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            let link = await page.$('#publicStatusPageUrl > span > a');
+            let link = await init.page$(page, '#publicStatusPageUrl > span > a');
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);
@@ -509,7 +509,7 @@ describe('Status Page', () => {
                 timeout: init.timeout,
             });
             await init.pageWaitForSelector(page, '#customDomain');
-            const input = await page.$('#customDomain');
+            const input = await init.page$(page, '#customDomain');
             await input.click({ clickCount: 3 });
             await input.type(finalValue);
 
@@ -722,13 +722,13 @@ describe('Status Page', () => {
             await init.pageClick(page, '#react-tabs-2');
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            let link = await page.$('#publicStatusPageUrl > span > a');
+            let link = await init.page$(page, '#publicStatusPageUrl > span > a');
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);
             await init.pageWaitForSelector(page, '#customHeaderHTML > div');
 
-            let spanElement = await page.$('#customHeaderHTML > div');
+            let spanElement = await init.page$(page, '#customHeaderHTML > div');
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly('My header');
@@ -762,7 +762,7 @@ describe('Status Page', () => {
             await init.pageClick(page, '#react-tabs-2');
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            let link = await page.$('#publicStatusPageUrl > span > a');
+            let link = await init.page$(page, '#publicStatusPageUrl > span > a');
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);

@@ -68,8 +68,8 @@ describe('SMTP Settings API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             // All fields should validate false
-            expect((await page.$$('span.field-error')).length).toEqual(
-                (await page.$$('input')).length -
+            expect((await init.page$$(page, 'span.field-error')).length).toEqual(
+                (await init.page$$(page, 'input')).length -
                     4 /** There 10 input values and 6 span-errors */
             );
 
@@ -168,7 +168,7 @@ describe('SMTP Settings API', () => {
             await init.pageClick(page, '#confirmSmtpTest');
 
             await init.pageWaitForSelector(page, '#test-result');
-            let elem = await page.$('#test-result');
+            let elem = await init.page$(page, '#test-result');
             elem = await elem.getProperty('innerText');
             elem = await elem.jsonValue();
 
@@ -199,7 +199,7 @@ describe('SMTP Settings API', () => {
             await init.pageClick(page, '#confirmSmtpTest');
 
             await init.pageWaitForSelector(page, '#test-result');
-            let elem = await page.$('#test-result');
+            let elem = await init.page$(page, '#test-result');
             elem = await elem.getProperty('innerText');
             elem = await elem.jsonValue();
 

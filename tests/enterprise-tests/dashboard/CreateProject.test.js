@@ -54,7 +54,7 @@ describe('Enterprise Project API', () => {
                 utils.generateRandomString()
             );
 
-            const projectPlan = await page.$('input[id=Startup_month]');
+            const projectPlan = await init.page$(page, 'input[id=Startup_month]');
             expect(projectPlan).toBeDefined(); // Startup_month is part of the modal that gets popped out.
 
             await init.pageClick(page, 'button[type=submit]');

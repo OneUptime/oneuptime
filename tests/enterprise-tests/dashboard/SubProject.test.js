@@ -112,7 +112,7 @@ describe('Sub-Project API', () => {
             await init.pageClick(page, '#projectSettings');
             const editSubProjectName = utils.generateRandomString();
             await init.pageClick(page, `#sub_project_edit_${subProjectName}`);
-            const input = await page.$('#title');
+            const input = await init.page$(page, '#title');
             await input.click({ clickCount: 3 });
             await input.type(editSubProjectName);
             await init.pageClick(page, '#btnAddSubProjects');
@@ -143,7 +143,7 @@ describe('Sub-Project API', () => {
             await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#btn_Add_SubProjects');
-            const input = await page.$('#title');
+            const input = await init.page$(page, '#title');
             await input.click({ clickCount: 3 });
             await input.type(subProjectName);
             await init.pageClick(page, '#btnAddSubProjects');
@@ -208,7 +208,7 @@ describe('Sub-Project API', () => {
             await init.pageClick(page, 'button[title=apiKey]');
             await init.pageWaitForSelector(page, 'button[id=removeSubProject]');
             await init.pageClick(page, 'button[id=removeSubProject]');
-            let modalTitle = await page.$('span#modalTitle');
+            let modalTitle = await init.page$(page, 'span#modalTitle');
             modalTitle = await modalTitle.getProperty('innerText');
             modalTitle = await modalTitle.jsonValue();
             expect(modalTitle).toEqual('Confirm API Reset');
@@ -230,7 +230,7 @@ describe('Sub-Project API', () => {
             await init.pageClick(page, 'button[title=apiKey]');
             await init.pageWaitForSelector(page, 'span#apiKey');
             await init.pageClick(page, 'span#apiKey');
-            let oldApiKey = await page.$('span#apiKey');
+            let oldApiKey = await init.page$(page, 'span#apiKey');
             oldApiKey = await oldApiKey.getProperty('innerText');
             oldApiKey = await oldApiKey.jsonValue();
 
@@ -247,7 +247,7 @@ describe('Sub-Project API', () => {
             await init.pageClick(page, 'button[id=sub_project_api_key_0]');
             await init.pageWaitForSelector(page, 'span#apiKey');
             await init.pageClick(page, 'span#apiKey');
-            let newApiKey = await page.$('span#apiKey');
+            let newApiKey = await init.page$(page, 'span#apiKey');
             newApiKey = await newApiKey.getProperty('innerText');
             newApiKey = await newApiKey.jsonValue();
             expect(oldApiKey).not.toEqual(newApiKey);

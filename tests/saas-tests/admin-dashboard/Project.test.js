@@ -59,7 +59,7 @@ describe('Project', () => {
 
             await init.pageWaitForSelector(
                 page,
-                'input[name="planId"]#Enterprise',
+                '#Enterprise',
                 {
                     visible: true,
                     timeout: init.timeout,
@@ -68,7 +68,7 @@ describe('Project', () => {
 
             await init.page$Eval(
                 page,
-                'input[name="planId"]#Enterprise',
+                '#Enterprise',
                 elem => elem.click()
             );
             await init.page$Eval(page, '#submitChangePlan', elem =>
@@ -83,7 +83,7 @@ describe('Project', () => {
 
             const checked = await init.page$Eval(
                 page,
-                'input[name="planId"]#Enterprise',
+                '#Enterprise',
                 elem => elem.checked
             );
 

@@ -145,7 +145,7 @@ describe('Schedule', () => {
                 elem[0].click();
             });
 
-            let monitor = await page.$(
+            let monitor = await init.page$(page, 
                 `label[id=scheduleMonitor_0] > div.Checkbox-label > span > span[title=${monitorName}]`
             );
             monitor = await monitor.getProperty('innerText');

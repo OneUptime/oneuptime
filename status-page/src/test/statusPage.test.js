@@ -385,7 +385,7 @@ describe('Status page monitors check', function() {
         await page.waitForSelector('#scheduledEvents');
 
         await page.waitForSelector('li.scheduledEvent');
-        const scheduledEvents = await page.$$('li.scheduledEvent');
+        const scheduledEvents = await init.page$$(page, 'li.scheduledEvent');
         const countScheduledEvents = scheduledEvents.length;
 
         const scheduledEventName = await init.page$Eval(
@@ -401,7 +401,7 @@ describe('Status page monitors check', function() {
     it('should display ongoing scheduled event on status page', async function() {
         await page.reload({ waitUntil: 'networkidle0' });
         await page.waitForSelector('.ongoing__schedulebox');
-        const ongoingEvents = await page.$$('.ongoing__schedulebox');
+        const ongoingEvents = await init.page$$(page, '.ongoing__schedulebox');
 
         expect(ongoingEvents.length).to.be.equal(1);
     });
@@ -410,7 +410,7 @@ describe('Status page monitors check', function() {
         await page.reload({ waitUntil: 'networkidle0' });
         await page.waitForSelector('#scheduledEvents');
         await page.waitForSelector('li.scheduledEvent');
-        const events = await page.$$('li.scheduledEvent');
+        const events = await init.page$$(page, 'li.scheduledEvent');
         await events[0].click();
 
         await page.waitForSelector('#scheduledEventPage');
@@ -430,7 +430,7 @@ describe('Status page monitors check', function() {
 
         await page.reload({ waitUntil: 'networkidle0' });
         await page.waitForSelector('.messages li.feed-item');
-        const notes = await page.$$('.messages li.feed-item');
+        const notes = await init.page$$(page, '.messages li.feed-item');
         expect(notes.length).to.be.equal(1);
     });
 
@@ -450,7 +450,7 @@ describe('Status page monitors check', function() {
             visible: true,
             timeout: init.timeout,
         });
-        const scheduledEvents = await page.$$('li.scheduledEvent');
+        const scheduledEvents = await init.page$$(page, 'li.scheduledEvent');
         const countScheduledEvents = scheduledEvents.length;
 
         const scheduledEventName = await init.page$Eval(
@@ -476,7 +476,7 @@ describe('Status page monitors check', function() {
             waitUntil: 'networkidle0',
         });
 
-        const scheduledEvents = await page.$('#scheduledEvents');
+        const scheduledEvents = await init.page$(page, '#scheduledEvents');
 
         expect(scheduledEvents).to.be.equal(null);
     });
@@ -502,7 +502,7 @@ describe('Status page monitors check', function() {
     it('should navigate to incident page on status page', async function() {
         await page.reload({ waitUntil: 'networkidle0' });
         await page.waitForSelector('.incidentlist');
-        const incidents = await page.$$('.incidentlist');
+        const incidents = await init.page$$(page, '.incidentlist');
         await incidents[0].click();
 
         await page.waitForSelector('#incident');
@@ -522,7 +522,7 @@ describe('Status page monitors check', function() {
 
         await page.reload({ waitUntil: 'networkidle0' });
         await page.waitForSelector('#incidentNotes li.feed-item');
-        const notes = await page.$$('#incidentNotes li.feed-item');
+        const notes = await init.page$$(page, '#incidentNotes li.feed-item');
         expect(notes.length).to.be.equal(1);
     });
 

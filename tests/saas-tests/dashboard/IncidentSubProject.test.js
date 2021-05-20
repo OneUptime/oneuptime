@@ -110,7 +110,7 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const incidentTitleSelector = await page.$(
+            const incidentTitleSelector = await init.page$(page, 
                 '#incident_0  .bs-font-header'
             );
 
@@ -136,7 +136,7 @@ describe('Incident API With SubProjects', () => {
             // Navigate to details page of monitor
             await init.navigateToComponentDetails(newComponentName, page);
 
-            const incidentTitleSelector = await page.$(
+            const incidentTitleSelector = await init.page$(page, 
                 '#incident_0 .bs-font-header'
             );
             expect(incidentTitleSelector).toBeNull();
@@ -191,7 +191,7 @@ describe('Incident API With SubProjects', () => {
             );
 
             await init.pageWaitForSelector(page, '#incident_1');
-            const incidentTitleSelector = await page.$(
+            const incidentTitleSelector = await init.page$(page, 
                 '#incident_0 .bs-font-header'
             );
 
@@ -226,7 +226,7 @@ describe('Incident API With SubProjects', () => {
                 timeout: operationTimeOut,
             });
 
-            const acknowledgeTextSelector = await page.$('#AcknowledgeText_0');
+            const acknowledgeTextSelector = await init.page$(page, '#AcknowledgeText_0');
             expect(acknowledgeTextSelector).toBeDefined();
             await init.logout(page);
         },
@@ -252,7 +252,7 @@ describe('Incident API With SubProjects', () => {
                 timeout: operationTimeOut,
             });
 
-            const resolveTextSelector = await page.$('#ResolveText_0');
+            const resolveTextSelector = await init.page$(page, '#ResolveText_0');
             expect(resolveTextSelector).toBeDefined();
             await init.logout(page);
         },
@@ -314,7 +314,7 @@ describe('Incident API With SubProjects', () => {
             // click on incident notes tab
             await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
 
-            const internalMessage = await page.$(
+            const internalMessage = await init.page$(page, 
                 `#content_${type}_incident_message_0`
             );
             let internalContent = await internalMessage.getProperty(
@@ -353,7 +353,7 @@ describe('Incident API With SubProjects', () => {
             // click on incident notes tab
             await init.gotoTab(utils.incidentTabIndexes.INCIDENT_NOTES, page);
 
-            const investigationMessage = await page.$(
+            const investigationMessage = await init.page$(page, 
                 `#content_${type}_incident_message_0`
             );
             let investigationContent = await investigationMessage.getProperty(
@@ -438,7 +438,7 @@ describe('Incident API With SubProjects', () => {
                 '#incidentTimeline tr.incidentListItem',
                 { visible: true, timeout: init.timeout }
             );
-            let incidentTimelineRows = await page.$$(
+            let incidentTimelineRows = await init.page$$(page, 
                 '#incidentTimeline tr.incidentListItem'
             );
             let countIncidentTimelines = incidentTimelineRows.length;
@@ -453,7 +453,7 @@ describe('Incident API With SubProjects', () => {
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
-            incidentTimelineRows = await page.$$(
+            incidentTimelineRows = await init.page$$(page, 
                 '#incidentTimeline tr.incidentListItem'
             );
             countIncidentTimelines = incidentTimelineRows.length;
@@ -467,7 +467,7 @@ describe('Incident API With SubProjects', () => {
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
-            incidentTimelineRows = await page.$$(
+            incidentTimelineRows = await init.page$$(page, 
                 '#incidentTimeline tr.incidentListItem'
             );
             countIncidentTimelines = incidentTimelineRows.length;
@@ -496,7 +496,7 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const incidentRows = await page.$$('tr.incidentListItem');
+            const incidentRows = await init.page$$(page, 'tr.incidentListItem');
             const countIncidents = incidentRows.length;
             expect(countIncidents).toEqual(2);
             await init.logout(page);

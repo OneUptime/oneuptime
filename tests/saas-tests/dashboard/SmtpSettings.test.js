@@ -183,7 +183,7 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const port = await page.$('#port');
+            const port = await init.page$(page, '#port');
             await port.click({ clickCount: 3 });
             await port.press('Backspace'); // clear out the input field
             await init.pageClick(page, '#saveSmtp');
@@ -246,7 +246,7 @@ describe('Custom SMTP Settings', () => {
             await init.pageClick(page, 'label[id=showsmtpForm]');
             await init.pageClick(page, '#saveSmtp');
             await page.reload();
-            const username = await page.$('#user');
+            const username = await init.page$(page, '#user');
             expect(username).toBe(null);
 
             done();

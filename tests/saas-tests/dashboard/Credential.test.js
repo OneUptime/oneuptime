@@ -57,7 +57,7 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
-            const initialTableRow = await page.$$('tbody tr');
+            const initialTableRow = await init.page$$(page, 'tbody tr');
             await init.pageWaitForSelector(page, '#addCredentialBtn', {
                 visible: true,
                 timeout: init.timeout,
@@ -75,7 +75,7 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 hidden: true,
             });
-            const finalTableRow = await page.$$('tbody tr');
+            const finalTableRow = await init.page$$(page, 'tbody tr');
 
             expect(initialTableRow.length).toEqual(finalTableRow.length);
 
@@ -192,7 +192,7 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
-            const initialTableRow = await page.$$('tbody tr');
+            const initialTableRow = await init.page$$(page, 'tbody tr');
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
             await init.pageWaitForSelector(page, '#cancelCredentialDeleteBtn', {
@@ -203,7 +203,7 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '#deleteCredentialModal', {
                 hidden: true,
             });
-            const finalTableRow = await page.$$('tbody tr');
+            const finalTableRow = await init.page$$(page, 'tbody tr');
 
             expect(initialTableRow.length).toEqual(finalTableRow.length);
 
@@ -234,7 +234,7 @@ describe('Credential Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const initialTableRow = await page.$$('tbody tr');
+            const initialTableRow = await init.page$$(page, 'tbody tr');
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
             await init.pageWaitForSelector(page, '#deleteCredentialBtn', {
@@ -245,7 +245,7 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '#deleteCredentialModal', {
                 hidden: true,
             });
-            const finalTableRow = await page.$$('tbody tr');
+            const finalTableRow = await init.page$$(page, 'tbody tr');
 
             expect(initialTableRow.length).toBeGreaterThan(
                 finalTableRow.length
@@ -276,7 +276,7 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
-            const initialTableRow = await page.$$('tbody tr');
+            const initialTableRow = await init.page$$(page, 'tbody tr');
             await init.pageClick(page, '#addCredentialBtn');
 
             await init.pageWaitForSelector(page, '#dockerCredentialForm', {
@@ -289,7 +289,7 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '#dockerCredentialForm', {
                 hidden: true,
             });
-            const finalTableRow = await page.$$('tbody tr');
+            const finalTableRow = await init.page$$(page, 'tbody tr');
 
             expect(initialTableRow.length).toEqual(finalTableRow.length);
 
@@ -496,7 +496,7 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
-            const initialTableRow = await page.$$('tbody tr');
+            const initialTableRow = await init.page$$(page, 'tbody tr');
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
             await init.pageWaitForSelector(page, '#cancelCredentialDeleteBtn', {
@@ -507,7 +507,7 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '#deleteCredentialModal', {
                 hidden: true,
             });
-            const finalTableRow = await page.$$('tbody tr');
+            const finalTableRow = await init.page$$(page, 'tbody tr');
 
             expect(initialTableRow.length).toEqual(finalTableRow.length);
 
@@ -538,7 +538,7 @@ describe('Credential Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const initialTableRow = await page.$$('tbody tr');
+            const initialTableRow = await init.page$$(page, 'tbody tr');
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
             await init.pageWaitForSelector(page, '#deleteCredentialBtn', {
@@ -549,7 +549,7 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '#deleteCredentialModal', {
                 hidden: true,
             });
-            const finalTableRow = await page.$$('tbody tr');
+            const finalTableRow = await init.page$$(page, 'tbody tr');
 
             expect(initialTableRow.length).toBeGreaterThan(
                 finalTableRow.length

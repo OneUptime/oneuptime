@@ -291,7 +291,7 @@ describe('Check status-page up', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const monitor = await page.$$('.monitor-list');
+            const monitor = await init.page$$(page, '.monitor-list');
             const monitorLength = monitor.length;
             expect(monitorLength).toEqual(3);
 

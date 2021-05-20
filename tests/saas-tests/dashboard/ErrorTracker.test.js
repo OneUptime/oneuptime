@@ -148,7 +148,7 @@ describe('Error Trackers', () => {
                     timeout: init.timeout,
                 }
             );
-            let spanElement = await page.$(`#${newErrorTrackerName}-badge`);
+            let spanElement = await init.page$(page, `#${newErrorTrackerName}-badge`);
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
@@ -180,7 +180,7 @@ describe('Error Trackers', () => {
                 '#form-new-error-tracker span#field-error',
                 { visible: true, timeout: init.timeout }
             );
-            let spanElement = await page.$(
+            let spanElement = await init.page$(page, 
                 '#form-new-error-tracker span#field-error'
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -485,7 +485,7 @@ describe('Error Trackers', () => {
                 }
             );
             // confirm the new category shows in the details page.
-            let spanElement = await page.$(`#${errorTrackerName}-new-badge`);
+            let spanElement = await init.page$(page, `#${errorTrackerName}-new-badge`);
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
@@ -505,7 +505,7 @@ describe('Error Trackers', () => {
                 page
             );
 
-            let spanElement = await page.$(`#${errorTrackerName}-new-badge`);
+            let spanElement = await init.page$(page, `#${errorTrackerName}-new-badge`);
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
@@ -532,7 +532,7 @@ describe('Error Trackers', () => {
             });
 
             // go back to log details and confirm it is not there anymore
-            const spanElementBadge = await page.$(
+            const spanElementBadge = await init.page$(page, 
                 `#${errorTrackerName}-new-badge`,
                 { hidden: true }
             );

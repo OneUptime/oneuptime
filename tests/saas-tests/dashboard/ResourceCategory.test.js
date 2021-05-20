@@ -120,7 +120,7 @@ describe('Resource Category', () => {
                 page
             );
 
-            const noOption = await page.$('div.css-1gl4k7y');
+            const noOption = await init.page$(page, 'div.css-1gl4k7y');
 
             if (!noOption) {
                 resourceCategoryCheck = true;

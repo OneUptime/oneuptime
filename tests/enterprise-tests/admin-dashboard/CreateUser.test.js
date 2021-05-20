@@ -77,7 +77,7 @@ describe('Enterprise User API', () => {
             await init.pageClick(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, 'a.db-UserListRow');
 
-            const userRows = await page.$$('a.db-UserListRow');
+            const userRows = await init.page$$(page, 'a.db-UserListRow');
             const countUsers = userRows.length;
 
             expect(countUsers).toBeGreaterThanOrEqual(2);
@@ -139,24 +139,24 @@ describe('Enterprise User API', () => {
                 await init.pageClick(page, 'button[type=submit]');
             }
 
-            let userRows = await page.$$('a.db-UserListRow');
+            let userRows = await init.page$$(page, 'a.db-UserListRow');
             let countUsers = userRows.length;
 
             expect(countUsers).toEqual(10);
 
-            const nextSelector = await page.$('#btnNext');
+            const nextSelector = await init.page$(page, '#btnNext');
 
             await nextSelector.click();
 
-            userRows = await page.$$('a.db-UserListRow');
+            userRows = await init.page$$(page, 'a.db-UserListRow');
             countUsers = userRows.length;
             expect(countUsers).toBeGreaterThanOrEqual(2);
 
-            const prevSelector = await page.$('#btnPrev');
+            const prevSelector = await init.page$(page, '#btnPrev');
 
             await prevSelector.click();
 
-            userRows = await page.$$('a.db-UserListRow');
+            userRows = await init.page$$(page, 'a.db-UserListRow');
             countUsers = userRows.length;
             expect(countUsers).toEqual(10);
 

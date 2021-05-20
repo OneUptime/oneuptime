@@ -182,7 +182,7 @@ describe('Monitor API', () => {
 
         // add up criterion
         expect(
-            (await page.$$('[data-testId^=single_criterion_up')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_up')).length
         ).toEqual(1);
 
         let criterionAdvancedOption = await init.pageWaitForSelector(
@@ -193,37 +193,37 @@ describe('Monitor API', () => {
 
         await init.pageClick(page, '[data-testId=add_criteria_up]');
         expect(
-            (await page.$$('[data-testId^=single_criterion_up')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_up')).length
         ).toEqual(2);
 
         // add degraded criterion
         expect(
-            (await page.$$('[data-testId^=single_criterion_degraded]')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_degraded]')).length
         ).toEqual(1);
 
-        criterionAdvancedOption = await page.$(
+        criterionAdvancedOption = await init.page$(page, 
             '[data-testId=criterionAdvancedOptions_degraded]'
         );
         await criterionAdvancedOption.click();
 
         await init.pageClick(page, '[data-testId=add_criteria_degraded]');
         expect(
-            (await page.$$('[data-testId^=single_criterion_degraded]')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_degraded]')).length
         ).toEqual(2);
 
         // add down criterion
-        criterionAdvancedOption = await page.$(
+        criterionAdvancedOption = await init.page$(page, 
             '[data-testId=criterionAdvancedOptions_down]'
         );
         await criterionAdvancedOption.click();
 
         expect(
-            (await page.$$('[data-testId^=single_criterion_down]')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_down]')).length
         ).toEqual(1);
 
         await init.pageClick(page, '[data-testId=add_criteria_down]');
         expect(
-            (await page.$$('[data-testId^=single_criterion_down]')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_down]')).length
         ).toEqual(2);
 
         // add the monitor and check if the criteria are persisted
@@ -245,7 +245,7 @@ describe('Monitor API', () => {
             '[data-testId^=single_criterion_up]'
         );
         expect(
-            (await page.$$('[data-testId^=single_criterion_up')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_up')).length
         ).toEqual(2);
 
         // for degraded criteria
@@ -254,7 +254,7 @@ describe('Monitor API', () => {
             '[data-testId^=single_criterion_degraded]'
         );
         expect(
-            (await page.$$('[data-testId^=single_criterion_degraded]')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_degraded]')).length
         ).toEqual(2);
         // for down criteria
         await init.pageWaitForSelector(
@@ -262,7 +262,7 @@ describe('Monitor API', () => {
             '[data-testId^=single_criterion_down]'
         );
         expect(
-            (await page.$$('[data-testId^=single_criterion_down]')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_down]')).length
         ).toEqual(2);
         done();
     });
@@ -996,11 +996,11 @@ describe('API Monitor API', () => {
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(testMonitorName);
 
-            const probeTabs = await page.$$('button[id^=probes-btn]');
+            const probeTabs = await init.page$$(page, 'button[id^=probes-btn]');
             for (const probeTab of probeTabs) {
                 await probeTab.click();
 
-                let monitorStatusElement = await page.$(
+                let monitorStatusElement = await init.page$(page, 
                     `#monitor-status-${testMonitorName}`
                 );
                 if (monitorStatusElement) {
@@ -1038,7 +1038,7 @@ describe('API Monitor API', () => {
             await init.pageClick(page, '#advanceOptions');
 
             // for online criteria
-            const upFields = await page.$$(
+            const upFields = await init.page$$(page, 
                 `input[name*="up_"][name*=".field1"]`
             );
             const lastUpField = upFields[upFields.length - 1];
@@ -1049,7 +1049,7 @@ describe('API Monitor API', () => {
             expect(upExpression).toEqual("response.body.status === 'ok'");
 
             // for degraded criteria
-            const degradedFields = await page.$$(
+            const degradedFields = await init.page$$(page, 
                 `input[name*="degraded_"][name*=".field1"]`
             );
             const lastDegradedField = degradedFields[degradedFields.length - 1];
@@ -1101,11 +1101,11 @@ describe('API Monitor API', () => {
                 testMonitorName,
                 page
             );
-            const probeTabs = await page.$$('button[id^=probes-btn]');
+            const probeTabs = await init.page$$(page, 'button[id^=probes-btn]');
             for (const probeTab of probeTabs) {
                 await probeTab.click();
 
-                let monitorStatusElement = await page.$(
+                let monitorStatusElement = await init.page$(page, 
                     `#monitor-status-${testMonitorName}`
                 );
                 if (monitorStatusElement) {
@@ -1161,11 +1161,11 @@ describe('API Monitor API', () => {
                 page
             );
 
-            const probeTabs = await page.$$('button[id^=probes-btn]');
+            const probeTabs = await init.page$$(page, 'button[id^=probes-btn]');
             for (const probeTab of probeTabs) {
                 await probeTab.click();
 
-                let monitorStatusElement = await page.$(
+                let monitorStatusElement = await init.page$(page, 
                     `#monitor-status-${testMonitorName}`
                 );
                 if (monitorStatusElement) {
@@ -1218,11 +1218,11 @@ describe('API Monitor API', () => {
             page
         );
 
-        const probeTabs = await page.$$('button[id^=probes-btn]');
+        const probeTabs = await init.page$$(page, 'button[id^=probes-btn]');
         for (const probeTab of probeTabs) {
             await probeTab.click();
 
-            let monitorStatusElement = await page.$(
+            let monitorStatusElement = await init.page$(page, 
                 `#monitor-status-${testMonitorName}`
             );
             if (monitorStatusElement) {
@@ -1317,7 +1317,7 @@ describe('API Monitor API', () => {
             });
 
             const selector = `span#monitor-title-${testMonitorName}`;
-            const spanElement = await page.$(selector);
+            const spanElement = await init.page$(page, selector);
             expect(spanElement).toBeNull();
             done();
         },

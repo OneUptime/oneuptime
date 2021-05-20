@@ -46,7 +46,7 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const elementHandle = await page.$('#offline_0 > span > span');
+            const elementHandle = await init.page$(page, '#offline_0 > span > span');
             if (elementHandle) {
                 // Probe is offline
                 expect(elementHandle).toBeDefined();

@@ -76,10 +76,10 @@ describe('Monitor API With SubProjects', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#components');
-            const newComponentForm = await page.$('#form-new-component');
+            const newComponentForm = await init.page$(page, '#form-new-component');
             expect(newComponentForm).toEqual(null);
 
-            const newMonitorForm = await page.$('#form-new-monitor');
+            const newMonitorForm = await init.page$(page, '#form-new-monitor');
             expect(newMonitorForm).toEqual(null);
             await init.logout(page);
             // });
@@ -180,7 +180,7 @@ describe('Monitor API With SubProjects', () => {
             });
             await init.pageClick(page, '#components');
 
-            const projectBadgeSelector = await page.$(`#badge_${projectName}`);
+            const projectBadgeSelector = await init.page$(page, `#badge_${projectName}`);
 
             expect(projectBadgeSelector).toEqual(null);
 
@@ -188,7 +188,7 @@ describe('Monitor API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const subProjectBadgeSelector = await page.$(
+            const subProjectBadgeSelector = await init.page$(page, 
                 `#badge_${subProjectName}`
             );
             let textContent = await subProjectBadgeSelector.getProperty(
@@ -252,7 +252,7 @@ describe('Monitor API With SubProjects', () => {
             });
             await init.pageClick(page, '#cbMonitors');
             await init.pageWaitForSelector(page, `#badge_${subProjectName}`);
-            const subProjectBadgeSelector = await page.$(
+            const subProjectBadgeSelector = await init.page$(page, 
                 `#badge_${subProjectName}`
             );
 
