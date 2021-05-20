@@ -11529,6 +11529,7 @@ table {
     top: 5px;
     transform: translateX(-45%);
 }
+
 @media (max-width: 1335px)
 {
     .threeCardClass
@@ -11653,5 +11654,11 @@ table {
 @media only screen and (min-width: 1390px) and (max-width: 1400px) {
     .search-input{
         width: 270px!important;
+    }
+}
+@media only screen and (min-width: 1161px) and (max-width: 1390px){
+    .db-Topnav-wrap {
+        padding-left: 278px;
+        width: 100%!important;
     }
 }
