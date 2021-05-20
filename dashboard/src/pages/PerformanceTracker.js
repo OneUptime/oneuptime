@@ -24,20 +24,26 @@ class PerformanceTracker extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > PERFORMANCE MONITOR LIST'
             );
         }
+        const { currentProject, fetchComponent, componentSlug } = this.props;
+        if (currentProject) {
+            fetchComponent(currentProject._id, componentSlug);
+        }
     }
 
     componentDidUpdate(prevProps) {
         if (
-            JSON.stringify(prevProps.currentProject) !==
-                JSON.stringify(this.props.currentProject) ||
-            prevProps.componentId !== this.props.componentId
+            prevProps.currentProject !== this.props.currentProject ||
+            prevProps.componentId !== this.props.componentId ||
+            prevProps.componentSlug !== this.props.componentSlug
         ) {
             const componentId = this.props.componentId;
-            const projectId = this.props.currentProject
-                ? this.props.currentProject._id
-                : null;
+            const projectId =
+                this.props.currentProject && this.props.currentProject._id;
+            if (projectId) {
+                this.props.fetchComponent(projectId, this.props.componentSlug);
+            }
             if (projectId && componentId) {
-                this.props.fetchPerformanceTrackers({
+                fetchPerformanceTrackers({
                     projectId,
                     componentId,
                     skip: 0,
@@ -48,12 +54,9 @@ class PerformanceTracker extends Component {
     }
 
     ready = () => {
-        this.props.fetchComponent(this.props.componentSlug);
-
         const componentId = this.props.componentId;
-        const projectId = this.props.currentProject
-            ? this.props.currentProject._id
-            : null;
+        const projectId =
+            this.props.currentProject && this.props.currentProject._id;
         if (projectId && componentId) {
             this.props.fetchPerformanceTrackers({
                 projectId,

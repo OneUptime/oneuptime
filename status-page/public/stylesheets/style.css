@@ -1997,6 +1997,7 @@ margin-left:10px;
   border: 1px solid #dfe1df !important;
   display: block !important;
   text-align: center !important;
+  padding: 10px;
 }
 
 .cl_nolist {
@@ -2004,6 +2005,27 @@ margin-left:10px;
   font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
   font-size: 14px;
   color: rgba(76, 76, 76, 0.8);
+  padding: 10px;
+}
+
+.ct_header {
+  font-weight: bold;
+  color: rgba(76, 76, 76, 0.8);
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.ct_desc {
+  color: rgba(0, 0, 0, 0.5);
+  display: block;
+  text-align: justify;
+  font-size: 14px;
+  display: block;
+}
+
+.ct_time {
+  color: rgba(76, 76, 76, 0.8) !important;
+  margin-left: 0 !important;
 }
 
 @media screen and (max-width: 650px) {

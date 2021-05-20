@@ -1067,14 +1067,13 @@ export class PrivateStatusPage extends Component {
                                                                         <span>
                                                                             Show
                                                                             announcement
-                                                                            log
                                                                             history
                                                                             for{' '}
                                                                             <Field
                                                                                 component="input"
                                                                                 type="number"
                                                                                 min="1"
-                                                                                placeholder="limit"
+                                                                                placeholder="days"
                                                                                 className="db-BusinessSettings-input-60 TextInput bs-TextInput"
                                                                                 name={
                                                                                     'announcementLogsHistory'
@@ -1084,7 +1083,7 @@ export class PrivateStatusPage extends Component {
                                                                                     historyLimit
                                                                                 }
                                                                             />{' '}
-                                                                            limit
+                                                                            days
                                                                         </span>
                                                                         <label className="bs-Fieldset-explanation">
                                                                             <span>

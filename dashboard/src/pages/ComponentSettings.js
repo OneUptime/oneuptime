@@ -31,6 +31,17 @@ class ComponentSettings extends Component {
             fetchComponent(projectId, componentSlug);
         }
     }
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps.projectId !== this.props.projectId ||
+            prevProps.componentSlug !== this.props.componentSlug
+        ) {
+            const { projectId, fetchComponent, componentSlug } = this.props;
+            if (projectId) {
+                fetchComponent(projectId, componentSlug);
+            }
+        }
+    }
     render() {
         const {
             location: { pathname },

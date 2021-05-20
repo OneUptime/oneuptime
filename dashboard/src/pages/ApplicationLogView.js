@@ -34,10 +34,9 @@ class ApplicationLogView extends Component {
             componentId,
             fetchApplicationLogs,
         } = this.props;
-        const projectId = this.props.currentProject
-            ? this.props.currentProject._id
-            : null;
-        if (projectId) {
+        const projectId =
+            this.props.currentProject && this.props.currentProject._id;
+        if (projectId && componentId) {
             componentSlug && fetchComponent(projectId, componentSlug);
             componentId && fetchApplicationLogs(projectId, componentId);
         }
@@ -45,7 +44,9 @@ class ApplicationLogView extends Component {
 
     componentDidUpdate(prevProps) {
         if (
-            String(prevProps.componentSlug) !== String(this.props.componentSlug)
+            String(prevProps.componentSlug) !==
+                String(this.props.componentSlug) ||
+            prevProps.currentProject !== this.props.currentProject
         ) {
             if (
                 this.props.currentProject &&
@@ -59,7 +60,7 @@ class ApplicationLogView extends Component {
             }
         }
 
-        if (String(prevProps.componentId) !== String(this.props.componentId)) {
+        if (prevProps.componentId !== this.props.componentId) {
             if (
                 this.props.currentProject &&
                 this.props.currentProject._id &&
