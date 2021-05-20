@@ -140,12 +140,12 @@ const dockerCredential = {
 };
 
 const gitCredential = {
-    gitUsername: process.env.GITHUB_UNMASKED_USERNAME || 'fyipetest',
+    gitUsername: process.env.GITHUB_UNMASKED_USERNAME || 'adeoluwadavid',
     gitPassword:
-        process.env.GITHUB_UNMASKED_PASSWORD || 'FzUHPgxBGrqCuf68aaHjPqaFZH',
+        process.env.GITHUB_UNMASKED_PASSWORD || 'talodabijesu',
     gitRepositoryUrl:
         process.env.GITHUB_SECURITY_SCAN_REPOSITORY_URL ||
-        'https://github.com/twbs/bootstrap',
+        'https://github.com/adeoluwadavid/SocketIO',
 };
 
 const smtpCredential = {
