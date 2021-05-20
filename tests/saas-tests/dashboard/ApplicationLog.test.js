@@ -10,8 +10,7 @@ const user = {
     password: '1234567890',
 };
 const componentName = utils.generateRandomString();
-const applicationLogName = utils.generateRandomString();
-let applicationLogKey = '';
+const applicationLogName = 'AppLogName'
 
 describe('Log Containers', () => {
     const operationTimeOut = init.timeout;
