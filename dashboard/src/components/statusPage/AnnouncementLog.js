@@ -85,7 +85,7 @@ class AnnouncementLog extends Component {
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                             <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                <span>Announcement Logs</span>
+                                <span>Announcement History</span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 <span>

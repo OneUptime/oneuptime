@@ -24,7 +24,6 @@ import AffectedResources from './basic/AffectedResources';
 import NewThemeEvent from './NewThemeEvent';
 import NewThemeSubscriber from './NewThemeSubscriber';
 import Announcement from './Announcement';
-import { Fragment } from 'react';
 import AnnouncementLogs from './AnnouncementLogs';
 
 const greenBackground = {
@@ -844,6 +843,7 @@ class Main extends Component {
                             this.props.statusData.projectId._id
                         }
                         statusPageId={this.props.statusData}
+                        monitorState={this.props.monitorState}
                         theme={theme}
                     />
                 </div>
@@ -1214,6 +1214,7 @@ class Main extends Component {
                             this.props.statusData.projectId._id
                         }
                         statusPageId={this.props.statusData}
+                        monitorState={this.props.monitorState}
                     />
                 </div>
             ),
@@ -1314,7 +1315,37 @@ class Main extends Component {
                                     })}
                             </>
                         ) : (
-                            ''
+                            <div
+                                id="app-loading"
+                                style={{
+                                    position: 'fixed',
+                                    top: '0',
+                                    bottom: '0',
+                                    left: '0',
+                                    right: '0',
+                                    backgroundColor: '#fdfdfd',
+                                    zIndex: '999',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <div style={{ transform: 'scale(2)' }}>
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="bs-Spinner-svg"
+                                    >
+                                        <ellipse
+                                            cx="12"
+                                            cy="12"
+                                            rx="10"
+                                            ry="10"
+                                            className="bs-Spinner-ellipse"
+                                        ></ellipse>
+                                    </svg>
+                                </div>
+                            </div>
                         )}
 
                         <ShouldRender

@@ -5,6 +5,8 @@ import { connect } from 'react-redux';
 import Dashboard from '../components/Dashboard';
 import ScheduledEventBox from '../components/scheduledEvent/ScheduledEvent';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import ShouldRender from '../components/basic/ShouldRender';
+import { LoadingState } from '../components/basic/Loader';
 
 class ScheduledEvent extends Component {
     render() {
@@ -24,6 +26,9 @@ class ScheduledEvent extends Component {
                     <div id="scheduleEventsPage">
                         <ScheduledEventBox projectId={this.props.projectId} />
                     </div>
+                    <ShouldRender if={this.props.requesting}>
+                        <LoadingState />
+                    </ShouldRender>
                 </Fade>
             </Dashboard>
         );
@@ -36,6 +41,7 @@ const mapStateToProps = state => {
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
+        requesting: state.scheduledEvent.scheduledEventList.requesting,
     };
 };
 
@@ -44,6 +50,7 @@ ScheduledEvent.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    requesting: PropTypes.bool,
 };
 
 export default connect(mapStateToProps)(ScheduledEvent);

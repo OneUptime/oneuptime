@@ -23,7 +23,7 @@ class ConfirmResetLayout extends Component {
             case 'Escape':
                 return this.props.closeThisDialog();
             case 'Enter':
-                return this.deleteSubProject();
+                return this.props.data.resetLayoutToDefault();
             default:
                 return false;
         }
@@ -151,6 +151,7 @@ ConfirmResetLayout.propTypes = {
     statusPage: PropTypes.object,
     data: PropTypes.object,
     resetBrandingColors: PropTypes.func,
+    resetLayoutToDefault: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ConfirmResetLayout);

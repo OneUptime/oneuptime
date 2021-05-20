@@ -101,6 +101,22 @@ class DashboardView extends Component {
         if (prevProps.monitor.monitorsList.monitors.length === 0) {
             this.fetchMonitorResources();
         }
+        if (
+            String(prevProps.componentSlug) !==
+                String(this.props.componentSlug) ||
+            prevProps.currentProject !== this.props.currentProject
+        ) {
+            if (
+                this.props.currentProject &&
+                this.props.currentProject._id &&
+                this.props.componentSlug
+            ) {
+                this.props.fetchComponent(
+                    this.props.currentProject._id,
+                    this.props.componentSlug
+                );
+            }
+        }
     }
 
     componentWillUnmount() {

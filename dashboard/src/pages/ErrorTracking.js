@@ -37,7 +37,9 @@ class ErrorTracking extends Component {
     }
     componentDidUpdate(prevProps) {
         if (
-            String(prevProps.componentSlug) !== String(this.props.componentSlug)
+            String(prevProps.componentSlug) !==
+                String(this.props.componentSlug) ||
+            prevProps.currentProject !== this.props.currentProject
         ) {
             if (
                 this.props.currentProject &&
