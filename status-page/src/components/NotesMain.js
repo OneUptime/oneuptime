@@ -351,7 +351,6 @@ class NotesMain extends Component {
                         this.props.notesmessage
                     ) : (
                         <div>
-                            <span>No incidents so far.</span>
                             <div
                                 style={{
                                     display: 'flex',
