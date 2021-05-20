@@ -72,8 +72,8 @@ describe('SMTP Settings API', () => {
             const users = await init.page$$(page, '.bs-ObjectList-rows > a');
             await users[0].click();
 
-            const elem = await init.page$(page, '#disableUser2fa');
-            expect(elem).toEqual(null);
+            const elem = await init.isElementOnPage(page, '#disableUser2fa');
+            expect(elem).toEqual(false);
             done();
         },
         operationTimeOut

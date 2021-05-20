@@ -13,12 +13,14 @@ const user = {
     password,
 };
 
+let projectId = null;
+
 describe('Project', () => {
     const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
-        
+
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig, {
             waitUntil: 'networkidle2',
@@ -51,6 +53,10 @@ describe('Project', () => {
             await init.pageClick(page, '#projects');
             await init.page$Eval(page, '#projects > a', elem => elem.click());
             await init.pageWaitForSelector(page, '.Table > tbody tr');
+
+            var project = await init.pageWaitForSelector(page, '.projectId');
+            projectId = await (await project.getProperty('innerText')).jsonValue();
+
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
                 elem = Array.from(elem);
@@ -92,15 +98,11 @@ describe('Project', () => {
             await init.pageClick(page, '#projects');
             await init.page$Eval(page, '#projects > a', elem => elem.click());
             await init.pageWaitForSelector(page, '.Table > tbody tr');
-            await page.evaluate(() => {
-                let elem = document.querySelectorAll('.Table > tbody tr');
-                elem = Array.from(elem);
-                elem[0].click();
-            });
+            await init.pageClick(page, '#project-'+projectId);
 
             await init.pageWaitForSelector(
                 page,
-                'input[name="planId"]#Growth_annual',
+                '#Growth_annual',
                 {
                     visible: true,
                     timeout: init.timeout,
@@ -109,7 +111,7 @@ describe('Project', () => {
 
             await init.page$Eval(
                 page,
-                'input[name="planId"]#Growth_annual',
+                '#Growth_annual',
                 elem => elem.click()
             );
             await init.page$Eval(page, '#submitChangePlan', elem =>
@@ -124,7 +126,7 @@ describe('Project', () => {
 
             const checked = await init.page$Eval(
                 page,
-                'input[name="planId"]#Growth_annual',
+                '#Growth_annual',
                 elem => elem.checked
             );
 
