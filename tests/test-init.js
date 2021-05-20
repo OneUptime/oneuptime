@@ -286,7 +286,7 @@ const _this = {
         await page.keyboard.type(text);
         const noOption = await page.$('div.css-1gl4k7y');
         if (!noOption) {
-            await page.keyboard.press('Tab');
+            await page.keyboard.press('Tab'); //String.fromCharCode(9) could not press tab
         }
     },
     clear: async function(selector, page) {
